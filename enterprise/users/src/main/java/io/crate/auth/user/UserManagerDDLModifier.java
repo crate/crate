@@ -21,8 +21,8 @@ package io.crate.auth.user;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.UsersPrivilegesMetaData;
 import io.crate.metadata.cluster.DDLClusterStateModifier;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.MetaData;
+import io.crate.es.cluster.ClusterState;
+import io.crate.es.cluster.metadata.MetaData;
 
 import java.util.List;
 

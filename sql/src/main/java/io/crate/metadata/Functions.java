@@ -28,8 +28,8 @@ import com.google.common.collect.Multimap;
 import io.crate.expression.symbol.FuncArg;
 import io.crate.metadata.functions.params.FuncParams;
 import io.crate.types.DataType;
-import org.elasticsearch.common.collect.Tuple;
-import org.elasticsearch.common.inject.Inject;
+import io.crate.es.common.collect.Tuple;
+import io.crate.es.common.inject.Inject;
 
 import javax.annotation.Nullable;
 import java.util.Collection;

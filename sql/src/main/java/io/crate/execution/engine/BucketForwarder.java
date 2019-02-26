@@ -27,7 +27,7 @@ import io.crate.data.Bucket;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.jobs.PageBucketReceiver;
 import io.crate.execution.jobs.transport.JobResponse;
-import org.elasticsearch.action.ActionListener;
+import io.crate.es.action.ActionListener;
 
 import javax.annotation.Nonnull;
 import java.util.List;

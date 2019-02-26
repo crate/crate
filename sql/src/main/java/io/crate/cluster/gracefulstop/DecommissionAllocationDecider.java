@@ -23,13 +23,13 @@
 package io.crate.cluster.gracefulstop;
 
 import com.google.common.collect.ImmutableSet;
-import org.elasticsearch.cluster.routing.RoutingNode;
-import org.elasticsearch.cluster.routing.ShardRouting;
-import org.elasticsearch.cluster.routing.allocation.RoutingAllocation;
-import org.elasticsearch.cluster.routing.allocation.decider.AllocationDecider;
-import org.elasticsearch.cluster.routing.allocation.decider.Decision;
-import org.elasticsearch.common.settings.ClusterSettings;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.cluster.routing.RoutingNode;
+import io.crate.es.cluster.routing.ShardRouting;
+import io.crate.es.cluster.routing.allocation.RoutingAllocation;
+import io.crate.es.cluster.routing.allocation.decider.AllocationDecider;
+import io.crate.es.cluster.routing.allocation.decider.Decision;
+import io.crate.es.common.settings.ClusterSettings;
+import io.crate.es.common.settings.Settings;
 
 import java.util.Set;
 

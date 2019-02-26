@@ -33,9 +33,9 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Provider;
+import io.crate.es.cluster.ClusterState;
+import io.crate.es.common.inject.Inject;
+import io.crate.es.common.inject.Provider;
 
 import java.util.ArrayList;
 import java.util.Collections;

@@ -39,8 +39,8 @@ import io.crate.execution.engine.distribution.merge.SortedPagingIterator;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.TestingRowConsumer;
-import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.elasticsearch.common.breaker.NoopCircuitBreaker;
+import io.crate.es.common.breaker.CircuitBreaker;
+import io.crate.es.common.breaker.NoopCircuitBreaker;
 import org.junit.Test;
 
 import java.util.Collections;

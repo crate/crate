@@ -34,8 +34,8 @@ import io.netty.util.collection.ByteObjectHashMap;
 import io.netty.util.collection.IntObjectHashMap;
 import io.netty.util.collection.LongObjectHashMap;
 import io.netty.util.collection.ShortObjectHashMap;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.util.BigArrays;
+import io.crate.es.Version;
+import io.crate.es.common.util.BigArrays;
 
 import java.util.Collections;
 import java.util.Map;

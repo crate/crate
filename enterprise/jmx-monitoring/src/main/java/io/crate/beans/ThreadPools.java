@@ -18,24 +18,24 @@
 
 package io.crate.beans;
 
-import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.threadpool.ThreadPoolStats;
+import io.crate.es.threadpool.ThreadPool;
+import io.crate.es.threadpool.ThreadPoolStats;
 
 import javax.annotation.Nullable;
 import java.beans.ConstructorProperties;
 
-import static org.elasticsearch.threadpool.ThreadPool.Names.FETCH_SHARD_STARTED;
-import static org.elasticsearch.threadpool.ThreadPool.Names.FETCH_SHARD_STORE;
-import static org.elasticsearch.threadpool.ThreadPool.Names.FLUSH;
-import static org.elasticsearch.threadpool.ThreadPool.Names.FORCE_MERGE;
-import static org.elasticsearch.threadpool.ThreadPool.Names.GENERIC;
-import static org.elasticsearch.threadpool.ThreadPool.Names.GET;
-import static org.elasticsearch.threadpool.ThreadPool.Names.LISTENER;
-import static org.elasticsearch.threadpool.ThreadPool.Names.MANAGEMENT;
-import static org.elasticsearch.threadpool.ThreadPool.Names.REFRESH;
-import static org.elasticsearch.threadpool.ThreadPool.Names.SEARCH;
-import static org.elasticsearch.threadpool.ThreadPool.Names.SNAPSHOT;
-import static org.elasticsearch.threadpool.ThreadPool.Names.WRITE;
+import static io.crate.es.threadpool.ThreadPool.Names.FETCH_SHARD_STARTED;
+import static io.crate.es.threadpool.ThreadPool.Names.FETCH_SHARD_STORE;
+import static io.crate.es.threadpool.ThreadPool.Names.FLUSH;
+import static io.crate.es.threadpool.ThreadPool.Names.FORCE_MERGE;
+import static io.crate.es.threadpool.ThreadPool.Names.GENERIC;
+import static io.crate.es.threadpool.ThreadPool.Names.GET;
+import static io.crate.es.threadpool.ThreadPool.Names.LISTENER;
+import static io.crate.es.threadpool.ThreadPool.Names.MANAGEMENT;
+import static io.crate.es.threadpool.ThreadPool.Names.REFRESH;
+import static io.crate.es.threadpool.ThreadPool.Names.SEARCH;
+import static io.crate.es.threadpool.ThreadPool.Names.SNAPSHOT;
+import static io.crate.es.threadpool.ThreadPool.Names.WRITE;
 
 public class ThreadPools implements ThreadPoolsMXBean {
 

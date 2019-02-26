@@ -22,11 +22,11 @@
 
 package io.crate.monitor;
 
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.common.util.SingleObjectCache;
-import org.elasticsearch.monitor.os.OsProbe;
-import org.elasticsearch.monitor.os.OsStats;
+import io.crate.es.common.inject.Inject;
+import io.crate.es.common.unit.TimeValue;
+import io.crate.es.common.util.SingleObjectCache;
+import io.crate.es.monitor.os.OsProbe;
+import io.crate.es.monitor.os.OsStats;
 
 
 /**

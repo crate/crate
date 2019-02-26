@@ -49,7 +49,7 @@ import io.crate.planner.operators.SubQueryResults;
 import io.crate.planner.statement.CopyStatementPlanner;
 import io.crate.profile.ProfilingContext;
 import io.crate.profile.Timer;
-import org.elasticsearch.common.collect.MapBuilder;
+import io.crate.es.common.collect.MapBuilder;
 
 import javax.annotation.Nullable;
 import java.util.Collection;

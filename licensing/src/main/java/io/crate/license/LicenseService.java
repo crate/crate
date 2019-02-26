@@ -24,17 +24,17 @@ package io.crate.license;
 
 import io.crate.license.exception.InvalidLicenseException;
 import io.crate.settings.SharedSettings;
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.cluster.ClusterChangedEvent;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.ClusterStateListener;
-import org.elasticsearch.cluster.node.DiscoveryNodes;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.Nullable;
-import org.elasticsearch.common.component.AbstractLifecycleComponent;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.gateway.GatewayService;
+import io.crate.es.action.ActionListener;
+import io.crate.es.cluster.ClusterChangedEvent;
+import io.crate.es.cluster.ClusterState;
+import io.crate.es.cluster.ClusterStateListener;
+import io.crate.es.cluster.node.DiscoveryNodes;
+import io.crate.es.cluster.service.ClusterService;
+import io.crate.es.common.Nullable;
+import io.crate.es.common.component.AbstractLifecycleComponent;
+import io.crate.es.common.inject.Inject;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.gateway.GatewayService;
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;

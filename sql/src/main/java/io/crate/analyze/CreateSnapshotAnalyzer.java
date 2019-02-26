@@ -38,9 +38,9 @@ import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.Table;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.snapshots.Snapshot;
-import org.elasticsearch.snapshots.SnapshotId;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.snapshots.Snapshot;
+import io.crate.es.snapshots.SnapshotId;
 
 import java.util.HashSet;
 import java.util.Locale;

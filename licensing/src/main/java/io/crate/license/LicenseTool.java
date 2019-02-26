@@ -26,8 +26,8 @@ import io.crate.types.DataTypes;
 import joptsimple.ArgumentAcceptingOptionSpec;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
-import org.elasticsearch.common.logging.LogConfigurator;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.common.logging.LogConfigurator;
+import io.crate.es.common.settings.Settings;
 
 import javax.crypto.Cipher;
 import java.nio.file.Files;

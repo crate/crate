@@ -24,8 +24,8 @@ package io.crate.metadata.cluster;
 
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.common.inject.Singleton;
+import io.crate.es.cluster.ClusterState;
+import io.crate.es.common.inject.Singleton;
 
 import java.util.ArrayList;
 import java.util.List;

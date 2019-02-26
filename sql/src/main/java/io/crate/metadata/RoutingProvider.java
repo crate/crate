@@ -25,19 +25,19 @@ package io.crate.metadata;
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntIndexedContainer;
 import io.crate.exceptions.UnavailableShardsException;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.node.DiscoveryNodes;
-import org.elasticsearch.cluster.routing.IndexRoutingTable;
-import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
-import org.elasticsearch.cluster.routing.Murmur3HashFunction;
-import org.elasticsearch.cluster.routing.ShardIterator;
-import org.elasticsearch.cluster.routing.ShardRouting;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
-import org.elasticsearch.index.IndexNotFoundException;
-import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.index.shard.ShardNotFoundException;
+import io.crate.es.cluster.ClusterState;
+import io.crate.es.cluster.metadata.IndexMetaData;
+import io.crate.es.cluster.node.DiscoveryNode;
+import io.crate.es.cluster.node.DiscoveryNodes;
+import io.crate.es.cluster.routing.IndexRoutingTable;
+import io.crate.es.cluster.routing.IndexShardRoutingTable;
+import io.crate.es.cluster.routing.Murmur3HashFunction;
+import io.crate.es.cluster.routing.ShardIterator;
+import io.crate.es.cluster.routing.ShardRouting;
+import io.crate.es.common.collect.ImmutableOpenMap;
+import io.crate.es.index.IndexNotFoundException;
+import io.crate.es.index.shard.ShardId;
+import io.crate.es.index.shard.ShardNotFoundException;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
@@ -57,7 +57,7 @@ import static io.crate.metadata.Routing.forTableOnSingleNode;
  * {@link #forIndices(ClusterState, String[], Map, boolean, ShardSelection)}
  * will always return the same results for the same arguments, because {@code random} is used to fixate a seed.
  *
- * The implementation is similar to {@link org.elasticsearch.cluster.routing.OperationRouting}.
+ * The implementation is similar to {@link io.crate.es.cluster.routing.OperationRouting}.
  */
 public final class RoutingProvider {
 

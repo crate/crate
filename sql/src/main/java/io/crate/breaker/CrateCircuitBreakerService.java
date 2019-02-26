@@ -23,17 +23,17 @@ package io.crate.breaker;
 
 import io.crate.settings.CrateSetting;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.ClusterSettings;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.unit.ByteSizeValue;
-import org.elasticsearch.indices.breaker.AllCircuitBreakerStats;
-import org.elasticsearch.indices.breaker.BreakerSettings;
-import org.elasticsearch.indices.breaker.CircuitBreakerService;
-import org.elasticsearch.indices.breaker.CircuitBreakerStats;
+import io.crate.es.common.breaker.CircuitBreaker;
+import io.crate.es.common.inject.Inject;
+import io.crate.es.common.inject.Singleton;
+import io.crate.es.common.settings.ClusterSettings;
+import io.crate.es.common.settings.Setting;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.common.unit.ByteSizeValue;
+import io.crate.es.indices.breaker.AllCircuitBreakerStats;
+import io.crate.es.indices.breaker.BreakerSettings;
+import io.crate.es.indices.breaker.CircuitBreakerService;
+import io.crate.es.indices.breaker.CircuitBreakerStats;
 
 import java.util.Locale;
 import java.util.function.Consumer;

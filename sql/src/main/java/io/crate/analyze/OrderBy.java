@@ -25,9 +25,9 @@ import io.crate.collections.Lists2;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.planner.ExplainLeaf;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
+import io.crate.es.common.io.stream.StreamInput;
+import io.crate.es.common.io.stream.StreamOutput;
+import io.crate.es.common.io.stream.Writeable;
 
 import java.io.IOException;
 import java.util.ArrayList;

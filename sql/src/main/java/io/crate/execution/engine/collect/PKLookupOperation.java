@@ -40,16 +40,16 @@ import io.crate.expression.reference.doc.lucene.SourceFieldVisitor;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.PKAndVersion;
 import org.apache.lucene.index.Term;
-import org.elasticsearch.common.lucene.uid.VersionsAndSeqNoResolver;
-import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.index.IndexNotFoundException;
-import org.elasticsearch.index.IndexService;
-import org.elasticsearch.index.VersionType;
-import org.elasticsearch.index.engine.Engine;
-import org.elasticsearch.index.shard.IndexShard;
-import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.index.shard.ShardNotFoundException;
-import org.elasticsearch.indices.IndicesService;
+import io.crate.es.common.lucene.uid.VersionsAndSeqNoResolver;
+import io.crate.es.common.xcontent.XContentType;
+import io.crate.es.index.IndexNotFoundException;
+import io.crate.es.index.IndexService;
+import io.crate.es.index.VersionType;
+import io.crate.es.index.engine.Engine;
+import io.crate.es.index.shard.IndexShard;
+import io.crate.es.index.shard.ShardId;
+import io.crate.es.index.shard.ShardNotFoundException;
+import io.crate.es.indices.IndicesService;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -63,7 +63,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static org.elasticsearch.common.xcontent.XContentHelper.convertToMap;
+import static io.crate.es.common.xcontent.XContentHelper.convertToMap;
 
 public final class PKLookupOperation {
 

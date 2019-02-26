@@ -24,7 +24,7 @@ package io.crate.metadata.doc;
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.ColumnIdent;
 import io.crate.types.DataType;
-import org.elasticsearch.common.collect.Tuple;
+import io.crate.es.common.collect.Tuple;
 
 import java.util.Collection;
 import java.util.Collections;

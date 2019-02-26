@@ -21,18 +21,18 @@
 
 package io.crate.blob;
 
-import org.elasticsearch.action.support.replication.TransportReplicationAction;
-import org.elasticsearch.cluster.action.shard.ShardStateAction;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.routing.ShardIterator;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.shard.IndexShard;
-import org.elasticsearch.indices.IndicesService;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.TransportService;
+import io.crate.es.action.support.replication.TransportReplicationAction;
+import io.crate.es.cluster.action.shard.ShardStateAction;
+import io.crate.es.cluster.metadata.IndexMetaData;
+import io.crate.es.cluster.metadata.IndexNameExpressionResolver;
+import io.crate.es.cluster.routing.ShardIterator;
+import io.crate.es.cluster.service.ClusterService;
+import io.crate.es.common.inject.Inject;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.index.shard.IndexShard;
+import io.crate.es.indices.IndicesService;
+import io.crate.es.threadpool.ThreadPool;
+import io.crate.es.transport.TransportService;
 
 public class TransportStartBlobAction
     extends TransportReplicationAction<StartBlobRequest, StartBlobRequest, StartBlobResponse> {

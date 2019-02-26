@@ -27,10 +27,10 @@ import io.crate.blob.v2.BlobShard;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.index.shard.IndexShard;
-import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.index.store.StoreStats;
+import io.crate.es.cluster.service.ClusterService;
+import io.crate.es.index.shard.IndexShard;
+import io.crate.es.index.shard.ShardId;
+import io.crate.es.index.store.StoreStats;
 
 import javax.annotation.Nullable;
 import java.util.concurrent.TimeUnit;

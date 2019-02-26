@@ -34,7 +34,7 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.RestoreSnapshot;
 import io.crate.sql.tree.Table;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.common.settings.Settings;
 
 import java.util.HashSet;
 import java.util.List;

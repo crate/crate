@@ -33,8 +33,8 @@ import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.ReaderUtil;
-import org.elasticsearch.index.engine.Engine;
-import org.elasticsearch.index.fielddata.IndexFieldDataService;
+import io.crate.es.index.engine.Engine;
+import io.crate.es.index.fielddata.IndexFieldDataService;
 
 import java.io.IOException;
 import java.util.List;

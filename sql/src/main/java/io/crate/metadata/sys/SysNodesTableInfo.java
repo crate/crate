@@ -59,10 +59,10 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.StringType;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.http.HttpStats;
-import org.elasticsearch.monitor.fs.FsInfo;
-import org.elasticsearch.threadpool.ThreadPoolStats;
+import io.crate.es.cluster.ClusterState;
+import io.crate.es.http.HttpStats;
+import io.crate.es.monitor.fs.FsInfo;
+import io.crate.es.threadpool.ThreadPoolStats;
 
 import java.util.Map;
 

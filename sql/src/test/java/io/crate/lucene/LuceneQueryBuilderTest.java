@@ -27,7 +27,7 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.IndexVersionCreated;
 import io.crate.testing.QueryTester;
 import org.apache.lucene.search.Query;
-import org.elasticsearch.Version;
+import io.crate.es.Version;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;

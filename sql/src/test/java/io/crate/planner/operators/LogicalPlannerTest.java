@@ -38,7 +38,7 @@ import io.crate.planner.TableStats;
 import io.crate.planner.consumer.FetchMode;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.elasticsearch.cluster.service.ClusterService;
+import io.crate.es.cluster.service.ClusterService;
 import org.hamcrest.FeatureMatcher;
 import org.hamcrest.Matcher;
 import org.junit.Before;

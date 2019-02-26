@@ -27,7 +27,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
-import org.elasticsearch.common.bytes.BytesReference;
+import io.crate.es.common.bytes.BytesReference;
 
 import java.io.IOException;
 import java.util.List;

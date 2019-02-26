@@ -22,7 +22,7 @@
 package io.crate.action.sql.parser;
 
 
-import org.elasticsearch.common.xcontent.XContentParser;
+import io.crate.es.common.xcontent.XContentParser;
 
 import java.io.IOException;
 import java.util.ArrayList;

@@ -26,8 +26,8 @@ import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.GeoReference;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.Reference;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.Writeable;
+import io.crate.es.common.io.stream.StreamInput;
+import io.crate.es.common.io.stream.Writeable;
 
 import java.io.IOException;
 import java.util.List;

@@ -29,11 +29,11 @@ import io.crate.data.RowN;
 import io.crate.metadata.RelationName;
 import io.crate.plugin.SQLPlugin;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.settings.ClusterSettings;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.unit.TimeValue;
+import io.crate.es.cluster.service.ClusterService;
+import io.crate.es.common.settings.ClusterSettings;
+import io.crate.es.common.settings.Setting;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.common.unit.TimeValue;
 import org.junit.Test;
 import org.mockito.Answers;
 

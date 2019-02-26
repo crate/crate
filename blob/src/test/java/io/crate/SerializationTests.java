@@ -23,9 +23,9 @@ package io.crate;
 
 import io.crate.blob.PutChunkReplicaRequest;
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.common.bytes.BytesArray;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.StreamInput;
+import io.crate.es.common.bytes.BytesArray;
+import io.crate.es.common.io.stream.BytesStreamOutput;
+import io.crate.es.common.io.stream.StreamInput;
 import org.junit.Test;
 
 import java.util.UUID;

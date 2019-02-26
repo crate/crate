@@ -38,9 +38,9 @@ import io.crate.metadata.table.StoredTable;
 import io.crate.metadata.table.TableInfo;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.Version;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.common.collect.Tuple;
+import io.crate.es.Version;
+import io.crate.es.cluster.ClusterState;
+import io.crate.es.common.collect.Tuple;
 
 import javax.annotation.Nullable;
 import java.util.Collection;

@@ -23,7 +23,7 @@
 package io.crate.exceptions;
 
 
-import org.elasticsearch.snapshots.Snapshot;
+import io.crate.es.snapshots.Snapshot;
 
 import java.util.Locale;
 

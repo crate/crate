@@ -22,9 +22,9 @@
 package io.crate.expression.reference.sys.cluster;
 
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.node.DiscoveryNodes;
-import org.elasticsearch.cluster.service.ClusterService;
+import io.crate.es.cluster.ClusterState;
+import io.crate.es.cluster.node.DiscoveryNodes;
+import io.crate.es.cluster.service.ClusterService;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 

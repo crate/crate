@@ -19,9 +19,9 @@
 
 package io.crate.azure.management;
 
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.common.component.AbstractLifecycleComponent;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.ElasticsearchException;
+import io.crate.es.common.component.AbstractLifecycleComponent;
+import io.crate.es.common.settings.Settings;
 
 /**
  *

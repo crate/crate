@@ -33,7 +33,7 @@ import io.crate.sql.tree.AlterUser;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.QualifiedName;
-import org.elasticsearch.common.Nullable;
+import io.crate.es.common.Nullable;
 
 import java.util.HashMap;
 import java.util.List;

@@ -21,10 +21,11 @@
 
 package io.crate.analyze;
 
+import io.crate.es.common.settings.SettingsException;
 import io.crate.metadata.FulltextAnalyzerResolver;
-import org.elasticsearch.common.Nullable;
-import org.elasticsearch.common.collect.Tuple;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.common.Nullable;
+import io.crate.es.common.collect.Tuple;
+import io.crate.es.common.settings.Settings;
 
 import java.util.HashMap;
 import java.util.List;
@@ -256,7 +257,7 @@ public class CreateAnalyzerAnalyzedStatement extends AbstractDDLAnalyzedStatemen
      * build settings ready for putting into clusterstate
      *
      * @return the analyzer settings corresponding to the analyzed <tt>CREATE ANALYZER</tt> statement
-     * @throws org.elasticsearch.common.settings.SettingsException in case we can't build the settings yet
+     * @throws SettingsException in case we can't build the settings yet
      */
     public Settings buildSettings() {
         Settings.Builder builder = Settings.builder();

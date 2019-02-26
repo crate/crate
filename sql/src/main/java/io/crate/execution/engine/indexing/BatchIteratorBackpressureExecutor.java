@@ -23,8 +23,8 @@
 package io.crate.execution.engine.indexing;
 
 import io.crate.data.BatchIterator;
-import org.elasticsearch.action.bulk.BackoffPolicy;
-import org.elasticsearch.common.unit.TimeValue;
+import io.crate.es.action.bulk.BackoffPolicy;
+import io.crate.es.common.unit.TimeValue;
 
 import javax.annotation.Nullable;
 import java.util.Iterator;

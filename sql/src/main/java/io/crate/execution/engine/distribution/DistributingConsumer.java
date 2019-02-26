@@ -28,8 +28,8 @@ import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.exceptions.SQLExceptions;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
+import io.crate.es.action.ActionListener;
+import io.crate.es.common.util.concurrent.EsRejectedExecutionException;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;

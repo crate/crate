@@ -52,8 +52,8 @@ import io.crate.metadata.pgcatalog.PgCatalogTableDefinitions;
 import io.crate.metadata.sys.SysNodeChecksTableInfo;
 import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.sys.SysTableDefinitions;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
+import io.crate.es.cluster.service.ClusterService;
+import io.crate.es.common.inject.Inject;
 
 import java.util.Map;
 import java.util.function.Function;

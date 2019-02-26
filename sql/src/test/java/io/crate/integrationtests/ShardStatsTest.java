@@ -22,9 +22,9 @@
 package io.crate.integrationtests;
 
 import io.crate.blob.v2.BlobAdminClient;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.ESIntegTestCase;
+import io.crate.es.cluster.metadata.IndexMetaData;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.test.ESIntegTestCase;
 import org.junit.Test;
 
 import static io.crate.testing.TestingHelpers.printedTable;

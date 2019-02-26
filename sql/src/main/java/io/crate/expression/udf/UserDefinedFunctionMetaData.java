@@ -28,12 +28,12 @@ import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.SetType;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Streamable;
-import org.elasticsearch.common.xcontent.ToXContent;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentParser;
+import io.crate.es.common.io.stream.StreamInput;
+import io.crate.es.common.io.stream.StreamOutput;
+import io.crate.es.common.io.stream.Streamable;
+import io.crate.es.common.xcontent.ToXContent;
+import io.crate.es.common.xcontent.XContentBuilder;
+import io.crate.es.common.xcontent.XContentParser;
 
 import java.io.IOException;
 import java.util.ArrayList;

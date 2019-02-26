@@ -36,7 +36,7 @@ import io.crate.sql.tree.Node;
 import io.crate.sql.tree.StringLiteral;
 import io.crate.sql.tree.TokenFilters;
 import io.crate.sql.tree.Tokenizer;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.common.settings.Settings;
 
 import java.util.Locale;
 import java.util.Map;

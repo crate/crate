@@ -32,9 +32,9 @@ import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
+import io.crate.es.common.bytes.BytesReference;
+import io.crate.es.common.xcontent.XContentBuilder;
+import io.crate.es.common.xcontent.json.JsonXContent;
 import org.junit.Before;
 import org.junit.Test;
 

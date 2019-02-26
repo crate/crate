@@ -22,8 +22,8 @@
 package io.crate.metadata.blob;
 
 import io.crate.metadata.table.SchemaInfo;
-import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.inject.multibindings.MapBinder;
+import io.crate.es.common.inject.AbstractModule;
+import io.crate.es.common.inject.multibindings.MapBinder;
 
 public class MetaDataBlobModule extends AbstractModule {
 

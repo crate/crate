@@ -38,8 +38,8 @@ import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
-import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.elasticsearch.index.IndexService;
+import io.crate.es.common.breaker.CircuitBreaker;
+import io.crate.es.index.IndexService;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;

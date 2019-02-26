@@ -36,7 +36,7 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.threadpool.ThreadPool;
+import io.crate.es.threadpool.ThreadPool;
 import org.junit.Test;
 
 import java.util.ArrayList;

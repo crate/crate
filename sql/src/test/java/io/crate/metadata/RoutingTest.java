@@ -26,11 +26,11 @@ import com.carrotsearch.hppc.IntIndexedContainer;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.node.DiscoveryNodes;
-import org.elasticsearch.common.Randomness;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.StreamInput;
+import io.crate.es.cluster.node.DiscoveryNode;
+import io.crate.es.cluster.node.DiscoveryNodes;
+import io.crate.es.common.Randomness;
+import io.crate.es.common.io.stream.BytesStreamOutput;
+import io.crate.es.common.io.stream.StreamInput;
 import org.junit.Test;
 
 import java.io.IOException;

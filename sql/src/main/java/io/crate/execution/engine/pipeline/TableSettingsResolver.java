@@ -25,11 +25,11 @@ package io.crate.execution.engine.pipeline;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
-import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.IndexNotFoundException;
+import io.crate.es.cluster.metadata.IndexMetaData;
+import io.crate.es.cluster.metadata.IndexTemplateMetaData;
+import io.crate.es.cluster.metadata.MetaData;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.index.IndexNotFoundException;
 
 public final class TableSettingsResolver {
 

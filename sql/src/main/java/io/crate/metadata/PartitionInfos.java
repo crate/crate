@@ -31,11 +31,11 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.cluster.metadata.MappingMetaData;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.collect.Tuple;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.cluster.metadata.IndexMetaData;
+import io.crate.es.cluster.metadata.MappingMetaData;
+import io.crate.es.cluster.service.ClusterService;
+import io.crate.es.common.collect.Tuple;
+import io.crate.es.common.settings.Settings;
 
 import java.util.HashMap;
 import java.util.Iterator;

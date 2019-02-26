@@ -22,9 +22,9 @@
 package io.crate.types;
 
 import io.crate.Streamer;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Streamable;
+import io.crate.es.common.io.stream.StreamInput;
+import io.crate.es.common.io.stream.StreamOutput;
+import io.crate.es.common.io.stream.Streamable;
 
 import java.io.IOException;
 import java.util.Comparator;

@@ -40,7 +40,7 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.util.Bits;
-import org.elasticsearch.common.breaker.CircuitBreakingException;
+import io.crate.es.common.breaker.CircuitBreakingException;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;

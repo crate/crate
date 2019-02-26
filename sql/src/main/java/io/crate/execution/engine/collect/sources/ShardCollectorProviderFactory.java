@@ -32,11 +32,11 @@ import io.crate.execution.jobs.NodeJobsCounter;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Schemas;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.BigArrays;
-import org.elasticsearch.index.shard.IndexShard;
-import org.elasticsearch.threadpool.ThreadPool;
+import io.crate.es.cluster.service.ClusterService;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.common.util.BigArrays;
+import io.crate.es.index.shard.IndexShard;
+import io.crate.es.threadpool.ThreadPool;
 
 import static io.crate.blob.v2.BlobIndex.isBlobIndex;
 

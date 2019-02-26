@@ -44,8 +44,8 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
+import io.crate.es.common.inject.Inject;
+import io.crate.es.common.inject.Singleton;
 
 import java.util.ArrayList;
 import java.util.List;

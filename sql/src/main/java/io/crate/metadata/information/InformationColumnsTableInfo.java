@@ -38,7 +38,7 @@ import io.crate.types.FloatType;
 import io.crate.types.IntegerType;
 import io.crate.types.LongType;
 import io.crate.types.ShortType;
-import org.elasticsearch.common.collect.MapBuilder;
+import io.crate.es.common.collect.MapBuilder;
 
 import java.util.Map;
 

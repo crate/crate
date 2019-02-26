@@ -23,7 +23,7 @@
 package io.crate.execution.engine.indexing;
 
 import io.crate.execution.dml.ShardRequest;
-import org.elasticsearch.index.shard.ShardId;
+import io.crate.es.index.shard.ShardId;
 
 import java.util.ArrayList;
 import java.util.HashMap;

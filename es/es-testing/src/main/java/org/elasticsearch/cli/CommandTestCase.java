@@ -19,7 +19,7 @@
 
 package org.elasticsearch.cli;
 
-import org.elasticsearch.test.ESTestCase;
+import io.crate.es.test.ESTestCase;
 import org.junit.Before;
 
 /**

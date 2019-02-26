@@ -27,11 +27,11 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
 import io.crate.test.CauseMatcher;
 import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.plugins.Plugin;
-import org.elasticsearch.plugins.PluginsService;
-import org.elasticsearch.test.ESIntegTestCase;
+import io.crate.es.cluster.service.ClusterService;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.plugins.Plugin;
+import io.crate.es.plugins.PluginsService;
+import io.crate.es.test.ESIntegTestCase;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -44,7 +44,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-import static org.elasticsearch.client.Requests.clusterHealthRequest;
+import static io.crate.es.client.Requests.clusterHealthRequest;
 import static org.hamcrest.Matchers.is;
 
 @ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST, numDataNodes = 0, numClientNodes = 0)

@@ -24,9 +24,9 @@ package io.crate.blob;
 import io.crate.common.Hex;
 import io.netty.buffer.ByteBuf;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.client.Client;
+import io.crate.es.client.Client;
 import org.apache.logging.log4j.LogManager;
-import org.elasticsearch.transport.netty4.Netty4Utils;
+import io.crate.es.transport.netty4.Netty4Utils;
 
 import java.util.UUID;
 

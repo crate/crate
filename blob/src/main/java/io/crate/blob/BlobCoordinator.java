@@ -22,7 +22,7 @@
 
 package io.crate.blob;
 
-import org.elasticsearch.cluster.routing.Murmur3HashFunction;
+import io.crate.es.cluster.routing.Murmur3HashFunction;
 
 import java.util.concurrent.Semaphore;
 

@@ -21,7 +21,7 @@
 
 package io.crate.types;
 
-import org.elasticsearch.common.network.InetAddresses;
+import io.crate.es.common.network.InetAddresses;
 
 import java.util.Locale;
 

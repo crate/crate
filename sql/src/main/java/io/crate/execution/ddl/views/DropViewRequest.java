@@ -23,17 +23,17 @@
 package io.crate.execution.ddl.views;
 
 import io.crate.metadata.RelationName;
-import org.elasticsearch.action.ActionRequestValidationException;
-import org.elasticsearch.action.support.master.MasterNodeRequest;
-import org.elasticsearch.cluster.ack.AckedRequest;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.unit.TimeValue;
+import io.crate.es.action.ActionRequestValidationException;
+import io.crate.es.action.support.master.MasterNodeRequest;
+import io.crate.es.cluster.ack.AckedRequest;
+import io.crate.es.common.io.stream.StreamInput;
+import io.crate.es.common.io.stream.StreamOutput;
+import io.crate.es.common.unit.TimeValue;
 
 import java.io.IOException;
 import java.util.List;
 
-import static org.elasticsearch.action.support.master.AcknowledgedRequest.DEFAULT_ACK_TIMEOUT;
+import static io.crate.es.action.support.master.AcknowledgedRequest.DEFAULT_ACK_TIMEOUT;
 
 public class DropViewRequest extends MasterNodeRequest<DropViewRequest> implements AckedRequest {
 

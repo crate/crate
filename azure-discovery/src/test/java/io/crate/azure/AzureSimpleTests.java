@@ -23,15 +23,14 @@ import io.crate.azure.management.AzureComputeService.Discovery;
 import io.crate.azure.management.AzureComputeService.Management;
 import io.crate.azure.plugin.AzureDiscoveryPlugin;
 import io.crate.plugin.HttpTransportPlugin;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.plugins.Plugin;
-import org.elasticsearch.test.ESIntegTestCase;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.plugins.Plugin;
+import io.crate.es.test.ESIntegTestCase;
 import org.junit.Test;
 
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 
 import static org.hamcrest.Matchers.notNullValue;
 

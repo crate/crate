@@ -27,11 +27,11 @@ import io.crate.module.EnterpriseFunctionsModule;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.IntegerType;
-import org.elasticsearch.common.inject.ModulesBuilder;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.util.BigArrays;
-import org.elasticsearch.search.aggregations.metrics.cardinality.HyperLogLogPlusPlus;
+import io.crate.es.common.inject.ModulesBuilder;
+import io.crate.es.common.io.stream.BytesStreamOutput;
+import io.crate.es.common.io.stream.StreamInput;
+import io.crate.es.common.util.BigArrays;
+import io.crate.es.search.aggregations.metrics.cardinality.HyperLogLogPlusPlus;
 import org.junit.Before;
 import org.junit.Test;
 

@@ -23,8 +23,8 @@
 package io.crate.metadata.blob;
 
 import io.crate.metadata.RelationName;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.common.inject.ImplementedBy;
+import io.crate.es.cluster.ClusterState;
+import io.crate.es.common.inject.ImplementedBy;
 
 /**
  * Similar to {@link io.crate.metadata.doc.DocTableInfoFactory} this is a factory to create BlobTableInfos'

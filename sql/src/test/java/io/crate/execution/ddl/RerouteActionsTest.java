@@ -41,10 +41,10 @@ import io.crate.sql.tree.QualifiedNameReference;
 import io.crate.sql.tree.StringLiteral;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteRequest;
-import org.elasticsearch.cluster.routing.allocation.command.AllocateReplicaAllocationCommand;
-import org.elasticsearch.cluster.routing.allocation.command.CancelAllocationCommand;
-import org.elasticsearch.cluster.routing.allocation.command.MoveAllocationCommand;
+import io.crate.es.action.admin.cluster.reroute.ClusterRerouteRequest;
+import io.crate.es.cluster.routing.allocation.command.AllocateReplicaAllocationCommand;
+import io.crate.es.cluster.routing.allocation.command.CancelAllocationCommand;
+import io.crate.es.cluster.routing.allocation.command.MoveAllocationCommand;
 import org.junit.Before;
 import org.junit.Test;
 

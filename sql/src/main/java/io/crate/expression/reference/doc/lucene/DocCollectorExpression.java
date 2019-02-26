@@ -26,8 +26,8 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.types.DataType;
 import org.apache.lucene.index.LeafReaderContext;
-import org.elasticsearch.common.xcontent.XContentHelper;
-import org.elasticsearch.common.xcontent.XContentType;
+import io.crate.es.common.xcontent.XContentHelper;
+import io.crate.es.common.xcontent.XContentType;
 
 import java.util.List;
 import java.util.Map;

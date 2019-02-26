@@ -22,8 +22,8 @@
 
 package io.crate.action;
 
-import org.elasticsearch.action.bulk.BackoffPolicy;
-import org.elasticsearch.common.unit.TimeValue;
+import io.crate.es.action.bulk.BackoffPolicy;
+import io.crate.es.common.unit.TimeValue;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;

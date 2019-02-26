@@ -21,9 +21,9 @@
 
 package io.crate.blob.v2;
 
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.index.Index;
-import org.elasticsearch.rest.RestStatus;
+import io.crate.es.ElasticsearchException;
+import io.crate.es.index.Index;
+import io.crate.es.rest.RestStatus;
 
 public class BlobsDisabledException extends ElasticsearchException {
 

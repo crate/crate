@@ -30,9 +30,9 @@ import io.crate.execution.jobs.kill.TransportKillAllNodeAction;
 import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.TestingRowConsumer;
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.transport.TransportService;
+import io.crate.es.action.ActionListener;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.transport.TransportService;
 import org.junit.Test;
 
 import java.util.concurrent.CompletableFuture;

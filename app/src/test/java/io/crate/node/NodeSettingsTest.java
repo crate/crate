@@ -28,8 +28,8 @@ import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.elasticsearch.env.Environment;
-import org.elasticsearch.node.internal.CrateSettingsPreparer;
+import io.crate.es.env.Environment;
+import io.crate.es.node.internal.CrateSettingsPreparer;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
@@ -48,9 +48,9 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.elasticsearch.env.Environment.PATH_DATA_SETTING;
-import static org.elasticsearch.env.Environment.PATH_HOME_SETTING;
-import static org.elasticsearch.env.Environment.PATH_LOGS_SETTING;
+import static io.crate.es.env.Environment.PATH_DATA_SETTING;
+import static io.crate.es.env.Environment.PATH_HOME_SETTING;
+import static io.crate.es.env.Environment.PATH_LOGS_SETTING;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 

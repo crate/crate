@@ -28,7 +28,7 @@ import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.metadata.TransactionContext;
-import org.elasticsearch.common.breaker.CircuitBreaker;
+import io.crate.es.common.breaker.CircuitBreaker;
 
 import javax.annotation.Nullable;
 import java.util.Collection;

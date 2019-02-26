@@ -22,12 +22,12 @@
 
 package io.crate.lucene;
 
-import org.elasticsearch.common.component.AbstractLifecycleComponent;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.mapper.BuilderFactory;
-import org.elasticsearch.indices.IndicesService;
+import io.crate.es.common.component.AbstractLifecycleComponent;
+import io.crate.es.common.inject.Inject;
+import io.crate.es.common.inject.Singleton;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.index.mapper.BuilderFactory;
+import io.crate.es.indices.IndicesService;
 
 import java.io.IOException;
 

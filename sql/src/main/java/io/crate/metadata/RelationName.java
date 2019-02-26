@@ -30,9 +30,9 @@ import io.crate.exceptions.InvalidSchemaNameException;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.sql.Identifiers;
 import io.crate.sql.tree.QualifiedName;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
+import io.crate.es.common.io.stream.StreamInput;
+import io.crate.es.common.io.stream.StreamOutput;
+import io.crate.es.common.io.stream.Writeable;
 
 import java.io.IOException;
 import java.util.List;

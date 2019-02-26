@@ -36,8 +36,8 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.planner.distribution.DistributionInfo;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
+import io.crate.es.common.io.stream.StreamInput;
+import io.crate.es.common.io.stream.StreamOutput;
 
 import javax.annotation.Nullable;
 import java.io.IOException;

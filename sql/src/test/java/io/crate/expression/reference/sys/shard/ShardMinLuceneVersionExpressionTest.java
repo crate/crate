@@ -24,8 +24,8 @@ package io.crate.expression.reference.sys.shard;
 
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.apache.lucene.util.Version;
-import org.elasticsearch.index.shard.DocsStats;
-import org.elasticsearch.index.shard.IndexShard;
+import io.crate.es.index.shard.DocsStats;
+import io.crate.es.index.shard.IndexShard;
 import org.junit.Test;
 
 import static org.hamcrest.CoreMatchers.is;

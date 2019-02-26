@@ -31,7 +31,7 @@ import io.crate.data.Row;
 import io.crate.execution.dsl.phases.FileUriCollectPhase;
 import io.crate.expression.InputRow;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.collect.Tuple;
+import io.crate.es.common.collect.Tuple;
 import org.apache.logging.log4j.LogManager;
 
 import javax.annotation.Nonnull;

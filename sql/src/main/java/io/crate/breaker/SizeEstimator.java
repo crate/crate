@@ -21,6 +21,8 @@
 
 package io.crate.breaker;
 
+import io.crate.es.common.breaker.CircuitBreaker;
+
 import javax.annotation.Nullable;
 
 /**
@@ -28,7 +30,7 @@ import javax.annotation.Nullable;
  * This is mainly used for circuit-breaking.
  * See
  *  - {@link RamAccountingContext} and
- *  - {@link org.elasticsearch.common.breaker.CircuitBreaker}
+ *  - {@link CircuitBreaker}
  *
  * This is best effort. the Actual size varies from JVM to JVM (32-bit vs 64-bit, compressed oop, etc.).
  * To get accurate values we'd have to integrate something like http://openjdk.java.net/projects/code-tools/jol/

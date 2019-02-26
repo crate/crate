@@ -21,7 +21,7 @@
 
 package io.crate.action.sql.parser;
 
-import org.elasticsearch.common.xcontent.XContentParser;
+import io.crate.es.common.xcontent.XContentParser;
 
 /**
  * This interface is for the {@link SQLRequestParser}

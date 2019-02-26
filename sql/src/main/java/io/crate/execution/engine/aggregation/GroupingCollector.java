@@ -32,8 +32,8 @@ import io.crate.data.RowN;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.types.DataType;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.util.BigArrays;
+import io.crate.es.Version;
+import io.crate.es.common.util.BigArrays;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;

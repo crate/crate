@@ -28,7 +28,7 @@ import io.crate.data.Row;
 import io.crate.data.join.CrossJoinBlockNLBatchIterator;
 import io.crate.data.join.CrossJoinNLBatchIterator;
 import io.crate.planner.node.dql.join.JoinType;
-import org.elasticsearch.common.breaker.NoopCircuitBreaker;
+import io.crate.es.common.breaker.NoopCircuitBreaker;
 import org.junit.Test;
 
 import java.util.Collections;

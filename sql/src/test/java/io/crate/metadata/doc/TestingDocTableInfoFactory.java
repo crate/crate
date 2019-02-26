@@ -25,8 +25,8 @@ package io.crate.metadata.doc;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RelationName;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import io.crate.es.cluster.ClusterState;
+import io.crate.es.cluster.metadata.IndexNameExpressionResolver;
 
 import java.util.Map;
 

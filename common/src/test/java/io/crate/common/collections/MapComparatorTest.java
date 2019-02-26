@@ -23,7 +23,7 @@
 package io.crate.common.collections;
 
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.common.lucene.BytesRefs;
+import io.crate.es.common.lucene.BytesRefs;
 import org.junit.Test;
 
 import java.util.HashMap;

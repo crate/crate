@@ -21,7 +21,7 @@
 
 package io.crate.integrationtests;
 
-import org.elasticsearch.test.ESIntegTestCase;
+import io.crate.es.test.ESIntegTestCase;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 0)
 public class JoinSingleNodeIntegrationTest extends JoinIntegrationTest {

@@ -24,13 +24,13 @@ package io.crate.execution.dml;
 
 import com.google.common.base.Objects;
 import com.google.common.collect.Iterators;
-import org.elasticsearch.action.support.replication.ReplicatedWriteRequest;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.lucene.uid.Versions;
-import org.elasticsearch.index.seqno.SequenceNumbers;
-import org.elasticsearch.index.shard.ShardId;
+import io.crate.es.action.support.replication.ReplicatedWriteRequest;
+import io.crate.es.common.io.stream.StreamInput;
+import io.crate.es.common.io.stream.StreamOutput;
+import io.crate.es.common.io.stream.Writeable;
+import io.crate.es.common.lucene.uid.Versions;
+import io.crate.es.index.seqno.SequenceNumbers;
+import io.crate.es.index.shard.ShardId;
 
 import java.io.IOException;
 import java.util.ArrayList;

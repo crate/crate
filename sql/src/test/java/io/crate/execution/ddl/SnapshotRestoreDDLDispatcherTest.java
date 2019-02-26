@@ -28,9 +28,9 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.action.admin.cluster.snapshots.get.GetSnapshotsResponse;
-import org.elasticsearch.snapshots.SnapshotId;
-import org.elasticsearch.snapshots.SnapshotInfo;
+import io.crate.es.action.admin.cluster.snapshots.get.GetSnapshotsResponse;
+import io.crate.es.snapshots.SnapshotId;
+import io.crate.es.snapshots.SnapshotInfo;
 import org.junit.Test;
 
 import java.util.Arrays;

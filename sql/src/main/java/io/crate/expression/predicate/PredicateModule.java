@@ -25,8 +25,8 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.FunctionResolver;
-import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.inject.multibindings.MapBinder;
+import io.crate.es.common.inject.AbstractModule;
+import io.crate.es.common.inject.multibindings.MapBinder;
 
 public class PredicateModule extends AbstractModule {
 

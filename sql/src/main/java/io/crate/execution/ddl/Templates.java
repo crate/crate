@@ -25,9 +25,9 @@ package io.crate.execution.ddl;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
-import org.elasticsearch.cluster.metadata.AliasMetaData;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
-import org.elasticsearch.common.compress.CompressedXContent;
+import io.crate.es.cluster.metadata.AliasMetaData;
+import io.crate.es.cluster.metadata.IndexTemplateMetaData;
+import io.crate.es.common.compress.CompressedXContent;
 
 import java.io.IOException;
 import java.util.Collections;

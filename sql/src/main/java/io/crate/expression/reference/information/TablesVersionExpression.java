@@ -25,7 +25,7 @@ package io.crate.expression.reference.information;
 import io.crate.common.collections.Maps;
 import io.crate.expression.reference.ObjectCollectExpression;
 import io.crate.metadata.RelationInfo;
-import org.elasticsearch.Version;
+import io.crate.es.Version;
 
 import java.util.Map;
 

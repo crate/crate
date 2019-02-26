@@ -21,7 +21,7 @@
  */
 
 description = 'The HDFS repository plugin adds support for Hadoop Distributed File-System (HDFS) repositories.'
-def classname = 'org.elasticsearch.repositories.hdfs.HdfsPlugin'
+def classname = 'io.crate.es.repositories.hdfs.HdfsPlugin'
 def plugin_repositoryhdfs_version = '1.0.0'
 
 configurations {

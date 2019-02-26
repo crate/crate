@@ -22,8 +22,8 @@
 
 package io.crate.expression.symbol;
 
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.StreamInput;
+import io.crate.es.common.io.stream.BytesStreamOutput;
+import io.crate.es.common.io.stream.StreamInput;
 import org.junit.Test;
 
 import java.io.IOException;

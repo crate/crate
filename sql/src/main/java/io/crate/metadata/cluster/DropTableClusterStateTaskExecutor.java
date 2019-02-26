@@ -25,12 +25,12 @@ package io.crate.metadata.cluster;
 import io.crate.execution.ddl.tables.DropTableRequest;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
-import org.elasticsearch.action.support.IndicesOptions;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.cluster.metadata.MetaDataDeleteIndexService;
-import org.elasticsearch.index.Index;
+import io.crate.es.action.support.IndicesOptions;
+import io.crate.es.cluster.ClusterState;
+import io.crate.es.cluster.metadata.IndexNameExpressionResolver;
+import io.crate.es.cluster.metadata.MetaData;
+import io.crate.es.cluster.metadata.MetaDataDeleteIndexService;
+import io.crate.es.index.Index;
 
 import java.util.Arrays;
 import java.util.HashSet;

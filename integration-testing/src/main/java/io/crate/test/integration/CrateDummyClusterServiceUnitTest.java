@@ -23,20 +23,20 @@
 package io.crate.test.integration;
 
 import com.google.common.collect.ImmutableSet;
-import org.elasticsearch.Version;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.NodeConnectionsService;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.node.DiscoveryNodes;
-import org.elasticsearch.cluster.service.ClusterApplierService;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.cluster.service.MasterService;
-import org.elasticsearch.common.settings.ClusterSettings;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.set.Sets;
-import org.elasticsearch.threadpool.TestThreadPool;
-import org.elasticsearch.threadpool.ThreadPool;
+import io.crate.es.Version;
+import io.crate.es.cluster.ClusterState;
+import io.crate.es.cluster.NodeConnectionsService;
+import io.crate.es.cluster.node.DiscoveryNode;
+import io.crate.es.cluster.node.DiscoveryNodes;
+import io.crate.es.cluster.service.ClusterApplierService;
+import io.crate.es.cluster.service.ClusterService;
+import io.crate.es.cluster.service.MasterService;
+import io.crate.es.common.settings.ClusterSettings;
+import io.crate.es.common.settings.Setting;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.common.util.set.Sets;
+import io.crate.es.threadpool.TestThreadPool;
+import io.crate.es.threadpool.ThreadPool;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -49,7 +49,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import static org.elasticsearch.test.ClusterServiceUtils.createClusterStatePublisher;
+import static io.crate.es.test.ClusterServiceUtils.createClusterStatePublisher;
 
 public class CrateDummyClusterServiceUnitTest extends CrateUnitTest {
 

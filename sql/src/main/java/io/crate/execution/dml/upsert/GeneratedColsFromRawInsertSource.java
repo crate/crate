@@ -29,11 +29,11 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.GeneratedReference;
-import org.elasticsearch.common.bytes.BytesArray;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.common.xcontent.XContentHelper;
-import org.elasticsearch.common.xcontent.XContentType;
+import io.crate.es.common.bytes.BytesArray;
+import io.crate.es.common.bytes.BytesReference;
+import io.crate.es.common.xcontent.XContentFactory;
+import io.crate.es.common.xcontent.XContentHelper;
+import io.crate.es.common.xcontent.XContentType;
 
 import java.io.IOException;
 import java.util.HashMap;

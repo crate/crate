@@ -28,9 +28,9 @@ import io.crate.common.Hex;
 import io.netty.buffer.ByteBuf;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.IOUtils;
-import org.elasticsearch.common.bytes.BytesReference;
+import io.crate.es.common.bytes.BytesReference;
 import org.apache.logging.log4j.LogManager;
-import org.elasticsearch.transport.netty4.Netty4Utils;
+import io.crate.es.transport.netty4.Netty4Utils;
 
 import java.io.Closeable;
 import java.io.File;

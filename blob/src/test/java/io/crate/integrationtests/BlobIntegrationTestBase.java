@@ -28,10 +28,10 @@ import io.crate.blob.v2.BlobShard;
 import io.crate.plugin.BlobPlugin;
 import io.crate.plugin.CrateCommonPlugin;
 import io.crate.plugin.HttpTransportPlugin;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.plugins.Plugin;
-import org.elasticsearch.test.ESIntegTestCase;
-import org.elasticsearch.transport.Netty4Plugin;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.plugins.Plugin;
+import io.crate.es.test.ESIntegTestCase;
+import io.crate.es.transport.Netty4Plugin;
 import org.junit.After;
 import org.junit.Before;
 
@@ -45,9 +45,9 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
-import static org.elasticsearch.http.HttpTransportSettings.SETTING_CORS_ALLOW_ORIGIN;
-import static org.elasticsearch.http.HttpTransportSettings.SETTING_CORS_ENABLED;
-import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_COMPRESSION;
+import static io.crate.es.http.HttpTransportSettings.SETTING_CORS_ALLOW_ORIGIN;
+import static io.crate.es.http.HttpTransportSettings.SETTING_CORS_ENABLED;
+import static io.crate.es.http.HttpTransportSettings.SETTING_HTTP_COMPRESSION;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.core.Is.is;
 

@@ -24,11 +24,11 @@ package io.crate.plugin;
 
 import io.crate.metadata.CustomMetaDataUpgraderLoader;
 import io.crate.module.CrateCommonModule;
-import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.common.inject.Module;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.IndexModule;
-import org.elasticsearch.plugins.Plugin;
+import io.crate.es.cluster.metadata.MetaData;
+import io.crate.es.common.inject.Module;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.index.IndexModule;
+import io.crate.es.plugins.Plugin;
 
 import java.util.Collection;
 import java.util.Collections;

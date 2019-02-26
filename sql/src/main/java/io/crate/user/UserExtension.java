@@ -22,10 +22,10 @@
 
 package io.crate.user;
 
-import org.elasticsearch.common.inject.Module;
-import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
+import io.crate.es.common.inject.Module;
+import io.crate.es.common.io.stream.NamedWriteableRegistry;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.common.xcontent.NamedXContentRegistry;
 
 import java.util.Collection;
 import java.util.List;

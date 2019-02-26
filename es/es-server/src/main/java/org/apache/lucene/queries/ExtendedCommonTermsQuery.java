@@ -23,8 +23,8 @@ import org.apache.lucene.index.Term;
 import org.apache.lucene.index.TermContext;
 import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.Query;
-import org.elasticsearch.common.lucene.search.Queries;
-import org.elasticsearch.index.mapper.MappedFieldType;
+import io.crate.es.common.lucene.search.Queries;
+import io.crate.es.index.mapper.MappedFieldType;
 
 /**
  * Extended version of {@link CommonTermsQuery} that allows to pass in a

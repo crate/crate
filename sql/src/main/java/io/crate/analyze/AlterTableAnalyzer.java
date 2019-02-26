@@ -32,8 +32,8 @@ import io.crate.sql.tree.AlterTable;
 import io.crate.sql.tree.AlterTableRename;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.Table;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.cluster.metadata.IndexMetaData;
+import io.crate.es.common.settings.Settings;
 
 import javax.annotation.Nullable;
 import java.util.List;

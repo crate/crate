@@ -25,9 +25,9 @@ package io.crate.expression.reference.sys.shard;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.execution.engine.collect.NestableCollectExpression;
 import org.apache.lucene.store.AlreadyClosedException;
-import org.elasticsearch.Version;
-import org.elasticsearch.index.shard.IllegalIndexShardStateException;
-import org.elasticsearch.index.shard.IndexShard;
+import io.crate.es.Version;
+import io.crate.es.index.shard.IllegalIndexShardStateException;
+import io.crate.es.index.shard.IndexShard;
 
 public class ShardMinLuceneVersionExpression extends NestableCollectExpression<ShardRowContext, String> {
 

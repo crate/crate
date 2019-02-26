@@ -26,10 +26,10 @@ import io.crate.plugin.PipelineRegistry;
 import io.netty.handler.ssl.SslContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Provider;
-import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.common.inject.Inject;
+import io.crate.es.common.inject.Provider;
+import io.crate.es.common.inject.Singleton;
+import io.crate.es.common.settings.Settings;
 
 import java.lang.reflect.InvocationTargetException;
 

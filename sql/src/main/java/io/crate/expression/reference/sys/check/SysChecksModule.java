@@ -25,8 +25,8 @@ import io.crate.expression.reference.sys.check.cluster.LicenseExpiryCheck;
 import io.crate.expression.reference.sys.check.cluster.MinMasterNodesSysCheck;
 import io.crate.expression.reference.sys.check.cluster.NumberOfPartitionsSysCheck;
 import io.crate.expression.reference.sys.check.cluster.TablesNeedUpgradeSysCheck;
-import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.inject.multibindings.Multibinder;
+import io.crate.es.common.inject.AbstractModule;
+import io.crate.es.common.inject.multibindings.Multibinder;
 
 public class SysChecksModule extends AbstractModule {
 

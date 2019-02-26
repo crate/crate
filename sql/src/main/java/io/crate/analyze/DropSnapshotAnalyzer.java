@@ -24,7 +24,7 @@ package io.crate.analyze;
 import com.google.common.base.Preconditions;
 import io.crate.execution.ddl.RepositoryService;
 import io.crate.sql.tree.DropSnapshot;
-import org.elasticsearch.common.inject.Singleton;
+import io.crate.es.common.inject.Singleton;
 
 import java.util.List;
 

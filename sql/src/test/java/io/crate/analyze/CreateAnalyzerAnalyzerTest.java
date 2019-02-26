@@ -23,7 +23,7 @@ package io.crate.analyze;
 
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.common.settings.Settings;
 import org.junit.Before;
 import org.junit.Test;
 

@@ -32,8 +32,8 @@ import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.metadata.RelationName;
 import io.crate.planner.ExplainLeaf;
 import io.crate.planner.node.fetch.FetchSource;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.monitor.jvm.JvmInfo;
+import io.crate.es.common.io.stream.StreamOutput;
+import io.crate.es.monitor.jvm.JvmInfo;
 
 import java.io.IOException;
 import java.util.List;

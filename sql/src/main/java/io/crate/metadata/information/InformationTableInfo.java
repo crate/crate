@@ -31,7 +31,7 @@ import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
-import org.elasticsearch.cluster.ClusterState;
+import io.crate.es.cluster.ClusterState;
 
 
 public class InformationTableInfo extends StaticTableInfo {

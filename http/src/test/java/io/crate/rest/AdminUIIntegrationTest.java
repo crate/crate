@@ -27,7 +27,7 @@ import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.entity.ContentType;
 import org.apache.http.message.BasicHeader;
 import org.apache.http.util.EntityUtils;
-import org.elasticsearch.test.ESIntegTestCase;
+import io.crate.es.test.ESIntegTestCase;
 import org.junit.Test;
 
 import java.io.IOException;

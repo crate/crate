@@ -1,0 +1,138 @@
+/*
+ * Licensed to Crate under one or more contributor license agreements.
+ * See the NOTICE file distributed with this work for additional
+ * information regarding copyright ownership.  Crate licenses this file
+ * to you under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.  You may
+ * obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied.  See the License for the specific language governing
+ * permissions and limitations under the License.
+ *
+ * However, if you have executed another commercial license agreement
+ * with Crate these terms will supersede the license and you may use the
+ * software solely pursuant to the terms of the relevant commercial
+ * agreement.
+ */
+
+package io.crate.es.cluster.metadata;
+
+import io.crate.es.action.ActionListener;
+import io.crate.es.action.admin.indices.delete.DeleteIndexClusterStateUpdateRequest;
+import io.crate.es.cluster.AckedClusterStateUpdateTask;
+import io.crate.es.cluster.ClusterState;
+import io.crate.es.cluster.RestoreInProgress;
+import io.crate.es.cluster.ack.ClusterStateUpdateResponse;
+import io.crate.es.cluster.block.ClusterBlocks;
+import io.crate.es.cluster.routing.RoutingTable;
+import io.crate.es.cluster.routing.allocation.AllocationService;
+import io.crate.es.cluster.service.ClusterService;
+import io.crate.es.common.Priority;
+import io.crate.es.common.collect.ImmutableOpenMap;
+import io.crate.es.common.component.AbstractComponent;
+import io.crate.es.common.inject.Inject;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.common.util.set.Sets;
+import io.crate.es.index.Index;
+import io.crate.es.snapshots.RestoreService;
+import io.crate.es.snapshots.SnapshotsService;
+
+import java.util.Arrays;
+import java.util.Set;
+
+import static java.util.stream.Collectors.toSet;
+
+/**
+ * Deletes indices.
+ */
+public class MetaDataDeleteIndexService extends AbstractComponent {
+
+    private final ClusterService clusterService;
+
+    private final AllocationService allocationService;
+
+    @Inject
+    public MetaDataDeleteIndexService(Settings settings, ClusterService clusterService, AllocationService allocationService) {
+        super(settings);
+        this.clusterService = clusterService;
+        this.allocationService = allocationService;
+    }
+
+    public void deleteIndices(final DeleteIndexClusterStateUpdateRequest request,
+            final ActionListener<ClusterStateUpdateResponse> listener) {
+        if (request.indices() == null || request.indices().length == 0) {
+            throw new IllegalArgumentException("Index name is required");
+        }
+
+        clusterService.submitStateUpdateTask("delete-index " + Arrays.toString(request.indices()),
+            new AckedClusterStateUpdateTask<ClusterStateUpdateResponse>(Priority.URGENT, request, listener) {
+
+            @Override
+            protected ClusterStateUpdateResponse newResponse(boolean acknowledged) {
+                return new ClusterStateUpdateResponse(acknowledged);
+            }
+
+            @Override
+            public ClusterState execute(final ClusterState currentState) {
+                return deleteIndices(currentState, Sets.newHashSet(request.indices()));
+            }
+        });
+    }
+
+    /**
+     * Delete some indices from the cluster state.
+     */
+    public ClusterState deleteIndices(ClusterState currentState, Set<Index> indices) {
+        final MetaData meta = currentState.metaData();
+        final Set<IndexMetaData> metaDatas = indices.stream().map(i -> meta.getIndexSafe(i)).collect(toSet());
+        // Check if index deletion conflicts with any running snapshots
+        SnapshotsService.checkIndexDeletion(currentState, metaDatas);
+        RoutingTable.Builder routingTableBuilder = RoutingTable.builder(currentState.routingTable());
+        MetaData.Builder metaDataBuilder = MetaData.builder(meta);
+        ClusterBlocks.Builder clusterBlocksBuilder = ClusterBlocks.builder().blocks(currentState.blocks());
+
+        final IndexGraveyard.Builder graveyardBuilder = IndexGraveyard.builder(metaDataBuilder.indexGraveyard());
+        final int previousGraveyardSize = graveyardBuilder.tombstones().size();
+        for (final Index index : indices) {
+            String indexName = index.getName();
+            logger.info("{} deleting index", index);
+            routingTableBuilder.remove(indexName);
+            clusterBlocksBuilder.removeIndexBlocks(indexName);
+            metaDataBuilder.remove(indexName);
+        }
+        // add tombstones to the cluster state for each deleted index
+        final IndexGraveyard currentGraveyard = graveyardBuilder.addTombstones(indices).build(settings);
+        metaDataBuilder.indexGraveyard(currentGraveyard); // the new graveyard set on the metadata
+        logger.trace("{} tombstones purged from the cluster state. Previous tombstone size: {}. Current tombstone size: {}.",
+            graveyardBuilder.getNumPurged(), previousGraveyardSize, currentGraveyard.getTombstones().size());
+
+        MetaData newMetaData = metaDataBuilder.build();
+        ClusterBlocks blocks = clusterBlocksBuilder.build();
+
+        // update snapshot restore entries
+        ImmutableOpenMap<String, ClusterState.Custom> customs = currentState.getCustoms();
+        final RestoreInProgress restoreInProgress = currentState.custom(RestoreInProgress.TYPE);
+        if (restoreInProgress != null) {
+            RestoreInProgress updatedRestoreInProgress = RestoreService.updateRestoreStateWithDeletedIndices(restoreInProgress, indices);
+            if (updatedRestoreInProgress != restoreInProgress) {
+                ImmutableOpenMap.Builder<String, ClusterState.Custom> builder = ImmutableOpenMap.builder(customs);
+                builder.put(RestoreInProgress.TYPE, updatedRestoreInProgress);
+                customs = builder.build();
+            }
+        }
+
+        return allocationService.reroute(
+                ClusterState.builder(currentState)
+                    .routingTable(routingTableBuilder.build())
+                    .metaData(newMetaData)
+                    .blocks(blocks)
+                    .customs(customs)
+                    .build(),
+                "deleted indices [" + indices + "]");
+    }
+}

@@ -22,9 +22,9 @@
 
 package io.crate.license;
 
-import org.elasticsearch.action.support.master.AcknowledgedResponse;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
+import io.crate.es.action.support.master.AcknowledgedResponse;
+import io.crate.es.common.io.stream.StreamInput;
+import io.crate.es.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 

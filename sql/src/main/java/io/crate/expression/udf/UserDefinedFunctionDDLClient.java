@@ -26,8 +26,8 @@ import io.crate.analyze.CreateFunctionAnalyzedStatement;
 import io.crate.analyze.DropFunctionAnalyzedStatement;
 import io.crate.analyze.expressions.ExpressionToStringVisitor;
 import io.crate.data.Row;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
+import io.crate.es.common.inject.Inject;
+import io.crate.es.common.inject.Singleton;
 
 import java.util.concurrent.CompletableFuture;
 

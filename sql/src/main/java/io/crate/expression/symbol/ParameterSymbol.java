@@ -25,8 +25,8 @@ package io.crate.expression.symbol;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.UndefinedType;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
+import io.crate.es.common.io.stream.StreamInput;
+import io.crate.es.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 

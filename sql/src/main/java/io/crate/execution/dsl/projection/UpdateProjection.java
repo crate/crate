@@ -23,8 +23,8 @@ package io.crate.execution.dsl.projection;
 
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
+import io.crate.es.common.io.stream.StreamInput;
+import io.crate.es.common.io.stream.StreamOutput;
 
 import javax.annotation.Nullable;
 import java.io.IOException;

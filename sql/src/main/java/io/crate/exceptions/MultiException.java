@@ -24,7 +24,7 @@ package io.crate.exceptions;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
-import org.elasticsearch.common.SuppressForbidden;
+import io.crate.es.common.SuppressForbidden;
 
 import java.io.PrintStream;
 import java.io.PrintWriter;

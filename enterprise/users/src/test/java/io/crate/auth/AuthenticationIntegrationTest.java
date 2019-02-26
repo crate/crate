@@ -26,8 +26,8 @@ import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpOptions;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.http.HttpServerTransport;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.http.HttpServerTransport;
 import org.junit.After;
 import org.junit.Test;
 

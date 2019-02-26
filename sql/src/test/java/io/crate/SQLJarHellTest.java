@@ -22,7 +22,7 @@
 
 package io.crate;
 
-import org.elasticsearch.bootstrap.JarHell;
+import io.crate.es.bootstrap.JarHell;
 import org.junit.Test;
 
 public class SQLJarHellTest {

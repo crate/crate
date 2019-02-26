@@ -23,7 +23,7 @@ package io.crate.expression.reference.doc;
 
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.QueryTester;
-import org.elasticsearch.Version;
+import io.crate.es.Version;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 

@@ -39,9 +39,9 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicHeader;
 import org.apache.http.util.EntityUtils;
 import org.apache.lucene.util.IOUtils;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.http.HttpServerTransport;
+import io.crate.es.cluster.metadata.IndexMetaData;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.http.HttpServerTransport;
 import org.junit.After;
 import org.junit.Before;
 

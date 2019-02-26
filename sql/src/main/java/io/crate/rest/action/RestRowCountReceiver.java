@@ -24,7 +24,7 @@ package io.crate.rest.action;
 
 import io.crate.action.sql.ResultReceiver;
 import io.crate.data.Row;
-import org.elasticsearch.common.xcontent.XContentBuilder;
+import io.crate.es.common.xcontent.XContentBuilder;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;

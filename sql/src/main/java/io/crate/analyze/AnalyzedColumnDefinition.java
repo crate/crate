@@ -35,7 +35,7 @@ import io.crate.types.DataTypes;
 import io.crate.types.GeoShapeType;
 import io.crate.types.StringType;
 import io.crate.types.TimestampType;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.common.settings.Settings;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -45,7 +45,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
-import static org.elasticsearch.index.mapper.TypeParsers.DOC_VALUES;
+import static io.crate.es.index.mapper.TypeParsers.DOC_VALUES;
 
 public class AnalyzedColumnDefinition {
 

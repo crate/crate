@@ -24,13 +24,13 @@ package io.crate.license;
 
 import io.crate.license.exception.InvalidLicenseException;
 import io.crate.license.exception.LicenseMetadataParsingException;
-import org.elasticsearch.Version;
-import org.elasticsearch.cluster.AbstractNamedDiffable;
-import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentParser;
+import io.crate.es.Version;
+import io.crate.es.cluster.AbstractNamedDiffable;
+import io.crate.es.cluster.metadata.MetaData;
+import io.crate.es.common.io.stream.StreamInput;
+import io.crate.es.common.io.stream.StreamOutput;
+import io.crate.es.common.xcontent.XContentBuilder;
+import io.crate.es.common.xcontent.XContentParser;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;

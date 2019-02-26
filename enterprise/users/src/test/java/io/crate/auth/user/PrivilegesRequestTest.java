@@ -21,7 +21,7 @@ package io.crate.auth.user;
 import com.google.common.collect.Lists;
 import io.crate.analyze.user.Privilege;
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import io.crate.es.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
 import java.util.List;

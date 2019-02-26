@@ -24,11 +24,11 @@ package io.crate.expression.reference.sys.check.node;
 
 import io.crate.expression.reference.sys.check.SysCheck;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.gateway.GatewayService;
-import org.elasticsearch.node.NodeService;
+import io.crate.es.cluster.service.ClusterService;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.common.unit.TimeValue;
+import io.crate.es.gateway.GatewayService;
+import io.crate.es.node.NodeService;
 import org.junit.Test;
 import org.mockito.Answers;
 

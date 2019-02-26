@@ -34,7 +34,7 @@ import io.crate.execution.support.OneRowActionListener;
 import io.crate.metadata.RelationName;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.types.DataTypes;
-import org.elasticsearch.action.support.master.AcknowledgedResponse;
+import io.crate.es.action.support.master.AcknowledgedResponse;
 
 import java.util.Collections;
 import java.util.Objects;

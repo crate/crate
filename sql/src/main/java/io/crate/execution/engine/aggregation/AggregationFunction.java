@@ -26,9 +26,9 @@ import io.crate.breaker.RamAccountingContext;
 import io.crate.data.Input;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.types.DataType;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.breaker.CircuitBreakingException;
-import org.elasticsearch.common.util.BigArrays;
+import io.crate.es.Version;
+import io.crate.es.common.breaker.CircuitBreakingException;
+import io.crate.es.common.util.BigArrays;
 
 import javax.annotation.Nullable;
 

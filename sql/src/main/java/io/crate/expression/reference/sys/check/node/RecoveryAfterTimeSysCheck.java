@@ -22,11 +22,11 @@
 
 package io.crate.expression.reference.sys.check.node;
 
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.gateway.GatewayService;
+import io.crate.es.common.inject.Inject;
+import io.crate.es.common.inject.Singleton;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.common.unit.TimeValue;
+import io.crate.es.gateway.GatewayService;
 
 @Singleton
 public class RecoveryAfterTimeSysCheck extends AbstractSysNodeCheck {

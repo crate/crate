@@ -22,7 +22,7 @@
 package io.crate.exceptions;
 
 import io.crate.metadata.RelationName;
-import org.elasticsearch.index.shard.ShardId;
+import io.crate.es.index.shard.ShardId;
 
 import java.util.Collection;
 import java.util.Collections;

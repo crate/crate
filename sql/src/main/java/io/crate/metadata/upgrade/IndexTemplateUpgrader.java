@@ -26,10 +26,10 @@ import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import io.crate.metadata.DefaultTemplateService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.cluster.metadata.AliasMetaData;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
-import org.elasticsearch.common.compress.CompressedXContent;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.cluster.metadata.AliasMetaData;
+import io.crate.es.cluster.metadata.IndexTemplateMetaData;
+import io.crate.es.common.compress.CompressedXContent;
+import io.crate.es.common.settings.Settings;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -38,8 +38,8 @@ import java.util.function.UnaryOperator;
 
 import static io.crate.metadata.DefaultTemplateService.TEMPLATE_NAME;
 import static io.crate.metadata.IndexParts.PARTITIONED_TABLE_PART;
-import static org.elasticsearch.common.settings.AbstractScopedSettings.ARCHIVED_SETTINGS_PREFIX;
-import static org.elasticsearch.common.settings.IndexScopedSettings.DEFAULT_SCOPED_SETTINGS;
+import static io.crate.es.common.settings.AbstractScopedSettings.ARCHIVED_SETTINGS_PREFIX;
+import static io.crate.es.common.settings.IndexScopedSettings.DEFAULT_SCOPED_SETTINGS;
 
 public class IndexTemplateUpgrader implements UnaryOperator<Map<String, IndexTemplateMetaData>> {
 

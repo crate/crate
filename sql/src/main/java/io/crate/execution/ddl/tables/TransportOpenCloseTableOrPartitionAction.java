@@ -26,21 +26,21 @@ import io.crate.execution.ddl.AbstractDDLTransportAction;
 import io.crate.metadata.cluster.CloseTableClusterStateTaskExecutor;
 import io.crate.metadata.cluster.DDLClusterStateService;
 import io.crate.metadata.cluster.OpenTableClusterStateTaskExecutor;
-import org.elasticsearch.action.support.IndicesOptions;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.ClusterStateTaskExecutor;
-import org.elasticsearch.cluster.block.ClusterBlockException;
-import org.elasticsearch.cluster.block.ClusterBlockLevel;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.metadata.MetaDataIndexUpgradeService;
-import org.elasticsearch.cluster.routing.allocation.AllocationService;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.indices.IndicesService;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.TransportService;
+import io.crate.es.action.support.IndicesOptions;
+import io.crate.es.cluster.ClusterState;
+import io.crate.es.cluster.ClusterStateTaskExecutor;
+import io.crate.es.cluster.block.ClusterBlockException;
+import io.crate.es.cluster.block.ClusterBlockLevel;
+import io.crate.es.cluster.metadata.IndexNameExpressionResolver;
+import io.crate.es.cluster.metadata.MetaDataIndexUpgradeService;
+import io.crate.es.cluster.routing.allocation.AllocationService;
+import io.crate.es.cluster.service.ClusterService;
+import io.crate.es.common.inject.Inject;
+import io.crate.es.common.inject.Singleton;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.indices.IndicesService;
+import io.crate.es.threadpool.ThreadPool;
+import io.crate.es.transport.TransportService;
 
 @Singleton
 public class TransportOpenCloseTableOrPartitionAction extends AbstractDDLTransportAction<OpenCloseTableOrPartitionRequest, OpenCloseTableOrPartitionResponse> {

@@ -38,7 +38,7 @@ import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.ShardedTable;
 import io.crate.types.DataTypes;
-import org.elasticsearch.Version;
+import io.crate.es.Version;
 
 import java.util.List;
 import java.util.Map;

@@ -22,7 +22,7 @@
 package io.crate.expression.reference.doc.lucene;
 
 import io.crate.execution.engine.collect.collectors.CollectorFieldsVisitor;
-import org.elasticsearch.common.compress.CompressorFactory;
+import io.crate.es.common.compress.CompressorFactory;
 
 import java.io.IOException;
 

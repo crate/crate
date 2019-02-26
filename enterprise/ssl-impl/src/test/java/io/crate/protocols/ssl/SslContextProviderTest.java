@@ -22,7 +22,7 @@ import io.crate.plugin.PipelineRegistry;
 import io.crate.settings.SharedSettings;
 import io.crate.test.integration.CrateUnitTest;
 import io.netty.handler.ssl.SslContext;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.common.settings.Settings;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mockito;

@@ -31,12 +31,12 @@ import io.crate.execution.jobs.kill.KillJobsRequest;
 import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
 import io.crate.execution.support.Transports;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.bulk.BackoffPolicy;
-import org.elasticsearch.common.breaker.NoopCircuitBreaker;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.transport.TransportService;
+import io.crate.es.action.ActionListener;
+import io.crate.es.action.bulk.BackoffPolicy;
+import io.crate.es.common.breaker.NoopCircuitBreaker;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.common.unit.TimeValue;
+import io.crate.es.transport.TransportService;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 

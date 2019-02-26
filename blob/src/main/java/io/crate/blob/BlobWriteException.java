@@ -21,7 +21,7 @@
 
 package io.crate.blob;
 
-import org.elasticsearch.ElasticsearchException;
+import io.crate.es.ElasticsearchException;
 
 import java.util.Locale;
 

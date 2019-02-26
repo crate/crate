@@ -22,9 +22,9 @@
 
 package io.crate.integrationtests;
 
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.node.DiscoveryNodes;
-import org.elasticsearch.test.ESIntegTestCase;
+import io.crate.es.cluster.node.DiscoveryNode;
+import io.crate.es.cluster.node.DiscoveryNodes;
+import io.crate.es.test.ESIntegTestCase;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 import org.junit.Before;

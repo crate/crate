@@ -23,10 +23,10 @@
 package io.crate.metadata.settings;
 
 import io.crate.analyze.NumberOfReplicas;
-import org.elasticsearch.cluster.metadata.AutoExpandReplicas;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.cluster.metadata.AutoExpandReplicas;
+import io.crate.es.cluster.metadata.IndexMetaData;
+import io.crate.es.common.settings.Setting;
+import io.crate.es.common.settings.Settings;
 
 import java.util.function.Function;
 

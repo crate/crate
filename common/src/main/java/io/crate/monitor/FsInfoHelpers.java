@@ -22,7 +22,7 @@
 
 package io.crate.monitor;
 
-import org.elasticsearch.monitor.fs.FsInfo;
+import io.crate.es.monitor.fs.FsInfo;
 
 public class FsInfoHelpers {
 

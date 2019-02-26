@@ -29,7 +29,7 @@ import io.crate.metadata.RowGranularity;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import io.crate.types.SetType;
-import org.elasticsearch.index.mapper.KeywordFieldMapper;
+import io.crate.es.index.mapper.KeywordFieldMapper;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.instanceOf;

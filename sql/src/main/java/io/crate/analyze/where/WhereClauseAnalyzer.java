@@ -41,7 +41,7 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.operators.SubQueryAndParamBinder;
 import io.crate.planner.operators.SubQueryResults;
-import org.elasticsearch.common.collect.Tuple;
+import io.crate.es.common.collect.Tuple;
 
 import java.util.ArrayList;
 import java.util.Collections;

@@ -21,7 +21,7 @@
 
 package io.crate.blob.transfer;
 
-import org.elasticsearch.ElasticsearchException;
+import io.crate.es.ElasticsearchException;
 
 import java.util.UUID;
 

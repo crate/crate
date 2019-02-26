@@ -22,7 +22,6 @@
 package io.crate.integrationtests;
 
 import io.crate.action.sql.Option;
-import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
 

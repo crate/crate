@@ -33,9 +33,9 @@ import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.Expression;
-import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
-import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsResponse;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
+import io.crate.es.action.admin.cluster.settings.ClusterUpdateSettingsResponse;
+import io.crate.es.common.settings.Settings;
 
 import java.util.HashMap;
 import java.util.List;

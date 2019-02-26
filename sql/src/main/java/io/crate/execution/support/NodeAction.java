@@ -22,8 +22,8 @@
 
 package io.crate.execution.support;
 
-import org.elasticsearch.transport.TransportRequest;
-import org.elasticsearch.transport.TransportResponse;
+import io.crate.es.transport.TransportRequest;
+import io.crate.es.transport.TransportResponse;
 
 import java.util.concurrent.CompletableFuture;
 

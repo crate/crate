@@ -26,7 +26,7 @@ import io.crate.auth.user.User;
 import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.test.integration.CrateUnitTest;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
-import org.elasticsearch.common.network.InetAddresses;
+import io.crate.es.common.network.InetAddresses;
 import org.junit.Before;
 import org.junit.Test;
 

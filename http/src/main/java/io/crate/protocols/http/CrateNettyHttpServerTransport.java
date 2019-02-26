@@ -26,28 +26,28 @@ import io.crate.plugin.PipelineRegistry;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelPipeline;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.io.PathUtils;
+import io.crate.es.common.io.PathUtils;
 import org.apache.logging.log4j.LogManager;
-import org.elasticsearch.common.network.InetAddresses;
-import org.elasticsearch.common.network.NetworkService;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.BigArrays;
-import org.elasticsearch.common.util.concurrent.ThreadContext;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.http.HttpServerTransport;
-import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
-import org.elasticsearch.http.netty4.cors.Netty4CorsHandler;
-import org.elasticsearch.rest.RestChannel;
-import org.elasticsearch.rest.RestRequest;
-import org.elasticsearch.threadpool.ThreadPool;
+import io.crate.es.common.network.InetAddresses;
+import io.crate.es.common.network.NetworkService;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.common.util.BigArrays;
+import io.crate.es.common.util.concurrent.ThreadContext;
+import io.crate.es.common.xcontent.NamedXContentRegistry;
+import io.crate.es.http.HttpServerTransport;
+import io.crate.es.http.netty4.Netty4HttpServerTransport;
+import io.crate.es.http.netty4.cors.Netty4CorsHandler;
+import io.crate.es.rest.RestChannel;
+import io.crate.es.rest.RestRequest;
+import io.crate.es.threadpool.ThreadPool;
 
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.file.Path;
 
-import static org.elasticsearch.env.Environment.PATH_HOME_SETTING;
-import static org.elasticsearch.http.HttpTransportSettings.SETTING_CORS_ENABLED;
+import static io.crate.es.env.Environment.PATH_HOME_SETTING;
+import static io.crate.es.http.HttpTransportSettings.SETTING_CORS_ENABLED;
 
 
 public class CrateNettyHttpServerTransport extends Netty4HttpServerTransport {

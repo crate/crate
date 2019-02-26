@@ -33,11 +33,11 @@ import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.PhasesTaskFactory;
 import io.crate.license.LicenseService;
 import io.crate.metadata.Functions;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.threadpool.ThreadPool;
+import io.crate.es.cluster.service.ClusterService;
+import io.crate.es.common.inject.Inject;
+import io.crate.es.common.inject.Singleton;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.threadpool.ThreadPool;
 
 import java.util.concurrent.ScheduledExecutorService;
 

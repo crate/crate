@@ -23,12 +23,12 @@
 package io.crate.metadata.cluster;
 
 import io.crate.execution.ddl.index.SwapAndDropIndexRequest;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.block.ClusterBlocks;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.cluster.routing.RoutingTable;
-import org.elasticsearch.cluster.routing.allocation.AllocationService;
+import io.crate.es.cluster.ClusterState;
+import io.crate.es.cluster.block.ClusterBlocks;
+import io.crate.es.cluster.metadata.IndexMetaData;
+import io.crate.es.cluster.metadata.MetaData;
+import io.crate.es.cluster.routing.RoutingTable;
+import io.crate.es.cluster.routing.allocation.AllocationService;
 
 public class SwapAndDropIndexExecutor extends DDLClusterStateTaskExecutor<SwapAndDropIndexRequest> {
 

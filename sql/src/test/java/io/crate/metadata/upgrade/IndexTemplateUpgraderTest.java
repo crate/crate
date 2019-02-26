@@ -24,8 +24,8 @@ package io.crate.metadata.upgrade;
 
 import io.crate.metadata.DefaultTemplateService;
 import io.crate.metadata.PartitionName;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.cluster.metadata.IndexTemplateMetaData;
+import io.crate.es.common.settings.Settings;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -34,8 +34,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static io.crate.metadata.DefaultTemplateService.TEMPLATE_NAME;
-import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_SHARDS;
-import static org.elasticsearch.common.settings.AbstractScopedSettings.ARCHIVED_SETTINGS_PREFIX;
+import static io.crate.es.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_SHARDS;
+import static io.crate.es.common.settings.AbstractScopedSettings.ARCHIVED_SETTINGS_PREFIX;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;

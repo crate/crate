@@ -32,9 +32,9 @@ import io.crate.sql.tree.Statement;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.Version;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Provider;
-import org.elasticsearch.common.inject.Singleton;
+import io.crate.es.common.inject.Inject;
+import io.crate.es.common.inject.Provider;
+import io.crate.es.common.inject.Singleton;
 
 import javax.annotation.Nonnull;
 import java.util.Collection;

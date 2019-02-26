@@ -29,7 +29,7 @@ import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.planner.distribution.DistributionInfo;
-import org.elasticsearch.common.io.stream.StreamOutput;
+import io.crate.es.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 import java.util.List;

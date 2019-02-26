@@ -82,12 +82,12 @@ import io.crate.profile.Timer;
 import io.crate.sql.tree.Expression;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.routing.allocation.decider.AwarenessAllocationDecider;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.cluster.ClusterState;
+import io.crate.es.cluster.routing.allocation.decider.AwarenessAllocationDecider;
+import io.crate.es.cluster.service.ClusterService;
+import io.crate.es.common.inject.Inject;
+import io.crate.es.common.inject.Singleton;
+import io.crate.es.common.settings.Settings;
 
 import java.util.Collections;
 import java.util.HashMap;

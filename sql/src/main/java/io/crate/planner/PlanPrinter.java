@@ -24,6 +24,7 @@ package io.crate.planner;
 import com.carrotsearch.hppc.IntIndexedContainer;
 import com.carrotsearch.hppc.cursors.IntCursor;
 import com.google.common.collect.ImmutableMap;
+import io.crate.es.common.xcontent.XContentBuilder;
 import io.crate.execution.dsl.phases.AbstractProjectionsPhase;
 import io.crate.execution.dsl.phases.CollectPhase;
 import io.crate.execution.dsl.phases.CountPhase;
@@ -250,7 +251,7 @@ public final class PlanPrinter {
 
     /**
      * Converts the shardId's of each node->table from a {@link IntIndexedContainer} to a list of Integers as custom
-     * classes are not supported by the {@link org.elasticsearch.common.xcontent.XContentBuilder}.
+     * classes are not supported by the {@link XContentBuilder}.
      */
     private static Map<String, Map<String, List<Integer>>> xContentSafeRoutingLocations(
         Map<String, Map<String, IntIndexedContainer>> locations) {

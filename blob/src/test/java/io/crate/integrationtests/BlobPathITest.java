@@ -24,9 +24,9 @@ package io.crate.integrationtests;
 
 import io.crate.blob.v2.BlobAdminClient;
 import io.crate.blob.v2.BlobIndicesService;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.http.HttpServerTransport;
-import org.elasticsearch.test.ESIntegTestCase;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.http.HttpServerTransport;
+import io.crate.es.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
@@ -40,8 +40,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_REPLICAS;
-import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_SHARDS;
+import static io.crate.es.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_REPLICAS;
+import static io.crate.es.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_SHARDS;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.core.Is.is;

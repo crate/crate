@@ -37,7 +37,7 @@ import io.crate.planner.TableStats;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.common.settings.Settings;
 import org.junit.Test;
 
 import java.io.IOException;

@@ -25,7 +25,7 @@ import io.crate.expression.scalar.cast.CastFunctionResolver;
 import io.crate.planner.ExplainLeaf;
 import io.crate.types.DataType;
 import io.crate.types.UndefinedType;
-import org.elasticsearch.common.io.stream.Writeable;
+import io.crate.es.common.io.stream.Writeable;
 
 public abstract class Symbol implements FuncArg, Writeable, ExplainLeaf {
 

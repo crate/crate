@@ -24,7 +24,7 @@ package io.crate.integrationtests;
 
 import io.crate.metadata.RelationName;
 import io.crate.planner.TableStats;
-import org.elasticsearch.test.ESIntegTestCase;
+import io.crate.es.test.ESIntegTestCase;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

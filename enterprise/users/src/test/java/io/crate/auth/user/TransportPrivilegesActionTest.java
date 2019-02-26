@@ -25,7 +25,7 @@ import io.crate.metadata.UserDefinitions;
 import io.crate.metadata.UsersMetaData;
 import io.crate.metadata.UsersPrivilegesMetaData;
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.cluster.metadata.MetaData;
+import io.crate.es.cluster.metadata.MetaData;
 import org.junit.Test;
 
 import java.util.Arrays;

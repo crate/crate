@@ -26,7 +26,7 @@ import io.crate.data.Row;
 import io.crate.expression.symbol.Field;
 import io.crate.types.CollectionType;
 import io.crate.types.DataType;
-import org.elasticsearch.common.xcontent.XContentBuilder;
+import io.crate.es.common.xcontent.XContentBuilder;
 
 import java.io.IOException;
 import java.util.List;

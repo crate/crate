@@ -26,9 +26,9 @@ import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLOperations;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.testing.SQLTransportExecutor;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.ESIntegTestCase;
+import io.crate.es.client.Client;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.test.ESIntegTestCase;
 import org.junit.Test;
 
 import javax.annotation.Nullable;

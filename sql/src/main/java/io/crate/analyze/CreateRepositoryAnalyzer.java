@@ -25,7 +25,7 @@ import io.crate.analyze.repositories.RepositoryParamValidator;
 import io.crate.exceptions.RepositoryAlreadyExistsException;
 import io.crate.execution.ddl.RepositoryService;
 import io.crate.sql.tree.CreateRepository;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.common.settings.Settings;
 
 class CreateRepositoryAnalyzer {
 

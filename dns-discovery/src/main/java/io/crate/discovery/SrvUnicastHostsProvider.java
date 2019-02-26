@@ -35,16 +35,16 @@ import io.netty.handler.codec.dns.DnsRecordType;
 import io.netty.resolver.dns.DnsNameResolver;
 import io.netty.resolver.dns.DnsNameResolverBuilder;
 import io.netty.resolver.dns.SingletonDnsServerAddressStreamProvider;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.component.AbstractComponent;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.TransportAddress;
-import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.discovery.zen.UnicastHostsProvider;
-import org.elasticsearch.transport.TransportService;
+import io.crate.es.common.Strings;
+import io.crate.es.common.component.AbstractComponent;
+import io.crate.es.common.inject.Inject;
+import io.crate.es.common.inject.Singleton;
+import io.crate.es.common.settings.Setting;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.common.transport.TransportAddress;
+import io.crate.es.common.unit.TimeValue;
+import io.crate.es.discovery.zen.UnicastHostsProvider;
+import io.crate.es.transport.TransportService;
 
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
@@ -54,7 +54,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import static org.elasticsearch.common.util.concurrent.EsExecutors.daemonThreadFactory;
+import static io.crate.es.common.util.concurrent.EsExecutors.daemonThreadFactory;
 
 @Singleton
 public class SrvUnicastHostsProvider extends AbstractComponent implements UnicastHostsProvider, AutoCloseable {

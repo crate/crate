@@ -47,10 +47,10 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Expression;
 import io.crate.types.DataType;
-import org.elasticsearch.Version;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.Version;
+import io.crate.es.cluster.ClusterState;
+import io.crate.es.cluster.metadata.IndexNameExpressionResolver;
+import io.crate.es.common.settings.Settings;
 
 import javax.annotation.Nullable;
 import java.util.Collection;

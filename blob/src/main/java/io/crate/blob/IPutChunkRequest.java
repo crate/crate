@@ -21,7 +21,7 @@
 
 package io.crate.blob;
 
-import org.elasticsearch.common.bytes.BytesReference;
+import io.crate.es.common.bytes.BytesReference;
 
 import java.util.UUID;
 

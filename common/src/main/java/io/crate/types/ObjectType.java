@@ -23,12 +23,12 @@ package io.crate.types;
 
 import io.crate.Streamer;
 import io.crate.common.collections.MapComparator;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.xcontent.DeprecationHandler;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
+import io.crate.es.common.io.stream.StreamInput;
+import io.crate.es.common.io.stream.StreamOutput;
+import io.crate.es.common.xcontent.DeprecationHandler;
+import io.crate.es.common.xcontent.NamedXContentRegistry;
+import io.crate.es.common.xcontent.XContentParser;
+import io.crate.es.common.xcontent.json.JsonXContent;
 
 import java.io.IOException;
 import java.util.ArrayList;

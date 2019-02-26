@@ -27,7 +27,7 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.execution.dml.ShardResponse;
-import org.elasticsearch.cluster.node.DiscoveryNode;
+import io.crate.es.cluster.node.DiscoveryNode;
 
 import java.util.Collections;
 import java.util.List;

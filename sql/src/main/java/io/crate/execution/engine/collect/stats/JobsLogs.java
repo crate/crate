@@ -29,7 +29,7 @@ import io.crate.expression.reference.sys.operation.OperationContext;
 import io.crate.expression.reference.sys.operation.OperationContextLog;
 import io.crate.metadata.sys.ClassifiedMetrics;
 import io.crate.planner.operators.StatementClassifier;
-import org.elasticsearch.common.collect.Tuple;
+import io.crate.es.common.collect.Tuple;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.ThreadSafe;

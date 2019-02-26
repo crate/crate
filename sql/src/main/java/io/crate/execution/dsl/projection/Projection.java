@@ -25,8 +25,8 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RowGranularity;
 import io.crate.planner.ExplainNode;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
+import io.crate.es.common.io.stream.StreamInput;
+import io.crate.es.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 import java.util.List;

@@ -28,8 +28,8 @@ import io.crate.data.RowConsumer;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.metadata.IndexParts;
 import io.crate.planner.operators.SubQueryResults;
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
-import org.elasticsearch.action.support.master.AcknowledgedResponse;
+import io.crate.es.action.admin.indices.delete.DeleteIndexRequest;
+import io.crate.es.action.support.master.AcknowledgedResponse;
 
 public final class GCDangingArtifactsPlan implements Plan {
 

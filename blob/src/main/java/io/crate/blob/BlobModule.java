@@ -21,7 +21,7 @@
 
 package io.crate.blob;
 
-import org.elasticsearch.common.inject.AbstractModule;
+import io.crate.es.common.inject.AbstractModule;
 
 public class BlobModule extends AbstractModule {
 

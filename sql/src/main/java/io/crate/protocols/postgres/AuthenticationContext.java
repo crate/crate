@@ -26,7 +26,7 @@ import com.google.common.annotations.VisibleForTesting;
 import io.crate.auth.AuthenticationMethod;
 import io.crate.auth.user.User;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.settings.SecureString;
+import io.crate.es.common.settings.SecureString;
 
 import javax.annotation.Nullable;
 import java.io.Closeable;

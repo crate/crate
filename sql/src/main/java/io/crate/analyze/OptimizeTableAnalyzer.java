@@ -32,9 +32,9 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.OptimizeStatement;
 import io.crate.sql.tree.Table;
-import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeRequest;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.action.admin.indices.forcemerge.ForceMergeRequest;
+import io.crate.es.common.settings.Setting;
+import io.crate.es.common.settings.Settings;
 
 import java.util.HashSet;
 import java.util.List;

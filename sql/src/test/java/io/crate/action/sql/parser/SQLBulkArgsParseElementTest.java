@@ -23,10 +23,10 @@ package io.crate.action.sql.parser;
 
 
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.common.xcontent.DeprecationHandler;
-import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.common.xcontent.XContentType;
+import io.crate.es.common.xcontent.DeprecationHandler;
+import io.crate.es.common.xcontent.XContentFactory;
+import io.crate.es.common.xcontent.XContentParser;
+import io.crate.es.common.xcontent.XContentType;
 import org.junit.Test;
 
 public class SQLBulkArgsParseElementTest extends CrateUnitTest {

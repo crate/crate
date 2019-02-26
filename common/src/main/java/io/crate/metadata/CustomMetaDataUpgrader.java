@@ -22,8 +22,8 @@
 
 package io.crate.metadata;
 
-import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.cluster.metadata.MetaData;
+import io.crate.es.common.settings.Settings;
 
 import java.util.Map;
 import java.util.function.BiFunction;
@@ -31,7 +31,7 @@ import java.util.function.BiFunction;
 /**
  * Marker interface for {@link MetaData.Custom} upgrade implementations.
  * All implementations will be loaded by a {@link java.util.ServiceLoader} and called
- * by the {@link org.elasticsearch.gateway.GatewayMetaState} to upgrade the custom meta data on node startup.
+ * by the {@link io.crate.es.gateway.GatewayMetaState} to upgrade the custom meta data on node startup.
  */
 @FunctionalInterface
 public interface CustomMetaDataUpgrader extends BiFunction<Settings, Map<String, MetaData.Custom>, Map<String, MetaData.Custom>> {

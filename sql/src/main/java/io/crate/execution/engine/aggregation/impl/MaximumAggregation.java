@@ -32,9 +32,9 @@ import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.FixedWidthType;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.breaker.CircuitBreakingException;
-import org.elasticsearch.common.util.BigArrays;
+import io.crate.es.Version;
+import io.crate.es.common.breaker.CircuitBreakingException;
+import io.crate.es.common.util.BigArrays;
 
 import javax.annotation.Nullable;
 

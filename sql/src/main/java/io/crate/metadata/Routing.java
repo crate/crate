@@ -27,11 +27,11 @@ import com.carrotsearch.hppc.IntIndexedContainer;
 import com.carrotsearch.hppc.cursors.IntCursor;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableMap;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.node.DiscoveryNodes;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
+import io.crate.es.cluster.node.DiscoveryNode;
+import io.crate.es.cluster.node.DiscoveryNodes;
+import io.crate.es.common.io.stream.StreamInput;
+import io.crate.es.common.io.stream.StreamOutput;
+import io.crate.es.common.io.stream.Writeable;
 
 import java.io.IOException;
 import java.util.Collections;

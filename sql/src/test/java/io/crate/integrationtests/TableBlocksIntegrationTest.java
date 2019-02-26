@@ -22,8 +22,8 @@
 package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.ESIntegTestCase;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.test.ESIntegTestCase;
 import org.hamcrest.core.Is;
 import org.junit.After;
 import org.junit.ClassRule;

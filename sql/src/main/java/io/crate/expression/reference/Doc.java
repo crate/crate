@@ -22,8 +22,8 @@
 
 package io.crate.expression.reference;
 
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.xcontent.XContentFactory;
+import io.crate.es.common.Strings;
+import io.crate.es.common.xcontent.XContentFactory;
 
 import java.io.IOException;
 import java.util.Map;

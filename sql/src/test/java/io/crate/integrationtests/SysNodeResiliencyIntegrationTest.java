@@ -22,10 +22,10 @@
 
 package io.crate.integrationtests;
 
-import org.elasticsearch.plugins.Plugin;
-import org.elasticsearch.test.ESIntegTestCase;
-import org.elasticsearch.test.disruption.NetworkDisruption;
-import org.elasticsearch.test.transport.MockTransportService;
+import io.crate.es.plugins.Plugin;
+import io.crate.es.test.ESIntegTestCase;
+import io.crate.es.test.disruption.NetworkDisruption;
+import io.crate.es.test.transport.MockTransportService;
 import org.junit.Test;
 
 import java.util.ArrayList;

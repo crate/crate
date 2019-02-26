@@ -24,7 +24,7 @@ package io.crate;
 import io.crate.blob.BlobContainer;
 import io.crate.blob.DigestBlob;
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.common.bytes.BytesArray;
+import io.crate.es.common.bytes.BytesArray;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;

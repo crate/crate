@@ -28,8 +28,8 @@ import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.GenericProperty;
 import io.crate.sql.tree.StringLiteral;
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.common.inject.ModulesBuilder;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.common.inject.ModulesBuilder;
+import io.crate.es.common.settings.Settings;
 import org.junit.Before;
 import org.junit.Test;
 

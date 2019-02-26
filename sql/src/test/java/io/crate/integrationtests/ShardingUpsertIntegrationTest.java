@@ -21,8 +21,8 @@
 
 package io.crate.integrationtests;
 
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.ESIntegTestCase;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.test.ESIntegTestCase;
 import org.junit.Test;
 
 import java.nio.file.Paths;

@@ -47,7 +47,7 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.ClusterState;
+import io.crate.es.cluster.ClusterState;
 
 import javax.annotation.Nonnull;
 import java.util.Collections;

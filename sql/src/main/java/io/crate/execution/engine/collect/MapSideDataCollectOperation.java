@@ -27,9 +27,9 @@ import io.crate.execution.dsl.phases.CollectPhase;
 import io.crate.execution.engine.collect.sources.CollectSource;
 import io.crate.execution.engine.collect.sources.CollectSourceResolver;
 import io.crate.metadata.TransactionContext;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.threadpool.ThreadPool;
+import io.crate.es.common.inject.Inject;
+import io.crate.es.common.inject.Singleton;
+import io.crate.es.threadpool.ThreadPool;
 
 import java.util.concurrent.Executor;
 import java.util.concurrent.RejectedExecutionException;

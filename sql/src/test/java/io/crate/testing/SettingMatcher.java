@@ -22,7 +22,7 @@
 
 package io.crate.testing;
 
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.common.settings.Settings;
 import org.hamcrest.FeatureMatcher;
 import org.hamcrest.Matcher;
 

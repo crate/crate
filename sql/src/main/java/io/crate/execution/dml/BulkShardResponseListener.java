@@ -27,9 +27,9 @@ import com.carrotsearch.hppc.cursors.IntCursor;
 import io.crate.data.Row1;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.support.MultiActionListener;
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.index.engine.DocumentMissingException;
-import org.elasticsearch.index.engine.VersionConflictEngineException;
+import io.crate.es.action.ActionListener;
+import io.crate.es.index.engine.DocumentMissingException;
+import io.crate.es.index.engine.VersionConflictEngineException;
 
 import java.util.ArrayList;
 import java.util.Arrays;

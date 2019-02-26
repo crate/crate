@@ -26,8 +26,8 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
+import io.crate.es.common.io.stream.StreamInput;
+import io.crate.es.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 import java.util.ArrayList;

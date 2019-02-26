@@ -24,7 +24,7 @@ package io.crate.integrationtests;
 
 import io.crate.metadata.RelationName;
 import io.crate.metadata.view.ViewsMetaData;
-import org.elasticsearch.cluster.service.ClusterService;
+import io.crate.es.cluster.service.ClusterService;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Test;

@@ -28,8 +28,8 @@ import com.google.common.collect.Ordering;
 import io.crate.common.StringUtils;
 import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.sql.Identifiers;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
+import io.crate.es.common.io.stream.StreamInput;
+import io.crate.es.common.io.stream.StreamOutput;
 
 import javax.annotation.Nullable;
 import java.io.IOException;

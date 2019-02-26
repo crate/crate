@@ -24,7 +24,7 @@ package io.crate.test.integration;
 import com.carrotsearch.randomizedtesting.annotations.Listeners;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakLingering;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
-import org.elasticsearch.test.ESTestCase;
+import io.crate.es.test.ESTestCase;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.rules.ExpectedException;

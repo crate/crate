@@ -35,7 +35,7 @@ import io.crate.types.DataTypes;
 import io.crate.types.LongType;
 import io.crate.types.ObjectType;
 import io.crate.types.UndefinedType;
-import org.elasticsearch.common.collect.MapBuilder;
+import io.crate.es.common.collect.MapBuilder;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;

@@ -24,9 +24,9 @@ package io.crate.analyze.repositories;
 
 import com.google.common.collect.ImmutableMap;
 import io.crate.sql.tree.GenericProperties;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.unit.ByteSizeUnit;
-import org.elasticsearch.common.unit.ByteSizeValue;
+import io.crate.es.common.settings.Setting;
+import io.crate.es.common.unit.ByteSizeUnit;
+import io.crate.es.common.unit.ByteSizeValue;
 
 import java.util.Map;
 

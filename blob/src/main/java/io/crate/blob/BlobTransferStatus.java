@@ -22,7 +22,7 @@
 package io.crate.blob;
 
 
-import org.elasticsearch.index.shard.ShardId;
+import io.crate.es.index.shard.ShardId;
 
 import java.io.Closeable;
 import java.io.IOException;

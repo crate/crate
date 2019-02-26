@@ -22,8 +22,8 @@
 
 package io.crate.metadata.cluster;
 
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.ClusterStateTaskExecutor;
+import io.crate.es.cluster.ClusterState;
+import io.crate.es.cluster.ClusterStateTaskExecutor;
 
 import java.util.List;
 

@@ -24,9 +24,9 @@ package io.crate.metadata;
 import com.google.common.collect.ImmutableList;
 import org.apache.commons.codec.binary.Base32;
 import org.apache.lucene.util.UnicodeUtil;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.StreamInput;
+import io.crate.es.common.bytes.BytesReference;
+import io.crate.es.common.io.stream.BytesStreamOutput;
+import io.crate.es.common.io.stream.StreamInput;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;

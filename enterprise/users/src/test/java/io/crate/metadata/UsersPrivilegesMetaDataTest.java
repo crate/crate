@@ -20,15 +20,15 @@ package io.crate.metadata;
 
 import io.crate.analyze.user.Privilege;
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.xcontent.DeprecationHandler;
-import org.elasticsearch.common.xcontent.ToXContent;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
+import io.crate.es.common.Strings;
+import io.crate.es.common.io.stream.BytesStreamOutput;
+import io.crate.es.common.io.stream.StreamInput;
+import io.crate.es.common.xcontent.DeprecationHandler;
+import io.crate.es.common.xcontent.ToXContent;
+import io.crate.es.common.xcontent.XContentBuilder;
+import io.crate.es.common.xcontent.XContentFactory;
+import io.crate.es.common.xcontent.XContentParser;
+import io.crate.es.common.xcontent.json.JsonXContent;
 import org.junit.Before;
 import org.junit.Test;
 

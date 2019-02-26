@@ -26,7 +26,7 @@ import io.crate.expression.NestableInput;
 import io.crate.expression.reference.NestedObjectExpression;
 import io.crate.license.DecryptedLicenseData;
 import io.crate.license.LicenseService;
-import org.elasticsearch.common.inject.Inject;
+import io.crate.es.common.inject.Inject;
 
 import java.util.Map;
 

@@ -26,7 +26,7 @@ import com.google.common.collect.ImmutableList;
 import io.crate.expression.symbol.Symbol;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.collect.MapBuilder;
+import io.crate.es.common.collect.MapBuilder;
 import org.junit.Test;
 
 import static io.crate.testing.SymbolMatchers.isLiteral;

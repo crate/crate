@@ -40,7 +40,7 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.sys.SysShardsTableInfo;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
-import org.elasticsearch.index.Index;
+import io.crate.es.index.Index;
 
 import java.util.Collections;
 import java.util.List;

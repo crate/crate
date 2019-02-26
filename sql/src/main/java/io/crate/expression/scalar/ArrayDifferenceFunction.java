@@ -38,7 +38,7 @@ import io.crate.metadata.functions.params.Param;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.Nullable;
+import io.crate.es.common.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collections;

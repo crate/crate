@@ -26,10 +26,10 @@ import io.crate.metadata.PartitionName;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
 import org.apache.lucene.util.Version;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.test.ESIntegTestCase;
+import io.crate.es.cluster.metadata.IndexMetaData;
+import io.crate.es.cluster.metadata.MetaData;
+import io.crate.es.cluster.service.ClusterService;
+import io.crate.es.test.ESIntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
 

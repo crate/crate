@@ -32,9 +32,9 @@ import io.crate.expression.reference.sys.check.node.SysNodeChecks;
 import io.crate.expression.reference.sys.shard.SysAllocations;
 import io.crate.expression.reference.sys.snapshot.SysSnapshots;
 import io.crate.metadata.RelationName;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.repositories.RepositoriesService;
+import io.crate.es.cluster.service.ClusterService;
+import io.crate.es.common.inject.Inject;
+import io.crate.es.repositories.RepositoriesService;
 
 import java.util.HashMap;
 import java.util.Map;

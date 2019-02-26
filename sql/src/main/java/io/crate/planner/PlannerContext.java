@@ -31,8 +31,8 @@ import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.table.TableInfo;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.routing.ShardRouting;
+import io.crate.es.cluster.ClusterState;
+import io.crate.es.cluster.routing.ShardRouting;
 
 import javax.annotation.Nullable;
 import java.util.UUID;

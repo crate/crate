@@ -23,8 +23,8 @@
 package io.crate.metadata.doc;
 
 import io.crate.metadata.RelationName;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.common.inject.ImplementedBy;
+import io.crate.es.cluster.ClusterState;
+import io.crate.es.common.inject.ImplementedBy;
 
 @ImplementedBy(InternalDocTableInfoFactory.class)
 public interface DocTableInfoFactory {

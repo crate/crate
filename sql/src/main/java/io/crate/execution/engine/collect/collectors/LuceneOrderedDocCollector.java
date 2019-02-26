@@ -39,8 +39,8 @@ import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.Sort;
 import org.apache.lucene.search.TopFieldCollector;
 import org.apache.logging.log4j.LogManager;
-import org.elasticsearch.common.lucene.MinimumScoreCollector;
-import org.elasticsearch.index.shard.ShardId;
+import io.crate.es.common.lucene.MinimumScoreCollector;
+import io.crate.es.index.shard.ShardId;
 
 import javax.annotation.Nullable;
 import java.io.IOException;

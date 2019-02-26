@@ -22,7 +22,7 @@
 
 package io.crate.execution.engine.indexing;
 
-import org.elasticsearch.index.shard.ShardId;
+import io.crate.es.index.shard.ShardId;
 
 class ShardLocation {
     final ShardId shardId;

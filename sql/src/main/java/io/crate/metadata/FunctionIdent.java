@@ -26,9 +26,9 @@ import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.Ordering;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
+import io.crate.es.common.io.stream.StreamInput;
+import io.crate.es.common.io.stream.StreamOutput;
+import io.crate.es.common.io.stream.Writeable;
 
 import javax.annotation.Nullable;
 import java.io.IOException;

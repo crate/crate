@@ -40,10 +40,10 @@ import io.crate.expression.reference.sys.shard.ShardRowContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Schemas;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.BigArrays;
-import org.elasticsearch.threadpool.ThreadPool;
+import io.crate.es.cluster.service.ClusterService;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.common.util.BigArrays;
+import io.crate.es.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
 import java.io.File;

@@ -23,7 +23,7 @@
 package io.crate.execution.engine.collect.files;
 
 import com.google.common.base.Splitter;
-import org.elasticsearch.ResourceNotFoundException;
+import io.crate.es.ResourceNotFoundException;
 
 import java.io.BufferedReader;
 import java.io.IOException;

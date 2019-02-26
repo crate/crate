@@ -22,7 +22,7 @@
 
 package io.crate.planner;
 
-import org.elasticsearch.common.io.stream.StreamOutput;
+import io.crate.es.common.io.stream.StreamOutput;
 
 import java.util.Map;
 

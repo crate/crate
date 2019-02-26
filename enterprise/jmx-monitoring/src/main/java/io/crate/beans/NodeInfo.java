@@ -18,7 +18,7 @@
 
 package io.crate.beans;
 
-import org.elasticsearch.cluster.node.DiscoveryNode;
+import io.crate.es.cluster.node.DiscoveryNode;
 
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;

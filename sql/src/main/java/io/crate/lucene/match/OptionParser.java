@@ -27,12 +27,12 @@ import io.crate.types.BooleanType;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.FuzzyQuery;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.lucene.BytesRefs;
-import org.elasticsearch.common.unit.Fuzziness;
-import org.elasticsearch.common.xcontent.LoggingDeprecationHandler;
-import org.elasticsearch.index.query.MultiMatchQueryBuilder;
-import org.elasticsearch.index.query.support.QueryParsers;
-import org.elasticsearch.index.search.MatchQuery;
+import io.crate.es.common.lucene.BytesRefs;
+import io.crate.es.common.unit.Fuzziness;
+import io.crate.es.common.xcontent.LoggingDeprecationHandler;
+import io.crate.es.index.query.MultiMatchQueryBuilder;
+import io.crate.es.index.query.support.QueryParsers;
+import io.crate.es.index.search.MatchQuery;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;

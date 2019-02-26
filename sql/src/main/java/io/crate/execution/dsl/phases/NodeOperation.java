@@ -24,9 +24,9 @@ package io.crate.execution.dsl.phases;
 
 import com.google.common.collect.ImmutableList;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Streamable;
+import io.crate.es.common.io.stream.StreamInput;
+import io.crate.es.common.io.stream.StreamOutput;
+import io.crate.es.common.io.stream.Streamable;
 import org.apache.logging.log4j.LogManager;
 
 import java.io.IOException;

@@ -25,9 +25,9 @@ package io.crate.metadata.doc;
 import io.crate.metadata.Functions;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.metadata.view.ViewInfoFactory;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
+import io.crate.es.cluster.service.ClusterService;
+import io.crate.es.common.inject.Inject;
+import io.crate.es.common.inject.Singleton;
 
 @Singleton
 public class DocSchemaInfoFactory {

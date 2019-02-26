@@ -22,8 +22,8 @@
 package io.crate.expression.reference.sys.cluster;
 
 import io.crate.expression.NestableInput;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
+import io.crate.es.cluster.service.ClusterService;
+import io.crate.es.common.inject.Inject;
 
 public class ClusterIdExpression implements NestableInput<String> {
 

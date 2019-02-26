@@ -22,9 +22,9 @@
 package io.crate.blob;
 
 import io.crate.common.Hex;
-import org.elasticsearch.action.support.replication.ReplicationRequest;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
+import io.crate.es.action.support.replication.ReplicationRequest;
+import io.crate.es.common.io.stream.StreamInput;
+import io.crate.es.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 

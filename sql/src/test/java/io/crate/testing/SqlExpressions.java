@@ -48,9 +48,9 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.RowGranularity;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.QualifiedName;
-import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.inject.Injector;
-import org.elasticsearch.common.inject.ModulesBuilder;
+import io.crate.es.common.inject.AbstractModule;
+import io.crate.es.common.inject.Injector;
+import io.crate.es.common.inject.ModulesBuilder;
 
 import javax.annotation.Nullable;
 import java.util.Collections;

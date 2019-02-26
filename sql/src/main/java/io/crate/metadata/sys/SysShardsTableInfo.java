@@ -54,11 +54,11 @@ import io.crate.types.IntegerType;
 import io.crate.types.LongType;
 import io.crate.types.ObjectType;
 import io.crate.types.StringType;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.routing.GroupShardsIterator;
-import org.elasticsearch.cluster.routing.ShardIterator;
-import org.elasticsearch.cluster.routing.ShardRouting;
-import org.elasticsearch.index.shard.ShardId;
+import io.crate.es.cluster.ClusterState;
+import io.crate.es.cluster.routing.GroupShardsIterator;
+import io.crate.es.cluster.routing.ShardIterator;
+import io.crate.es.cluster.routing.ShardRouting;
+import io.crate.es.index.shard.ShardId;
 
 import java.util.ArrayList;
 import java.util.Arrays;

@@ -25,7 +25,7 @@ import io.crate.action.sql.SQLActionException;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.testing.SQLBulkResponse;
 import io.crate.testing.TestingHelpers;
-import org.elasticsearch.common.collect.MapBuilder;
+import io.crate.es.common.collect.MapBuilder;
 import org.junit.Test;
 
 import java.util.ArrayList;

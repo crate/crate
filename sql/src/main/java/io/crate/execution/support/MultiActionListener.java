@@ -22,7 +22,7 @@
 
 package io.crate.execution.support;
 
-import org.elasticsearch.action.ActionListener;
+import io.crate.es.action.ActionListener;
 
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;

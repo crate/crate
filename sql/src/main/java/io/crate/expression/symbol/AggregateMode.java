@@ -26,8 +26,8 @@ import com.google.common.collect.ImmutableList;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.types.DataType;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
+import io.crate.es.common.io.stream.StreamInput;
+import io.crate.es.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 import java.util.List;

@@ -32,7 +32,7 @@
             <useProjectArtifact>true</useProjectArtifact>
             <useTransitiveFiltering>true</useTransitiveFiltering>
             <excludes>
-                <exclude>org.elasticsearch:elasticsearch</exclude>
+                <exclude>io.crate.es:es</exclude>
             </excludes>
         </dependencySet>
     </dependencySets>

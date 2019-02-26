@@ -26,10 +26,10 @@ import io.crate.action.sql.SQLOperations;
 import io.crate.auth.user.UserManager;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.plugin.PipelineRegistry;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Provider;
-import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.common.inject.Inject;
+import io.crate.es.common.inject.Provider;
+import io.crate.es.common.inject.Singleton;
+import io.crate.es.common.settings.Settings;
 
 @Singleton
 public class RestSQLAction {

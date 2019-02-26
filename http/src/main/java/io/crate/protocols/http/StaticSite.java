@@ -23,10 +23,10 @@
 package io.crate.protocols.http;
 
 import com.google.common.collect.ImmutableMap;
-import org.elasticsearch.common.io.FileSystemUtils;
-import org.elasticsearch.rest.BytesRestResponse;
-import org.elasticsearch.rest.RestChannel;
-import org.elasticsearch.rest.RestRequest;
+import io.crate.es.common.io.FileSystemUtils;
+import io.crate.es.rest.BytesRestResponse;
+import io.crate.es.rest.RestChannel;
+import io.crate.es.rest.RestRequest;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -36,10 +36,10 @@ import java.util.Locale;
 import java.util.Map;
 
 import static java.nio.file.Files.readAttributes;
-import static org.elasticsearch.rest.RestStatus.FORBIDDEN;
-import static org.elasticsearch.rest.RestStatus.INTERNAL_SERVER_ERROR;
-import static org.elasticsearch.rest.RestStatus.NOT_FOUND;
-import static org.elasticsearch.rest.RestStatus.OK;
+import static io.crate.es.rest.RestStatus.FORBIDDEN;
+import static io.crate.es.rest.RestStatus.INTERNAL_SERVER_ERROR;
+import static io.crate.es.rest.RestStatus.NOT_FOUND;
+import static io.crate.es.rest.RestStatus.OK;
 
 public final class StaticSite {
 

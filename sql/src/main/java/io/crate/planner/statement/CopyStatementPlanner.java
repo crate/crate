@@ -66,8 +66,8 @@ import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LogicalPlanner;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.node.DiscoveryNodes;
+import io.crate.es.cluster.node.DiscoveryNode;
+import io.crate.es.cluster.node.DiscoveryNodes;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;

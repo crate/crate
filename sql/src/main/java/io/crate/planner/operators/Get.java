@@ -40,11 +40,11 @@ import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.TableStats;
 import io.crate.planner.node.dql.Collect;
-import org.elasticsearch.cluster.routing.ShardRouting;
-import org.elasticsearch.common.lucene.uid.Versions;
-import org.elasticsearch.index.IndexNotFoundException;
-import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.index.shard.ShardNotFoundException;
+import io.crate.es.cluster.routing.ShardRouting;
+import io.crate.es.common.lucene.uid.Versions;
+import io.crate.es.index.IndexNotFoundException;
+import io.crate.es.index.shard.ShardId;
+import io.crate.es.index.shard.ShardNotFoundException;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;

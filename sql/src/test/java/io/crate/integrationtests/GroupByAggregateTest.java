@@ -21,18 +21,15 @@
 
 package io.crate.integrationtests;
 
-import io.crate.Constants;
 import io.crate.action.sql.SQLActionException;
 import io.crate.data.ArrayBucket;
 import io.crate.data.Paging;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
-import org.elasticsearch.test.ESIntegTestCase;
+import io.crate.es.test.ESIntegTestCase;
 import org.hamcrest.core.Is;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.util.HashMap;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiLettersOfLength;
 import static io.crate.testing.TestingHelpers.printedTable;

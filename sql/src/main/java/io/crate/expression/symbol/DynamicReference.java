@@ -27,7 +27,7 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.io.stream.StreamInput;
+import io.crate.es.common.io.stream.StreamInput;
 
 import java.io.IOException;
 

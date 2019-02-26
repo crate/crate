@@ -38,7 +38,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.PKAndVersion;
-import org.elasticsearch.index.shard.ShardId;
+import io.crate.es.index.shard.ShardId;
 
 import java.util.Collection;
 import java.util.List;

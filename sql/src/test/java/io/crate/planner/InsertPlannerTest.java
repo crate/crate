@@ -47,7 +47,7 @@ import io.crate.planner.node.dql.join.Join;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.Randomness;
+import io.crate.es.common.Randomness;
 import org.junit.Before;
 import org.junit.Test;
 

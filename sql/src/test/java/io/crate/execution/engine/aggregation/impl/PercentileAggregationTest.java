@@ -30,9 +30,9 @@ import io.crate.operation.aggregation.AggregationTest;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.breaker.NoopCircuitBreaker;
-import org.elasticsearch.common.util.BigArrays;
+import io.crate.es.Version;
+import io.crate.es.common.breaker.NoopCircuitBreaker;
+import io.crate.es.common.util.BigArrays;
 import org.junit.Before;
 import org.junit.Test;
 

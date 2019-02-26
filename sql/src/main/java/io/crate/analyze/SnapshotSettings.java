@@ -24,7 +24,7 @@ package io.crate.analyze;
 
 
 import com.google.common.collect.ImmutableMap;
-import org.elasticsearch.common.settings.Setting;
+import io.crate.es.common.settings.Setting;
 
 public final class SnapshotSettings {
 

@@ -39,9 +39,9 @@ import io.crate.metadata.Functions;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.types.CollectionType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
+import io.crate.es.cluster.service.ClusterService;
+import io.crate.es.common.inject.Inject;
+import io.crate.es.common.inject.Singleton;
 
 import java.util.ArrayList;
 import java.util.Arrays;

@@ -33,7 +33,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.types.DataType;
 import io.crate.types.IpType;
-import org.elasticsearch.index.mapper.MappedFieldType;
+import io.crate.es.index.mapper.MappedFieldType;
 
 import java.util.function.Function;
 

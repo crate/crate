@@ -22,7 +22,7 @@
 
 package io.crate.license;
 
-import org.elasticsearch.common.io.Streams;
+import io.crate.es.common.io.Streams;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;

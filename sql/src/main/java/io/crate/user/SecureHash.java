@@ -22,14 +22,14 @@
 
 package io.crate.user;
 
-import org.elasticsearch.ElasticsearchParseException;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.settings.SecureString;
-import org.elasticsearch.common.xcontent.ToXContent;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentParser;
+import io.crate.es.ElasticsearchParseException;
+import io.crate.es.common.io.stream.StreamInput;
+import io.crate.es.common.io.stream.StreamOutput;
+import io.crate.es.common.io.stream.Writeable;
+import io.crate.es.common.settings.SecureString;
+import io.crate.es.common.xcontent.ToXContent;
+import io.crate.es.common.xcontent.XContentBuilder;
+import io.crate.es.common.xcontent.XContentParser;
 
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;

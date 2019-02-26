@@ -32,7 +32,7 @@ import io.crate.settings.SharedSettings;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.type.TypeReference;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.common.settings.Settings;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;

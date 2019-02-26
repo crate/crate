@@ -26,7 +26,7 @@ import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.StoredFieldVisitor;
-import org.elasticsearch.index.mapper.Uid;
+import io.crate.es.index.mapper.Uid;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;

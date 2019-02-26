@@ -26,8 +26,8 @@ import io.crate.analyze.user.Privilege;
 import io.crate.metadata.RelationName;
 import io.crate.execution.engine.collect.sources.InformationSchemaIterables;
 import io.crate.expression.reference.StaticTableDefinition;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
+import io.crate.es.common.inject.Inject;
+import io.crate.es.common.inject.Singleton;
 
 import java.util.HashMap;
 import java.util.Map;

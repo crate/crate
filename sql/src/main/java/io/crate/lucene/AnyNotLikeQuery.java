@@ -30,9 +30,9 @@ import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.RegexpQuery;
-import org.elasticsearch.common.lucene.search.Queries;
-import org.elasticsearch.index.mapper.MappedFieldType;
-import org.elasticsearch.index.query.RegexpFlag;
+import io.crate.es.common.lucene.search.Queries;
+import io.crate.es.index.mapper.MappedFieldType;
+import io.crate.es.index.query.RegexpFlag;
 
 import java.io.IOException;
 import java.util.Locale;

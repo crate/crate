@@ -32,7 +32,7 @@ import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.CreateUser;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.QualifiedName;
-import org.elasticsearch.common.Nullable;
+import io.crate.es.common.Nullable;
 
 import java.util.Collections;
 import java.util.HashMap;

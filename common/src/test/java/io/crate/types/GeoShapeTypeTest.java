@@ -26,11 +26,11 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.geo.GeoJSONUtils;
 import io.crate.geo.GeoJSONUtilsTest;
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.xcontent.DeprecationHandler;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
+import io.crate.es.common.io.stream.BytesStreamOutput;
+import io.crate.es.common.io.stream.StreamInput;
+import io.crate.es.common.xcontent.DeprecationHandler;
+import io.crate.es.common.xcontent.NamedXContentRegistry;
+import io.crate.es.common.xcontent.json.JsonXContent;
 import org.junit.Test;
 import org.locationtech.spatial4j.shape.Shape;
 

@@ -60,7 +60,7 @@ import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.SetType;
-import org.elasticsearch.common.Nullable;
+import io.crate.es.common.Nullable;
 
 import java.util.ArrayList;
 import java.util.Iterator;

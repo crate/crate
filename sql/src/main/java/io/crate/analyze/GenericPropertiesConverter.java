@@ -26,8 +26,8 @@ import io.crate.data.Row;
 import io.crate.sql.tree.ArrayLiteral;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GenericProperties;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.common.settings.Setting;
+import io.crate.es.common.settings.Settings;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -36,7 +36,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.function.Predicate;
 
-import static org.elasticsearch.cluster.metadata.IndexMetaData.INDEX_SETTING_PREFIX;
+import static io.crate.es.cluster.metadata.IndexMetaData.INDEX_SETTING_PREFIX;
 
 public class GenericPropertiesConverter {
 

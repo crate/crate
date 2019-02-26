@@ -56,12 +56,12 @@ import io.netty.handler.ssl.NotSslRecordException;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.handler.stream.ChunkedFile;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.Nullable;
+import io.crate.es.common.Nullable;
 import org.apache.logging.log4j.LogManager;
-import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
-import org.elasticsearch.http.netty4.cors.Netty4CorsConfig;
-import org.elasticsearch.http.netty4.cors.Netty4CorsHandler;
-import org.elasticsearch.index.IndexNotFoundException;
+import io.crate.es.common.util.concurrent.EsRejectedExecutionException;
+import io.crate.es.http.netty4.cors.Netty4CorsConfig;
+import io.crate.es.http.netty4.cors.Netty4CorsHandler;
+import io.crate.es.index.IndexNotFoundException;
 
 import java.io.IOException;
 import java.io.RandomAccessFile;

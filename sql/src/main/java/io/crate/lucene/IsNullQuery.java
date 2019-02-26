@@ -31,10 +31,10 @@ import org.apache.lucene.index.Term;
 import org.apache.lucene.search.ConstantScoreQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
-import org.elasticsearch.common.lucene.search.Queries;
-import org.elasticsearch.index.mapper.FieldNamesFieldMapper;
-import org.elasticsearch.index.mapper.MappedFieldType;
-import org.elasticsearch.index.query.ExistsQueryBuilder;
+import io.crate.es.common.lucene.search.Queries;
+import io.crate.es.index.mapper.FieldNamesFieldMapper;
+import io.crate.es.index.mapper.MappedFieldType;
+import io.crate.es.index.query.ExistsQueryBuilder;
 
 class IsNullQuery implements FunctionToQuery {
 

@@ -24,7 +24,7 @@ package io.crate.metadata;
 
 import com.google.common.collect.ImmutableMap;
 import io.crate.user.SecureHash;
-import org.elasticsearch.common.settings.SecureString;
+import io.crate.es.common.settings.SecureString;
 
 import java.security.GeneralSecurityException;
 import java.util.Collections;

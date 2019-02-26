@@ -25,8 +25,8 @@ package io.crate.analyze;
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
-import org.elasticsearch.common.Nullable;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.common.Nullable;
+import io.crate.es.common.settings.Settings;
 
 import java.util.List;
 

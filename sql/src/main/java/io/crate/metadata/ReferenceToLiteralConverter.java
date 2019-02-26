@@ -26,7 +26,7 @@ import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.types.DataType;
-import org.elasticsearch.common.xcontent.support.XContentMapValues;
+import io.crate.es.common.xcontent.support.XContentMapValues;
 
 import java.util.BitSet;
 import java.util.Collection;

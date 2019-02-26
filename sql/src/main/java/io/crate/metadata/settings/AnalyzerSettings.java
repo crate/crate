@@ -22,8 +22,8 @@
 
 package io.crate.metadata.settings;
 
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.common.settings.Setting;
+import io.crate.es.common.settings.Settings;
 
 public final class AnalyzerSettings {
 

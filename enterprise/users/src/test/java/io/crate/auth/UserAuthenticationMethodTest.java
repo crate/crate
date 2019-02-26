@@ -25,7 +25,7 @@ package io.crate.auth;
 import io.crate.auth.user.User;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.user.SecureHash;
-import org.elasticsearch.common.settings.SecureString;
+import io.crate.es.common.settings.SecureString;
 import org.junit.Test;
 
 import java.security.NoSuchAlgorithmException;

@@ -28,7 +28,7 @@ import io.crate.expression.scalar.TripleScalar;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.Strings;
+import io.crate.es.common.Strings;
 
 
 public final class ReplaceFunction {

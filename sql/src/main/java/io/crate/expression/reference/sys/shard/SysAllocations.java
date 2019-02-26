@@ -23,22 +23,22 @@
 package io.crate.expression.reference.sys.shard;
 
 import io.crate.metadata.IndexParts;
-import org.elasticsearch.action.admin.cluster.allocation.ClusterAllocationExplanation;
-import org.elasticsearch.cluster.ClusterInfo;
-import org.elasticsearch.cluster.ClusterInfoService;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.routing.RoutingNodes;
-import org.elasticsearch.cluster.routing.ShardRouting;
-import org.elasticsearch.cluster.routing.allocation.AllocateUnassignedDecision;
-import org.elasticsearch.cluster.routing.allocation.MoveDecision;
-import org.elasticsearch.cluster.routing.allocation.RoutingAllocation;
-import org.elasticsearch.cluster.routing.allocation.ShardAllocationDecision;
-import org.elasticsearch.cluster.routing.allocation.allocator.ShardsAllocator;
-import org.elasticsearch.cluster.routing.allocation.decider.AllocationDeciders;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.gateway.GatewayAllocator;
+import io.crate.es.action.admin.cluster.allocation.ClusterAllocationExplanation;
+import io.crate.es.cluster.ClusterInfo;
+import io.crate.es.cluster.ClusterInfoService;
+import io.crate.es.cluster.ClusterState;
+import io.crate.es.cluster.routing.RoutingNodes;
+import io.crate.es.cluster.routing.ShardRouting;
+import io.crate.es.cluster.routing.allocation.AllocateUnassignedDecision;
+import io.crate.es.cluster.routing.allocation.MoveDecision;
+import io.crate.es.cluster.routing.allocation.RoutingAllocation;
+import io.crate.es.cluster.routing.allocation.ShardAllocationDecision;
+import io.crate.es.cluster.routing.allocation.allocator.ShardsAllocator;
+import io.crate.es.cluster.routing.allocation.decider.AllocationDeciders;
+import io.crate.es.cluster.service.ClusterService;
+import io.crate.es.common.inject.Inject;
+import io.crate.es.common.inject.Singleton;
+import io.crate.es.gateway.GatewayAllocator;
 
 import java.util.Iterator;
 

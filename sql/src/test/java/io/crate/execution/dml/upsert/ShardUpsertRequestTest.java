@@ -32,11 +32,11 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.UUIDs;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.index.shard.ShardId;
+import io.crate.es.common.UUIDs;
+import io.crate.es.common.io.stream.BytesStreamOutput;
+import io.crate.es.common.io.stream.StreamInput;
+import io.crate.es.common.unit.TimeValue;
+import io.crate.es.index.shard.ShardId;
 import org.junit.Test;
 
 import java.util.UUID;

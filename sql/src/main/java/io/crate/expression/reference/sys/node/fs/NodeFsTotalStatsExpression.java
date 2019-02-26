@@ -26,7 +26,7 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.expression.reference.sys.node.NodeStatsContext;
 import io.crate.monitor.FsInfoHelpers;
 import io.crate.expression.reference.sys.node.SimpleNodeStatsExpression;
-import org.elasticsearch.monitor.fs.FsInfo;
+import io.crate.es.monitor.fs.FsInfo;
 
 import java.util.Map;
 

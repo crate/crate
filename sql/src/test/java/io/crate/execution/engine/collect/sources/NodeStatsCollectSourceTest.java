@@ -37,7 +37,7 @@ import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.SqlExpressions;
 import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.node.DiscoveryNode;
+import io.crate.es.cluster.node.DiscoveryNode;
 import org.junit.Before;
 import org.junit.Test;
 

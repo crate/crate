@@ -24,10 +24,10 @@ package io.crate.analyze;
 
 import io.crate.execution.dsl.phases.FileUriCollectPhase;
 import io.crate.expression.symbol.Symbol;
-import org.elasticsearch.cluster.node.DiscoveryNode;
+import io.crate.es.cluster.node.DiscoveryNode;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.types.DataType;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.common.settings.Settings;
 
 import javax.annotation.Nullable;
 import java.util.function.Predicate;

@@ -25,7 +25,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.sql.tree.ClusteredBy;
 import io.crate.sql.tree.CreateBlobTable;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
+import io.crate.es.cluster.metadata.IndexMetaData;
 
 import java.util.Optional;
 

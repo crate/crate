@@ -45,7 +45,7 @@ import io.netty.handler.codec.ByteToMessageDecoder;
 import io.netty.handler.ssl.SslContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.Version;
+import io.crate.es.Version;
 
 import javax.annotation.Nullable;
 import javax.net.ssl.SSLSession;

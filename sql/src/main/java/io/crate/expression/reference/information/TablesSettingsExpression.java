@@ -25,7 +25,7 @@ import io.crate.analyze.TableParameterInfo;
 import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.metadata.RelationInfo;
 import io.crate.metadata.doc.DocTableInfo;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
+import io.crate.es.cluster.metadata.IndexMetaData;
 
 import java.util.HashMap;
 import java.util.Map;

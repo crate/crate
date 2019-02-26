@@ -38,8 +38,8 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.index.shard.ShardId;
+import io.crate.es.cluster.service.ClusterService;
+import io.crate.es.index.shard.ShardId;
 
 import java.util.List;
 import java.util.Map;

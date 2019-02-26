@@ -39,8 +39,8 @@ import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.types.DataTypes;
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
-import org.elasticsearch.action.support.IndicesOptions;
+import io.crate.es.action.admin.indices.delete.DeleteIndexRequest;
+import io.crate.es.action.support.IndicesOptions;
 
 import java.util.ArrayList;
 import java.util.List;

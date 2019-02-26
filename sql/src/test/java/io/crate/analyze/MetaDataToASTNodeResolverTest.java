@@ -39,10 +39,10 @@ import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.Version;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.common.Nullable;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.Version;
+import io.crate.es.cluster.metadata.IndexNameExpressionResolver;
+import io.crate.es.common.Nullable;
+import io.crate.es.common.settings.Settings;
 import org.junit.Test;
 
 import java.util.Collections;

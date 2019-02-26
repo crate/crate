@@ -22,7 +22,7 @@
 
 package io.crate.lucene;
 
-import org.elasticsearch.index.mapper.MappedFieldType;
+import io.crate.es.index.mapper.MappedFieldType;
 
 @FunctionalInterface
 public interface FieldTypeLookup {

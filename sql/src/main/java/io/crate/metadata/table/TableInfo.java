@@ -28,7 +28,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RelationInfo;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
-import org.elasticsearch.cluster.ClusterState;
+import io.crate.es.cluster.ClusterState;
 
 import javax.annotation.Nullable;
 

@@ -24,9 +24,9 @@ import com.microsoft.azure.management.network.NetworkResourceProviderClient;
 import com.microsoft.windowsazure.Configuration;
 import io.crate.azure.AzureConfiguration;
 import io.crate.azure.discovery.AzureUnicastHostsProvider;
-import org.elasticsearch.common.component.LifecycleComponent;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.unit.TimeValue;
+import io.crate.es.common.component.LifecycleComponent;
+import io.crate.es.common.settings.Setting;
+import io.crate.es.common.unit.TimeValue;
 
 import java.util.function.Function;
 

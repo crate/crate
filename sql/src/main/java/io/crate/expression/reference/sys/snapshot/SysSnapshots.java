@@ -21,10 +21,10 @@
 
 package io.crate.expression.reference.sys.snapshot;
 
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.repositories.RepositoriesService;
-import org.elasticsearch.snapshots.SnapshotInfo;
+import io.crate.es.common.inject.Inject;
+import io.crate.es.common.inject.Singleton;
+import io.crate.es.repositories.RepositoriesService;
+import io.crate.es.snapshots.SnapshotInfo;
 
 import java.util.stream.Stream;
 

@@ -36,7 +36,7 @@ import io.crate.data.join.CombinedRow;
 import io.crate.data.join.JoinBatchIterators;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.types.DataType;
-import org.elasticsearch.common.breaker.CircuitBreaker;
+import io.crate.es.common.breaker.CircuitBreaker;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;

@@ -26,8 +26,8 @@ import com.google.common.collect.ImmutableSortedMap;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.view.ViewInfo;
-import org.elasticsearch.cluster.ClusterChangedEvent;
-import org.elasticsearch.common.inject.Inject;
+import io.crate.es.cluster.ClusterChangedEvent;
+import io.crate.es.common.inject.Inject;
 
 import javax.annotation.Nullable;
 import java.util.Collections;

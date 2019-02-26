@@ -40,8 +40,8 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.cluster.service.ClusterService;
+import io.crate.es.common.settings.Settings;
 
 import javax.annotation.Nullable;
 import java.util.List;

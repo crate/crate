@@ -23,10 +23,10 @@ package io.crate.analyze;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
-import org.elasticsearch.cluster.metadata.AutoExpandReplicas;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.common.Booleans;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.cluster.metadata.AutoExpandReplicas;
+import io.crate.es.cluster.metadata.IndexMetaData;
+import io.crate.es.common.Booleans;
+import io.crate.es.common.settings.Settings;
 
 import java.util.regex.Pattern;
 

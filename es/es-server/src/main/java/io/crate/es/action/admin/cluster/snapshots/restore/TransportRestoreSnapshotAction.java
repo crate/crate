@@ -1,0 +1,138 @@
+/*
+ * Licensed to Crate under one or more contributor license agreements.
+ * See the NOTICE file distributed with this work for additional
+ * information regarding copyright ownership.  Crate licenses this file
+ * to you under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.  You may
+ * obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied.  See the License for the specific language governing
+ * permissions and limitations under the License.
+ *
+ * However, if you have executed another commercial license agreement
+ * with Crate these terms will supersede the license and you may use the
+ * software solely pursuant to the terms of the relevant commercial
+ * agreement.
+ */
+
+package io.crate.es.action.admin.cluster.snapshots.restore;
+
+import io.crate.es.action.ActionListener;
+import io.crate.es.action.support.master.TransportMasterNodeAction;
+import io.crate.es.cluster.ClusterChangedEvent;
+import io.crate.es.cluster.ClusterState;
+import io.crate.es.cluster.ClusterStateListener;
+import io.crate.es.cluster.RestoreInProgress;
+import io.crate.es.cluster.block.ClusterBlockException;
+import io.crate.es.cluster.block.ClusterBlockLevel;
+import io.crate.es.cluster.metadata.IndexNameExpressionResolver;
+import io.crate.es.cluster.service.ClusterService;
+import io.crate.es.common.collect.ImmutableOpenMap;
+import io.crate.es.common.inject.Inject;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.index.shard.ShardId;
+import io.crate.es.snapshots.RestoreInfo;
+import io.crate.es.snapshots.RestoreService;
+import io.crate.es.snapshots.RestoreService.RestoreCompletionResponse;
+import io.crate.es.snapshots.Snapshot;
+import io.crate.es.threadpool.ThreadPool;
+import io.crate.es.transport.TransportService;
+
+import static io.crate.es.snapshots.RestoreService.restoreInProgress;
+
+/**
+ * Transport action for restore snapshot operation
+ */
+public class TransportRestoreSnapshotAction extends TransportMasterNodeAction<RestoreSnapshotRequest, RestoreSnapshotResponse> {
+    private final RestoreService restoreService;
+
+    @Inject
+    public TransportRestoreSnapshotAction(Settings settings, TransportService transportService, ClusterService clusterService,
+                                          ThreadPool threadPool, RestoreService restoreService,
+                                          IndexNameExpressionResolver indexNameExpressionResolver) {
+        super(settings, RestoreSnapshotAction.NAME, transportService, clusterService, threadPool, indexNameExpressionResolver, RestoreSnapshotRequest::new);
+        this.restoreService = restoreService;
+    }
+
+    @Override
+    protected String executor() {
+        return ThreadPool.Names.SNAPSHOT;
+    }
+
+    @Override
+    protected RestoreSnapshotResponse newResponse() {
+        return new RestoreSnapshotResponse();
+    }
+
+    @Override
+    protected ClusterBlockException checkBlock(RestoreSnapshotRequest request, ClusterState state) {
+        // Restoring a snapshot might change the global state and create/change an index,
+        // so we need to check for METADATA_WRITE and WRITE blocks
+        ClusterBlockException blockException = state.blocks().globalBlockedException(ClusterBlockLevel.METADATA_WRITE);
+        if (blockException != null) {
+            return blockException;
+        }
+        return state.blocks().globalBlockedException(ClusterBlockLevel.WRITE);
+
+    }
+
+    @Override
+    protected void masterOperation(final RestoreSnapshotRequest request, final ClusterState state, final ActionListener<RestoreSnapshotResponse> listener) {
+        RestoreService.RestoreRequest restoreRequest = new RestoreService.RestoreRequest(request.repository(), request.snapshot(),
+                request.indices(), request.templates(), request.indicesOptions(), request.renamePattern(), request.renameReplacement(),
+                request.settings(), request.masterNodeTimeout(), request.includeGlobalState(), request.partial(), request.includeAliases(),
+                request.indexSettings(), request.ignoreIndexSettings(), "restore_snapshot[" + request.snapshot() + "]");
+
+        restoreService.restoreSnapshot(restoreRequest, new ActionListener<RestoreCompletionResponse>() {
+            @Override
+            public void onResponse(RestoreCompletionResponse restoreCompletionResponse) {
+                if (restoreCompletionResponse.getRestoreInfo() == null && request.waitForCompletion()) {
+                    final Snapshot snapshot = restoreCompletionResponse.getSnapshot();
+
+                    ClusterStateListener clusterStateListener = new ClusterStateListener() {
+                        @Override
+                        public void clusterChanged(ClusterChangedEvent changedEvent) {
+                            final RestoreInProgress.Entry prevEntry = restoreInProgress(changedEvent.previousState(), snapshot);
+                            final RestoreInProgress.Entry newEntry = restoreInProgress(changedEvent.state(), snapshot);
+                            if (prevEntry == null) {
+                                // When there is a master failure after a restore has been started, this listener might not be registered
+                                // on the current master and as such it might miss some intermediary cluster states due to batching.
+                                // Clean up listener in that case and acknowledge completion of restore operation to client.
+                                clusterService.removeListener(this);
+                                listener.onResponse(new RestoreSnapshotResponse(null));
+                            } else if (newEntry == null) {
+                                clusterService.removeListener(this);
+                                ImmutableOpenMap<ShardId, RestoreInProgress.ShardRestoreStatus> shards = prevEntry.shards();
+                                assert prevEntry.state().completed() : "expected completed snapshot state but was " + prevEntry.state();
+                                assert RestoreService.completed(shards) : "expected all restore entries to be completed";
+                                RestoreInfo ri = new RestoreInfo(prevEntry.snapshot().getSnapshotId().getName(),
+                                    prevEntry.indices(),
+                                    shards.size(),
+                                    shards.size() - RestoreService.failedShards(shards));
+                                RestoreSnapshotResponse response = new RestoreSnapshotResponse(ri);
+                                logger.debug("restore of [{}] completed", snapshot);
+                                listener.onResponse(response);
+                            } else {
+                                // restore not completed yet, wait for next cluster state update
+                            }
+                        }
+                    };
+
+                    clusterService.addListener(clusterStateListener);
+                } else {
+                    listener.onResponse(new RestoreSnapshotResponse(restoreCompletionResponse.getRestoreInfo()));
+                }
+            }
+
+            @Override
+            public void onFailure(Exception t) {
+                listener.onFailure(t);
+            }
+        });
+    }
+}

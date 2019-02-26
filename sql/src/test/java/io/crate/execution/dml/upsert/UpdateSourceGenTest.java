@@ -33,9 +33,9 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.xcontent.XContentFactory;
+import io.crate.es.common.Strings;
+import io.crate.es.common.bytes.BytesReference;
+import io.crate.es.common.xcontent.XContentFactory;
 import org.junit.Test;
 
 import java.io.IOException;

@@ -194,8 +194,8 @@ public class RegexpIntegrationTest extends SQLTransportIntegrationTest {
     /**
      * Same as above except that the code path is different as a countOperation is used for count(*) queries
      *
-     * @see {@link org.elasticsearch.index.query.RegexpQueryParser}
-     * @see {@link org.elasticsearch.index.mapper.core.AbstractFieldMapper#regexpQuery}
+     * @see {@link io.crate.es.index.query.RegexpQueryParser}
+     * @see {@link io.crate.es.index.mapper.core.AbstractFieldMapper#regexpQuery}
      */
     @Test
     public void testRegexpMatchQueryOperatorWithPcreViaElasticSearchForCount() throws Exception {
@@ -212,8 +212,8 @@ public class RegexpIntegrationTest extends SQLTransportIntegrationTest {
     /**
      * Same as above, running through the same code path for DELETE expressions.
      *
-     * @see {@link org.elasticsearch.index.query.RegexpQueryParser}
-     * @see {@link org.elasticsearch.index.mapper.core.AbstractFieldMapper#regexpQuery}
+     * @see {@link io.crate.es.index.query.RegexpQueryParser}
+     * @see {@link io.crate.es.index.mapper.core.AbstractFieldMapper#regexpQuery}
      */
     @Test
     public void testRegexpMatchQueryOperatorWithPcreViaElasticSearchForDelete() throws Exception {

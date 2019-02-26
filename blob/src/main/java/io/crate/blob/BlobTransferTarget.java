@@ -30,21 +30,21 @@ import io.crate.blob.transfer.GetBlobHeadRequest;
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.blob.v2.BlobShard;
 import org.apache.lucene.util.IOUtils;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.node.DiscoveryNodes;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.component.AbstractComponent;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.EmptyTransportResponseHandler;
-import org.elasticsearch.transport.FutureTransportResponseHandler;
-import org.elasticsearch.transport.TransportRequestOptions;
-import org.elasticsearch.transport.TransportResponse;
-import org.elasticsearch.transport.TransportService;
+import io.crate.es.cluster.node.DiscoveryNode;
+import io.crate.es.cluster.node.DiscoveryNodes;
+import io.crate.es.cluster.service.ClusterService;
+import io.crate.es.common.component.AbstractComponent;
+import io.crate.es.common.inject.Inject;
+import io.crate.es.common.io.stream.StreamInput;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.common.unit.TimeValue;
+import io.crate.es.common.util.concurrent.ConcurrentCollections;
+import io.crate.es.threadpool.ThreadPool;
+import io.crate.es.transport.EmptyTransportResponseHandler;
+import io.crate.es.transport.FutureTransportResponseHandler;
+import io.crate.es.transport.TransportRequestOptions;
+import io.crate.es.transport.TransportResponse;
+import io.crate.es.transport.TransportService;
 
 import java.io.File;
 import java.io.IOException;
@@ -300,7 +300,7 @@ public class BlobTransferTarget extends AbstractComponent {
         getHeadRequestLatch = new CountDownLatch(activeTransfers.size());
 
         /**
-         * the future is used because {@link #gotAGetBlobHeadRequest(org.elasticsearch.common.UUID)}
+         * the future is used because {@link #gotAGetBlobHeadRequest(io.crate.es.common.UUID)}
          * might be called before this method und there is a .get() call that blocks and waits
          */
         getHeadRequestLatchFuture.complete(getHeadRequestLatch);

@@ -50,9 +50,9 @@ import io.crate.types.TimestampType;
 import org.apache.lucene.search.FieldComparator;
 import org.apache.lucene.search.FieldComparatorSource;
 import org.apache.lucene.search.SortField;
-import org.elasticsearch.common.Nullable;
-import org.elasticsearch.index.mapper.MappedFieldType;
-import org.elasticsearch.search.MultiValueMode;
+import io.crate.es.common.Nullable;
+import io.crate.es.index.mapper.MappedFieldType;
+import io.crate.es.search.MultiValueMode;
 
 import java.util.Collection;
 import java.util.List;
@@ -136,8 +136,8 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
 
         /*
          * TODO:
-         * There is now {@link org.elasticsearch.search.sort.SortFieldAndFormat}, maybe that can be used.
-         * See {@link org.elasticsearch.search.sort.ScoreSortBuilder}
+         * There is now {@link io.crate.es.search.sort.SortFieldAndFormat}, maybe that can be used.
+         * See {@link io.crate.es.search.sort.ScoreSortBuilder}
          */
 
         ColumnIdent columnIdent = symbol.column();

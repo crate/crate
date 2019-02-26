@@ -25,7 +25,7 @@ import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.CountPlan;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.join.Join;
-import org.elasticsearch.common.Nullable;
+import io.crate.es.common.Nullable;
 
 public class ExecutionPlanVisitor<C, R> {
 

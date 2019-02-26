@@ -34,10 +34,10 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.DummyRelation;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.breaker.NoopCircuitBreaker;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
+import io.crate.es.common.Strings;
+import io.crate.es.common.breaker.NoopCircuitBreaker;
+import io.crate.es.common.xcontent.XContentBuilder;
+import io.crate.es.common.xcontent.json.JsonXContent;
 import org.junit.Test;
 
 import java.io.IOException;

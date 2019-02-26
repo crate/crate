@@ -22,10 +22,10 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSortedMap;
 import io.crate.auth.user.UserLookup;
 import io.crate.protocols.postgres.ConnectionProperties;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.network.Cidrs;
-import org.elasticsearch.common.network.InetAddresses;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.common.inject.Inject;
+import io.crate.es.common.network.Cidrs;
+import io.crate.es.common.network.InetAddresses;
+import io.crate.es.common.settings.Settings;
 
 import javax.annotation.Nullable;
 import java.net.InetAddress;

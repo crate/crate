@@ -12,6 +12,7 @@ import io.crate.analyze.CreateTableStatementAnalyzer;
 import io.crate.analyze.NumberOfShards;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.ParameterContext;
+import io.crate.es.Version;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -31,17 +32,17 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.metadata.MappingMetaData;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.common.xcontent.XContentHelper;
-import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.env.Environment;
-import org.elasticsearch.index.analysis.AnalysisRegistry;
+import io.crate.es.cluster.metadata.IndexMetaData;
+import io.crate.es.cluster.metadata.IndexNameExpressionResolver;
+import io.crate.es.cluster.metadata.MappingMetaData;
+import io.crate.es.common.bytes.BytesReference;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.common.xcontent.XContentBuilder;
+import io.crate.es.common.xcontent.XContentFactory;
+import io.crate.es.common.xcontent.XContentHelper;
+import io.crate.es.common.xcontent.XContentType;
+import io.crate.es.env.Environment;
+import io.crate.es.index.analysis.AnalysisRegistry;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
@@ -82,7 +83,7 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
         Settings.Builder settingsBuilder = Settings.builder()
             .put("index.number_of_shards", 1)
             .put("index.number_of_replicas", 0)
-            .put("index.version.created", org.elasticsearch.Version.CURRENT);
+            .put("index.version.created", Version.CURRENT);
 
         IndexMetaData.Builder mdBuilder = IndexMetaData.builder(indexName)
             .settings(settingsBuilder)
@@ -970,7 +971,7 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
         Settings.Builder settingsBuilder = Settings.builder()
             .put("index.number_of_shards", 1)
             .put("index.number_of_replicas", 0)
-            .put("index.version.created", org.elasticsearch.Version.CURRENT)
+            .put("index.version.created", Version.CURRENT)
             .put(analyzedStatement.tableParameter().settings());
 
         IndexMetaData indexMetaData = IndexMetaData.builder(analyzedStatement.tableIdent().name())

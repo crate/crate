@@ -90,11 +90,11 @@ import io.crate.sql.tree.ShowTransaction;
 import io.crate.sql.tree.Statement;
 import io.crate.sql.tree.SwapTable;
 import io.crate.sql.tree.Update;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.analysis.AnalysisRegistry;
+import io.crate.es.cluster.service.ClusterService;
+import io.crate.es.common.inject.Inject;
+import io.crate.es.common.inject.Singleton;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.index.analysis.AnalysisRegistry;
 
 import java.util.ArrayList;
 import java.util.Locale;

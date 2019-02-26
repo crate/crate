@@ -24,9 +24,9 @@ package io.crate.blob.v2;
 import com.google.common.annotations.VisibleForTesting;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.IOUtils;
-import org.elasticsearch.common.Nullable;
-import org.elasticsearch.index.shard.IndexShard;
-import org.elasticsearch.index.shard.ShardId;
+import io.crate.es.common.Nullable;
+import io.crate.es.index.shard.IndexShard;
+import io.crate.es.index.shard.ShardId;
 
 import java.io.IOException;
 import java.nio.file.Files;

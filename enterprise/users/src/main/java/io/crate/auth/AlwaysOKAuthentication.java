@@ -20,7 +20,7 @@ package io.crate.auth;
 
 import io.crate.auth.user.UserLookup;
 import io.crate.protocols.postgres.ConnectionProperties;
-import org.elasticsearch.common.inject.Inject;
+import io.crate.es.common.inject.Inject;
 
 /**
  * Fallback if host-based authentication is disabled

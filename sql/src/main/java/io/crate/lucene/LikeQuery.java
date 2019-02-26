@@ -31,9 +31,9 @@ import io.crate.types.DataTypes;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.WildcardQuery;
-import org.elasticsearch.common.lucene.BytesRefs;
-import org.elasticsearch.common.lucene.search.Queries;
-import org.elasticsearch.index.mapper.MappedFieldType;
+import io.crate.es.common.lucene.BytesRefs;
+import io.crate.es.common.lucene.search.Queries;
+import io.crate.es.index.mapper.MappedFieldType;
 
 import javax.annotation.Nullable;
 

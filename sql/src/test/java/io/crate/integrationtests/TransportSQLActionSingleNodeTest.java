@@ -27,7 +27,7 @@ import io.crate.action.sql.SQLActionException;
 import io.crate.testing.SQLBulkResponse;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
-import org.elasticsearch.test.ESIntegTestCase;
+import io.crate.es.test.ESIntegTestCase;
 import org.junit.After;
 import org.junit.Test;
 

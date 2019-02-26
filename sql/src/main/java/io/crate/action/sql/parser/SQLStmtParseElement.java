@@ -21,7 +21,7 @@
 
 package io.crate.action.sql.parser;
 
-import org.elasticsearch.common.xcontent.XContentParser;
+import io.crate.es.common.xcontent.XContentParser;
 
 /**
  * used to parse the "stmt" element that is expected to be in requests

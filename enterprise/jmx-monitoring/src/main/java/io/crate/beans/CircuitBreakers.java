@@ -19,9 +19,9 @@
 package io.crate.beans;
 
 import io.crate.breaker.CrateCircuitBreakerService;
-import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.elasticsearch.indices.breaker.CircuitBreakerService;
-import org.elasticsearch.indices.breaker.CircuitBreakerStats;
+import io.crate.es.common.breaker.CircuitBreaker;
+import io.crate.es.indices.breaker.CircuitBreakerService;
+import io.crate.es.indices.breaker.CircuitBreakerStats;
 
 import java.beans.ConstructorProperties;
 

@@ -33,10 +33,10 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.testing.SqlExpressions;
-import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.index.Index;
-import org.elasticsearch.test.ESIntegTestCase;
+import io.crate.es.cluster.metadata.MetaData;
+import io.crate.es.cluster.service.ClusterService;
+import io.crate.es.index.Index;
+import io.crate.es.test.ESIntegTestCase;
 import org.junit.Test;
 
 import java.util.Map;

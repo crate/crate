@@ -26,8 +26,8 @@ import com.google.common.collect.Iterables;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.execution.jobs.TasksService;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import org.elasticsearch.common.breaker.NoopCircuitBreaker;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.common.breaker.NoopCircuitBreaker;
+import io.crate.es.common.settings.Settings;
 import org.junit.Test;
 
 import java.util.UUID;

@@ -28,13 +28,12 @@ import io.crate.analyze.WhereClause;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.Randomness;
-import org.elasticsearch.test.ESIntegTestCase;
+import io.crate.es.cluster.service.ClusterService;
+import io.crate.es.common.Randomness;
+import io.crate.es.test.ESIntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;

@@ -25,8 +25,8 @@ package io.crate.expression.reference.doc.lucene;
 
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
-import org.elasticsearch.common.xcontent.XContentHelper;
-import org.elasticsearch.common.xcontent.XContentType;
+import io.crate.es.common.xcontent.XContentHelper;
+import io.crate.es.common.xcontent.XContentType;
 
 import java.io.IOException;
 import java.util.ArrayList;

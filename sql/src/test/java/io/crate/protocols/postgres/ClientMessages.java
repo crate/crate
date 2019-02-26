@@ -24,7 +24,7 @@ package io.crate.protocols.postgres;
 
 import io.netty.buffer.ByteBuf;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.lucene.BytesRefs;
+import io.crate.es.common.lucene.BytesRefs;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;

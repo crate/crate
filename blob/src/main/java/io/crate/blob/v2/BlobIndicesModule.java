@@ -22,8 +22,8 @@
 package io.crate.blob.v2;
 
 import io.crate.blob.BlobTransferTarget;
-import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.indices.recovery.BlobRecoveryTarget;
+import io.crate.es.common.inject.AbstractModule;
+import io.crate.es.indices.recovery.BlobRecoveryTarget;
 
 
 public class BlobIndicesModule extends AbstractModule {

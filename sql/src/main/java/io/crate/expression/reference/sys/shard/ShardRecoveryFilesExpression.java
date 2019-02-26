@@ -23,7 +23,7 @@
 package io.crate.expression.reference.sys.shard;
 
 import io.crate.expression.reference.ObjectCollectExpression;
-import org.elasticsearch.indices.recovery.RecoveryState;
+import io.crate.es.indices.recovery.RecoveryState;
 
 class ShardRecoveryFilesExpression extends ObjectCollectExpression<ShardRowContext> {
 

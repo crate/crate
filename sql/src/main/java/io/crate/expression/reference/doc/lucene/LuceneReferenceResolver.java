@@ -45,8 +45,8 @@ import io.crate.types.SetType;
 import io.crate.types.ShortType;
 import io.crate.types.StringType;
 import io.crate.types.TimestampType;
-import org.elasticsearch.index.IndexSettings;
-import org.elasticsearch.index.mapper.MappedFieldType;
+import io.crate.es.index.IndexSettings;
+import io.crate.es.index.mapper.MappedFieldType;
 
 import java.util.Set;
 

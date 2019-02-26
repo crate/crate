@@ -23,7 +23,7 @@
 package io.crate.expression.reference.sys.node;
 
 import io.crate.execution.engine.collect.NestableCollectExpression;
-import org.elasticsearch.monitor.os.OsStats;
+import io.crate.es.monitor.os.OsStats;
 
 import java.util.function.Function;
 

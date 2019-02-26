@@ -22,7 +22,7 @@
 
 package io.crate.protocols.postgres;
 
-import org.elasticsearch.ElasticsearchException;
+import io.crate.es.ElasticsearchException;
 
 public class BindPostgresException extends ElasticsearchException {
     public BindPostgresException(String msg, Throwable cause) {

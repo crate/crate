@@ -23,10 +23,10 @@ package io.crate.expression.reference.doc.lucene;
 
 import io.crate.exceptions.GroupByOnArrayUnsupportedException;
 import org.apache.lucene.index.LeafReaderContext;
-import org.elasticsearch.common.geo.GeoPoint;
-import org.elasticsearch.index.fielddata.IndexGeoPointFieldData;
-import org.elasticsearch.index.fielddata.MultiGeoPointValues;
-import org.elasticsearch.index.mapper.MappedFieldType;
+import io.crate.es.common.geo.GeoPoint;
+import io.crate.es.index.fielddata.IndexGeoPointFieldData;
+import io.crate.es.index.fielddata.MultiGeoPointValues;
+import io.crate.es.index.mapper.MappedFieldType;
 
 import java.io.IOException;
 

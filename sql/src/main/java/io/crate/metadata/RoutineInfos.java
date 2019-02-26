@@ -26,7 +26,7 @@ import com.google.common.collect.Iterators;
 import io.crate.expression.udf.UserDefinedFunctionsMetaData;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.common.settings.Settings;
 
 import javax.annotation.Nullable;
 import java.io.IOException;

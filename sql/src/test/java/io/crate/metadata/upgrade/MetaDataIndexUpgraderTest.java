@@ -24,11 +24,11 @@ package io.crate.metadata.upgrade;
 
 import io.crate.Constants;
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.cluster.metadata.MappingMetaData;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.compress.CompressedXContent;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
+import io.crate.es.cluster.metadata.MappingMetaData;
+import io.crate.es.common.bytes.BytesReference;
+import io.crate.es.common.compress.CompressedXContent;
+import io.crate.es.common.xcontent.XContentBuilder;
+import io.crate.es.common.xcontent.XContentFactory;
 import org.junit.Test;
 
 import java.io.IOException;

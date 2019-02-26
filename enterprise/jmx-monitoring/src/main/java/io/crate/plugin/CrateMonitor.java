@@ -31,11 +31,11 @@ import io.crate.protocols.ConnectionStats;
 import io.crate.protocols.postgres.PostgresNetty;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.http.HttpServerTransport;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.TransportService;
+import io.crate.es.cluster.service.ClusterService;
+import io.crate.es.common.inject.Inject;
+import io.crate.es.http.HttpServerTransport;
+import io.crate.es.threadpool.ThreadPool;
+import io.crate.es.transport.TransportService;
 
 import javax.annotation.Nullable;
 import javax.management.InstanceAlreadyExistsException;

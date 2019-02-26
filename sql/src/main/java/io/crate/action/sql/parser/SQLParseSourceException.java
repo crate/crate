@@ -21,7 +21,7 @@
 
 package io.crate.action.sql.parser;
 
-import org.elasticsearch.ElasticsearchException;
+import io.crate.es.ElasticsearchException;
 
 /**
  * An exception thrown if the XContent source of a request cannot be parsed.

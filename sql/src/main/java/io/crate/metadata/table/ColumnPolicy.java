@@ -21,7 +21,7 @@
 
 package io.crate.metadata.table;
 
-import org.elasticsearch.common.Booleans;
+import io.crate.es.common.Booleans;
 
 import javax.annotation.Nullable;
 import java.util.Locale;

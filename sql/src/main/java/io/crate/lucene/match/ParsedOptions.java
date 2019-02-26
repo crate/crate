@@ -23,8 +23,8 @@ package io.crate.lucene.match;
 
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.MultiTermQuery;
-import org.elasticsearch.common.unit.Fuzziness;
-import org.elasticsearch.index.search.MatchQuery;
+import io.crate.es.common.unit.Fuzziness;
+import io.crate.es.index.search.MatchQuery;
 
 import javax.annotation.Nullable;
 

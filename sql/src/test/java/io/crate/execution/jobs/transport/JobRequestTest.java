@@ -22,7 +22,7 @@
 
 package io.crate.execution.jobs.transport;
 
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import io.crate.es.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
 import java.util.Collections;

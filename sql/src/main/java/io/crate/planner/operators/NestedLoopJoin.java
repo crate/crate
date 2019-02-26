@@ -46,7 +46,7 @@ import io.crate.planner.ResultDescription;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.join.Join;
 import io.crate.planner.node.dql.join.JoinType;
-import org.elasticsearch.common.collect.Tuple;
+import io.crate.es.common.collect.Tuple;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;

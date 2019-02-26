@@ -33,9 +33,9 @@ import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
-import org.elasticsearch.common.Nullable;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.http.HttpServerTransport;
+import io.crate.es.common.Nullable;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.http.HttpServerTransport;
 import org.junit.Before;
 
 import java.io.IOException;

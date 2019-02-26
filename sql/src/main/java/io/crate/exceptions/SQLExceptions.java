@@ -29,23 +29,23 @@ import io.crate.metadata.PartitionName;
 import io.crate.sql.parser.ParsingException;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.ResourceAlreadyExistsException;
+import io.crate.es.ElasticsearchException;
+import io.crate.es.ResourceAlreadyExistsException;
 import org.apache.logging.log4j.LogManager;
-import org.elasticsearch.common.util.concurrent.UncategorizedExecutionException;
-import org.elasticsearch.index.IndexNotFoundException;
-import org.elasticsearch.index.engine.EngineException;
-import org.elasticsearch.index.engine.VersionConflictEngineException;
-import org.elasticsearch.index.mapper.MapperParsingException;
-import org.elasticsearch.index.shard.IllegalIndexShardStateException;
-import org.elasticsearch.index.shard.ShardNotFoundException;
-import org.elasticsearch.indices.InvalidIndexNameException;
-import org.elasticsearch.indices.InvalidIndexTemplateException;
-import org.elasticsearch.repositories.RepositoryMissingException;
-import org.elasticsearch.snapshots.InvalidSnapshotNameException;
-import org.elasticsearch.snapshots.SnapshotCreationException;
-import org.elasticsearch.snapshots.SnapshotMissingException;
-import org.elasticsearch.transport.TransportException;
+import io.crate.es.common.util.concurrent.UncategorizedExecutionException;
+import io.crate.es.index.IndexNotFoundException;
+import io.crate.es.index.engine.EngineException;
+import io.crate.es.index.engine.VersionConflictEngineException;
+import io.crate.es.index.mapper.MapperParsingException;
+import io.crate.es.index.shard.IllegalIndexShardStateException;
+import io.crate.es.index.shard.ShardNotFoundException;
+import io.crate.es.indices.InvalidIndexNameException;
+import io.crate.es.indices.InvalidIndexTemplateException;
+import io.crate.es.repositories.RepositoryMissingException;
+import io.crate.es.snapshots.InvalidSnapshotNameException;
+import io.crate.es.snapshots.SnapshotCreationException;
+import io.crate.es.snapshots.SnapshotMissingException;
+import io.crate.es.transport.TransportException;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -202,7 +202,7 @@ public class SQLExceptions {
             return new InvalidRelationName(partitionName.relationName().fqn(), unwrappedError);
         } else if (unwrappedError instanceof IndexNotFoundException) {
             return new RelationUnknown(((IndexNotFoundException) unwrappedError).getIndex().getName(), unwrappedError);
-        } else if (unwrappedError instanceof org.elasticsearch.common.breaker.CircuitBreakingException) {
+        } else if (unwrappedError instanceof io.crate.es.common.breaker.CircuitBreakingException) {
             return new CircuitBreakingException(unwrappedError.getMessage());
         } else if (unwrappedError instanceof InterruptedException) {
             return new JobKilledException();

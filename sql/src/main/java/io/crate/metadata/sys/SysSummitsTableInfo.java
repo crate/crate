@@ -37,7 +37,7 @@ import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
 import io.crate.execution.engine.collect.files.SummitsContext;
 import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.ClusterState;
+import io.crate.es.cluster.ClusterState;
 
 import java.util.List;
 import java.util.Map;

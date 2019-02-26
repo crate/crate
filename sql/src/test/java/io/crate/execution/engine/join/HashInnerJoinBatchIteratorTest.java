@@ -33,7 +33,7 @@ import io.crate.data.join.CombinedRow;
 import io.crate.testing.BatchIteratorTester;
 import io.crate.testing.BatchSimulatingIterator;
 import io.crate.testing.TestingBatchIterators;
-import org.elasticsearch.common.breaker.CircuitBreaker;
+import io.crate.es.common.breaker.CircuitBreaker;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 

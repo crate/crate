@@ -22,7 +22,7 @@
 package io.crate.integrationtests;
 
 import io.crate.testing.TestingHelpers;
-import org.elasticsearch.common.collect.MapBuilder;
+import io.crate.es.common.collect.MapBuilder;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 

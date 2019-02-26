@@ -23,7 +23,7 @@ package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
 import io.crate.testing.UseJdbc;
-import org.elasticsearch.common.collect.MapBuilder;
+import io.crate.es.common.collect.MapBuilder;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;

@@ -21,7 +21,7 @@
 
 package io.crate.expression.reference.sys.check;
 
-import org.elasticsearch.common.inject.Singleton;
+import io.crate.es.common.inject.Singleton;
 
 import java.util.ArrayList;
 import java.util.HashSet;

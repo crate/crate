@@ -23,14 +23,14 @@ package io.crate.blob.transfer;
 
 import io.crate.blob.BlobTransferStatus;
 import io.crate.blob.BlobTransferTarget;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.TransportChannel;
-import org.elasticsearch.transport.TransportRequestHandler;
-import org.elasticsearch.transport.TransportResponse;
-import org.elasticsearch.transport.TransportService;
+import io.crate.es.cluster.node.DiscoveryNode;
+import io.crate.es.cluster.service.ClusterService;
+import io.crate.es.common.inject.Inject;
+import io.crate.es.threadpool.ThreadPool;
+import io.crate.es.transport.TransportChannel;
+import io.crate.es.transport.TransportRequestHandler;
+import io.crate.es.transport.TransportResponse;
+import io.crate.es.transport.TransportService;
 
 public class BlobHeadRequestHandler {
 

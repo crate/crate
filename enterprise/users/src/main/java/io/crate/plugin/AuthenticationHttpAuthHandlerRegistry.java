@@ -20,9 +20,9 @@ package io.crate.plugin;
 
 import io.crate.auth.Authentication;
 import io.crate.protocols.http.HttpAuthUpstreamHandler;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.common.inject.Inject;
+import io.crate.es.common.inject.Singleton;
+import io.crate.es.common.settings.Settings;
 
 /**
  * Class that if instantiated causes the {@link HttpAuthUpstreamHandler} to be registered in the {@link PipelineRegistry}

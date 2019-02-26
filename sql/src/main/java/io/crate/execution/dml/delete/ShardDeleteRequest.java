@@ -23,9 +23,9 @@
 package io.crate.execution.dml.delete;
 
 import io.crate.execution.dml.ShardRequest;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.index.shard.ShardId;
+import io.crate.es.common.io.stream.StreamInput;
+import io.crate.es.common.io.stream.StreamOutput;
+import io.crate.es.index.shard.ShardId;
 
 import java.io.IOException;
 import java.util.UUID;

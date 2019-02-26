@@ -21,10 +21,10 @@
 
 package io.crate;
 
-import org.elasticsearch.common.component.LifecycleComponent;
-import org.elasticsearch.common.inject.Module;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.common.component.LifecycleComponent;
+import io.crate.es.common.inject.Module;
+import io.crate.es.common.settings.Setting;
+import io.crate.es.common.settings.Settings;
 
 import java.util.Collection;
 import java.util.Collections;

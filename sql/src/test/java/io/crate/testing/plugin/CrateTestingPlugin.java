@@ -26,10 +26,10 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.testing.SleepScalarFunction;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.inject.Module;
-import org.elasticsearch.common.inject.multibindings.MapBinder;
-import org.elasticsearch.plugins.Plugin;
+import io.crate.es.common.inject.AbstractModule;
+import io.crate.es.common.inject.Module;
+import io.crate.es.common.inject.multibindings.MapBinder;
+import io.crate.es.plugins.Plugin;
 
 import java.util.Collection;
 import java.util.Collections;

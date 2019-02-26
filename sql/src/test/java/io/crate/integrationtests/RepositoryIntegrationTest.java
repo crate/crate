@@ -23,7 +23,7 @@
 package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.common.settings.Settings;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;

@@ -35,8 +35,8 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.cluster.node.DiscoveryNode;
+import io.crate.es.common.settings.Settings;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;

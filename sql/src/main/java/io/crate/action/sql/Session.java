@@ -58,8 +58,8 @@ import io.crate.sql.tree.Statement;
 import io.crate.types.DataType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.common.Randomness;
+import io.crate.es.cluster.ClusterState;
+import io.crate.es.common.Randomness;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;

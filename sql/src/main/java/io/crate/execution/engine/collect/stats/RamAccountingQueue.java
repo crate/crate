@@ -26,7 +26,7 @@ import com.google.common.collect.ForwardingQueue;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.breaker.SizeEstimator;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.breaker.CircuitBreaker;
+import io.crate.es.common.breaker.CircuitBreaker;
 import org.apache.logging.log4j.LogManager;
 
 import java.util.Locale;

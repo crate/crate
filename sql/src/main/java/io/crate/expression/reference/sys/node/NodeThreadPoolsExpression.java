@@ -23,7 +23,7 @@
 package io.crate.expression.reference.sys.node;
 
 import io.crate.expression.reference.sys.ArrayTypeNestableContextCollectExpression;
-import org.elasticsearch.threadpool.ThreadPoolStats;
+import io.crate.es.threadpool.ThreadPoolStats;
 
 import java.util.HashMap;
 import java.util.List;

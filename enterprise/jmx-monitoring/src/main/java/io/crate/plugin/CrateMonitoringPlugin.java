@@ -22,8 +22,8 @@ import com.google.common.collect.ImmutableList;
 import io.crate.Plugin;
 import io.crate.module.CrateMonitoringModule;
 import io.crate.settings.SharedSettings;
-import org.elasticsearch.common.inject.Module;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.common.inject.Module;
+import io.crate.es.common.settings.Settings;
 
 import java.util.Collection;
 import java.util.Collections;

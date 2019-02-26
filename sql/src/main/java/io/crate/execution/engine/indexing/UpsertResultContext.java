@@ -28,7 +28,7 @@ import io.crate.execution.dsl.projection.SourceIndexWriterReturnSummaryProjectio
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.expression.InputFactory;
 import io.crate.metadata.TransactionContext;
-import org.elasticsearch.cluster.node.DiscoveryNode;
+import io.crate.es.cluster.node.DiscoveryNode;
 
 import java.util.Collections;
 import java.util.List;

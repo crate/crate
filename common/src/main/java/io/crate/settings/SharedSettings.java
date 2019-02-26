@@ -23,7 +23,7 @@
 package io.crate.settings;
 
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.settings.Setting;
+import io.crate.es.common.settings.Setting;
 
 public class SharedSettings {
 

@@ -30,15 +30,15 @@ import io.crate.execution.engine.profile.TransportCollectProfileNodeAction;
 import io.crate.execution.jobs.kill.TransportKillAllNodeAction;
 import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
 import io.crate.execution.jobs.transport.TransportJobAction;
-import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSettingsAction;
-import org.elasticsearch.action.admin.cluster.snapshots.create.TransportCreateSnapshotAction;
-import org.elasticsearch.action.admin.cluster.snapshots.delete.TransportDeleteSnapshotAction;
-import org.elasticsearch.action.admin.cluster.snapshots.get.TransportGetSnapshotsAction;
-import org.elasticsearch.action.admin.cluster.snapshots.restore.TransportRestoreSnapshotAction;
-import org.elasticsearch.action.admin.indices.create.TransportCreatePartitionsAction;
-import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Provider;
+import io.crate.es.action.admin.cluster.settings.TransportClusterUpdateSettingsAction;
+import io.crate.es.action.admin.cluster.snapshots.create.TransportCreateSnapshotAction;
+import io.crate.es.action.admin.cluster.snapshots.delete.TransportDeleteSnapshotAction;
+import io.crate.es.action.admin.cluster.snapshots.get.TransportGetSnapshotsAction;
+import io.crate.es.action.admin.cluster.snapshots.restore.TransportRestoreSnapshotAction;
+import io.crate.es.action.admin.indices.create.TransportCreatePartitionsAction;
+import io.crate.es.action.admin.indices.delete.TransportDeleteIndexAction;
+import io.crate.es.common.inject.Inject;
+import io.crate.es.common.inject.Provider;
 
 public class TransportActionProvider {
 

@@ -90,9 +90,9 @@ import io.crate.sql.tree.TableFunction;
 import io.crate.sql.tree.TableSubquery;
 import io.crate.sql.tree.Union;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.collect.Tuple;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
+import io.crate.es.common.collect.Tuple;
+import io.crate.es.common.inject.Inject;
+import io.crate.es.common.inject.Singleton;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;

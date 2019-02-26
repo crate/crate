@@ -24,10 +24,10 @@ package io.crate.protocols.postgres;
 
 import io.crate.action.sql.BaseResultReceiver;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.ClusterStateUpdateTask;
-import org.elasticsearch.index.IndexNotFoundException;
-import org.elasticsearch.transport.ConnectTransportException;
+import io.crate.es.cluster.ClusterState;
+import io.crate.es.cluster.ClusterStateUpdateTask;
+import io.crate.es.index.IndexNotFoundException;
+import io.crate.es.transport.ConnectTransportException;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 

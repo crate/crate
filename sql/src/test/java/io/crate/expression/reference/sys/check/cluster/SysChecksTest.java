@@ -31,10 +31,9 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.expression.reference.sys.check.SysCheck.Severity;
 import io.crate.test.integration.CrateUnitTest;
-import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.gateway.GatewayService;
+import io.crate.es.cluster.service.ClusterService;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.gateway.GatewayService;
 import org.junit.Test;
 
 import java.util.ArrayList;

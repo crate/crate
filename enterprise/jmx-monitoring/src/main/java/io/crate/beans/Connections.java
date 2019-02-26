@@ -19,7 +19,7 @@
 package io.crate.beans;
 
 import io.crate.protocols.ConnectionStats;
-import org.elasticsearch.http.HttpStats;
+import io.crate.es.http.HttpStats;
 
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;

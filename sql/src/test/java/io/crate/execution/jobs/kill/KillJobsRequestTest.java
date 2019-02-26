@@ -24,8 +24,8 @@ package io.crate.execution.jobs.kill;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.StreamInput;
+import io.crate.es.common.io.stream.BytesStreamOutput;
+import io.crate.es.common.io.stream.StreamInput;
 import org.junit.Test;
 
 import java.util.UUID;

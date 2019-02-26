@@ -41,9 +41,9 @@ import io.crate.metadata.shard.unassigned.UnassignedShard;
 import io.crate.metadata.sys.SysShardsTableInfo;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.routing.ShardRoutingState;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.test.ESIntegTestCase;
+import io.crate.es.cluster.routing.ShardRoutingState;
+import io.crate.es.cluster.service.ClusterService;
+import io.crate.es.test.ESIntegTestCase;
 import org.junit.Test;
 
 import java.util.ArrayList;

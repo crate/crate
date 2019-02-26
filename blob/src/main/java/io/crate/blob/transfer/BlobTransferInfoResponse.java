@@ -21,9 +21,9 @@
 
 package io.crate.blob.transfer;
 
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.transport.TransportResponse;
+import io.crate.es.common.io.stream.StreamInput;
+import io.crate.es.common.io.stream.StreamOutput;
+import io.crate.es.transport.TransportResponse;
 
 import java.io.IOException;
 

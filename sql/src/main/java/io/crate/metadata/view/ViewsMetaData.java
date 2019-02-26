@@ -23,14 +23,14 @@
 package io.crate.metadata.view;
 
 import io.crate.metadata.RelationName;
-import org.elasticsearch.ElasticsearchParseException;
-import org.elasticsearch.Version;
-import org.elasticsearch.cluster.AbstractNamedDiffable;
-import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentParser;
+import io.crate.es.ElasticsearchParseException;
+import io.crate.es.Version;
+import io.crate.es.cluster.AbstractNamedDiffable;
+import io.crate.es.cluster.metadata.MetaData;
+import io.crate.es.common.io.stream.StreamInput;
+import io.crate.es.common.io.stream.StreamOutput;
+import io.crate.es.common.xcontent.XContentBuilder;
+import io.crate.es.common.xcontent.XContentParser;
 
 import javax.annotation.Nullable;
 import java.io.IOException;

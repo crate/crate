@@ -23,9 +23,9 @@ package io.crate.expression.reference.sys.cluster;
 
 
 import io.crate.expression.NestableInput;
-import org.elasticsearch.cluster.ClusterName;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.cluster.ClusterName;
+import io.crate.es.common.inject.Inject;
+import io.crate.es.common.settings.Settings;
 
 public class ClusterNameExpression implements NestableInput<String> {
 

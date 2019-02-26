@@ -25,22 +25,22 @@ package io.crate.execution.ddl.tables;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.view.ViewsMetaData;
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
-import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
-import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
-import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
-import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
-import org.elasticsearch.action.support.master.AcknowledgedResponse;
-import org.elasticsearch.action.support.master.TransportMasterNodeAction;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.block.ClusterBlockException;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.TransportService;
+import io.crate.es.action.ActionListener;
+import io.crate.es.action.admin.indices.create.CreateIndexRequest;
+import io.crate.es.action.admin.indices.create.CreateIndexResponse;
+import io.crate.es.action.admin.indices.create.TransportCreateIndexAction;
+import io.crate.es.action.admin.indices.template.put.PutIndexTemplateRequest;
+import io.crate.es.action.admin.indices.template.put.TransportPutIndexTemplateAction;
+import io.crate.es.action.support.master.AcknowledgedResponse;
+import io.crate.es.action.support.master.TransportMasterNodeAction;
+import io.crate.es.cluster.ClusterState;
+import io.crate.es.cluster.block.ClusterBlockException;
+import io.crate.es.cluster.metadata.IndexNameExpressionResolver;
+import io.crate.es.cluster.service.ClusterService;
+import io.crate.es.common.inject.Inject;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.threadpool.ThreadPool;
+import io.crate.es.transport.TransportService;
 
 /**
  * Action to perform creation of tables on the master but avoid race conditions with creating views.

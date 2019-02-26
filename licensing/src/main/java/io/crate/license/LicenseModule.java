@@ -22,7 +22,7 @@
 
 package io.crate.license;
 
-import org.elasticsearch.common.inject.AbstractModule;
+import io.crate.es.common.inject.AbstractModule;
 
 public class LicenseModule extends AbstractModule {
 

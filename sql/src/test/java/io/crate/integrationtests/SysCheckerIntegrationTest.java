@@ -24,15 +24,15 @@ package io.crate.integrationtests;
 import io.crate.expression.reference.sys.check.SysCheck.Severity;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
-import org.elasticsearch.action.ActionFuture;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.ESIntegTestCase;
+import io.crate.es.action.ActionFuture;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.test.ESIntegTestCase;
 import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 
-import static org.elasticsearch.common.settings.Settings.builder;
+import static io.crate.es.common.settings.Settings.builder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 

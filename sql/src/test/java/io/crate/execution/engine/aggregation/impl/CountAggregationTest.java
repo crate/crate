@@ -29,8 +29,8 @@ import io.crate.metadata.SearchPath;
 import io.crate.operation.aggregation.AggregationTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.StreamInput;
+import io.crate.es.common.io.stream.BytesStreamOutput;
+import io.crate.es.common.io.stream.StreamInput;
 import org.junit.Test;
 
 import static io.crate.testing.SymbolMatchers.isLiteral;

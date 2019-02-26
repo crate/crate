@@ -21,8 +21,8 @@
 
 package io.crate.blob;
 
-import org.elasticsearch.action.Action;
-import org.elasticsearch.client.ElasticsearchClient;
+import io.crate.es.action.Action;
+import io.crate.es.client.ElasticsearchClient;
 
 public class PutChunkAction extends Action<PutChunkRequest, PutChunkResponse, PutChunkRequestBuilder> {
 

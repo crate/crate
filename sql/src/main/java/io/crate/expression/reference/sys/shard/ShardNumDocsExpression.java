@@ -23,7 +23,7 @@ package io.crate.expression.reference.sys.shard;
 
 import io.crate.blob.v2.BlobShard;
 import io.crate.execution.engine.collect.NestableCollectExpression;
-import org.elasticsearch.index.shard.IllegalIndexShardStateException;
+import io.crate.es.index.shard.IllegalIndexShardStateException;
 
 public class ShardNumDocsExpression extends NestableCollectExpression<ShardRowContext, Long> {
 

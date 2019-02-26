@@ -22,7 +22,7 @@
 
 package io.crate.action;
 
-import org.elasticsearch.action.ActionListener;
+import io.crate.es.action.ActionListener;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;

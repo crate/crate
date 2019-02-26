@@ -38,7 +38,7 @@ import io.crate.metadata.functions.params.Param;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.geo.GeoUtils;
+import io.crate.es.common.geo.GeoUtils;
 
 import java.util.Arrays;
 import java.util.List;

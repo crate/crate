@@ -27,10 +27,10 @@ import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.transport.netty4.Netty4Transport;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.transport.netty4.Netty4Transport;
 
-import static org.elasticsearch.common.util.concurrent.EsExecutors.daemonThreadFactory;
+import static io.crate.es.common.util.concurrent.EsExecutors.daemonThreadFactory;
 
 /**
  * Factory utility for creating channel server bootstraps, based on the relevant netty {@link Settings}

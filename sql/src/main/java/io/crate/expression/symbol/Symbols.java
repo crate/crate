@@ -30,8 +30,8 @@ import io.crate.metadata.OutputName;
 import io.crate.metadata.Path;
 import io.crate.metadata.Reference;
 import io.crate.types.DataType;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
+import io.crate.es.common.io.stream.StreamInput;
+import io.crate.es.common.io.stream.StreamOutput;
 
 import javax.annotation.Nullable;
 import java.io.IOException;

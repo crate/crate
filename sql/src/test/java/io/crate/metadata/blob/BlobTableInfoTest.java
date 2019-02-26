@@ -27,7 +27,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
-import org.elasticsearch.Version;
+import io.crate.es.Version;
 import org.junit.Test;
 
 import java.util.Collections;

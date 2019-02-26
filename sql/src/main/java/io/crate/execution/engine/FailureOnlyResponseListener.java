@@ -25,8 +25,8 @@ package io.crate.execution.engine;
 import io.crate.data.RowConsumer;
 import io.crate.execution.dsl.phases.ExecutionPhase;
 import io.crate.execution.jobs.transport.JobResponse;
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.common.collect.Tuple;
+import io.crate.es.action.ActionListener;
+import io.crate.es.common.collect.Tuple;
 
 import java.util.List;
 

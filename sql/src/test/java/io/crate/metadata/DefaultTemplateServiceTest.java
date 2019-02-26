@@ -22,8 +22,8 @@
 
 package io.crate.metadata;
 
-import org.elasticsearch.cluster.ClusterName;
-import org.elasticsearch.cluster.ClusterState;
+import io.crate.es.cluster.ClusterName;
+import io.crate.es.cluster.ClusterState;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;

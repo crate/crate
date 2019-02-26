@@ -28,11 +28,11 @@ import io.crate.execution.jobs.TasksService;
 import io.crate.execution.support.NodeAction;
 import io.crate.execution.support.NodeActionRequestHandler;
 import io.crate.execution.support.Transports;
-import org.elasticsearch.action.ActionListenerResponseHandler;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.TransportService;
+import io.crate.es.action.ActionListenerResponseHandler;
+import io.crate.es.common.inject.Inject;
+import io.crate.es.common.inject.Singleton;
+import io.crate.es.threadpool.ThreadPool;
+import io.crate.es.transport.TransportService;
 
 import java.util.Collections;
 import java.util.Map;

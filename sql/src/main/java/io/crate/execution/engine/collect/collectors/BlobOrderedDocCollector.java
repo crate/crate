@@ -24,7 +24,7 @@ package io.crate.execution.engine.collect.collectors;
 
 import io.crate.data.Row;
 import io.crate.execution.engine.distribution.merge.KeyIterable;
-import org.elasticsearch.index.shard.ShardId;
+import io.crate.es.index.shard.ShardId;
 
 public class BlobOrderedDocCollector extends OrderedDocCollector {
 

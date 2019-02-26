@@ -32,7 +32,7 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.RelationName;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.common.settings.Settings;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 

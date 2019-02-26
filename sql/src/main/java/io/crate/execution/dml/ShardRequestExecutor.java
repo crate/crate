@@ -36,12 +36,12 @@ import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.operators.SubQueryResults;
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.index.IndexNotFoundException;
-import org.elasticsearch.index.engine.DocumentMissingException;
-import org.elasticsearch.index.engine.VersionConflictEngineException;
-import org.elasticsearch.index.shard.ShardId;
+import io.crate.es.action.ActionListener;
+import io.crate.es.cluster.service.ClusterService;
+import io.crate.es.index.IndexNotFoundException;
+import io.crate.es.index.engine.DocumentMissingException;
+import io.crate.es.index.engine.VersionConflictEngineException;
+import io.crate.es.index.shard.ShardId;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;

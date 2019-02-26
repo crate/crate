@@ -35,8 +35,8 @@ import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
 import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.repositories.Repository;
+import io.crate.es.cluster.ClusterState;
+import io.crate.es.repositories.Repository;
 
 public class SysRepositoriesTableInfo extends StaticTableInfo {
 

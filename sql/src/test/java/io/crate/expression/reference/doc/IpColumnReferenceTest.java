@@ -35,7 +35,7 @@ import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.network.InetAddresses;
+import io.crate.es.common.network.InetAddresses;
 import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;

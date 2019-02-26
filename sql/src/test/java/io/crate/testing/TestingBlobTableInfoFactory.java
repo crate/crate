@@ -26,7 +26,7 @@ import io.crate.exceptions.RelationUnknown;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.blob.BlobTableInfo;
 import io.crate.metadata.blob.BlobTableInfoFactory;
-import org.elasticsearch.cluster.ClusterState;
+import io.crate.es.cluster.ClusterState;
 
 import java.util.Map;
 

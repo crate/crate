@@ -23,12 +23,12 @@
 package io.crate.protocols.postgres.types;
 
 import io.netty.buffer.ByteBuf;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.xcontent.DeprecationHandler;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
+import io.crate.es.common.bytes.BytesReference;
+import io.crate.es.common.xcontent.DeprecationHandler;
+import io.crate.es.common.xcontent.NamedXContentRegistry;
+import io.crate.es.common.xcontent.XContentBuilder;
+import io.crate.es.common.xcontent.XContentParser;
+import io.crate.es.common.xcontent.json.JsonXContent;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;

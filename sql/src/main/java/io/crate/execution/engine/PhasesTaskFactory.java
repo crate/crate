@@ -27,11 +27,11 @@ import io.crate.execution.jobs.JobSetup;
 import io.crate.execution.jobs.TasksService;
 import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
 import io.crate.execution.jobs.transport.TransportJobAction;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.indices.IndicesService;
-import org.elasticsearch.threadpool.ThreadPool;
+import io.crate.es.cluster.service.ClusterService;
+import io.crate.es.common.inject.Inject;
+import io.crate.es.common.inject.Singleton;
+import io.crate.es.indices.IndicesService;
+import io.crate.es.threadpool.ThreadPool;
 
 import java.util.List;
 import java.util.UUID;

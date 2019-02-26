@@ -24,8 +24,8 @@ package io.crate.settings;
 
 import com.google.common.base.Splitter;
 import io.crate.types.DataType;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.common.settings.Setting;
+import io.crate.es.common.settings.Settings;
 
 import java.util.List;
 

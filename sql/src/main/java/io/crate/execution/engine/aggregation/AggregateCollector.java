@@ -28,8 +28,8 @@ import io.crate.breaker.RamAccountingContext;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.execution.engine.collect.CollectExpression;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.util.BigArrays;
+import io.crate.es.Version;
+import io.crate.es.common.util.BigArrays;
 
 import java.util.Collections;
 import java.util.List;

@@ -27,11 +27,11 @@ import io.crate.breaker.RamAccountingContext;
 import io.crate.data.Bucket;
 import io.crate.data.Row;
 import io.crate.data.RowN;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
+import io.crate.es.common.bytes.BytesReference;
+import io.crate.es.common.io.stream.BytesStreamOutput;
+import io.crate.es.common.io.stream.StreamInput;
+import io.crate.es.common.io.stream.StreamOutput;
+import io.crate.es.common.io.stream.Writeable;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;

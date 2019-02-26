@@ -24,9 +24,9 @@ import io.crate.module.JavaScriptLanguageModule;
 import io.crate.settings.SharedSettings;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.plugins.Plugin;
-import org.elasticsearch.test.ESIntegTestCase;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.plugins.Plugin;
+import io.crate.es.test.ESIntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
 

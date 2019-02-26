@@ -24,8 +24,8 @@ package io.crate.expression.reference.doc.lucene;
 
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.StoredFieldVisitor;
-import org.elasticsearch.common.bytes.BytesArray;
-import org.elasticsearch.index.mapper.SourceFieldMapper;
+import io.crate.es.common.bytes.BytesArray;
+import io.crate.es.index.mapper.SourceFieldMapper;
 
 public final class SourceFieldVisitor extends StoredFieldVisitor {
 

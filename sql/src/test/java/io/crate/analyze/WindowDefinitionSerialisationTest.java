@@ -25,8 +25,8 @@ package io.crate.analyze;
 import io.crate.expression.symbol.Literal;
 import io.crate.sql.tree.FrameBound;
 import io.crate.sql.tree.WindowFrame;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.StreamInput;
+import io.crate.es.common.io.stream.BytesStreamOutput;
+import io.crate.es.common.io.stream.StreamInput;
 import org.junit.Test;
 
 import java.io.IOException;

@@ -22,7 +22,7 @@
 package io.crate.analyze;
 
 import io.crate.expression.symbol.Symbol;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.common.settings.Settings;
 
 public abstract class AbstractCopyAnalyzedStatement implements AnalyzedStatement {
 

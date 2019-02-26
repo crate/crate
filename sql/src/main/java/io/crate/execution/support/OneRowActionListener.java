@@ -25,7 +25,7 @@ package io.crate.execution.support;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
-import org.elasticsearch.action.ActionListener;
+import io.crate.es.action.ActionListener;
 
 import javax.annotation.Nonnull;
 import java.util.function.BiConsumer;

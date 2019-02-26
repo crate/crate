@@ -24,11 +24,10 @@ package io.crate.execution.engine.indexing;
 
 import io.crate.data.BatchIterator;
 import io.crate.data.InMemoryBatchIterator;
-import io.crate.execution.engine.indexing.BatchIteratorBackpressureExecutor;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.BatchSimulatingIterator;
-import org.elasticsearch.action.bulk.BackoffPolicy;
-import org.elasticsearch.common.unit.TimeValue;
+import io.crate.es.action.bulk.BackoffPolicy;
+import io.crate.es.common.unit.TimeValue;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;

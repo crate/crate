@@ -32,9 +32,9 @@ import io.crate.data.RowConsumer;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.types.DataTypes;
-import org.elasticsearch.action.support.master.AcknowledgedResponse;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.node.DiscoveryNodes;
+import io.crate.es.action.support.master.AcknowledgedResponse;
+import io.crate.es.cluster.node.DiscoveryNode;
+import io.crate.es.cluster.node.DiscoveryNodes;
 
 import java.util.Locale;
 

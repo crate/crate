@@ -43,8 +43,8 @@ import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.inject.Provider;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.common.inject.Provider;
+import io.crate.es.common.settings.Settings;
 import org.junit.Before;
 import org.junit.Test;
 

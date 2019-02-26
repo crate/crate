@@ -29,16 +29,16 @@ import io.crate.exceptions.RelationUnknown;
 import io.crate.metadata.RelationName;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.action.support.IndicesOptions;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.env.Environment;
-import org.elasticsearch.index.Index;
-import org.elasticsearch.index.IndexNotFoundException;
+import io.crate.es.action.support.IndicesOptions;
+import io.crate.es.cluster.ClusterState;
+import io.crate.es.cluster.metadata.IndexMetaData;
+import io.crate.es.cluster.metadata.IndexNameExpressionResolver;
+import io.crate.es.common.Strings;
+import io.crate.es.common.inject.Inject;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.env.Environment;
+import io.crate.es.index.Index;
+import io.crate.es.index.IndexNotFoundException;
 
 import java.nio.file.Path;
 

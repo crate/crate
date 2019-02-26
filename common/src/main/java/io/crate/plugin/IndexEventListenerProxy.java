@@ -22,17 +22,17 @@
 
 package io.crate.plugin;
 
-import org.elasticsearch.cluster.routing.ShardRouting;
-import org.elasticsearch.common.Nullable;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.Index;
-import org.elasticsearch.index.IndexService;
-import org.elasticsearch.index.IndexSettings;
-import org.elasticsearch.index.shard.IndexEventListener;
-import org.elasticsearch.index.shard.IndexShard;
-import org.elasticsearch.index.shard.IndexShardState;
-import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.indices.cluster.IndicesClusterStateService;
+import io.crate.es.cluster.routing.ShardRouting;
+import io.crate.es.common.Nullable;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.index.Index;
+import io.crate.es.index.IndexService;
+import io.crate.es.index.IndexSettings;
+import io.crate.es.index.shard.IndexEventListener;
+import io.crate.es.index.shard.IndexShard;
+import io.crate.es.index.shard.IndexShardState;
+import io.crate.es.index.shard.ShardId;
+import io.crate.es.indices.cluster.IndicesClusterStateService;
 
 import java.util.ArrayList;
 import java.util.List;

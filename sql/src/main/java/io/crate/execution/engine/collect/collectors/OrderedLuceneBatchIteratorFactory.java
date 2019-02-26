@@ -33,7 +33,7 @@ import io.crate.execution.engine.distribution.merge.PassThroughPagingIterator;
 import io.crate.execution.engine.distribution.merge.RamAccountingPageIterator;
 import io.crate.execution.engine.distribution.merge.SortedPagingIterator;
 import io.crate.execution.support.ThreadPools;
-import org.elasticsearch.index.shard.ShardId;
+import io.crate.es.index.shard.ShardId;
 
 import java.util.Comparator;
 import java.util.HashMap;

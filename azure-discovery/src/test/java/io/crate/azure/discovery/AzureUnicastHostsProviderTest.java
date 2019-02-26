@@ -42,7 +42,7 @@ import com.microsoft.azure.management.network.models.VirtualNetworkGetResponse;
 import com.microsoft.windowsazure.exception.ServiceException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.util.CollectionUtils;
+import io.crate.es.common.util.CollectionUtils;
 import org.junit.Before;
 import org.junit.Test;
 

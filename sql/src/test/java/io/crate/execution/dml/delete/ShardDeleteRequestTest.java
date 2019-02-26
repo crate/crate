@@ -23,10 +23,10 @@
 package io.crate.execution.dml.delete;
 
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.common.UUIDs;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.index.shard.ShardId;
+import io.crate.es.common.UUIDs;
+import io.crate.es.common.io.stream.BytesStreamOutput;
+import io.crate.es.common.io.stream.StreamInput;
+import io.crate.es.index.shard.ShardId;
 import org.junit.Test;
 
 import java.util.UUID;

@@ -60,9 +60,9 @@ import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.QualifiedNameReference;
 import io.crate.types.CollectionType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.cluster.node.DiscoveryNode;
+import io.crate.es.common.settings.Setting;
+import io.crate.es.common.settings.Settings;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;

@@ -25,10 +25,10 @@ package io.crate.lucene;
 import io.crate.expression.symbol.Function;
 import io.crate.metadata.Reference;
 import org.apache.lucene.search.Query;
-import org.elasticsearch.common.collect.Tuple;
-import org.elasticsearch.common.lucene.search.Queries;
-import org.elasticsearch.index.mapper.MappedFieldType;
-import org.elasticsearch.index.query.QueryShardContext;
+import io.crate.es.common.collect.Tuple;
+import io.crate.es.common.lucene.search.Queries;
+import io.crate.es.index.mapper.MappedFieldType;
+import io.crate.es.index.query.QueryShardContext;
 
 class RangeQuery implements FunctionToQuery {
 

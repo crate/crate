@@ -35,8 +35,8 @@ import io.crate.execution.jobs.AbstractTask;
 import io.crate.execution.jobs.SharedShardContexts;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.RowGranularity;
-import org.elasticsearch.index.engine.Engine;
-import org.elasticsearch.threadpool.ThreadPool;
+import io.crate.es.index.engine.Engine;
+import io.crate.es.threadpool.ThreadPool;
 
 import javax.annotation.Nonnull;
 import java.util.Locale;

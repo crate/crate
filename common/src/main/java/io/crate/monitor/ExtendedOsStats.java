@@ -22,11 +22,11 @@
 
 package io.crate.monitor;
 
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Streamable;
-import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.monitor.os.OsStats;
+import io.crate.es.common.io.stream.StreamInput;
+import io.crate.es.common.io.stream.StreamOutput;
+import io.crate.es.common.io.stream.Streamable;
+import io.crate.es.common.unit.TimeValue;
+import io.crate.es.monitor.os.OsStats;
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;

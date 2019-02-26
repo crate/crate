@@ -27,8 +27,8 @@ import io.crate.metadata.Reference;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
-import org.elasticsearch.common.lucene.search.Queries;
-import org.elasticsearch.index.mapper.MappedFieldType;
+import io.crate.es.common.lucene.search.Queries;
+import io.crate.es.index.mapper.MappedFieldType;
 
 import java.io.IOException;
 

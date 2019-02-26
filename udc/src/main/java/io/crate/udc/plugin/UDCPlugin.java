@@ -22,9 +22,9 @@
 package io.crate.udc.plugin;
 
 import io.crate.udc.service.UDCService;
-import org.elasticsearch.common.component.LifecycleComponent;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.plugins.Plugin;
+import io.crate.es.common.component.LifecycleComponent;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.plugins.Plugin;
 
 import java.util.Collection;
 import java.util.Collections;

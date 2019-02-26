@@ -31,10 +31,10 @@ import io.crate.metadata.RelationName;
 import io.crate.planner.TableStats;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseHashJoins;
-import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.elasticsearch.index.IndexNotFoundException;
-import org.elasticsearch.indices.breaker.BreakerSettings;
-import org.elasticsearch.test.ESIntegTestCase;
+import io.crate.es.common.breaker.CircuitBreaker;
+import io.crate.es.index.IndexNotFoundException;
+import io.crate.es.indices.breaker.BreakerSettings;
+import io.crate.es.test.ESIntegTestCase;
 import org.junit.Test;
 
 import java.util.Arrays;

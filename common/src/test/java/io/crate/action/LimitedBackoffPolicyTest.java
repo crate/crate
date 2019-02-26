@@ -23,8 +23,8 @@
 package io.crate.action;
 
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.action.bulk.BackoffPolicy;
-import org.elasticsearch.common.unit.TimeValue;
+import io.crate.es.action.bulk.BackoffPolicy;
+import io.crate.es.common.unit.TimeValue;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 

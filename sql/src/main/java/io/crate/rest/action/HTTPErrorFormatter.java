@@ -22,9 +22,9 @@
 package io.crate.rest.action;
 
 import io.crate.action.sql.SQLActionException;
-import org.elasticsearch.ExceptionsHelper;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
+import io.crate.es.ExceptionsHelper;
+import io.crate.es.common.xcontent.XContentBuilder;
+import io.crate.es.common.xcontent.json.JsonXContent;
 
 import java.io.IOException;
 

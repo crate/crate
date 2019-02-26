@@ -29,19 +29,19 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.action.support.IndicesOptions;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.block.ClusterBlocks;
-import org.elasticsearch.cluster.metadata.AliasMetaData;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
-import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.cluster.routing.RoutingTable;
-import org.elasticsearch.cluster.routing.allocation.AllocationService;
-import org.elasticsearch.index.Index;
-import org.elasticsearch.index.IndexNotFoundException;
-import org.elasticsearch.indices.IndexTemplateMissingException;
+import io.crate.es.action.support.IndicesOptions;
+import io.crate.es.cluster.ClusterState;
+import io.crate.es.cluster.block.ClusterBlocks;
+import io.crate.es.cluster.metadata.AliasMetaData;
+import io.crate.es.cluster.metadata.IndexMetaData;
+import io.crate.es.cluster.metadata.IndexNameExpressionResolver;
+import io.crate.es.cluster.metadata.IndexTemplateMetaData;
+import io.crate.es.cluster.metadata.MetaData;
+import io.crate.es.cluster.routing.RoutingTable;
+import io.crate.es.cluster.routing.allocation.AllocationService;
+import io.crate.es.index.Index;
+import io.crate.es.index.IndexNotFoundException;
+import io.crate.es.indices.IndexTemplateMissingException;
 
 public class RenameTableClusterStateExecutor {
 

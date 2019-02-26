@@ -32,10 +32,10 @@ import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.expression.reference.sys.check.AbstractSysCheck;
 import io.crate.expression.reference.sys.cluster.ClusterSettingsExpression;
 import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.discovery.zen.ElectMasterService;
+import io.crate.es.cluster.service.ClusterService;
+import io.crate.es.common.inject.Inject;
+import io.crate.es.common.inject.Singleton;
+import io.crate.es.discovery.zen.ElectMasterService;
 
 @Singleton
 public class MinMasterNodesSysCheck extends AbstractSysCheck {

@@ -24,7 +24,7 @@ package io.crate.analyze;
 
 import io.crate.exceptions.AnalyzerUnknownException;
 import io.crate.metadata.FulltextAnalyzerResolver;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.common.settings.Settings;
 
 import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.ANALYZER;
 import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.CHAR_FILTER;

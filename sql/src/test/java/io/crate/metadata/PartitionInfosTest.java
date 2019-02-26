@@ -24,11 +24,11 @@ package io.crate.metadata;
 import com.google.common.collect.ImmutableList;
 import io.crate.Constants;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import org.elasticsearch.Version;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.Version;
+import io.crate.es.cluster.ClusterState;
+import io.crate.es.cluster.metadata.IndexMetaData;
+import io.crate.es.cluster.metadata.MetaData;
+import io.crate.es.common.settings.Settings;
 import org.junit.Test;
 
 import java.util.Iterator;

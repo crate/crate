@@ -23,8 +23,8 @@ import io.crate.protocols.ssl.SslConfigSettings;
 import io.crate.settings.SharedSettings;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.ESIntegTestCase;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.test.ESIntegTestCase;
 import org.junit.BeforeClass;
 import org.junit.Test;
 

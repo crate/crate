@@ -34,8 +34,8 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.util.BigArrays;
+import io.crate.es.Version;
+import io.crate.es.common.util.BigArrays;
 
 import java.util.List;
 import java.util.stream.Collector;

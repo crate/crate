@@ -29,10 +29,10 @@ import io.crate.Streamer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.Nullable;
-import org.elasticsearch.common.collect.MapBuilder;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
+import io.crate.es.common.Nullable;
+import io.crate.es.common.collect.MapBuilder;
+import io.crate.es.common.io.stream.StreamInput;
+import io.crate.es.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 import java.util.Arrays;

@@ -25,9 +25,9 @@ package io.crate.rest.action;
 import io.crate.action.sql.SQLOperations;
 import io.crate.auth.AuthSettings;
 import io.crate.auth.user.User;
-import org.elasticsearch.common.breaker.NoopCircuitBreaker;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.http.netty4.cors.Netty4CorsConfigBuilder;
+import io.crate.es.common.breaker.NoopCircuitBreaker;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.http.netty4.cors.Netty4CorsConfigBuilder;
 import org.junit.Test;
 
 import static org.hamcrest.CoreMatchers.is;

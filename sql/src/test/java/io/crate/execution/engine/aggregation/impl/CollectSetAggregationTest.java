@@ -30,9 +30,9 @@ import io.crate.operation.aggregation.AggregationTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.SetType;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.util.BigArrays;
+import io.crate.es.Version;
+import io.crate.es.common.io.stream.BytesStreamOutput;
+import io.crate.es.common.util.BigArrays;
 import org.junit.Test;
 
 import java.util.Set;

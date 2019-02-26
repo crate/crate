@@ -28,7 +28,7 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import org.elasticsearch.cluster.service.ClusterService;
+import io.crate.es.cluster.service.ClusterService;
 
 import javax.annotation.Nullable;
 import javax.script.ScriptException;

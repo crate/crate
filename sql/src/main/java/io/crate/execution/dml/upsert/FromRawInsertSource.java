@@ -22,8 +22,8 @@
 
 package io.crate.execution.dml.upsert;
 
-import org.elasticsearch.common.bytes.BytesArray;
-import org.elasticsearch.common.bytes.BytesReference;
+import io.crate.es.common.bytes.BytesArray;
+import io.crate.es.common.bytes.BytesReference;
 
 import java.io.IOException;
 

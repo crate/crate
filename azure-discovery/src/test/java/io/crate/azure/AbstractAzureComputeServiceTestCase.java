@@ -24,9 +24,9 @@ package io.crate.azure;
 
 import io.crate.azure.management.AzureComputeService.Discovery;
 import io.crate.azure.management.AzureComputeService.Management;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.discovery.DiscoveryModule;
-import org.elasticsearch.test.ESIntegTestCase;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.discovery.DiscoveryModule;
+import io.crate.es.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
 
 

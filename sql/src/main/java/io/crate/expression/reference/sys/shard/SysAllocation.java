@@ -23,11 +23,11 @@
 package io.crate.expression.reference.sys.shard;
 
 import io.crate.metadata.IndexParts;
-import org.elasticsearch.action.admin.cluster.allocation.ClusterAllocationExplanation;
-import org.elasticsearch.cluster.routing.ShardRoutingState;
-import org.elasticsearch.cluster.routing.allocation.NodeAllocationResult;
-import org.elasticsearch.cluster.routing.allocation.ShardAllocationDecision;
-import org.elasticsearch.index.shard.ShardId;
+import io.crate.es.action.admin.cluster.allocation.ClusterAllocationExplanation;
+import io.crate.es.cluster.routing.ShardRoutingState;
+import io.crate.es.cluster.routing.allocation.NodeAllocationResult;
+import io.crate.es.cluster.routing.allocation.ShardAllocationDecision;
+import io.crate.es.index.shard.ShardId;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;

@@ -26,10 +26,10 @@ import com.microsoft.windowsazure.core.Builder.Registry;
 import io.crate.azure.management.AzureComputeService;
 import io.crate.azure.management.AzureComputeService.Management;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.discovery.DiscoveryModule;
+import io.crate.es.ElasticsearchException;
+import io.crate.es.common.Strings;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.discovery.DiscoveryModule;
 
 public class AzureConfiguration {
 

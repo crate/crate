@@ -24,9 +24,9 @@ package io.crate.integrationtests;
 import io.crate.testing.SQLBulkResponse;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
-import org.elasticsearch.action.ActionFuture;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.ESIntegTestCase;
+import io.crate.es.action.ActionFuture;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 

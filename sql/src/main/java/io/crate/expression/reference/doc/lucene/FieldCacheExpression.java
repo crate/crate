@@ -21,8 +21,8 @@
 
 package io.crate.expression.reference.doc.lucene;
 
-import org.elasticsearch.index.fielddata.IndexFieldData;
-import org.elasticsearch.index.mapper.MappedFieldType;
+import io.crate.es.index.fielddata.IndexFieldData;
+import io.crate.es.index.mapper.MappedFieldType;
 
 
 public abstract class FieldCacheExpression<IFD extends IndexFieldData, ReturnType> extends

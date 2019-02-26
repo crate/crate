@@ -23,10 +23,10 @@ package io.crate.lucene.match;
 
 import com.google.common.collect.ImmutableMap;
 import org.apache.lucene.search.Query;
-import org.elasticsearch.index.query.MultiMatchQueryBuilder;
-import org.elasticsearch.index.query.QueryShardContext;
-import org.elasticsearch.index.search.MatchQuery;
-import org.elasticsearch.index.search.MultiMatchQuery;
+import io.crate.es.index.query.MultiMatchQueryBuilder;
+import io.crate.es.index.query.QueryShardContext;
+import io.crate.es.index.search.MatchQuery;
+import io.crate.es.index.search.MultiMatchQuery;
 
 import javax.annotation.Nullable;
 import java.io.IOException;

@@ -23,10 +23,10 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.user.Privilege;
 import io.crate.settings.SharedSettings;
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.common.collect.MapBuilder;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.set.Sets;
+import io.crate.es.cluster.metadata.MetaData;
+import io.crate.es.common.collect.MapBuilder;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.common.util.set.Sets;
 import org.junit.Test;
 
 import java.util.Collections;

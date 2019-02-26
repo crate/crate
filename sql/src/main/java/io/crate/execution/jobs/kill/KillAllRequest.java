@@ -21,7 +21,7 @@
 
 package io.crate.execution.jobs.kill;
 
-import org.elasticsearch.transport.TransportRequest;
+import io.crate.es.transport.TransportRequest;
 
 public class KillAllRequest extends TransportRequest {
 }

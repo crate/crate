@@ -22,7 +22,7 @@
 
 package io.crate.execution.engine.join;
 
-import org.elasticsearch.common.breaker.CircuitBreaker;
+import io.crate.es.common.breaker.CircuitBreaker;
 import org.junit.Test;
 
 import static org.hamcrest.MatcherAssert.assertThat;

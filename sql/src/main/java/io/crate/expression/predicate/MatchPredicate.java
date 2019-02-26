@@ -29,9 +29,9 @@ import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.ElasticsearchParseException;
-import org.elasticsearch.common.xcontent.LoggingDeprecationHandler;
-import org.elasticsearch.index.query.MultiMatchQueryBuilder;
+import io.crate.es.ElasticsearchParseException;
+import io.crate.es.common.xcontent.LoggingDeprecationHandler;
+import io.crate.es.index.query.MultiMatchQueryBuilder;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;

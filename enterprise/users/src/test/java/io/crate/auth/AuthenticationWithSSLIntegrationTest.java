@@ -23,7 +23,7 @@ import io.crate.protocols.ssl.SslConfigSettings;
 import io.crate.settings.SharedSettings;
 import io.crate.shade.org.postgresql.util.PSQLException;
 import io.crate.testing.UseJdbc;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.common.settings.Settings;
 import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.Test;

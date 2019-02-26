@@ -24,8 +24,8 @@ package io.crate.window;
 
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.settings.SharedSettings;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.plugins.Plugin;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.plugins.Plugin;
 import org.junit.Test;
 
 import java.util.ArrayList;

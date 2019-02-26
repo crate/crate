@@ -26,13 +26,13 @@ import io.crate.test.integration.CrateUnitTest;
 import io.netty.channel.Channel;
 import io.netty.channel.embedded.EmbeddedChannel;
 import io.netty.handler.ssl.SslHandler;
-import org.elasticsearch.common.network.InetAddresses;
-import org.elasticsearch.common.network.NetworkService;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.BigArrays;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.http.HttpServerTransport;
-import org.elasticsearch.threadpool.ThreadPool;
+import io.crate.es.common.network.InetAddresses;
+import io.crate.es.common.network.NetworkService;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.common.util.BigArrays;
+import io.crate.es.common.xcontent.NamedXContentRegistry;
+import io.crate.es.http.HttpServerTransport;
+import io.crate.es.threadpool.ThreadPool;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -43,7 +43,7 @@ import java.net.InetAddress;
 import java.util.Collections;
 
 import static io.crate.protocols.ssl.SslConfigurationTest.getAbsoluteFilePathFromClassPath;
-import static org.elasticsearch.env.Environment.PATH_HOME_SETTING;
+import static io.crate.es.env.Environment.PATH_HOME_SETTING;
 import static org.hamcrest.Matchers.instanceOf;
 
 public class CrateHttpsTransportTest extends CrateUnitTest {

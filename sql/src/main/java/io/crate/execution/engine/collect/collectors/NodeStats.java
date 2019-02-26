@@ -40,11 +40,11 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.sys.SysNodesTableInfo;
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.transport.ConnectTransportException;
-import org.elasticsearch.transport.ReceiveTimeoutTransportException;
+import io.crate.es.action.ActionListener;
+import io.crate.es.cluster.node.DiscoveryNode;
+import io.crate.es.common.unit.TimeValue;
+import io.crate.es.transport.ConnectTransportException;
+import io.crate.es.transport.ReceiveTimeoutTransportException;
 
 import java.util.ArrayList;
 import java.util.Collection;

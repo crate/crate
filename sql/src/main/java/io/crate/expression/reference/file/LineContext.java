@@ -23,11 +23,11 @@ package io.crate.expression.reference.file;
 
 import io.crate.metadata.ColumnIdent;
 import org.apache.lucene.util.UnicodeUtil;
-import org.elasticsearch.ElasticsearchParseException;
-import org.elasticsearch.common.bytes.BytesArray;
-import org.elasticsearch.common.compress.NotXContentException;
-import org.elasticsearch.common.xcontent.XContentHelper;
-import org.elasticsearch.common.xcontent.XContentType;
+import io.crate.es.ElasticsearchParseException;
+import io.crate.es.common.bytes.BytesArray;
+import io.crate.es.common.compress.NotXContentException;
+import io.crate.es.common.xcontent.XContentHelper;
+import io.crate.es.common.xcontent.XContentType;
 
 import javax.annotation.Nullable;
 import java.net.URI;

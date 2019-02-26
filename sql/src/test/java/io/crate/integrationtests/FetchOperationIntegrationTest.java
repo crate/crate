@@ -28,7 +28,7 @@ import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.testing.TestingRowConsumer;
-import org.elasticsearch.test.ESIntegTestCase;
+import io.crate.es.test.ESIntegTestCase;
 import org.junit.Test;
 
 import java.util.List;

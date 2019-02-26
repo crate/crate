@@ -21,8 +21,8 @@ package io.crate.metadata;
 
 import io.crate.analyze.user.Privilege;
 import io.crate.settings.SharedSettings;
-import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.cluster.metadata.MetaData;
+import io.crate.es.common.settings.Settings;
 
 import java.util.HashSet;
 import java.util.List;

@@ -29,7 +29,7 @@ import io.crate.metadata.RelationName;
 import io.crate.planner.TableStats;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseSemiJoins;
-import org.elasticsearch.test.ESIntegTestCase;
+import io.crate.es.test.ESIntegTestCase;
 import org.junit.Test;
 
 import java.util.Arrays;

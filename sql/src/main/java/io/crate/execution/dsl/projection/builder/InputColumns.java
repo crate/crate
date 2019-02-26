@@ -40,7 +40,7 @@ import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.Reference;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.inject.Singleton;
+import io.crate.es.common.inject.Singleton;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;

@@ -38,8 +38,8 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.xcontent.XContentFactory;
+import io.crate.es.common.bytes.BytesReference;
+import io.crate.es.common.xcontent.XContentFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;

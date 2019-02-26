@@ -30,7 +30,7 @@ import io.crate.execution.jobs.kill.KillJobsRequest;
 import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
 import io.crate.execution.support.ThreadPools;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.action.ActionListener;
+import io.crate.es.action.ActionListener;
 import org.apache.logging.log4j.LogManager;
 
 import javax.annotation.Nullable;

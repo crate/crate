@@ -26,9 +26,9 @@ import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelPipeline;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslHandler;
-import org.elasticsearch.common.inject.Provider;
-import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.http.netty4.cors.Netty4CorsConfig;
+import io.crate.es.common.inject.Provider;
+import io.crate.es.common.inject.Singleton;
+import io.crate.es.http.netty4.cors.Netty4CorsConfig;
 
 import java.util.ArrayList;
 import java.util.List;

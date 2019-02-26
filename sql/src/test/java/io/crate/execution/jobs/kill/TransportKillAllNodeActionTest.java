@@ -23,9 +23,9 @@ package io.crate.execution.jobs.kill;
 
 import io.crate.execution.jobs.TasksService;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.transport.MockTransportService;
+import io.crate.es.Version;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.test.transport.MockTransportService;
 import org.junit.Test;
 import org.mockito.Answers;
 

@@ -24,7 +24,7 @@ package io.crate.auth.user;
 
 import io.crate.analyze.user.Privilege;
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.common.util.set.Sets;
+import io.crate.es.common.util.set.Sets;
 import org.junit.Test;
 
 import java.util.Collection;

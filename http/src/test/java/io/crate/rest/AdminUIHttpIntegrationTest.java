@@ -32,12 +32,12 @@ import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicHeader;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.env.Environment;
-import org.elasticsearch.http.HttpServerTransport;
-import org.elasticsearch.plugins.Plugin;
-import org.elasticsearch.test.ESIntegTestCase;
-import org.elasticsearch.transport.Netty4Plugin;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.env.Environment;
+import io.crate.es.http.HttpServerTransport;
+import io.crate.es.plugins.Plugin;
+import io.crate.es.test.ESIntegTestCase;
+import io.crate.es.transport.Netty4Plugin;
 import org.junit.Before;
 
 import java.io.IOException;
@@ -53,7 +53,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 
-import static org.elasticsearch.common.network.NetworkModule.HTTP_DEFAULT_TYPE_SETTING;
+import static io.crate.es.common.network.NetworkModule.HTTP_DEFAULT_TYPE_SETTING;
 import static org.hamcrest.core.Is.is;
 
 public abstract class AdminUIHttpIntegrationTest extends ESIntegTestCase {

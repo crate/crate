@@ -22,7 +22,7 @@
 
 package io.crate.expression.reference.sys.node;
 
-import org.elasticsearch.threadpool.ThreadPoolStats;
+import io.crate.es.threadpool.ThreadPoolStats;
 
 import java.util.List;
 

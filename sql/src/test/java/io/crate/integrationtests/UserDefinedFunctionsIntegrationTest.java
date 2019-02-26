@@ -37,7 +37,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.test.ESIntegTestCase;
+import io.crate.es.test.ESIntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
 

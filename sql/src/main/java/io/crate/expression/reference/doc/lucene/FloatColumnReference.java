@@ -23,9 +23,9 @@ package io.crate.expression.reference.doc.lucene;
 
 import io.crate.exceptions.GroupByOnArrayUnsupportedException;
 import org.apache.lucene.index.LeafReaderContext;
-import org.elasticsearch.index.fielddata.IndexNumericFieldData;
-import org.elasticsearch.index.fielddata.SortedNumericDoubleValues;
-import org.elasticsearch.index.mapper.MappedFieldType;
+import io.crate.es.index.fielddata.IndexNumericFieldData;
+import io.crate.es.index.fielddata.SortedNumericDoubleValues;
+import io.crate.es.index.mapper.MappedFieldType;
 
 import java.io.IOException;
 

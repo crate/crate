@@ -28,14 +28,14 @@ import io.crate.Plugin;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.xbean.finder.ResourceFinder;
-import org.elasticsearch.bootstrap.JarHell;
-import org.elasticsearch.common.Nullable;
-import org.elasticsearch.common.component.LifecycleComponent;
-import org.elasticsearch.common.inject.Module;
-import org.elasticsearch.common.io.PathUtils;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.plugins.PluginInfo;
+import io.crate.es.bootstrap.JarHell;
+import io.crate.es.common.Nullable;
+import io.crate.es.common.component.LifecycleComponent;
+import io.crate.es.common.inject.Module;
+import io.crate.es.common.io.PathUtils;
+import io.crate.es.common.settings.Setting;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.plugins.PluginInfo;
 
 import java.io.File;
 import java.lang.reflect.Constructor;
@@ -53,7 +53,7 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static org.elasticsearch.common.io.FileSystemUtils.isAccessibleDirectory;
+import static io.crate.es.common.io.FileSystemUtils.isAccessibleDirectory;
 
 public class PluginLoader {
 

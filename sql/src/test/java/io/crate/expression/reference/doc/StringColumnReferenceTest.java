@@ -32,8 +32,8 @@ import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.index.mapper.KeywordFieldMapper;
-import org.elasticsearch.index.mapper.MappedFieldType;
+import io.crate.es.index.mapper.KeywordFieldMapper;
+import io.crate.es.index.mapper.MappedFieldType;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;

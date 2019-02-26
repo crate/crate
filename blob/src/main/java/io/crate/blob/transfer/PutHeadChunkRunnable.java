@@ -24,12 +24,12 @@ package io.crate.blob.transfer;
 import io.crate.blob.BlobTransferTarget;
 import io.crate.blob.DigestBlob;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.bytes.BytesArray;
+import io.crate.es.cluster.node.DiscoveryNode;
+import io.crate.es.common.bytes.BytesArray;
 import org.apache.logging.log4j.LogManager;
-import org.elasticsearch.transport.EmptyTransportResponseHandler;
-import org.elasticsearch.transport.TransportRequestOptions;
-import org.elasticsearch.transport.TransportService;
+import io.crate.es.transport.EmptyTransportResponseHandler;
+import io.crate.es.transport.TransportRequestOptions;
+import io.crate.es.transport.TransportService;
 
 import java.io.File;
 import java.io.FileInputStream;

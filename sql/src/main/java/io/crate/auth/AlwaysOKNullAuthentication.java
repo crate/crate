@@ -24,7 +24,7 @@ package io.crate.auth;
 
 import io.crate.auth.user.User;
 import io.crate.protocols.postgres.ConnectionProperties;
-import org.elasticsearch.common.settings.SecureString;
+import io.crate.es.common.settings.SecureString;
 
 public class AlwaysOKNullAuthentication implements Authentication {
 

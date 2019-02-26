@@ -23,8 +23,8 @@
 package io.crate.metadata.view;
 
 import io.crate.metadata.RelationName;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.common.inject.ImplementedBy;
+import io.crate.es.cluster.ClusterState;
+import io.crate.es.common.inject.ImplementedBy;
 
 @ImplementedBy(InternalViewInfoFactory.class)
 public interface ViewInfoFactory {

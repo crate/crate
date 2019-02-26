@@ -22,9 +22,9 @@
 
 package io.crate.metadata.settings;
 
-import org.elasticsearch.common.Booleans;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.util.set.Sets;
+import io.crate.es.common.Booleans;
+import io.crate.es.common.settings.Setting;
+import io.crate.es.common.util.set.Sets;
 
 import java.util.Map;
 import java.util.Set;

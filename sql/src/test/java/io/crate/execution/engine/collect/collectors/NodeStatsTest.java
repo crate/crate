@@ -39,9 +39,9 @@ import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.BatchIteratorTester;
 import io.crate.types.DataTypes;
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.unit.TimeValue;
+import io.crate.es.action.ActionListener;
+import io.crate.es.cluster.node.DiscoveryNode;
+import io.crate.es.common.unit.TimeValue;
 import org.junit.Before;
 import org.junit.Test;
 

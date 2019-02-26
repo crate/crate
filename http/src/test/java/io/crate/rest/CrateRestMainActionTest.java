@@ -22,8 +22,8 @@
 
 package io.crate.rest;
 
-import org.elasticsearch.common.collect.Tuple;
-import org.elasticsearch.common.settings.SecureString;
+import io.crate.es.common.collect.Tuple;
+import io.crate.es.common.settings.SecureString;
 import org.junit.Test;
 
 import static io.crate.rest.CrateRestMainAction.isAcceptJson;

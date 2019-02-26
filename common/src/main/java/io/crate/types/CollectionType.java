@@ -23,8 +23,9 @@ package io.crate.types;
 
 import com.google.common.base.Preconditions;
 import io.crate.Streamer;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
+import io.crate.es.common.io.stream.StreamInput;
+import io.crate.es.common.io.stream.Streamable;
+import io.crate.es.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -47,7 +48,7 @@ public abstract class CollectionType extends DataType {
     }
 
     /**
-     * Constructor used for the {@link org.elasticsearch.common.io.stream.Streamable}
+     * Constructor used for the {@link Streamable}
      * interface which initializes the fields after object creation.
      */
     public CollectionType() {}

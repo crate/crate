@@ -36,7 +36,7 @@ import io.crate.sql.tree.DefaultTraversalVisitor;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.Node;
 import io.crate.sql.tree.PartitionedBy;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
+import io.crate.es.cluster.metadata.IndexMetaData;
 
 import java.util.Collections;
 import java.util.Locale;

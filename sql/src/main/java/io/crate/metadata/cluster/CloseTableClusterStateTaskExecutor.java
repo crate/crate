@@ -23,20 +23,20 @@
 package io.crate.metadata.cluster;
 
 import io.crate.execution.ddl.tables.OpenCloseTableOrPartitionRequest;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.block.ClusterBlocks;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
-import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.cluster.routing.RoutingTable;
-import org.elasticsearch.cluster.routing.allocation.AllocationService;
-import org.elasticsearch.snapshots.RestoreService;
-import org.elasticsearch.snapshots.SnapshotsService;
+import io.crate.es.cluster.ClusterState;
+import io.crate.es.cluster.block.ClusterBlocks;
+import io.crate.es.cluster.metadata.IndexMetaData;
+import io.crate.es.cluster.metadata.IndexNameExpressionResolver;
+import io.crate.es.cluster.metadata.IndexTemplateMetaData;
+import io.crate.es.cluster.metadata.MetaData;
+import io.crate.es.cluster.routing.RoutingTable;
+import io.crate.es.cluster.routing.allocation.AllocationService;
+import io.crate.es.snapshots.RestoreService;
+import io.crate.es.snapshots.SnapshotsService;
 
 import java.util.Set;
 
-import static org.elasticsearch.cluster.metadata.IndexMetaData.INDEX_CLOSED_BLOCK;
+import static io.crate.es.cluster.metadata.IndexMetaData.INDEX_CLOSED_BLOCK;
 
 
 public class CloseTableClusterStateTaskExecutor extends AbstractOpenCloseTableClusterStateTaskExecutor {

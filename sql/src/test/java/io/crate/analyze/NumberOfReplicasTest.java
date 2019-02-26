@@ -22,7 +22,7 @@
 package io.crate.analyze;
 
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.common.settings.Settings;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;

@@ -8,9 +8,9 @@ import org.apache.http.Header;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.message.BasicHeader;
 import org.apache.http.util.EntityUtils;
-import org.elasticsearch.index.IndexNotFoundException;
-import org.elasticsearch.index.shard.ShardNotFoundException;
-import org.elasticsearch.test.ESIntegTestCase;
+import io.crate.es.index.IndexNotFoundException;
+import io.crate.es.index.shard.ShardNotFoundException;
+import io.crate.es.test.ESIntegTestCase;
 import org.junit.Test;
 
 import javax.annotation.Nullable;
@@ -29,7 +29,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasItem;

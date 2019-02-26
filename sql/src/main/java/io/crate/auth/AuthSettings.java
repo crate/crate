@@ -24,8 +24,8 @@ package io.crate.auth;
 
 import io.crate.settings.CrateSetting;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.common.settings.Setting;
+import io.crate.es.common.settings.Settings;
 
 import java.util.function.Function;
 

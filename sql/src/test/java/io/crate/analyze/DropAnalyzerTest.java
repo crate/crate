@@ -24,10 +24,10 @@ package io.crate.analyze;
 
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.ClusterServiceUtils;
+import io.crate.es.cluster.ClusterState;
+import io.crate.es.cluster.metadata.MetaData;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.test.ClusterServiceUtils;
 import org.junit.Before;
 import org.junit.Test;
 

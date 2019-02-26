@@ -43,7 +43,7 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.io.stream.StreamOutput;
+import io.crate.es.common.io.stream.StreamOutput;
 
 import javax.annotation.Nullable;
 import java.io.IOException;

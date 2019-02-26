@@ -35,11 +35,11 @@ import io.crate.metadata.Schemas;
 import io.crate.planner.fetch.IndexBaseBuilder;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.DataTypes;
-import org.elasticsearch.Version;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.indices.IndicesService;
+import io.crate.es.Version;
+import io.crate.es.cluster.metadata.IndexMetaData;
+import io.crate.es.cluster.metadata.MetaData;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.indices.IndicesService;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
@@ -49,9 +49,9 @@ import java.util.TreeMap;
 import java.util.function.UnaryOperator;
 
 import static io.crate.testing.TestingHelpers.createReference;
-import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_REPLICAS;
-import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_SHARDS;
-import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_VERSION_CREATED;
+import static io.crate.es.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_REPLICAS;
+import static io.crate.es.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_SHARDS;
+import static io.crate.es.cluster.metadata.IndexMetaData.SETTING_VERSION_CREATED;
 import static org.mockito.Mockito.RETURNS_MOCKS;
 import static org.mockito.Mockito.mock;
 

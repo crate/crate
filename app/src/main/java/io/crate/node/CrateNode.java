@@ -30,15 +30,15 @@ import io.crate.plugin.LicensePlugin;
 import io.crate.plugin.PluginLoaderPlugin;
 import io.crate.plugin.SrvPlugin;
 import io.crate.udc.plugin.UDCPlugin;
-import org.elasticsearch.analysis.common.CommonAnalysisPlugin;
-import org.elasticsearch.common.logging.LogConfigurator;
-import org.elasticsearch.discovery.ec2.Ec2DiscoveryPlugin;
-import org.elasticsearch.env.Environment;
-import org.elasticsearch.node.Node;
-import org.elasticsearch.plugin.repository.url.URLRepositoryPlugin;
-import org.elasticsearch.plugins.Plugin;
-import org.elasticsearch.repositories.s3.S3RepositoryPlugin;
-import org.elasticsearch.transport.Netty4Plugin;
+import io.crate.es.analysis.common.CommonAnalysisPlugin;
+import io.crate.es.common.logging.LogConfigurator;
+import io.crate.es.discovery.ec2.Ec2DiscoveryPlugin;
+import io.crate.es.env.Environment;
+import io.crate.es.node.Node;
+import io.crate.es.plugin.repository.url.URLRepositoryPlugin;
+import io.crate.es.plugins.Plugin;
+import io.crate.es.repositories.s3.S3RepositoryPlugin;
+import io.crate.es.transport.Netty4Plugin;
 
 import java.util.Collection;
 

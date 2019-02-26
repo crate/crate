@@ -22,16 +22,16 @@
 
 package io.crate.execution.ddl;
 
-import org.elasticsearch.ElasticsearchTimeoutException;
-import org.elasticsearch.cluster.action.index.MappingUpdatedAction;
-import org.elasticsearch.common.component.AbstractComponent;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.ClusterSettings;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.index.Index;
-import org.elasticsearch.index.mapper.Mapping;
+import io.crate.es.ElasticsearchTimeoutException;
+import io.crate.es.cluster.action.index.MappingUpdatedAction;
+import io.crate.es.common.component.AbstractComponent;
+import io.crate.es.common.inject.Inject;
+import io.crate.es.common.inject.Singleton;
+import io.crate.es.common.settings.ClusterSettings;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.common.unit.TimeValue;
+import io.crate.es.index.Index;
+import io.crate.es.index.mapper.Mapping;
 
 @Singleton
 public class SchemaUpdateClient extends AbstractComponent {

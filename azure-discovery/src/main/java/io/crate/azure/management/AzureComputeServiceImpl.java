@@ -29,11 +29,11 @@ import com.microsoft.windowsazure.Configuration;
 import com.microsoft.windowsazure.core.DefaultBuilder;
 import com.microsoft.windowsazure.management.configuration.ManagementConfiguration;
 import io.crate.azure.AzureConfiguration;
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.common.Nullable;
-import org.elasticsearch.common.component.AbstractLifecycleComponent;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.ElasticsearchException;
+import io.crate.es.common.Nullable;
+import io.crate.es.common.component.AbstractLifecycleComponent;
+import io.crate.es.common.inject.Inject;
+import io.crate.es.common.settings.Settings;
 
 import java.io.IOException;
 import java.net.URI;

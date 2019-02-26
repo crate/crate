@@ -27,7 +27,7 @@ import io.crate.expression.scalar.UnaryScalar;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.GeoPointType;
-import org.elasticsearch.common.geo.GeoHashUtils;
+import io.crate.es.common.geo.GeoHashUtils;
 
 import java.util.List;
 import java.util.function.Function;

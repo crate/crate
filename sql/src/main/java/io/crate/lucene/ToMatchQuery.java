@@ -41,10 +41,10 @@ import org.apache.lucene.search.TermRangeQuery;
 import org.apache.lucene.spatial.prefix.PrefixTreeStrategy;
 import org.apache.lucene.spatial.query.SpatialArgs;
 import org.apache.lucene.spatial.query.SpatialOperation;
-import org.elasticsearch.common.geo.ShapeRelation;
-import org.elasticsearch.index.mapper.GeoShapeFieldMapper;
-import org.elasticsearch.index.mapper.MappedFieldType;
-import org.elasticsearch.index.query.QueryShardContext;
+import io.crate.es.common.geo.ShapeRelation;
+import io.crate.es.index.mapper.GeoShapeFieldMapper;
+import io.crate.es.index.mapper.MappedFieldType;
+import io.crate.es.index.query.QueryShardContext;
 import org.locationtech.spatial4j.shape.Shape;
 
 import java.io.IOException;
@@ -91,7 +91,7 @@ class ToMatchQuery implements FunctionToQuery {
         PrefixTreeStrategy prefixTreeStrategy = geoShapeFieldType.defaultStrategy();
         if (relation == ShapeRelation.DISJOINT) {
             /**
-             * See {@link org.elasticsearch.index.query.GeoShapeQueryParser}:
+             * See {@link io.crate.es.index.query.GeoShapeQueryParser}:
              */
             // this strategy doesn't support disjoint anymore: but it did before, including creating lucene fieldcache (!)
             // in this case, execute disjoint as exists && !intersects

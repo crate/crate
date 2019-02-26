@@ -35,8 +35,8 @@ import org.apache.lucene.document.LatLonPoint;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
-import org.elasticsearch.common.geo.GeoUtils;
-import org.elasticsearch.common.lucene.search.Queries;
+import io.crate.es.common.geo.GeoUtils;
+import io.crate.es.common.lucene.search.Queries;
 
 import static io.crate.lucene.LuceneQueryBuilder.genericFunctionFilter;
 

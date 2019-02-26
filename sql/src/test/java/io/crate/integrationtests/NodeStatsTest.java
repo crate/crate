@@ -24,9 +24,9 @@ package io.crate.integrationtests;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
 import org.apache.lucene.util.Constants;
-import org.elasticsearch.Version;
-import org.elasticsearch.env.NodeEnvironment;
-import org.elasticsearch.test.ESIntegTestCase;
+import io.crate.es.Version;
+import io.crate.es.env.NodeEnvironment;
+import io.crate.es.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 

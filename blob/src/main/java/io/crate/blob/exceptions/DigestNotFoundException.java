@@ -21,7 +21,7 @@
 
 package io.crate.blob.exceptions;
 
-import org.elasticsearch.ElasticsearchException;
+import io.crate.es.ElasticsearchException;
 
 public class DigestNotFoundException extends ElasticsearchException {
 

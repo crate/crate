@@ -22,7 +22,7 @@
 
 package io.crate.integrationtests;
 
-import org.elasticsearch.test.ESIntegTestCase;
+import io.crate.es.test.ESIntegTestCase;
 import org.junit.Test;
 
 import java.io.IOException;

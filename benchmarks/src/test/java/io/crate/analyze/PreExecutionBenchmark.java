@@ -33,10 +33,10 @@ import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
 import io.crate.testing.SQLExecutor;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.threadpool.TestThreadPool;
+import io.crate.es.cluster.ClusterState;
+import io.crate.es.cluster.node.DiscoveryNode;
+import io.crate.es.cluster.service.ClusterService;
+import io.crate.es.threadpool.TestThreadPool;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Mode;
@@ -55,7 +55,7 @@ import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 import static io.crate.testing.DiscoveryNodes.newNode;
-import static org.elasticsearch.test.ClusterServiceUtils.createClusterService;
+import static io.crate.es.test.ClusterServiceUtils.createClusterService;
 
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MICROSECONDS)

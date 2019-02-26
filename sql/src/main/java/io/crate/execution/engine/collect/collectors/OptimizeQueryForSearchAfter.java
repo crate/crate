@@ -33,8 +33,8 @@ import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.FieldDoc;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.Query;
-import org.elasticsearch.index.mapper.MappedFieldType;
-import org.elasticsearch.index.query.QueryShardContext;
+import io.crate.es.index.mapper.MappedFieldType;
+import io.crate.es.index.query.QueryShardContext;
 
 import java.util.function.Function;
 

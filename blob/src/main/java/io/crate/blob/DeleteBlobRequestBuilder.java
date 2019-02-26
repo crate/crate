@@ -21,9 +21,9 @@
 
 package io.crate.blob;
 
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.replication.ReplicationRequestBuilder;
-import org.elasticsearch.client.ElasticsearchClient;
+import io.crate.es.action.ActionListener;
+import io.crate.es.action.support.replication.ReplicationRequestBuilder;
+import io.crate.es.client.ElasticsearchClient;
 
 public class DeleteBlobRequestBuilder extends ReplicationRequestBuilder<DeleteBlobRequest, DeleteBlobResponse,
     DeleteBlobRequestBuilder> {

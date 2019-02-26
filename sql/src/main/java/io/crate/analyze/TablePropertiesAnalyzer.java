@@ -23,7 +23,7 @@ package io.crate.analyze;
 
 import io.crate.data.Row;
 import io.crate.sql.tree.GenericProperties;
-import org.elasticsearch.common.settings.Setting;
+import io.crate.es.common.settings.Setting;
 
 import java.util.List;
 import java.util.Map;

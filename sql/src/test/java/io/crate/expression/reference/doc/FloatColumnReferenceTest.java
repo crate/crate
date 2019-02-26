@@ -30,8 +30,8 @@ import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.util.NumericUtils;
-import org.elasticsearch.index.mapper.MappedFieldType;
-import org.elasticsearch.index.mapper.NumberFieldMapper;
+import io.crate.es.index.mapper.MappedFieldType;
+import io.crate.es.index.mapper.NumberFieldMapper;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;

@@ -44,10 +44,10 @@ import io.crate.execution.jobs.transport.JobRequest;
 import io.crate.execution.jobs.transport.TransportJobAction;
 import io.crate.metadata.TransactionContext;
 import io.crate.profile.ProfilingContext;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.collect.Tuple;
-import org.elasticsearch.indices.IndicesService;
-import org.elasticsearch.search.profile.query.QueryProfiler;
+import io.crate.es.cluster.service.ClusterService;
+import io.crate.es.common.collect.Tuple;
+import io.crate.es.indices.IndicesService;
+import io.crate.es.search.profile.query.QueryProfiler;
 
 import java.util.ArrayList;
 import java.util.Collection;

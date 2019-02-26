@@ -23,7 +23,7 @@
 package io.crate.profile;
 
 import com.google.common.collect.ImmutableMap;
-import org.elasticsearch.search.profile.ProfileResult;
+import io.crate.es.search.profile.ProfileResult;
 
 import java.util.ArrayList;
 import java.util.List;

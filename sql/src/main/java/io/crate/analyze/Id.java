@@ -25,9 +25,9 @@ import io.crate.collections.Lists2;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.doc.DocSysColumns;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.UUIDs;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import io.crate.es.common.UUIDs;
+import io.crate.es.common.bytes.BytesReference;
+import io.crate.es.common.io.stream.BytesStreamOutput;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;

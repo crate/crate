@@ -21,8 +21,8 @@
 
 package io.crate;
 
-import org.elasticsearch.common.joda.FormatDateTimeFormatter;
-import org.elasticsearch.common.joda.Joda;
+import io.crate.es.common.joda.FormatDateTimeFormatter;
+import io.crate.es.common.joda.Joda;
 
 import java.util.Locale;
 

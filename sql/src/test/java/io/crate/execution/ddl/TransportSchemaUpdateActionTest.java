@@ -27,12 +27,12 @@ import io.crate.analyze.AddColumnAnalyzedStatement;
 import io.crate.metadata.IndexMappings;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
-import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
+import io.crate.es.cluster.ClusterState;
+import io.crate.es.cluster.metadata.IndexTemplateMetaData;
+import io.crate.es.cluster.metadata.MetaData;
+import io.crate.es.common.Strings;
+import io.crate.es.common.xcontent.NamedXContentRegistry;
+import io.crate.es.common.xcontent.json.JsonXContent;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 

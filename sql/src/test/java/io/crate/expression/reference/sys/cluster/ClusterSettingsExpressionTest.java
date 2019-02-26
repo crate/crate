@@ -29,12 +29,12 @@ import io.crate.metadata.settings.CrateSettings;
 import io.crate.plugin.SQLPlugin;
 import io.crate.settings.SharedSettings;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.ClusterStateUpdateTask;
-import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.cluster.ClusterState;
+import io.crate.es.cluster.ClusterStateUpdateTask;
+import io.crate.es.cluster.metadata.MetaData;
+import io.crate.es.cluster.service.ClusterService;
+import io.crate.es.common.settings.Setting;
+import io.crate.es.common.settings.Settings;
 import org.junit.Test;
 
 import java.util.Collection;

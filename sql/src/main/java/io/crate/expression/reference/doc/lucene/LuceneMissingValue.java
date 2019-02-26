@@ -36,7 +36,7 @@ public class LuceneMissingValue {
     }
 
     /**
-     * Calculates the missing Values as in {@link org.elasticsearch.index.fielddata.IndexFieldData}
+     * Calculates the missing Values as in {@link io.crate.es.index.fielddata.IndexFieldData}
      * The results in the {@link org.apache.lucene.search.ScoreDoc} contains this missingValues instead of nulls. Because we
      * need nulls in the result, it's necessary to check if a value is a missingValue.
      */

@@ -32,8 +32,8 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.TransactionContext;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.util.BigArrays;
+import io.crate.es.Version;
+import io.crate.es.common.util.BigArrays;
 
 import javax.annotation.Nullable;
 import java.util.List;

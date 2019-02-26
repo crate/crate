@@ -23,15 +23,15 @@
 package io.crate.execution.ddl.tables;
 
 import io.crate.metadata.RelationName;
-import org.elasticsearch.action.ActionRequestValidationException;
-import org.elasticsearch.action.support.master.AcknowledgedRequest;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
+import io.crate.es.action.ActionRequestValidationException;
+import io.crate.es.action.support.master.AcknowledgedRequest;
+import io.crate.es.common.io.stream.StreamInput;
+import io.crate.es.common.io.stream.StreamOutput;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
 
-import static org.elasticsearch.action.ValidateActions.addValidationError;
+import static io.crate.es.action.ValidateActions.addValidationError;
 
 public class OpenCloseTableOrPartitionRequest extends AcknowledgedRequest<OpenCloseTableOrPartitionRequest> {
 

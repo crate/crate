@@ -26,11 +26,11 @@ import io.crate.data.Input;
 import io.crate.expression.reference.sys.SysRowUpdater;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.sys.SysNodeChecksTableInfo;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.component.LifecycleListener;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.discovery.Discovery;
+import io.crate.es.cluster.service.ClusterService;
+import io.crate.es.common.component.LifecycleListener;
+import io.crate.es.common.inject.Inject;
+import io.crate.es.common.inject.Singleton;
+import io.crate.es.discovery.Discovery;
 
 import java.util.HashMap;
 import java.util.Iterator;

@@ -23,7 +23,7 @@
 package io.crate.integrationtests;
 
 import io.crate.testing.UseRandomizedSchema;
-import org.elasticsearch.test.ESIntegTestCase;
+import io.crate.es.test.ESIntegTestCase;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;

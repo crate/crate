@@ -1,0 +1,53 @@
+/*
+ * Licensed to Crate under one or more contributor license agreements.
+ * See the NOTICE file distributed with this work for additional
+ * information regarding copyright ownership.  Crate licenses this file
+ * to you under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.  You may
+ * obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied.  See the License for the specific language governing
+ * permissions and limitations under the License.
+ *
+ * However, if you have executed another commercial license agreement
+ * with Crate these terms will supersede the license and you may use the
+ * software solely pursuant to the terms of the relevant commercial
+ * agreement.
+ */
+
+package io.crate.es.rest;
+
+import io.crate.es.common.Nullable;
+import io.crate.es.common.io.stream.BytesStreamOutput;
+import io.crate.es.common.xcontent.XContentBuilder;
+import io.crate.es.common.xcontent.XContentType;
+
+import java.io.IOException;
+
+/**
+ * A channel used to construct bytes / builder based outputs, and send responses.
+ */
+public interface RestChannel {
+
+    XContentBuilder newBuilder() throws IOException;
+
+    XContentBuilder newErrorBuilder() throws IOException;
+
+    XContentBuilder newBuilder(@Nullable XContentType xContentType, boolean useFiltering) throws IOException;
+
+    BytesStreamOutput bytesOutput();
+
+    RestRequest request();
+
+    /**
+     * @return true iff an error response should contain additional details like exception traces.
+     */
+    boolean detailedErrorsEnabled();
+
+    void sendResponse(RestResponse response);
+}

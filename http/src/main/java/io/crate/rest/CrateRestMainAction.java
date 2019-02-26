@@ -23,25 +23,25 @@
 package io.crate.rest;
 
 import com.google.common.collect.ImmutableList;
-import org.elasticsearch.Build;
-import org.elasticsearch.ExceptionsHelper;
-import org.elasticsearch.Version;
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.admin.cluster.state.ClusterStateAction;
-import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
-import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
-import org.elasticsearch.client.node.NodeClient;
-import org.elasticsearch.cluster.ClusterName;
-import org.elasticsearch.common.collect.Tuple;
-import org.elasticsearch.common.settings.SecureString;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.rest.BytesRestResponse;
-import org.elasticsearch.rest.RestChannel;
-import org.elasticsearch.rest.RestController;
-import org.elasticsearch.rest.RestHandler;
-import org.elasticsearch.rest.RestRequest;
-import org.elasticsearch.rest.RestStatus;
+import io.crate.es.Build;
+import io.crate.es.ExceptionsHelper;
+import io.crate.es.Version;
+import io.crate.es.action.ActionListener;
+import io.crate.es.action.admin.cluster.state.ClusterStateAction;
+import io.crate.es.action.admin.cluster.state.ClusterStateRequest;
+import io.crate.es.action.admin.cluster.state.ClusterStateResponse;
+import io.crate.es.client.node.NodeClient;
+import io.crate.es.cluster.ClusterName;
+import io.crate.es.common.collect.Tuple;
+import io.crate.es.common.settings.SecureString;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.common.xcontent.XContentBuilder;
+import io.crate.es.rest.BytesRestResponse;
+import io.crate.es.rest.RestChannel;
+import io.crate.es.rest.RestController;
+import io.crate.es.rest.RestHandler;
+import io.crate.es.rest.RestRequest;
+import io.crate.es.rest.RestStatus;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -52,12 +52,12 @@ import java.util.Locale;
 import java.util.regex.Pattern;
 
 import static io.crate.protocols.http.StaticSite.serveSite;
-import static org.elasticsearch.node.Node.NODE_NAME_SETTING;
-import static org.elasticsearch.rest.RestRequest.Method.GET;
-import static org.elasticsearch.rest.RestRequest.Method.HEAD;
-import static org.elasticsearch.rest.RestStatus.BAD_REQUEST;
-import static org.elasticsearch.rest.RestStatus.INTERNAL_SERVER_ERROR;
-import static org.elasticsearch.rest.RestStatus.OK;
+import static io.crate.es.node.Node.NODE_NAME_SETTING;
+import static io.crate.es.rest.RestRequest.Method.GET;
+import static io.crate.es.rest.RestRequest.Method.HEAD;
+import static io.crate.es.rest.RestStatus.BAD_REQUEST;
+import static io.crate.es.rest.RestStatus.INTERNAL_SERVER_ERROR;
+import static io.crate.es.rest.RestStatus.OK;
 
 /**
  * RestAction for root or admin-ui requests

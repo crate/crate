@@ -24,11 +24,11 @@ package io.crate.execution.dml;
 
 import com.carrotsearch.hppc.IntArrayList;
 import com.google.common.base.MoreObjects;
-import org.elasticsearch.action.support.WriteResponse;
-import org.elasticsearch.action.support.replication.ReplicationResponse;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Streamable;
+import io.crate.es.action.support.WriteResponse;
+import io.crate.es.action.support.replication.ReplicationResponse;
+import io.crate.es.common.io.stream.StreamInput;
+import io.crate.es.common.io.stream.StreamOutput;
+import io.crate.es.common.io.stream.Streamable;
 
 import javax.annotation.Nullable;
 import java.io.IOException;

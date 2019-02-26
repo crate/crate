@@ -33,9 +33,9 @@ import io.crate.metadata.Scalar;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.TimestampType;
-import org.elasticsearch.common.collect.MapBuilder;
-import org.elasticsearch.common.rounding.DateTimeUnit;
-import org.elasticsearch.common.rounding.Rounding;
+import io.crate.es.common.collect.MapBuilder;
+import io.crate.es.common.rounding.DateTimeUnit;
+import io.crate.es.common.rounding.Rounding;
 import org.joda.time.DateTimeZone;
 
 import java.util.Arrays;

@@ -24,8 +24,7 @@ package io.crate.integrationtests;
 
 import io.crate.execution.dsl.projection.AbstractIndexWriterProjection;
 import io.crate.testing.SQLBulkResponse;
-import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.common.xcontent.XContentType;
+import io.crate.es.common.unit.TimeValue;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;

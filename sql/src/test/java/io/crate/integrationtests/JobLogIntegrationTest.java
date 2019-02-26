@@ -30,7 +30,7 @@ import io.crate.testing.UseHashJoins;
 import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedSchema;
 import io.crate.testing.UseSemiJoins;
-import org.elasticsearch.test.ESIntegTestCase;
+import io.crate.es.test.ESIntegTestCase;
 import org.junit.After;
 import org.junit.Test;
 

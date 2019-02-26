@@ -23,8 +23,8 @@ package io.crate.breaker;
 
 import io.crate.execution.dsl.phases.ExecutionPhase;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.elasticsearch.common.breaker.CircuitBreakingException;
+import io.crate.es.common.breaker.CircuitBreaker;
+import io.crate.es.common.breaker.CircuitBreakingException;
 import org.apache.logging.log4j.LogManager;
 
 import javax.annotation.concurrent.ThreadSafe;

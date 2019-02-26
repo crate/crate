@@ -28,11 +28,11 @@ import io.crate.execution.dml.ShardRequest;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.RowShardResolver;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.cluster.routing.ShardIterator;
-import org.elasticsearch.cluster.routing.ShardRouting;
-import org.elasticsearch.cluster.service.ClusterService;
+import io.crate.es.cluster.routing.ShardIterator;
+import io.crate.es.cluster.routing.ShardRouting;
+import io.crate.es.cluster.service.ClusterService;
 import org.apache.logging.log4j.LogManager;
-import org.elasticsearch.index.IndexNotFoundException;
+import io.crate.es.index.IndexNotFoundException;
 
 import javax.annotation.Nullable;
 import java.util.Iterator;

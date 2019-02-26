@@ -24,11 +24,11 @@ package io.crate.integrationtests;
 
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.HttpClients;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.discovery.zen.ElectMasterService;
-import org.elasticsearch.http.HttpServerTransport;
-import org.elasticsearch.rest.RestStatus;
-import org.elasticsearch.test.ESIntegTestCase;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.discovery.zen.ElectMasterService;
+import io.crate.es.http.HttpServerTransport;
+import io.crate.es.rest.RestStatus;
+import io.crate.es.test.ESIntegTestCase;
 import org.junit.Test;
 
 import java.io.IOException;

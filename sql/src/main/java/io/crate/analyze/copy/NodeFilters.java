@@ -22,7 +22,7 @@
 
 package io.crate.analyze.copy;
 
-import org.elasticsearch.cluster.node.DiscoveryNode;
+import io.crate.es.cluster.node.DiscoveryNode;
 
 import javax.annotation.Nullable;
 import java.util.Locale;

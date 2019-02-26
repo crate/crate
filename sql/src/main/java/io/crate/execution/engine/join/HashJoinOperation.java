@@ -34,7 +34,7 @@ import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.expression.InputFactory;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.TransactionContext;
-import org.elasticsearch.common.breaker.CircuitBreaker;
+import io.crate.es.common.breaker.CircuitBreaker;
 
 import java.util.List;
 import java.util.Objects;

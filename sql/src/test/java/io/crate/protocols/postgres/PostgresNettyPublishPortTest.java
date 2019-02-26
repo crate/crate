@@ -26,11 +26,11 @@ import io.crate.action.sql.SQLOperations;
 import io.crate.auth.AlwaysOKNullAuthentication;
 import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.common.network.NetworkService;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.TransportAddress;
-import org.elasticsearch.http.BindHttpException;
-import org.elasticsearch.transport.BindTransportException;
+import io.crate.es.common.network.NetworkService;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.common.transport.TransportAddress;
+import io.crate.es.http.BindHttpException;
+import io.crate.es.transport.BindTransportException;
 import org.junit.Test;
 import org.mockito.Mockito;
 

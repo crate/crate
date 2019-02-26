@@ -24,9 +24,9 @@ package io.crate.breaker;
 
 import io.crate.test.integration.CrateUnitTest;
 import org.apache.logging.log4j.LogManager;
-import org.elasticsearch.common.breaker.MemoryCircuitBreaker;
-import org.elasticsearch.common.unit.ByteSizeUnit;
-import org.elasticsearch.common.unit.ByteSizeValue;
+import io.crate.es.common.breaker.MemoryCircuitBreaker;
+import io.crate.es.common.unit.ByteSizeUnit;
+import io.crate.es.common.unit.ByteSizeValue;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

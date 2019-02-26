@@ -22,10 +22,10 @@
 
 package io.crate.testing;
 
-import org.elasticsearch.Version;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.transport.TransportAddress;
-import org.elasticsearch.test.ESTestCase;
+import io.crate.es.Version;
+import io.crate.es.cluster.node.DiscoveryNode;
+import io.crate.es.common.transport.TransportAddress;
+import io.crate.es.test.ESTestCase;
 
 import java.util.Collections;
 import java.util.concurrent.atomic.AtomicInteger;

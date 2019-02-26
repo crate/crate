@@ -37,10 +37,10 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.SearchPath;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.elasticsearch.common.breaker.NoopCircuitBreaker;
-import org.elasticsearch.common.util.BigArrays;
+import io.crate.es.Version;
+import io.crate.es.common.breaker.CircuitBreaker;
+import io.crate.es.common.breaker.NoopCircuitBreaker;
+import io.crate.es.common.util.BigArrays;
 import org.junit.Before;
 
 import java.util.Arrays;

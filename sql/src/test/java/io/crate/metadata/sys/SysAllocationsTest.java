@@ -25,7 +25,7 @@ package io.crate.metadata.sys;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
-import org.elasticsearch.test.ESIntegTestCase;
+import io.crate.es.test.ESIntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
 

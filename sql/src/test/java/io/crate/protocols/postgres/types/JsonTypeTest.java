@@ -22,7 +22,7 @@
 
 package io.crate.protocols.postgres.types;
 
-import org.elasticsearch.common.collect.MapBuilder;
+import io.crate.es.common.collect.MapBuilder;
 import org.junit.Test;
 
 import java.util.Map;

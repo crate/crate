@@ -22,7 +22,7 @@
 package io.crate.expression.reference.sys.shard;
 
 import io.crate.execution.engine.collect.NestableCollectExpression;
-import org.elasticsearch.cluster.metadata.MetaData;
+import io.crate.es.cluster.metadata.MetaData;
 
 public class ShardPartitionOrphanedExpression extends NestableCollectExpression<ShardRowContext, Boolean> {
 

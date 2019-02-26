@@ -29,9 +29,9 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.breaker.CircuitBreakingException;
-import org.elasticsearch.common.util.BigArrays;
+import io.crate.es.Version;
+import io.crate.es.common.breaker.CircuitBreakingException;
+import io.crate.es.common.util.BigArrays;
 
 import javax.annotation.Nullable;
 import java.util.Collections;

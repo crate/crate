@@ -36,7 +36,7 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.lucene.BytesRefs;
+import io.crate.es.common.lucene.BytesRefs;
 import org.junit.Before;
 import org.junit.Test;
 

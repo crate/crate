@@ -34,7 +34,7 @@ import io.crate.testing.BatchSimulatingIterator;
 import io.crate.testing.TestingBatchIterators;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.breaker.NoopCircuitBreaker;
+import io.crate.es.common.breaker.NoopCircuitBreaker;
 import org.junit.Test;
 
 import java.util.Collections;
@@ -42,7 +42,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import static org.elasticsearch.common.collect.Tuple.tuple;
+import static io.crate.es.common.collect.Tuple.tuple;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;

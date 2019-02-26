@@ -30,10 +30,10 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.common.bytes.BytesArray;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.xcontent.XContentHelper;
-import org.elasticsearch.common.xcontent.XContentType;
+import io.crate.es.common.bytes.BytesArray;
+import io.crate.es.common.bytes.BytesReference;
+import io.crate.es.common.xcontent.XContentHelper;
+import io.crate.es.common.xcontent.XContentType;
 import org.junit.Test;
 
 import java.util.ArrayList;

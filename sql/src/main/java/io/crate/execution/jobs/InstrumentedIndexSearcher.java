@@ -26,12 +26,12 @@ import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.Weight;
-import org.elasticsearch.common.lease.Releasable;
-import org.elasticsearch.search.profile.Timer;
-import org.elasticsearch.search.profile.query.ProfileWeight;
-import org.elasticsearch.search.profile.query.QueryProfileBreakdown;
-import org.elasticsearch.search.profile.query.QueryProfiler;
-import org.elasticsearch.search.profile.query.QueryTimingType;
+import io.crate.es.common.lease.Releasable;
+import io.crate.es.search.profile.Timer;
+import io.crate.es.search.profile.query.ProfileWeight;
+import io.crate.es.search.profile.query.QueryProfileBreakdown;
+import io.crate.es.search.profile.query.QueryProfiler;
+import io.crate.es.search.profile.query.QueryTimingType;
 
 import java.io.IOException;
 

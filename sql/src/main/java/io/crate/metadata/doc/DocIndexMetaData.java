@@ -53,12 +53,12 @@ import io.crate.sql.tree.Expression;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.Version;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.cluster.metadata.MappingMetaData;
-import org.elasticsearch.common.Booleans;
-import org.elasticsearch.common.collect.Tuple;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.Version;
+import io.crate.es.cluster.metadata.IndexMetaData;
+import io.crate.es.cluster.metadata.MappingMetaData;
+import io.crate.es.common.Booleans;
+import io.crate.es.common.collect.Tuple;
+import io.crate.es.common.settings.Settings;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -70,7 +70,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
-import static org.elasticsearch.index.mapper.TypeParsers.DOC_VALUES;
+import static io.crate.es.index.mapper.TypeParsers.DOC_VALUES;
 
 public class DocIndexMetaData {
 

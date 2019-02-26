@@ -23,7 +23,7 @@
 package io.crate.module;
 
 import io.crate.plugin.IndexEventListenerProxy;
-import org.elasticsearch.common.inject.AbstractModule;
+import io.crate.es.common.inject.AbstractModule;
 
 public class CrateCommonModule extends AbstractModule {
 

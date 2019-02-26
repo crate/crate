@@ -24,9 +24,9 @@ package io.crate.execution.engine.distribution;
 
 import io.crate.Streamer;
 import io.crate.data.Bucket;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.transport.TransportRequest;
+import io.crate.es.common.io.stream.StreamInput;
+import io.crate.es.common.io.stream.StreamOutput;
+import io.crate.es.transport.TransportRequest;
 
 import javax.annotation.Nullable;
 import java.io.IOException;

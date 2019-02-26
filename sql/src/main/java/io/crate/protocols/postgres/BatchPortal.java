@@ -47,7 +47,7 @@ import io.crate.planner.operators.StatementClassifier;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.Statement;
 import io.crate.types.DataType;
-import org.elasticsearch.common.Randomness;
+import io.crate.es.common.Randomness;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;

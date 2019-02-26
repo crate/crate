@@ -23,7 +23,7 @@
 package io.crate.plugin;
 
 
-import org.elasticsearch.common.Nullable;
+import io.crate.es.common.Nullable;
 
 import java.util.Iterator;
 import java.util.ServiceConfigurationError;

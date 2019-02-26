@@ -25,7 +25,7 @@ package io.crate.expression.reference.sys.node.fs;
 import com.google.common.collect.Lists;
 import io.crate.expression.reference.sys.node.NodeStatsArrayTypeExpression;
 import io.crate.expression.reference.sys.node.NodeStatsContext;
-import org.elasticsearch.monitor.fs.FsInfo;
+import io.crate.es.monitor.fs.FsInfo;
 
 import java.util.List;
 

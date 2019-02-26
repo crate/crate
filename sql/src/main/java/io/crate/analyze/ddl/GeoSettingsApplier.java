@@ -23,9 +23,9 @@
 package io.crate.analyze.ddl;
 
 import com.google.common.collect.ImmutableSet;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.settings.SettingsException;
-import org.elasticsearch.common.unit.DistanceUnit;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.common.settings.SettingsException;
+import io.crate.es.common.unit.DistanceUnit;
 
 import javax.annotation.Nullable;
 import java.util.Locale;

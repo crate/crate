@@ -27,7 +27,7 @@ import io.crate.license.DecryptedLicenseData;
 import io.crate.license.LicenseExpiryNotification;
 import io.crate.license.LicenseService;
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.common.settings.Settings;
 import org.junit.Before;
 import org.junit.Test;
 

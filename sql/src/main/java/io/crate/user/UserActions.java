@@ -30,7 +30,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.settings.SecureString;
+import io.crate.es.common.settings.SecureString;
 
 import javax.annotation.Nullable;
 import java.security.GeneralSecurityException;

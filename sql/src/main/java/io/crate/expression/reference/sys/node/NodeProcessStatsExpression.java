@@ -22,7 +22,7 @@
 
 package io.crate.expression.reference.sys.node;
 
-import org.elasticsearch.monitor.process.ProcessStats;
+import io.crate.es.monitor.process.ProcessStats;
 
 public class NodeProcessStatsExpression extends NestedNodeStatsExpression {
 

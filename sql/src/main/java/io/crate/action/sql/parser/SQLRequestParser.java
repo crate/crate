@@ -23,13 +23,13 @@ package io.crate.action.sql.parser;
 
 import com.google.common.collect.ImmutableMap;
 import io.crate.exceptions.SQLParseException;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.xcontent.DeprecationHandler;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.common.xcontent.XContentHelper;
-import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.common.xcontent.XContentType;
+import io.crate.es.common.bytes.BytesReference;
+import io.crate.es.common.xcontent.DeprecationHandler;
+import io.crate.es.common.xcontent.NamedXContentRegistry;
+import io.crate.es.common.xcontent.XContentFactory;
+import io.crate.es.common.xcontent.XContentHelper;
+import io.crate.es.common.xcontent.XContentParser;
+import io.crate.es.common.xcontent.XContentType;
 
 import java.io.IOException;
 

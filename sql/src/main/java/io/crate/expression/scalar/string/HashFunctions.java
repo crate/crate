@@ -27,7 +27,7 @@ import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.scalar.UnaryScalar;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.hash.MessageDigests;
+import io.crate.es.common.hash.MessageDigests;
 
 import java.nio.charset.StandardCharsets;
 import java.security.DigestException;

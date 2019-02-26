@@ -27,7 +27,7 @@ import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.search.DocValueFormat;
+import io.crate.es.search.DocValueFormat;
 
 import java.io.IOException;
 

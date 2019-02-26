@@ -46,11 +46,11 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
-import org.elasticsearch.action.admin.indices.create.TransportCreatePartitionsAction;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.threadpool.ThreadPool;
+import io.crate.es.action.admin.indices.create.TransportCreatePartitionsAction;
+import io.crate.es.cluster.ClusterState;
+import io.crate.es.cluster.metadata.IndexMetaData;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.threadpool.ThreadPool;
 import org.junit.Test;
 
 import java.util.Collections;

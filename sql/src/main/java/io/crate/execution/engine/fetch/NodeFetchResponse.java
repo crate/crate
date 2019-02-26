@@ -29,9 +29,9 @@ import io.crate.Streamer;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.Bucket;
 import io.crate.execution.engine.distribution.StreamBucket;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.transport.TransportResponse;
+import io.crate.es.common.io.stream.StreamInput;
+import io.crate.es.common.io.stream.StreamOutput;
+import io.crate.es.transport.TransportResponse;
 
 import javax.annotation.Nullable;
 import java.io.IOException;

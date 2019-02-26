@@ -25,8 +25,8 @@ package io.crate.protocols.ssl;
 import io.crate.settings.CrateSetting;
 import io.crate.settings.SharedSettings;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.common.settings.Setting;
+import io.crate.es.common.settings.Settings;
 
 /**
  * Settings for configuring Postgres SSL. Only applicable to the ssl-impl module.

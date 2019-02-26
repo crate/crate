@@ -32,10 +32,10 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.xcontent.DeprecationHandler;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
+import io.crate.es.common.bytes.BytesReference;
+import io.crate.es.common.xcontent.DeprecationHandler;
+import io.crate.es.common.xcontent.NamedXContentRegistry;
+import io.crate.es.common.xcontent.json.JsonXContent;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -47,7 +47,6 @@ import java.util.Map;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
-import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 
 public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {

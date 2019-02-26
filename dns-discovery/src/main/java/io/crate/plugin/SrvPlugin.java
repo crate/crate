@@ -23,13 +23,13 @@
 package io.crate.plugin;
 
 import io.crate.discovery.SrvUnicastHostsProvider;
-import org.elasticsearch.common.network.NetworkService;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.discovery.zen.UnicastHostsProvider;
-import org.elasticsearch.plugins.DiscoveryPlugin;
-import org.elasticsearch.plugins.Plugin;
-import org.elasticsearch.transport.TransportService;
+import io.crate.es.common.network.NetworkService;
+import io.crate.es.common.settings.Setting;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.discovery.zen.UnicastHostsProvider;
+import io.crate.es.plugins.DiscoveryPlugin;
+import io.crate.es.plugins.Plugin;
+import io.crate.es.transport.TransportService;
 
 import java.util.Arrays;
 import java.util.Collections;

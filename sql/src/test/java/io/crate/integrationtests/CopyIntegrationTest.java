@@ -26,7 +26,7 @@ import com.google.common.collect.ImmutableList;
 import io.crate.action.sql.SQLActionException;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
-import org.elasticsearch.test.ESIntegTestCase;
+import io.crate.es.test.ESIntegTestCase;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;

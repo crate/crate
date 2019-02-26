@@ -53,10 +53,10 @@ import org.apache.lucene.search.Sort;
 import org.apache.lucene.search.SortField;
 import org.apache.lucene.search.SortedNumericSortField;
 import org.apache.lucene.store.RAMDirectory;
-import org.elasticsearch.common.UUIDs;
-import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.elasticsearch.common.breaker.NoopCircuitBreaker;
-import org.elasticsearch.index.shard.ShardId;
+import io.crate.es.common.UUIDs;
+import io.crate.es.common.breaker.CircuitBreaker;
+import io.crate.es.common.breaker.NoopCircuitBreaker;
+import io.crate.es.index.shard.ShardId;
 import org.junit.Before;
 import org.junit.Test;
 

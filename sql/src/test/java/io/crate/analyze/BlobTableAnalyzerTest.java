@@ -30,7 +30,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
+import io.crate.es.cluster.metadata.IndexMetaData;
 import org.junit.Before;
 import org.junit.Test;
 

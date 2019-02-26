@@ -22,7 +22,7 @@
 
 package io.crate.execution.ddl;
 
-import org.elasticsearch.action.support.master.AcknowledgedResponse;
+import io.crate.es.action.support.master.AcknowledgedResponse;
 
 public class SchemaUpdateResponse extends AcknowledgedResponse {
 

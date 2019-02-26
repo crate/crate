@@ -22,7 +22,7 @@
 
 package io.crate.cluster.decommission;
 
-import org.elasticsearch.transport.TransportRequest;
+import io.crate.es.transport.TransportRequest;
 
 public class DecommissionNodeRequest extends TransportRequest {
 

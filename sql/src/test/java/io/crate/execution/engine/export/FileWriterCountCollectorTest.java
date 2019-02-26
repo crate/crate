@@ -25,7 +25,7 @@ package io.crate.execution.engine.export;
 import com.fasterxml.jackson.core.JsonGenerator;
 import io.crate.metadata.ColumnIdent;
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.common.xcontent.XContentBuilder;
+import io.crate.es.common.xcontent.XContentBuilder;
 import org.junit.Test;
 
 import java.io.FileOutputStream;

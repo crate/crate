@@ -23,9 +23,9 @@ package io.crate.integrationtests;
 
 import io.crate.testing.DataTypeTesting;
 import io.crate.types.DataType;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.search.SearchModule;
-import org.elasticsearch.test.ESIntegTestCase;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.search.SearchModule;
+import io.crate.es.test.ESIntegTestCase;
 import org.junit.Test;
 
 import java.util.function.Supplier;

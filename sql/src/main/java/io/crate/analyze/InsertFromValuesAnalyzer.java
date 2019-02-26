@@ -60,7 +60,7 @@ import io.crate.sql.tree.ParameterExpression;
 import io.crate.sql.tree.ValuesList;
 import io.crate.types.DataType;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.lucene.BytesRefs;
+import io.crate.es.common.lucene.BytesRefs;
 
 import javax.annotation.Nullable;
 import java.io.IOException;

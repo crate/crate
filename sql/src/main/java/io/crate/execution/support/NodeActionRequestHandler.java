@@ -25,10 +25,10 @@ package io.crate.execution.support;
 import io.crate.exceptions.SQLExceptions;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
-import org.elasticsearch.transport.TransportChannel;
-import org.elasticsearch.transport.TransportRequest;
-import org.elasticsearch.transport.TransportRequestHandler;
-import org.elasticsearch.transport.TransportResponse;
+import io.crate.es.transport.TransportChannel;
+import io.crate.es.transport.TransportRequest;
+import io.crate.es.transport.TransportRequestHandler;
+import io.crate.es.transport.TransportResponse;
 
 import java.io.IOException;
 

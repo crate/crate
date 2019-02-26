@@ -24,8 +24,8 @@ package io.crate.expression.reference.sys.cluster;
 
 import io.crate.expression.reference.NestedObjectExpression;
 import io.crate.expression.reference.sys.SysObjectArrayReference;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.cluster.service.ClusterService;
+import io.crate.es.common.settings.Settings;
 
 import java.util.ArrayList;
 import java.util.List;

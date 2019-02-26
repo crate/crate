@@ -33,7 +33,7 @@ import io.crate.metadata.Scalar;
 import io.crate.sql.tree.Extract;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.joda.Joda;
+import io.crate.es.common.joda.Joda;
 import org.joda.time.DateTimeField;
 import org.joda.time.chrono.ISOChronology;
 

@@ -23,8 +23,8 @@
 package io.crate.license;
 
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import org.elasticsearch.common.io.Streams;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.common.io.Streams;
+import io.crate.es.common.settings.Settings;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;

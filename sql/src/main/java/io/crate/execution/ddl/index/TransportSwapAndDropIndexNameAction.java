@@ -24,19 +24,19 @@ package io.crate.execution.ddl.index;
 
 import io.crate.execution.ddl.AbstractDDLTransportAction;
 import io.crate.metadata.cluster.SwapAndDropIndexExecutor;
-import org.elasticsearch.action.support.master.AcknowledgedResponse;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.ClusterStateTaskExecutor;
-import org.elasticsearch.cluster.block.ClusterBlockException;
-import org.elasticsearch.cluster.block.ClusterBlockLevel;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.routing.allocation.AllocationService;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.TransportService;
+import io.crate.es.action.support.master.AcknowledgedResponse;
+import io.crate.es.cluster.ClusterState;
+import io.crate.es.cluster.ClusterStateTaskExecutor;
+import io.crate.es.cluster.block.ClusterBlockException;
+import io.crate.es.cluster.block.ClusterBlockLevel;
+import io.crate.es.cluster.metadata.IndexNameExpressionResolver;
+import io.crate.es.cluster.routing.allocation.AllocationService;
+import io.crate.es.cluster.service.ClusterService;
+import io.crate.es.common.inject.Inject;
+import io.crate.es.common.inject.Singleton;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.threadpool.ThreadPool;
+import io.crate.es.transport.TransportService;
 
 /**
  * Renames a sourceIndex to targetIndex, and drops the former targetIndex - effectively overriding the target

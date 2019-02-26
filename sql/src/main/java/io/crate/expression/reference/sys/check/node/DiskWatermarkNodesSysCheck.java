@@ -24,12 +24,12 @@ package io.crate.expression.reference.sys.check.node;
 
 import com.google.common.annotations.VisibleForTesting;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.cluster.routing.allocation.DiskThresholdSettings;
-import org.elasticsearch.cluster.service.ClusterService;
+import io.crate.es.cluster.routing.allocation.DiskThresholdSettings;
+import io.crate.es.cluster.service.ClusterService;
 import org.apache.logging.log4j.LogManager;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.monitor.fs.FsInfo;
-import org.elasticsearch.monitor.fs.FsService;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.monitor.fs.FsInfo;
+import io.crate.es.monitor.fs.FsService;
 
 import java.io.IOException;
 

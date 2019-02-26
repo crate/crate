@@ -8,7 +8,7 @@ import io.crate.planner.node.management.KillPlan;
 import io.crate.sql.tree.LongLiteral;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.elasticsearch.common.Randomness;
+import io.crate.es.common.Randomness;
 import org.hamcrest.core.Is;
 import org.junit.Before;
 import org.junit.Test;

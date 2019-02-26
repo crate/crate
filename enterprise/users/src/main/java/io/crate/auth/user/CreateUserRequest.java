@@ -19,12 +19,12 @@
 package io.crate.auth.user;
 
 import io.crate.user.SecureHash;
-import org.elasticsearch.action.ActionRequestValidationException;
-import org.elasticsearch.action.ValidateActions;
-import org.elasticsearch.action.support.master.AcknowledgedRequest;
-import org.elasticsearch.common.Nullable;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
+import io.crate.es.action.ActionRequestValidationException;
+import io.crate.es.action.ValidateActions;
+import io.crate.es.action.support.master.AcknowledgedRequest;
+import io.crate.es.common.Nullable;
+import io.crate.es.common.io.stream.StreamInput;
+import io.crate.es.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 

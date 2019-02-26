@@ -37,7 +37,7 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.Randomness;
+import io.crate.es.common.Randomness;
 import org.junit.Test;
 
 import java.util.Arrays;

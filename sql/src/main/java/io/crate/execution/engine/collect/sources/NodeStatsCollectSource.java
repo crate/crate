@@ -45,11 +45,11 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.LocalSysColReferenceResolver;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.sys.SysNodesTableInfo;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.Nullable;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
+import io.crate.es.cluster.node.DiscoveryNode;
+import io.crate.es.cluster.service.ClusterService;
+import io.crate.es.common.Nullable;
+import io.crate.es.common.inject.Inject;
+import io.crate.es.common.inject.Singleton;
 
 import java.util.ArrayList;
 import java.util.Collection;

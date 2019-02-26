@@ -40,11 +40,11 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpUtil;
 import io.netty.handler.codec.http.HttpVersion;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.collect.Tuple;
+import io.crate.es.common.collect.Tuple;
 import org.apache.logging.log4j.LogManager;
-import org.elasticsearch.common.network.InetAddresses;
-import org.elasticsearch.common.settings.SecureString;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.common.network.InetAddresses;
+import io.crate.es.common.settings.SecureString;
+import io.crate.es.common.settings.Settings;
 
 import javax.annotation.Nullable;
 import javax.net.ssl.SSLPeerUnverifiedException;

@@ -39,7 +39,7 @@ import io.crate.planner.TableStats;
 import io.crate.planner.consumer.FetchMode;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.sql.tree.QualifiedName;
-import org.elasticsearch.common.util.set.Sets;
+import io.crate.es.common.util.set.Sets;
 
 import javax.annotation.Nullable;
 import java.util.Collection;

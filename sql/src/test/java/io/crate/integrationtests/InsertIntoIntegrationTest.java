@@ -27,8 +27,8 @@ import io.crate.exceptions.VersionInvalidException;
 import io.crate.testing.SQLBulkResponse;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
-import org.elasticsearch.common.collect.MapBuilder;
-import org.elasticsearch.test.ESIntegTestCase;
+import io.crate.es.common.collect.MapBuilder;
+import io.crate.es.test.ESIntegTestCase;
 import org.hamcrest.core.IsNull;
 import org.junit.Test;
 

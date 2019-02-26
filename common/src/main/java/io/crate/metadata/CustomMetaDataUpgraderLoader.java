@@ -22,8 +22,8 @@
 
 package io.crate.metadata;
 
-import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.cluster.metadata.MetaData;
+import io.crate.es.common.settings.Settings;
 
 import java.util.Iterator;
 import java.util.Map;

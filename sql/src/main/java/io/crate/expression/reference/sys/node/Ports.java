@@ -22,7 +22,7 @@
 
 package io.crate.expression.reference.sys.node;
 
-import org.elasticsearch.common.transport.TransportAddress;
+import io.crate.es.common.transport.TransportAddress;
 
 import javax.annotation.Nullable;
 

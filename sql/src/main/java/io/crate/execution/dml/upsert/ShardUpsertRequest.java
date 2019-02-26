@@ -28,12 +28,12 @@ import io.crate.execution.dml.ShardRequest;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.Reference;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.lucene.uid.Versions;
-import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.index.shard.ShardId;
+import io.crate.es.common.bytes.BytesReference;
+import io.crate.es.common.io.stream.StreamInput;
+import io.crate.es.common.io.stream.StreamOutput;
+import io.crate.es.common.lucene.uid.Versions;
+import io.crate.es.common.unit.TimeValue;
+import io.crate.es.index.shard.ShardId;
 
 import javax.annotation.Nullable;
 import java.io.IOException;

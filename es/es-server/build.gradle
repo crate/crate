@@ -53,7 +53,7 @@ task getVersion(dependsOn: 'classes') {
         def stdout = new ByteArrayOutputStream()
         javaexec {
             classpath = sourceSets.main.runtimeClasspath
-            main = 'org.elasticsearch.Version'
+            main = 'io.crate.es.Version'
             standardOutput = stdout
         }
         ext.version = stdout.toString().trim().split(" ")[1].replace(',', '').trim()

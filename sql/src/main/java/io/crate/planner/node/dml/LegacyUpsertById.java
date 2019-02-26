@@ -30,8 +30,8 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
-import org.elasticsearch.common.Nullable;
-import org.elasticsearch.common.lucene.uid.Versions;
+import io.crate.es.common.Nullable;
+import io.crate.es.common.lucene.uid.Versions;
 
 import java.util.ArrayList;
 import java.util.Arrays;

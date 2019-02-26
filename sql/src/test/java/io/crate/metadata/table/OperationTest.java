@@ -23,8 +23,8 @@
 package io.crate.metadata.table;
 
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.cluster.metadata.IndexMetaData;
+import io.crate.es.common.settings.Settings;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;

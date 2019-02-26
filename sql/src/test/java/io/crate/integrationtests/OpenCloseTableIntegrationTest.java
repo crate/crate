@@ -22,7 +22,7 @@
 package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
+import io.crate.es.cluster.metadata.IndexMetaData;
 import org.junit.Before;
 import org.junit.Test;
 

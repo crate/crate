@@ -35,9 +35,9 @@ import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.jobs.NodeJobsCounter;
 import io.crate.execution.support.RetryListener;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.bulk.BackoffPolicy;
-import org.elasticsearch.cluster.service.ClusterService;
+import io.crate.es.action.ActionListener;
+import io.crate.es.action.bulk.BackoffPolicy;
+import io.crate.es.cluster.service.ClusterService;
 import org.apache.logging.log4j.LogManager;
 
 import javax.annotation.Nullable;

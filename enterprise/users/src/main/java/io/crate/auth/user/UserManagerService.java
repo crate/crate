@@ -31,12 +31,12 @@ import io.crate.metadata.cluster.DDLClusterStateService;
 import io.crate.metadata.sys.SysPrivilegesTableInfo;
 import io.crate.metadata.sys.SysUsersTableInfo;
 import io.crate.user.SecureHash;
-import org.elasticsearch.cluster.ClusterChangedEvent;
-import org.elasticsearch.cluster.ClusterStateListener;
-import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
+import io.crate.es.cluster.ClusterChangedEvent;
+import io.crate.es.cluster.ClusterStateListener;
+import io.crate.es.cluster.metadata.MetaData;
+import io.crate.es.cluster.service.ClusterService;
+import io.crate.es.common.inject.Inject;
+import io.crate.es.common.inject.Singleton;
 
 import javax.annotation.Nullable;
 import java.util.Collection;

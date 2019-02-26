@@ -22,7 +22,7 @@
 
 package io.crate.analyze;
 
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.common.settings.Settings;
 
 import java.util.Set;
 

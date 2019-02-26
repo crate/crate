@@ -23,8 +23,8 @@
 package io.crate.metadata.shard.unassigned;
 
 import io.crate.metadata.IndexParts;
-import org.elasticsearch.cluster.routing.ShardRoutingState;
-import org.elasticsearch.cluster.service.ClusterService;
+import io.crate.es.cluster.routing.ShardRoutingState;
+import io.crate.es.cluster.service.ClusterService;
 
 /**
  * This class represents an unassigned shard

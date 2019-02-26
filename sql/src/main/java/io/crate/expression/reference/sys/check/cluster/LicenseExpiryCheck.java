@@ -27,9 +27,9 @@ import io.crate.license.DecryptedLicenseData;
 import io.crate.license.LicenseExpiryNotification;
 import io.crate.license.LicenseService;
 import io.crate.settings.SharedSettings;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.common.inject.Inject;
+import io.crate.es.common.inject.Singleton;
+import io.crate.es.common.settings.Settings;
 
 import java.util.concurrent.CompletableFuture;
 

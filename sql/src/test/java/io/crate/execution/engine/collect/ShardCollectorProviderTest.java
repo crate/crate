@@ -25,7 +25,7 @@ package io.crate.execution.engine.collect;
 import com.google.common.collect.Lists;
 import io.crate.execution.engine.collect.sources.ShardCollectSource;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
-import org.elasticsearch.index.shard.ShardId;
+import io.crate.es.index.shard.ShardId;
 import org.junit.Test;
 
 import java.lang.reflect.Field;

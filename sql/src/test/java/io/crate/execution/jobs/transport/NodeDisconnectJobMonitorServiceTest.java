@@ -30,11 +30,11 @@ import io.crate.execution.jobs.TasksService;
 import io.crate.execution.jobs.kill.KillJobsRequest;
 import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import org.elasticsearch.Version;
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.transport.TransportService;
+import io.crate.es.Version;
+import io.crate.es.action.ActionListener;
+import io.crate.es.cluster.node.DiscoveryNode;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.transport.TransportService;
 import org.junit.Test;
 
 import java.util.Arrays;

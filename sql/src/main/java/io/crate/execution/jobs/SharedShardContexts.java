@@ -23,8 +23,8 @@
 package io.crate.execution.jobs;
 
 import org.apache.lucene.search.IndexSearcher;
-import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.indices.IndicesService;
+import io.crate.es.index.shard.ShardId;
+import io.crate.es.indices.IndicesService;
 
 import javax.annotation.concurrent.NotThreadSafe;
 import java.util.HashMap;

@@ -23,8 +23,7 @@
 package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.ESIntegTestCase;
+import io.crate.es.test.ESIntegTestCase;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;

@@ -23,17 +23,17 @@
 package io.crate.blob.v2;
 
 import io.crate.action.FutureActionListener;
-import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
-import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
-import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
-import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
-import org.elasticsearch.action.admin.indices.settings.put.TransportUpdateSettingsAction;
-import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
-import org.elasticsearch.action.support.master.AcknowledgedResponse;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.es.action.admin.indices.create.CreateIndexRequest;
+import io.crate.es.action.admin.indices.create.CreateIndexResponse;
+import io.crate.es.action.admin.indices.create.TransportCreateIndexAction;
+import io.crate.es.action.admin.indices.delete.DeleteIndexRequest;
+import io.crate.es.action.admin.indices.delete.TransportDeleteIndexAction;
+import io.crate.es.action.admin.indices.settings.put.TransportUpdateSettingsAction;
+import io.crate.es.action.admin.indices.settings.put.UpdateSettingsRequest;
+import io.crate.es.action.support.master.AcknowledgedResponse;
+import io.crate.es.common.inject.Inject;
+import io.crate.es.common.inject.Singleton;
+import io.crate.es.common.settings.Settings;
 
 import java.util.concurrent.CompletableFuture;
 

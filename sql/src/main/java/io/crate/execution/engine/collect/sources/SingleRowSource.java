@@ -37,8 +37,8 @@ import io.crate.metadata.ClusterReferenceResolver;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RowGranularity;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
+import io.crate.es.common.inject.Inject;
+import io.crate.es.common.inject.Singleton;
 
 @Singleton
 public class SingleRowSource implements CollectSource {

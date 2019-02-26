@@ -62,10 +62,10 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.TwoPhaseIterator;
 import org.apache.lucene.search.Weight;
-import org.elasticsearch.common.lucene.search.Queries;
-import org.elasticsearch.index.fielddata.FieldData;
-import org.elasticsearch.index.fielddata.SortedBinaryDocValues;
-import org.elasticsearch.index.mapper.MappedFieldType;
+import io.crate.es.common.lucene.search.Queries;
+import io.crate.es.index.fielddata.FieldData;
+import io.crate.es.index.fielddata.SortedBinaryDocValues;
+import io.crate.es.index.mapper.MappedFieldType;
 
 import javax.annotation.Nullable;
 import java.io.IOException;

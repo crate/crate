@@ -39,7 +39,7 @@ import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.StaticTableInfo;
 import io.crate.expression.reference.sys.check.node.SysNodeCheck;
 import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.ClusterState;
+import io.crate.es.cluster.ClusterState;
 
 import java.util.EnumSet;
 import java.util.Set;

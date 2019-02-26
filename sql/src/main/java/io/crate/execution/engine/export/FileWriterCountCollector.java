@@ -33,9 +33,9 @@ import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.execution.dsl.projection.WriterProjection;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.metadata.ColumnIdent;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.common.xcontent.XContentHelper;
+import io.crate.es.common.xcontent.XContentBuilder;
+import io.crate.es.common.xcontent.XContentFactory;
+import io.crate.es.common.xcontent.XContentHelper;
 
 import javax.annotation.Nullable;
 import java.io.IOException;

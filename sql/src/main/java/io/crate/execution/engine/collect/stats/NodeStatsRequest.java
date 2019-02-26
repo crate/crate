@@ -23,9 +23,9 @@
 package io.crate.execution.engine.collect.stats;
 
 import io.crate.metadata.ColumnIdent;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.transport.TransportRequest;
+import io.crate.es.common.io.stream.StreamInput;
+import io.crate.es.common.io.stream.StreamOutput;
+import io.crate.es.transport.TransportRequest;
 
 import java.io.IOException;
 import java.util.HashSet;

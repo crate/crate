@@ -31,8 +31,8 @@ import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.store.RAMDirectory;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.index.engine.Engine;
-import org.elasticsearch.index.mapper.KeywordFieldMapper;
+import io.crate.es.index.engine.Engine;
+import io.crate.es.index.mapper.KeywordFieldMapper;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;

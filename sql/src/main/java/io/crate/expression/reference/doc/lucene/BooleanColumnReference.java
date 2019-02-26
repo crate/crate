@@ -25,8 +25,8 @@ import io.crate.exceptions.GroupByOnArrayUnsupportedException;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.index.fielddata.FieldData;
-import org.elasticsearch.index.fielddata.SortedBinaryDocValues;
+import io.crate.es.index.fielddata.FieldData;
+import io.crate.es.index.fielddata.SortedBinaryDocValues;
 
 import java.io.IOException;
 

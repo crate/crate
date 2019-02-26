@@ -43,9 +43,9 @@ import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.ShardedTable;
 import io.crate.metadata.table.StoredTable;
 import io.crate.metadata.table.TableInfo;
-import org.elasticsearch.Version;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import io.crate.es.Version;
+import io.crate.es.cluster.ClusterState;
+import io.crate.es.cluster.metadata.IndexNameExpressionResolver;
 
 import javax.annotation.Nullable;
 import java.util.Collection;

@@ -22,8 +22,8 @@
 
 package io.crate.integrationtests;
 
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.service.ClusterService;
+import io.crate.es.cluster.ClusterState;
+import io.crate.es.cluster.service.ClusterService;
 import org.junit.Test;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;

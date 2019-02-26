@@ -29,11 +29,11 @@ import io.crate.execution.engine.NodeOperationTreeGenerator;
 import io.crate.planner.ExecutionPlan;
 import io.crate.testing.DiscoveryNodes;
 import io.crate.testing.SQLExecutor;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.node.Node;
-import org.elasticsearch.threadpool.ThreadPool;
+import io.crate.es.cluster.node.DiscoveryNode;
+import io.crate.es.cluster.service.ClusterService;
+import io.crate.es.common.settings.Settings;
+import io.crate.es.node.Node;
+import io.crate.es.threadpool.ThreadPool;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -49,7 +49,7 @@ import java.util.Collection;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
-import static org.elasticsearch.test.ClusterServiceUtils.createClusterService;
+import static io.crate.es.test.ClusterServiceUtils.createClusterService;
 
 
 @BenchmarkMode({Mode.AverageTime, Mode.SingleShotTime})
