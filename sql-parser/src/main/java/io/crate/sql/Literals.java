@@ -78,6 +78,10 @@ public class Literals {
                         builder.append('\t');
                         i++;
                         break;
+                    case '\\':
+                        builder.append('\\');
+                        i++;
+                        break;
                     case 'u':
                     case 'U':
                         // handle unicode case

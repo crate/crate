@@ -73,6 +73,17 @@ is equivalent to the ``'aaa'`` string literal::
     +------+
     SELECT 1 row in set (... sec)
 
+Any other character following a backslash is taken literally. Thus, to include
+a backslash character ``\``, two backslashes need to be used (i.e. ``\\``)::
+
+    cr> select e'aa\\nbb' as col1;
+    +--------+
+    | col1   |
+    +--------+
+    | aa\nbb |
+    +--------+
+    SELECT 1 row in set (... sec)
+
 .. _sql_lexical_keywords_identifiers:
 
 Key Words and Identifiers
