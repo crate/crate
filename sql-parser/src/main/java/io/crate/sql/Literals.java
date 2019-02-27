@@ -79,7 +79,8 @@ public class Literals {
                         i++;
                         break;
                     case '\\':
-                        builder.append('\\');
+                    case '\'':
+                        builder.append(nextChar);
                         i++;
                         break;
                     case 'u':

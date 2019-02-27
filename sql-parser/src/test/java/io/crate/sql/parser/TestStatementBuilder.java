@@ -783,6 +783,7 @@ public class TestStatementBuilder {
         printStatement("select * from t where a like E'aValue'");
         printStatement("select * from t where a = E'\\141Value'");
         printStatement("select * from t where a = e'\\141Value'");
+        printStatement("select * from t where a = e'aa\\'bb'");
         printStatement("select e.a from t e where e.a = E'\\141Value'");
     }
 
