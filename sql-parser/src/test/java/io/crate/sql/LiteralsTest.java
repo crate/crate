@@ -119,6 +119,11 @@ public class LiteralsTest {
     }
 
     @Test
+    public void testThatEscapedQuoteCharIsReplaced() throws Exception {
+        assertThat(Literals.replaceEscapedChars("\\'141"), is("'141"));
+    }
+
+    @Test
     public void testThatInvalidEscapeSequenceIsNotReplaced() throws Exception {
         assertThat(Literals.replaceEscapedChars("\\s"), is("\\s"));
     }
@@ -239,7 +244,6 @@ public class LiteralsTest {
         expectedException.expectMessage(Literals.ESCAPED_UNICODE_ERROR);
         Literals.replaceEscapedChars("\\u006G");
     }
-
 
     @Test
     public void testThatEscaped32BitUnicodeCharsAreReplaced() throws Exception {

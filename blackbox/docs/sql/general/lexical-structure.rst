@@ -63,7 +63,8 @@ Escape Sequence                                       Interpretation
 ==================================================   ================
 
 For instance, the escape string literal ``e'\u0061\x61\141'``
-is equivalent to the ``'aaa'`` string literal::
+is equivalent to the ``'aaa'`` string literal.
+::
 
     cr> select e'\u0061\x61\141' as col1;
     +------+
@@ -74,7 +75,9 @@ is equivalent to the ``'aaa'`` string literal::
     SELECT 1 row in set (... sec)
 
 Any other character following a backslash is taken literally. Thus, to include
-a backslash character ``\``, two backslashes need to be used (i.e. ``\\``)::
+a backslash character ``\``, two adjacent backslashes need to be used
+(i.e. ``\\``).
+::
 
     cr> select e'aa\\nbb' as col1;
     +--------+
@@ -82,6 +85,19 @@ a backslash character ``\``, two backslashes need to be used (i.e. ``\\``)::
     +--------+
     | aa\nbb |
     +--------+
+    SELECT 1 row in set (... sec)
+
+Finally, a single quote can be included in an escape string literal
+by also using the escape backslash character: ``\'``, in addition to the
+single-quote described in :ref:`String Literals <string_literal>`.
+::
+
+    cr> select e'aa\'bb' as col1;
+    +-------+
+    | col1  |
+    +-------+
+    | aa'bb |
+    +-------+
     SELECT 1 row in set (... sec)
 
 .. _sql_lexical_keywords_identifiers:
@@ -103,26 +119,25 @@ quoted if used as identifiers.
     CURRENT_SCHEMA, CURRENT_TIME, CURRENT_TIMESTAMP, CURRENT_USER
     DEFAULT, DELETE, DENY, DESC
     DESCRIBE, DIRECTORY, DISTINCT, DOUBLE
-    DROP, E, ELSE, END
-    ESCAPE, EXCEPT, EXISTS, EXTRACT
-    FALSE, FIRST, FLOAT, FOR
-    FROM, FULL, FUNCTION, GRANT
-    GROUP, HAVING, IF, IN
-    INDEX, INNER, INPUT, INSERT
-    INT, INTEGER, INTERSECT, INTO
-    IP, IS, JOIN, LAST
-    LEFT, LICENSE, LIKE, LIMIT
-    LONG, MATCH, NATURAL, NOT
-    NULL, NULLS, OBJECT, OFFSET
-    ON, OR, ORDER, OUTER
-    PERSISTENT, PRIMARY, RECURSIVE, REPLACE
-    RESET, RETURNS, REVOKE, RIGHT
-    SELECT, SESSION_USER, SET, SHORT
-    SOME, STRATIFY, STRING, SUBSTRING
-    TABLE, THEN, TRANSIENT, TRUE
-    TRY_CAST, UNBOUNDED, UNION, UPDATE
-    USER, USING, WHEN, WHERE
-    WITH
+    DROP, ELSE, END, ESCAPE
+    EXCEPT, EXISTS, EXTRACT, FALSE
+    FIRST, FLOAT, FOR, FROM
+    FULL, FUNCTION, GRANT, GROUP
+    HAVING, IF, IN, INDEX
+    INNER, INPUT, INSERT, INT
+    INTEGER, INTERSECT, INTO, IP
+    IS, JOIN, LAST, LEFT
+    LICENSE, LIKE, LIMIT, LONG
+    MATCH, NATURAL, NOT, NULL
+    NULLS, OBJECT, OFFSET, ON
+    OR, ORDER, OUTER, PERSISTENT
+    PRIMARY, RECURSIVE, REPLACE, RESET
+    RETURNS, REVOKE, RIGHT, SELECT
+    SESSION_USER, SET, SHORT, SOME
+    STRATIFY, STRING, SUBSTRING, TABLE
+    THEN, TRANSIENT, TRUE, TRY_CAST
+    UNBOUNDED, UNION, UPDATE, USER
+    USING, WHEN, WHERE, WITH
 
 Tokens such as ``my_table``, ``id``, ``name``, or ``data`` in the example above
 are **identifiers**, which identify names of tables, columns, and other

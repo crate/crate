@@ -304,7 +304,7 @@ nullLiteral
     ;
 
 escapedCharsStringLiteral
-    : EPSILON STRING
+    : ESCAPED_STRING
     ;
 
 stringLiteral
@@ -655,7 +655,7 @@ nonReserved
     | DO | NOTHING | CONFLICT | TRANSACTION_ISOLATION | RETURN | SUMMARY
     | WORK | SERIALIZABLE | REPEATABLE | COMMITTED | UNCOMMITTED | READ | WRITE | DEFERRABLE
     | STRING_TYPE | IP | DOUBLE | FLOAT | TIMESTAMP | LONG | INT | INTEGER | SHORT | BYTE | BOOLEAN
-    | REPLACE | SWAP | GC | DANGLING | ARTIFACTS | DECOMMISSION | EPSILON
+    | REPLACE | SWAP | GC | DANGLING | ARTIFACTS | DECOMMISSION
     ;
 
 SELECT: 'SELECT';
@@ -919,10 +919,12 @@ CONCAT: '||';
 CAST_OPERATOR: '::';
 SEMICOLON: ';';
 
-EPSILON: 'E';
-
 STRING
     : '\'' ( ~'\'' | '\'\'' )* '\''
+    ;
+
+ESCAPED_STRING
+    : 'E' '\'' ( ~'\'' | '\'\'' | '\\\'' )* '\''
     ;
 
 INTEGER_VALUE
