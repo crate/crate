@@ -54,7 +54,7 @@ public class LiteralsTest {
     }
 
     @Test
-    public void tesThatNoEscapedCharsAreNotReplaced() throws Exception {
+    public void testThatNoEscapedCharsAreNotReplaced() throws Exception {
         assertThat(Literals.replaceEscapedChars(""), is(""));
         assertThat(Literals.replaceEscapedChars("Hello World"), is("Hello World"));
     }
@@ -111,6 +111,11 @@ public class LiteralsTest {
     @Test
     public void testThatCharEscapeWithoutAnySequenceIsNotReplaced() throws Exception {
         assertThat(Literals.replaceEscapedChars("\\"), is("\\"));
+    }
+
+    @Test
+    public void testThatEscapedBackslashCharIsReplacedAndNotConsideredAsEscapeChar() throws Exception {
+        assertThat(Literals.replaceEscapedChars("\\\\141"), is("\\141"));
     }
 
     @Test
