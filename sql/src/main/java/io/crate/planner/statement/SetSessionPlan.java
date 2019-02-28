@@ -66,7 +66,7 @@ public class SetSessionPlan implements Plan {
         for (Map.Entry<String, List<Expression>> entry : settings.entrySet()) {
             SessionSetting<?> sessionSetting = SessionSettingRegistry.SETTINGS.get(entry.getKey());
             if (sessionSetting == null) {
-                LOGGER.warn("SET SESSION STATEMENT WILL BE IGNORED: {}", entry.getKey());
+                LOGGER.info("SET SESSION STATEMENT WILL BE IGNORED: {}", entry.getKey());
             } else {
                 sessionSetting.apply(params, entry.getValue(), sessionContext);
             }
