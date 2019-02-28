@@ -32,11 +32,7 @@ import io.crate.expression.reference.sys.job.JobContext;
 import io.crate.expression.reference.sys.job.JobContextLog;
 import io.crate.expression.reference.sys.operation.OperationContext;
 import io.crate.expression.reference.sys.operation.OperationContextLog;
-import io.crate.metadata.sys.ClassifiedMetrics;
-import io.crate.metadata.sys.ClassifiedMetrics.Metrics;
-import io.crate.planner.Plan;
-import io.crate.planner.Plan.StatementType;
-import io.crate.planner.operators.StatementClassifier;
+import io.crate.metadata.sys.MetricsView;
 import io.crate.planner.operators.StatementClassifier.Classification;
 import io.crate.plugin.SQLPlugin;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -68,10 +64,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
-import static io.crate.planner.Plan.StatementType.*;
+import static io.crate.planner.Plan.StatementType.SELECT;
+import static io.crate.planner.Plan.StatementType.UNDEFINED;
 import static io.crate.testing.TestingHelpers.getFunctions;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
 
 public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
 
@@ -411,10 +407,10 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
         jobsLogs.updateJobsLog(new QueueSink<>(q, ramAccountingContext::close));
         jobsLogs.logPreExecutionFailure(UUID.randomUUID(), "select foo", "stmt error", user);
 
-        List<Metrics> metrics = ImmutableList.copyOf(jobsLogs.metrics().iterator());
+        List<MetricsView> metrics = ImmutableList.copyOf(jobsLogs.metrics().iterator());
         assertThat(metrics.size(), is(1));
         assertThat(metrics.get(0).failedCount(), is(1L));
-        assertThat(metrics.get(0).histogram().getTotalCount(), is(1L));
+        assertThat(metrics.get(0).totalCount(), is(1L));
         assertThat(metrics.get(0).classification(), is(new Classification(UNDEFINED)));
     }
 
