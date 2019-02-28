@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.metadata.sys.ClassifiedMetrics.Metrics;
+import io.crate.metadata.sys.MetricsView;
 import io.crate.planner.Plan.StatementType;
 import io.crate.planner.operators.StatementClassifier.Classification;
 import org.junit.Test;
@@ -40,8 +41,6 @@ import static org.junit.Assert.assertThat;
 
 public class QueryStatsTest {
 
-    private static final int HIGHEST_TRACKABLE_VALUE = 600000;
-
     private static final Classification SELECT_CLASSIFICATION = new Classification(StatementType.SELECT);
     private static final Classification UPDATE_CLASSIFICATION = new Classification(StatementType.UPDATE);
     private static final Classification DELETE_CLASSIFICATION = new Classification(StatementType.DELETE);
@@ -49,7 +48,7 @@ public class QueryStatsTest {
     private static final Classification DDL_CLASSIFICATION = new Classification(StatementType.DDL);
     private static final Classification COPY_CLASSIFICATION = new Classification(StatementType.COPY);
 
-    private final List<Metrics> metrics = ImmutableList.of(
+    private final List<MetricsView> metrics = ImmutableList.of(
         createMetric(SELECT_CLASSIFICATION, 35),
         createMetric(SELECT_CLASSIFICATION, 35),
         createMetric(UPDATE_CLASSIFICATION, 20),
@@ -61,21 +60,21 @@ public class QueryStatsTest {
         createFailedExecutionMetric(COPY_CLASSIFICATION, 0)
     );
 
-    private Metrics createMetric(Classification classification, long duration) {
-        Metrics metrics = new Metrics(classification, HIGHEST_TRACKABLE_VALUE, 3);
+    private MetricsView createMetric(Classification classification, long duration) {
+        Metrics metrics = new Metrics(classification);
         metrics.recordValue(duration);
-        return metrics;
+        return metrics.createMetricsView();
     }
 
-    private Metrics createFailedExecutionMetric(Classification classification, long duration) {
-        Metrics metrics = new Metrics(classification, HIGHEST_TRACKABLE_VALUE, 3);
+    private MetricsView createFailedExecutionMetric(Classification classification, long duration) {
+        Metrics metrics = new Metrics(classification);
         metrics.recordFailedExecution(duration);
-        return metrics;
+        return metrics.createMetricsView();
     }
 
     @Test
     public void testTrackedStatementTypes() {
-        List<Metrics> oneMetricForEachStatementType = new ArrayList<>();
+        List<MetricsView> oneMetricForEachStatementType = new ArrayList<>();
         for (StatementType type : StatementType.values()) {
             if(type.equals(StatementType.ALL) || type.equals(StatementType.UNDEFINED)) {
                 continue;
@@ -197,7 +196,7 @@ public class QueryStatsTest {
 
     @Test
     public void testSameTypeWithDifferentLabelsClassificationsAreMerged() {
-        List<Metrics> selectMetrics = ImmutableList.of(
+        List<MetricsView> selectMetrics = ImmutableList.of(
             createMetric(SELECT_CLASSIFICATION, 35),
             createMetric(new Classification(StatementType.SELECT, ImmutableSet.of("lookup")), 55)
         );

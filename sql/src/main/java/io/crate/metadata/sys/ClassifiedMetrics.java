@@ -23,16 +23,15 @@
 package io.crate.metadata.sys;
 
 import io.crate.planner.operators.StatementClassifier.Classification;
-import org.HdrHistogram.ConcurrentHistogram;
 import org.HdrHistogram.Histogram;
+import org.HdrHistogram.Recorder;
 
 import java.util.Iterator;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.LongAdder;
 
-public class ClassifiedMetrics implements Iterable<ClassifiedMetrics.Metrics> {
+public class ClassifiedMetrics implements Iterable<MetricsView> {
 
     private static final long HIGHEST_TRACKABLE_VALUE = TimeUnit.MINUTES.toMillis(10);
     private static final int NUMBER_OF_SIGNIFICANT_VALUE_DIGITS = 3;
@@ -42,25 +41,22 @@ public class ClassifiedMetrics implements Iterable<ClassifiedMetrics.Metrics> {
     public static class Metrics {
 
         private final Classification classification;
-        private final ConcurrentHistogram histogram;
         private final LongAdder sumOfDurations = new LongAdder();
         private final LongAdder failedCount = new LongAdder();
+        private final Recorder recorder;
 
-        /**
-         * @param classification
-         * @param highestTrackableValue          represents the highest value to track
-         * @param numberOfSignificantValueDigits the precision to use
-         */
-        public Metrics(Classification classification, final long highestTrackableValue, final int numberOfSignificantValueDigits) {
+        private final Histogram totalHistogram = new Histogram(HIGHEST_TRACKABLE_VALUE, NUMBER_OF_SIGNIFICANT_VALUE_DIGITS);
+
+        public Metrics(Classification classification) {
             this.classification = classification;
-            this.histogram = new ConcurrentHistogram(highestTrackableValue, numberOfSignificantValueDigits);
+            this.recorder = new Recorder(HIGHEST_TRACKABLE_VALUE, NUMBER_OF_SIGNIFICANT_VALUE_DIGITS);
         }
 
         public void recordValue(long duration) {
             // We use start and end time to calculate the duration (since we track them anyway)
             // If the system time is adjusted this can lead to negative durations
             // so we protect here against it.
-            histogram.recordValue(Math.min(Math.max(0, duration), HIGHEST_TRACKABLE_VALUE));
+            recorder.recordValue(Math.min(Math.max(0, duration), HIGHEST_TRACKABLE_VALUE));
             // we record the real duration (with no upper capping) in the sum of durations as there are no upper limits
             // for the values we record as it is the case with the histogram
             sumOfDurations.add(Math.max(0, duration));
@@ -71,20 +67,21 @@ public class ClassifiedMetrics implements Iterable<ClassifiedMetrics.Metrics> {
             failedCount.increment();
         }
 
-        public Histogram histogram() {
-            return histogram;
-        }
-
-        public Classification classification() {
-            return classification;
-        }
-
-        public long sumOfDurations() {
-            return sumOfDurations.longValue();
-        }
-
-        public long failedCount() {
-            return failedCount.longValue();
+        public MetricsView createMetricsView() {
+            Histogram histogram;
+            synchronized (totalHistogram) {
+                // getIntervalHistogram resets the internal histogram afterwards;
+                // so we keep `totalHistogram` to not lose any measurements.
+                Histogram intervalHistogram = recorder.getIntervalHistogram();
+                totalHistogram.add(intervalHistogram);
+                histogram = totalHistogram.copy();
+            }
+            return new MetricsView(
+                histogram,
+                sumOfDurations.longValue(),
+                failedCount.longValue(),
+                classification
+            );
         }
     }
 
@@ -99,7 +96,7 @@ public class ClassifiedMetrics implements Iterable<ClassifiedMetrics.Metrics> {
     private Metrics getOrCreate(Classification classification) {
         Metrics histogram = metrics.get(classification);
         if (histogram == null) {
-            histogram = new Metrics(classification, HIGHEST_TRACKABLE_VALUE, NUMBER_OF_SIGNIFICANT_VALUE_DIGITS);
+            histogram = new Metrics(classification);
             metrics.put(classification, histogram);
         }
         return histogram;
@@ -110,10 +107,10 @@ public class ClassifiedMetrics implements Iterable<ClassifiedMetrics.Metrics> {
     }
 
     @Override
-    public Iterator<Metrics> iterator() {
-        return metrics.entrySet()
+    public Iterator<MetricsView> iterator() {
+        return metrics.values()
             .stream()
-            .map(Map.Entry::getValue)
+            .map(Metrics::createMetricsView)
             .iterator();
     }
 }
