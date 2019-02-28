@@ -33,7 +33,7 @@ import org.elasticsearch.index.mapper.MapperParsingException;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.UnaryOperator;
@@ -65,22 +65,22 @@ public class MetaDataIndexUpgrader implements UnaryOperator<IndexMetaData> {
 
     @VisibleForTesting
     MappingMetaData purgeDynamicStringTemplate(MappingMetaData mappingMetaData, String indexName) {
-        Map<String, Object> oldMapping = mappingMetaData.getSourceAsMap();
-        HashMap<String, Object> newMapping = new HashMap<>(oldMapping.size());
-        for (Map.Entry<String, Object> entry : oldMapping.entrySet()) {
-            String fieldName = entry.getKey();
-            Object fieldNode = entry.getValue();
+        var oldMapping = mappingMetaData.getSourceAsMap();
+        var newMapping = new LinkedHashMap<>(oldMapping.size());
+        for (var entry : oldMapping.entrySet()) {
+            var fieldName = entry.getKey();
+            var fieldNode = entry.getValue();
             if (fieldName.equals("dynamic_templates")) {
-                List<?> tmplNodes = (List<?>) fieldNode;
-                List<Object> templates = new ArrayList<>();
-                for (Object tmplNode : tmplNodes) {
+                var tmplNodes = (List<?>) fieldNode;
+                var templates = new ArrayList<>();
+                for (var tmplNode : tmplNodes) {
                     //noinspection unchecked
-                    Map<String, Object> tmpl = (Map<String, Object>) tmplNode;
+                    var tmpl = (Map<String, Object>) tmplNode;
                     if (tmpl.size() != 1) {
                         throw new MapperParsingException("A dynamic template must be defined with a name");
                     }
-                    Map.Entry<String, Object> tmpEntry = tmpl.entrySet().iterator().next();
-                    String templateName = tmpEntry.getKey();
+                    var tmpEntry = tmpl.entrySet().iterator().next();
+                    var templateName = tmpEntry.getKey();
                     if (templateName.equals("strings") == false) {
                         templates.add(tmplNode);
                     }
