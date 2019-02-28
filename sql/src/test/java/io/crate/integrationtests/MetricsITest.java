@@ -23,8 +23,7 @@
 package io.crate.integrationtests;
 
 import io.crate.execution.engine.collect.stats.JobsLogService;
-import io.crate.metadata.sys.ClassifiedMetrics;
-import io.crate.metadata.sys.ClassifiedMetrics.Metrics;
+import io.crate.metadata.sys.MetricsView;
 import io.crate.planner.Plan;
 import org.hamcrest.Matchers;
 import org.junit.After;
@@ -91,9 +90,9 @@ public class MetricsITest extends SQLTransportIntegrationTest {
         assertBusy(() -> {
             long cnt = 0;
             for (JobsLogService jobsLogService : internalCluster().getInstances(JobsLogService.class)) {
-                for (Metrics metrics: jobsLogService.get().metrics()) {
+                for (MetricsView metrics: jobsLogService.get().metrics()) {
                     if (metrics.classification().type() == Plan.StatementType.SELECT) {
-                        cnt += metrics.histogram().getTotalCount();
+                        cnt += metrics.totalCount();
                     }
                 }
             }
