@@ -46,3 +46,6 @@ None
 
 Fixes
 =====
+
+- Fixed an issue that could result in an ``ConcurrentModificationException``
+  error when querying the ``sys.jobs_metrics`` table.
