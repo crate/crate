@@ -57,9 +57,6 @@
 # <https://crate.io/docs/crate/reference/en/latest/enterprise/index.html> for
 # more information.
 
-# Setting this to `false` disables the Enterprise Features.
-#license.enterprise: true
-
 # To use any of these features, Crate.io must have given you permission to
 # enable and use such Enterprise Features and you must have a valid Enterprise
 # or Subscription Agreement with Crate.io.  If you enable or use the Enterprise

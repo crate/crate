@@ -12,10 +12,6 @@ Enterprise Features
 Feature List
 ============
 
-When you first download CrateDB, the :ref:`license.enterprise
-<conf-node-enterprise-license>` setting is set to ``true`` and the following
-enterprise features are enabled:
-
 - :ref:`administration_user_management`: manage multiple database users
 - :ref:`administration-privileges`: configure user privileges
 - :ref:`admin_auth`: manage your database with authentication, and
@@ -32,6 +28,16 @@ enterprise features are enabled:
 - :ref:`window-function-nthvalue`: ``nth_value`` window function
 - `The CrateDB admin UI`_: `shards browser`_, `monitoring overview`_,
   `privileges browser`_
+
+.. NOTE::
+
+   When you first download CrateDB, the :ref:`license.enterprise
+   <conf-node-enterprise-license>` setting is set to ``true`` which
+   results in the enterprise features being enabled.
+   However, we are currently moving away from checking for enterprise features
+   based on that setting. Thus the :ref:`license.enterprise
+   <conf-node-enterprise-license>` setting is now deprecated
+   and will be removed in the future.
 
 .. _enterprise_trial:
 
@@ -57,6 +63,13 @@ trial period ends you must set :ref:`license.enterprise
 <conf-node-enterprise-license>` to ``false``. This activates the `community
 edition`_ of CrateDB and restores all functionality except for the enterprise
 features.
+
+.. NOTE::
+
+   As we are currently changing the way for switching to the CrateDB
+   `community edition`_, the :ref:`license.enterprise
+   <conf-node-enterprise-license>` setting is deprecated
+   and will be removed in the future.
 
 .. _community Edition: https://crate.io/products/cratedb-editions/
 .. _enterprise license: https://crate.io/products/cratedb-editions/

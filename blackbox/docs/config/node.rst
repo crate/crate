@@ -682,4 +682,8 @@ Enterprise License
 
   Setting this to ``false`` disables the `Enterprise Edition`_ of CrateDB.
 
+.. NOTE::
+
+   This setting is now deprecated and will be removed in the future.
+
 .. _`Enterprise Edition`: https://crate.io/enterprise-edition/

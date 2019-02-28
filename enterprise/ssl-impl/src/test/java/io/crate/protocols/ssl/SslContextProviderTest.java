@@ -22,7 +22,9 @@ import io.crate.plugin.PipelineRegistry;
 import io.crate.settings.SharedSettings;
 import io.crate.test.integration.CrateUnitTest;
 import io.netty.handler.ssl.SslContext;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
+import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -43,6 +45,13 @@ public class SslContextProviderTest extends CrateUnitTest {
     public static void beforeTests() throws IOException {
         trustStoreFile = getAbsoluteFilePathFromClassPath("truststore.jks");
         keyStoreFile = getAbsoluteFilePathFromClassPath("keystore.jks");
+    }
+
+
+    @After
+    public void tearDown() throws Exception {
+        assertSettingDeprecationsAndWarnings(new Setting<?>[] {SharedSettings.ENTERPRISE_LICENSE_SETTING.setting()});
+        super.tearDown();
     }
 
     @Test

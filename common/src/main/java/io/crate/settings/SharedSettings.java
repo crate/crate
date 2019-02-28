@@ -27,8 +27,12 @@ import org.elasticsearch.common.settings.Setting;
 
 public class SharedSettings {
 
+    /**
+        @deprecated
+     */
+    @Deprecated
     public static final CrateSetting<Boolean> ENTERPRISE_LICENSE_SETTING = CrateSetting.of(Setting.boolSetting(
-        "license.enterprise", true, Setting.Property.NodeScope),
+        "license.enterprise", true, Setting.Property.NodeScope, Setting.Property.Deprecated),
         DataTypes.BOOLEAN);
 
     /**

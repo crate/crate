@@ -69,6 +69,10 @@ Breaking Changes
 Deprecations
 ============
 
+- Marked the :ref:`license.enterprise <conf-node-enterprise-license>`
+  setting as deprecated as we are moving away from checking for enterprise
+  features based on this setting.
+
 - The query frequency and average duration :ref:`query_stats_mbean` metrics
   have been deprecated in favour of the new total count and sum of durations
   metrics.

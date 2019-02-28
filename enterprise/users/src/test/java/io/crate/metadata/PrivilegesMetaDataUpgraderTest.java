@@ -25,6 +25,7 @@ import io.crate.settings.SharedSettings;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.collect.MapBuilder;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.set.Sets;
 import org.junit.Test;
@@ -54,6 +55,7 @@ public class PrivilegesMetaDataUpgraderTest extends CrateUnitTest {
             .build();
         Map<String, MetaData.Custom> newCustomMap = UPGRADER.apply(settings, customMap);
         assertThat(newCustomMap, is(oldCustomMap));
+        assertSettingDeprecationsAndWarnings(new Setting<?>[] {SharedSettings.ENTERPRISE_LICENSE_SETTING.setting()});
     }
 
     @Test

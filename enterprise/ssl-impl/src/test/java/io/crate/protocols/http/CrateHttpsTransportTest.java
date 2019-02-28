@@ -28,6 +28,7 @@ import io.netty.channel.embedded.EmbeddedChannel;
 import io.netty.handler.ssl.SslHandler;
 import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.common.network.NetworkService;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
@@ -107,6 +108,7 @@ public class CrateHttpsTransportTest extends CrateUnitTest {
             assertThat(channel.pipeline().first(), instanceOf(SslHandler.class));
 
         } finally {
+            assertSettingDeprecationsAndWarnings(new Setting<?>[] {SharedSettings.ENTERPRISE_LICENSE_SETTING.setting()});
             transport.stop();
             transport.close();
             channel.close().awaitUninterruptibly();
