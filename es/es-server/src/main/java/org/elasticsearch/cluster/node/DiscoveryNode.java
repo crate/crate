@@ -66,10 +66,6 @@ public class DiscoveryNode implements Writeable, ToXContentFragment {
         return Node.NODE_DATA_SETTING.get(settings);
     }
 
-    public static boolean isIngestNode(Settings settings) {
-        return Node.NODE_INGEST_SETTING.get(settings);
-    }
-
     private final String nodeName;
     private final String nodeId;
     private final String ephemeralId;
@@ -199,9 +195,6 @@ public class DiscoveryNode implements Writeable, ToXContentFragment {
     /** extract node roles from the given settings */
     public static Set<Role> getRolesFromSettings(Settings settings) {
         Set<Role> roles = EnumSet.noneOf(Role.class);
-        if (Node.NODE_INGEST_SETTING.get(settings)) {
-            roles.add(Role.INGEST);
-        }
         if (Node.NODE_MASTER_SETTING.get(settings)) {
             roles.add(Role.MASTER);
         }
@@ -310,13 +303,6 @@ public class DiscoveryNode implements Writeable, ToXContentFragment {
     }
 
     /**
-     * Returns a boolean that tells whether this an ingest node or not
-     */
-    public boolean isIngestNode() {
-        return roles.contains(Role.INGEST);
-    }
-
-    /**
      * Returns a set of all the roles that the node fulfills.
      * If the node doesn't have any specific role, the set is returned empty, which means that the node is a coordinating only node.
      */
@@ -397,8 +383,7 @@ public class DiscoveryNode implements Writeable, ToXContentFragment {
      */
     public enum Role {
         MASTER("master", "m"),
-        DATA("data", "d"),
-        INGEST("ingest", "i");
+        DATA("data", "d");
 
         private final String roleName;
         private final String abbreviation;
