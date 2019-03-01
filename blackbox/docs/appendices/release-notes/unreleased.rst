@@ -132,3 +132,6 @@ Changes
 
 Fixes
 =====
+
+- Fixed an issue that could result in an ``ConcurrentModificationException``
+  error when querying the :ref:`sys-jobs-metrics` table.

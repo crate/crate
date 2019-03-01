@@ -28,6 +28,7 @@ import io.crate.expression.reference.sys.job.JobContextLog;
 import io.crate.expression.reference.sys.operation.OperationContext;
 import io.crate.expression.reference.sys.operation.OperationContextLog;
 import io.crate.metadata.sys.ClassifiedMetrics;
+import io.crate.metadata.sys.MetricsView;
 import io.crate.planner.operators.StatementClassifier;
 import org.elasticsearch.common.collect.Tuple;
 
@@ -168,7 +169,7 @@ public class JobsLogs {
         }
     }
 
-    public Iterable<ClassifiedMetrics.Metrics> metrics() {
+    public Iterable<MetricsView> metrics() {
         return classifiedMetrics;
     }
 
