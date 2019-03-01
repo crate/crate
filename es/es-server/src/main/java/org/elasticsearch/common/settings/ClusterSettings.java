@@ -333,7 +333,6 @@ public final class ClusterSettings extends AbstractScopedSettings {
                     Node.NODE_NAME_SETTING,
                     Node.NODE_DATA_SETTING,
                     Node.NODE_MASTER_SETTING,
-                    Node.NODE_INGEST_SETTING,
                     Node.NODE_ATTRIBUTES,
                     Node.NODE_LOCAL_STORAGE_SETTING,
                     TransportMasterNodeReadAction.FORCE_LOCAL_SETTING,
