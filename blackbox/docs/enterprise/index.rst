@@ -53,6 +53,8 @@ LICENSE <ref-set-license>` statement.
     - :ref:`SELECT <sql_reference_select>` (:ref:`information_schema
       <information_schema>` and :ref:`sys <system-information>` schemas only)
 
+    - :ref:`alter_cluster_decommission`
+
 If you wish to continue using CrateDB without an enterprise license after the
 trial period ends you must set :ref:`license.enterprise
 <conf-node-enterprise-license>` to ``false``. This activates the `community
