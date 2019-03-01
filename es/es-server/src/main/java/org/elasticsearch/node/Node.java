@@ -176,8 +176,6 @@ public abstract class Node implements Closeable {
     public static final Setting<Boolean> NODE_DATA_SETTING = Setting.boolSetting("node.data", true, Property.NodeScope);
     public static final Setting<Boolean> NODE_MASTER_SETTING =
         Setting.boolSetting("node.master", true, Property.NodeScope);
-    public static final Setting<Boolean> NODE_INGEST_SETTING =
-        Setting.boolSetting("node.ingest", true, Property.NodeScope);
 
     /**
     * controls whether the node is allowed to persist things like metadata to disk
