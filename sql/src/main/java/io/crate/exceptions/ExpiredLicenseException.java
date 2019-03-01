@@ -28,7 +28,9 @@ public class ExpiredLicenseException extends ValidationException implements Clus
 
     private static final String MESSAGE_TEMPLATE = "License is expired - %s. " +
                                                    "Please request a new license and " +
-                                                   "use 'SET LICENSE' statement to register it";
+                                                   "use 'SET LICENSE' statement to register it " +
+                                                   "or use the 'ALTER CLUSTER DECOMMISSION' statement " +
+                                                   "to downscale your cluster to [3] nodes";
 
     public ExpiredLicenseException(String effect) {
         super(String.format(Locale.ENGLISH, MESSAGE_TEMPLATE, effect));
