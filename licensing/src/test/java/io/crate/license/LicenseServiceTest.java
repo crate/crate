@@ -34,8 +34,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.TimeUnit;
 
-import static io.crate.license.LicenseKey.VERSION;
 import static io.crate.license.LicenseKey.LicenseType;
+import static io.crate.license.LicenseKey.VERSION;
 import static java.util.concurrent.TimeUnit.DAYS;
 import static java.util.concurrent.TimeUnit.HOURS;
 import static org.hamcrest.core.Is.is;
