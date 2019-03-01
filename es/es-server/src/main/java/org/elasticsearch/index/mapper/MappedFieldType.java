@@ -384,33 +384,4 @@ public abstract class MappedFieldType extends FieldType {
         checkIfFrozen();
         this.eagerGlobalOrdinals = eagerGlobalOrdinals;
     }
-
-    /**
-     * Extract a {@link Term} from a query created with {@link #termQuery} by
-     * recursively removing {@link BoostQuery} wrappers.
-     * @throws IllegalArgumentException if the wrapped query is not a {@link TermQuery}
-     */
-    public static Term extractTerm(Query termQuery) {
-        while (termQuery instanceof BoostQuery) {
-            termQuery = ((BoostQuery) termQuery).getQuery();
-        }
-        if (termQuery instanceof TypeFieldMapper.TypesQuery) {
-            assert ((TypeFieldMapper.TypesQuery) termQuery).getTerms().length == 1;
-            return new Term(TypeFieldMapper.NAME, ((TypeFieldMapper.TypesQuery) termQuery).getTerms()[0]);
-        }
-        if (termQuery instanceof TermInSetQuery) {
-            TermInSetQuery tisQuery = (TermInSetQuery) termQuery;
-            PrefixCodedTerms terms = tisQuery.getTermData();
-            if (terms.size() == 1) {
-                TermIterator it = terms.iterator();
-                BytesRef term = it.next();
-                return new Term(it.field(), term);
-            }
-        }
-        if (termQuery instanceof TermQuery == false) {
-            throw new IllegalArgumentException("Cannot extract a term from a query of type "
-                    + termQuery.getClass() + ": " + termQuery);
-        }
-        return ((TermQuery) termQuery).getTerm();
-    }
 }
