@@ -225,6 +225,12 @@ public class ExpiredLicensePlannerTest extends CrateDummyClusterServiceUnitTest 
     }
 
     @Test
+    public void testDecommissionNodeIsAllowed() {
+        Plan plan = e.plan("alter cluster decommission 'XXX'");
+        assertThat(plan, instanceOf(DecommissionNodePlan.class));
+    }
+
+    @Test
     public void testQueryOnTableFunctionIsAllowedIfLicenseIsExpired() {
         ExecutionPlan plan = e.plan("select null as \"user\", current_schema as \"schema\"");
         assertThat(plan, instanceOf(Collect.class));
