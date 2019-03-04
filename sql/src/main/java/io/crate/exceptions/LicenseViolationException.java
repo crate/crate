@@ -20,34 +20,26 @@
  * agreement.
  */
 
-package io.crate.license;
+package io.crate.exceptions;
 
-import com.google.common.annotations.VisibleForTesting;
+import java.util.Locale;
 
-import static io.crate.license.LicenseKey.LicenseType;
+public class LicenseViolationException extends ValidationException implements ClusterScopeException {
 
-final class TrialLicense {
+    private static final String MESSAGE_TEMPLATE = "License is violated - %s. " +
+                                                   "If expired or more cluster nodes are in need, " +
+                                                   "please request a new license and " +
+                                                   "use 'SET LICENSE' statement to register it. " +
+                                                   "Alternatively, if the allowed number of nodes is exceeded, " +
+                                                   "use the 'ALTER CLUSTER DECOMMISSION' statement " +
+                                                   "to downscale your cluster";
 
-    private TrialLicense() {
+    public LicenseViolationException(String effect) {
+        super(String.format(Locale.ENGLISH, MESSAGE_TEMPLATE, effect));
     }
 
-    static LicenseKey createLicenseKey(int version, DecryptedLicenseData decryptedLicenseData) {
-        return createLicenseKey(version, decryptedLicenseData.formatLicenseData());
-    }
-
-    @VisibleForTesting
-    static LicenseKey createLicenseKey(int version, byte[] decryptedContent) {
-        byte[] encryptedContent = encrypt(decryptedContent);
-        return LicenseKey.createLicenseKey(LicenseType.TRIAL,
-            version,
-            encryptedContent);
-    }
-
-    private static byte[] encrypt(byte[] data) {
-        return CryptoUtils.encryptAES(data);
-    }
-
-    static byte[] decrypt(byte[] encryptedContent) {
-        return CryptoUtils.decryptAES(encryptedContent);
+    @Override
+    public int errorCode() {
+        return 9;
     }
 }

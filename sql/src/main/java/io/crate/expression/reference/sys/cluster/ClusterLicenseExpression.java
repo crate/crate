@@ -35,6 +35,7 @@ public class ClusterLicenseExpression extends NestedObjectExpression {
     public static final String NAME = "license";
     public static final String EXPIRY_DATE = "expiry_date";
     public static final String ISSUED_TO = "issued_to";
+    public static final String MAX_NODES = "max_nodes";
 
     private final LicenseService licenseService;
 
@@ -54,9 +55,11 @@ public class ClusterLicenseExpression extends NestedObjectExpression {
         if (decryptedLicenseData != null) {
             childImplementations.put(EXPIRY_DATE, () -> decryptedLicenseData.expiryDateInMs());
             childImplementations.put(ISSUED_TO, () -> decryptedLicenseData.issuedTo());
+            childImplementations.put(MAX_NODES, () -> decryptedLicenseData.maxNumberOfNodes());
         } else {
             childImplementations.put(EXPIRY_DATE, () -> null);
             childImplementations.put(ISSUED_TO, () -> null);
+            childImplementations.put(MAX_NODES, () -> null);
         }
     }
 

@@ -36,15 +36,22 @@ import java.util.Objects;
 
 public class DecryptedLicenseData {
 
-    public static final String EXPIRY_DATE_IN_MS = "expiryDateInMs";
-    public static final String ISSUED_TO = "issuedTo";
+    static final long UNLIMITED_EXPIRY_DATE_IN_MS = Long.MAX_VALUE;
+    static final int MAX_NODES_FOR_V1_LICENSES = 10;
+    static final int MAX_NODES_FOR_V2_LICENSES = 3;
+
+    static final String EXPIRY_DATE_IN_MS = "expiryDateInMs";
+    static final String ISSUED_TO = "issuedTo";
+    private static final String MAX_NUMBER_OF_NODES = "maxNumberOfNodes";
 
     private final long expiryDateInMs;
     private final String issuedTo;
+    private final int maxNumberOfNodes;
 
-    public DecryptedLicenseData(long expiryDateInMs, String issuedTo) {
+    public DecryptedLicenseData(long expiryDateInMs, String issuedTo, int maxNumberOfNodes) {
         this.expiryDateInMs = expiryDateInMs;
         this.issuedTo = issuedTo;
+        this.maxNumberOfNodes = maxNumberOfNodes;
     }
 
     public long expiryDateInMs() {
@@ -59,6 +66,10 @@ public class DecryptedLicenseData {
         return issuedTo;
     }
 
+    public int maxNumberOfNodes() {
+        return maxNumberOfNodes;
+    }
+
     boolean isExpired() {
         return millisToExpiration() < 0;
     }
@@ -70,6 +81,7 @@ public class DecryptedLicenseData {
      *      {
      *          "expiryDateInMs": "XXX",
      *          "issuedTo": "YYY"
+     *          "maxNumberOfNodes": "ZZ"
      *      }
      * </pre>
      */
@@ -79,6 +91,7 @@ public class DecryptedLicenseData {
             contentBuilder.startObject()
                 .field(EXPIRY_DATE_IN_MS, expiryDateInMs)
                 .field(ISSUED_TO, issuedTo)
+                .field(MAX_NUMBER_OF_NODES, maxNumberOfNodes)
                 .endObject();
             return Strings.toString(contentBuilder).getBytes(StandardCharsets.UTF_8);
         } catch (IOException e) {
@@ -86,12 +99,14 @@ public class DecryptedLicenseData {
         }
     }
 
-    static DecryptedLicenseData fromFormattedLicenseData(byte[] licenseData) throws IOException {
+    static DecryptedLicenseData fromFormattedLicenseData(byte[] licenseData,
+                                                         int version) throws IOException {
         try (XContentParser parser = XContentFactory.xContent(XContentType.JSON)
             .createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, licenseData)) {
             XContentParser.Token token;
-            long expiryDate = 0;
+            long expiryDate = UNLIMITED_EXPIRY_DATE_IN_MS;
             String issuedTo = null;
+            int maxNumberOfNodes = -1;
             while ((token = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
                 if (token == XContentParser.Token.FIELD_NAME) {
                     String currentFieldName = parser.currentName();
@@ -100,10 +115,19 @@ public class DecryptedLicenseData {
                         expiryDate = parser.longValue();
                     } else if (currentFieldName.equals(ISSUED_TO)) {
                         issuedTo = parser.text();
+                    } else if (currentFieldName.equals(MAX_NUMBER_OF_NODES)) {
+                        maxNumberOfNodes = parser.intValue();
                     }
                 }
             }
-            return new DecryptedLicenseData(expiryDate, issuedTo);
+            if (maxNumberOfNodes == -1) {
+                if (version == 1) {
+                    maxNumberOfNodes = MAX_NODES_FOR_V1_LICENSES;
+                } else if (version == 2) {
+                    throw new IllegalStateException("LicenseKey v2 should have a valid value for " + MAX_NUMBER_OF_NODES);
+                }
+            }
+            return new DecryptedLicenseData(expiryDate, issuedTo, maxNumberOfNodes);
         }
     }
 
@@ -113,11 +137,12 @@ public class DecryptedLicenseData {
         if (o == null || getClass() != o.getClass()) return false;
         DecryptedLicenseData that = (DecryptedLicenseData) o;
         return expiryDateInMs == that.expiryDateInMs &&
+               maxNumberOfNodes == that.maxNumberOfNodes &&
                Objects.equals(issuedTo, that.issuedTo);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(expiryDateInMs, issuedTo);
+        return Objects.hash(expiryDateInMs, issuedTo, maxNumberOfNodes);
     }
 }

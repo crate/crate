@@ -20,22 +20,28 @@
  * agreement.
  */
 
-package io.crate.exceptions;
+package io.crate.license;
 
-import java.util.Locale;
+import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.common.xcontent.XContentType;
 
-public class ExpiredLicenseException extends ValidationException implements ClusterScopeException {
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
-    private static final String MESSAGE_TEMPLATE = "License is expired - %s. " +
-                                                   "Please request a new license and " +
-                                                   "use 'SET LICENSE' statement to register it";
+public class DecryptedLicenseDataV1 {
 
-    public ExpiredLicenseException(String effect) {
-        super(String.format(Locale.ENGLISH, MESSAGE_TEMPLATE, effect));
-    }
-
-    @Override
-    public int errorCode() {
-        return 9;
+    static byte[] formatLicenseData(long expiryDateInMs, String issuedTo) {
+        try {
+            XContentBuilder contentBuilder = XContentFactory.contentBuilder(XContentType.JSON);
+            contentBuilder.startObject()
+                .field(DecryptedLicenseData.EXPIRY_DATE_IN_MS, expiryDateInMs)
+                .field(DecryptedLicenseData.ISSUED_TO, issuedTo)
+                .endObject();
+            return Strings.toString(contentBuilder).getBytes(StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
+        }
     }
 }
