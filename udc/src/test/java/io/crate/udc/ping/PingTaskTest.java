@@ -55,7 +55,8 @@ public class PingTaskTest extends CrateDummyClusterServiceUnitTest {
 
     static private DecryptedLicenseData LICENSE = new DecryptedLicenseData(
         System.currentTimeMillis() + TimeUnit.DAYS.toMillis(30),
-        "crate"
+        "crate" ,
+        3
         );
 
     private ExtendedNodeInfo extendedNodeInfo;
@@ -164,8 +165,9 @@ public class PingTaskTest extends CrateDummyClusterServiceUnitTest {
             assertThat(map.get("license_expiry_date"), is(String.valueOf(LICENSE.expiryDateInMs())));
             assertThat(map, hasKey("license_issued_to"));
             assertThat(map.get("license_issued_to"), is(LICENSE.issuedTo()));
-
             assertThat(Integer.parseInt(map.get("num_processors")), greaterThan(0));
+            assertThat(map, hasKey("license_max_nodes"));
+            assertThat(map.get("license_max_nodes"), is(String.valueOf(LICENSE.maxNumberOfNodes())));
         }
     }
 
@@ -193,6 +195,7 @@ public class PingTaskTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(map, not(hasKey("license_expiry_date")));
         assertThat(map, not(hasKey("license_issued_to")));
+        assertThat(map, not(hasKey("license_max_nodes")));
     }
 
     @Test
@@ -246,6 +249,8 @@ public class PingTaskTest extends CrateDummyClusterServiceUnitTest {
             assertThat(map.get("license_expiry_date"), is(notNullValue()));
             assertThat(map, hasKey("license_issued_to"));
             assertThat(map.get("license_issued_to"), is(notNullValue()));
+            assertThat(map, hasKey("license_max_nodes"));
+            assertThat(map.get("license_max_nodes"), is(notNullValue()));
         }
     }
 }

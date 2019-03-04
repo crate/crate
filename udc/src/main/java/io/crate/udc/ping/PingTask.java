@@ -133,6 +133,7 @@ public class PingTask extends TimerTask {
         if (license != null) {
             queryMap.put("license_expiry_date", String.valueOf(license.expiryDateInMs()));
             queryMap.put("license_issued_to", license.issuedTo());
+            queryMap.put("license_max_nodes", String.valueOf(license.maxNumberOfNodes()));
         }
 
         if (logger.isDebugEnabled()) {

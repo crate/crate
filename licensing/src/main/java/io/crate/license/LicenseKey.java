@@ -68,7 +68,7 @@ public class LicenseKey extends AbstractNamedDiffable<MetaData.Custom> implement
         }
     }
 
-    static final int VERSION = 1;
+    static final int VERSION = 2;
 
     // limit the maximum license content number of bytes (this can vary based on the algorithm used for encryption and
     // the length of the client's name the license is issued to

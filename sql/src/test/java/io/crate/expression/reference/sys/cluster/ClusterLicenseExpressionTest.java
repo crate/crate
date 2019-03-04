@@ -32,6 +32,7 @@ import java.util.Map;
 
 import static io.crate.expression.reference.sys.cluster.ClusterLicenseExpression.EXPIRY_DATE;
 import static io.crate.expression.reference.sys.cluster.ClusterLicenseExpression.ISSUED_TO;
+import static io.crate.expression.reference.sys.cluster.ClusterLicenseExpression.MAX_NODES;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsNull.nullValue;
 import static org.mockito.Mockito.mock;
@@ -59,40 +60,46 @@ public class ClusterLicenseExpressionTest extends CrateUnitTest {
         when(licenseService.currentLicense()).thenReturn(null);
         assertThat(licenseExpression.getChild(EXPIRY_DATE).value(), is(nullValue()));
         assertThat(licenseExpression.getChild(ISSUED_TO).value(), is(nullValue()));
+        assertThat(licenseExpression.getChild(MAX_NODES).value(), is(nullValue()));
     }
 
     @Test
     public void testExpressionValueReturnsLicenseFields() {
-        when(licenseService.currentLicense()).thenReturn(new DecryptedLicenseData(3L, "test"));
+        when(licenseService.currentLicense())
+            .thenReturn(new DecryptedLicenseData(3L, "test", 2));
 
         Map<String, Object> expressionValues = licenseExpression.value();
-        assertThat(expressionValues.size(), is(2));
+        assertThat(expressionValues.size(), is(3));
         assertThat(expressionValues.get(EXPIRY_DATE), is(3L));
         assertThat(expressionValues.get(ISSUED_TO), is("test"));
+        assertThat(expressionValues.get(MAX_NODES), is(2));
     }
 
     @Test
     public void testGetChild() {
         when(licenseService.currentLicense())
-            .thenReturn(new DecryptedLicenseData(3L, "test"));
+            .thenReturn(new DecryptedLicenseData(3L, "test", 2));
 
         assertThat(licenseExpression.getChild(EXPIRY_DATE).value(), is(3L));
         assertThat(licenseExpression.getChild(ISSUED_TO).value(), is("test"));
+        assertThat(licenseExpression.getChild(MAX_NODES).value(), is(2));
     }
 
     @Test
     public void testGetChildAfterValueCallReturnsUpdatedLicenseFields() {
         when(licenseService.currentLicense())
-            .thenReturn(new DecryptedLicenseData(3L, "test"))
-            .thenReturn(new DecryptedLicenseData(4L, "test2"))
-            .thenReturn(new DecryptedLicenseData(4L, "test2"));
+            .thenReturn(new DecryptedLicenseData(3L, "test", 2))
+            .thenReturn(new DecryptedLicenseData(4L, "test2", 3))
+            .thenReturn(new DecryptedLicenseData(4L, "test2", 3));
 
         Map<String, Object> expressionValues = licenseExpression.value();
-        assertThat(expressionValues.size(), is(2));
+        assertThat(expressionValues.size(), is(3));
         assertThat(expressionValues.get(EXPIRY_DATE), is(3L));
         assertThat(expressionValues.get(ISSUED_TO), is("test"));
+        assertThat(expressionValues.get(MAX_NODES), is(2));
 
         assertThat(licenseExpression.getChild(EXPIRY_DATE).value(), is(4L));
         assertThat(licenseExpression.getChild(ISSUED_TO).value(), is("test2"));
+        assertThat(licenseExpression.getChild(MAX_NODES).value(), is(3));
     }
 }

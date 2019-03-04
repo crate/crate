@@ -23,6 +23,11 @@
 package io.crate.license;
 
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import org.elasticsearch.Version;
+import org.elasticsearch.cluster.ClusterName;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.io.Streams;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.transport.TransportService;
@@ -35,8 +40,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.TimeUnit;
 
-import static io.crate.license.LicenseKey.VERSION;
 import static io.crate.license.LicenseKey.LicenseType;
+import static io.crate.license.LicenseKey.VERSION;
 import static java.util.concurrent.TimeUnit.DAYS;
 import static java.util.concurrent.TimeUnit.HOURS;
 import static org.hamcrest.core.Is.is;
@@ -63,6 +68,20 @@ public class LicenseServiceTest extends CrateDummyClusterServiceUnitTest {
             encryptedContent);
     }
 
+    private static LicenseKey createV1EnterpriseLicenseKey(long expiryDateInMs, String issuedTo) {
+        byte[] encryptedContent = encrypt(DecryptedLicenseDataV1.formatLicenseData(expiryDateInMs, issuedTo), getPrivateKey());
+        return LicenseKey.createLicenseKey(LicenseType.ENTERPRISE,
+            1,
+            encryptedContent);
+    }
+
+    private static LicenseKey createV1TrialLicenseKey(long expiryDateInMs, String issuedTo) {
+        return TrialLicense.createLicenseKey(1,
+            DecryptedLicenseDataV1.formatLicenseData(expiryDateInMs, issuedTo)
+        );
+    }
+
+
     private static byte[] encrypt(byte[] data, byte[] privateKeyBytes) {
         return CryptoUtilsTest.encryptRsaUsingPrivateKey(data, privateKeyBytes);
     }
@@ -78,26 +97,50 @@ public class LicenseServiceTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGetLicenseDataForTrialLicenseKeyProduceValidValues() throws IOException {
-        LicenseKey key = TrialLicense.createLicenseKey(VERSION, new DecryptedLicenseData(Long.MAX_VALUE, "test"));
+        LicenseKey key = TrialLicense.createLicenseKey(VERSION,
+            new DecryptedLicenseData(Long.MAX_VALUE, "test", 3));
         DecryptedLicenseData licenseData = LicenseService.licenseData(LicenseKey.decodeLicense(key));
 
         assertThat(licenseData.expiryDateInMs(), Matchers.is(Long.MAX_VALUE));
         assertThat(licenseData.issuedTo(), Matchers.is("test"));
+        assertThat(licenseData.maxNumberOfNodes(), Matchers.is(3));
+    }
+
+    @Test
+    public void testGetLicenseDataForTrialLicenseKeyV1ProduceValidValues() throws IOException {
+        LicenseKey key = createV1TrialLicenseKey(Long.MAX_VALUE, "test");
+        DecryptedLicenseData licenseData = LicenseService.licenseData(LicenseKey.decodeLicense(key));
+
+        assertThat(licenseData.expiryDateInMs(), Matchers.is(Long.MAX_VALUE));
+        assertThat(licenseData.issuedTo(), Matchers.is("test"));
+        assertThat(licenseData.maxNumberOfNodes(), Matchers.is(DecryptedLicenseData.MAX_NODES_FOR_V1_LICENSES));
     }
 
     @Test
     public void testGetLicenseDataForEnterpriseLicenseKeyProduceValidValues() throws IOException {
-        LicenseKey key = createEnterpriseLicenseKey(VERSION, new DecryptedLicenseData(Long.MAX_VALUE, "test"));
+        LicenseKey key = createEnterpriseLicenseKey(VERSION,
+            new DecryptedLicenseData(Long.MAX_VALUE, "test", 20));
         DecryptedLicenseData licenseData = LicenseService.licenseData(LicenseKey.decodeLicense(key));
 
         assertThat(licenseData.expiryDateInMs(), Matchers.is(Long.MAX_VALUE));
         assertThat(licenseData.issuedTo(), Matchers.is("test"));
+        assertThat(licenseData.maxNumberOfNodes(), Matchers.is(20));
+    }
+
+    @Test
+    public void testGetLicenseDataForEnterpriseLicenseKeyV1ProduceValidValues() throws IOException {
+        LicenseKey key = createV1EnterpriseLicenseKey(Long.MAX_VALUE, "test");
+        DecryptedLicenseData licenseData = LicenseService.licenseData(LicenseKey.decodeLicense(key));
+
+        assertThat(licenseData.expiryDateInMs(), Matchers.is(Long.MAX_VALUE));
+        assertThat(licenseData.issuedTo(), Matchers.is("test"));
+        assertThat(licenseData.maxNumberOfNodes(), Matchers.is(DecryptedLicenseData.MAX_NODES_FOR_V1_LICENSES));
     }
 
     @Test
     public void testVerifyValidTrialLicense() {
         LicenseKey licenseKey = TrialLicense.createLicenseKey(VERSION,
-            new DecryptedLicenseData(Long.MAX_VALUE, "test"));
+            new DecryptedLicenseData(Long.MAX_VALUE, "test", 3));
 
         assertThat(LicenseService.verifyLicense(licenseKey), is(true));
     }
@@ -105,7 +148,10 @@ public class LicenseServiceTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testVerifyExpiredTrialLicense() {
         LicenseKey expiredLicense = TrialLicense.createLicenseKey(VERSION,
-            new DecryptedLicenseData(System.currentTimeMillis() - TimeUnit.HOURS.toMillis(5),"test"));
+            new DecryptedLicenseData(System.currentTimeMillis() - TimeUnit.HOURS.toMillis(5),
+                "test",
+                3)
+        );
 
         assertThat(LicenseService.verifyLicense(expiredLicense), is(false));
     }
@@ -113,35 +159,35 @@ public class LicenseServiceTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testVerifyValidEnterpriseLicense() {
         LicenseKey key = createEnterpriseLicenseKey(VERSION,
-            new DecryptedLicenseData(Long.MAX_VALUE, "test"));
+            new DecryptedLicenseData(Long.MAX_VALUE, "test", 3));
         assertThat(LicenseService.verifyLicense(key), is(true));
     }
 
     @Test
     public void testLicenseNotificationIsExpiredForExpiredLicense() {
         DecryptedLicenseData expiredLicense = new DecryptedLicenseData(
-            System.currentTimeMillis() - HOURS.toMillis(5), "test");
+            System.currentTimeMillis() - HOURS.toMillis(5), "test", 3);
         assertThat(licenseService.getLicenseExpiryNotification(expiredLicense), is(LicenseExpiryNotification.EXPIRED));
     }
 
     @Test
     public void testLicenseNotificationIsSevereForLicenseThatExpiresWithin1Day() {
         DecryptedLicenseData licenseData = new DecryptedLicenseData(
-            System.currentTimeMillis() + HOURS.toMillis(5), "test");
+            System.currentTimeMillis() + HOURS.toMillis(5), "test", 3);
         assertThat(licenseService.getLicenseExpiryNotification(licenseData), is(LicenseExpiryNotification.SEVERE));
     }
 
     @Test
     public void testLicenseNotificationIsModerateForLicenseThatExpiresWithin15Days() {
         DecryptedLicenseData licenseData = new DecryptedLicenseData(
-            System.currentTimeMillis() + DAYS.toMillis(13), "test");
+            System.currentTimeMillis() + DAYS.toMillis(13), "test", 3);
         assertThat(licenseService.getLicenseExpiryNotification(licenseData), is(LicenseExpiryNotification.MODERATE));
     }
 
     @Test
     public void testLicenseNotificationIsNullForLicenseWithMoreThan15DaysLeft() {
         DecryptedLicenseData licenseData = new DecryptedLicenseData(
-            System.currentTimeMillis() + DAYS.toMillis(30), "test");
+            System.currentTimeMillis() + DAYS.toMillis(30), "test", 3);
         assertThat(licenseService.getLicenseExpiryNotification(licenseData), is(Matchers.nullValue()));
     }
 
@@ -156,8 +202,59 @@ public class LicenseServiceTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testVerifyExpiredEnterpriseLicense() {
         LicenseKey key = createEnterpriseLicenseKey(VERSION,
-            new DecryptedLicenseData(System.currentTimeMillis() - TimeUnit.HOURS.toMillis(5), "test"));
+            new DecryptedLicenseData(System.currentTimeMillis() - TimeUnit.HOURS.toMillis(5),
+                "test",
+                3)
+        );
 
         assertThat(LicenseService.verifyLicense(key), is(false));
+    }
+
+    @Test
+    public void testThatWhenRegisteringALicenseMaxNumberOfNodesIsNeverExceeded() {
+        licenseService.onUpdatedLicense(ClusterState.EMPTY_STATE, null);
+        assertThat(licenseService.isMaxNumberOfNodesExceeded(), is(false));
+    }
+
+    @Test
+    public void testThatMaxNumberOfNodesIsWithinLimit() {
+        final ClusterState state = ClusterState.builder(ClusterName.DEFAULT)
+            .nodes(DiscoveryNodes.builder()
+                .add(new DiscoveryNode("n1", buildNewFakeTransportAddress(),
+                    Version.CURRENT))
+                .add(new DiscoveryNode("n2", buildNewFakeTransportAddress(),
+                    Version.CURRENT))
+                .add(new DiscoveryNode("n3", buildNewFakeTransportAddress(),
+                    Version.CURRENT))
+                .localNodeId("n1")
+            )
+            .build();
+        DecryptedLicenseData licenseData = new DecryptedLicenseData(
+            DecryptedLicenseData.UNLIMITED_EXPIRY_DATE_IN_MS, "test", 3);
+
+        licenseService.onUpdatedLicense(state, licenseData);
+        assertThat(licenseService.isMaxNumberOfNodesExceeded(), is(false));
+    }
+
+    @Test
+    public void testThatMaxNumberOfNodesIsExceeded() {
+        final ClusterState state = ClusterState.builder(ClusterName.DEFAULT)
+            .nodes(DiscoveryNodes.builder()
+                .add(new DiscoveryNode("n1", buildNewFakeTransportAddress(),
+                    Version.CURRENT))
+                .add(new DiscoveryNode("n2", buildNewFakeTransportAddress(),
+                    Version.CURRENT))
+                .add(new DiscoveryNode("n3", buildNewFakeTransportAddress(),
+                    Version.CURRENT))
+                .add(new DiscoveryNode("n4", buildNewFakeTransportAddress(),
+                    Version.CURRENT))
+                .localNodeId("n1")
+            )
+            .build();
+        DecryptedLicenseData licenseData = new DecryptedLicenseData(
+            DecryptedLicenseData.UNLIMITED_EXPIRY_DATE_IN_MS, "test", 3);
+
+        licenseService.onUpdatedLicense(state, licenseData);
+        assertThat(licenseService.isMaxNumberOfNodesExceeded(), is(true));
     }
 }
