@@ -418,9 +418,6 @@ public final class InternalTestCluster extends TestCluster {
         Random random = new Random(seed);
         Builder builder = Settings.builder();
         builder.put(Transport.TRANSPORT_TCP_COMPRESS.getKey(), rarely(random));
-        if (random.nextBoolean()) {
-            builder.put("cache.recycler.page.type", RandomPicks.randomFrom(random, PageCacheRecycler.Type.values()));
-        }
         builder.put(EsExecutors.PROCESSORS_SETTING.getKey(), 1 + random.nextInt(3));
         if (random.nextBoolean()) {
             if (random.nextBoolean()) {
