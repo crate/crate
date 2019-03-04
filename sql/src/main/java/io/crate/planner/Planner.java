@@ -55,7 +55,7 @@ import io.crate.analyze.SetLicenseAnalyzedStatement;
 import io.crate.analyze.ShowCreateTableAnalyzedStatement;
 import io.crate.analyze.ShowSessionParameterAnalyzedStatement;
 import io.crate.analyze.relations.QueriedRelation;
-import io.crate.exceptions.ExpiredLicenseException;
+import io.crate.exceptions.LicenseViolationException;
 import io.crate.expression.symbol.Symbol;
 import io.crate.license.LicenseService;
 import io.crate.metadata.Functions;
@@ -165,7 +165,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
      */
     public Plan plan(AnalyzedStatement analyzedStatement, PlannerContext plannerContext) {
         if (isStatementExecutionAllowed.test(analyzedStatement) == false) {
-            throw new ExpiredLicenseException("Statement not allowed");
+            throw new LicenseViolationException("Statement not allowed");
         }
         return process(analyzedStatement, plannerContext);
     }

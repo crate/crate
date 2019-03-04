@@ -48,6 +48,7 @@ import java.util.function.Function;
 
 import static io.crate.expression.reference.sys.cluster.ClusterLicenseExpression.EXPIRY_DATE;
 import static io.crate.expression.reference.sys.cluster.ClusterLicenseExpression.ISSUED_TO;
+import static io.crate.expression.reference.sys.cluster.ClusterLicenseExpression.MAX_NODES;
 
 public class SysClusterTableInfo extends StaticTableInfo {
 
@@ -80,6 +81,7 @@ public class SysClusterTableInfo extends StaticTableInfo {
                 ObjectType.builder()
                     .setInnerType(EXPIRY_DATE, DataTypes.TIMESTAMP)
                     .setInnerType(ISSUED_TO, DataTypes.STRING)
+                    .setInnerType(MAX_NODES, DataTypes.INTEGER)
                     .build())
             .register(ClusterSettingsExpression.NAME, buildSettingsObjectType());
     }
