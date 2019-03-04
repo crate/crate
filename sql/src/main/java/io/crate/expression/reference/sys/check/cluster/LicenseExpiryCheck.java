@@ -26,10 +26,8 @@ import io.crate.expression.reference.sys.check.SysCheck;
 import io.crate.license.DecryptedLicenseData;
 import io.crate.license.LicenseExpiryNotification;
 import io.crate.license.LicenseService;
-import io.crate.settings.SharedSettings;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.Settings;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -44,26 +42,20 @@ public class LicenseExpiryCheck implements SysCheck {
 
     private static final int ID = 6;
     private static final String LICENSE_NOT_CLOSE_TO_EXPIRY_DESCRIPTION = "Your CrateDB license is not close to expiry. Enjoy CrateDB!";
-    private static final String LICENSE_NA_COMMUNITY_DESCRIPTION = "CrateDB enterprise is not enabled. Enjoy the community edition!";
-    private final boolean enterpriseEnabled;
 
     private String description;
     private Severity severity = Severity.LOW;
     private final LicenseService licenseService;
 
     @Inject
-    public LicenseExpiryCheck(Settings settings, LicenseService licenseService) {
-        enterpriseEnabled = SharedSettings.ENTERPRISE_LICENSE_SETTING.setting().get(settings);
-        description = (enterpriseEnabled) ? LICENSE_NOT_CLOSE_TO_EXPIRY_DESCRIPTION : LICENSE_NA_COMMUNITY_DESCRIPTION;
+    public LicenseExpiryCheck(LicenseService licenseService) {
+
+        this.description = LICENSE_NOT_CLOSE_TO_EXPIRY_DESCRIPTION;
         this.licenseService = licenseService;
     }
 
     @Override
     public boolean validate() {
-        if (!enterpriseEnabled) {
-            return true;
-        }
-
         DecryptedLicenseData currentLicense = licenseService.currentLicense();
         if (currentLicense == null) {
             // node might've not received the license cluster state

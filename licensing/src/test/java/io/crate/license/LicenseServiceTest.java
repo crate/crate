@@ -62,6 +62,20 @@ public class LicenseServiceTest extends CrateDummyClusterServiceUnitTest {
             encryptedContent);
     }
 
+    private static LicenseKey createEnterpriseLicenseKeyNoMaxNodes(int version, long expiryDateInMs, String issuedTo) {
+        byte[] encryptedContent = encrypt(DecryptedLicenseDataV1.formatLicenseData(expiryDateInMs, issuedTo), getPrivateKey());
+        return LicenseKey.createLicenseKey(LicenseType.ENTERPRISE,
+            version,
+            encryptedContent);
+    }
+
+    private static LicenseKey createTrialLicenseKeyNoMaxNodes(int version, long expiryDateInMs, String issuedTo) {
+        return TrialLicense.createLicenseKey(version,
+            DecryptedLicenseDataV1.formatLicenseData(expiryDateInMs, issuedTo)
+        );
+    }
+
+
     private static byte[] encrypt(byte[] data, byte[] privateKeyBytes) {
         return CryptoUtilsTest.encryptRsaUsingPrivateKey(data, privateKeyBytes);
     }
@@ -73,26 +87,50 @@ public class LicenseServiceTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGetLicenseDataForTrialLicenseKeyProduceValidValues() throws IOException {
-        LicenseKey key = TrialLicense.createLicenseKey(VERSION, new DecryptedLicenseData(Long.MAX_VALUE, "test"));
+        LicenseKey key = TrialLicense.createLicenseKey(VERSION,
+            new DecryptedLicenseData(Long.MAX_VALUE, "test", 3));
         DecryptedLicenseData licenseData = LicenseService.licenseData(LicenseKey.decodeLicense(key));
 
         assertThat(licenseData.expiryDateInMs(), Matchers.is(Long.MAX_VALUE));
         assertThat(licenseData.issuedTo(), Matchers.is("test"));
+        assertThat(licenseData.maxNumberOfNodes(), Matchers.is(3));
+    }
+
+    @Test
+    public void testGetLicenseDataForTrialLicenseKeyV1ProduceValidValues() throws IOException {
+        LicenseKey key = createTrialLicenseKeyNoMaxNodes(VERSION, Long.MAX_VALUE, "test");
+        DecryptedLicenseData licenseData = LicenseService.licenseData(LicenseKey.decodeLicense(key));
+
+        assertThat(licenseData.expiryDateInMs(), Matchers.is(Long.MAX_VALUE));
+        assertThat(licenseData.issuedTo(), Matchers.is("test"));
+        assertThat(licenseData.maxNumberOfNodes(), Matchers.is(TrialLicense.DEFAULT_MAX_NUMBER_OF_NODES));
     }
 
     @Test
     public void testGetLicenseDataForEnterpriseLicenseKeyProduceValidValues() throws IOException {
-        LicenseKey key = createEnterpriseLicenseKey(VERSION, new DecryptedLicenseData(Long.MAX_VALUE, "test"));
+        LicenseKey key = createEnterpriseLicenseKey(VERSION,
+            new DecryptedLicenseData(Long.MAX_VALUE, "test", 20));
         DecryptedLicenseData licenseData = LicenseService.licenseData(LicenseKey.decodeLicense(key));
 
         assertThat(licenseData.expiryDateInMs(), Matchers.is(Long.MAX_VALUE));
         assertThat(licenseData.issuedTo(), Matchers.is("test"));
+        assertThat(licenseData.maxNumberOfNodes(), Matchers.is(20));
+    }
+
+    @Test
+    public void testGetLicenseDataForEnterpriseLicenseKeyV1ProduceValidValues() throws IOException {
+        LicenseKey key = createEnterpriseLicenseKeyNoMaxNodes(VERSION, Long.MAX_VALUE, "test");
+        DecryptedLicenseData licenseData = LicenseService.licenseData(LicenseKey.decodeLicense(key));
+
+        assertThat(licenseData.expiryDateInMs(), Matchers.is(Long.MAX_VALUE));
+        assertThat(licenseData.issuedTo(), Matchers.is("test"));
+        assertThat(licenseData.maxNumberOfNodes(), Matchers.is(EnterpriseLicense.DEFAULT_MAX_NUMBER_OF_NODES));
     }
 
     @Test
     public void testVerifyValidTrialLicense() {
         LicenseKey licenseKey = TrialLicense.createLicenseKey(VERSION,
-            new DecryptedLicenseData(Long.MAX_VALUE, "test"));
+            new DecryptedLicenseData(Long.MAX_VALUE, "test", 3));
 
         assertThat(LicenseService.verifyLicense(licenseKey), is(true));
     }
@@ -100,7 +138,10 @@ public class LicenseServiceTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testVerifyExpiredTrialLicense() {
         LicenseKey expiredLicense = TrialLicense.createLicenseKey(VERSION,
-            new DecryptedLicenseData(System.currentTimeMillis() - TimeUnit.HOURS.toMillis(5),"test"));
+            new DecryptedLicenseData(System.currentTimeMillis() - TimeUnit.HOURS.toMillis(5),
+                "test",
+                3)
+        );
 
         assertThat(LicenseService.verifyLicense(expiredLicense), is(false));
     }
@@ -108,35 +149,35 @@ public class LicenseServiceTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testVerifyValidEnterpriseLicense() {
         LicenseKey key = createEnterpriseLicenseKey(VERSION,
-            new DecryptedLicenseData(Long.MAX_VALUE, "test"));
+            new DecryptedLicenseData(Long.MAX_VALUE, "test", 3));
         assertThat(LicenseService.verifyLicense(key), is(true));
     }
 
     @Test
     public void testLicenseNotificationIsExpiredForExpiredLicense() {
         DecryptedLicenseData expiredLicense = new DecryptedLicenseData(
-            System.currentTimeMillis() - HOURS.toMillis(5), "test");
+            System.currentTimeMillis() - HOURS.toMillis(5), "test", 3);
         assertThat(licenseService.getLicenseExpiryNotification(expiredLicense), is(LicenseExpiryNotification.EXPIRED));
     }
 
     @Test
     public void testLicenseNotificationIsSevereForLicenseThatExpiresWithin1Day() {
         DecryptedLicenseData licenseData = new DecryptedLicenseData(
-            System.currentTimeMillis() + HOURS.toMillis(5), "test");
+            System.currentTimeMillis() + HOURS.toMillis(5), "test", 3);
         assertThat(licenseService.getLicenseExpiryNotification(licenseData), is(LicenseExpiryNotification.SEVERE));
     }
 
     @Test
     public void testLicenseNotificationIsModerateForLicenseThatExpiresWithin15Days() {
         DecryptedLicenseData licenseData = new DecryptedLicenseData(
-            System.currentTimeMillis() + DAYS.toMillis(13), "test");
+            System.currentTimeMillis() + DAYS.toMillis(13), "test", 3);
         assertThat(licenseService.getLicenseExpiryNotification(licenseData), is(LicenseExpiryNotification.MODERATE));
     }
 
     @Test
     public void testLicenseNotificationIsNullForLicenseWithMoreThan15DaysLeft() {
         DecryptedLicenseData licenseData = new DecryptedLicenseData(
-            System.currentTimeMillis() + DAYS.toMillis(30), "test");
+            System.currentTimeMillis() + DAYS.toMillis(30), "test", 3);
         assertThat(licenseService.getLicenseExpiryNotification(licenseData), is(Matchers.nullValue()));
     }
 
@@ -151,7 +192,10 @@ public class LicenseServiceTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testVerifyExpiredEnterpriseLicense() {
         LicenseKey key = createEnterpriseLicenseKey(VERSION,
-            new DecryptedLicenseData(System.currentTimeMillis() - TimeUnit.HOURS.toMillis(5), "test"));
+            new DecryptedLicenseData(System.currentTimeMillis() - TimeUnit.HOURS.toMillis(5),
+                "test",
+                3)
+        );
 
         assertThat(LicenseService.verifyLicense(key), is(false));
     }

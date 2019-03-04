@@ -37,7 +37,8 @@ public class DecryptedLicenseDataTest {
     public void testLicenseIsNotExpiredWhenExpirationDateIsInFuture() {
         DecryptedLicenseData nonExpiredLicenseData = new DecryptedLicenseData(
             System.currentTimeMillis() + TimeUnit.HOURS.toMillis(1),
-            "crate");
+            "crate",
+            3);
         assertThat(nonExpiredLicenseData.isExpired(), is(false));
     }
 
@@ -45,18 +46,34 @@ public class DecryptedLicenseDataTest {
     public void testLicenseIsExpiredWhenExpirationDateIsInPast() {
         DecryptedLicenseData expiredLicenseData = new DecryptedLicenseData(
             System.currentTimeMillis() - TimeUnit.HOURS.toMillis(1),
-            "crate");
+            "crate",
+            3);
         assertThat(expiredLicenseData.isExpired(), is(true));
     }
 
     @Test
     public void testDecryptedLicenseDataSerialisationAndDeserialisation() throws IOException {
-        Long ExpiryDate = System.currentTimeMillis() + TimeUnit.HOURS.toMillis(1);
-        DecryptedLicenseData licenseData = new DecryptedLicenseData(ExpiryDate,"crate");
+        final long ExpiryDate = System.currentTimeMillis() + TimeUnit.HOURS.toMillis(1);
+        final int numNodes = 3;
+        final int defaultNumNodes = 10;
+        DecryptedLicenseData licenseData = new DecryptedLicenseData(ExpiryDate, "crate", numNodes);
         byte[] data = licenseData.formatLicenseData();
-        DecryptedLicenseData licenseDataFromByteArray = DecryptedLicenseData.fromFormattedLicenseData(data);
-
+        DecryptedLicenseData licenseDataFromByteArray =
+            DecryptedLicenseData.fromFormattedLicenseData(data, () -> defaultNumNodes);
         assertThat(licenseDataFromByteArray.expiryDateInMs(), Matchers.is(ExpiryDate));
         assertThat(licenseDataFromByteArray.issuedTo(), Matchers.is("crate"));
+        assertThat(licenseDataFromByteArray.maxNumberOfNodes(), Matchers.is(numNodes));
+    }
+
+    @Test
+    public void testDecryptedLicenseDataDeserialisationFromV1SerialisedData() throws IOException {
+        final long ExpiryDate = System.currentTimeMillis() + TimeUnit.HOURS.toMillis(1);
+        byte[] data = DecryptedLicenseDataV1.formatLicenseData(ExpiryDate, "crate");
+        final int defaultNumNodes = 10;
+        DecryptedLicenseData licenseDataFromByteArray =
+            DecryptedLicenseData.fromFormattedLicenseData(data, () -> defaultNumNodes);
+        assertThat(licenseDataFromByteArray.expiryDateInMs(), Matchers.is(ExpiryDate));
+        assertThat(licenseDataFromByteArray.issuedTo(), Matchers.is("crate"));
+        assertThat(licenseDataFromByteArray.maxNumberOfNodes(), Matchers.is(defaultNumNodes));
     }
 }

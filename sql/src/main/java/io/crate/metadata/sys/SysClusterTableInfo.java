@@ -44,6 +44,7 @@ import java.util.List;
 
 import static io.crate.expression.reference.sys.cluster.ClusterLicenseExpression.EXPIRY_DATE;
 import static io.crate.expression.reference.sys.cluster.ClusterLicenseExpression.ISSUED_TO;
+import static io.crate.expression.reference.sys.cluster.ClusterLicenseExpression.MAX_NODES;
 
 public class SysClusterTableInfo extends StaticTableInfo {
 
@@ -75,6 +76,7 @@ public class SysClusterTableInfo extends StaticTableInfo {
             .register("license", DataTypes.OBJECT, null)
             .register(new ColumnIdent("license", EXPIRY_DATE), DataTypes.TIMESTAMP)
             .register(new ColumnIdent("license", ISSUED_TO), DataTypes.STRING)
+            .register(new ColumnIdent("license", MAX_NODES), DataTypes.INTEGER)
             .register(ClusterSettingsExpression.NAME, DataTypes.OBJECT, null)
             // custom registration of logger expressions
             .register(ClusterSettingsExpression.NAME, new ArrayType(DataTypes.OBJECT), ImmutableList.of(

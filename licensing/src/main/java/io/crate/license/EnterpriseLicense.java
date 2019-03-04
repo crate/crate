@@ -30,6 +30,8 @@ import java.io.InputStream;
 
 final class EnterpriseLicense {
 
+    static final int DEFAULT_MAX_NUMBER_OF_NODES = 10;
+
     private EnterpriseLicense() {
     }
 

@@ -26,11 +26,7 @@ import io.crate.expression.reference.sys.check.SysCheck;
 import io.crate.license.DecryptedLicenseData;
 import io.crate.license.LicenseExpiryNotification;
 import io.crate.license.LicenseService;
-import io.crate.settings.SharedSettings;
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -48,14 +44,7 @@ public class LicenseExpiryCheckTest extends CrateUnitTest {
     @Before
     public void setupLicenseCheck() {
         licenseService = mock(LicenseService.class);
-        Settings settings = Settings.builder().put("license.enterprise", true).build();
-        expirationCheck = new LicenseExpiryCheck(settings, licenseService);
-    }
-
-    @After
-    public void tearDown() throws Exception {
-        assertSettingDeprecationsAndWarnings(new Setting<?>[] {SharedSettings.ENTERPRISE_LICENSE_SETTING.setting()});
-        super.tearDown();
+        expirationCheck = new LicenseExpiryCheck(licenseService);
     }
 
     @Test
@@ -66,7 +55,7 @@ public class LicenseExpiryCheckTest extends CrateUnitTest {
     @Test
     public void testValidLicense() {
         DecryptedLicenseData thirtyDaysLicense = new DecryptedLicenseData(
-            System.currentTimeMillis() + TimeUnit.DAYS.toMillis(30), "test");
+            System.currentTimeMillis() + TimeUnit.DAYS.toMillis(30), "test", 2);
         when(licenseService.currentLicense()).thenReturn(thirtyDaysLicense);
         when(licenseService.getLicenseExpiryNotification(thirtyDaysLicense)).thenReturn(null);
         assertThat(expirationCheck.validate(), is(true));
@@ -75,7 +64,7 @@ public class LicenseExpiryCheckTest extends CrateUnitTest {
     @Test
     public void testLessThanFifteenDaysToExpiryTriggersMediumCheck() {
         DecryptedLicenseData sevenDaysLicense = new DecryptedLicenseData(
-            System.currentTimeMillis() + TimeUnit.DAYS.toMillis(7), "test");
+            System.currentTimeMillis() + TimeUnit.DAYS.toMillis(7), "test", 2);
 
         when(licenseService.currentLicense()).thenReturn(sevenDaysLicense);
         when(licenseService.getLicenseExpiryNotification(sevenDaysLicense)).thenReturn(LicenseExpiryNotification.MODERATE);
@@ -86,18 +75,11 @@ public class LicenseExpiryCheckTest extends CrateUnitTest {
     @Test
     public void testLessThanOneDayToExpiryTriggersSevereCheck() {
         DecryptedLicenseData sevenDaysLicense = new DecryptedLicenseData(
-            System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(15), "test");
+            System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(15), "test", 2);
 
         when(licenseService.currentLicense()).thenReturn(sevenDaysLicense);
         when(licenseService.getLicenseExpiryNotification(sevenDaysLicense)).thenReturn(LicenseExpiryNotification.SEVERE);
         assertThat(expirationCheck.validate(), is(false));
         assertThat(expirationCheck.severity(), is(SysCheck.Severity.HIGH));
-    }
-
-    @Test
-    public void testCheckIsAlwaysValidWhenEnterpriseIsDisabled() {
-        Settings settings = Settings.builder().put("license.enterprise", false).build();
-        LicenseExpiryCheck expiryCheckNoEnterprise = new LicenseExpiryCheck(settings, mock(LicenseService.class));
-        assertThat(expiryCheckNoEnterprise.validate(), is(true));
     }
 }
