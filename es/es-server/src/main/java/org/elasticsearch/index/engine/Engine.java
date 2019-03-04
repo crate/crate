@@ -63,7 +63,6 @@ import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.mapper.Mapping;
 import org.elasticsearch.index.mapper.ParseContext.Document;
 import org.elasticsearch.index.mapper.ParsedDocument;
-import org.elasticsearch.index.merge.MergeStats;
 import org.elasticsearch.index.seqno.SeqNoStats;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.DocsStats;
@@ -175,10 +174,6 @@ public abstract class Engine implements Closeable {
     }
 
     protected abstract SegmentInfos getLastCommittedSegmentInfos();
-
-    public MergeStats getMergeStats() {
-        return new MergeStats();
-    }
 
     /** returns the history uuid for the engine */
     public abstract String getHistoryUUID();
