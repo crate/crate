@@ -127,7 +127,7 @@ public class CollectTaskTest extends RandomizedTest {
         jobCtx.start();
         jobCtx.kill(new JobKilledException());
 
-        verify(batchIterator, times(1)).kill(any(InterruptedException.class));
+        verify(batchIterator, times(1)).kill(any(JobKilledException.class));
         verify(mock1, times(1)).close();
         verify(ramAccountingContext, times(1)).close();
     }

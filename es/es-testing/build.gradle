@@ -11,8 +11,8 @@ dependencies {
     compile "org.apache.httpcomponents:httpcore:${versions.httpcore}"
     compile "commons-logging:commons-logging:${versions.commonslogging}"
     compile "commons-codec:commons-codec:${versions.commonscodec}"
-    compile "org.elasticsearch:securemock:${versions.securemock}"
     compile "org.elasticsearch:mocksocket:${versions.mocksocket}"
+    compile "org.mockito:mockito-core:${versions.mockito}"
 
     // crate extra dependencies
     compile "com.google.code.findbugs:jsr305:${versions.jsr305}"
