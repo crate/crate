@@ -22,7 +22,7 @@
 
 package io.crate.planner;
 
-import io.crate.exceptions.ExpiredLicenseException;
+import io.crate.exceptions.LicenseViolationException;
 import io.crate.metadata.RelationName;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.join.Join;
@@ -56,7 +56,7 @@ public class ExpiredLicensePlannerTest extends CrateDummyClusterServiceUnitTest 
 
     @Test
     public void testSelectPlanOnUserSchemaThrowsException() {
-        expectedException.expect(ExpiredLicenseException.class);
+        expectedException.expect(LicenseViolationException.class);
         expectedException.expectMessage("Statement not allowed");
         e.plan("select id from users where id = 1");
     }
@@ -83,7 +83,7 @@ public class ExpiredLicensePlannerTest extends CrateDummyClusterServiceUnitTest 
 
     @Test
     public void testUnionSelectPlanOnUserSchemaThrowsException() {
-        expectedException.expect(ExpiredLicenseException.class);
+        expectedException.expect(LicenseViolationException.class);
         expectedException.expectMessage("Statement not allowed");
         e.plan("select * from users where id = 1 " +
                "union all " +
@@ -92,7 +92,7 @@ public class ExpiredLicensePlannerTest extends CrateDummyClusterServiceUnitTest 
 
     @Test
     public void testUnionSelectPlanOnMixedSchemaThrowsException() {
-        expectedException.expect(ExpiredLicenseException.class);
+        expectedException.expect(LicenseViolationException.class);
         expectedException.expectMessage("Statement not allowed");
         e.plan("select name from sys.cluster " +
                "union all " +
@@ -110,7 +110,7 @@ public class ExpiredLicensePlannerTest extends CrateDummyClusterServiceUnitTest 
 
     @Test
     public void testOrderedLimitedPlanOUserSchemaThrowsException() {
-        expectedException.expect(ExpiredLicenseException.class);
+        expectedException.expect(LicenseViolationException.class);
         expectedException.expectMessage("Statement not allowed");
         e.plan("select * from users where id = 1 " +
                "union all " +
@@ -120,7 +120,7 @@ public class ExpiredLicensePlannerTest extends CrateDummyClusterServiceUnitTest 
 
     @Test
     public void testOrderedLimitedPlanOMixedSchemaThrowsException() {
-        expectedException.expect(ExpiredLicenseException.class);
+        expectedException.expect(LicenseViolationException.class);
         expectedException.expectMessage("Statement not allowed");
         e.plan("select name from sys.cluster where id = 1 " +
                "union all " +
@@ -136,84 +136,84 @@ public class ExpiredLicensePlannerTest extends CrateDummyClusterServiceUnitTest 
 
     @Test
     public void testMultiSourceSelectPlanOUserSchemaThrowsException() {
-        expectedException.expect(ExpiredLicenseException.class);
+        expectedException.expect(LicenseViolationException.class);
         expectedException.expectMessage("Statement not allowed");
         e.plan("select t1.x, t2.y from t1, t2 where t1.x = 10");
     }
 
     @Test
     public void testMultiSourceSelectPlanOnMixedSchemaThrowsException() {
-        expectedException.expect(ExpiredLicenseException.class);
+        expectedException.expect(LicenseViolationException.class);
         expectedException.expectMessage("Statement not allowed");
         e.plan("select t1.x, sh.id from t1, sys.shards sh where t1.x = 10");
     }
 
     @Test
     public void testInsertPlanThrowsException() {
-        expectedException.expect(ExpiredLicenseException.class);
+        expectedException.expect(LicenseViolationException.class);
         expectedException.expectMessage("Statement not allowed");
         e.plan("insert into users (id, name) values (42, 'Deep Thought')");
     }
 
     @Test
     public void testUpdatePlanThrowsException() {
-        expectedException.expect(ExpiredLicenseException.class);
+        expectedException.expect(LicenseViolationException.class);
         expectedException.expectMessage("Statement not allowed");
         e.plan("update users set name='Vogon lyric fan' where id = 1");
     }
 
     @Test
     public void testDeletePlanThrowsException() {
-        expectedException.expect(ExpiredLicenseException.class);
+        expectedException.expect(LicenseViolationException.class);
         expectedException.expectMessage("Statement not allowed");
         e.plan("delete from users where id = 1");
     }
 
     @Test
     public void testExplainPlanThrowsException() {
-        expectedException.expect(ExpiredLicenseException.class);
+        expectedException.expect(LicenseViolationException.class);
         expectedException.expectMessage("Statement not allowed");
         e.plan("explain analyze select id from users where id = 1");
     }
 
     @Test
     public void testCreateTablePlanThrowsException() {
-        expectedException.expect(ExpiredLicenseException.class);
+        expectedException.expect(LicenseViolationException.class);
         expectedException.expectMessage("Statement not allowed");
         e.plan("create table users2(name string)");
     }
 
     @Test
     public void testDropTablePlanThrowsException() {
-        expectedException.expect(ExpiredLicenseException.class);
+        expectedException.expect(LicenseViolationException.class);
         expectedException.expectMessage("Statement not allowed");
         e.plan("drop table users");
     }
 
     @Test
     public void testCopyPlanThrowsException() {
-        expectedException.expect(ExpiredLicenseException.class);
+        expectedException.expect(LicenseViolationException.class);
         expectedException.expectMessage("Statement not allowed");
         e.plan("copy users (name) to directory '/tmp'");
     }
 
     @Test
     public void testCreateViewThrowsException() {
-        expectedException.expect(ExpiredLicenseException.class);
+        expectedException.expect(LicenseViolationException.class);
         expectedException.expectMessage("Statement not allowed");
         e.plan("create view v2 as select * from users");
     }
 
     @Test
     public void testDropViewThrowsException() {
-        expectedException.expect(ExpiredLicenseException.class);
+        expectedException.expect(LicenseViolationException.class);
         expectedException.expectMessage("Statement not allowed");
         e.plan("drop view v1");
     }
 
     @Test
     public void testSetGlobalThrowsException() {
-        expectedException.expect(ExpiredLicenseException.class);
+        expectedException.expect(LicenseViolationException.class);
         expectedException.expectMessage("Statement not allowed");
         e.plan("set global transient stats.enabled=false,stats.jobs_log_size=0");
     }
