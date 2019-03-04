@@ -91,7 +91,6 @@ import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.mapper.RootObjectMapper;
 import org.elasticsearch.index.mapper.SourceToParse;
 import org.elasticsearch.index.mapper.Uid;
-import org.elasticsearch.index.merge.MergeStats;
 import org.elasticsearch.index.recovery.RecoveryStats;
 import org.elasticsearch.index.refresh.RefreshStats;
 import org.elasticsearch.index.seqno.ReplicationTracker;
@@ -849,14 +848,6 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
             failShard("Failing shard because of exception during storeStats", e);
             throw new ElasticsearchException("io exception while building 'store stats'", e);
         }
-    }
-
-    public MergeStats mergeStats() {
-        final Engine engine = getEngineOrNull();
-        if (engine == null) {
-            return new MergeStats();
-        }
-        return engine.getMergeStats();
     }
 
     public Engine.SyncedFlushResult syncFlush(String syncId, Engine.CommitId expectedCommitId) {
