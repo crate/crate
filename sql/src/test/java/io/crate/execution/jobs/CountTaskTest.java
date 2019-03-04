@@ -66,7 +66,7 @@ public class CountTaskTest extends CrateUnitTest {
         CompletableFuture<Long> future = new CompletableFuture<>();
 
         CountOperation countOperation = mock(CountOperation.class);
-        when(countOperation.count(eq(txnCtx), anyMap(), any(Symbol.class))).thenReturn(future);
+        when(countOperation.count(eq(txnCtx), any(), any(Symbol.class))).thenReturn(future);
 
         CountTask countTask = new CountTask(countPhaseWithId(1), txnCtx, countOperation, new TestingRowConsumer(), null);
         countTask.prepare();
@@ -78,7 +78,7 @@ public class CountTaskTest extends CrateUnitTest {
 
         // on error
         future = new CompletableFuture<>();
-        when(countOperation.count(eq(txnCtx), anyMap(), any(Symbol.class))).thenReturn(future);
+        when(countOperation.count(eq(txnCtx), any(), any(Symbol.class))).thenReturn(future);
 
         countTask = new CountTask(countPhaseWithId(2), txnCtx, countOperation, new TestingRowConsumer(), null);
         countTask.prepare();
