@@ -65,7 +65,7 @@ public class LicenseExpiryCheckTest extends CrateUnitTest {
     @Test
     public void testValidLicense() {
         DecryptedLicenseData thirtyDaysLicense = new DecryptedLicenseData(
-            System.currentTimeMillis() + TimeUnit.DAYS.toMillis(30), "test");
+            System.currentTimeMillis() + TimeUnit.DAYS.toMillis(30), "test", 2);
         when(licenseService.currentLicense()).thenReturn(thirtyDaysLicense);
         when(licenseService.getLicenseExpiryNotification(thirtyDaysLicense)).thenReturn(null);
         assertThat(expirationCheck.validate(), is(true));
@@ -74,7 +74,7 @@ public class LicenseExpiryCheckTest extends CrateUnitTest {
     @Test
     public void testLessThanFifteenDaysToExpiryTriggersMediumCheck() {
         DecryptedLicenseData sevenDaysLicense = new DecryptedLicenseData(
-            System.currentTimeMillis() + TimeUnit.DAYS.toMillis(7), "test");
+            System.currentTimeMillis() + TimeUnit.DAYS.toMillis(7), "test", 2);
 
         when(licenseService.currentLicense()).thenReturn(sevenDaysLicense);
         when(licenseService.getLicenseExpiryNotification(sevenDaysLicense)).thenReturn(LicenseExpiryNotification.MODERATE);
@@ -85,7 +85,7 @@ public class LicenseExpiryCheckTest extends CrateUnitTest {
     @Test
     public void testLessThanOneDayToExpiryTriggersSevereCheck() {
         DecryptedLicenseData sevenDaysLicense = new DecryptedLicenseData(
-            System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(15), "test");
+            System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(15), "test", 2);
 
         when(licenseService.currentLicense()).thenReturn(sevenDaysLicense);
         when(licenseService.getLicenseExpiryNotification(sevenDaysLicense)).thenReturn(LicenseExpiryNotification.SEVERE);
