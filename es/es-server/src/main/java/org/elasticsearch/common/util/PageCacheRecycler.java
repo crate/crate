@@ -34,15 +34,12 @@ import java.util.Arrays;
 import java.util.Locale;
 
 import static org.elasticsearch.common.recycler.Recyclers.concurrent;
-import static org.elasticsearch.common.recycler.Recyclers.concurrentDeque;
 import static org.elasticsearch.common.recycler.Recyclers.dequeFactory;
 import static org.elasticsearch.common.recycler.Recyclers.none;
 
 /** A recycler of fixed-size pages. */
 public class PageCacheRecycler extends AbstractComponent implements Releasable {
 
-    public static final Setting<Type> TYPE_SETTING =
-        new Setting<>("cache.recycler.page.type", Type.CONCURRENT.name(), Type::parse, Property.NodeScope);
     public static final Setting<ByteSizeValue> LIMIT_HEAP_SETTING  =
         Setting.memorySizeSetting("cache.recycler.page.limit.heap", "10%", Property.NodeScope);
     public static final Setting<Double> WEIGHT_BYTES_SETTING  =
@@ -67,7 +64,7 @@ public class PageCacheRecycler extends AbstractComponent implements Releasable {
 
     public PageCacheRecycler(Settings settings) {
         super(settings);
-        final Type type = TYPE_SETTING.get(settings);
+        final Type type = Type.CONCURRENT;
         final long limit = LIMIT_HEAP_SETTING.get(settings).getBytes();
         final int availableProcessors = EsExecutors.numberOfProcessors(settings);
 
@@ -183,12 +180,6 @@ public class PageCacheRecycler extends AbstractComponent implements Releasable {
     }
 
     public enum Type {
-        QUEUE {
-            @Override
-            <T> Recycler<T> build(Recycler.C<T> c, int limit, int availableProcessors) {
-                return concurrentDeque(c, limit);
-            }
-        },
         CONCURRENT {
             @Override
             <T> Recycler<T> build(Recycler.C<T> c, int limit, int availableProcessors) {

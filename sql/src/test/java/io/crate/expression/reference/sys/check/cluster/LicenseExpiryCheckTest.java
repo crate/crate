@@ -33,9 +33,9 @@ import org.junit.Test;
 
 import java.util.concurrent.TimeUnit;
 
-import static org.elasticsearch.mock.orig.Mockito.when;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class LicenseExpiryCheckTest extends CrateUnitTest {
 

@@ -76,7 +76,6 @@ import static io.crate.testing.TestingHelpers.createReference;
 import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyByte;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -196,13 +195,12 @@ public class FileReadingCollectorTest extends CrateUnitTest {
     public void testCollectWithOneSocketTimeout() throws Throwable {
         S3ObjectInputStream inputStream = mock(S3ObjectInputStream.class);
 
-        when(inputStream.read(new byte[anyInt()], anyInt(), anyByte()))
+        when(inputStream.read(any(byte[].class), anyInt(), anyInt()))
             .thenAnswer(new WriteBufferAnswer(new byte[]{102, 111, 111, 10}))  // first line: foo
             .thenThrow(new SocketTimeoutException())  // exception causes retry
             .thenAnswer(new WriteBufferAnswer(new byte[]{102, 111, 111, 10}))  // first line again, because of retry
             .thenAnswer(new WriteBufferAnswer(new byte[]{98, 97, 114, 10}))  // second line: bar
             .thenReturn(-1);
-
 
         TestingRowConsumer consumer = getObjects(Collections.singletonList("s3://fakebucket/foo"), null, inputStream, false);
         Bucket rows = consumer.getBucket();
@@ -252,7 +250,7 @@ public class FileReadingCollectorTest extends CrateUnitTest {
                                           String compression,
                                           boolean collectSourceUriFailure) throws Throwable {
         S3ObjectInputStream inputStream = mock(S3ObjectInputStream.class);
-        when(inputStream.read(new byte[anyInt()], anyInt(), anyByte())).thenReturn(-1);
+        when(inputStream.read(any(byte[].class), anyInt(), anyInt())).thenReturn(-1);
         return getObjects(fileUris, compression, inputStream, collectSourceUriFailure);
     }
 

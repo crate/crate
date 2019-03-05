@@ -34,13 +34,6 @@ public enum Recyclers {
     }
 
     /**
-     * Return a concurrent recycler based on a deque.
-     */
-    public static <T> Recycler<T> concurrentDeque(Recycler.C<T> c, int limit) {
-        return new ConcurrentDequeRecycler<>(c, limit);
-    }
-
-    /**
      * Return a recycler based on a deque.
      */
     public static <T> Recycler<T> deque(Recycler.C<T> c, int limit) {
@@ -56,35 +49,6 @@ public enum Recyclers {
             public Recycler<T> build() {
                 return deque(c, limit);
             }
-        };
-    }
-
-    /**
-     * Wrap two recyclers and forward to calls to <code>smallObjectRecycler</code> when <code>size &lt; minSize</code> and to
-     * <code>defaultRecycler</code> otherwise.
-     */
-    public static <T> Recycler<T> sizing(final Recycler<T> defaultRecycler, final Recycler<T> smallObjectRecycler, final int minSize) {
-        return new FilterRecycler<T>() {
-
-            @Override
-            protected Recycler<T> getDelegate() {
-                return defaultRecycler;
-            }
-
-            @Override
-            public Recycler.V<T> obtain(int sizing) {
-                if (sizing > 0 && sizing < minSize) {
-                    return smallObjectRecycler.obtain(sizing);
-                }
-                return super.obtain(sizing);
-            }
-
-            @Override
-            public void close() {
-                defaultRecycler.close();
-                smallObjectRecycler.close();
-            }
-
         };
     }
 
