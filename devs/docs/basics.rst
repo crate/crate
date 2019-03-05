@@ -66,6 +66,10 @@ Build a tarball like so::
 
     $ ./gradlew distTar
 
+Build a tarball of the Community Edition like so::
+
+    $ ./gradlew communityEditionDistTar
+
 The tarball can then be found in the ``app/build/distributions`` directory.
 
 To get a full list of all available tasks, run::
