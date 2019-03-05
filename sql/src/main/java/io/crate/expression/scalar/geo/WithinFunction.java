@@ -35,6 +35,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 import org.locationtech.spatial4j.context.SpatialContext;
 import org.locationtech.spatial4j.shape.Shape;
 import org.locationtech.spatial4j.shape.SpatialRelation;
@@ -51,13 +52,13 @@ public class WithinFunction extends Scalar<Boolean, Object> {
     private static final Set<DataType> LEFT_TYPES = ImmutableSet.of(
         DataTypes.GEO_POINT,
         DataTypes.GEO_SHAPE,
-        DataTypes.OBJECT,
+        ObjectType.untyped(),
         DataTypes.STRING
     );
 
     private static final Set<DataType> RIGHT_TYPES = ImmutableSet.of(
         DataTypes.GEO_SHAPE,
-        DataTypes.OBJECT,
+        ObjectType.untyped(),
         DataTypes.STRING
     );
 

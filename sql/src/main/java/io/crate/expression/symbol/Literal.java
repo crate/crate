@@ -29,6 +29,7 @@ import io.crate.types.ArrayType;
 import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -41,6 +42,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -54,7 +56,7 @@ public class Literal<ReturnType> extends Symbol implements Input<ReturnType>, Co
     public static final Literal<Void> NULL = new Literal<>(DataTypes.UNDEFINED, null);
     public static final Literal<Boolean> BOOLEAN_TRUE = new Literal<>(DataTypes.BOOLEAN, true);
     public static final Literal<Boolean> BOOLEAN_FALSE = new Literal<>(DataTypes.BOOLEAN, false);
-    public static final Literal<Map<String, Object>> EMPTY_OBJECT = Literal.of(Collections.<String, Object>emptyMap());
+    public static final Literal<Map<String, Object>> EMPTY_OBJECT = Literal.of(Collections.emptyMap());
 
     public static Collection<Literal> explodeCollection(Literal collectionLiteral) {
         Preconditions.checkArgument(DataTypes.isCollectionType(collectionLiteral.valueType()));
@@ -117,10 +119,25 @@ public class Literal<ReturnType> extends Symbol implements Input<ReturnType>, Co
             }
         }
         // types like GeoPoint are represented as arrays
-        if (value.getClass().isArray() && Arrays.equals((Object[]) value, (Object[]) type.value(value))) {
+        if (value.getClass().isArray() && Objects.deepEquals(value, type.value(value))) {
             return true;
         }
-        return type.value(value).equals(value);
+        if (type.id() == ObjectType.ID) {
+            //noinspection unchecked
+            Map<String, Object> mapValue = (Map<String, Object>) value;
+            ObjectType objectType = ((ObjectType) type);
+            for (String key : mapValue.keySet()) {
+                DataType innerType = objectType.innerType(key);
+                if (typeMatchesValue(innerType, mapValue.get(key)) == false) {
+                    return false;
+                }
+            }
+            // lets do the expensive "deep" map value conversion only after everything else succeeded
+            Map<String, Object> safeValue = objectType.value(value);
+            return safeValue.size() == mapValue.size();
+        }
+
+        return Objects.equals(type.value(value), value);
     }
 
     @Override
@@ -217,7 +234,7 @@ public class Literal<ReturnType> extends Symbol implements Input<ReturnType>, Co
     }
 
     public static Literal<Map<String, Object>> of(Map<String, Object> value) {
-        return new Literal<>(DataTypes.OBJECT, value);
+        return new Literal<>(ObjectType.untyped(), value);
     }
 
     public static Literal<Object[]> of(Object[] value, DataType dataType) {

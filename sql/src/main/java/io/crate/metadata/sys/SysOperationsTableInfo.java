@@ -35,6 +35,7 @@ import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 
@@ -89,9 +90,10 @@ public class SysOperationsTableInfo extends StaticTableInfo {
                 .register(Columns.NAME, DataTypes.STRING)
                 .register(Columns.STARTED, DataTypes.TIMESTAMP)
                 .register(Columns.USED_BYTES, DataTypes.LONG)
-                .register(Columns.NODE, DataTypes.OBJECT)
-                .register(Columns.NODE_ID, DataTypes.STRING)
-                .register(Columns.NODE_NAME, DataTypes.STRING),
+                .register(Columns.NODE, ObjectType.builder()
+                    .setInnerType("id", DataTypes.STRING)
+                    .setInnerType("name", DataTypes.STRING)
+                    .build()),
             Collections.emptyList());
     }
 

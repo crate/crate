@@ -70,7 +70,6 @@ import org.elasticsearch.index.mapper.ParseContext;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.mapper.SeqNoFieldMapper;
 import org.elasticsearch.index.mapper.SourceFieldMapper;
-import org.elasticsearch.index.merge.MergeStats;
 import org.elasticsearch.index.merge.OnGoingMerge;
 import org.elasticsearch.index.seqno.LocalCheckpointTracker;
 import org.elasticsearch.index.seqno.SeqNoStats;
@@ -2359,10 +2358,6 @@ public class InternalEngine extends Engine {
         translogDeletionPolicy.setRetentionAgeInMillis(indexSettings.getTranslogRetentionAge().getMillis());
         translogDeletionPolicy.setRetentionSizeInBytes(indexSettings.getTranslogRetentionSize().getBytes());
         softDeletesPolicy.setRetentionOperations(indexSettings.getSoftDeleteRetentionOperations());
-    }
-
-    public MergeStats getMergeStats() {
-        return mergeScheduler.stats();
     }
 
     // Used only for testing! Package private to prevent anyone else from using it

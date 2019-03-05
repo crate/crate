@@ -35,6 +35,7 @@ import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -62,7 +63,7 @@ public class DropFunctionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(analysis.name(), is("bar"));
         assertThat(analysis.ifExists(), is(false));
         assertThat(analysis.argumentTypes().get(0), is(DataTypes.LONG));
-        assertThat(analysis.argumentTypes().get(1), is(DataTypes.OBJECT));
+        assertThat(analysis.argumentTypes().get(1).id(), is(ObjectType.ID));
     }
 
     @Test
@@ -96,6 +97,6 @@ public class DropFunctionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(analysis.name(), is("bar"));
         assertThat(analysis.ifExists(), is(true));
         assertThat(analysis.argumentTypes().get(0), is(DataTypes.LONG));
-        assertThat(analysis.argumentTypes().get(1), is(DataTypes.OBJECT));
+        assertThat(analysis.argumentTypes().get(1).id(), is(ObjectType.ID));
     }
 }

@@ -32,6 +32,7 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 
 import java.util.Map;
 import java.util.function.BiConsumer;
@@ -71,7 +72,7 @@ public class DocSysColumns {
         .put(VERSION, DataTypes.LONG)
         .put(SCORE, DataTypes.FLOAT)
         .put(UID, DataTypes.STRING)
-        .put(DOC, DataTypes.OBJECT)
+        .put(DOC, ObjectType.untyped())
         .put(RAW, DataTypes.STRING)
         .put(FETCHID, DataTypes.LONG)
         .build();

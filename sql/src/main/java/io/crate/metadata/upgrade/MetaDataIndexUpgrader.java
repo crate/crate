@@ -33,7 +33,7 @@ import org.elasticsearch.index.mapper.MapperParsingException;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.UnaryOperator;
@@ -66,7 +66,7 @@ public class MetaDataIndexUpgrader implements UnaryOperator<IndexMetaData> {
     @VisibleForTesting
     MappingMetaData purgeDynamicStringTemplate(MappingMetaData mappingMetaData, String indexName) {
         Map<String, Object> oldMapping = mappingMetaData.getSourceAsMap();
-        HashMap<String, Object> newMapping = new HashMap<>(oldMapping.size());
+        LinkedHashMap<String, Object> newMapping = new LinkedHashMap<>(oldMapping.size());
         for (Map.Entry<String, Object> entry : oldMapping.entrySet()) {
             String fieldName = entry.getKey();
             Object fieldNode = entry.getValue();

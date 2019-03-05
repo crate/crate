@@ -56,9 +56,8 @@ import io.crate.metadata.table.StaticTableInfo;
 import io.crate.monitor.FsInfoHelpers;
 import io.crate.protocols.ConnectionStats;
 import io.crate.types.ArrayType;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.StringType;
+import io.crate.types.ObjectType;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.http.HttpStats;
 import org.elasticsearch.monitor.fs.FsInfo;
@@ -75,24 +74,22 @@ public class SysNodesTableInfo extends StaticTableInfo {
 
     private static final RowGranularity GRANULARITY = RowGranularity.DOC;
 
-    public static final String SYS_COL_ID = "id";
-    public static final String SYS_COL_NODE_NAME = "name";
-    public static final String SYS_COL_HOSTNAME = "hostname";
-    public static final String SYS_COL_REST_URL = "rest_url";
-    public static final String SYS_COL_PORT = "port";
-    public static final String SYS_COL_CLUSTER_STATE_VERSION = "cluster_state_version";
-    public static final String SYS_COL_LOAD = "load";
-    public static final String SYS_COL_MEM = "mem";
-    public static final String SYS_COL_HEAP = "heap";
-    public static final String SYS_COL_VERSION = "version";
-    public static final String SYS_COL_THREAD_POOLS = "thread_pools";
-    public static final String SYS_COL_NETWORK = "network";
-    public static final String SYS_COL_OS = "os";
-    public static final String SYS_COL_OS_INFO = "os_info";
-    public static final String SYS_COL_PROCESS = "process";
-    public static final String SYS_COL_FS = "fs";
-
-    private static final DataType OBJECT_ARRAY_TYPE = new ArrayType(DataTypes.OBJECT);
+    private static final String SYS_COL_ID = "id";
+    private static final String SYS_COL_NODE_NAME = "name";
+    private static final String SYS_COL_HOSTNAME = "hostname";
+    private static final String SYS_COL_REST_URL = "rest_url";
+    private static final String SYS_COL_PORT = "port";
+    private static final String SYS_COL_CLUSTER_STATE_VERSION = "cluster_state_version";
+    private static final String SYS_COL_LOAD = "load";
+    private static final String SYS_COL_MEM = "mem";
+    private static final String SYS_COL_HEAP = "heap";
+    private static final String SYS_COL_VERSION = "version";
+    private static final String SYS_COL_THREAD_POOLS = "thread_pools";
+    private static final String SYS_COL_NETWORK = "network";
+    private static final String SYS_COL_OS = "os";
+    private static final String SYS_COL_OS_INFO = "os_info";
+    private static final String SYS_COL_PROCESS = "process";
+    private static final String SYS_COL_FS = "fs";
 
     public static class Columns {
         public static final ColumnIdent ID = new ColumnIdent(SYS_COL_ID);
@@ -103,33 +100,13 @@ public class SysNodesTableInfo extends StaticTableInfo {
         public static final ColumnIdent PORT = new ColumnIdent(SYS_COL_PORT);
         public static final ColumnIdent CLUSTER_STATE_VERSION = new ColumnIdent(SYS_COL_CLUSTER_STATE_VERSION);
 
-        static final ColumnIdent PORT_HTTP = new ColumnIdent(SYS_COL_PORT, ImmutableList.of("http"));
-        static final ColumnIdent PORT_TRANSPORT = new ColumnIdent(SYS_COL_PORT, ImmutableList.of("transport"));
-        static final ColumnIdent PORT_PSQL = new ColumnIdent(SYS_COL_PORT, ImmutableList.of("psql"));
-
         public static final ColumnIdent LOAD = new ColumnIdent(SYS_COL_LOAD);
-        static final ColumnIdent LOAD_1 = new ColumnIdent(SYS_COL_LOAD, ImmutableList.of("1"));
-        static final ColumnIdent LOAD_5 = new ColumnIdent(SYS_COL_LOAD, ImmutableList.of("5"));
-        static final ColumnIdent LOAD_15 = new ColumnIdent(SYS_COL_LOAD, ImmutableList.of("15"));
-        static final ColumnIdent LOAD_PROBE_TS = new ColumnIdent(SYS_COL_LOAD, ImmutableList.of("probe_timestamp"));
 
         public static final ColumnIdent MEM = new ColumnIdent(SYS_COL_MEM);
-        static final ColumnIdent MEM_FREE = new ColumnIdent(SYS_COL_MEM, ImmutableList.of("free"));
-        static final ColumnIdent MEM_USED = new ColumnIdent(SYS_COL_MEM, ImmutableList.of("used"));
-        static final ColumnIdent MEM_FREE_PERCENT = new ColumnIdent(SYS_COL_MEM, ImmutableList.of("free_percent"));
-        static final ColumnIdent MEM_USED_PERCENT = new ColumnIdent(SYS_COL_MEM, ImmutableList.of("used_percent"));
-        static final ColumnIdent MEM_PROBE_TS = new ColumnIdent(SYS_COL_MEM, ImmutableList.of("probe_timestamp"));
 
         public static final ColumnIdent HEAP = new ColumnIdent(SYS_COL_HEAP);
-        static final ColumnIdent HEAP_FREE = new ColumnIdent(SYS_COL_HEAP, ImmutableList.of("free"));
-        static final ColumnIdent HEAP_USED = new ColumnIdent(SYS_COL_HEAP, ImmutableList.of("used"));
-        static final ColumnIdent HEAP_MAX = new ColumnIdent(SYS_COL_HEAP, ImmutableList.of("max"));
-        static final ColumnIdent HEAP_PROBE_TS = new ColumnIdent(SYS_COL_HEAP, ImmutableList.of("probe_timestamp"));
 
         public static final ColumnIdent VERSION = new ColumnIdent(SYS_COL_VERSION);
-        static final ColumnIdent VERSION_NUMBER = new ColumnIdent(SYS_COL_VERSION, ImmutableList.of("number"));
-        static final ColumnIdent VERSION_BUILD_HASH = new ColumnIdent(SYS_COL_VERSION, ImmutableList.of("build_hash"));
-        static final ColumnIdent VERSION_BUILD_SNAPSHOT = new ColumnIdent(SYS_COL_VERSION, ImmutableList.of("build_snapshot"));
 
         public static final ColumnIdent THREAD_POOLS = new ColumnIdent(SYS_COL_THREAD_POOLS);
         static final ColumnIdent THREAD_POOLS_NAME = new ColumnIdent(SYS_COL_THREAD_POOLS, ImmutableList.of("name"));
@@ -141,20 +118,6 @@ public class SysNodesTableInfo extends StaticTableInfo {
         static final ColumnIdent THREAD_POOLS_QUEUE = new ColumnIdent(SYS_COL_THREAD_POOLS, ImmutableList.of("queue"));
 
         public static final ColumnIdent NETWORK = new ColumnIdent(SYS_COL_NETWORK);
-        static final ColumnIdent NETWORK_PROBE_TS = new ColumnIdent(SYS_COL_NETWORK, ImmutableList.of("probe_timestamp"));
-        static final ColumnIdent NETWORK_TCP = new ColumnIdent(SYS_COL_NETWORK, ImmutableList.of("tcp"));
-        static final ColumnIdent NETWORK_TCP_CONNECTIONS = new ColumnIdent(SYS_COL_NETWORK, ImmutableList.of("tcp", "connections"));
-        static final ColumnIdent NETWORK_TCP_CONNECTIONS_INITIATED = new ColumnIdent(SYS_COL_NETWORK, ImmutableList.of("tcp", "connections", "initiated"));
-        static final ColumnIdent NETWORK_TCP_CONNECTIONS_ACCEPTED = new ColumnIdent(SYS_COL_NETWORK, ImmutableList.of("tcp", "connections", "accepted"));
-        static final ColumnIdent NETWORK_TCP_CONNECTIONS_CURR_ESTABLISHED = new ColumnIdent(SYS_COL_NETWORK, ImmutableList.of("tcp", "connections", "curr_established"));
-        static final ColumnIdent NETWORK_TCP_CONNECTIONS_DROPPED = new ColumnIdent(SYS_COL_NETWORK, ImmutableList.of("tcp", "connections", "dropped"));
-        static final ColumnIdent NETWORK_TCP_CONNECTIONS_EMBRYONIC_DROPPED = new ColumnIdent(SYS_COL_NETWORK, ImmutableList.of("tcp", "connections", "embryonic_dropped"));
-        static final ColumnIdent NETWORK_TCP_PACKETS = new ColumnIdent(SYS_COL_NETWORK, ImmutableList.of("tcp", "packets"));
-        static final ColumnIdent NETWORK_TCP_PACKETS_SENT = new ColumnIdent(SYS_COL_NETWORK, ImmutableList.of("tcp", "packets", "sent"));
-        static final ColumnIdent NETWORK_TCP_PACKETS_RECEIVED = new ColumnIdent(SYS_COL_NETWORK, ImmutableList.of("tcp", "packets", "received"));
-        static final ColumnIdent NETWORK_TCP_PACKETS_RETRANSMITTED = new ColumnIdent(SYS_COL_NETWORK, ImmutableList.of("tcp", "packets", "retransmitted"));
-        static final ColumnIdent NETWORK_TCP_PACKETS_ERRORS_RECEIVED = new ColumnIdent(SYS_COL_NETWORK, ImmutableList.of("tcp", "packets", "errors_received"));
-        static final ColumnIdent NETWORK_TCP_PACKETS_RST_SENT = new ColumnIdent(SYS_COL_NETWORK, ImmutableList.of("tcp", "packets", "rst_sent"));
 
         public static final ColumnIdent CONNECTIONS = new ColumnIdent("connections");
         static final ColumnIdent CONNECTIONS_HTTP = ColumnIdent.getChild(CONNECTIONS, "http");
@@ -167,50 +130,10 @@ public class SysNodesTableInfo extends StaticTableInfo {
         static final ColumnIdent CONNECTIONS_TRANSPORT_OPEN = ColumnIdent.getChild(CONNECTIONS_TRANSPORT, "open");
 
         public static final ColumnIdent OS = new ColumnIdent(SYS_COL_OS);
-        static final ColumnIdent OS_UPTIME = new ColumnIdent(SYS_COL_OS, ImmutableList.of("uptime"));
-        static final ColumnIdent OS_TIMESTAMP = new ColumnIdent(SYS_COL_OS, ImmutableList.of("timestamp"));
-        static final ColumnIdent OS_PROBE_TS = new ColumnIdent(SYS_COL_OS, ImmutableList.of("probe_timestamp"));
-        static final ColumnIdent OS_CPU = new ColumnIdent(SYS_COL_OS, ImmutableList.of("cpu"));
-        static final ColumnIdent OS_CPU_SYSTEM = new ColumnIdent(SYS_COL_OS, ImmutableList.of("cpu", "system"));
-        static final ColumnIdent OS_CPU_USER = new ColumnIdent(SYS_COL_OS, ImmutableList.of("cpu", "user"));
-        static final ColumnIdent OS_CPU_IDLE = new ColumnIdent(SYS_COL_OS, ImmutableList.of("cpu", "idle"));
-        static final ColumnIdent OS_CPU_USED = new ColumnIdent(SYS_COL_OS, ImmutableList.of("cpu", "used"));
-        static final ColumnIdent OS_CPU_STOLEN = new ColumnIdent(SYS_COL_OS, ImmutableList.of("cpu", "stolen"));
-        static final ColumnIdent OS_CGROUP = new ColumnIdent(SYS_COL_OS, ImmutableList.of("cgroup"));
-        static final ColumnIdent OS_CGROUP_CPUACCT = new ColumnIdent(SYS_COL_OS, ImmutableList.of("cgroup", "cpuacct"));
-        static final ColumnIdent OS_CGROUP_CPUACCT_CONTROL_GROUP = new ColumnIdent(SYS_COL_OS, ImmutableList.of("cgroup", "cpuacct", "control_group"));
-        static final ColumnIdent OS_CGROUP_CPUACCT_USAGE_NANOS = new ColumnIdent(SYS_COL_OS, ImmutableList.of("cgroup", "cpuacct", "usage_nanos"));
-        static final ColumnIdent OS_CGROUP_CPU = new ColumnIdent(SYS_COL_OS, ImmutableList.of("cgroup", "cpu"));
-        static final ColumnIdent OS_CGROUP_CPU_CONTROL_GROUP = new ColumnIdent(SYS_COL_OS, ImmutableList.of("cgroup", "cpu", "control_group"));
-        static final ColumnIdent OS_CGROUP_CPU_CFS_PERIOD_MICROS = new ColumnIdent(SYS_COL_OS, ImmutableList.of("cgroup", "cpu", "cfs_period_micros"));
-        static final ColumnIdent OS_CGROUP_CPU_CFS_QUOTA_MICROS = new ColumnIdent(SYS_COL_OS, ImmutableList.of("cgroup", "cpu", "cfs_quota_micros"));
-        static final ColumnIdent OS_CGROUP_CPU_NUM_ELAPSED_PERIODS = new ColumnIdent(SYS_COL_OS, ImmutableList.of("cgroup", "cpu", "num_elapsed_periods"));
-        static final ColumnIdent OS_CGROUP_CPU_NUM_TIMES_THROTTLED = new ColumnIdent(SYS_COL_OS, ImmutableList.of("cgroup", "cpu", "num_times_throttled"));
-        static final ColumnIdent OS_CGROUP_CPU_TIME_THROTTLED_NANOS = new ColumnIdent(SYS_COL_OS, ImmutableList.of("cgroup", "cpu", "time_throttled_nanos"));
-        static final ColumnIdent OS_CGROUP_MEM = new ColumnIdent(SYS_COL_OS, ImmutableList.of("cgroup", "mem"));
-        static final ColumnIdent OS_CGROUP_MEM_CONTROL_GROUP = new ColumnIdent(SYS_COL_OS, ImmutableList.of("cgroup", "mem", "control_group"));
-        static final ColumnIdent OS_CGROUP_MEM_LIMIT_BYTES = new ColumnIdent(SYS_COL_OS, ImmutableList.of("cgroup", "mem", "limit_bytes"));
-        static final ColumnIdent OS_CGROUP_MEM_USAGE_BYTES = new ColumnIdent(SYS_COL_OS, ImmutableList.of("cgroup", "mem", "usage_bytes"));
 
         public static final ColumnIdent OS_INFO = new ColumnIdent(SYS_COL_OS_INFO);
-        static final ColumnIdent OS_INFO_AVAIL_PROCESSORS = new ColumnIdent(SYS_COL_OS_INFO, ImmutableList.of("available_processors"));
-        static final ColumnIdent OS_INFO_NAME = new ColumnIdent(SYS_COL_OS_INFO, ImmutableList.of("name"));
-        static final ColumnIdent OS_INFO_ARCH = new ColumnIdent(SYS_COL_OS_INFO, ImmutableList.of("arch"));
-        static final ColumnIdent OS_INFO_VERSION = new ColumnIdent(SYS_COL_OS_INFO, ImmutableList.of("version"));
-        public static final ColumnIdent OS_INFO_JVM = new ColumnIdent(SYS_COL_OS_INFO, ImmutableList.of("jvm"));
-        static final ColumnIdent OS_INFO_JVM_VERSION = new ColumnIdent(SYS_COL_OS_INFO, ImmutableList.of("jvm", "version"));
-        static final ColumnIdent OS_INFO_JVM_NAME = new ColumnIdent(SYS_COL_OS_INFO, ImmutableList.of("jvm", "vm_name"));
-        static final ColumnIdent OS_INFO_JVM_VENDOR = new ColumnIdent(SYS_COL_OS_INFO, ImmutableList.of("jvm", "vm_vendor"));
-        static final ColumnIdent OS_INFO_JVM_VM_VERSION = new ColumnIdent(SYS_COL_OS_INFO, ImmutableList.of("jvm", "vm_version"));
 
         public static final ColumnIdent PROCESS = new ColumnIdent(SYS_COL_PROCESS);
-        static final ColumnIdent PROCESS_OPEN_FILE_DESCR = new ColumnIdent(SYS_COL_PROCESS, ImmutableList.of("open_file_descriptors"));
-        static final ColumnIdent PROCESS_MAX_OPEN_FILE_DESCR = new ColumnIdent(SYS_COL_PROCESS, ImmutableList.of("max_open_file_descriptors"));
-        static final ColumnIdent PROCESS_PROBE_TS = new ColumnIdent(SYS_COL_PROCESS, ImmutableList.of("probe_timestamp"));
-        static final ColumnIdent PROCESS_CPU = new ColumnIdent(SYS_COL_PROCESS, ImmutableList.of("cpu"));
-        static final ColumnIdent PROCESS_CPU_PERCENT = new ColumnIdent(SYS_COL_PROCESS, ImmutableList.of("cpu", "percent"));
-        static final ColumnIdent PROCESS_CPU_USER = new ColumnIdent(SYS_COL_PROCESS, ImmutableList.of("cpu", "user"));
-        static final ColumnIdent PROCESS_CPU_SYSTEM = new ColumnIdent(SYS_COL_PROCESS, ImmutableList.of("cpu", "system"));
 
         public static final ColumnIdent FS = new ColumnIdent(SYS_COL_FS);
         static final ColumnIdent FS_TOTAL = new ColumnIdent(SYS_COL_FS, ImmutableList.of("total"));
@@ -432,139 +355,167 @@ public class SysNodesTableInfo extends StaticTableInfo {
                 .register(Columns.HOSTNAME, DataTypes.STRING)
                 .register(Columns.REST_URL, DataTypes.STRING)
 
-                .register(Columns.PORT, DataTypes.OBJECT)
-                .register(Columns.PORT_HTTP, DataTypes.INTEGER)
-                .register(Columns.PORT_TRANSPORT, DataTypes.INTEGER)
-                .register(Columns.PORT_PSQL, DataTypes.INTEGER)
+                .register(Columns.PORT, ObjectType.builder()
+                    .setInnerType("http", DataTypes.INTEGER)
+                    .setInnerType("transport", DataTypes.INTEGER)
+                    .setInnerType("psql", DataTypes.INTEGER)
+                    .build())
 
-                .register(Columns.LOAD, DataTypes.OBJECT)
-                .register(Columns.LOAD_1, DataTypes.DOUBLE)
-                .register(Columns.LOAD_5, DataTypes.DOUBLE)
-                .register(Columns.LOAD_15, DataTypes.DOUBLE)
-                .register(Columns.LOAD_PROBE_TS, DataTypes.TIMESTAMP)
+                .register(Columns.LOAD, ObjectType.builder()
+                    .setInnerType("1", DataTypes.DOUBLE)
+                    .setInnerType("5", DataTypes.DOUBLE)
+                    .setInnerType("15", DataTypes.DOUBLE)
+                    .setInnerType("probe_timestamp", DataTypes.TIMESTAMP)
+                    .build())
 
-                .register(Columns.MEM, DataTypes.OBJECT)
-                .register(Columns.MEM_FREE, DataTypes.LONG)
-                .register(Columns.MEM_USED, DataTypes.LONG)
-                .register(Columns.MEM_FREE_PERCENT, DataTypes.SHORT)
-                .register(Columns.MEM_USED_PERCENT, DataTypes.SHORT)
-                .register(Columns.MEM_PROBE_TS, DataTypes.TIMESTAMP)
+                .register(Columns.MEM, ObjectType.builder()
+                    .setInnerType("free", DataTypes.LONG)
+                    .setInnerType("used", DataTypes.LONG)
+                    .setInnerType("free_percent", DataTypes.SHORT)
+                    .setInnerType("used_percent", DataTypes.SHORT)
+                    .setInnerType("probe_timestamp", DataTypes.TIMESTAMP)
+                    .build())
 
-                .register(Columns.HEAP, DataTypes.OBJECT)
-                .register(Columns.HEAP_FREE, DataTypes.LONG)
-                .register(Columns.HEAP_USED, DataTypes.LONG)
-                .register(Columns.HEAP_MAX, DataTypes.LONG)
-                .register(Columns.HEAP_PROBE_TS, DataTypes.TIMESTAMP)
+                .register(Columns.HEAP, ObjectType.builder()
+                    .setInnerType("free", DataTypes.LONG)
+                    .setInnerType("used", DataTypes.LONG)
+                    .setInnerType("max", DataTypes.LONG)
+                    .setInnerType("probe_timestamp", DataTypes.TIMESTAMP)
+                    .build())
 
-                .register(Columns.VERSION, DataTypes.OBJECT)
-                .register(Columns.VERSION_NUMBER, StringType.INSTANCE)
-                .register(Columns.VERSION_BUILD_HASH, StringType.INSTANCE)
-                .register(Columns.VERSION_BUILD_SNAPSHOT, DataTypes.BOOLEAN)
+                .register(Columns.VERSION, ObjectType.builder()
+                    .setInnerType("number", DataTypes.STRING)
+                    .setInnerType("build_hash", DataTypes.STRING)
+                    .setInnerType("build_snapshot", DataTypes.BOOLEAN)
+                    .build())
 
                 .register(Columns.CLUSTER_STATE_VERSION, DataTypes.LONG)
 
-                .register(Columns.THREAD_POOLS, OBJECT_ARRAY_TYPE)
-                .register(Columns.THREAD_POOLS_NAME, DataTypes.STRING)
-                .register(Columns.THREAD_POOLS_ACTIVE, DataTypes.INTEGER)
-                .register(Columns.THREAD_POOLS_REJECTED, DataTypes.LONG)
-                .register(Columns.THREAD_POOLS_LARGEST, DataTypes.INTEGER)
-                .register(Columns.THREAD_POOLS_COMPLETED, DataTypes.LONG)
-                .register(Columns.THREAD_POOLS_THREADS, DataTypes.INTEGER)
-                .register(Columns.THREAD_POOLS_QUEUE, DataTypes.INTEGER)
+                .register(Columns.THREAD_POOLS, new ArrayType(ObjectType.builder()
+                    .setInnerType("name", DataTypes.STRING)
+                    .setInnerType("active", DataTypes.INTEGER)
+                    .setInnerType("rejected", DataTypes.LONG)
+                    .setInnerType("largest", DataTypes.INTEGER)
+                    .setInnerType("completed", DataTypes.LONG)
+                    .setInnerType("threads", DataTypes.INTEGER)
+                    .setInnerType("queue", DataTypes.INTEGER)
+                    .build()))
 
-                .register(Columns.NETWORK, DataTypes.OBJECT)
-                .register(Columns.NETWORK_PROBE_TS, DataTypes.TIMESTAMP)
-                .register(Columns.NETWORK_TCP, DataTypes.OBJECT)
-                .register(Columns.NETWORK_TCP_CONNECTIONS, DataTypes.OBJECT)
-                .register(Columns.NETWORK_TCP_CONNECTIONS_INITIATED, DataTypes.LONG)
-                .register(Columns.NETWORK_TCP_CONNECTIONS_ACCEPTED, DataTypes.LONG)
-                .register(Columns.NETWORK_TCP_CONNECTIONS_CURR_ESTABLISHED, DataTypes.LONG)
-                .register(Columns.NETWORK_TCP_CONNECTIONS_DROPPED, DataTypes.LONG)
-                .register(Columns.NETWORK_TCP_CONNECTIONS_EMBRYONIC_DROPPED, DataTypes.LONG)
-                .register(Columns.NETWORK_TCP_PACKETS, DataTypes.OBJECT)
-                .register(Columns.NETWORK_TCP_PACKETS_SENT, DataTypes.LONG)
-                .register(Columns.NETWORK_TCP_PACKETS_RECEIVED, DataTypes.LONG)
-                .register(Columns.NETWORK_TCP_PACKETS_RETRANSMITTED, DataTypes.LONG)
-                .register(Columns.NETWORK_TCP_PACKETS_ERRORS_RECEIVED, DataTypes.LONG)
-                .register(Columns.NETWORK_TCP_PACKETS_RST_SENT, DataTypes.LONG)
+                .register(Columns.NETWORK, ObjectType.builder()
+                    .setInnerType("probe_timestamp", DataTypes.TIMESTAMP)
+                    .setInnerType("tcp", ObjectType.builder()
+                        .setInnerType("connections", ObjectType.builder()
+                            .setInnerType("initiated", DataTypes.LONG)
+                            .setInnerType("accepted", DataTypes.LONG)
+                            .setInnerType("curr_established", DataTypes.LONG)
+                            .setInnerType("dropped", DataTypes.LONG)
+                            .setInnerType("embryonic_dropped", DataTypes.LONG)
+                            .build())
+                        .setInnerType("packets", ObjectType.builder()
+                            .setInnerType("sent", DataTypes.LONG)
+                            .setInnerType("received", DataTypes.LONG)
+                            .setInnerType("retransmitted", DataTypes.LONG)
+                            .setInnerType("errors_received", DataTypes.LONG)
+                            .setInnerType("rst_sent", DataTypes.LONG)
+                            .build())
+                        .build())
+                    .build())
 
-                .register(Columns.CONNECTIONS, DataTypes.OBJECT)
-                .register(Columns.CONNECTIONS_HTTP, DataTypes.OBJECT)
-                .register(Columns.CONNECTIONS_HTTP_OPEN, DataTypes.LONG)
-                .register(Columns.CONNECTIONS_HTTP_TOTAL, DataTypes.LONG)
-                .register(Columns.CONNECTIONS_PSQL, DataTypes.OBJECT)
-                .register(Columns.CONNECTIONS_PSQL_OPEN, DataTypes.LONG)
-                .register(Columns.CONNECTIONS_PSQL_TOTAL, DataTypes.LONG)
-                .register(Columns.CONNECTIONS_TRANSPORT, DataTypes.OBJECT)
-                .register(Columns.CONNECTIONS_TRANSPORT_OPEN, DataTypes.LONG)
+                .register(Columns.CONNECTIONS, ObjectType.builder()
+                    .setInnerType("http", ObjectType.builder()
+                        .setInnerType("open", DataTypes.LONG)
+                        .setInnerType("total", DataTypes.LONG)
+                        .build())
+                    .setInnerType("psql", ObjectType.builder()
+                        .setInnerType("open", DataTypes.LONG)
+                        .setInnerType("total", DataTypes.LONG)
+                        .build())
+                    .setInnerType("transport", ObjectType.builder()
+                        .setInnerType("open", DataTypes.LONG)
+                        .build())
+                    .build())
 
-                .register(Columns.OS, DataTypes.OBJECT)
-                .register(Columns.OS_UPTIME, DataTypes.LONG)
-                .register(Columns.OS_TIMESTAMP, DataTypes.TIMESTAMP)
-                .register(Columns.OS_PROBE_TS, DataTypes.TIMESTAMP)
-                .register(Columns.OS_CPU, DataTypes.OBJECT)
-                .register(Columns.OS_CPU_SYSTEM, DataTypes.SHORT)
-                .register(Columns.OS_CPU_USER, DataTypes.SHORT)
-                .register(Columns.OS_CPU_IDLE, DataTypes.SHORT)
-                .register(Columns.OS_CPU_USED, DataTypes.SHORT)
-                .register(Columns.OS_CPU_STOLEN, DataTypes.SHORT)
-                .register(Columns.OS_CGROUP, DataTypes.OBJECT)
-                .register(Columns.OS_CGROUP_CPUACCT, DataTypes.OBJECT)
-                .register(Columns.OS_CGROUP_CPUACCT_CONTROL_GROUP, DataTypes.STRING)
-                .register(Columns.OS_CGROUP_CPUACCT_USAGE_NANOS, DataTypes.LONG)
-                .register(Columns.OS_CGROUP_CPU, DataTypes.OBJECT)
-                .register(Columns.OS_CGROUP_CPU_CONTROL_GROUP, DataTypes.STRING)
-                .register(Columns.OS_CGROUP_CPU_CFS_PERIOD_MICROS, DataTypes.LONG)
-                .register(Columns.OS_CGROUP_CPU_CFS_QUOTA_MICROS, DataTypes.LONG)
-                .register(Columns.OS_CGROUP_CPU_NUM_ELAPSED_PERIODS, DataTypes.LONG)
-                .register(Columns.OS_CGROUP_CPU_NUM_TIMES_THROTTLED, DataTypes.LONG)
-                .register(Columns.OS_CGROUP_CPU_TIME_THROTTLED_NANOS, DataTypes.LONG)
-                .register(Columns.OS_CGROUP_MEM, DataTypes.OBJECT)
-                .register(Columns.OS_CGROUP_MEM_CONTROL_GROUP, DataTypes.STRING)
-                .register(Columns.OS_CGROUP_MEM_LIMIT_BYTES, DataTypes.STRING)
-                .register(Columns.OS_CGROUP_MEM_USAGE_BYTES, DataTypes.STRING)
+                .register(Columns.OS, ObjectType.builder()
+                    .setInnerType("uptime", DataTypes.LONG)
+                    .setInnerType("timestamp", DataTypes.TIMESTAMP)
+                    .setInnerType("probe_timestamp", DataTypes.TIMESTAMP)
+                    .setInnerType("cpu", ObjectType.builder()
+                        .setInnerType("system", DataTypes.SHORT)
+                        .setInnerType("user", DataTypes.SHORT)
+                        .setInnerType("idle", DataTypes.SHORT)
+                        .setInnerType("used", DataTypes.SHORT)
+                        .setInnerType("stolen", DataTypes.SHORT)
+                        .build())
+                    .setInnerType("cgroup", ObjectType.builder()
+                        .setInnerType("cpuacct", ObjectType.builder()
+                            .setInnerType("control_group", DataTypes.STRING)
+                            .setInnerType("usage_nanos", DataTypes.LONG)
+                            .build())
+                        .setInnerType("cpu", ObjectType.builder()
+                            .setInnerType("control_group", DataTypes.STRING)
+                            .setInnerType("cfs_period_micros", DataTypes.LONG)
+                            .setInnerType("cfs_quota_micros", DataTypes.LONG)
+                            .setInnerType("num_elapsed_periods", DataTypes.LONG)
+                            .setInnerType("num_times_throttled", DataTypes.LONG)
+                            .setInnerType("time_throttled_nanos", DataTypes.LONG)
+                            .build())
+                        .setInnerType("mem", ObjectType.builder()
+                            .setInnerType("control_group", DataTypes.STRING)
+                            .setInnerType("limit_bytes", DataTypes.STRING)
+                            .setInnerType("usage_bytes", DataTypes.STRING)
+                            .build())
+                        .build())
+                    .build())
 
-                .register(Columns.OS_INFO, DataTypes.OBJECT)
-                .register(Columns.OS_INFO_AVAIL_PROCESSORS, DataTypes.INTEGER)
-                .register(Columns.OS_INFO_NAME, DataTypes.STRING)
-                .register(Columns.OS_INFO_ARCH, DataTypes.STRING)
-                .register(Columns.OS_INFO_VERSION, DataTypes.STRING)
-                .register(Columns.OS_INFO_JVM, DataTypes.OBJECT)
-                .register(Columns.OS_INFO_JVM_VERSION, DataTypes.STRING)
-                .register(Columns.OS_INFO_JVM_NAME, DataTypes.STRING)
-                .register(Columns.OS_INFO_JVM_VENDOR, DataTypes.STRING)
-                .register(Columns.OS_INFO_JVM_VM_VERSION, DataTypes.STRING)
+                .register(Columns.OS_INFO, ObjectType.builder()
+                    .setInnerType("available_processors", DataTypes.INTEGER)
+                    .setInnerType("name", DataTypes.STRING)
+                    .setInnerType("arch", DataTypes.STRING)
+                    .setInnerType("version", DataTypes.STRING)
+                    .setInnerType("jvm", ObjectType.builder()
+                        .setInnerType("version", DataTypes.STRING)
+                        .setInnerType("vm_name", DataTypes.STRING)
+                        .setInnerType("vm_vendor", DataTypes.STRING)
+                        .setInnerType("vm_version", DataTypes.STRING)
+                        .build())
+                    .build())
 
-                .register(Columns.PROCESS, DataTypes.OBJECT)
-                .register(Columns.PROCESS_OPEN_FILE_DESCR, DataTypes.LONG)
-                .register(Columns.PROCESS_MAX_OPEN_FILE_DESCR, DataTypes.LONG)
-                .register(Columns.PROCESS_PROBE_TS, DataTypes.TIMESTAMP)
-                .register(Columns.PROCESS_CPU, DataTypes.OBJECT)
-                .register(Columns.PROCESS_CPU_PERCENT, DataTypes.SHORT)
-                .register(Columns.PROCESS_CPU_USER, DataTypes.LONG)
-                .register(Columns.PROCESS_CPU_SYSTEM, DataTypes.LONG)
+                .register(Columns.PROCESS, ObjectType.builder()
+                    .setInnerType("open_file_descriptors", DataTypes.LONG)
+                    .setInnerType("max_open_file_descriptors", DataTypes.LONG)
+                    .setInnerType("probe_timestamp", DataTypes.TIMESTAMP)
+                    .setInnerType("cpu", ObjectType.builder()
+                        .setInnerType("percent", DataTypes.SHORT)
+                        .setInnerType("user", DataTypes.LONG)
+                        .setInnerType("system", DataTypes.LONG)
+                        .build())
+                    .build())
 
-                .register(Columns.FS, DataTypes.OBJECT)
-                .register(Columns.FS_TOTAL, DataTypes.OBJECT)
-                .register(Columns.FS_TOTAL_SIZE, DataTypes.LONG)
-                .register(Columns.FS_TOTAL_USED, DataTypes.LONG)
-                .register(Columns.FS_TOTAL_AVAILABLE, DataTypes.LONG)
-                .register(Columns.FS_TOTAL_READS, DataTypes.LONG)
-                .register(Columns.FS_TOTAL_BYTES_READ, DataTypes.LONG)
-                .register(Columns.FS_TOTAL_WRITES, DataTypes.LONG)
-                .register(Columns.FS_TOTAL_BYTES_WRITTEN, DataTypes.LONG)
-                .register(Columns.FS_DISKS, OBJECT_ARRAY_TYPE)
-                .register(Columns.FS_DISKS_DEV, DataTypes.STRING)
-                .register(Columns.FS_DISKS_SIZE, DataTypes.LONG)
-                .register(Columns.FS_DISKS_USED, DataTypes.LONG)
-                .register(Columns.FS_DISKS_AVAILABLE, DataTypes.LONG)
-                .register(Columns.FS_DISKS_READS, DataTypes.LONG)
-                .register(Columns.FS_DISKS_BYTES_READ, DataTypes.LONG)
-                .register(Columns.FS_DISKS_WRITES, DataTypes.LONG)
-                .register(Columns.FS_DISKS_BYTES_WRITTEN, DataTypes.LONG)
-                .register(Columns.FS_DATA, OBJECT_ARRAY_TYPE)
-                .register(Columns.FS_DATA_DEV, DataTypes.STRING)
-                .register(Columns.FS_DATA_PATH, DataTypes.STRING),
+                .register(Columns.FS, ObjectType.builder()
+                    .setInnerType("total", ObjectType.builder()
+                        .setInnerType("size", DataTypes.LONG)
+                        .setInnerType("used", DataTypes.LONG)
+                        .setInnerType("available", DataTypes.LONG)
+                        .setInnerType("reads", DataTypes.LONG)
+                        .setInnerType("bytes_read", DataTypes.LONG)
+                        .setInnerType("writes", DataTypes.LONG)
+                        .setInnerType("bytes_written", DataTypes.LONG)
+                        .build())
+                    .setInnerType("disks", new ArrayType(ObjectType.builder()
+                        .setInnerType("dev", DataTypes.STRING)
+                        .setInnerType("size", DataTypes.LONG)
+                        .setInnerType("used", DataTypes.LONG)
+                        .setInnerType("available", DataTypes.LONG)
+                        .setInnerType("reads", DataTypes.LONG)
+                        .setInnerType("bytes_read", DataTypes.LONG)
+                        .setInnerType("writes", DataTypes.LONG)
+                        .setInnerType("bytes_written", DataTypes.LONG)
+                        .build()))
+                    .setInnerType("data", new ArrayType(ObjectType.builder()
+                        .setInnerType("dev", DataTypes.STRING)
+                        .setInnerType("path", DataTypes.STRING)
+                        .build()))
+                    .build()),
             PRIMARY_KEY);
     }
 

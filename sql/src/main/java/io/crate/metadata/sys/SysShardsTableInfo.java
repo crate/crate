@@ -121,8 +121,6 @@ public class SysShardsTableInfo extends StaticTableInfo {
 
         static final ColumnIdent MIN_LUCENE_VERSION = new ColumnIdent("min_lucene_version");
         static final ColumnIdent NODE = new ColumnIdent("node");
-        static final ColumnIdent NODE_ID = new ColumnIdent("node", "id");
-        static final ColumnIdent NODE_NAME = new ColumnIdent("node", "name");
     }
 
     public static Map<ColumnIdent, RowCollectExpressionFactory<ShardRowContext>> expressions() {
@@ -165,20 +163,20 @@ public class SysShardsTableInfo extends StaticTableInfo {
             .put(Columns.ID,
                 () -> NestableCollectExpression.forFunction(UnassignedShard::id))
             .put(Columns.NUM_DOCS,
-                () -> NestableCollectExpression.forFunction(r -> 0L))
+                () -> NestableCollectExpression.constant(0L))
             .put(Columns.PRIMARY,
                 () -> NestableCollectExpression.forFunction(UnassignedShard::primary))
             .put(Columns.RELOCATING_NODE,
-                () -> NestableCollectExpression.forFunction(r -> null))
+                () -> NestableCollectExpression.constant(null))
             .put(Columns.SIZE,
-                () -> NestableCollectExpression.forFunction(r -> 0L))
+                () -> NestableCollectExpression.constant(0L))
             .put(Columns.STATE,
                 () -> NestableCollectExpression.forFunction(UnassignedShard::state))
             .put(Columns.ROUTING_STATE,
                 () -> NestableCollectExpression.forFunction(UnassignedShard::state))
             .put(Columns.ORPHAN_PARTITION,
                 () -> NestableCollectExpression.forFunction(UnassignedShard::orphanedPartition))
-            .put(Columns.RECOVERY, () -> new NestableCollectExpression<UnassignedShard, Object>() {
+            .put(Columns.RECOVERY, () -> new NestableCollectExpression<>() {
                 @Override
                 public void setNextRow(UnassignedShard unassignedShard) {
                 }
@@ -194,12 +192,12 @@ public class SysShardsTableInfo extends StaticTableInfo {
                 }
             })
             .put(Columns.PATH,
-                () -> NestableCollectExpression.forFunction(r -> null))
+                () -> NestableCollectExpression.constant(null))
             .put(Columns.BLOB_PATH,
-                () -> NestableCollectExpression.forFunction(r -> null))
+                () -> NestableCollectExpression.constant(null))
             .put(Columns.MIN_LUCENE_VERSION,
-                () -> NestableCollectExpression.forFunction(r -> null))
-            .put(Columns.NODE, () -> new NestableCollectExpression<UnassignedShard, Object>() {
+                () -> NestableCollectExpression.constant(null))
+            .put(Columns.NODE, () -> new NestableCollectExpression<>() {
                 @Override
                 public void setNextRow(UnassignedShard unassignedShard) {
                 }
@@ -224,6 +222,20 @@ public class SysShardsTableInfo extends StaticTableInfo {
         Columns.PARTITION_IDENT
     );
 
+    private static final ObjectType TYPE_RECOVERY_SIZE = ObjectType.builder()
+        .setInnerType("used", LongType.INSTANCE)
+        .setInnerType("reused", LongType.INSTANCE)
+        .setInnerType("recovered", LongType.INSTANCE)
+        .setInnerType("percent", FloatType.INSTANCE)
+        .build();
+
+    private static final ObjectType TYPE_RECOVERY_FILES = ObjectType.builder()
+        .setInnerType("used", IntegerType.INSTANCE)
+        .setInnerType("reused", IntegerType.INSTANCE)
+        .setInnerType("recovered", IntegerType.INSTANCE)
+        .setInnerType("percent", FloatType.INSTANCE)
+        .build();
+
     SysShardsTableInfo() {
         super(IDENT, new ColumnRegistrar(IDENT, RowGranularity.SHARD)
                 .register(Columns.SCHEMA_NAME, StringType.INSTANCE)
@@ -237,30 +249,20 @@ public class SysShardsTableInfo extends StaticTableInfo {
                 .register(Columns.STATE, StringType.INSTANCE)
                 .register(Columns.ROUTING_STATE, StringType.INSTANCE)
                 .register(Columns.ORPHAN_PARTITION, BooleanType.INSTANCE)
-
-                .register(Columns.RECOVERY, ObjectType.INSTANCE)
-                .register(Columns.RECOVERY_STAGE, StringType.INSTANCE)
-                .register(Columns.RECOVERY_TYPE, StringType.INSTANCE)
-                .register(Columns.RECOVERY_TOTAL_TIME, LongType.INSTANCE)
-
-                .register(Columns.RECOVERY_SIZE, ObjectType.INSTANCE)
-                .register(Columns.RECOVERY_SIZE_USED, LongType.INSTANCE)
-                .register(Columns.RECOVERY_SIZE_REUSED, LongType.INSTANCE)
-                .register(Columns.RECOVERY_SIZE_RECOVERED, LongType.INSTANCE)
-                .register(Columns.RECOVERY_SIZE_PERCENT, FloatType.INSTANCE)
-
-                .register(Columns.RECOVERY_FILES, ObjectType.INSTANCE)
-                .register(Columns.RECOVERY_FILES_USED, IntegerType.INSTANCE)
-                .register(Columns.RECOVERY_FILES_REUSED, IntegerType.INSTANCE)
-                .register(Columns.RECOVERY_FILES_RECOVERED, IntegerType.INSTANCE)
-                .register(Columns.RECOVERY_FILES_PERCENT, FloatType.INSTANCE)
+                .register(Columns.RECOVERY, ObjectType.builder()
+                    .setInnerType("stage", StringType.INSTANCE)
+                    .setInnerType("type", StringType.INSTANCE)
+                    .setInnerType("total_time", LongType.INSTANCE)
+                    .setInnerType("size", TYPE_RECOVERY_SIZE)
+                    .setInnerType("files", TYPE_RECOVERY_FILES)
+                    .build())
                 .register(Columns.PATH, DataTypes.STRING)
                 .register(Columns.BLOB_PATH, DataTypes.STRING)
-
                 .register(Columns.MIN_LUCENE_VERSION, StringType.INSTANCE)
-                .register(Columns.NODE, DataTypes.OBJECT)
-                .register(Columns.NODE_ID, DataTypes.STRING)
-                .register(Columns.NODE_NAME, DataTypes.STRING),
+                .register(Columns.NODE, ObjectType.builder()
+                    .setInnerType("id", DataTypes.STRING)
+                    .setInnerType("name", DataTypes.STRING)
+                    .build()),
             PRIMARY_KEY);
     }
 

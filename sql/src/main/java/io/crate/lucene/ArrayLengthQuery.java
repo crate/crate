@@ -44,6 +44,7 @@ import io.crate.types.GeoPointType;
 import io.crate.types.IntegerType;
 import io.crate.types.IpType;
 import io.crate.types.LongType;
+import io.crate.types.ObjectType;
 import io.crate.types.ShortType;
 import io.crate.types.StringType;
 import io.crate.types.TimestampType;
@@ -116,7 +117,7 @@ public final class ArrayLengthQuery implements InnerFunctionToQuery {
         }
         Reference arrayRef = (Reference) arraySymbol;
         DataType elementType = CollectionType.unnest(arrayRef.valueType());
-        if (elementType.equals(DataTypes.OBJECT) || elementType.equals(DataTypes.GEO_SHAPE)) {
+        if (elementType.id() == ObjectType.ID || elementType.equals(DataTypes.GEO_SHAPE)) {
             // No doc-values for these, can't utilize doc-value-count
             return null;
         }

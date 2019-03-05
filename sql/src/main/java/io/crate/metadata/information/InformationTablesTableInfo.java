@@ -38,6 +38,7 @@ import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.ShardedTable;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 import org.elasticsearch.Version;
 
 import java.util.List;
@@ -64,70 +65,10 @@ public class InformationTablesTableInfo extends InformationTableInfo {
         static final ColumnIdent COLUMN_POLICY = new ColumnIdent("column_policy");
         static final ColumnIdent ROUTING_HASH_FUNCTION = new ColumnIdent("routing_hash_function");
         static final ColumnIdent TABLE_VERSION = new ColumnIdent("version");
-        static final ColumnIdent TABLE_VERSION_CREATED = new ColumnIdent("version",
-            ImmutableList.of(Version.Property.CREATED.toString()));
-        static final ColumnIdent TABLE_VERSION_UPGRADED = new ColumnIdent("version",
-            ImmutableList.of(Version.Property.UPGRADED.toString()));
         static final ColumnIdent CLOSED = new ColumnIdent("closed");
         static final ColumnIdent REFERENCE_GENERATION = new ColumnIdent("reference_generation");
         static final ColumnIdent SELF_REFERENCING_COLUMN_NAME = new ColumnIdent("self_referencing_column_name");
         static final ColumnIdent TABLE_SETTINGS = new ColumnIdent("settings");
-        static final ColumnIdent TABLE_SETTINGS_BLOCKS = new ColumnIdent("settings",
-            ImmutableList.of("blocks"));
-        static final ColumnIdent TABLE_SETTINGS_BLOCKS_READ_ONLY = new ColumnIdent("settings",
-            ImmutableList.of("blocks", "read_only"));
-        static final ColumnIdent TABLE_SETTINGS_BLOCKS_READ = new ColumnIdent("settings",
-            ImmutableList.of("blocks", "read"));
-        static final ColumnIdent TABLE_SETTINGS_BLOCKS_WRITE = new ColumnIdent("settings",
-            ImmutableList.of("blocks", "write"));
-        static final ColumnIdent TABLE_SETTINGS_BLOCKS_METADATA = new ColumnIdent("settings",
-            ImmutableList.of("blocks", "metadata"));
-        static final ColumnIdent TABLE_SETTINGS_ROUTING = new ColumnIdent("settings",
-            ImmutableList.of("routing"));
-        static final ColumnIdent TABLE_SETTINGS_ROUTING_ALLOCATION = new ColumnIdent("settings",
-            ImmutableList.of("routing", "allocation"));
-        static final ColumnIdent TABLE_SETTINGS_ROUTING_ALLOCATION_ENABLE = new ColumnIdent("settings",
-            ImmutableList.of("routing", "allocation", "enable"));
-        static final ColumnIdent TABLE_SETTINGS_ROUTING_ALLOCATION_TOTAL_SHARDS_PER_NODE = new ColumnIdent("settings",
-            ImmutableList.of("routing", "allocation", "total_shards_per_node"));
-        static final ColumnIdent TABLE_SETTINGS_ROUTING_ALLOCATION_REQUIRE = new ColumnIdent("settings",
-            ImmutableList.of("routing", "allocation", "require"));
-        static final ColumnIdent TABLE_SETTINGS_ROUTING_ALLOCATION_INCLUDE = new ColumnIdent("settings",
-            ImmutableList.of("routing", "allocation", "include"));
-        static final ColumnIdent TABLE_SETTINGS_ROUTING_ALLOCATION_EXCLUDE = new ColumnIdent("settings",
-            ImmutableList.of("routing", "allocation", "exclude"));
-        static final ColumnIdent TABLE_SETTINGS_WARMER = new ColumnIdent("settings",
-            ImmutableList.of("warmer"));
-        static final ColumnIdent TABLE_SETTINGS_WARMER_ENABLED = new ColumnIdent("settings",
-            ImmutableList.of("warmer", "enabled"));
-        static final ColumnIdent TABLE_SETTINGS_MAPPING = new ColumnIdent("settings", ImmutableList.of("mapping"));
-        static final ColumnIdent TABLE_SETTINGS_MAPPING_TOTAL_FIELDS = new ColumnIdent("settings",
-            ImmutableList.of("mapping", "total_fields"));
-        static final ColumnIdent TABLE_SETTINGS_MAPPING_TOTAL_FIELDS_LIMIT = new ColumnIdent("settings",
-            ImmutableList.of("mapping", "total_fields", "limit"));
-
-        static final ColumnIdent TABLE_SETTINGS_TRANSLOG = new ColumnIdent("settings",
-            ImmutableList.of("translog"));
-        static final ColumnIdent TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_SIZE = new ColumnIdent("settings",
-            ImmutableList.of("translog", "flush_threshold_size"));
-        static final ColumnIdent TABLE_SETTINGS_TRANSLOG_SYNC_INTERVAL = new ColumnIdent("settings",
-            ImmutableList.of("translog", "sync_interval"));
-
-        static final ColumnIdent TABLE_SETTINGS_REFRESH_INTERVAL = new ColumnIdent("settings",
-            ImmutableList.of("refresh_interval"));
-
-        static final ColumnIdent TABLE_SETTINGS_WRITE = new ColumnIdent("settings",
-            ImmutableList.of("write"));
-
-        static final ColumnIdent TABLE_SETTINGS_WRITE_WAIT_FOT_ACTIVE_SHARDS = new ColumnIdent("settings",
-            ImmutableList.of("write", "wait_for_active_shards"));
-
-        static final ColumnIdent TABLE_SETTINGS_UNASSIGNED = new ColumnIdent("settings",
-            ImmutableList.of("unassigned"));
-        static final ColumnIdent TABLE_SETTINGS_UNASSIGNED_NODE_LEFT = new ColumnIdent("settings",
-            ImmutableList.of("unassigned", "node_left"));
-        static final ColumnIdent TABLE_SETTINGS_UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT = new ColumnIdent("settings",
-            ImmutableList.of("unassigned", "node_left", "delayed_timeout"));
     }
 
     private static ColumnRegistrar createColumnRegistrar() {
@@ -143,39 +84,51 @@ public class InformationTablesTableInfo extends InformationTableInfo {
             .register(Columns.BLOBS_PATH, DataTypes.STRING)
             .register(Columns.COLUMN_POLICY, DataTypes.STRING)
             .register(Columns.ROUTING_HASH_FUNCTION, DataTypes.STRING)
-            .register(Columns.TABLE_VERSION, DataTypes.OBJECT)
-            .register(Columns.TABLE_VERSION_CREATED, DataTypes.STRING)
-            .register(Columns.TABLE_VERSION_UPGRADED, DataTypes.STRING)
+            .register(Columns.TABLE_VERSION, ObjectType.builder()
+                .setInnerType(Version.Property.CREATED.toString(), DataTypes.STRING)
+                .setInnerType(Version.Property.UPGRADED.toString(), DataTypes.STRING)
+                .build())
             .register(Columns.CLOSED, DataTypes.BOOLEAN)
             .register(Columns.REFERENCE_GENERATION, DataTypes.STRING)
             .register(Columns.SELF_REFERENCING_COLUMN_NAME, DataTypes.STRING)
-            .register(Columns.TABLE_SETTINGS, DataTypes.OBJECT)
-            .register(Columns.TABLE_SETTINGS_BLOCKS, DataTypes.OBJECT)
-            .register(Columns.TABLE_SETTINGS_BLOCKS_READ_ONLY, DataTypes.BOOLEAN)
-            .register(Columns.TABLE_SETTINGS_BLOCKS_READ, DataTypes.BOOLEAN)
-            .register(Columns.TABLE_SETTINGS_BLOCKS_WRITE, DataTypes.BOOLEAN)
-            .register(Columns.TABLE_SETTINGS_BLOCKS_METADATA, DataTypes.BOOLEAN)
-            .register(Columns.TABLE_SETTINGS_TRANSLOG, DataTypes.OBJECT)
-            .register(Columns.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_SIZE, DataTypes.LONG)
-            .register(Columns.TABLE_SETTINGS_TRANSLOG_SYNC_INTERVAL, DataTypes.LONG)
-            .register(Columns.TABLE_SETTINGS_REFRESH_INTERVAL, DataTypes.LONG)
-            .register(Columns.TABLE_SETTINGS_ROUTING, DataTypes.OBJECT)
-            .register(Columns.TABLE_SETTINGS_ROUTING_ALLOCATION, DataTypes.OBJECT)
-            .register(Columns.TABLE_SETTINGS_ROUTING_ALLOCATION_ENABLE, DataTypes.STRING)
-            .register(Columns.TABLE_SETTINGS_ROUTING_ALLOCATION_TOTAL_SHARDS_PER_NODE, DataTypes.INTEGER)
-            .register(Columns.TABLE_SETTINGS_ROUTING_ALLOCATION_REQUIRE, DataTypes.OBJECT)
-            .register(Columns.TABLE_SETTINGS_ROUTING_ALLOCATION_INCLUDE, DataTypes.OBJECT)
-            .register(Columns.TABLE_SETTINGS_ROUTING_ALLOCATION_EXCLUDE, DataTypes.OBJECT)
-            .register(Columns.TABLE_SETTINGS_WARMER, DataTypes.OBJECT)
-            .register(Columns.TABLE_SETTINGS_WARMER_ENABLED, DataTypes.BOOLEAN)
-            .register(Columns.TABLE_SETTINGS_WRITE, DataTypes.OBJECT)
-            .register(Columns.TABLE_SETTINGS_WRITE_WAIT_FOT_ACTIVE_SHARDS, DataTypes.STRING)
-            .register(Columns.TABLE_SETTINGS_UNASSIGNED, DataTypes.OBJECT)
-            .register(Columns.TABLE_SETTINGS_UNASSIGNED_NODE_LEFT, DataTypes.OBJECT)
-            .register(Columns.TABLE_SETTINGS_UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT, DataTypes.LONG)
-            .register(Columns.TABLE_SETTINGS_MAPPING, DataTypes.OBJECT)
-            .register(Columns.TABLE_SETTINGS_MAPPING_TOTAL_FIELDS, DataTypes.OBJECT)
-            .register(Columns.TABLE_SETTINGS_MAPPING_TOTAL_FIELDS_LIMIT, DataTypes.INTEGER);
+            .register(Columns.TABLE_SETTINGS, ObjectType.builder()
+                .setInnerType("refresh_interval", DataTypes.LONG)
+                .setInnerType("blocks", ObjectType.builder()
+                    .setInnerType("read_only", DataTypes.BOOLEAN)
+                    .setInnerType("read", DataTypes.BOOLEAN)
+                    .setInnerType("write", DataTypes.BOOLEAN)
+                    .setInnerType("metadata", DataTypes.BOOLEAN)
+                    .build())
+                .setInnerType("translog", ObjectType.builder()
+                    .setInnerType("flush_threshold_size", DataTypes.LONG)
+                    .setInnerType("sync_interval", DataTypes.LONG)
+                    .build())
+                .setInnerType("routing", ObjectType.builder()
+                    .setInnerType("allocation", ObjectType.builder()
+                        .setInnerType("enable", DataTypes.STRING)
+                        .setInnerType("total_shards_per_node", DataTypes.INTEGER)
+                        .setInnerType("require", ObjectType.untyped())
+                        .setInnerType("include", ObjectType.untyped())
+                        .setInnerType("exclude", ObjectType.untyped())
+                        .build())
+                    .build())
+                .setInnerType("warmer", ObjectType.builder()
+                    .setInnerType("enabled", DataTypes.BOOLEAN)
+                    .build())
+                .setInnerType("write", ObjectType.builder()
+                    .setInnerType("wait_for_active_shards", DataTypes.STRING)
+                    .build())
+                .setInnerType("unassigned", ObjectType.builder()
+                    .setInnerType("node_left", ObjectType.builder()
+                        .setInnerType("delayed_timeout", DataTypes.LONG)
+                        .build())
+                    .build())
+                .setInnerType("mapping", ObjectType.builder()
+                    .setInnerType("total_fields", ObjectType.builder()
+                        .setInnerType("limit", DataTypes.INTEGER)
+                        .build())
+                    .build())
+                .build());
     }
 
     public static Map<ColumnIdent, RowCollectExpressionFactory<RelationInfo>> expressions() {

@@ -35,6 +35,7 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.settings.Settings;
 
@@ -46,11 +47,14 @@ import java.util.function.Predicate;
 public class CopyFromReturnSummaryAnalyzedStatement extends CopyFromAnalyzedStatement implements AnalyzedRelation {
 
     private final List<Field> fields = ImmutableList.of(
-        new Field(this, new ColumnIdent("node"), DataTypes.OBJECT),
+        new Field(this, new ColumnIdent("node"), ObjectType.builder()
+            .setInnerType("id", DataTypes.STRING)
+            .setInnerType("name", DataTypes.STRING)
+            .build()),
         new Field(this, new ColumnIdent("uri"), DataTypes.STRING),
         new Field(this, new ColumnIdent("success_count"), DataTypes.LONG),
         new Field(this, new ColumnIdent("error_count"), DataTypes.LONG),
-        new Field(this, new ColumnIdent("errors"), DataTypes.OBJECT)
+        new Field(this, new ColumnIdent("errors"), ObjectType.untyped())
     );
 
     private QualifiedName qualifiedName;

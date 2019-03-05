@@ -40,7 +40,7 @@ import io.crate.metadata.table.StaticTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.types.DataType;
-import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 import org.elasticsearch.cluster.ClusterState;
 
 import java.util.Collections;
@@ -98,7 +98,7 @@ public class EmptyRowTableFunction {
             @Override
             public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
                 return new EmptyRowTableFunctionImplementation(
-                    new FunctionInfo(new FunctionIdent(NAME, dataTypes), DataTypes.OBJECT, FunctionInfo.Type.TABLE));
+                    new FunctionInfo(new FunctionIdent(NAME, dataTypes), ObjectType.untyped(), FunctionInfo.Type.TABLE));
             }
         });
     }

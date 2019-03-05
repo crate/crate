@@ -28,6 +28,7 @@ import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -176,7 +177,7 @@ public class Reference extends Symbol {
             .add("ident", ident)
             .add("granularity", granularity)
             .add("type", type);
-        if (type.equals(DataTypes.OBJECT)) {
+        if (type.id() == ObjectType.ID) {
             helper.add("column policy", columnPolicy.name());
         }
         helper.add("index type", indexType.name());

@@ -204,6 +204,10 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         assertThat(response.rows()[1][0], is(2));
     }
 
+    /**
+     * Disable JDBC/PSQL as object values are streamed via JSON on the PSQL wire protocol which is not type safe.
+     */
+    @UseJdbc(0)
     @Test
     public void testCopyFromFileWithInvalidColumns() throws Exception {
         execute("create table foo (id integer primary key) clustered into 1 shards with (number_of_replicas=0)");
@@ -230,7 +234,9 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         // Check data of column.
         assertThat(response.rows()[0][0], is(4));
         HashMap data = (HashMap)response.rows()[0][1];
-        assertThat(data.get("_valid"), is(4));
+        // The inner value will result in an Long type as we rely on ES mappers here and the dynamic ES parsing
+        // will define integers as longs (no concrete type was specified so use long to be safe)
+        assertThat(data.get("_valid"), is(4L));
     }
 
     @Test

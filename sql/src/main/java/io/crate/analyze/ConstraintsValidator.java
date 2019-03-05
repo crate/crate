@@ -26,7 +26,7 @@ import io.crate.common.collections.Maps;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 
 import java.util.Collection;
 import java.util.Locale;
@@ -47,7 +47,7 @@ public final class ConstraintsValidator {
     private static void validateNotNullOnChildren(Object value,
                                                   Reference targetColumn,
                                                   Collection<ColumnIdent> notNullColumns) {
-        if (targetColumn.valueType() == DataTypes.OBJECT) {
+        if (targetColumn.valueType().id() == ObjectType.ID) {
             Map<String, Object> valueMap = (Map<String, Object>) value;
             for (ColumnIdent columnIdent : notNullColumns) {
                 if (columnIdent.isChildOf(targetColumn.column())) {

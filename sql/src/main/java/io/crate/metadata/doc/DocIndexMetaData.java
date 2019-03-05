@@ -53,6 +53,7 @@ import io.crate.sql.tree.Expression;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
@@ -252,10 +253,15 @@ public class DocIndexMetaData {
         String typeName = (String) columnProperties.get("type");
 
         if (typeName == null) {
-            if (columnProperties.containsKey("properties")) {
-                type = DataTypes.OBJECT;
+            Map<String, Object> innerProperties = (Map<String, Object>) columnProperties.get("properties");
+            if (innerProperties != null) {
+                ObjectType.Builder builder = ObjectType.builder();
+                for (Map.Entry<String, Object> entry : innerProperties.entrySet()) {
+                    builder.setInnerType(entry.getKey(), getColumnDataType((Map<String, Object>) entry.getValue()));
+                }
+                type = builder.build();
             } else {
-                return DataTypes.NOT_SUPPORTED;
+                type = DataTypes.NOT_SUPPORTED;
             }
         } else if (typeName.equalsIgnoreCase("array")) {
 
@@ -356,9 +362,9 @@ public class DocIndexMetaData {
                 Integer treeLevels = (Integer) columnProperties.get("tree_levels");
                 Double distanceErrorPct = (Double) columnProperties.get("distance_error_pct");
                 addGeoReference(newIdent, geoTree, precision, treeLevels, distanceErrorPct);
-            } else if (columnDataType == DataTypes.OBJECT
+            } else if (columnDataType.id() == ObjectType.ID
                        || (columnDataType.id() == ArrayType.ID
-                           && ((ArrayType) columnDataType).innerType() == DataTypes.OBJECT)) {
+                           && ((ArrayType) columnDataType).innerType().id() == ObjectType.ID)) {
                 ColumnPolicy columnPolicy =
                     ColumnPolicy.of(columnProperties.get("dynamic"));
                 add(newIdent, columnDataType, columnPolicy, Reference.IndexType.NO, false, nullable, false);
@@ -612,9 +618,9 @@ public class DocIndexMetaData {
             DataType columnDataType = getColumnDataType(columnProperties);
             ColumnIdent newIdent = childIdent(columnIdent, columnEntry.getKey());
             columnProperties = furtherColumnProperties(columnProperties);
-            if (columnDataType == DataTypes.OBJECT
+            if (columnDataType.id() == ObjectType.ID
                 || (columnDataType.id() == ArrayType.ID
-                    && ((ArrayType) columnDataType).innerType() == DataTypes.OBJECT)) {
+                    && ((ArrayType) columnDataType).innerType().id() == ObjectType.ID)) {
                 if (columnProperties.get("properties") != null) {
                     builder.putAll(getAnalyzers(newIdent, (Map<String, Object>) columnProperties.get("properties")));
                 }

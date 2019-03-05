@@ -48,7 +48,7 @@ import io.crate.sql.tree.LongLiteral;
 import io.crate.sql.tree.SubscriptExpression;
 import io.crate.sql.tree.Update;
 import io.crate.types.ArrayType;
-import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 
 import java.util.HashMap;
 import java.util.List;
@@ -62,7 +62,8 @@ import java.util.function.Predicate;
 public final class UpdateAnalyzer {
 
     private static final Predicate<Reference> IS_OBJECT_ARRAY =
-        input -> input.valueType().id() == ArrayType.ID && ((ArrayType) input.valueType()).innerType().equals(DataTypes.OBJECT);
+        input -> input.valueType().id() == ArrayType.ID
+                 && ((ArrayType) input.valueType()).innerType().id() == ObjectType.ID;
 
     private final Functions functions;
     private final RelationAnalyzer relationAnalyzer;

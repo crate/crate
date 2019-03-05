@@ -46,13 +46,17 @@ import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Expression;
+import io.crate.types.CollectionType;
 import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -221,12 +225,20 @@ public class TestingTableInfo extends DocTableInfo {
                            ColumnPolicy columnPolicy, Reference.IndexType indexType,
                            boolean partitionBy,
                            boolean nullable) {
+            return add(column, type, path, columnPolicy, indexType, partitionBy, nullable, false);
+        }
+
+        public Builder add(String column, DataType type, List<String> path,
+                           ColumnPolicy columnPolicy, Reference.IndexType indexType,
+                           boolean partitionBy,
+                           boolean nullable,
+                           boolean columnStoreDisabled) {
             RowGranularity rowGranularity = RowGranularity.DOC;
             if (partitionBy) {
                 rowGranularity = RowGranularity.PARTITION;
             }
             Reference ref = new Reference(new ReferenceIdent(ident, column, path),
-                rowGranularity, type, columnPolicy, indexType, nullable);
+                rowGranularity, type, columnPolicy, indexType, nullable, columnStoreDisabled);
             if (ref.column().isTopLevel()) {
                 columns.add(ref);
             }
@@ -235,7 +247,26 @@ public class TestingTableInfo extends DocTableInfo {
                 partitionedByColumns.add(ref);
                 partitionedBy.add(ref.column());
             }
+            addPossibleObjectInnerTypes(column, type, path);
+            if (DataTypes.isCollectionType(type)) {
+                addPossibleObjectInnerTypes(column, ((CollectionType) type).innerType(), path);
+            }
             return this;
+        }
+
+        private void addPossibleObjectInnerTypes(String column, DataType type, @Nullable List<String> path) {
+            if (type.id() != ObjectType.ID) {
+                return;
+            }
+            Map<String, DataType> innerTypes = ((ObjectType) type).innerTypes();
+            for (Map.Entry<String, DataType> entry : innerTypes.entrySet()) {
+                ArrayList<String> newPath = new ArrayList<>();
+                if (path != null) {
+                    newPath.addAll(path);
+                }
+                newPath.add(entry.getKey());
+                add(column, entry.getValue(), newPath);
+            }
         }
 
         public Builder addGeneratedColumn(String column, DataType type, String expression, boolean partitionBy) {

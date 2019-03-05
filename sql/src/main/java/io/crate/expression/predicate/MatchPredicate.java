@@ -29,6 +29,7 @@ import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.common.xcontent.LoggingDeprecationHandler;
 import org.elasticsearch.index.query.MultiMatchQueryBuilder;
@@ -56,7 +57,7 @@ public class MatchPredicate implements FunctionImplementation {
     public static final String NAME = "match";
     public static final FunctionIdent IDENT = new FunctionIdent(
         NAME,
-        Arrays.asList(DataTypes.OBJECT, DataTypes.STRING, DataTypes.STRING, DataTypes.OBJECT)
+        Arrays.asList(ObjectType.untyped(), DataTypes.STRING, DataTypes.STRING, ObjectType.untyped())
     );
 
     public static final FunctionInfo INFO = new FunctionInfo(IDENT, DataTypes.BOOLEAN);

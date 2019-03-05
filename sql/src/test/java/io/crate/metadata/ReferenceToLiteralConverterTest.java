@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableList;
 import io.crate.expression.symbol.Symbol;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.junit.Test;
 
@@ -56,7 +57,7 @@ public class ReferenceToLiteralConverterTest extends CrateUnitTest {
             MapBuilder.newMapBuilder().put("name", "Ford").map()};
 
         Reference userRef = new Reference(
-            new ReferenceIdent(TABLE_IDENT, new ColumnIdent("user")), RowGranularity.DOC, DataTypes.OBJECT);
+            new ReferenceIdent(TABLE_IDENT, new ColumnIdent("user")), RowGranularity.DOC, ObjectType.untyped());
         Reference nameRef = new Reference(
             new ReferenceIdent(TABLE_IDENT, new ColumnIdent("user", ImmutableList.of("name"))),
             RowGranularity.DOC, DataTypes.STRING);
@@ -77,7 +78,7 @@ public class ReferenceToLiteralConverterTest extends CrateUnitTest {
             ).map()};
 
         Reference userRef = new Reference(
-            new ReferenceIdent(TABLE_IDENT, new ColumnIdent("user")), RowGranularity.DOC, DataTypes.OBJECT);
+            new ReferenceIdent(TABLE_IDENT, new ColumnIdent("user")), RowGranularity.DOC, ObjectType.untyped());
         Reference nameRef = new Reference(
             new ReferenceIdent(TABLE_IDENT, new ColumnIdent("user", ImmutableList.of("profile", "name"))),
             RowGranularity.DOC, DataTypes.STRING);

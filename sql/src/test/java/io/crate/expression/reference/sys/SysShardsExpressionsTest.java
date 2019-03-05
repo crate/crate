@@ -42,6 +42,7 @@ import io.crate.metadata.table.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.DataTypes;
 import io.crate.types.IntegerType;
+import io.crate.types.ObjectType;
 import org.apache.lucene.store.AlreadyClosedException;
 import org.apache.lucene.util.Version;
 import org.elasticsearch.cluster.routing.RecoverySource;
@@ -313,7 +314,7 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testRecoveryShardField() throws Exception {
-        Reference refInfo = refInfo("sys.shards.recovery", DataTypes.OBJECT, RowGranularity.SHARD);
+        Reference refInfo = refInfo("sys.shards.recovery", ObjectType.untyped(), RowGranularity.SHARD);
         NestableInput<Map<String, Object>> ref = (NestableInput<Map<String,Object>>) resolver.getImplementation(refInfo);
 
         Map<String, Object> recovery = ref.value();

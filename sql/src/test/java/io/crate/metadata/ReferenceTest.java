@@ -25,7 +25,7 @@ import io.crate.metadata.table.ColumnPolicy;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
-import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
@@ -38,8 +38,8 @@ public class ReferenceTest extends CrateUnitTest {
     public void testEquals() throws Exception {
         RelationName relationName = new RelationName("doc", "test");
         ReferenceIdent referenceIdent = new ReferenceIdent(relationName, "object_column");
-        DataType dataType1 = new ArrayType(DataTypes.OBJECT);
-        DataType dataType2 = new ArrayType(DataTypes.OBJECT);
+        DataType dataType1 = new ArrayType(ObjectType.untyped());
+        DataType dataType2 = new ArrayType(ObjectType.untyped());
         Reference reference1 = new Reference(referenceIdent, RowGranularity.DOC, dataType1);
         Reference reference2 = new Reference(referenceIdent, RowGranularity.DOC, dataType2);
         assertTrue(reference1.equals(reference2));
@@ -51,7 +51,7 @@ public class ReferenceTest extends CrateUnitTest {
         ReferenceIdent referenceIdent = new ReferenceIdent(relationName, "object_column");
         Reference reference = new Reference(referenceIdent,
             RowGranularity.DOC,
-            new ArrayType(DataTypes.OBJECT),
+            new ArrayType(ObjectType.untyped()),
             ColumnPolicy.STRICT,
             Reference.IndexType.ANALYZED, false);
 

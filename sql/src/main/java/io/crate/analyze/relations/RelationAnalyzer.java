@@ -299,7 +299,10 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         ExpressionAnalysisContext expressionAnalysisContext = context.expressionAnalysisContext();
 
         SelectAnalysis selectAnalysis = SelectAnalyzer.analyzeSelect(
-            node.getSelect(), context.sources(), expressionAnalyzer, expressionAnalysisContext);
+            node.getSelect(),
+            context.sources(),
+            expressionAnalyzer,
+            expressionAnalysisContext);
 
         List<Symbol> groupBy = analyzeGroupBy(
             selectAnalysis,

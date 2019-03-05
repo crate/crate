@@ -37,6 +37,7 @@ import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 
 import java.util.Arrays;
 import java.util.Map;
@@ -89,10 +90,12 @@ public class T3 {
     public static final DocTableInfo T4_INFO = new TestingTableInfo.Builder(
         new RelationName(Schemas.DOC_SCHEMA_NAME, "t4"), t4Routing)
         .add("id", DataTypes.INTEGER)
-        .add("obj", DataTypes.OBJECT)
-        .add("obj", DataTypes.INTEGER, ImmutableList.of("i"))
-        .add("obj_array", new ArrayType(DataTypes.OBJECT))
-        .add("obj_array", DataTypes.INTEGER, ImmutableList.of("i"))
+        .add("obj", ObjectType.builder()
+            .setInnerType("i", DataTypes.INTEGER)
+            .build())
+        .add("obj_array", new ArrayType(ObjectType.builder()
+            .setInnerType("i", DataTypes.INTEGER)
+            .build()))
         .build();
     public static final TableRelation TR_4 = new TableRelation(T4_INFO);
 

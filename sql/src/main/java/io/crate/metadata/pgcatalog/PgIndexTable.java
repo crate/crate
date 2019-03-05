@@ -35,6 +35,7 @@ import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 import org.elasticsearch.cluster.ClusterState;
 
 import java.util.Collections;
@@ -92,25 +93,25 @@ public class PgIndexTable extends StaticTableInfo {
 
     PgIndexTable() {
         super(IDENT, new ColumnRegistrar(IDENT, RowGranularity.DOC)
-                .register(Columns.INDRELID.name(), DataTypes.INTEGER, null)
-                .register(Columns.INDEXRELID.name(), DataTypes.INTEGER, null)
-                .register(Columns.INDNATTS.name(), DataTypes.SHORT, null)
-                .register(Columns.INDISUNIQUE.name(), DataTypes.BOOLEAN, null)
-                .register(Columns.INDISPRIMARY.name(), DataTypes.BOOLEAN, null)
-                .register(Columns.INDISEXCLUSION.name(), DataTypes.BOOLEAN, null)
-                .register(Columns.INDIMMEDIATE.name(), DataTypes.BOOLEAN, null)
-                .register(Columns.INDISCLUSTERED.name(), DataTypes.BOOLEAN, null)
-                .register(Columns.INDISVALID.name(), DataTypes.BOOLEAN, null)
-                .register(Columns.INDCHECKXMIN.name(), DataTypes.BOOLEAN, null)
-                .register(Columns.INDISREADY.name(), DataTypes.BOOLEAN, null)
-                .register(Columns.INDISLIVE.name(), DataTypes.BOOLEAN, null)
-                .register(Columns.INDISREPLIDENT.name(), DataTypes.BOOLEAN, null)
-                .register(Columns.INDKEY.name(), DataTypes.SHORT_ARRAY, null)
-                .register(Columns.INDCOLLATION.name(), DataTypes.INTEGER_ARRAY, null)
-                .register(Columns.INDCLASS.name(), DataTypes.INTEGER_ARRAY, null)
-                .register(Columns.INDOPTION.name(), DataTypes.SHORT_ARRAY, null)
-                .register(Columns.INDEXPRS.name(), DataTypes.OBJECT, null)
-                .register(Columns.INDPRED.name(), DataTypes.OBJECT, null),
+                .register(Columns.INDRELID.name(), DataTypes.INTEGER)
+                .register(Columns.INDEXRELID.name(), DataTypes.INTEGER)
+                .register(Columns.INDNATTS.name(), DataTypes.SHORT)
+                .register(Columns.INDISUNIQUE.name(), DataTypes.BOOLEAN)
+                .register(Columns.INDISPRIMARY.name(), DataTypes.BOOLEAN)
+                .register(Columns.INDISEXCLUSION.name(), DataTypes.BOOLEAN)
+                .register(Columns.INDIMMEDIATE.name(), DataTypes.BOOLEAN)
+                .register(Columns.INDISCLUSTERED.name(), DataTypes.BOOLEAN)
+                .register(Columns.INDISVALID.name(), DataTypes.BOOLEAN)
+                .register(Columns.INDCHECKXMIN.name(), DataTypes.BOOLEAN)
+                .register(Columns.INDISREADY.name(), DataTypes.BOOLEAN)
+                .register(Columns.INDISLIVE.name(), DataTypes.BOOLEAN)
+                .register(Columns.INDISREPLIDENT.name(), DataTypes.BOOLEAN)
+                .register(Columns.INDKEY.name(), DataTypes.SHORT_ARRAY)
+                .register(Columns.INDCOLLATION.name(), DataTypes.INTEGER_ARRAY)
+                .register(Columns.INDCLASS.name(), DataTypes.INTEGER_ARRAY)
+                .register(Columns.INDOPTION.name(), DataTypes.SHORT_ARRAY)
+                .register(Columns.INDEXPRS.name(), ObjectType.untyped())
+                .register(Columns.INDPRED.name(), ObjectType.untyped()),
             Collections.emptyList());
     }
 

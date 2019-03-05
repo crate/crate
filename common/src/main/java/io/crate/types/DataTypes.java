@@ -67,13 +67,10 @@ public final class DataTypes {
     public static final LongType LONG = LongType.INSTANCE;
     public static final TimestampType TIMESTAMP = TimestampType.INSTANCE;
 
-    public static final ObjectType OBJECT = ObjectType.INSTANCE;
-
     public static final GeoPointType GEO_POINT = GeoPointType.INSTANCE;
     public static final GeoShapeType GEO_SHAPE = GeoShapeType.INSTANCE;
 
     public static final DataType DOUBLE_ARRAY = new ArrayType(DOUBLE);
-    public static final DataType OBJECT_ARRAY = new ArrayType(OBJECT);
     public static final DataType STRING_ARRAY = new ArrayType(STRING);
     public static final DataType INTEGER_ARRAY = new ArrayType(INTEGER);
     public static final DataType SHORT_ARRAY = new ArrayType(SHORT);
@@ -116,7 +113,7 @@ public final class DataTypes {
         .put(IntegerType.ID, () -> INTEGER)
         .put(LongType.ID, () -> LONG)
         .put(TimestampType.ID, () -> TIMESTAMP)
-        .put(ObjectType.ID, () -> OBJECT)
+        .put(ObjectType.ID, ObjectType::untyped)
         .put(GeoPointType.ID, () -> GEO_POINT)
         .put(GeoShapeType.ID, () -> GEO_SHAPE)
         .put(ArrayType.ID, ArrayType::new)
@@ -144,14 +141,14 @@ public final class DataTypes {
             .add(GEO_SHAPE)
             .add(GEO_POINT)
             .add(BOOLEAN)
-            .add(OBJECT)
+            .add(ObjectType.untyped())
             .build())
         .put(IP.id(), ImmutableSet.of(STRING))
         .put(TIMESTAMP.id(), ImmutableSet.of(DOUBLE, LONG, STRING))
         .put(UNDEFINED.id(), ImmutableSet.of()) // actually convertible to every type, see NullType
         .put(GEO_POINT.id(), ImmutableSet.of(new ArrayType(DOUBLE)))
-        .put(GEO_SHAPE.id(), ImmutableSet.of(OBJECT))
-        .put(OBJECT.id(), ImmutableSet.of(GEO_SHAPE))
+        .put(GEO_SHAPE.id(), ImmutableSet.of(ObjectType.untyped()))
+        .put(ObjectType.ID, ImmutableSet.of(GEO_SHAPE))
         .put(ArrayType.ID, ImmutableSet.of()) // convertability handled in ArrayType
         .put(SetType.ID, ImmutableSet.of()) // convertability handled in SetType
         .build();
@@ -208,7 +205,7 @@ public final class DataTypes {
         .put(Short.class, SHORT)
         .put(Byte.class, BYTE)
         .put(Boolean.class, BOOLEAN)
-        .put(Map.class, OBJECT)
+        .put(Map.class, ObjectType.untyped())
         .put(String.class, STRING)
         .put(BytesRef.class, STRING)
         .put(Character.class, STRING)
@@ -218,7 +215,7 @@ public final class DataTypes {
         if (value == null) {
             return UNDEFINED;
         } else if (value instanceof Map) {
-            return OBJECT;
+            return ObjectType.untyped();
         } else if (value instanceof List) {
             return valueFromList((List) value);
         } else if (value.getClass().isArray()) {
@@ -297,7 +294,7 @@ public final class DataTypes {
         .put(INTEGER.getName(), INTEGER)
         .put(LONG.getName(), LONG)
         .put(TIMESTAMP.getName(), TIMESTAMP)
-        .put(OBJECT.getName(), OBJECT)
+        .put(ObjectType.NAME, ObjectType.untyped())
         .put(GEO_POINT.getName(), GEO_POINT)
         .put(GEO_SHAPE.getName(), GEO_SHAPE)
         .put("int2", SHORT)
@@ -332,8 +329,8 @@ public final class DataTypes {
         .put("ip", DataTypes.IP)
         .put("geo_point", DataTypes.GEO_POINT)
         .put("geo_shape", DataTypes.GEO_SHAPE)
-        .put("object", DataTypes.OBJECT)
-        .put("nested", DataTypes.OBJECT).build();
+        .put("object", ObjectType.untyped())
+        .put("nested", ObjectType.untyped()).build();
 
     @Nullable
     public static DataType ofMappingName(String name) {

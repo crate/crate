@@ -107,7 +107,8 @@ public class DataTypesTest extends CrateUnitTest {
 
     @Test
     public void testConvertToObject() {
-        assertThat(DataTypes.OBJECT.value(testMap), is(testMap));
+        DataType objectType = ObjectType.untyped();
+        assertThat(objectType.value(testMap), is(testMap));
     }
 
     @Test(expected = ClassCastException.class)
@@ -155,17 +156,18 @@ public class DataTypesTest extends CrateUnitTest {
     public void testCompareTo() {
         Map testMapCopy = ImmutableMap.copyOf(testMap);
         Map emptyMap = ImmutableMap.of();
+        DataType objectType = ObjectType.untyped();
 
-        assertThat(DataTypes.OBJECT.compareValueTo(testMap, testMapCopy), is(0));
-        assertThat(DataTypes.OBJECT.compareValueTo(testMapCopy, testMap), is(0));
+        assertThat(objectType.compareValueTo(testMap, testMapCopy), is(0));
+        assertThat(objectType.compareValueTo(testMapCopy, testMap), is(0));
 
         // first number of argument is checked
-        assertThat(DataTypes.OBJECT.compareValueTo(testMap, emptyMap), is(1));
-        assertThat(DataTypes.OBJECT.compareValueTo(emptyMap, testMap), is(-1));
+        assertThat(objectType.compareValueTo(testMap, emptyMap), is(1));
+        assertThat(objectType.compareValueTo(emptyMap, testMap), is(-1));
 
         // then values
-        assertThat(DataTypes.OBJECT.compareValueTo(testMap, testCompareMap), is(1));
-        assertThat(DataTypes.OBJECT.compareValueTo(testCompareMap, testMap), is(1));
+        assertThat(objectType.compareValueTo(testMap, testCompareMap), is(1));
+        assertThat(objectType.compareValueTo(testCompareMap, testMap), is(1));
     }
 
     @Test

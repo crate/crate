@@ -26,6 +26,7 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.Reference;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
@@ -49,7 +50,7 @@ class EqQuery implements FunctionToQuery {
         Literal literal = refAndLiteral.literal();
         String columnName = reference.column().fqn();
         MappedFieldType fieldType = context.getFieldTypeOrNull(columnName);
-        if (reference.valueType().equals(DataTypes.OBJECT)) {
+        if (reference.valueType().id() == ObjectType.ID) {
             //noinspection unchecked
             return refEqObject(input, reference, (Map<String, Object>) literal.value(), context);
         }
