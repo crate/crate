@@ -160,27 +160,28 @@ public class IndexParts {
     }
 
     /**
-     * Checks whether the index name belongs to a partitioned table.
+     * Checks whether the index/template name belongs to a partitioned table.
      *
      * A partition index name looks like on of these:
      *
      * .partitioned.table.ident
      * schema..partitioned.table.ident
+     * schema..partitioned.table.
      *
-     * @param indexName The index name to check
-     * @return True if the index name denotes a partitioned table
+     * @param templateOrIndex The index name to check
+     * @return True if the index/template name denotes a partitioned table
      */
-    public static boolean isPartitioned(String indexName) {
-        int idx1 = indexName.indexOf('.');
+    public static boolean isPartitioned(String templateOrIndex) {
+        int idx1 = templateOrIndex.indexOf('.');
         if (idx1 == -1) {
             return false;
         }
-        int idx2 = indexName.indexOf(PARTITIONED_TABLE_PART, idx1);
+        int idx2 = templateOrIndex.indexOf(PARTITIONED_TABLE_PART, idx1);
         if (idx2 == -1) {
             return false;
         }
         int diff = idx2 - idx1;
-        return ((diff == 0 && idx1 == 0) || diff == 1) && idx2 + PARTITIONED_TABLE_PART.length() < indexName.length();
+        return ((diff == 0 && idx1 == 0) || diff == 1) && idx2 + PARTITIONED_TABLE_PART.length() < templateOrIndex.length();
     }
 
     public static boolean isDangling(String indexName) {

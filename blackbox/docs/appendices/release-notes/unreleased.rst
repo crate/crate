@@ -47,5 +47,9 @@ None
 Fixes
 =====
 
+- Fixed an issue that caused inserts into partitioned tables to fail with an
+  ``unknown setting`` error if the table was created in an earlier version of
+  CrateDB using settings that have been removed in later versions.
+
 - Fixed an issue that could result in an ``ConcurrentModificationException``
   error when querying the ``sys.jobs_metrics`` table.
