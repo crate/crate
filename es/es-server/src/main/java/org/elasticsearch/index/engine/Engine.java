@@ -23,7 +23,6 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexCommit;
-import org.apache.lucene.index.IndexFileNames;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.LeafReader;
@@ -35,16 +34,12 @@ import org.apache.lucene.index.Term;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.ReferenceManager;
 import org.apache.lucene.store.AlreadyClosedException;
-import org.apache.lucene.store.Directory;
-import org.apache.lucene.store.IOContext;
-import org.apache.lucene.util.Accountable;
 import org.apache.lucene.util.Accountables;
 import org.apache.lucene.util.SetOnce;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.common.CheckedRunnable;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
@@ -55,8 +50,6 @@ import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.common.lucene.uid.VersionsAndSeqNoResolver;
 import org.elasticsearch.common.lucene.uid.VersionsAndSeqNoResolver.DocIdAndVersion;
-import org.elasticsearch.common.metrics.CounterMetric;
-import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.ReleasableLock;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.mapper.MapperService;
@@ -69,13 +62,10 @@ import org.elasticsearch.index.shard.DocsStats;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.store.Store;
 import org.elasticsearch.index.translog.Translog;
-import org.elasticsearch.index.translog.TranslogStats;
 
 import java.io.Closeable;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.nio.file.NoSuchFileException;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Comparator;
@@ -149,14 +139,6 @@ public abstract class Engine implements Closeable {
         this.eventListener = engineConfig.getEventListener();
     }
 
-    /** Returns 0 in the case where accountable is null, otherwise returns {@code ramBytesUsed()} */
-    protected static long guardedRamBytesUsed(Accountable a) {
-        if (a == null) {
-            return 0;
-        }
-        return a.ramBytesUsed();
-    }
-
     /**
      * Returns whether a leaf reader comes from a merge (versus flush or addIndexes).
      */
@@ -222,7 +204,6 @@ public abstract class Engine implements Closeable {
      * is enabled
      */
     protected static final class IndexThrottle {
-        private final CounterMetric throttleTimeMillisMetric = new CounterMetric();
         private volatile long startOfThrottleNS;
         private static final ReleasableLock NOOP_LOCK = new ReleasableLock(new NoOpLock());
         private final ReleasableLock lockReference = new ReleasableLock(new ReentrantLock());
@@ -245,23 +226,6 @@ public abstract class Engine implements Closeable {
             lock = NOOP_LOCK;
 
             assert startOfThrottleNS > 0 : "Bad state of startOfThrottleNS";
-            long throttleTimeNS = System.nanoTime() - startOfThrottleNS;
-            if (throttleTimeNS >= 0) {
-                // Paranoia (System.nanoTime() is supposed to be monotonic): time slip may have occurred but never want to add a negative number
-                throttleTimeMillisMetric.inc(TimeValue.nsecToMSec(throttleTimeNS));
-            }
-        }
-
-        long getThrottleTimeInMillis() {
-            long currentThrottleNS = 0;
-            if (isThrottled() && startOfThrottleNS != 0) {
-                currentThrottleNS +=  System.nanoTime() - startOfThrottleNS;
-                if (currentThrottleNS < 0) {
-                    // Paranoia (System.nanoTime() is supposed to be monotonic): time slip must have happened, have to ignore this value
-                    currentThrottleNS = 0;
-                }
-            }
-            return throttleTimeMillisMetric.count() + TimeValue.nsecToMSec(currentThrottleNS);
         }
 
         boolean isThrottled() {
@@ -410,11 +374,6 @@ public abstract class Engine implements Closeable {
         /** get document failure while executing the operation {@code null} in case of no failure */
         public Exception getFailure() {
             return failure;
-        }
-
-        /** get total time in nanoseconds */
-        public long getTook() {
-            return took;
         }
 
         void setTranslogLocation(Translog.Location translogLocation) {
@@ -678,8 +637,6 @@ public abstract class Engine implements Closeable {
      */
     public abstract boolean hasCompleteOperationHistory(String source, MapperService mapperService, long startingSeqNo) throws IOException;
 
-    public abstract TranslogStats getTranslogStats();
-
     /**
      * Returns the last location that the translog of this engine has written into.
      */
@@ -726,73 +683,6 @@ public abstract class Engine implements Closeable {
      * Returns the latest global checkpoint value that has been persisted in the underlying storage (i.e. translog's checkpoint)
      */
     public abstract long getLastSyncedGlobalCheckpoint();
-
-    private ImmutableOpenMap<String, Long> getSegmentFileSizes(SegmentReader segmentReader) {
-        Directory directory = null;
-        SegmentCommitInfo segmentCommitInfo = segmentReader.getSegmentInfo();
-        boolean useCompoundFile = segmentCommitInfo.info.getUseCompoundFile();
-        if (useCompoundFile) {
-            try {
-                directory = engineConfig.getCodec().compoundFormat().getCompoundReader(segmentReader.directory(), segmentCommitInfo.info, IOContext.READ);
-            } catch (IOException e) {
-                logger.warn(() -> new ParameterizedMessage("Error when opening compound reader for Directory [{}] and SegmentCommitInfo [{}]", segmentReader.directory(), segmentCommitInfo), e);
-
-                return ImmutableOpenMap.of();
-            }
-        } else {
-            directory = segmentReader.directory();
-        }
-
-        assert directory != null;
-
-        String[] files;
-        if (useCompoundFile) {
-            try {
-                files = directory.listAll();
-            } catch (IOException e) {
-                final Directory finalDirectory = directory;
-                logger.warn(() -> new ParameterizedMessage("Couldn't list Compound Reader Directory [{}]", finalDirectory), e);
-                return ImmutableOpenMap.of();
-            }
-        } else {
-            try {
-                files = segmentReader.getSegmentInfo().files().toArray(new String[]{});
-            } catch (IOException e) {
-                logger.warn(() -> new ParameterizedMessage("Couldn't list Directory from SegmentReader [{}] and SegmentInfo [{}]", segmentReader, segmentReader.getSegmentInfo()), e);
-                return ImmutableOpenMap.of();
-            }
-        }
-
-        ImmutableOpenMap.Builder<String, Long> map = ImmutableOpenMap.builder();
-        for (String file : files) {
-            String extension = IndexFileNames.getExtension(file);
-            long length = 0L;
-            try {
-                length = directory.fileLength(file);
-            } catch (NoSuchFileException | FileNotFoundException e) {
-                final Directory finalDirectory = directory;
-                logger.warn(() -> new ParameterizedMessage("Tried to query fileLength but file is gone [{}] [{}]", finalDirectory, file), e);
-            } catch (IOException e) {
-                final Directory finalDirectory = directory;
-                logger.warn(() -> new ParameterizedMessage("Error when trying to query fileLength [{}] [{}]", finalDirectory, file), e);
-            }
-            if (length == 0L) {
-                continue;
-            }
-            map.put(extension, length);
-        }
-
-        if (useCompoundFile && directory != null) {
-            try {
-                directory.close();
-            } catch (IOException e) {
-                final Directory finalDirectory = directory;
-                logger.warn(() -> new ParameterizedMessage("Error when closing compound reader on Directory [{}]", finalDirectory), e);
-            }
-        }
-
-        return map.build();
-    }
 
     /** How much heap is used that would be freed by a refresh.  Note that this may throw {@link AlreadyClosedException}. */
     public abstract long getIndexBufferRAMBytesUsed();
@@ -1206,11 +1096,6 @@ public abstract class Engine implements Closeable {
             this.isRetry = isRetry;
             this.autoGeneratedIdTimestamp = autoGeneratedIdTimestamp;
         }
-
-        Index(Term uid, long primaryTerm, ParsedDocument doc, long version) {
-            this(uid, doc, SequenceNumbers.UNASSIGNED_SEQ_NO, primaryTerm, version, VersionType.INTERNAL,
-                Origin.PRIMARY, System.nanoTime(), -1, false);
-        } // TEST ONLY
 
         public ParsedDocument parsedDoc() {
             return this.doc;
