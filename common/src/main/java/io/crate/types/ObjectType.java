@@ -31,10 +31,12 @@ import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class ObjectType extends DataType<Map<String, Object>> implements Streamer<Map<String, Object>> {
@@ -84,6 +86,26 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
 
     public DataType innerType(String key) {
         return innerTypes.getOrDefault(key, UndefinedType.INSTANCE);
+    }
+
+    @Nullable
+    public DataType resolveInnerType(List<String> path) {
+        if (path.isEmpty()) {
+            return null;
+        }
+
+        DataType innerType = null;
+        ObjectType currentObject = this;
+        for (int i = 0; i < path.size(); i++) {
+            innerType = currentObject.innerTypes().get(path.get(i));
+            if (innerType == null) {
+                return null;
+            }
+            if (innerType.id() == ID) {
+                currentObject = (ObjectType) innerType;
+            }
+        }
+        return innerType;
     }
 
     @Override

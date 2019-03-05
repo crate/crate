@@ -32,6 +32,7 @@ import org.junit.Test;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -172,5 +173,17 @@ public class ObjectTypeTest extends CrateUnitTest {
 
         assertThat(v.get("s"), is(map.get("s")));
         assertThat(Objects.deepEquals(v.get("obj_array"), innerArray), is(true));
+    }
+
+    @Test
+    public void testResolveInnerType() {
+        ObjectType type = ObjectType.builder()
+            .setInnerType("s", DataTypes.STRING)
+            .setInnerType("inner", ObjectType.builder()
+                .setInnerType("i", DataTypes.INTEGER)
+                .build())
+            .build();
+
+        assertThat(type.resolveInnerType(List.of("s", "inner", "i")), is(DataTypes.INTEGER));
     }
 }

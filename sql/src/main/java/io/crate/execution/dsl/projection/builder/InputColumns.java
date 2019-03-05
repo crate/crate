@@ -22,8 +22,6 @@
 package io.crate.execution.dsl.projection.builder;
 
 import com.google.common.base.MoreObjects;
-import com.google.common.collect.ImmutableList;
-import io.crate.expression.scalar.SubscriptObjectFunction;
 import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.expression.symbol.FetchReference;
@@ -32,6 +30,7 @@ import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
+import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.WindowFunction;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionIdent;
@@ -39,8 +38,6 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.Reference;
 import io.crate.types.DataType;
-import io.crate.types.DataTypes;
-import io.crate.types.ObjectType;
 import org.elasticsearch.common.inject.Singleton;
 
 import javax.annotation.Nullable;
@@ -50,6 +47,8 @@ import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
 
+import static io.crate.collections.Lists2.mapTail;
+import static io.crate.expression.scalar.SubscriptObjectFunction.getNameForReturnType;
 import static io.crate.expression.symbol.Symbols.lookupValueByColumn;
 
 /**
@@ -209,17 +208,19 @@ public final class InputColumns extends DefaultTraversalSymbolVisitor<InputColum
         if (rootIC == null) {
             return ref;
         }
-        Symbol subscript = rootIC;
+
+        DataType returnType = ref.valueType();
         List<String> path = ref.column().path();
-        for (int i = 0; i < path.size(); i++) {
-            boolean lastPart = i + 1 == path.size();
-            DataType returnType = lastPart ? ref.valueType() : ObjectType.untyped();
-            subscript = new Function(
-                new FunctionInfo(new FunctionIdent(SubscriptObjectFunction.NAME, ImmutableList.of(ObjectType.untyped(), DataTypes.STRING)), returnType),
-                ImmutableList.of(subscript, Literal.of(path.get(i)))
-            );
-        }
-        return subscript;
+
+        List<Symbol> arguments = mapTail(rootIC, path, Literal::of);
+        List<DataType> argumentTypes = Symbols.typeView(arguments);
+
+        return new Function(
+            new FunctionInfo(
+                new FunctionIdent(getNameForReturnType(returnType), argumentTypes),
+                returnType),
+            arguments
+        );
     }
 
     @Override

@@ -63,4 +63,9 @@ public class SubscriptObjectFunctionTest extends AbstractScalarFunctionsTest {
     public void testFunctionCanBeUsedAsIndexInSubscript() {
         assertNormalize("{\"x\" = 10}['x' || '']", isLiteral(10L));
     }
+
+    @Test
+    public void testSubscriptOnObjectWithPath() {
+        assertEvaluate("subscript_obj({x={y=10}}, 'x', 'y')", 10L);
+    }
 }
