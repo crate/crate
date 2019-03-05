@@ -779,12 +779,20 @@ public class TestStatementBuilder {
         printStatement("select * from t where 'source' !~ 'pattern'");
         printStatement("select * from t where source_column ~ pattern_column");
         printStatement("select * from t where ? !~ ?");
-        // escaped chars related
-        printStatement("select * from t where a like E'aValue'");
-        printStatement("select * from t where a = E'\\141Value'");
-        printStatement("select * from t where a = e'\\141Value'");
-        printStatement("select * from t where a = e'aa\\'bb'");
-        printStatement("select e.a from t e where e.a = E'\\141Value'");
+    }
+
+    @Test
+    public void testEscapedStringLiteralBuilder() throws Exception {
+        printStatement("select E'aValue'");
+        printStatement("select E'\\141Value'");
+        printStatement("select e'aa\\\'bb'");
+    }
+
+    @Test
+    public void testThatEscapedStringLiteralContainingDoubleBackSlashAndSingleQuoteThrowsException() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Invalid Escaped String Literal");
+        printStatement("select e'aa\\\\\'bb' as col1");
     }
 
     @Test
@@ -1188,7 +1196,7 @@ public class TestStatementBuilder {
     public void testEscapedStringLiteral() throws Exception {
         String input = "this is a triple-a:\\141\\x61\\u0061";
         String expectedValue = "this is a triple-a:aaa";
-        Expression expr = SqlParser.createExpression(Literals.escapeAndQuoteStringLiteral(input));
+        Expression expr = SqlParser.createExpression(Literals.quoteEscapedStringLiteral(input));
         EscapedCharStringLiteral escapedCharStringLiteral = (EscapedCharStringLiteral) expr;
         assertThat(escapedCharStringLiteral.getRawValue(), is(input));
         assertThat(escapedCharStringLiteral.getValue(), is(expectedValue));

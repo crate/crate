@@ -506,7 +506,7 @@ public final class SqlFormatter {
 
         @Override
         protected Void visitEscapedCharStringLiteral(EscapedCharStringLiteral node, Integer context) {
-            builder.append(Literals.escapeAndQuoteStringLiteral(node.getRawValue()));
+            builder.append(Literals.quoteEscapedStringLiteral(node.getRawValue()));
             return null;
         }
 
