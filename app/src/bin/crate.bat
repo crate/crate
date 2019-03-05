@@ -98,7 +98,7 @@ if NOT "%CRATE_HEAP_DUMP_PATH%" == "" (
 )
 
 if "%CRATE_CLASSPATH%" == "" (
-    set CRATE_CLASSPATH=%CRATE_HOME%/lib/*;%CRATE_HOME%/lib/enterprise/*
+    set CRATE_CLASSPATH=%CRATE_HOME%/lib/*
 ) else (
     ECHO Error: Don't modify the classpath with CRATE_CLASSPATH. 1>&2
     ECHO Add plugins and their dependencies into the plugins/ folder instead. 1>&2
