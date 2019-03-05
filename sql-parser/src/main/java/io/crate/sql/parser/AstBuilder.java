@@ -1533,8 +1533,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     @Override
     public Node visitEscapedCharsStringLiteral(SqlBaseParser.EscapedCharsStringLiteralContext ctx) {
-        // use beginIndex = 2 to account for the 'E' literal
-        return new EscapedCharStringLiteral(unquote(ctx.ESCAPED_STRING().getText(), 2));
+        return new EscapedCharStringLiteral(unquoteEscaped(ctx.ESCAPED_STRING().getText()));
     }
 
     @Override
@@ -1680,12 +1679,15 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     }
 
     private static String unquote(String value) {
-        return unquote(value, 1);
+        return value.substring(1, value.length() - 1)
+            .replace("''", "'");
     }
 
-    private static String unquote(String value, int beginIndex) {
-        return value.substring(beginIndex, value.length() - 1)
-            .replace("''", "'");
+    private static String unquoteEscaped(String value) {
+        // start from index: 2 to account for the 'E' literal
+        // single quote escaping is handled at later stage
+        // as we require more context on the surrounding characters
+        return value.substring(2, value.length() - 1);
     }
 
     private QualifiedName getQualifiedName(SqlBaseParser.QnameContext context) {
