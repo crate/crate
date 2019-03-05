@@ -93,4 +93,23 @@ public class IndexTemplateUpgraderTest {
         // ensure non partitioned table templates are untouched
         assertThat(upgradedTemplates.get(nonPartitionTemplateName), is(oldNonPartitionTemplate));
     }
+
+    @Test
+    public void testInvalidSettingIsRemovedForTemplateInCustomSchema() {
+        Settings settings = Settings.builder().put("index.recovery.initial_shards", "quorum").build();
+        String templateName = PartitionName.templateName("foobar", "t1");
+        IndexTemplateMetaData template = IndexTemplateMetaData.builder(templateName)
+            .settings(settings)
+            .patterns(Collections.singletonList("*"))
+            .build();
+
+        IndexTemplateUpgrader indexTemplateUpgrader = new IndexTemplateUpgrader();
+        Map<String, IndexTemplateMetaData> result = indexTemplateUpgrader.apply(Collections.singletonMap(templateName, template));
+
+        assertThat(
+            "Outdated setting `index.recovery.initial_shards` must be removed",
+            result.get(templateName).settings().hasValue("index.recovery.initial_shards"),
+            is(false)
+        );
+    }
 }
