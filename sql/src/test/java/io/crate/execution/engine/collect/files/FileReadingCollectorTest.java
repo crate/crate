@@ -195,7 +195,7 @@ public class FileReadingCollectorTest extends CrateUnitTest {
     public void testCollectWithOneSocketTimeout() throws Throwable {
         S3ObjectInputStream inputStream = mock(S3ObjectInputStream.class);
 
-        when(inputStream.read(any(), anyInt(), anyInt()))
+        when(inputStream.read(any(byte[].class), anyInt(), anyInt()))
             .thenAnswer(new WriteBufferAnswer(new byte[]{102, 111, 111, 10}))  // first line: foo
             .thenThrow(new SocketTimeoutException())  // exception causes retry
             .thenAnswer(new WriteBufferAnswer(new byte[]{102, 111, 111, 10}))  // first line again, because of retry
@@ -250,7 +250,7 @@ public class FileReadingCollectorTest extends CrateUnitTest {
                                           String compression,
                                           boolean collectSourceUriFailure) throws Throwable {
         S3ObjectInputStream inputStream = mock(S3ObjectInputStream.class);
-        when(inputStream.read(any(), anyInt(), anyInt())).thenReturn(-1);
+        when(inputStream.read(any(byte[].class), anyInt(), anyInt())).thenReturn(-1);
         return getObjects(fileUris, compression, inputStream, collectSourceUriFailure);
     }
 
