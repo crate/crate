@@ -19,7 +19,6 @@
 # with Crate these terms will supersede the license and you may use the
 # software solely pursuant to the terms of the relevant commercial agreement.
 
-import unittest
 import doctest
 import zc.customdoctests
 from crate.testing.layer import CrateLayer
@@ -32,11 +31,10 @@ import random
 import tempfile
 import logging
 import subprocess
+import unittest
 from functools import partial
-from . import process_test
 from testutils.paths import crate_path, project_path
 from testutils.ports import GLOBAL_PORT_POOL
-from urllib.request import urlopen, Request
 from crate.crash.command import CrateShell
 from crate.crash.printer import PrintWrapper, ColorPrinter
 from crate.client import connect
@@ -393,7 +391,7 @@ docsuite = partial(doctest.DocFileSuite,
                    optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS,
                    encoding='utf-8')
 
-doctest_file = partial(os.path.join, '..', '..')
+doctest_file = partial(os.path.join, 'docs')
 
 
 def doctest_files(*items):
@@ -402,41 +400,57 @@ def doctest_files(*items):
 
 def get_abspath(name):
     return os.path.abspath(
-        os.path.join(os.path.dirname(__file__), name)
+        os.path.join(os.path.dirname(__file__), 'testdata', name)
     )
 
 
-def create_doctest_suite():
-    crate_layer = ConnectingCrateLayer(
-        'crate',
-        host='localhost',
-        crate_home=crate_path(),
-        port=CRATE_HTTP_PORT,
-        transport_port=CRATE_TRANSPORT_PORT,
-        env={'JAVA_HOME': os.environ.get('JAVA_HOME', '')},
-        settings={
-            'license.enterprise': 'true',
-            'lang.js.enabled': 'true',
-            'psql.port': GLOBAL_PORT_POOL.get(),
-        }
-    )
+crate_layer = ConnectingCrateLayer(
+    'crate',
+    host='localhost',
+    crate_home=crate_path(),
+    port=CRATE_HTTP_PORT,
+    transport_port=CRATE_TRANSPORT_PORT,
+    env={'JAVA_HOME': os.environ.get('JAVA_HOME', '')},
+    settings={
+        'license.enterprise': 'true',
+        'lang.js.enabled': 'true',
+        'psql.port': GLOBAL_PORT_POOL.get(),
+    }
+)
+
+
+class DocTests(unittest.TestSuite):
+
+    def run(self, result, debug=False):
+        crate_layer.start()
+        try:
+            super().run(result, debug)
+        finally:
+            crate_layer.stop()
+            cmd.close()
+
+
+def load_tests(loader, suite, ignore):
     tests = []
-
-    for fn in doctest_files('general/blobs.rst',
-                            'interfaces/http.rst',):
-        s = docsuite(fn, parser=bash_parser, setUp=setUpLocations, globs={
-            'sh': partial(
-                subprocess.run,
-                stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                timeout=60,
-                shell=True
-            ),
-            'pretty_print': pretty_print
-        })
-        s.layer = crate_layer
-        tests.append(s)
+    for fn in doctest_files('general/blobs.rst', 'interfaces/http.rst',):
+        tests.append(
+            docsuite(
+                fn,
+                parser=bash_parser,
+                setUp=setUpLocations,
+                globs={
+                    'sh': partial(
+                        subprocess.run,
+                        stdin=subprocess.PIPE,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.STDOUT,
+                        timeout=60,
+                        shell=True
+                    ),
+                    'pretty_print': pretty_print
+                }
+            )
+        )
 
     for fn in doctest_files('general/ddl/create-table.rst',
                             'general/ddl/generated-columns.rst',
@@ -472,42 +486,22 @@ def create_doctest_suite():
                             'general/ddl/views.rst',
                             'sql/general/value-expressions.rst',
                             'sql/general/lexical-structure.rst'):
-        s = docsuite(fn, setUp=setUpLocationsAndQuotes)
-        s.layer = crate_layer
-        tests.append(s)
+        tests.append(docsuite(fn, setUp=setUpLocationsAndQuotes))
 
     for fn in doctest_files('general/dql/geo.rst',):
-        s = docsuite(fn, setUp=setUpCountries)
-        s.layer = crate_layer
-        tests.append(s)
+        tests.append(docsuite(fn, setUp=setUpCountries))
 
     for fn in doctest_files('general/dql/joins.rst',
                             'general/builtins/subquery-expressions.rst',
                             'general/builtins/window-functions.rst',):
-        s = docsuite(fn, setUp=setUpEmpDeptAndColourArticlesAndGeo)
-        s.layer = crate_layer
-        tests.append(s)
+        tests.append(docsuite(fn, setUp=setUpEmpDeptAndColourArticlesAndGeo))
 
     for fn in doctest_files('general/dml.rst',):
-        s = docsuite(fn, setUp=setUpLocationsQuotesAndUserVisits)
-        s.layer = crate_layer
-        tests.append(s)
+        tests.append(docsuite(fn, setUp=setUpLocationsQuotesAndUserVisits))
 
     for fn in doctest_files('general/dql/union.rst',):
-        s = docsuite(fn, setUp=setUpPhotosAndCountries)
-        s.layer = crate_layer
-        tests.append(s)
+        tests.append(docsuite(fn, setUp=setUpPhotosAndCountries))
 
     # randomize order of tests to make sure they don't depend on each other
     random.shuffle(tests)
-
-    suite = unittest.TestSuite()
-    suite.addTests(tests)
-    return suite
-
-
-def test_suite():
-    suite = unittest.TestSuite()
-    suite.addTest(unittest.TestLoader().loadTestsFromModule(process_test))
-    suite.addTests(create_doctest_suite())
-    return suite
+    return DocTests(tests)

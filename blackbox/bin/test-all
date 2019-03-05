@@ -1,5 +1,3 @@
 #!/bin/bash
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-$DIR/test-docs
-$DIR/test-hdfs
-$DIR/test-jmx
+$DIR/../.venv/bin/python -m unittest -v --failfast
