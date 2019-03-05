@@ -213,7 +213,7 @@ public final class ExpressionFormatter {
 
         @Override
         protected String visitEscapedCharStringLiteral(EscapedCharStringLiteral node, Void context) {
-            return Literals.escapeAndQuoteStringLiteral(node.getRawValue());
+            return Literals.quoteEscapedStringLiteral(node.getRawValue());
         }
 
         @Override
