@@ -114,4 +114,13 @@ public final class Lists2 {
                 throw new IllegalArgumentException("Expected 1 element, got: " + items.size());
         }
     }
+
+    public static <O, I> List<O> mapTail(O head, List<I> tail, Function<I, O> mapper) {
+        ArrayList<O> list = new ArrayList<>(tail.size() + 1);
+        list.add(head);
+        for (I input : tail) {
+            list.add(mapper.apply(input));
+        }
+        return list;
+    }
 }

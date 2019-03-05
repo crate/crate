@@ -31,32 +31,64 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.functions.params.Param;
+import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 import io.crate.types.StringType;
+import io.crate.types.UndefinedType;
 
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+/**
+ * Scalar function to resolve elements inside a map.
+ * Because the function registration does not take the function return type into account, it is not possible
+ * to register the same function with different return types under the same name.
+ * As a workaround, the return type is encoded into the function name by using {@link #getNameForReturnType(DataType)}.
+ */
 public class SubscriptObjectFunction extends Scalar<Object, Map> {
 
-    public static final String NAME = "subscript_obj";
+    private static final String NAME = "subscript_obj";
+    private static final FuncParams FUNCTION_PARAMS = FuncParams
+        .builder(Param.of(ObjectType.untyped()), Param.of(StringType.INSTANCE))
+        .withVarArgs(Param.of(StringType.INSTANCE))
+        .build();
+
     private FunctionInfo info;
 
     public static void register(ScalarFunctionModule module) {
-        module.register(NAME,
-            new BaseFunctionResolver(
-                FuncParams.builder(Param.of(ObjectType.untyped()), Param.of(StringType.INSTANCE)).build()
-            ) {
-                @Override
-                public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-                    return new SubscriptObjectFunction(
-                        new FunctionInfo(new FunctionIdent(NAME, dataTypes.subList(0, 2)), DataTypes.UNDEFINED));
-                }
+        for (DataType returnType : DataTypes.allRegisteredTypes()) {
+            module.register(getNameForReturnType(returnType),
+                new BaseFunctionResolver(FUNCTION_PARAMS) {
+                    @Override
+                    public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
+                        return ofReturnType(returnType, dataTypes);
+                    }
+                });
+        }
+    }
+
+    public static SubscriptObjectFunction ofReturnType(DataType returnType, List<DataType> dataTypes) {
+        return new SubscriptObjectFunction(
+            new FunctionInfo(
+                new FunctionIdent(getNameForReturnType(returnType), dataTypes),
+                returnType));
+    }
+
+    public static String getNameForReturnType(DataType dataType) {
+        String name = NAME;
+        if (dataType.id() != UndefinedType.ID) {
+            String returnTypeName;
+            if (DataTypes.isCollectionType(dataType)) {
+                returnTypeName = ((CollectionType) dataType).getCollectionName();
+            } else {
+                returnTypeName = dataType.getName();
             }
-        );
+            name += "_" + returnTypeName;
+        }
+        return name;
     }
 
     private SubscriptObjectFunction(FunctionInfo info) {
@@ -70,8 +102,13 @@ public class SubscriptObjectFunction extends Scalar<Object, Map> {
 
     @Override
     public Object evaluate(TransactionContext txnCtx, Input[] args) {
-        assert args.length == 2 : "invalid number of arguments";
-        return evaluate(args[0].value(), args[1].value());
+        assert args.length >= 2 : "invalid number of arguments";
+
+        Object mapValue = args[0].value();
+        for (var i = 1; i < args.length; i++) {
+            mapValue = evaluate(mapValue, args[i].value());
+        }
+        return mapValue;
     }
 
     private static Object evaluate(Object element, Object key) {

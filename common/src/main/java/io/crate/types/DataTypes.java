@@ -42,6 +42,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 public final class DataTypes {
 
@@ -383,4 +384,7 @@ public final class DataTypes {
         return TYPE_REGISTRY.get(id).get();
     }
 
+    public static List<DataType> allRegisteredTypes() {
+        return TYPE_REGISTRY.values().stream().map(Supplier::get).collect(Collectors.toList());
+    }
 }

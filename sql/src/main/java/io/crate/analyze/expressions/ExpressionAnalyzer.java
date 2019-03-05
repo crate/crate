@@ -125,6 +125,7 @@ import io.crate.sql.tree.WhenClause;
 import io.crate.sql.tree.Window;
 import io.crate.sql.tree.WindowFrame;
 import io.crate.types.ArrayType;
+import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
@@ -142,6 +143,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static io.crate.collections.Lists2.mapTail;
 
 
 /**
@@ -619,30 +622,97 @@ public class ExpressionAnalyzer {
                     return createSubscript(name, parts, context);
                 }
             } else {
-                Symbol name = fieldProvider.resolveField(qualifiedName, parts, operation);
-                Expression idxExpression = subscriptContext.index();
-                if (idxExpression == null) {
+                Symbol name;
+                try {
+                    name = fieldProvider.resolveField(qualifiedName, parts, operation);
+                    Expression idxExpression = subscriptContext.index();
+                    if (idxExpression != null) {
+                        Symbol index = process(idxExpression, context);
+                        return createSubscript(name, index, context);
+                    }
                     return name;
+                } catch (ColumnUnknownException e) {
+                    name = resolvePossibleObjectInnerFieldAndReturnParent(qualifiedName, parts);
+                    if (name != null) {
+                        return createSubscript(name, parts, context);
+                    } else {
+                        throw e;
+                    }
                 }
-                Symbol index = process(idxExpression, context);
-                return createSubscript(name, index, context);
             }
+        }
+
+        /**
+         * This acts as a fallback when the subscript column can not be resolved directly.
+         * If the subscript column can be resolved using the parent's object type, it is ensured that the column
+         * exists and the root column field can be returned to create a subscript function.
+         */
+        @Nullable
+        private Symbol resolvePossibleObjectInnerFieldAndReturnParent(QualifiedName qualifiedName, List<String> parts) {
+            Symbol parent = resolveParentField(qualifiedName, parts);
+            if (parent != null) {
+                DataType parentType = parent.valueType();
+                if (DataTypes.isCollectionType(parentType)) {
+                    parentType = ((CollectionType) parentType).innerType();
+                }
+                if (parentType.id() == ObjectType.ID) {
+                    DataType innerType = ((ObjectType) parentType).resolveInnerType(parts);
+                    if (innerType != null) {
+                        return parent;
+                    }
+                }
+            }
+            return null;
+        }
+
+        @Nullable
+        private Symbol resolveParentField(QualifiedName qualifiedName, List<String> parts) {
+            if (parts.isEmpty()) {
+                return null;
+            }
+            for (int i = parts.size() - 1; i >= 0; i--) {
+                List<String> parentPath = parts.subList(0, i);
+                try {
+                    return fieldProvider.resolveField(qualifiedName, parentPath, operation);
+                } catch (ColumnUnknownException e) {
+                    // ignore, continue to resolve possible upper parent
+                }
+            }
+            return null;
         }
 
         private Symbol createSubscript(Symbol name, Symbol index, ExpressionAnalysisContext context) {
             String function = name.valueType().id() == ObjectType.ID
-                ? SubscriptObjectFunction.NAME
+                // we don't know the the concrete object element (return) type
+                ? SubscriptObjectFunction.getNameForReturnType(UndefinedType.INSTANCE)
                 : SubscriptFunction.NAME;
             return allocateFunction(function, ImmutableList.of(name, index), context);
         }
 
-        private Symbol createSubscript(Symbol name, List<String> parts, ExpressionAnalysisContext context) {
-            Symbol subscript = name;
-            for (int i = 0; i < parts.size(); i++) {
-                subscript = allocateFunction(
-                    SubscriptObjectFunction.NAME, ImmutableList.of(subscript, Literal.of(parts.get(i))), context);
+        private Symbol createSubscript(Symbol symbol, List<String> parts, ExpressionAnalysisContext context) {
+            DataType symbolType = symbol.valueType();
+            List<Symbol> arguments = mapTail(symbol, parts, Literal::of);
+            List<DataType> argumentTypes = Symbols.typeView(arguments);
+
+            if (symbolType.id() != ObjectType.ID) {
+                return allocateFunction(
+                    SubscriptObjectFunction.getNameForReturnType(UndefinedType.INSTANCE),
+                    arguments,
+                    context);
             }
-            return subscript;
+
+            DataType innerType = ((ObjectType) symbolType).resolveInnerType(parts);
+            if (innerType == null) {
+                innerType = UndefinedType.INSTANCE;
+            }
+            // If the innerType is a object type, we must allocate the function with that concrete type to keep the
+            // allocated inner types as this return type is used on nested calls to resolve further inner types.
+            SubscriptObjectFunction funcImpl = SubscriptObjectFunction.ofReturnType(innerType, argumentTypes);
+            Function func = new Function(funcImpl.info(), arguments);
+            if (Symbols.allLiterals(func)) {
+                return funcImpl.normalizeSymbol(func, coordinatorTxnCtx);
+            }
+            return func;
         }
 
         @Override

@@ -98,6 +98,10 @@ Deprecations
 Changes
 =======
 
+- Added support for subscript expressions on an object column of a sub-relation.
+  Examples: ``select a['b'] from (select a from t1)`` or ``select a['b'] from
+  my_view`` where ``my_view`` is defined as ``select a from t1``.
+
 - Changed the trial license introduced in 3.2 to no longer have an expiration
   date, but instead be limited to 3 nodes. See :ref:`enterprise_features`.
 

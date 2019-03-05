@@ -147,4 +147,15 @@ public class ViewsITest extends SQLTransportIntegrationTest {
     public void testDropViewDoesNotFailIfViewIsMissingAndIfExistsIsUsed() {
         execute("drop view if exists v1");
     }
+
+    @Test
+    public void testSubscriptOnViews() {
+        execute("create table t1 (a object as (b integer), c object as (d object as (e integer))) ");
+        execute("insert into t1 (a, c) values ({ b = 1 }, { d = { e = 2 }})");
+        execute("refresh table t1");
+        execute("create view v1 as select * from t1");
+        // must not throw an exception, subscript must be resolved
+        execute("select a['b'], c['d']['e'] from v1");
+        assertThat(printedTable(response.rows()), is("1| 2\n"));
+    }
 }

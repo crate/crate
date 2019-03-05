@@ -30,6 +30,7 @@ import io.crate.planner.TableStats;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseSemiJoins;
 import org.elasticsearch.test.ESIntegTestCase;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -712,5 +713,20 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("select count(*) from t1 where r = (select r from t1 where id = 1)");
         assertThat(response.rowCount(), is(1L));
+    }
+
+    public void testSubscriptOnSubSelect() {
+        execute("create table t1 (a object, c object)");
+        execute("insert into t1 (a, c) values ({ b = 1 }, { d = { e = 2 }})");
+        execute("refresh table t1");
+        execute("select a['b'], c['d']['e'] from (select * from t1) t2");
+        assertThat(printedTable(response.rows()), is("1| 2\n"));
+    }
+
+    @Ignore("We haven't added inner types for object literals, so this test is expected to fail")
+    @Test
+    public void testSubscriptOnSubSelectFromUnnestWithObjectLiteral() {
+        execute("select col1['b'] from (select * from unnest([{b=1}])) t1");
+        assertThat(printedTable(response.rows()), is(""));
     }
 }
