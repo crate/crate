@@ -82,9 +82,6 @@ def wait_for_minicluster(log, timeout=60):
 
 class HadoopLayer:
 
-    __name__ = 'hadoop'
-    __bases__ = ()
-
     def __init__(self):
         self.hadoop_path = hadoop_path = self._get_hadoop()
         self.hadoop_bin = os.path.join(hadoop_path, 'bin', 'hadoop')
@@ -112,7 +109,7 @@ class HadoopLayer:
         return os.path.join(hadoop_path,
                             'hadoop-{version}'.format(version=HADOOP_VERSION))
 
-    def setUp(self):
+    def start(self):
         cmd = [
             self.hadoop_bin, 'jar',
             self.hadoop_mapreduce_client, 'minicluster',
@@ -121,9 +118,7 @@ class HadoopLayer:
             '-D', 'dfs.client.use.datanode.hostname=true',
             '-D', 'dfs.datanode.use.datanode.hostname=true',
         ]
-
         JAVA_HOME = os.environ.get('JAVA_HOME', '/usr/lib/jvm/java-11-openjdk/')
-
         self.p = subprocess.Popen(
             cmd,
             cwd=os.path.dirname(self.hadoop_bin),
@@ -133,65 +128,52 @@ class HadoopLayer:
             },
             stderr=subprocess.PIPE
         )
-
         if wait_for_minicluster(self.p.stderr):
             print('>>> Hadoop cluster is active')
         else:
             print('>>> Could not start Hadoop cluster in time')
-            self.stop()
 
     def stop(self):
         if self.p:
             self.p.terminate()
-            self.p.communicate()
-        self.p = None
-
-    def tearDown(self):
-        self.stop()
+            self.p.communicate(timeout=10)
+            self.p.stderr.close()
+            self.p = None
 
 
 class HdfsCrateLayer(CrateLayer):
     def setUp(self):
         add_hadoop_libs(hdfs_repo_libs_path, crate_path())
-        super(HdfsCrateLayer, self).setUp()
+        super().setUp()
 
 
-class HadoopAndCrateLayer(object):
-    def __init__(self, crate_layer, hadoop_layer):
-        self.__bases__ = (crate_layer, hadoop_layer)
-        self.__name__ = 'hadoop_and_crate'
-
-    def setUp(self):
-        pass
-
-    def tearDown(self):
-        pass
+crate = HdfsCrateLayer(
+    'crate',
+    host='localhost',
+    crate_home=crate_path(),
+    port=CRATE_HTTP_PORT,
+    transport_port=CRATE_TRANSPORT_PORT,
+    settings={
+        'psql.port': GLOBAL_PORT_POOL.get(),
+    },
+    env=os.environ.copy()
+)
+hadoop = HadoopLayer()
 
 
 class HdfsIntegrationTest(unittest.TestCase):
 
+    def setUp(self):
+        hadoop.start()
+        crate.setUp()
+
+    def tearDown(self):
+        hadoop.stop()
+        crate.tearDown()
+
     def test_create_hdfs_repository(self):
-        conn = connect('localhost:{}'.format(CRATE_HTTP_PORT))
-        c = conn.cursor()
-        stmt = '''create repository "test-repo" type hdfs with (uri = ?, path = '/data')'''
-        # okay if it doesn't raise a exception
-        c.execute(stmt, ('hdfs://127.0.0.1:{nnport}'.format(nnport=NN_PORT),))
-
-
-def test_suite():
-    crate_layer = HdfsCrateLayer(
-        'crate',
-        host='localhost',
-        crate_home=crate_path(),
-        port=CRATE_HTTP_PORT,
-        transport_port=CRATE_TRANSPORT_PORT,
-        settings={
-            'psql.port': GLOBAL_PORT_POOL.get(),
-        },
-        env=os.environ.copy()
-    )
-    hadoop_layer = HadoopLayer()
-    layer = HadoopAndCrateLayer(crate_layer, hadoop_layer)
-    suite = unittest.makeSuite(HdfsIntegrationTest)
-    suite.layer = layer
-    return suite
+        with connect('localhost:{}'.format(CRATE_HTTP_PORT)) as conn:
+            c = conn.cursor()
+            stmt = '''create repository "test-repo" type hdfs with (uri = ?, path = '/data')'''
+            # okay if it doesn't raise a exception
+            c.execute(stmt, ('hdfs://127.0.0.1:{nnport}'.format(nnport=NN_PORT),))

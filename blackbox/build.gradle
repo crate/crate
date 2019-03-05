@@ -50,11 +50,11 @@ task monitoringTest(type: Exec) {
 }
 
 task itest(type: Exec) {
-    commandLine "$projectDir/bin/test-docs", '-vvvxt', '!process_test'
+    commandLine "$projectDir/bin/test-docs"
 }
 
 task gtest(type: Exec) {
-    commandLine "$projectDir/bin/test-docs", '-vvvxt', 'process_test'
+    commandLine "$projectDir/bin/test-decommission"
 }
 
 task dnsDiscoveryTest(type: Exec) {

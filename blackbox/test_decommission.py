@@ -98,19 +98,6 @@ def wait_for_cluster_size(client, expected_size, timeout_in_s=20):
     return True
 
 
-class CascadedLayer(object):
-
-    def __init__(self, name, *bases):
-        self.__name__ = name
-        self.__bases__ = tuple(bases)
-
-    def setUp(self):
-        pass
-
-    def teardown(self):
-        pass
-
-
 class GracefulStopCrateLayer(CrateLayer):
 
     MAX_RETRIES = 3
@@ -119,14 +106,14 @@ class GracefulStopCrateLayer(CrateLayer):
         if retry >= self.MAX_RETRIES:
             raise SystemError('Could not start Crate server. Max retries exceeded!')
         try:
-            super(GracefulStopCrateLayer, self).start()
+            super().start()
         except Exception:
             self.start(retry=retry + 1)
 
     def stop(self):
         """do not care if process already died"""
         try:
-            super(GracefulStopCrateLayer, self).stop()
+            super().stop()
         except OSError:
             pass
 
@@ -139,14 +126,16 @@ class GracefulStopTest(unittest.TestCase):
     DEFAULT_NUM_SERVERS = 1
 
     def __init__(self, *args, **kwargs):
-        num_servers = kwargs.pop("num_servers", getattr(self, "NUM_SERVERS", self.DEFAULT_NUM_SERVERS))
-        super(GracefulStopTest, self).__init__(*args, **kwargs)
+        self.num_servers = kwargs.pop("num_servers", getattr(self, "NUM_SERVERS", self.DEFAULT_NUM_SERVERS))
+        super().__init__(*args, **kwargs)
+
+    def setUp(self):
         self.crates = []
         self.clients = []
         self.node_names = []
         # auto-discovery with unicast on the same host only works if all nodes are configured with the same port range
-        transport_port_range = GLOBAL_PORT_POOL.get_range(range_size=num_servers)
-        for i in range(num_servers):
+        transport_port_range = GLOBAL_PORT_POOL.get_range(range_size=self.num_servers)
+        for i in range(self.num_servers):
             layer = GracefulStopCrateLayer(
                 self.node_name(i),
                 crate_path(),
@@ -161,16 +150,11 @@ class GracefulStopTest(unittest.TestCase):
                 },
                 env=os.environ.copy(),
                 cluster_name=self.__class__.__name__)
-            client = Client(layer.crate_servers)
+            layer.start()
+            self.clients.append(Client(layer.crate_servers))
             self.crates.append(layer)
-            self.clients.append(client)
             self.node_names.append(self.node_name(i))
-        self.layer = CascadedLayer(
-            "{0}_{1}_crates".format(self.__class__.__name__, num_servers),
-            *self.crates
-        )
 
-    def setUp(self):
         client = self.random_client()
         num_nodes = 0
 
@@ -179,6 +163,12 @@ class GracefulStopTest(unittest.TestCase):
             response = client.sql("select * from sys.nodes")
             num_nodes = response.get("rowcount", 0)
             time.sleep(.5)
+
+    def tearDown(self):
+        for client in self.clients:
+            client.close()
+        for layer in self.crates:
+            layer.stop()
 
     def random_client(self):
         return random.choice(self.clients)
@@ -217,7 +207,7 @@ class TestGracefulStopPrimaries(GracefulStopTest):
     NUM_SERVERS = 2
 
     def setUp(self):
-        super(TestGracefulStopPrimaries, self).setUp()
+        super().setUp()
         client = self.clients[0]
         client.sql("create table t1 (id int, name string) "
                    "clustered into 4 shards "
@@ -243,6 +233,7 @@ class TestGracefulStopPrimaries(GracefulStopTest):
     def tearDown(self):
         client = self.clients[1]
         client.sql("drop table t1")
+        super().tearDown()
 
 
 class TestGracefulStopFull(GracefulStopTest):
@@ -250,7 +241,7 @@ class TestGracefulStopFull(GracefulStopTest):
     NUM_SERVERS = 3
 
     def setUp(self):
-        super(TestGracefulStopFull, self).setUp()
+        super().setUp()
         client = self.clients[0]
         client.sql("create table t1 (id int, name string) "
                    "clustered into 4 shards "
@@ -277,6 +268,7 @@ class TestGracefulStopFull(GracefulStopTest):
     def tearDown(self):
         client = self.clients[2]
         client.sql("drop table t1")
+        super().tearDown()
 
 
 class TestGracefulStopNone(GracefulStopTest):
@@ -284,7 +276,7 @@ class TestGracefulStopNone(GracefulStopTest):
     NUM_SERVERS = 2
 
     def setUp(self):
-        super(TestGracefulStopNone, self).setUp()
+        super().setUp()
         client = self.clients[0]
 
         client.sql("create table t1 (id int, name string) "
@@ -323,6 +315,7 @@ class TestGracefulStopNone(GracefulStopTest):
     def tearDown(self):
         client = self.clients[1]
         client.sql("drop table t1")
+        super().tearDown()
 
 
 class TestGracefulStopDuringQueryExecution(GracefulStopTest):
@@ -387,6 +380,7 @@ class TestGracefulStopDuringQueryExecution(GracefulStopTest):
 
     def tearDown(self):
         self.clients[0].sql('DROP TABLE t1')
+        super().tearDown()
 
     @staticmethod
     def exec_insert_queries(client, is_active, errors, finished):
