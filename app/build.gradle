@@ -132,14 +132,14 @@ task dist {
 task myJavadocs(type: Javadoc, dependsOn: processResources) {
     classpath = configurations.compile
     source = sourceSets.main.allJava +
-            project(':common').sourceSets.main.allJava +
-            project(':sql').sourceSets.main.allJava +
-            project(':sql-parser').sourceSets.main.allJava +
-            project(':dex').sourceSets.main.allJava +
-            project(':shared').sourceSets.main.allJava +
-            project(':blob').sourceSets.main.allJava +
-            project(':udc').sourceSets.main.allJava +
-            project(':licensing').sourceSets.main.allJava
+        project(':common').sourceSets.main.allJava +
+        project(':sql').sourceSets.main.allJava +
+        project(':sql-parser').sourceSets.main.allJava +
+        project(':dex').sourceSets.main.allJava +
+        project(':shared').sourceSets.main.allJava +
+        project(':blob').sourceSets.main.allJava +
+        project(':udc').sourceSets.main.allJava +
+        project(':licensing').sourceSets.main.allJava
 }
 
 task javadocJar(type: Jar, dependsOn: [myJavadocs]) {
@@ -161,14 +161,14 @@ task buildJavadocJar(dependsOn: [':es:es-server:getVersion', myJavadocs]) {
 task sourceJar(type: Jar) {
     classifier = 'sources'
     from(sourceSets.main.allSource +
-            project(':common').sourceSets.main.allJava +
-            project(':sql').sourceSets.main.allJava +
-            project(':sql-parser').sourceSets.main.allJava +
-            project(':dex').sourceSets.main.allJava +
-            project(':shared').sourceSets.main.allJava +
-            project(':blob').sourceSets.main.allJava +
-            project(':udc').sourceSets.main.allJava +
-            project(':licensing').sourceSets.main.allJava)
+        project(':common').sourceSets.main.allJava +
+        project(':sql').sourceSets.main.allJava +
+        project(':sql-parser').sourceSets.main.allJava +
+        project(':dex').sourceSets.main.allJava +
+        project(':shared').sourceSets.main.allJava +
+        project(':blob').sourceSets.main.allJava +
+        project(':udc').sourceSets.main.allJava +
+        project(':licensing').sourceSets.main.allJava)
     manifest {
         attributes("Implementation-Title": "Crate.IO")
     }
@@ -297,7 +297,9 @@ ext {
 }
 
 def rootDir = project.parent.projectDir
-def libs = project.configurations.runtime.filter { !it.toPath().startsWith(Paths.get(rootDir.toString(), "enterprise")) }
+def libs = project.configurations.runtime.filter {
+    !it.toPath().startsWith(Paths.get(rootDir.toString(), "enterprise"))
+}
 
 // For releases choose the file under the release_notes structure
 // and for all other builds choose CHANGES.txt which contains the unreleased changes
@@ -325,27 +327,23 @@ task chooseReleaseNotes(dependsOn: [':es:es-server:getVersion']) {
     }
 }
 
-distTar {
+tasks.withType(Tar){
     dependsOn ':es:es-server:getVersion'
+    dependsOn 'chooseReleaseNotes'
     compression = Compression.GZIP
-    baseName = 'crate'
     extension = 'tar.gz'
 }
-distTar.dependsOn(chooseReleaseNotes)
 
-distZip {
+tasks.withType(Zip){
     dependsOn ':es:es-server:getVersion'
-    baseName = 'crate'
+    dependsOn 'chooseReleaseNotes'
 }
-distZip.dependsOn(chooseReleaseNotes)
-
 
 installDist.dependsOn(chooseReleaseNotes)
 
-
 distributions {
-    main {
-        baseName = 'crate'
+    communityEdition {
+        baseName = 'crate-ce'
         contents {
             into("") {
                 from("$rootDir") {
@@ -353,13 +351,14 @@ distributions {
                     include 'NOTICE'
                     include 'README.rst'
                 }
+                from("src/main/dist")
                 from(project.buildDir.path + "/releaseNotes") {
                     include 'CHANGES.txt'
                 }
                 File.createTempDir().with {
                     def tmpLogs = new File(absolutePath, 'logs')
                     tmpLogs.mkdirs()
-                    from (absolutePath) {
+                    from(absolutePath) {
                         includeEmptyDirs = true
                     }
                 }
@@ -373,11 +372,55 @@ distributions {
             into("lib") {
                 from jar
             }
-            into("lib/enterprise") {
-                from("enterprise")
+            into("lib") {
+                from("oss_modules")
+            }
+            into('plugins') {
+                from('plugins') {
+                    includeEmptyDirs = true
+                    exclude 'enterprise'
+                }
+            }
+            into('lib/site') {
+                from('adminui/_site')
+            }
+        }
+    }
+    main {
+        baseName = 'crate'
+        contents {
+            into("") {
+                from("$rootDir") {
+                    include 'LICENSE'
+                    include 'NOTICE'
+                    include 'README.rst'
+                }
+                from("src/main/dist")
+                from(project.buildDir.path + "/releaseNotes") {
+                    include 'CHANGES.txt'
+                }
+                File.createTempDir().with {
+                    def tmpLogs = new File(absolutePath, 'logs')
+                    tmpLogs.mkdirs()
+                    from(absolutePath) {
+                        includeEmptyDirs = true
+                    }
+                }
+            }
+            into("lib") {
+                from libs
+                exclude 'crate-*.jar'
+                exclude 'es.jar'
+                exclude 'es-*.jar'
+            }
+            into("lib") {
+                from jar
             }
             into("lib") {
                 from("oss_modules")
+            }
+            into("lib") {
+                from("enterprise")
             }
             into('plugins') {
                 from('plugins') {
@@ -385,7 +428,7 @@ distributions {
                 }
             }
             into('lib/site') {
-                from ('adminui/_site')
+                from('adminui/_site')
             }
         }
     }
@@ -421,8 +464,8 @@ jar {
 }
 
 task collectEnterpriseModules(
-        dependsOn: [':enterprise:users:jar',
-                    ':enterprise:ssl-impl:jar']) {
+    dependsOn: [':enterprise:users:jar',
+                ':enterprise:ssl-impl:jar']) {
     // this task collects the enterprise module jar into a single folder
     // named enterprise from which the files are taken for the installDist task
     doLast {
@@ -433,16 +476,16 @@ task collectEnterpriseModules(
         }
     }
 }
-collectEnterpriseModules.outputs.dir ('enterprise')
+collectEnterpriseModules.outputs.dir('enterprise')
 
 
 task downloadPlugins(
-        dependsOn: ['downloadAdminUI',
-                    ':es:es-repository-hdfs:jar',
-                    ':azure-discovery:jar',
-                    ':enterprise:jmx-monitoring:jar',
-                    ':enterprise:lang-js:jar',
-                    ':enterprise:functions:jar']) {
+    dependsOn: ['downloadAdminUI',
+                ':es:es-repository-hdfs:jar',
+                ':azure-discovery:jar',
+                ':enterprise:jmx-monitoring:jar',
+                ':enterprise:lang-js:jar',
+                ':enterprise:functions:jar']) {
     doLast {
         // copy es-repository-hdfs plugin
         copy {
@@ -482,8 +525,7 @@ task downloadPlugins(
     }
 }
 
-downloadPlugins.outputs.dir ('plugins')
-
+downloadPlugins.outputs.dir('plugins')
 
 
 task downloadAdminUI {
@@ -491,15 +533,15 @@ task downloadAdminUI {
         def dest
         if (gradle.taskGraph.hasTask(':app:nightly')) {
             dest = download(
-                    downloadDir,
-                    "https://cdn.crate.io/downloads/releases/nightly/crate-admin-latest.tar.gz",
-                    "crate-admin-latest.tar.gz"
+                downloadDir,
+                "https://cdn.crate.io/downloads/releases/nightly/crate-admin-latest.tar.gz",
+                "crate-admin-latest.tar.gz"
             )
         } else {
             dest = download(
-                    downloadDir,
-                    "https://cdn.crate.io/downloads/releases/crate-admin-${adminui_version}.tar.gz",
-                    "crate-admin-${adminui_version}.tar.gz"
+                downloadDir,
+                "https://cdn.crate.io/downloads/releases/crate-admin-${adminui_version}.tar.gz",
+                "crate-admin-${adminui_version}.tar.gz"
             )
         }
         extractTopfolder(dest, "${buildDir}/crate-admin/_site")
@@ -549,10 +591,10 @@ clean.dependsOn(['cleanDownloadPlugins',
 def extractTopfolder(File src, String trg) {
     copy {
         includeEmptyDirs = false
-            FileTree ft
-            if (src.name.endsWith('.tar.gz')) {
-                ft = tarTree(src)
-            }
+        FileTree ft
+        if (src.name.endsWith('.tar.gz')) {
+            ft = tarTree(src)
+        }
         from(ft) {
             eachFile {
                 details -> details.path = details.path.substring(details.relativePath.segments[0].length())
