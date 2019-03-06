@@ -20,7 +20,6 @@ package io.crate.protocols.postgres;
 
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.protocols.ssl.SslConfigSettings;
-import io.crate.settings.SharedSettings;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
 import org.elasticsearch.common.settings.Settings;
@@ -55,7 +54,6 @@ public class SslReqHandlerIntegrationTest extends SQLTransportIntegrationTest {
     protected Settings nodeSettings(int nodeOrdinal) {
         return Settings.builder()
             .put(super.nodeSettings(nodeOrdinal))
-            .put(SharedSettings.ENTERPRISE_LICENSE_SETTING.getKey(), true)
             .put(SslConfigSettings.SSL_PSQL_ENABLED.getKey(), true)
             .put(SslConfigSettings.SSL_KEYSTORE_FILEPATH.getKey(), keyStoreFile.getAbsolutePath())
             .put(SslConfigSettings.SSL_KEYSTORE_PASSWORD.getKey(), "keystorePassword")

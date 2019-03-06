@@ -21,14 +21,12 @@ package io.crate.protocols.http;
 import io.crate.plugin.PipelineRegistry;
 import io.crate.protocols.ssl.SslConfigSettings;
 import io.crate.protocols.ssl.SslContextProvider;
-import io.crate.settings.SharedSettings;
 import io.crate.test.integration.CrateUnitTest;
 import io.netty.channel.Channel;
 import io.netty.channel.embedded.EmbeddedChannel;
 import io.netty.handler.ssl.SslHandler;
 import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.common.network.NetworkService;
-import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
@@ -61,7 +59,6 @@ public class CrateHttpsTransportTest extends CrateUnitTest {
     @Test
     public void testPipelineConfiguration() throws Exception {
         Settings settings = Settings.builder()
-            .put(SharedSettings.ENTERPRISE_LICENSE_SETTING.getKey(), true)
             .put(PATH_HOME_SETTING.getKey(), "/tmp")
             .put(SslConfigSettings.SSL_HTTP_ENABLED.getKey(), true)
             .put(SslConfigSettings.SSL_TRUSTSTORE_FILEPATH.getKey(), trustStoreFile.getAbsolutePath())
@@ -108,7 +105,6 @@ public class CrateHttpsTransportTest extends CrateUnitTest {
             assertThat(channel.pipeline().first(), instanceOf(SslHandler.class));
 
         } finally {
-            assertSettingDeprecationsAndWarnings(new Setting<?>[] {SharedSettings.ENTERPRISE_LICENSE_SETTING.setting()});
             transport.stop();
             transport.close();
             channel.close().awaitUninterruptibly();
