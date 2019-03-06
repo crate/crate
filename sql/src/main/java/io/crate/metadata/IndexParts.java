@@ -36,14 +36,13 @@ import java.util.List;
  * 1) Class which unpacks and holds the different entities of a CrateDB index name.
  * 2) Static methods to check index names or generate them for RelationName or PartitionName
  */
-@SuppressWarnings("WeakerAccess")
 public class IndexParts {
 
     // Index names are only allowed to contain '.' as separators
     private static final Splitter SPLITTER = Splitter.on(".").limit(6);
     private static final String PARTITIONED_KEY_WORD = "partitioned";
     @VisibleForTesting
-    public static final String PARTITIONED_TABLE_PART = "." + PARTITIONED_KEY_WORD + ".";
+    static final String PARTITIONED_TABLE_PART = "." + PARTITIONED_KEY_WORD + ".";
 
     public static final List<String> DANGLING_INDICES_PREFIX_PATTERNS = ImmutableList.of(
         AlterTableOperation.RESIZE_PREFIX + "*"
