@@ -20,20 +20,12 @@ package io.crate.plugin;
 
 import io.crate.Plugin;
 import io.crate.module.EnterpriseFunctionsModule;
-import io.crate.settings.SharedSettings;
 import org.elasticsearch.common.inject.Module;
-import org.elasticsearch.common.settings.Settings;
 
 import java.util.Collection;
 import java.util.Collections;
 
 public class EnterpriseFunctionsPlugin implements Plugin {
-
-    private final boolean isEnabled;
-
-    public EnterpriseFunctionsPlugin(Settings settings) {
-        isEnabled = SharedSettings.ENTERPRISE_LICENSE_SETTING.setting().get(settings);
-    }
 
     @Override
     public String name() {
@@ -47,6 +39,6 @@ public class EnterpriseFunctionsPlugin implements Plugin {
 
     @Override
     public Collection<Module> createGuiceModules() {
-        return isEnabled ? Collections.singletonList(new EnterpriseFunctionsModule()) : Collections.emptyList();
+        return Collections.singletonList(new EnterpriseFunctionsModule());
     }
 }

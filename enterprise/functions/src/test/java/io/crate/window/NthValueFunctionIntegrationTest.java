@@ -23,7 +23,6 @@
 package io.crate.window;
 
 import io.crate.integrationtests.SQLTransportIntegrationTest;
-import io.crate.settings.SharedSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.Plugin;
 import org.junit.Test;
@@ -40,7 +39,7 @@ public class NthValueFunctionIntegrationTest extends SQLTransportIntegrationTest
     protected Settings nodeSettings(int nodeOrdinal) {
         return Settings.builder()
             .put(super.nodeSettings(nodeOrdinal))
-            .put(SharedSettings.ENTERPRISE_LICENSE_SETTING.getKey(), true).build();
+            .build();
     }
 
     @Override
