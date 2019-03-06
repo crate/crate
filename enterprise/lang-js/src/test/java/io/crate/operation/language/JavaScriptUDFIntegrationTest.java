@@ -21,7 +21,6 @@ package io.crate.operation.language;
 import com.google.common.collect.ImmutableList;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.module.JavaScriptLanguageModule;
-import io.crate.settings.SharedSettings;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.Settings;
@@ -42,8 +41,8 @@ public class JavaScriptUDFIntegrationTest extends SQLTransportIntegrationTest {
     protected Settings nodeSettings(int nodeOrdinal) {
         return Settings.builder()
             .put(super.nodeSettings(nodeOrdinal))
-            .put(JavaScriptLanguageModule.LANG_JS_ENABLED.getKey(), true)
-            .put(SharedSettings.ENTERPRISE_LICENSE_SETTING.getKey(), true).build();
+            .put(JavaScriptLanguageModule.LANG_JS_ENABLED.getKey(),true)
+            .build();
     }
 
     @Override
