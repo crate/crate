@@ -21,8 +21,8 @@
 
 from os.path import dirname, join
 
-here = dirname(__file__)  # blackbox/shared/src/testutils
-project_root = dirname(dirname(dirname(dirname(here))))
+here = dirname(__file__)  # blackbox/testutils
+project_root = dirname(dirname(here))
 
 
 def project_path(*parts):

@@ -52,6 +52,34 @@ ch.setLevel(logging.ERROR)
 log.addHandler(ch)
 
 
+env = os.environ.copy()
+env['CRATE_JAVA_OPTS'] = JMX_OPTS.format(JMX_PORT)
+enterprise_crate = CrateLayer(
+    'crate-enterprise',
+    crate_home=crate_path(),
+    port=CRATE_HTTP_PORT,
+    transport_port=GLOBAL_PORT_POOL.get(),
+    env=env,
+    settings={
+        'license.enterprise': True,
+        'psql.port': GLOBAL_PORT_POOL.get(),
+    }
+)
+
+env = os.environ.copy()
+env["CRATE_JAVA_OPTS"] = JMX_OPTS.format(JMX_PORT_ENTERPRISE_DISABLED)
+community_crate = CrateLayer(
+    'crate',
+    crate_home=crate_path(),
+    port=GLOBAL_PORT_POOL.get(),
+    transport_port=GLOBAL_PORT_POOL.get(),
+    env=env,
+    settings={
+        'license.enterprise': False,
+    }
+)
+
+
 class JmxClient:
 
     SJK_JAR_URL = "https://repository.sonatype.org/service/local/artifact/maven/redirect?r=central-proxy&g=org.gridkit.jvmtool&a=sjk&v=LATEST"
@@ -77,7 +105,7 @@ class JmxClient:
     def query_jmx(self, bean, attribute):
         env = os.environ.copy()
         env.setdefault('JAVA_HOME', '/usr/lib/jvm/java-11-openjdk')
-        p = Popen(
+        with Popen(
             [
                 'java',
                 '-jar', self.jmx_path,
@@ -87,11 +115,13 @@ class JmxClient:
                 '-b', bean,
                 '-f', attribute
             ],
-            stdin=PIPE, stdout=PIPE, stderr=PIPE,
+            stdin=PIPE,
+            stdout=PIPE,
+            stderr=PIPE,
             env=env,
             universal_newlines=True
-        )
-        stdout, stderr = p.communicate()
+        ) as p:
+            stdout, stderr = p.communicate()
         restart_msg = 'Restarting java with unlocked package access\n'
         if stderr.startswith(restart_msg):
             stderr = stderr[len(restart_msg):]
@@ -99,49 +129,39 @@ class JmxClient:
         return (stdout[len(bean) + 1:], stderr)
 
 
-class MonitoringIntegrationTest(unittest.TestCase):
+class JmxIntegrationTest(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        enterprise_crate.start()
+
+    @classmethod
+    def tearDownClass(cls):
+        enterprise_crate.stop()
 
     def test_mbean_select_frq_attribute(self):
         jmx_client = JmxClient(JMX_PORT)
-        conn = connect('localhost:{}'.format(CRATE_HTTP_PORT))
-        c = conn.cursor()
+        with connect('localhost:{}'.format(CRATE_HTTP_PORT)) as conn:
+            c = conn.cursor()
 
-        to_sleep = 0.2
-        while True:
-            c.execute("select 1")
-            value, exception = jmx_client.query_jmx(
-                'io.crate.monitoring:type=QueryStats',
-                'SelectQueryFrequency'
-            )
+            to_sleep = 0.2
+            while True:
+                c.execute("select 1")
+                value, exception = jmx_client.query_jmx(
+                    'io.crate.monitoring:type=QueryStats',
+                    'SelectQueryFrequency'
+                )
 
-            if exception:
-                raise AssertionError("Unable to get attribute QueryStats.SelectQueryFrequency: " + str(exception))
+                if exception:
+                    raise AssertionError("Unable to get attribute QueryStats.SelectQueryFrequency: " + str(exception))
 
-            if float(value) > 0.0:
-                break
-            if to_sleep > 30:
-                raise AssertionError('''The mbean attribute has not produced
-                                     the expected result.''')
-            time.sleep(to_sleep)
-            to_sleep *= 2
-
-
-class MonitoringSettingIntegrationTest(unittest.TestCase):
-
-    def test_enterprise_setting_disabled(self):
-        jmx_client = JmxClient(JMX_PORT_ENTERPRISE_DISABLED)
-        stdout, stderr = jmx_client.query_jmx(
-            'io.crate.monitoring:type=QueryStats',
-            'SelectQueryFrequency'
-        )
-
-        self.assertEqual(
-            stderr,
-            'MBean not found: io.crate.monitoring:type=QueryStats\n')
-        self.assertEqual(stdout, '')
-
-
-class MonitoringNodeStatusIntegrationTest(unittest.TestCase):
+                if float(value) > 0.0:
+                    break
+                if to_sleep > 30:
+                    raise AssertionError('''The mbean attribute has not produced
+                                        the expected result.''')
+                time.sleep(to_sleep)
+                to_sleep *= 2
 
     def test_mbean_select_ready(self):
         jmx_client = JmxClient(JMX_PORT)
@@ -157,9 +177,6 @@ class MonitoringNodeStatusIntegrationTest(unittest.TestCase):
         if value != 'true':
             raise AssertionError("The mbean attribute  NodeStatus.Ready has not produced the expected result. " +
                                  "Expected: true, Got: {}".format(value))
-
-
-class MonitoringNodeInfoIntegrationTest(unittest.TestCase):
 
     def test_mbean_node_name(self):
         jmx_client = JmxClient(JMX_PORT)
@@ -197,18 +214,12 @@ class MonitoringNodeInfoIntegrationTest(unittest.TestCase):
         self.assertGreater(int(stdout), 0)
         self.assertEqual(stderr, '')
 
-
-class ConnectionsBeanTest(unittest.TestCase):
-
     def test_number_of_open_connections(self):
         jmx_client = JmxClient(JMX_PORT)
         stdout, stderr = jmx_client.query_jmx(
             'io.crate.monitoring:type=Connections', 'HttpOpen')
         self.assertGreater(int(stdout), 0)
         self.assertEqual(stderr, '')
-
-
-class ThreadPoolsBeanTest(unittest.TestCase):
 
     def test_search_pool(self):
         jmx_client = JmxClient(JMX_PORT)
@@ -227,9 +238,6 @@ rejected:        0
 
 ''')
         self.assertEqual(stderr, '')
-
-
-class CircuitBreakersBeanTest(unittest.TestCase):
 
     def test_parent_breaker(self):
         jmx_client = JmxClient(JMX_PORT)
@@ -253,60 +261,24 @@ class CircuitBreakersBeanTest(unittest.TestCase):
         self.assertRegex(output, r'used:\s+(\d+)')
 
 
-def test_suite():
-    env = os.environ.copy()
-    env['CRATE_JAVA_OPTS'] = JMX_OPTS.format(JMX_PORT)
-    crateLayer = CrateLayer(
-        'crate-enterprise',
-        crate_home=crate_path(),
-        port=CRATE_HTTP_PORT,
-        transport_port=GLOBAL_PORT_POOL.get(),
-        env=env,
-        settings={
-            'license.enterprise': True,
-            'psql.port': GLOBAL_PORT_POOL.get(),
-        }
-    )
+class NoEnterpriseJmxIntegrationTest(unittest.TestCase):
 
-    # Graceful tests
-    suite = unittest.TestSuite()
-    s = unittest.TestSuite(unittest.makeSuite(MonitoringIntegrationTest))
-    s.layer = crateLayer
-    suite.addTest(s)
+    @classmethod
+    def setUpClass(cls):
+        community_crate.start()
 
-    s = unittest.TestSuite(unittest.makeSuite(MonitoringNodeStatusIntegrationTest))
-    s.layer = crateLayer
-    suite.addTest(s)
+    @classmethod
+    def tearDownClass(cls):
+        community_crate.stop()
 
-    s = unittest.TestSuite(unittest.makeSuite(MonitoringNodeInfoIntegrationTest))
-    s.layer = s.layer = crateLayer
-    suite.addTest(s)
+    def test_enterprise_setting_disabled(self):
+        jmx_client = JmxClient(JMX_PORT_ENTERPRISE_DISABLED)
+        stdout, stderr = jmx_client.query_jmx(
+            'io.crate.monitoring:type=QueryStats',
+            'SelectQueryFrequency'
+        )
 
-    s = unittest.makeSuite(ConnectionsBeanTest)
-    s.layer = crateLayer
-    suite.addTest(s)
-
-    s = unittest.makeSuite(ThreadPoolsBeanTest)
-    s.layer = crateLayer
-    suite.addTest(s)
-
-    s = unittest.makeSuite(CircuitBreakersBeanTest)
-    s.layer = crateLayer
-    suite.addTest(s)
-
-    # JMX Disabled test
-    s = unittest.TestSuite(unittest.makeSuite(MonitoringSettingIntegrationTest))
-    env = os.environ.copy()
-    env["CRATE_JAVA_OPTS"] = JMX_OPTS.format(JMX_PORT_ENTERPRISE_DISABLED)
-    s.layer = CrateLayer(
-        'crate',
-        crate_home=crate_path(),
-        port=GLOBAL_PORT_POOL.get(),
-        transport_port=GLOBAL_PORT_POOL.get(),
-        env=env,
-        settings={
-            'license.enterprise': False,
-        }
-    )
-    suite.addTest(s)
-    return suite
+        self.assertEqual(
+            stderr,
+            'MBean not found: io.crate.monitoring:type=QueryStats\n')
+        self.assertEqual(stdout, '')
