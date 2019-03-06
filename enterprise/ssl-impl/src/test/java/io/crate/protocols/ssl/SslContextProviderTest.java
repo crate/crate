@@ -48,12 +48,6 @@ public class SslContextProviderTest extends CrateUnitTest {
     }
 
 
-    @After
-    public void tearDown() throws Exception {
-        assertSettingDeprecationsAndWarnings(new Setting<?>[] {SharedSettings.ENTERPRISE_LICENSE_SETTING.setting()});
-        super.tearDown();
-    }
-
     @Test
     public void testClassLoadingWithInvalidConfiguration() {
         // empty ssl configuration which is invalid
