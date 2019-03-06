@@ -80,7 +80,6 @@ public class LicenseServiceTest extends CrateDummyClusterServiceUnitTest {
         );
     }
 
-
     private static byte[] encrypt(byte[] data, byte[] privateKeyBytes) {
         return CryptoUtilsTest.encryptRsaUsingPrivateKey(data, privateKeyBytes);
     }
