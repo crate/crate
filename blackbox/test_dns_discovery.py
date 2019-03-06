@@ -23,7 +23,7 @@
 # and conditions of your Enterprise or Subscription Agreement with Crate.
 
 from testutils.paths import crate_path
-from testutils.ports import GLOBAL_PORT_POOL
+from testutils.ports import bind_port
 from crate.testing.layer import CrateLayer
 from crate.client import connect
 from dnslib.server import DNSServer
@@ -33,8 +33,8 @@ from dnslib.zoneresolver import ZoneResolver
 def main():
     num_nodes = 3
 
-    node0_http_port = GLOBAL_PORT_POOL.get()
-    dns_port = GLOBAL_PORT_POOL.get()
+    node0_http_port = bind_port()
+    dns_port = bind_port()
     transport_ports = []
     zone_file = '''
 crate.internal.               600   IN   SOA   localhost localhost ( 2007120710 1d 2h 4w 1h )
@@ -42,7 +42,7 @@ crate.internal.               400   IN   NS    localhost
 crate.internal.               600   IN   A     127.0.0.1'''
 
     for i in range(0, num_nodes):
-        port = GLOBAL_PORT_POOL.get()
+        port = bind_port()
         transport_ports.append(port)
         zone_file += '''
 _test._srv.crate.internal.    600   IN   SRV   1 10 {port} 127.0.0.1.'''.format(port=port)
@@ -56,10 +56,10 @@ _test._srv.crate.internal.    600   IN   SRV   1 10 {port} 127.0.0.1.'''.format(
             'node-' + str(i),
             cluster_name='crate-dns-discovery',
             crate_home=crate_path(),
-            port=node0_http_port if i == 0 else GLOBAL_PORT_POOL.get(),
+            port=node0_http_port if i == 0 else bind_port(),
             transport_port=transport_ports[i],
             settings={
-                'psql.port': GLOBAL_PORT_POOL.get(),
+                'psql.port': bind_port(),
                 "discovery.zen.hosts_provider": "srv",
                 "discovery.srv.query": "_test._srv.crate.internal.",
                 "discovery.srv.resolver": "127.0.0.1:" + str(dns_port)
