@@ -52,7 +52,7 @@ and ``DELETE`` statements, on the object for which the privilege applies.
 
 Granting ``Data Definition Language (DDL)`` privilege to a user, indicates that
 this user is allowed to execute ``CREATE TABLE``, ``DROP TABLE``,
-``CREATE VIEW``, ``DROP VIEW``,``CREATE FUNCTION``, ``DROP FUNCTION``,
+``CREATE VIEW``, ``DROP VIEW``, ``CREATE FUNCTION``, ``DROP FUNCTION``,
 ``CREATE REPOSITORY``, ``DROP REPOSITORY``, ``CREATE SNAPSHOT``,
 ``DROP SNAPSHOT``, ``RESTORE SNAPSHOT``, and ``ALTER`` statements, on the
 object for which the privilege applies.

@@ -34,14 +34,13 @@ import subprocess
 import unittest
 from functools import partial
 from testutils.paths import crate_path, project_path
-from testutils.ports import GLOBAL_PORT_POOL
+from testutils.ports import bind_port
 from crate.crash.command import CrateShell
 from crate.crash.printer import PrintWrapper, ColorPrinter
 from crate.client import connect
 
 
-CRATE_HTTP_PORT = GLOBAL_PORT_POOL.get()
-CRATE_TRANSPORT_PORT = GLOBAL_PORT_POOL.get()
+CRATE_HTTP_PORT = bind_port()
 CRATE_DSN = 'localhost:' + str(CRATE_HTTP_PORT)
 
 log = logging.getLogger('crate.testing.layer')
@@ -409,12 +408,12 @@ crate_layer = ConnectingCrateLayer(
     host='localhost',
     crate_home=crate_path(),
     port=CRATE_HTTP_PORT,
-    transport_port=CRATE_TRANSPORT_PORT,
+    transport_port=0,
     env={'JAVA_HOME': os.environ.get('JAVA_HOME', '')},
     settings={
         'license.enterprise': 'true',
         'lang.js.enabled': 'true',
-        'psql.port': GLOBAL_PORT_POOL.get(),
+        'psql.port': 0,
     }
 )
 

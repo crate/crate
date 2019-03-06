@@ -1,7 +1,4 @@
-# -*- coding: utf-8 -*-
-
 import socket
-from threading import Lock
 
 
 def public_ipv4():
@@ -16,20 +13,8 @@ def public_ipv4():
             return addrinfo[4][0]
 
 
-class PortPool(object):
-    """
-    Pool that returns a unique available port
-    reported by the kernel.
-    """
-
-    MAX_RETRIES = 10
-
-    def __init__(self):
-        self.ports = set()
-        self.lock = Lock()
-
-    def bind_port(self, addr, port):
-        sock = socket.socket()
+def bind_port(addr='127.0.0.1', port=0):
+    with socket.socket() as sock:
         sock.bind((addr, port))
         port = sock.getsockname()[1]
         try:
@@ -37,54 +22,23 @@ class PortPool(object):
         except Exception:
             # ok, at least we know that the socket is not connected
             pass
-        sock.close()
         return port
 
-    def random_available_port(self, addr):
-        return self.bind_port(addr, 0)
 
-    def get(self, addr='127.0.0.1'):
-        retries = 0
-        port = self.random_available_port(addr)
-
-        with self.lock:
-            while port in self.ports:
-                port = self.random_available_port(addr)
-                retries += 1
-                if retries > self.MAX_RETRIES:
-                    raise OSError("Could not get free port. Max retries exceeded.")
-            self.ports.add(port)
-        return port
-
-    def get_range(self, addr='127.0.0.1', range_size=1):
-        retries = 0
-
-        while True:
-            port_start = self.get(addr)
-            port_end = port_start + range_size + 1
-
-            with self.lock:
-                loop_continue = False
-                for i in range(port_start + 1, port_end):
-                    if i in self.ports:
-                        loop_continue = True
-                        break
-
-                if (loop_continue):
-                    continue
-
-                try:
-                    for i in range(port_start, port_end):
-                        self.bind_port(addr, i)
-                        self.ports.add(i)
-                    break
-                except Exception:
-                    retries += 1
-                    if retries > self.MAX_RETRIES:
-                        raise OSError("Could not get free port range. Max retries exceeded.")
-                    continue
-
-        return "{}-{}".format(port_start, port_end - 1)
+def _bind_range(addr, size):
+    start = bind_port(addr)
+    yield start
+    end = start + size
+    for i in range(start + 1, end):
+        yield bind_port(addr, i)
 
 
-GLOBAL_PORT_POOL = PortPool()
+def bind_range(addr='127.0.0.1', range_size=1):
+    max_retries = 10
+    for _ in range(max_retries):
+        try:
+            ports = list(_bind_range(addr, range_size))
+            return f'{ports[0]}-{ports[-1]}'
+        except Exception:
+            continue
+    raise OSError("Could not get free port range. Max retries exceeded.")

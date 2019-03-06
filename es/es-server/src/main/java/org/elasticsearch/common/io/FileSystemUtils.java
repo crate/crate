@@ -21,9 +21,9 @@ package org.elasticsearch.common.io;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.Constants;
-import org.elasticsearch.core.internal.io.IOUtils;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.SuppressForbidden;
+import org.elasticsearch.core.internal.io.IOUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -77,19 +77,6 @@ public final class FileSystemUtils {
     }
 
     /**
-     * Appends the path to the given base and strips N elements off the path if strip is &gt; 0.
-     */
-    public static Path append(Path base, Path path, int strip) {
-        for (Path subPath : path) {
-            if (strip-- > 0) {
-                continue;
-            }
-            base = base.resolve(subPath.toString());
-        }
-        return base;
-    }
-
-    /**
      * Deletes all subdirectories in the given path recursively
      * @throws java.lang.IllegalArgumentException if the given path is not a directory
      */
@@ -104,7 +91,6 @@ public final class FileSystemUtils {
             }
         }
     }
-
 
     /**
      * Check that a directory exists, is a directory and is readable
