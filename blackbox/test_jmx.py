@@ -29,15 +29,15 @@ import unittest
 import time
 import logging
 from crate.client import connect
-from testutils.ports import GLOBAL_PORT_POOL
+from testutils.ports import bind_port
 from testutils.paths import crate_path
 from crate.testing.layer import CrateLayer
 from subprocess import PIPE, Popen
 from urllib.request import urlretrieve
 
-JMX_PORT = GLOBAL_PORT_POOL.get()
-CRATE_HTTP_PORT = GLOBAL_PORT_POOL.get()
-JMX_PORT_ENTERPRISE_DISABLED = GLOBAL_PORT_POOL.get()
+JMX_PORT = bind_port()
+CRATE_HTTP_PORT = bind_port()
+JMX_PORT_ENTERPRISE_DISABLED = bind_port()
 
 JMX_OPTS = '''
      -Dcom.sun.management.jmxremote
@@ -58,11 +58,10 @@ enterprise_crate = CrateLayer(
     'crate-enterprise',
     crate_home=crate_path(),
     port=CRATE_HTTP_PORT,
-    transport_port=GLOBAL_PORT_POOL.get(),
+    transport_port=0,
     env=env,
     settings={
         'license.enterprise': True,
-        'psql.port': GLOBAL_PORT_POOL.get(),
     }
 )
 
@@ -71,8 +70,8 @@ env["CRATE_JAVA_OPTS"] = JMX_OPTS.format(JMX_PORT_ENTERPRISE_DISABLED)
 community_crate = CrateLayer(
     'crate',
     crate_home=crate_path(),
-    port=GLOBAL_PORT_POOL.get(),
-    transport_port=GLOBAL_PORT_POOL.get(),
+    port=bind_port(),
+    transport_port=0,
     env=env,
     settings={
         'license.enterprise': False,

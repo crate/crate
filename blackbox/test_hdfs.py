@@ -28,7 +28,7 @@ import shutil
 import time
 import tarfile
 import logging
-from testutils.ports import GLOBAL_PORT_POOL
+from testutils.ports import bind_port
 from testutils.paths import crate_path, project_root
 from crate.testing.layer import CrateLayer
 from crate.client import connect
@@ -42,9 +42,8 @@ CACHE_DIR = os.environ.get(
     'XDG_CACHE_HOME', os.path.join(os.path.expanduser('~'), '.cache', 'crate-tests'))
 
 
-CRATE_HTTP_PORT = GLOBAL_PORT_POOL.get()
-CRATE_TRANSPORT_PORT = GLOBAL_PORT_POOL.get()
-NN_PORT = '49000'
+CRATE_HTTP_PORT = bind_port()
+NN_PORT = bind_port()
 
 
 hdfs_repo_libs_path = os.path.join(
@@ -113,7 +112,7 @@ class HadoopLayer:
         cmd = [
             self.hadoop_bin, 'jar',
             self.hadoop_mapreduce_client, 'minicluster',
-            '-nnport', NN_PORT, '-nomr', '-format',
+            '-nnport', str(NN_PORT), '-nomr', '-format',
             '-D', 'dfs.replication=1',
             '-D', 'dfs.client.use.datanode.hostname=true',
             '-D', 'dfs.datanode.use.datanode.hostname=true',
@@ -152,9 +151,9 @@ crate = HdfsCrateLayer(
     host='localhost',
     crate_home=crate_path(),
     port=CRATE_HTTP_PORT,
-    transport_port=CRATE_TRANSPORT_PORT,
+    transport_port=0,
     settings={
-        'psql.port': GLOBAL_PORT_POOL.get(),
+        'psql.port': 0,
     },
     env=os.environ.copy()
 )

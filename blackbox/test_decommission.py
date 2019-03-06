@@ -30,7 +30,7 @@ from crate.testing.layer import CrateLayer
 from crate.client.http import Client
 from crate.client.exceptions import ProgrammingError, ConnectionError
 from testutils.paths import crate_path
-from testutils.ports import GLOBAL_PORT_POOL
+from testutils.ports import bind_range, bind_port
 
 
 def decommission_using_signal(process):
@@ -134,13 +134,13 @@ class GracefulStopTest(unittest.TestCase):
         self.clients = []
         self.node_names = []
         # auto-discovery with unicast on the same host only works if all nodes are configured with the same port range
-        transport_port_range = GLOBAL_PORT_POOL.get_range(range_size=self.num_servers)
+        transport_port_range = bind_range(range_size=self.num_servers)
         for i in range(self.num_servers):
             layer = GracefulStopCrateLayer(
                 self.node_name(i),
                 crate_path(),
                 host='localhost',
-                port=GLOBAL_PORT_POOL.get(),
+                port=bind_port(),
                 transport_port=transport_port_range,
                 settings={
                     # The disk.watermark settings can be removed once crate-python > 0.21.1 has been released
