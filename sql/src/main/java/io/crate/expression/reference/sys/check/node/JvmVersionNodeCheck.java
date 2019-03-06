@@ -66,9 +66,13 @@ public final class JvmVersionNodeCheck extends AbstractSysNodeCheck {
         String firstToken = stVersionParts.nextToken();
         try {
             int major = Integer.parseInt(firstToken);
-            int minor = Integer.parseInt(stVersionParts.nextToken());
-            int hotfix = Integer.parseInt(stVersionParts.nextToken());
-            return new int[] {major, minor, hotfix};
+            if (stVersionParts.hasMoreTokens()) {
+                int minor = Integer.parseInt(stVersionParts.nextToken());
+                int hotfix = Integer.parseInt(stVersionParts.nextToken());
+                return new int[] {major, minor, hotfix};
+            } else {
+                return new int[] {major, 0, 0};
+            }
         } catch (NumberFormatException e) {
             if (firstToken.endsWith("ea")) {
                 int offset = firstToken.endsWith("-ea") ? 3 : 2;

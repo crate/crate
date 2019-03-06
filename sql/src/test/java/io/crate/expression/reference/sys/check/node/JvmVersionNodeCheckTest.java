@@ -25,7 +25,7 @@ package io.crate.expression.reference.sys.check.node;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertThat;
 
 public class JvmVersionNodeCheckTest {
 
@@ -67,5 +67,10 @@ public class JvmVersionNodeCheckTest {
     @Test
     public void testEAVersionWithDashCanBeParsed() {
         assertThat(JvmVersionNodeCheck.parseVersion("12-ea"), is(new int[] { 12, 0, 0 }));
+    }
+
+    @Test
+    public void testSingleVersionNumber() {
+        assertThat(JvmVersionNodeCheck.parseVersion("12"), is(new int[] { 12, 0, 0 }));
     }
 }
