@@ -86,7 +86,7 @@ pipeline {
             sh 'git clean -xdff'
             checkout scm
             sh 'git submodule update --init'
-            sh './gradlew --no-daemon hdfsTest monitoringTest gtest'
+            sh 'timeout 20m ./gradlew --no-daemon hdfsTest monitoringTest gtest'
           }
         }
       }
