@@ -12,10 +12,6 @@ Enterprise Features
 Feature List
 ============
 
-When you first download CrateDB, the :ref:`license.enterprise
-<conf-node-enterprise-license>` setting is set to ``true`` and the following
-enterprise features are enabled:
-
 - :ref:`administration_user_management`: manage multiple database users
 - :ref:`administration-privileges`: configure user privileges
 - :ref:`admin_auth`: manage your database with authentication, and
@@ -33,30 +29,50 @@ enterprise features are enabled:
 - `The CrateDB admin UI`_: `shards browser`_, `monitoring overview`_,
   `privileges browser`_
 
+.. WARNING::
+
+   We are currently moving away from enabling enterprise features
+   based on the :ref:`license.enterprise
+   <conf-node-enterprise-license>` setting. Thus this setting is
+   now deprecated and will be removed in the future, where users
+   will be able to switch to the Community Edition by building
+   their own tarball.
+
 .. _enterprise_trial:
 
 Trial
 =====
 
-You may evaluate CrateDB during a 30-day trial period, after which you must
-`request an enterprise license`_ and configure CrateDB using the :ref:`SET
-LICENSE <ref-set-license>` statement.
+You may evaluate CrateDB for as long as you require, there is no time limit.
+However, you can do this on a three-node cluster setup. Should you require
+to scale up your cluster, you can `request an enterprise license`_
+and configure CrateDB using the :ref:`SET LICENSE <ref-set-license>` statement.
 
 .. NOTE::
 
-    When the trial period ends, CrateDB functionality will be limited to
-    executing the following statements:
+    If your cluster size becomes greater than the allowed threshold,
+    CrateDB functionality will be limited to executing the following
+    statements:
 
-    - :ref:`SET LICENSE <ref-set-license>`
+    - :ref:`SET LICENSE <ref-set-license>`,
+      to register another license with different node threshold.
+
+    - :ref:`ALTER CLUSTER DECOMMISSION <alter_cluster_decommission>`,
+      to downsize your cluster to the allowed threshold
 
     - :ref:`SELECT <sql_reference_select>` (:ref:`information_schema
       <information_schema>` and :ref:`sys <system-information>` schemas only)
 
-If you wish to continue using CrateDB without an enterprise license after the
-trial period ends you must set :ref:`license.enterprise
-<conf-node-enterprise-license>` to ``false``. This activates the `community
-edition`_ of CrateDB and restores all functionality except for the enterprise
-features.
+If you wish to continue using CrateDB without an enterprise license, you can
+switch to the CrateDB `community edition`_, restoring all functionality
+except for the enterprise features. To do so, you need to build the tarball
+yourself (using the dedicated gradle task:
+``$ ./gradlew communityEditionDistTar``)
+
+.. NOTE::
+
+   If you already have an existing 30-day trial license, please contact the
+   sales department when license is due to expire.
 
 .. _community Edition: https://crate.io/products/cratedb-editions/
 .. _enterprise license: https://crate.io/products/cratedb-editions/

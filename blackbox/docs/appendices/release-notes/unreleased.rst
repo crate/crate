@@ -69,6 +69,12 @@ Breaking Changes
 Deprecations
 ============
 
+- Marked the :ref:`license.enterprise <conf-node-enterprise-license>`
+  setting as deprecated as we are moving away from enabling the enterprise
+  features based on this setting. In the future, users will be able to
+  switch to the Community Edition by building their own tarball
+  (``$ ./gradlew communityEditionDistTar``).
+
 - The query frequency and average duration :ref:`query_stats_mbean` metrics
   have been deprecated in favour of the new total count and sum of durations
   metrics.

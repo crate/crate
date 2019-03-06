@@ -39,11 +39,13 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.DocTableInfoFactory;
 import io.crate.metadata.doc.TestingDocTableInfoFactory;
 import io.crate.metadata.table.TestingTableInfo;
+import io.crate.settings.SharedSettings;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.Provider;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
 import org.junit.Test;
@@ -293,7 +295,11 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
         e = SQLExecutor.builder(clusterService)
             .settings(Settings.builder().put(ENTERPRISE_LICENSE_SETTING.getKey(), false).build())
             .build();
-        e.analyze("GRANT DQL TO test");
+        try {
+            e.analyze("GRANT DQL TO test");
+        } finally {
+            assertSettingDeprecationsAndWarnings(new Setting<?>[] {SharedSettings.ENTERPRISE_LICENSE_SETTING.setting()});
+        }
     }
 
     @Test

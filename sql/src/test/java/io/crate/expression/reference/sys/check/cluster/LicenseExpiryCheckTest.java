@@ -26,8 +26,11 @@ import io.crate.expression.reference.sys.check.SysCheck;
 import io.crate.license.DecryptedLicenseData;
 import io.crate.license.LicenseExpiryNotification;
 import io.crate.license.LicenseService;
+import io.crate.settings.SharedSettings;
 import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -47,6 +50,12 @@ public class LicenseExpiryCheckTest extends CrateUnitTest {
         licenseService = mock(LicenseService.class);
         Settings settings = Settings.builder().put("license.enterprise", true).build();
         expirationCheck = new LicenseExpiryCheck(settings, licenseService);
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        assertSettingDeprecationsAndWarnings(new Setting<?>[] {SharedSettings.ENTERPRISE_LICENSE_SETTING.setting()});
+        super.tearDown();
     }
 
     @Test
