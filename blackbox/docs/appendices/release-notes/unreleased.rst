@@ -41,6 +41,10 @@ Unreleased Changes
 Breaking Changes
 ================
 
+- Removed the deprecated average duration and query frequency JMX metrics. The
+  total counts and sum of durations as documented in :ref:`query_stats_mbean`
+  should be used instead.
+
 - Removed the deprecated setting ``cluster.graceful_stop.reallocate``.
 
 - Removed the deprecated ``ON DUPLICATE KEY`` syntax of :ref:`ref-insert`
