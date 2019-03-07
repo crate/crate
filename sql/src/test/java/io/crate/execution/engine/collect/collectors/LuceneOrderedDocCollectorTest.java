@@ -328,7 +328,7 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
                 minScore,
                 true,
                 2,
-                new CollectorContext(mappedFieldType -> null, new CollectorFieldsVisitor(0)),
+                new CollectorContext(mappedFieldType -> null),
                 f -> null,
                 new Sort(SortField.FIELD_SCORE),
                 columnReferences,

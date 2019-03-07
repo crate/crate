@@ -81,7 +81,7 @@ public abstract class DocLevelExpressionsTest extends CrateDummyClusterServiceUn
         insertValues(writer);
         DirectoryReader directoryReader = DirectoryReader.open(writer, true, true);
         readerContext = directoryReader.leaves().get(0);
-        ctx = new CollectorContext(ifd::getForField, null);
+        ctx = new CollectorContext(ifd::getForField);
     }
 
     @After

@@ -155,7 +155,7 @@ final class GroupByOptimizedIterator {
             RamAccountingContext ramAccounting = collectTask.queryPhaseRamAccountingContext();
 
             CollectorContext collectorContext = getCollectorContext(
-                sharedShardContext.readerId(), docCtx, queryShardContext::getForField);
+                sharedShardContext.readerId(), queryShardContext::getForField);
 
             for (int i = 0, expressionsSize = expressions.size(); i < expressionsSize; i++) {
                 expressions.get(i).startCollect(collectorContext);

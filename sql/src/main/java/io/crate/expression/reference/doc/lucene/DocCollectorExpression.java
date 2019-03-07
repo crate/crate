@@ -21,20 +21,18 @@
 
 package io.crate.expression.reference.doc.lucene;
 
-import io.crate.execution.engine.collect.collectors.CollectorFieldsVisitor;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.types.DataType;
 import org.apache.lucene.index.LeafReaderContext;
-import org.elasticsearch.common.xcontent.XContentHelper;
-import org.elasticsearch.common.xcontent.XContentType;
 
 import java.util.List;
 import java.util.Map;
 
 public class DocCollectorExpression extends LuceneCollectorExpression<Map<String, Object>> {
 
-    private CollectorFieldsVisitor visitor;
+    private SourceLookup sourceLookup;
+    private LeafReaderContext context;
 
     public DocCollectorExpression() {
         super();
@@ -42,13 +40,22 @@ public class DocCollectorExpression extends LuceneCollectorExpression<Map<String
 
     @Override
     public void startCollect(CollectorContext context) {
-        context.visitor().required(true);
-        this.visitor = context.visitor();
+        sourceLookup = context.sourceLookup();
+    }
+
+    @Override
+    public void setNextDocId(int doc) {
+        sourceLookup.setSegmentAndDocument(context, doc);
+    }
+
+    @Override
+    public void setNextReader(LeafReaderContext context) {
+        this.context = context;
     }
 
     @Override
     public Map<String, Object> value() {
-        return XContentHelper.convertToMap(visitor.source(), false, XContentType.JSON).v2();
+        return sourceLookup.sourceAsMap();
     }
 
     public static LuceneCollectorExpression<?> create(final Reference reference) {

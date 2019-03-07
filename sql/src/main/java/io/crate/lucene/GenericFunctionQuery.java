@@ -23,7 +23,6 @@
 package io.crate.lucene;
 
 import io.crate.data.Input;
-import io.crate.execution.engine.collect.collectors.CollectorFieldsVisitor;
 import io.crate.expression.InputCondition;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
@@ -40,7 +39,6 @@ import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.TwoPhaseIterator;
 import org.apache.lucene.search.Weight;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Set;
@@ -124,7 +122,7 @@ class GenericFunctionQuery extends Query {
         for (LuceneCollectorExpression expression : expressions) {
             expression.setNextReader(context);
         }
-        return new FilteredTwoPhaseIterator(context.reader(), collectorContext.visitor(), condition, expressions);
+        return new FilteredTwoPhaseIterator(context.reader(), condition, expressions);
     }
 
     @Override
@@ -134,20 +132,13 @@ class GenericFunctionQuery extends Query {
 
     private static class FilteredTwoPhaseIterator extends TwoPhaseIterator {
 
-        private final LeafReader reader;
-        private final CollectorFieldsVisitor fieldsVisitor;
         private final Input<Boolean> condition;
         private final LuceneCollectorExpression[] expressions;
-        private final boolean fieldsVisitorEnabled;
 
         FilteredTwoPhaseIterator(LeafReader reader,
-                                 @Nullable CollectorFieldsVisitor fieldsVisitor,
                                  Input<Boolean> condition,
                                  LuceneCollectorExpression[] expressions) {
             super(DocIdSetIterator.all(reader.maxDoc()));
-            this.reader = reader;
-            this.fieldsVisitor = fieldsVisitor;
-            this.fieldsVisitorEnabled = fieldsVisitor != null && fieldsVisitor.required();
             this.condition = condition;
             this.expressions = expressions;
         }
@@ -155,14 +146,6 @@ class GenericFunctionQuery extends Query {
         @Override
         public boolean matches() throws IOException {
             int doc = approximation.docID();
-            if (fieldsVisitorEnabled) {
-                fieldsVisitor.reset();
-                try {
-                    reader.document(doc, fieldsVisitor);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            }
             for (LuceneCollectorExpression expression : expressions) {
                 expression.setNextDocId(doc);
             }

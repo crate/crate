@@ -29,7 +29,6 @@ import io.crate.data.BatchIterators;
 import io.crate.data.Input;
 import io.crate.execution.dml.upsert.GeneratedColumns;
 import io.crate.execution.dml.upsert.InsertSourceGen;
-import io.crate.execution.engine.collect.collectors.CollectorFieldsVisitor;
 import io.crate.execution.engine.collect.collectors.LuceneBatchIterator;
 import io.crate.expression.InputFactory;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
@@ -168,7 +167,7 @@ public final class QueryTester implements AutoCloseable {
                 query,
                 null,
                 false,
-                new CollectorContext(indexEnv.queryShardContext()::getForField, new CollectorFieldsVisitor(1)),
+                new CollectorContext(indexEnv.queryShardContext()::getForField),
                 new RamAccountingContext("dummy", new NoopCircuitBreaker("dummy")),
                 Collections.singletonList(input),
                 ctx.expressions()

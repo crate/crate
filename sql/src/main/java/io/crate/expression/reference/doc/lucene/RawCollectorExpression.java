@@ -21,25 +21,35 @@
 
 package io.crate.expression.reference.doc.lucene;
 
-import io.crate.execution.engine.collect.collectors.CollectorFieldsVisitor;
+import org.apache.lucene.index.LeafReaderContext;
 import org.elasticsearch.common.compress.CompressorFactory;
 
 import java.io.IOException;
 
 public class RawCollectorExpression extends LuceneCollectorExpression<String> {
 
-    private CollectorFieldsVisitor visitor;
+    private SourceLookup sourceLookup;
+    private LeafReaderContext context;
 
     @Override
     public void startCollect(CollectorContext context) {
-        context.visitor().required(true);
-        this.visitor = context.visitor();
+        this.sourceLookup = context.sourceLookup();
+    }
+
+    @Override
+    public void setNextDocId(int doc) throws IOException {
+        sourceLookup.setSegmentAndDocument(context, doc);
+    }
+
+    @Override
+    public void setNextReader(LeafReaderContext context) throws IOException {
+        this.context = context;
     }
 
     @Override
     public String value() {
         try {
-            return CompressorFactory.uncompressIfNeeded(visitor.source()).utf8ToString();
+            return CompressorFactory.uncompressIfNeeded(sourceLookup.rawSource()).utf8ToString();
         } catch (IOException e) {
             throw new RuntimeException("Failed to uncompress source", e);
         }
