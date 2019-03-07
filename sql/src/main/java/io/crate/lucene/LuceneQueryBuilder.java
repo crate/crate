@@ -28,7 +28,6 @@ import io.crate.data.Input;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.execution.engine.collect.DocInputFactory;
-import io.crate.execution.engine.collect.collectors.CollectorFieldsVisitor;
 import io.crate.expression.InputFactory;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.operator.AndOperator;
@@ -565,10 +564,7 @@ public class LuceneQueryBuilder {
         final Input<Boolean> condition = (Input<Boolean>) ctx.add(function);
         @SuppressWarnings("unchecked")
         final Collection<? extends LuceneCollectorExpression<?>> expressions = ctx.expressions();
-        final CollectorContext collectorContext = new CollectorContext(
-            context.queryShardContext::getForField,
-            new CollectorFieldsVisitor(expressions.size())
-        );
+        final CollectorContext collectorContext = new CollectorContext(context.queryShardContext::getForField);
 
         for (LuceneCollectorExpression expression : expressions) {
             expression.startCollect(collectorContext);

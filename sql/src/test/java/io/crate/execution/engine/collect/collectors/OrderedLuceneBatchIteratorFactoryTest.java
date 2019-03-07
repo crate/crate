@@ -188,10 +188,7 @@ public class OrderedLuceneBatchIteratorFactoryTest extends CrateUnitTest {
     }
 
     private LuceneOrderedDocCollector createOrderedCollector(IndexSearcher searcher, int shardId) {
-        CollectorContext collectorContext = new CollectorContext(
-            mappedFieldType -> null,
-            new CollectorFieldsVisitor(0)
-        );
+        CollectorContext collectorContext = new CollectorContext(mappedFieldType -> null);
         List<LuceneCollectorExpression<?>> expressions = Collections.singletonList(
             new OrderByCollectorExpression(reference, orderBy, o -> o));
         return new LuceneOrderedDocCollector(

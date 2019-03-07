@@ -70,21 +70,16 @@ public class LuceneBatchIteratorTest extends CrateUnitTest {
     @Test
     public void testLuceneBatchIterator() throws Exception {
         BatchIteratorTester tester = new BatchIteratorTester(
-            () -> {
-                return new LuceneBatchIterator(
-                    indexSearcher,
-                    new MatchAllDocsQuery(),
-                    null,
-                    false,
-                    new CollectorContext(
-                        mappedFieldType -> null,
-                        new CollectorFieldsVisitor(0)
-                    ),
-                    new RamAccountingContext("dummy", new NoopCircuitBreaker("dummy")),
-                    columnRefs,
-                    columnRefs
-                );
-            }
+            () -> new LuceneBatchIterator(
+                indexSearcher,
+                new MatchAllDocsQuery(),
+                null,
+                false,
+                new CollectorContext(mappedFieldType -> null),
+                new RamAccountingContext("dummy", new NoopCircuitBreaker("dummy")),
+                columnRefs,
+                columnRefs
+            )
         );
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }

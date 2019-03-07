@@ -25,7 +25,6 @@ import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.execution.TransportActionProvider;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
-import io.crate.execution.engine.collect.collectors.CollectorFieldsVisitor;
 import io.crate.execution.engine.collect.collectors.LuceneBatchIterator;
 import io.crate.execution.engine.collect.collectors.LuceneOrderedDocCollector;
 import io.crate.execution.engine.collect.collectors.OptimizeQueryForSearchAfter;
@@ -126,7 +125,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
                 queryContext.query(),
                 queryContext.minScore(),
                 Symbols.containsColumn(collectPhase.toCollect(), DocSysColumns.SCORE),
-                getCollectorContext(sharedShardContext.readerId(), docCtx, queryShardContext::getForField),
+                getCollectorContext(sharedShardContext.readerId(), queryShardContext::getForField),
                 collectTask.queryPhaseRamAccountingContext(),
                 docCtx.topLevelInputs(),
                 docCtx.expressions()
@@ -176,7 +175,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
             );
             collectTask.addSearcher(sharedShardContext.readerId(), searcher);
             ctx = docInputFactory.extractImplementations(collectTask.txnCtx(), collectPhase);
-            collectorContext = getCollectorContext(sharedShardContext.readerId(), ctx, queryShardContext::getForField);
+            collectorContext = getCollectorContext(sharedShardContext.readerId(), queryShardContext::getForField);
         } catch (Throwable t) {
             if (searcher != null) {
                 searcher.close();
@@ -211,12 +210,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
     }
 
     static CollectorContext getCollectorContext(int readerId,
-                                                InputFactory.Context ctx,
                                                 Function<MappedFieldType, IndexFieldData<?>> getFieldData) {
-        return new CollectorContext(
-            getFieldData,
-            new CollectorFieldsVisitor(ctx.expressions().size()),
-            readerId
-        );
+        return new CollectorContext(getFieldData, readerId);
     }
 }
