@@ -21,13 +21,9 @@ package org.elasticsearch.common.io;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.Constants;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.SuppressForbidden;
 import org.elasticsearch.core.internal.io.IOUtils;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.URL;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -112,42 +108,6 @@ public final class FileSystemUtils {
             return false;
         }
         return true;
-    }
-
-    /**
-     * Returns an InputStream the given url if the url has a protocol of 'file' or 'jar', no host, and no port.
-     */
-    @SuppressForbidden(reason = "Will only open url streams for local files")
-    public static InputStream openFileURLStream(URL url) throws IOException {
-        String protocol = url.getProtocol();
-        if ("file".equals(protocol) == false && "jar".equals(protocol) == false) {
-            throw new IllegalArgumentException("Invalid protocol [" + protocol + "], must be [file] or [jar]");
-        }
-        if (Strings.isEmpty(url.getHost()) == false) {
-            throw new IllegalArgumentException("URL cannot have host. Found: [" + url.getHost() + ']');
-        }
-        if (url.getPort() != -1) {
-            throw new IllegalArgumentException("URL cannot have port. Found: [" + url.getPort() + ']');
-        }
-        return url.openStream();
-    }
-
-    /**
-     * Returns an array of all files in the given directory matching.
-     */
-    public static Path[] files(Path from, DirectoryStream.Filter<Path> filter) throws IOException {
-        try (DirectoryStream<Path> stream = Files.newDirectoryStream(from, filter)) {
-            return toArray(stream);
-        }
-    }
-
-    /**
-     * Returns an array of all files in the given directory.
-     */
-    public static Path[] files(Path directory) throws IOException {
-        try (DirectoryStream<Path> stream = Files.newDirectoryStream(directory)) {
-            return toArray(stream);
-        }
     }
 
     /**
