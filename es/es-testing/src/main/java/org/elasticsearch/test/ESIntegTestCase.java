@@ -23,24 +23,17 @@
 package org.elasticsearch.test;
 
 import com.carrotsearch.randomizedtesting.RandomizedContext;
-import com.carrotsearch.randomizedtesting.annotations.TestGroup;
 import com.carrotsearch.randomizedtesting.generators.RandomNumbers;
 import com.carrotsearch.randomizedtesting.generators.RandomPicks;
 import org.apache.lucene.util.LuceneTestCase;
 import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
-import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksResponse;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequestBuilder;
-import org.elasticsearch.action.admin.indices.flush.FlushResponse;
-import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeResponse;
 import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequestBuilder;
 import org.elasticsearch.action.support.ActiveShardCount;
-import org.elasticsearch.action.support.DefaultShardOperationFailedException;
-import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.client.AdminClient;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.Requests;
@@ -59,12 +52,10 @@ import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.routing.UnassignedInfo;
 import org.elasticsearch.cluster.routing.allocation.DiskThresholdSettings;
-import org.elasticsearch.cluster.routing.allocation.decider.EnableAllocationDecider;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.network.NetworkModule;
 import org.elasticsearch.common.regex.Regex;
@@ -97,9 +88,7 @@ import org.elasticsearch.indices.store.IndicesStore;
 import org.elasticsearch.node.NodeMocksPlugin;
 import org.elasticsearch.plugins.NetworkPlugin;
 import org.elasticsearch.plugins.Plugin;
-import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.test.discovery.TestZenDiscovery;
-import org.elasticsearch.test.disruption.NetworkDisruption;
 import org.elasticsearch.test.disruption.ServiceDisruptionScheme;
 import org.elasticsearch.test.store.MockFSIndexStore;
 import org.elasticsearch.test.transport.MockTransportService;
@@ -122,7 +111,6 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.Security;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -135,15 +123,10 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.Callable;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static org.elasticsearch.client.Requests.syncedFlushRequest;
 import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS;
 import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_REPLICAS;
 import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_SHARDS;
@@ -215,26 +198,6 @@ public abstract class ESIntegTestCase extends ESTestCase {
         System.setProperty("es.set.netty.runtime.available.processors", "false");
     }
 
-    /**
-     * Property that controls whether ThirdParty Integration tests are run (not the default).
-     */
-    public static final String SYSPROP_THIRDPARTY = "tests.thirdparty";
-
-    /**
-     * Annotation for third-party integration tests.
-     * <p>
-     * These are tests the require a third-party service in order to run. They
-     * may require the user to manually configure an external process (such as rabbitmq),
-     * or may additionally require some external configuration (e.g. AWS credentials)
-     * via the {@code tests.config} system property.
-     */
-    @Inherited
-    @Retention(RetentionPolicy.RUNTIME)
-    @Target(ElementType.TYPE)
-    @TestGroup(enabled = false, sysProperty = ESIntegTestCase.SYSPROP_THIRDPARTY)
-    public @interface ThirdParty {
-    }
-
     /** node names of the corresponding clusters will start with these prefixes */
     public static final String SUITE_CLUSTER_NODE_PREFIX = "node_s";
     public static final String TEST_CLUSTER_NODE_PREFIX = "node_t";
@@ -257,25 +220,6 @@ public abstract class ESIntegTestCase extends ESTestCase {
     public static final String TESTS_ENABLE_MOCK_MODULES = "tests.enable_mock_modules";
 
     private static final boolean MOCK_MODULES_ENABLED = "true".equals(System.getProperty(TESTS_ENABLE_MOCK_MODULES, "true"));
-    /**
-     * Threshold at which indexing switches from frequently async to frequently bulk.
-     */
-    private static final int FREQUENT_BULK_THRESHOLD = 300;
-
-    /**
-     * Threshold at which bulk indexing will always be used.
-     */
-    private static final int ALWAYS_BULK_THRESHOLD = 3000;
-
-    /**
-     * Maximum number of async operations that indexRandom will kick off at one time.
-     */
-    private static final int MAX_IN_FLIGHT_ASYNC_INDEXES = 150;
-
-    /**
-     * Maximum number of documents in a single bulk index request.
-     */
-    private static final int MAX_BULK_INDEX_REQUEST_SIZE = 1000;
 
     /**
      * Default minimum number of shards for an index
@@ -979,59 +923,6 @@ public abstract class ESIntegTestCase extends ESTestCase {
     }
 
     /**
-     * Ensures the cluster is in a searchable state for the given indices. This means a searchable copy of each
-     * shard is available on the cluster.
-     */
-    protected ClusterHealthStatus ensureSearchable(String... indices) {
-        // this is just a temporary thing but it's easier to change if it is encapsulated.
-        return ensureGreen(indices);
-    }
-
-    protected void ensureStableCluster(int nodeCount) {
-        ensureStableCluster(nodeCount, TimeValue.timeValueSeconds(30));
-    }
-
-    protected void ensureStableCluster(int nodeCount, TimeValue timeValue) {
-        ensureStableCluster(nodeCount, timeValue, false, null);
-    }
-
-    protected void ensureStableCluster(int nodeCount, @Nullable String viaNode) {
-        ensureStableCluster(nodeCount, TimeValue.timeValueSeconds(30), false, viaNode);
-    }
-
-    protected void ensureStableCluster(int nodeCount, TimeValue timeValue, boolean local, @Nullable String viaNode) {
-        if (viaNode == null) {
-            viaNode = randomFrom(internalCluster().getNodeNames());
-        }
-        logger.debug("ensuring cluster is stable with [{}] nodes. access node: [{}]. timeout: [{}]", nodeCount, viaNode, timeValue);
-        ClusterHealthResponse clusterHealthResponse = client(viaNode).admin().cluster().prepareHealth()
-            .setWaitForEvents(Priority.LANGUID)
-            .setWaitForNodes(Integer.toString(nodeCount))
-            .setTimeout(timeValue)
-            .setLocal(local)
-            .setWaitForNoRelocatingShards(true)
-            .get();
-        if (clusterHealthResponse.isTimedOut()) {
-            ClusterStateResponse stateResponse = client(viaNode).admin().cluster().prepareState().get();
-            fail("failed to reach a stable cluster of [" + nodeCount + "] nodes. Tried via [" + viaNode + "]. last cluster state:\n"
-                + stateResponse.getState());
-        }
-        assertThat(clusterHealthResponse.isTimedOut(), is(false));
-        ensureFullyConnectedCluster();
-    }
-
-    /**
-     * Ensures that all nodes in the cluster are connected to each other.
-     *
-     * Some network disruptions may leave nodes that are not the master disconnected from each other.
-     * {@link org.elasticsearch.cluster.NodeConnectionsService} will eventually reconnect but it's
-     * handy to be able to ensure this happens faster
-     */
-    protected void ensureFullyConnectedCluster() {
-        NetworkDisruption.ensureFullyConnectedCluster(internalCluster());
-    }
-
-    /**
      * Waits for relocations and refreshes all indices in the cluster.
      *
      * @see #waitForRelocation()
@@ -1045,117 +936,11 @@ public abstract class ESIntegTestCase extends ESTestCase {
     }
 
     /**
-     * Flushes and refreshes all indices in the cluster
-     */
-    protected final void flushAndRefresh(String... indices) {
-        flush(indices);
-        refresh(indices);
-    }
-
-    /**
-     * Flush some or all indices in the cluster.
-     */
-    protected final FlushResponse flush(String... indices) {
-        waitForRelocation();
-        FlushResponse actionGet = client().admin().indices().prepareFlush(indices).execute().actionGet();
-        for (DefaultShardOperationFailedException failure : actionGet.getShardFailures()) {
-            assertThat("unexpected flush failure " + failure.reason(), failure.status(), equalTo(RestStatus.SERVICE_UNAVAILABLE));
-        }
-        return actionGet;
-    }
-
-    /**
-     * Waits for all relocations and force merge all indices in the cluster to 1 segment.
-     */
-    protected ForceMergeResponse forceMerge() {
-        waitForRelocation();
-        ForceMergeResponse actionGet = client().admin().indices().prepareForceMerge().setMaxNumSegments(1).execute().actionGet();
-        assertNoFailures(actionGet);
-        return actionGet;
-    }
-
-    /**
-     * Syntactic sugar for enabling allocation for <code>indices</code>
-     */
-    protected final void enableAllocation(String... indices) {
-        client().admin().indices().prepareUpdateSettings(indices).setSettings(Settings.builder().put(
-            EnableAllocationDecider.INDEX_ROUTING_ALLOCATION_ENABLE_SETTING.getKey(), "all"
-        )).get();
-    }
-
-    /**
-     * Syntactic sugar for disabling allocation for <code>indices</code>
-     */
-    protected final void disableAllocation(String... indices) {
-        client().admin().indices().prepareUpdateSettings(indices).setSettings(Settings.builder().put(
-            EnableAllocationDecider.INDEX_ROUTING_ALLOCATION_ENABLE_SETTING.getKey(), "none"
-        )).get();
-    }
-
-    /**
      * Returns a random admin client. This client can either be a node or a transport client pointing to any of
      * the nodes in the cluster.
      */
     protected AdminClient admin() {
         return client().admin();
-    }
-
-    private AtomicInteger dummmyDocIdGenerator = new AtomicInteger();
-
-    /** Disables an index block for the specified index */
-    public static void disableIndexBlock(String index, String block) {
-        Settings settings = Settings.builder().put(block, false).build();
-        client().admin().indices().prepareUpdateSettings(index).setSettings(settings).get();
-    }
-
-    /** Enables an index block for the specified index */
-    public static void enableIndexBlock(String index, String block) {
-        Settings settings = Settings.builder().put(block, true).build();
-        client().admin().indices().prepareUpdateSettings(index).setSettings(settings).get();
-    }
-
-    /** Sets or unsets the cluster read_only mode **/
-    public static void setClusterReadOnly(boolean value) {
-        Settings settings = value ? Settings.builder().put(MetaData.SETTING_READ_ONLY_SETTING.getKey(), value).build() :
-            Settings.builder().putNull(MetaData.SETTING_READ_ONLY_SETTING.getKey()).build()  ;
-        assertAcked(client().admin().cluster().prepareUpdateSettings().setTransientSettings(settings).get());
-    }
-
-    private static CountDownLatch newLatch(List<CountDownLatch> latches) {
-        CountDownLatch l = new CountDownLatch(1);
-        latches.add(l);
-        return l;
-    }
-
-    /**
-     * Maybe refresh, force merge, or flush then always make sure there aren't too many in flight async operations.
-     */
-    private void postIndexAsyncActions(String[] indices, List<CountDownLatch> inFlightAsyncOperations, boolean maybeFlush)
-            throws InterruptedException {
-        if (rarely()) {
-            if (rarely()) {
-                client().admin().indices().prepareRefresh(indices).setIndicesOptions(IndicesOptions.lenientExpandOpen()).execute(
-                    new LatchedActionListener<>(newLatch(inFlightAsyncOperations)));
-            } else if (maybeFlush && rarely()) {
-                if (randomBoolean()) {
-                    client().admin().indices().prepareFlush(indices).setIndicesOptions(IndicesOptions.lenientExpandOpen()).execute(
-                        new LatchedActionListener<>(newLatch(inFlightAsyncOperations)));
-                } else {
-                    client().admin().indices().syncedFlush(syncedFlushRequest(indices).indicesOptions(IndicesOptions.lenientExpandOpen()),
-                        new LatchedActionListener<>(newLatch(inFlightAsyncOperations)));
-                }
-            } else if (rarely()) {
-                client().admin().indices().prepareForceMerge(indices)
-                        .setIndicesOptions(IndicesOptions.lenientExpandOpen())
-                        .setMaxNumSegments(between(1, 10))
-                        .setFlush(maybeFlush && randomBoolean())
-                        .execute(new LatchedActionListener<>(newLatch(inFlightAsyncOperations)));
-            }
-        }
-        while (inFlightAsyncOperations.size() > MAX_IN_FLIGHT_ASYNC_INDEXES) {
-            int waitFor = between(0, inFlightAsyncOperations.size() - 1);
-            inFlightAsyncOperations.remove(waitFor).await();
-        }
     }
 
     /**
@@ -1223,33 +1008,6 @@ public abstract class ESIntegTestCase extends ESTestCase {
          * negative value means that the number of client nodes will be randomized.
          */
         int numClientNodes() default InternalTestCluster.DEFAULT_NUM_CLIENT_NODES;
-    }
-
-    private class LatchedActionListener<Response> implements ActionListener<Response> {
-        private final CountDownLatch latch;
-
-        LatchedActionListener(CountDownLatch latch) {
-            this.latch = latch;
-        }
-
-        @Override
-        public final void onResponse(Response response) {
-            latch.countDown();
-        }
-
-        @Override
-        public final void onFailure(Exception t) {
-            try {
-                logger.info("Action Failed", t);
-                addError(t);
-            } finally {
-                latch.countDown();
-            }
-        }
-
-        protected void addError(Exception e) {
-        }
-
     }
 
     private static <A extends Annotation> A getAnnotation(Class<?> clazz, Class<A> annotationClass) {
@@ -1359,10 +1117,6 @@ public abstract class ESIntegTestCase extends ESTestCase {
         return Settings.EMPTY;
     }
 
-    protected boolean ignoreExternalCluster() {
-        return false;
-    }
-
     protected TestCluster buildTestCluster(Scope scope, long seed) throws IOException {
         final String nodePrefix;
         switch (scope) {
@@ -1401,7 +1155,7 @@ public abstract class ESIntegTestCase extends ESTestCase {
         return new InternalTestCluster(seed, createTempDir(), supportsDedicatedMasters, getAutoMinMasterNodes(),
             minNumDataNodes, maxNumDataNodes,
             InternalTestCluster.clusterName(scope.name(), seed) + "-cluster", nodeConfigurationSource, getNumClientNodes(),
-            nodePrefix, mockPlugins, getClientWrapper(), forbidPrivateIndexSettings());
+            nodePrefix, mockPlugins, forbidPrivateIndexSettings());
     }
 
     protected NodeConfigurationSource getNodeConfigSource() {
@@ -1460,15 +1214,6 @@ public abstract class ESIntegTestCase extends ESTestCase {
      */
     protected boolean addTestZenDiscovery() {
         return true;
-    }
-
-    /**
-     * Returns a function that allows to wrap / filter all clients that are exposed by the test cluster. This is useful
-     * for debugging or request / response pre and post processing. It also allows to intercept all calls done by the test
-     * framework. By default this method returns an identity function {@link Function#identity()}.
-     */
-    protected Function<Client,Client> getClientWrapper() {
-        return Function.identity();
     }
 
     /** Return the mock plugins the cluster should use */
@@ -1575,24 +1320,9 @@ public abstract class ESIntegTestCase extends ESTestCase {
         return nodes;
     }
 
-    protected static class NumShards {
-        public final int numPrimaries;
-        public final int numReplicas;
-        public final int totalNumShards;
-        public final int dataCopies;
-
-        private NumShards(int numPrimaries, int numReplicas) {
-            this.numPrimaries = numPrimaries;
-            this.numReplicas = numReplicas;
-            this.dataCopies = numReplicas + 1;
-            this.totalNumShards = numPrimaries * dataCopies;
-        }
-    }
-
     private static boolean runTestScopeLifecycle() {
         return INSTANCE == null;
     }
-
 
     @Before
     public final void setupTestCluster() throws Exception {
@@ -1602,7 +1332,6 @@ public abstract class ESIntegTestCase extends ESTestCase {
             printTestMessage("all set up");
         }
     }
-
 
     @After
     public final void cleanUpCluster() throws Exception {
@@ -1699,9 +1428,5 @@ public abstract class ESIntegTestCase extends ESTestCase {
     @Inherited
     @Target(ElementType.TYPE)
     public @interface SuiteScopeTestCase {
-    }
-
-    public static boolean inFipsJvm() {
-        return Security.getProviders()[0].getName().toLowerCase(Locale.ROOT).contains("fips");
     }
 }

@@ -37,12 +37,14 @@ import java.util.List;
  */
 public class TransportFlushAction extends TransportBroadcastReplicationAction<FlushRequest, FlushResponse, ShardFlushRequest, ReplicationResponse> {
 
+    public static final String NAME = "indices:admin/flush";
+
     @Inject
     public TransportFlushAction(Settings settings, ThreadPool threadPool, ClusterService clusterService,
                                 TransportService transportService,
                                 IndexNameExpressionResolver indexNameExpressionResolver,
                                 TransportShardFlushAction replicatedFlushAction) {
-        super(FlushAction.NAME, FlushRequest::new, settings, threadPool, clusterService, transportService, indexNameExpressionResolver, replicatedFlushAction);
+        super(NAME, FlushRequest::new, settings, threadPool, clusterService, transportService, indexNameExpressionResolver, replicatedFlushAction);
     }
 
     @Override

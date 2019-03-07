@@ -18,15 +18,10 @@
  */
 package org.elasticsearch.test;
 
-import com.carrotsearch.hppc.ObjectLongMap;
-import com.carrotsearch.hppc.cursors.IntObjectCursor;
-import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import com.carrotsearch.randomizedtesting.RandomizedTest;
 import com.carrotsearch.randomizedtesting.SeedUtils;
 import com.carrotsearch.randomizedtesting.SysGlobals;
 import com.carrotsearch.randomizedtesting.generators.RandomNumbers;
-import com.carrotsearch.randomizedtesting.generators.RandomPicks;
-import com.carrotsearch.randomizedtesting.generators.RandomStrings;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.store.AlreadyClosedException;
@@ -35,14 +30,9 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.action.index.MappingUpdatedAction;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNode.Role;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
-import org.elasticsearch.cluster.routing.IndexRoutingTable;
-import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
-import org.elasticsearch.cluster.routing.OperationRouting;
-import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.routing.allocation.DiskThresholdSettings;
 import org.elasticsearch.cluster.routing.allocation.decider.ThrottlingAllocationDecider;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -60,7 +50,6 @@ import org.elasticsearch.common.settings.Settings.Builder;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.common.util.PageCacheRecycler;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.core.internal.io.IOUtils;
@@ -71,14 +60,10 @@ import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.env.ShardLockObtainFailedException;
 import org.elasticsearch.http.HttpServerTransport;
-import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.engine.CommitStats;
-import org.elasticsearch.index.engine.DocIdSeqNoAndTerm;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.engine.InternalEngine;
-import org.elasticsearch.index.seqno.SeqNoStats;
-import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.IndexShardTestCase;
 import org.elasticsearch.index.shard.ShardId;
@@ -124,8 +109,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.BiFunction;
-import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -142,9 +125,6 @@ import static org.elasticsearch.test.ESTestCase.awaitBusy;
 import static org.elasticsearch.test.ESTestCase.randomFrom;
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcked;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
@@ -162,10 +142,6 @@ import static org.junit.Assert.fail;
 public final class InternalTestCluster extends TestCluster {
 
     private final Logger logger = LogManager.getLogger(getClass());
-
-
-    private static final AtomicInteger clusterOrdinal = new AtomicInteger();
-
 
     public static final int DEFAULT_LOW_NUM_MASTER_NODES = 1;
     public static final int DEFAULT_HIGH_NUM_MASTER_NODES = 3;
@@ -220,7 +196,6 @@ public final class InternalTestCluster extends TestCluster {
     private final Path baseDir;
 
     private ServiceDisruptionScheme activeDisruptionScheme;
-    private Function<Client, Client> clientWrapper;
 
     public InternalTestCluster(
             final long clusterSeed,
@@ -233,8 +208,7 @@ public final class InternalTestCluster extends TestCluster {
             final NodeConfigurationSource nodeConfigurationSource,
             final int numClientNodes,
             final String nodePrefix,
-            final Collection<Class<? extends Plugin>> mockPlugins,
-            final Function<Client, Client> clientWrapper) {
+            final Collection<Class<? extends Plugin>> mockPlugins) {
         this(
                 clusterSeed,
                 baseDir,
@@ -247,7 +221,6 @@ public final class InternalTestCluster extends TestCluster {
                 numClientNodes,
                 nodePrefix,
                 mockPlugins,
-                clientWrapper,
                 true);
     }
 
@@ -263,11 +236,9 @@ public final class InternalTestCluster extends TestCluster {
             final int numClientNodes,
             final String nodePrefix,
             final Collection<Class<? extends Plugin>> mockPlugins,
-            final Function<Client, Client> clientWrapper,
             final boolean forbidPrivateIndexSettings) {
         super(clusterSeed);
         this.autoManageMinMasterNodes = autoManageMinMasterNodes;
-        this.clientWrapper = clientWrapper;
         this.forbidPrivateIndexSettings = forbidPrivateIndexSettings;
         this.baseDir = baseDir;
         this.clusterName = clusterName;
@@ -746,19 +717,6 @@ public final class InternalTestCluster extends TestCluster {
         return null; // can't happen
     }
 
-
-    /**
-     * Returns a "smart" node client to a random node in the cluster
-     */
-    public synchronized Client smartClient() {
-        NodeAndClient randomNodeAndClient = getRandomNodeAndClient();
-        if (randomNodeAndClient != null) {
-            return randomNodeAndClient.nodeClient();
-        }
-        Assert.fail("No smart client found");
-        return null; // can't happen
-    }
-
     /**
      * Returns a random node that applies to the given predicate.
      * The predicate can filter nodes based on the nodes settings.
@@ -839,7 +797,7 @@ public final class InternalTestCluster extends TestCluster {
             if (nodeClient == null) {
                 nodeClient = node.client();
             }
-            return clientWrapper.apply(nodeClient);
+            return nodeClient;
         }
 
         void resetClient() throws IOException {
@@ -927,8 +885,6 @@ public final class InternalTestCluster extends TestCluster {
             }
         }
     }
-
-    public static final String TRANSPORT_CLIENT_PREFIX = "transport_client_";
 
     @Override
     public synchronized void beforeTest(Random random) throws IOException, InterruptedException {
@@ -1148,123 +1104,6 @@ public final class InternalTestCluster extends TestCluster {
         });
     }
 
-    /**
-     * Asserts that the document history in Lucene index is consistent with Translog's on every index shard of the cluster.
-     * This assertion might be expensive, thus we prefer not to execute on every test but only interesting tests.
-     */
-    public void assertConsistentHistoryBetweenTranslogAndLuceneIndex() throws IOException {
-        final Collection<NodeAndClient> nodesAndClients = nodes.values();
-        for (NodeAndClient nodeAndClient : nodesAndClients) {
-            IndicesService indexServices = getInstance(IndicesService.class, nodeAndClient.name);
-            for (IndexService indexService : indexServices) {
-                for (IndexShard indexShard : indexService) {
-                    try {
-                        IndexShardTestCase.assertConsistentHistoryBetweenTranslogAndLucene(indexShard);
-                    } catch (AlreadyClosedException ignored) {
-                        // shard is closed
-                    }
-                }
-            }
-        }
-    }
-
-    public void assertSeqNos() throws Exception {
-        final BiFunction<ClusterState, ShardRouting, IndexShard> getInstanceShardInstance = (clusterState, shardRouting) -> {
-            if (shardRouting.assignedToNode() == false) {
-                return null;
-            }
-            final DiscoveryNode assignedNode = clusterState.nodes().get(shardRouting.currentNodeId());
-            if (assignedNode == null) {
-                return null;
-            }
-            return getInstance(IndicesService.class, assignedNode.getName()).getShardOrNull(shardRouting.shardId());
-        };
-        assertBusy(() -> {
-            final ClusterState state = clusterService().state();
-            for (ObjectObjectCursor<String, IndexRoutingTable> indexRoutingTable : state.routingTable().indicesRouting()) {
-                for (IntObjectCursor<IndexShardRoutingTable> indexShardRoutingTable : indexRoutingTable.value.shards()) {
-                    ShardRouting primaryShardRouting = indexShardRoutingTable.value.primaryShard();
-                    if (primaryShardRouting == null) {
-                        continue;
-                    }
-                    final IndexShard primaryShard = getInstanceShardInstance.apply(state, primaryShardRouting);
-                    if (primaryShard == null) {
-                        continue; //just ignore - shard movement
-                    }
-                    final SeqNoStats primarySeqNoStats;
-                    final ObjectLongMap<String> syncGlobalCheckpoints;
-                    try {
-                        primarySeqNoStats = primaryShard.seqNoStats();
-                        syncGlobalCheckpoints = primaryShard.getInSyncGlobalCheckpoints();
-                    } catch (AlreadyClosedException ex) {
-                        continue; // shard is closed - just ignore
-                    }
-                    assertThat(primaryShardRouting + " should have set the global checkpoint",
-                        primarySeqNoStats.getGlobalCheckpoint(), not(equalTo(SequenceNumbers.UNASSIGNED_SEQ_NO)));
-                    for (ShardRouting replicaShardRouting : indexShardRoutingTable.value.replicaShards()) {
-                        final IndexShard replicaShard = getInstanceShardInstance.apply(state, replicaShardRouting);
-                        if (replicaShard == null) {
-                            continue; //just ignore - shard movement
-                        }
-                        final SeqNoStats seqNoStats;
-                        try {
-                            seqNoStats = replicaShard.seqNoStats();
-                        } catch (AlreadyClosedException e) {
-                            continue; // shard is closed - just ignore
-                        }
-                        assertThat(replicaShardRouting + " seq_no_stats mismatch", seqNoStats, equalTo(primarySeqNoStats));
-                        // the local knowledge on the primary of the global checkpoint equals the global checkpoint on the shard
-                        assertThat(replicaShardRouting + " global checkpoint syncs mismatch", seqNoStats.getGlobalCheckpoint(),
-                            equalTo(syncGlobalCheckpoints.get(replicaShardRouting.allocationId().getId())));
-                    }
-                }
-            }
-        });
-    }
-
-    /**
-     * Asserts that all shards with the same shardId should have document Ids.
-     */
-    public void assertSameDocIdsOnShards() throws Exception {
-        assertBusy(() -> {
-            ClusterState state = client().admin().cluster().prepareState().get().getState();
-            for (ObjectObjectCursor<String, IndexRoutingTable> indexRoutingTable : state.routingTable().indicesRouting()) {
-                for (IntObjectCursor<IndexShardRoutingTable> indexShardRoutingTable : indexRoutingTable.value.shards()) {
-                    ShardRouting primaryShardRouting = indexShardRoutingTable.value.primaryShard();
-                    if (primaryShardRouting == null || primaryShardRouting.assignedToNode() == false) {
-                        continue;
-                    }
-                    DiscoveryNode primaryNode = state.nodes().get(primaryShardRouting.currentNodeId());
-                    IndexShard primaryShard = getInstance(IndicesService.class, primaryNode.getName())
-                        .indexServiceSafe(primaryShardRouting.index()).getShard(primaryShardRouting.id());
-                    final List<DocIdSeqNoAndTerm> docsOnPrimary;
-                    try {
-                        docsOnPrimary = IndexShardTestCase.getDocIdAndSeqNos(primaryShard);
-                    } catch (AlreadyClosedException ex) {
-                        continue;
-                    }
-                    for (ShardRouting replicaShardRouting : indexShardRoutingTable.value.replicaShards()) {
-                        if (replicaShardRouting.assignedToNode() == false) {
-                            continue;
-                        }
-                        DiscoveryNode replicaNode = state.nodes().get(replicaShardRouting.currentNodeId());
-                        IndexShard replicaShard = getInstance(IndicesService.class, replicaNode.getName())
-                            .indexServiceSafe(replicaShardRouting.index()).getShard(replicaShardRouting.id());
-                        final List<DocIdSeqNoAndTerm> docsOnReplica;
-                        try {
-                            docsOnReplica = IndexShardTestCase.getDocIdAndSeqNos(replicaShard);
-                        } catch (AlreadyClosedException ex) {
-                            continue;
-                        }
-                        assertThat("out of sync shards: primary=[" + primaryShardRouting + "] num_docs_on_primary=[" + docsOnPrimary.size()
-                                + "] vs replica=[" + replicaShardRouting + "] num_docs_on_replica=[" + docsOnReplica.size() + "]",
-                            docsOnReplica, equalTo(docsOnPrimary));
-                    }
-                }
-            }
-        });
-    }
-
     private void randomlyResetClients() throws IOException {
         // only reset the clients on nightly tests, it causes heavy load...
         if (RandomizedTest.isNightly() && rarely(random)) {
@@ -1339,14 +1178,6 @@ public final class InternalTestCluster extends TestCluster {
      */
     public synchronized <T> Iterable<T> getDataNodeInstances(Class<T> clazz) {
         return getInstances(clazz, new DataNodePredicate());
-    }
-
-    /**
-     * Returns an Iterable to all instances for the given class &gt;T&lt; across all data and master nodes
-     * in the cluster.
-     */
-    public synchronized <T> Iterable<T> getDataOrMasterNodeInstances(Class<T> clazz) {
-        return getInstances(clazz, new DataOrMasterNodePredicate());
     }
 
     private synchronized <T> Iterable<T> getInstances(Class<T> clazz, Predicate<NodeAndClient> predicate) {
@@ -1425,18 +1256,6 @@ public final class InternalTestCluster extends TestCluster {
             logger.info("Closing filtered random node [{}] ", nodeAndClient.name);
             stopNodesAndClient(nodeAndClient);
         }
-    }
-
-    /**
-     * Stops the current master node forcefully
-     */
-    public synchronized void stopCurrentMasterNode() throws IOException {
-        ensureOpen();
-        assert size() > 0;
-        String masterNodeName = getMasterName();
-        assert nodes.containsKey(masterNodeName);
-        logger.info("Closing master node [{}] ", masterNodeName);
-        stopNodesAndClient(nodes.get(masterNodeName));
     }
 
     /**
@@ -1528,24 +1347,10 @@ public final class InternalTestCluster extends TestCluster {
     }
 
     /**
-     * Restarts a random node in the cluster
-     */
-    public void restartRandomNode() throws Exception {
-        restartRandomNode(EMPTY_CALLBACK);
-    }
-
-    /**
      * Restarts a random node in the cluster and calls the callback during restart.
      */
     public void restartRandomNode(RestartCallback callback) throws Exception {
         restartRandomNode(nc -> true, callback);
-    }
-
-    /**
-     * Restarts a random data node in the cluster
-     */
-    public void restartRandomDataNode() throws Exception {
-        restartRandomDataNode(EMPTY_CALLBACK);
     }
 
     /**
@@ -1566,17 +1371,6 @@ public final class InternalTestCluster extends TestCluster {
         }
     }
 
-    /**
-     * Restarts a node and calls the callback during restart.
-     */
-    public synchronized void restartNode(String nodeName, RestartCallback callback) throws Exception {
-        ensureOpen();
-        NodeAndClient nodeAndClient = nodes.get(nodeName);
-        if (nodeAndClient != null) {
-            restartNode(nodeAndClient, callback);
-        }
-    }
-
     public static final RestartCallback EMPTY_CALLBACK = new RestartCallback() {
         @Override
         public Settings onNodeStopped(String node) {
@@ -1589,13 +1383,6 @@ public final class InternalTestCluster extends TestCluster {
      */
     public void fullRestart() throws Exception {
         fullRestart(EMPTY_CALLBACK);
-    }
-
-    /**
-     * Restarts all nodes in a rolling restart fashion ie. only restarts on node a time.
-     */
-    public void rollingRestart() throws Exception {
-        rollingRestart(EMPTY_CALLBACK);
     }
 
     /**
@@ -1738,25 +1525,6 @@ public final class InternalTestCluster extends TestCluster {
     }
 
     /**
-     * Returns a set of nodes that have at least one shard of the given index.
-     */
-    public synchronized Set<String> nodesInclude(String index) {
-        if (clusterService().state().routingTable().hasIndex(index)) {
-            List<ShardRouting> allShards = clusterService().state().routingTable().allShards(index);
-            DiscoveryNodes discoveryNodes = clusterService().state().getNodes();
-            Set<String> nodes = new HashSet<>();
-            for (ShardRouting shardRouting : allShards) {
-                if (shardRouting.assignedToNode()) {
-                    DiscoveryNode discoveryNode = discoveryNodes.get(shardRouting.currentNodeId());
-                    nodes.add(discoveryNode.getName());
-                }
-            }
-            return nodes;
-        }
-        return Collections.emptySet();
-    }
-
-    /**
      * Starts a node with default settings and returns its name.
      */
     public synchronized String startNode() {
@@ -1814,19 +1582,6 @@ public final class InternalTestCluster extends TestCluster {
         return nodes.stream().map(NodeAndClient::getName).collect(Collectors.toList());
     }
 
-    public synchronized List<String> startMasterOnlyNodes(int numNodes) {
-        return startMasterOnlyNodes(numNodes, Settings.EMPTY);
-    }
-
-    public synchronized List<String> startMasterOnlyNodes(int numNodes, Settings settings) {
-        Settings settings1 = Settings.builder()
-                .put(settings)
-                .put(Node.NODE_MASTER_SETTING.getKey(), true)
-                .put(Node.NODE_DATA_SETTING.getKey(), false)
-                .build();
-        return startNodes(numNodes, settings1);
-    }
-
     public synchronized List<String> startDataOnlyNodes(int numNodes) {
         return startDataOnlyNodes(numNodes, Settings.EMPTY);
     }
@@ -1872,10 +1627,6 @@ public final class InternalTestCluster extends TestCluster {
         return (int)nodes.values().stream().filter(n -> Node.NODE_MASTER_SETTING.get(n.node().settings())).count();
     }
 
-    public synchronized String startMasterOnlyNode() {
-        return startMasterOnlyNode(Settings.EMPTY);
-    }
-
     public synchronized String startMasterOnlyNode(Settings settings) {
         Settings settings1 = Settings.builder()
                 .put(settings)
@@ -1885,9 +1636,6 @@ public final class InternalTestCluster extends TestCluster {
         return startNode(settings1);
     }
 
-    public synchronized String startDataOnlyNode() {
-        return startDataOnlyNode(Settings.EMPTY);
-    }
     public synchronized String startDataOnlyNode(Settings settings) {
         Settings settings1 = Settings.builder()
                 .put(settings)
@@ -1903,10 +1651,6 @@ public final class InternalTestCluster extends TestCluster {
         applyDisruptionSchemeToNode(nodeAndClient);
     }
 
-    public void closeNonSharedNodes(boolean wipeData) throws IOException {
-        reset(wipeData);
-    }
-
     @Override
     public int numDataNodes() {
         return dataNodeAndClients().size();
@@ -1916,11 +1660,6 @@ public final class InternalTestCluster extends TestCluster {
     public int numDataAndMasterNodes() {
         return dataAndMasterNodes().size();
     }
-
-    public synchronized int numMasterNodes() {
-      return filterNodes(nodes, NodeAndClient::isMasterEligible).size();
-    }
-
 
     public void setDisruptionScheme(ServiceDisruptionScheme scheme) {
         assert activeDisruptionScheme == null :
@@ -2024,33 +1763,6 @@ public final class InternalTestCluster extends TestCluster {
         public boolean test(Map.Entry<String, NodeAndClient> entry) {
             return delegateNodePredicate.test(entry.getValue());
         }
-    }
-
-    synchronized String routingKeyForShard(Index index, int shard, Random random) {
-        assertThat(shard, greaterThanOrEqualTo(0));
-        assertThat(shard, greaterThanOrEqualTo(0));
-        for (NodeAndClient n : nodes.values()) {
-            Node node = n.node;
-            IndicesService indicesService = getInstanceFromNode(IndicesService.class, node);
-            ClusterService clusterService = getInstanceFromNode(ClusterService.class, node);
-            IndexService indexService = indicesService.indexService(index);
-            if (indexService != null) {
-                assertThat(indexService.getIndexSettings().getSettings().getAsInt(IndexMetaData.SETTING_NUMBER_OF_SHARDS, -1),
-                        greaterThan(shard));
-                OperationRouting operationRouting = clusterService.operationRouting();
-                while (true) {
-                    String routing = RandomStrings.randomAsciiOfLength(random, 10);
-                    final int targetShard = operationRouting
-                            .indexShards(clusterService.state(), index.getName(), null, routing)
-                            .shardId().getId();
-                    if (shard == targetShard) {
-                        return routing;
-                    }
-                }
-            }
-        }
-        fail("Could not find a node that holds " + index);
-        return null;
     }
 
     public synchronized Iterable<Client> getClients() {
