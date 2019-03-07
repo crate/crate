@@ -29,7 +29,6 @@ import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.ExcludedFieldProvider;
 import io.crate.analyze.relations.FieldProvider;
 import io.crate.analyze.relations.NameFieldProvider;
-import io.crate.common.StringUtils;
 import io.crate.common.collections.Maps;
 import io.crate.data.Input;
 import io.crate.exceptions.ColumnValidationException;
@@ -495,7 +494,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
 
             for (ColumnIdent partitionIdent : context.tableInfo().partitionedBy()) {
                 if (partitionIdent.getRoot().equals(columnIdent)) {
-                    Object nestedValue = mapValue.remove(StringUtils.PATH_JOINER.join(partitionIdent.path()));
+                    Object nestedValue = mapValue.remove(String.join(".", partitionIdent.path()));
                     if (nestedValue instanceof BytesRef) {
                         nestedValue = ((BytesRef) nestedValue).utf8ToString();
                     }
