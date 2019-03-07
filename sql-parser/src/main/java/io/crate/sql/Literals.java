@@ -36,8 +36,8 @@ public class Literals {
         return "'" + escapeStringLiteral(literal) + "'";
     }
 
-    public static String escapeAndQuoteStringLiteral(String literal) {
-        return EPSILON + Literals.quoteStringLiteral(literal);
+    public static String quoteEscapedStringLiteral(String literal) {
+        return EPSILON + "'" + literal + "'";
     }
 
     @VisibleForTesting
@@ -130,6 +130,15 @@ public class Literals {
                     default:
                         // non-valid escaped char sequence
                         builder.append(currentChar);
+                }
+            } else if (currentChar == '\'' && i > 1 && i + 1 < length) {
+                // handle normal escaped quote: ''
+                char nextChar = input.charAt(i + 1);
+                if (nextChar == '\'') {
+                    builder.append(currentChar);
+                    i++;
+                } else {
+                    throw new IllegalArgumentException("Invalid Escaped String Literal " + input);
                 }
             } else {
                 builder.append(currentChar);
