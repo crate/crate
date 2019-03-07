@@ -133,7 +133,7 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
             }
         }
 
-        return new WritePrimaryResult<>(request, shardResponse, translogLocation, null, indexShard, logger);
+        return new WritePrimaryResult<>(request, shardResponse, translogLocation, null, indexShard);
     }
 
     @Override

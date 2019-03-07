@@ -24,7 +24,7 @@ package io.crate.execution.dml;
 
 import com.google.common.base.Objects;
 import com.google.common.collect.Iterators;
-import org.elasticsearch.action.support.replication.ReplicatedWriteRequest;
+import org.elasticsearch.action.support.replication.ReplicationRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
@@ -39,7 +39,7 @@ import java.util.List;
 import java.util.UUID;
 
 public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends ShardRequest.Item>
-    extends ReplicatedWriteRequest<T> implements Iterable<I> {
+    extends ReplicationRequest<T> implements Iterable<I> {
 
     private UUID jobId;
     protected List<I> items;

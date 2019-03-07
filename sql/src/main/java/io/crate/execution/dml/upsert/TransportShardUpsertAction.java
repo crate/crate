@@ -176,7 +176,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                         (e instanceof VersionConflictEngineException)));
             }
         }
-        return new WritePrimaryResult<>(request, shardResponse, translogLocation, null, indexShard, logger);
+        return new WritePrimaryResult<>(request, shardResponse, translogLocation, null, indexShard);
     }
 
     @Override
