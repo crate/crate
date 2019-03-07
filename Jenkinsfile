@@ -22,7 +22,6 @@ pipeline {
           steps {
             sh 'git clean -xdff'
             checkout scm
-            sh 'git submodule update --init'
             sh './gradlew --no-daemon --parallel -PtestForks=8 test forbiddenApisMain jacocoReport'
             sh 'curl -s https://codecov.io/bash | bash'
           }
@@ -43,7 +42,6 @@ pipeline {
           steps {
             sh 'git clean -xdff'
             checkout scm
-            sh 'git submodule update --init'
             sh './gradlew --no-daemon --parallel -PtestForks=8 test jacocoReport'
             sh 'curl -s https://codecov.io/bash | bash'
           }
@@ -61,7 +59,6 @@ pipeline {
           steps {
             sh 'git clean -xdff'
             checkout scm
-            sh 'git submodule update --init'
             sh './gradlew --no-daemon itest'
           }
         }
@@ -73,7 +70,6 @@ pipeline {
           steps {
             sh 'git clean -xdff'
             checkout scm
-            sh 'git submodule update --init'
             sh './gradlew --no-daemon itest'
           }
         }
@@ -85,8 +81,7 @@ pipeline {
           steps {
             sh 'git clean -xdff'
             checkout scm
-            sh 'git submodule update --init'
-            sh './gradlew --no-daemon hdfsTest monitoringTest gtest'
+            sh 'timeout 20m ./gradlew --no-daemon hdfsTest monitoringTest gtest'
           }
         }
       }
