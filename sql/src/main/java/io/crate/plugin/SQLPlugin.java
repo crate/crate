@@ -21,6 +21,7 @@
 
 package io.crate.plugin;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import io.crate.action.sql.SQLOperations;
 import io.crate.analyze.repositories.RepositorySettingsModule;
@@ -94,7 +95,6 @@ import java.util.Map;
 import java.util.function.UnaryOperator;
 
 import static com.google.common.collect.Lists.newArrayList;
-import static io.crate.settings.SharedSettings.ENTERPRISE_LICENSE_SETTING;
 
 public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, ClusterPlugin {
 
@@ -103,8 +103,13 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
 
     @SuppressWarnings("WeakerAccess") // must be public for pluginLoader
     public SQLPlugin(Settings settings) {
+        this(settings, true);
+    }
+
+    @VisibleForTesting
+    SQLPlugin(Settings settings, boolean isEnterprise) {
         this.settings = settings;
-        if (ENTERPRISE_LICENSE_SETTING.setting().get(settings)) {
+        if (isEnterprise) {
             userExtension = EnterpriseLoader.loadSingle(UserExtension.class);
         } else {
             userExtension = null;

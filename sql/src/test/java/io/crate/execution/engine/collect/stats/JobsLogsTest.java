@@ -34,7 +34,7 @@ import io.crate.expression.reference.sys.operation.OperationContext;
 import io.crate.expression.reference.sys.operation.OperationContextLog;
 import io.crate.metadata.sys.MetricsView;
 import io.crate.planner.operators.StatementClassifier.Classification;
-import io.crate.plugin.SQLPlugin;
+import io.crate.plugin.SQLProxyPlugin;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Setting;
@@ -93,7 +93,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
 
     @Override
     protected Set<Setting<?>> additionalClusterSettings() {
-        SQLPlugin sqlPlugin = new SQLPlugin(Settings.EMPTY);
+        SQLProxyPlugin sqlPlugin = new SQLProxyPlugin(Settings.EMPTY, true);
         return Sets.newHashSet(sqlPlugin.getSettings());
     }
 

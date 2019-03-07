@@ -27,7 +27,7 @@ import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
 import io.crate.data.RowN;
 import io.crate.metadata.RelationName;
-import io.crate.plugin.SQLPlugin;
+import io.crate.plugin.SQLProxyPlugin;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.ClusterSettings;
@@ -60,7 +60,7 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
 
     @Override
     protected Collection<Setting<?>> additionalClusterSettings() {
-        return new SQLPlugin(Settings.EMPTY).getSettings();
+        return new SQLProxyPlugin(Settings.EMPTY, true).getSettings();
     }
 
     @Test

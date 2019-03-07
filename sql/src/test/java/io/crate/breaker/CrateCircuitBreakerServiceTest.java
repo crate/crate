@@ -21,7 +21,7 @@
 
 package io.crate.breaker;
 
-import io.crate.plugin.SQLPlugin;
+import io.crate.plugin.SQLProxyPlugin;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.settings.ClusterSettings;
@@ -52,7 +52,7 @@ public class CrateCircuitBreakerServiceTest extends CrateUnitTest {
 
     @Before
     public void registerSettings() {
-        SQLPlugin sqlPlugin = new SQLPlugin(Settings.EMPTY);
+        SQLProxyPlugin sqlPlugin = new SQLProxyPlugin(Settings.EMPTY, true);
         Set<Setting<?>> settings = new HashSet<>();
         settings.addAll(ClusterSettings.BUILT_IN_CLUSTER_SETTINGS);
         settings.addAll(sqlPlugin.getSettings());

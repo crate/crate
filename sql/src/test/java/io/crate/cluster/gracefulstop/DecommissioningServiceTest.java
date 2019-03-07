@@ -24,7 +24,7 @@ package io.crate.cluster.gracefulstop;
 
 import io.crate.action.sql.SQLOperations;
 import io.crate.execution.engine.collect.stats.JobsLogs;
-import io.crate.plugin.SQLPlugin;
+import io.crate.plugin.SQLProxyPlugin;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.elasticsearch.action.admin.cluster.health.TransportClusterHealthAction;
 import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSettingsAction;
@@ -60,7 +60,7 @@ public class DecommissioningServiceTest extends CrateDummyClusterServiceUnitTest
 
     @Override
     protected Set<Setting<?>> additionalClusterSettings() {
-        SQLPlugin sqlPlugin = new SQLPlugin(Settings.EMPTY);
+        SQLProxyPlugin sqlPlugin = new SQLProxyPlugin(Settings.EMPTY, true);
         return Sets.newHashSet(sqlPlugin.getSettings());
     }
 

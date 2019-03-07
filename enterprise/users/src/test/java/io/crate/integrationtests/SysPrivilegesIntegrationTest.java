@@ -126,6 +126,7 @@ public class SysPrivilegesIntegrationTest extends BaseUsersIntegrationTest {
                                                                     "CLUSTER| normal| crate| NULL| GRANT| DQL\n"));
     }
 
+    // currently not working -- needs further refactoring
     @Test
     public void testTableNotAvailableIfEnterpriseIsOff() throws Exception {
         expectedException.expect(SQLActionException.class);

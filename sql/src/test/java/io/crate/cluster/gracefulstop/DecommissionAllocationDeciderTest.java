@@ -22,7 +22,7 @@
 
 package io.crate.cluster.gracefulstop;
 
-import io.crate.plugin.SQLPlugin;
+import io.crate.plugin.SQLProxyPlugin;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.RecoverySource;
@@ -59,7 +59,7 @@ public class DecommissionAllocationDeciderTest extends CrateDummyClusterServiceU
 
     @Override
     protected Set<Setting<?>> additionalClusterSettings() {
-        SQLPlugin sqlPlugin = new SQLPlugin(Settings.EMPTY);
+        SQLProxyPlugin sqlPlugin = new SQLProxyPlugin(Settings.EMPTY, true);
         return Sets.newHashSet(sqlPlugin.getSettings());
     }
 
