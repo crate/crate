@@ -102,7 +102,6 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
     private List<Failure> failures = new ArrayList<>();
     @Nullable
     private Exception failure;
-    private boolean forcedRefresh;
 
     public ShardResponse() {
     }
@@ -134,11 +133,6 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
     }
 
     @Override
-    public void setForcedRefresh(boolean forcedRefresh) {
-        this.forcedRefresh = forcedRefresh;
-    }
-
-    @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
         int size = in.readVInt();
@@ -155,7 +149,6 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
         if (in.readBoolean()) {
             failure = in.readException();
         }
-        forcedRefresh = in.readBoolean();
     }
 
     @Override
@@ -177,7 +170,6 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
         } else {
             out.writeBoolean(false);
         }
-        out.writeBoolean(forcedRefresh);
     }
 
     /**

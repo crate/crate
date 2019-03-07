@@ -47,7 +47,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public class TransportResyncReplicationAction extends TransportWriteAction<ResyncReplicationRequest,
-    ResyncReplicationRequest, ResyncReplicationResponse> implements PrimaryReplicaSyncer.SyncAction {
+    ResyncReplicationRequest, ReplicationResponse> implements PrimaryReplicaSyncer.SyncAction {
 
     private static String ACTION_NAME = "internal:index/seq_no/resync";
 
@@ -76,8 +76,8 @@ public class TransportResyncReplicationAction extends TransportWriteAction<Resyn
     }
 
     @Override
-    protected ResyncReplicationResponse newResponseInstance() {
-        return new ResyncReplicationResponse();
+    protected ReplicationResponse newResponseInstance() {
+        return new ReplicationResponse();
     }
 
     @Override
@@ -94,10 +94,10 @@ public class TransportResyncReplicationAction extends TransportWriteAction<Resyn
     }
 
     @Override
-    protected WritePrimaryResult<ResyncReplicationRequest, ResyncReplicationResponse> shardOperationOnPrimary(
+    protected WritePrimaryResult<ResyncReplicationRequest, ReplicationResponse> shardOperationOnPrimary(
         ResyncReplicationRequest request, IndexShard primary) throws Exception {
         final ResyncReplicationRequest replicaRequest = performOnPrimary(request, primary);
-        return new WritePrimaryResult<>(replicaRequest, new ResyncReplicationResponse(), null, null, primary, logger);
+        return new WritePrimaryResult<>(replicaRequest, new ReplicationResponse(), null, null, primary);
     }
 
     public static ResyncReplicationRequest performOnPrimary(ResyncReplicationRequest request, IndexShard primary) {
@@ -134,7 +134,7 @@ public class TransportResyncReplicationAction extends TransportWriteAction<Resyn
 
     @Override
     public void sync(ResyncReplicationRequest request, Task parentTask, String primaryAllocationId, long primaryTerm,
-                     ActionListener<ResyncReplicationResponse> listener) {
+                     ActionListener<ReplicationResponse> listener) {
         // skip reroute phase
         transportService.sendChildRequest(
             clusterService.localNode(),
@@ -142,9 +142,9 @@ public class TransportResyncReplicationAction extends TransportWriteAction<Resyn
             new ConcreteShardRequest<>(request, primaryAllocationId, primaryTerm),
             parentTask,
             transportOptions,
-            new TransportResponseHandler<ResyncReplicationResponse>() {
+            new TransportResponseHandler<ReplicationResponse>() {
                 @Override
-                public ResyncReplicationResponse newInstance() {
+                public ReplicationResponse newInstance() {
                     return newResponseInstance();
                 }
 
@@ -154,7 +154,7 @@ public class TransportResyncReplicationAction extends TransportWriteAction<Resyn
                 }
 
                 @Override
-                public void handleResponse(ResyncReplicationResponse response) {
+                public void handleResponse(ReplicationResponse response) {
                     final ReplicationResponse.ShardInfo.Failure[] failures = response.getShardInfo().getFailures();
                     // noinspection ForLoopReplaceableByForEach
                     for (int i = 0; i < failures.length; i++) {

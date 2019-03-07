@@ -18,7 +18,7 @@
  */
 package org.elasticsearch.action.resync;
 
-import org.elasticsearch.action.support.replication.ReplicatedWriteRequest;
+import org.elasticsearch.action.support.replication.ReplicationRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.index.shard.ShardId;
@@ -31,7 +31,7 @@ import java.util.Objects;
 /**
  * Represents a batch of operations sent from the primary to its replicas during the primary-replica resync.
  */
-public final class ResyncReplicationRequest extends ReplicatedWriteRequest<ResyncReplicationRequest> {
+public final class ResyncReplicationRequest extends ReplicationRequest<ResyncReplicationRequest> {
 
     private long trimAboveSeqNo;
     private Translog.Operation[] operations;

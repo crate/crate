@@ -23,8 +23,8 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.ActionRequestValidationException;
 import org.elasticsearch.action.resync.ResyncReplicationRequest;
-import org.elasticsearch.action.resync.ResyncReplicationResponse;
 import org.elasticsearch.action.resync.TransportResyncReplicationAction;
+import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
@@ -173,10 +173,10 @@ public class PrimaryReplicaSyncer extends AbstractComponent {
 
     public interface SyncAction {
         void sync(ResyncReplicationRequest request, Task parentTask, String primaryAllocationId, long primaryTerm,
-                  ActionListener<ResyncReplicationResponse> listener);
+                  ActionListener<ReplicationResponse> listener);
     }
 
-    static class SnapshotSender extends AbstractRunnable implements ActionListener<ResyncReplicationResponse> {
+    static class SnapshotSender extends AbstractRunnable implements ActionListener<ReplicationResponse> {
         private final Logger logger;
         private final SyncAction syncAction;
         private final ResyncTask task; // to track progress
@@ -213,7 +213,7 @@ public class PrimaryReplicaSyncer extends AbstractComponent {
         }
 
         @Override
-        public void onResponse(ResyncReplicationResponse response) {
+        public void onResponse(ReplicationResponse response) {
             run();
         }
 
