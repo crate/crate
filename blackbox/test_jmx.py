@@ -140,7 +140,7 @@ class JmxIntegrationTest(unittest.TestCase):
 
     def test_mbean_select_total_count(self):
         jmx_client = JmxClient(JMX_PORT)
-        with connect('localhost:{}'.format(CRATE_HTTP_PORT)) as conn:
+        with connect(f'localhost:{CRATE_HTTP_PORT}') as conn:
             c = conn.cursor()
             c.execute("select 1")
             stdout, stderr = jmx_client.query_jmx(
@@ -152,47 +152,30 @@ class JmxIntegrationTest(unittest.TestCase):
 
     def test_mbean_select_ready(self):
         jmx_client = JmxClient(JMX_PORT)
-        value, exception = jmx_client.query_jmx(
+        stdout, stderr = jmx_client.query_jmx(
             'io.crate.monitoring:type=NodeStatus',
             'Ready'
         )
-
-        if exception:
-            raise AssertionError("Unable to get attribute NodeStatus.Ready" + str(exception))
-
-        value = value.rstrip('\n')
-        if value != 'true':
-            raise AssertionError("The mbean attribute  NodeStatus.Ready has not produced the expected result. " +
-                                 "Expected: true, Got: {}".format(value))
+        self.assertEqual(stderr, '')
+        self.assertEqual(stdout.rstrip(), 'true')
 
     def test_mbean_node_name(self):
         jmx_client = JmxClient(JMX_PORT)
-        nodeName, exception = jmx_client.query_jmx(
+        stdout, stderr = jmx_client.query_jmx(
             'io.crate.monitoring:type=NodeInfo',
             'NodeName'
         )
-
-        if exception:
-            raise AssertionError("Unable to get attribute NodeInfo.NodeName: " + str(exception))
-
-        nodeName = nodeName.rstrip('\n')
-        if nodeName != 'crate-enterprise':
-            raise AssertionError("The mbean attribute NodeName has not produced the expected result. " +
-                                 "Expected: 'crate-enterprise', Got: {}".format(nodeName))
+        self.assertEqual(stderr, '')
+        self.assertEqual(stdout.rstrip(), 'crate-enterprise')
 
     def test_mbean_node_id(self):
         jmx_client = JmxClient(JMX_PORT)
-        nodeId, exception = jmx_client.query_jmx(
+        stdout, stderr = jmx_client.query_jmx(
             'io.crate.monitoring:type=NodeInfo',
             'NodeId'
         )
-
-        if exception:
-            raise AssertionError("Unable to get attribute NodeInfo.NodeName: " + str(exception))
-
-        nodeId = nodeId.rstrip('\n')
-        if not nodeId:
-            raise AssertionError("The mbean attribute NodeId returned and empty string")
+        self.assertEqual(stderr, '')
+        self.assertNotEqual(stdout.rstrip(), '', 'node id must not be empty')
 
     def test_mbean_cluster_state_version(self):
         jmx_client = JmxClient(JMX_PORT)
