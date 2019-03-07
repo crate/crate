@@ -26,7 +26,7 @@ import io.crate.cluster.gracefulstop.DecommissioningService;
 import io.crate.common.collections.Maps;
 import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.metadata.settings.CrateSettings;
-import io.crate.plugin.SQLPlugin;
+import io.crate.plugin.SQLProxyPlugin;
 import io.crate.settings.SharedSettings;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.elasticsearch.cluster.ClusterState;
@@ -50,7 +50,7 @@ public class ClusterSettingsExpressionTest extends CrateDummyClusterServiceUnitT
 
     @Override
     protected Collection<Setting<?>> additionalClusterSettings() {
-        return new SQLPlugin(Settings.EMPTY).getSettings();
+        return new SQLProxyPlugin(Settings.EMPTY, true).getSettings();
     }
 
     @Test

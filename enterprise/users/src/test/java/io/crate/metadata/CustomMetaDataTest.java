@@ -26,7 +26,7 @@ import io.crate.expression.udf.UserDefinedFunctionsMetaData;
 import io.crate.expression.udf.UserDefinedFunctionsMetaDataTest;
 import io.crate.metadata.view.ViewsMetaData;
 import io.crate.metadata.view.ViewsMetaDataTest;
-import io.crate.plugin.SQLPlugin;
+import io.crate.plugin.SQLProxyPlugin;
 import org.elasticsearch.cluster.ClusterModule;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.Strings;
@@ -52,7 +52,7 @@ public class CustomMetaDataTest {
 
     private NamedXContentRegistry getNamedXContentRegistry() {
         List<NamedXContentRegistry.Entry> registry = new ArrayList<>();
-        registry.addAll(new SQLPlugin(Settings.EMPTY).getNamedXContent());
+        registry.addAll(new SQLProxyPlugin(Settings.EMPTY, true).getNamedXContent());
         registry.addAll(ClusterModule.getNamedXWriteables());
         return new NamedXContentRegistry(registry);
     }

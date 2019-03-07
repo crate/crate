@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.RelationAnalyzer;
@@ -158,6 +159,21 @@ public class Analyzer {
                     AnalysisRegistry analysisRegistry,
                     RepositoryService repositoryService,
                     RepositoryParamValidator repositoryParamValidator) {
+        this(settings, schemas, functions, relationAnalyzer, clusterService,
+             analysisRegistry, repositoryService, repositoryParamValidator,
+            true);
+    }
+
+    @VisibleForTesting
+    public Analyzer(Settings settings,
+             Schemas schemas,
+            Functions functions,
+            RelationAnalyzer relationAnalyzer,
+            ClusterService clusterService,
+            AnalysisRegistry analysisRegistry,
+            RepositoryService repositoryService,
+            RepositoryParamValidator repositoryParamValidator,
+            boolean isEnterprise) {
         this.relationAnalyzer = relationAnalyzer;
         this.schemas = schemas;
         this.dropTableAnalyzer = new DropTableAnalyzer(schemas);
@@ -208,7 +224,7 @@ public class Analyzer {
         this.restoreSnapshotAnalyzer = new RestoreSnapshotAnalyzer(repositoryService, schemas);
         this.createFunctionAnalyzer = new CreateFunctionAnalyzer();
         this.dropFunctionAnalyzer = new DropFunctionAnalyzer();
-        this.privilegesAnalyzer = new PrivilegesAnalyzer(ENTERPRISE_LICENSE_SETTING.setting().get(settings));
+        this.privilegesAnalyzer = new PrivilegesAnalyzer(isEnterprise);
         this.createUserAnalyzer = new CreateUserAnalyzer(functions);
         this.alterUserAnalyzer = new AlterUserAnalyzer(functions);
         this.decommissionNodeAnalyzer = new DecommissionNodeAnalyzer(functions);

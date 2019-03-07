@@ -229,6 +229,7 @@ public class SQLExecutor {
 
         private TableStats tableStats = new TableStats();
         private Settings settings = Settings.EMPTY;
+        private boolean isEnterprise = true;
         private boolean hasValidLicense = true;
 
         private Builder(ClusterService clusterService, int numNodes, Random random) {
@@ -307,6 +308,11 @@ public class SQLExecutor {
 
         public Builder settings(Settings settings) {
             this.settings = settings;
+            return this;
+        }
+
+        public Builder setEnterprise(boolean isEnterprise) {
+            this.isEnterprise = isEnterprise;
             return this;
         }
 
@@ -395,7 +401,8 @@ public class SQLExecutor {
                     ),
                     new ModulesBuilder().add(new RepositorySettingsModule())
                         .createInjector()
-                        .getInstance(RepositoryParamValidator.class)
+                        .getInstance(RepositoryParamValidator.class),
+                    isEnterprise
                 ),
                 new Planner(
                     Settings.EMPTY,
