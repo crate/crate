@@ -138,29 +138,17 @@ class JmxIntegrationTest(unittest.TestCase):
     def tearDownClass(cls):
         enterprise_crate.stop()
 
-    def test_mbean_select_frq_attribute(self):
+    def test_mbean_select_total_count(self):
         jmx_client = JmxClient(JMX_PORT)
         with connect('localhost:{}'.format(CRATE_HTTP_PORT)) as conn:
             c = conn.cursor()
-
-            to_sleep = 0.2
-            while True:
-                c.execute("select 1")
-                value, exception = jmx_client.query_jmx(
-                    'io.crate.monitoring:type=QueryStats',
-                    'SelectQueryFrequency'
-                )
-
-                if exception:
-                    raise AssertionError("Unable to get attribute QueryStats.SelectQueryFrequency: " + str(exception))
-
-                if float(value) > 0.0:
-                    break
-                if to_sleep > 30:
-                    raise AssertionError('''The mbean attribute has not produced
-                                        the expected result.''')
-                time.sleep(to_sleep)
-                to_sleep *= 2
+            c.execute("select 1")
+            stdout, stderr = jmx_client.query_jmx(
+                'io.crate.monitoring:type=QueryStats',
+                'SelectQueryTotalCount'
+            )
+            self.assertEqual(stderr, '')
+            self.assertGreater(int(stdout), 0)
 
     def test_mbean_select_ready(self):
         jmx_client = JmxClient(JMX_PORT)
@@ -274,10 +262,11 @@ class NoEnterpriseJmxIntegrationTest(unittest.TestCase):
         jmx_client = JmxClient(JMX_PORT_ENTERPRISE_DISABLED)
         stdout, stderr = jmx_client.query_jmx(
             'io.crate.monitoring:type=QueryStats',
-            'SelectQueryFrequency'
+            'SelectQueryTotalCount'
         )
 
         self.assertEqual(
             stderr,
             'MBean not found: io.crate.monitoring:type=QueryStats\n')
         self.assertEqual(stdout, '')
+

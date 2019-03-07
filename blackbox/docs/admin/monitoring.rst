@@ -117,41 +117,13 @@ JMX Beans
 QueryStats MBean
 ----------------
 
-The ``QueryStats`` JMX MBean exposes query frequency and average duration in
-milliseconds for ``SELECT``, ``UPDATE``, ``DELETE``, and ``INSERT`` queries.
-The frequency and average duration are calculated against the interval of time
-since the ``QueryStats`` MBean was queried last.
-Besides the averages, the ``QueryStats`` MBean exposes the sum of durations, in
-milliseconds, total and failed count of all statements executed since the node
-was started, grouped by type, for ``SELECT``, ``UPDATE``, ``DELETE``,
-``INSERT``, ``MANAGEMENT``, ``DDL``, ``COPY`` and ``UNDEFINED`` queries.
-
-   .. WARNING::
-
-      The query frequency and average duration metrics have been deprecated and
-      will be removed in the future. We recommend using the total count and sum
-      of durations metrics instead.
+The ``QueryStats`` MBean exposes the sum of durations, in milliseconds, total
+and failed count of all statements executed since the node was started, grouped
+by type, for ``SELECT``, ``UPDATE``, ``DELETE``, ``INSERT``, ``MANAGEMENT``,
+``DDL``, ``COPY`` and ``UNDEFINED`` queries.
 
 Metrics can be accessed using the JMX MBean object name
 ``io.crate.monitoring:type=QueryStats`` and the following attributes:
-
-Frequency of operations/second in the interval of time since the last time the
-``QueryStats`` MBean was queried:
-
- - ``SelectQueryFrequency``
- - ``InsertQueryFrequency``
- - ``UpdateQueryFrequency``
- - ``DeleteQueryFrequency``
- - ``OverallQueryFrequency``
-
-Average duration of operations, in milliseconds, measured against the interval
-of time since the last time the ``QueryStats`` MBean was queried:
-
- - ``SelectQueryAverageDuration``
- - ``InsertQueryAverageDuration``
- - ``UpdateQueryAverageDuration``
- - ``DeleteQueryAverageDuration``
- - ``OverallQueryAverageDuration``
 
 Statements total count since the node was started:
 

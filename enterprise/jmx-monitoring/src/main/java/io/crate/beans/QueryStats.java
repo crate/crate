@@ -25,8 +25,6 @@ import io.crate.metadata.sys.MetricsView;
 import io.crate.planner.Plan.StatementType;
 import io.crate.planner.operators.StatementClassifier;
 
-import javax.annotation.Nullable;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -41,53 +39,20 @@ public class QueryStats implements QueryStatsMBean {
 
     static class Metric {
 
-        private final Metric previousReading;
-        private long elapsedSinceLastUpdateInMs;
         private long failedCount;
         private long totalCount;
         private long sumOfDurations;
 
-        Metric(@Nullable Metric previousReading,
-               long sumOfDurations,
-               long totalCount,
-               long failedCount,
-               long elapsedSinceLastUpdateInMs) {
-            this.elapsedSinceLastUpdateInMs = elapsedSinceLastUpdateInMs;
+        Metric(long sumOfDurations, long totalCount, long failedCount) {
             this.sumOfDurations = sumOfDurations;
             this.totalCount = totalCount;
             this.failedCount = failedCount;
-            this.previousReading = previousReading;
         }
 
         void inc(long duration, long totalCount, long failedCount) {
             this.sumOfDurations += duration;
             this.totalCount += totalCount;
             this.failedCount += failedCount;
-        }
-
-        double statementsPerSec() {
-            if (previousReading == null) {
-                return totalCount / (elapsedSinceLastUpdateInMs / 1000.0);
-            } else {
-                return (totalCount - previousReading.totalCount()) / (elapsedSinceLastUpdateInMs / 1000.0);
-            }
-        }
-
-        double avgDurationInMs() {
-            if (totalCount == 0) {
-                return 0;
-            }
-
-            if (previousReading == null) {
-                return sumOfDurations / (double) totalCount;
-            } else {
-                long countSinceLastRead = totalCount - previousReading.totalCount();
-                if (countSinceLastRead == 0) {
-                    return 0;
-                }
-                return (sumOfDurations - previousReading.sumOfDurations()) /
-                       (double) countSinceLastRead;
-            }
         }
 
         long totalCount() {
@@ -104,63 +69,36 @@ public class QueryStats implements QueryStatsMBean {
     }
 
     public static final String NAME = "io.crate.monitoring:type=QueryStats";
-    private static final Metric DEFAULT_METRIC = new Metric(null, 0, 0, 0, 0) {
+    private static final Metric DEFAULT_METRIC = new Metric(0, 0, 0) {
 
         @Override
         void inc(long duration, long totalCount, long failedCount) {
             throw new AssertionError("inc must not be called on default metric - it's immutable");
         }
-
-        @Override
-        double statementsPerSec() {
-            return 0.0;
-        }
-
-        @Override
-        double avgDurationInMs() {
-            return 0.0;
-        }
     };
-    private Map<StatementType, Metric> previouslyReadMetrics = Collections.emptyMap();
     private final Supplier<Map<StatementType, Metric>> metricByStmtType;
-
-    private volatile long lastUpdateTsInMillis = System.currentTimeMillis();
 
     public QueryStats(JobsLogs jobsLogs) {
         metricByStmtType = Suppliers.memoizeWithExpiration(
-            () -> {
-                long currentTs = System.currentTimeMillis();
-                previouslyReadMetrics = createMetricsMap(jobsLogs.metrics(), previouslyReadMetrics, currentTs, lastUpdateTsInMillis);
-                lastUpdateTsInMillis = currentTs;
-                return previouslyReadMetrics;
-            },
+            () -> createMetricsMap(jobsLogs.metrics()),
             1,
             TimeUnit.SECONDS
         );
     }
 
-    static Map<StatementType, Metric> createMetricsMap(Iterable<MetricsView> metrics,
-                                                       Map<StatementType, Metric> previouslyReadMetrics,
-                                                       long currentTs,
-                                                       long lastUpdateTs) {
+    static Map<StatementType, Metric> createMetricsMap(Iterable<MetricsView> metrics) {
         Map<StatementType, Metric> metricsByStmtType = new HashMap<>();
-        long elapsedSinceLastUpdateInMs = currentTs - lastUpdateTs;
-
-        Metric total = new Metric(previouslyReadMetrics.get(StatementType.ALL), 0, 0, 0, elapsedSinceLastUpdateInMs);
         for (MetricsView classifiedMetrics : metrics) {
             long sumOfDurations = classifiedMetrics.sumOfDurations();
             long failedCount = classifiedMetrics.failedCount();
-
-            total.inc(sumOfDurations, classifiedMetrics.totalCount(), failedCount);
             metricsByStmtType.compute(classificationType(classifiedMetrics.classification()), (key, oldMetric) -> {
                 if (oldMetric == null) {
-                    return new Metric(previouslyReadMetrics.get(key), sumOfDurations, classifiedMetrics.totalCount(), failedCount, elapsedSinceLastUpdateInMs);
+                    return new Metric(sumOfDurations, classifiedMetrics.totalCount(), failedCount);
                 }
                 oldMetric.inc(sumOfDurations, classifiedMetrics.totalCount(), failedCount);
                 return oldMetric;
             });
         }
-        metricsByStmtType.put(StatementType.ALL, total);
         return metricsByStmtType;
     }
 
@@ -169,56 +107,6 @@ public class QueryStats implements QueryStatsMBean {
             return StatementType.UNDEFINED;
         }
         return classification.type();
-    }
-
-    @Override
-    public double getSelectQueryFrequency() {
-        return metricByStmtType.get().getOrDefault(StatementType.SELECT, DEFAULT_METRIC).statementsPerSec();
-    }
-
-    @Override
-    public double getInsertQueryFrequency() {
-        return metricByStmtType.get().getOrDefault(StatementType.INSERT, DEFAULT_METRIC).statementsPerSec();
-    }
-
-    @Override
-    public double getUpdateQueryFrequency() {
-        return metricByStmtType.get().getOrDefault(StatementType.UPDATE, DEFAULT_METRIC).statementsPerSec();
-    }
-
-    @Override
-    public double getDeleteQueryFrequency() {
-        return metricByStmtType.get().getOrDefault(StatementType.DELETE, DEFAULT_METRIC).statementsPerSec();
-    }
-
-    @Override
-    public double getOverallQueryFrequency() {
-        return metricByStmtType.get().getOrDefault(StatementType.ALL, DEFAULT_METRIC).statementsPerSec();
-    }
-
-    @Override
-    public double getSelectQueryAverageDuration() {
-        return metricByStmtType.get().getOrDefault(StatementType.SELECT, DEFAULT_METRIC).avgDurationInMs();
-    }
-
-    @Override
-    public double getInsertQueryAverageDuration() {
-        return metricByStmtType.get().getOrDefault(StatementType.INSERT, DEFAULT_METRIC).avgDurationInMs();
-    }
-
-    @Override
-    public double getUpdateQueryAverageDuration() {
-        return metricByStmtType.get().getOrDefault(StatementType.UPDATE, DEFAULT_METRIC).avgDurationInMs();
-    }
-
-    @Override
-    public double getDeleteQueryAverageDuration() {
-        return metricByStmtType.get().getOrDefault(StatementType.DELETE, DEFAULT_METRIC).avgDurationInMs();
-    }
-
-    @Override
-    public double getOverallQueryAverageDuration() {
-        return metricByStmtType.get().getOrDefault(StatementType.ALL, DEFAULT_METRIC).avgDurationInMs();
     }
 
     @Override
