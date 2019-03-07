@@ -37,6 +37,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.StringJoiner;
 import java.util.regex.Pattern;
 
 public class ColumnIdent implements Path, Comparable<ColumnIdent> {
@@ -310,7 +311,12 @@ public class ColumnIdent implements Path, Comparable<ColumnIdent> {
         if (isTopLevel()) {
             return name;
         }
-        return StringUtils.PATH_JOINER.join(name, StringUtils.PATH_JOINER.join(path));
+        StringJoiner stringJoiner = new StringJoiner(".");
+        stringJoiner.add(name);
+        for (String p : path) {
+            stringJoiner.add(p);
+        }
+        return stringJoiner.toString();
     }
 
     @Override

@@ -21,7 +21,6 @@
 
 package io.crate.common;
 
-import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 
 import javax.annotation.Nullable;
@@ -29,7 +28,6 @@ import javax.annotation.Nullable;
 public final class StringUtils {
 
     public static final Splitter PATH_SPLITTER = Splitter.on('.');
-    public static final Joiner PATH_JOINER = Joiner.on('.');
 
     @Nullable
     public static String nullOrString(@Nullable Object value) {
