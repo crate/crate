@@ -56,13 +56,6 @@ import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexAction;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequestBuilder;
-import org.elasticsearch.action.admin.indices.flush.FlushAction;
-import org.elasticsearch.action.admin.indices.flush.FlushRequest;
-import org.elasticsearch.action.admin.indices.flush.FlushRequestBuilder;
-import org.elasticsearch.action.admin.indices.flush.FlushResponse;
-import org.elasticsearch.action.admin.indices.flush.SyncedFlushAction;
-import org.elasticsearch.action.admin.indices.flush.SyncedFlushRequest;
-import org.elasticsearch.action.admin.indices.flush.SyncedFlushResponse;
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeAction;
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeRequest;
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeRequestBuilder;
@@ -316,31 +309,6 @@ public abstract class AbstractClient extends AbstractComponent implements Client
         @Override
         public DeleteIndexRequestBuilder prepareDelete(String... indices) {
             return new DeleteIndexRequestBuilder(this, DeleteIndexAction.INSTANCE, indices);
-        }
-
-        @Override
-        public ActionFuture<FlushResponse> flush(final FlushRequest request) {
-            return execute(FlushAction.INSTANCE, request);
-        }
-
-        @Override
-        public void flush(final FlushRequest request, final ActionListener<FlushResponse> listener) {
-            execute(FlushAction.INSTANCE, request, listener);
-        }
-
-        @Override
-        public FlushRequestBuilder prepareFlush(String... indices) {
-            return new FlushRequestBuilder(this, FlushAction.INSTANCE).setIndices(indices);
-        }
-
-        @Override
-        public ActionFuture<SyncedFlushResponse> syncedFlush(SyncedFlushRequest request) {
-            return execute(SyncedFlushAction.INSTANCE, request);
-        }
-
-        @Override
-        public void syncedFlush(SyncedFlushRequest request, ActionListener<SyncedFlushResponse> listener) {
-            execute(SyncedFlushAction.INSTANCE, request, listener);
         }
 
         @Override
