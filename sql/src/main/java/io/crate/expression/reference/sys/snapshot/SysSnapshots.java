@@ -21,39 +21,73 @@
 
 package io.crate.expression.reference.sys.snapshot;
 
+import com.google.common.annotations.VisibleForTesting;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.repositories.RepositoriesService;
+import org.elasticsearch.repositories.Repository;
+import org.elasticsearch.snapshots.SnapshotException;
+import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.snapshots.SnapshotInfo;
+import org.elasticsearch.snapshots.SnapshotState;
 
-import java.util.stream.Stream;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.function.Supplier;
 
 @Singleton
 public class SysSnapshots {
 
-    private final RepositoriesService repositoriesService;
+    private static final Logger LOGGER = LogManager.getLogger(SysSnapshots.class);
+    private final Supplier<Collection<Repository>> getRepositories;
 
     @Inject
     public SysSnapshots(RepositoriesService repositoriesService) {
-        this.repositoriesService = repositoriesService;
+        this(repositoriesService::getRepositoriesList);
+    }
+
+    @VisibleForTesting
+    SysSnapshots(Supplier<Collection<Repository>> getRepositories) {
+        this.getRepositories = getRepositories;
     }
 
     public Iterable<SysSnapshot> currentSnapshots() {
-        Stream<SysSnapshot> stream = repositoriesService.getRepositoriesList().stream()
+        return () -> getRepositories.get().stream()
             .flatMap(repository -> repository.getRepositoryData().getSnapshotIds().stream()
-                .map(snapshotId -> {
-                    SnapshotInfo snapshotInfo = repository.getSnapshotInfo(snapshotId);
-                    return new SysSnapshot(
-                        snapshotId.getName(),
-                        repository.getMetadata().name(),
-                        snapshotInfo.indices(),
-                        snapshotInfo.startTime(),
-                        snapshotInfo.endTime(),
-                        snapshotInfo.version().toString(),
-                        snapshotInfo.state().name()
-                    );
-                })
+                .map(snapshotId -> createSysSnapshot(repository, snapshotId))
+            ).iterator();
+    }
+
+    private static SysSnapshot createSysSnapshot(Repository repository, SnapshotId snapshotId) {
+        SnapshotInfo snapshotInfo;
+        try {
+            snapshotInfo = repository.getSnapshotInfo(snapshotId);
+        } catch (SnapshotException e) {
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("Couldn't retrieve snapshotId={} error={}", snapshotId, e);
+            }
+            return new SysSnapshot(
+                snapshotId.getName(),
+                repository.getMetadata().name(),
+                Collections.emptyList(),
+                null,
+                null,
+                null,
+                SnapshotState.FAILED.name()
             );
-        return stream::iterator;
+        }
+        Version version = snapshotInfo.version();
+        return new SysSnapshot(
+            snapshotId.getName(),
+            repository.getMetadata().name(),
+            snapshotInfo.indices(),
+            snapshotInfo.startTime(),
+            snapshotInfo.endTime(),
+            version == null ? null : version.toString(),
+            snapshotInfo.state().name()
+        );
     }
 }
