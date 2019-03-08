@@ -19,7 +19,6 @@
 package io.crate.protocols.ssl;
 
 import io.crate.plugin.PipelineRegistry;
-import io.crate.settings.SharedSettings;
 import io.crate.test.integration.CrateUnitTest;
 import io.netty.handler.ssl.SslContext;
 import org.elasticsearch.common.settings.Settings;
@@ -49,7 +48,6 @@ public class SslContextProviderTest extends CrateUnitTest {
     public void testClassLoadingWithInvalidConfiguration() {
         // empty ssl configuration which is invalid
         Settings settings = Settings.builder()
-            .put(SharedSettings.ENTERPRISE_LICENSE_SETTING.getKey(), true)
             .put(SslConfigSettings.SSL_HTTP_ENABLED.getKey(), true)
             .put(SslConfigSettings.SSL_PSQL_ENABLED.getKey(), true)
             .build();
@@ -62,7 +60,6 @@ public class SslContextProviderTest extends CrateUnitTest {
     @Test
     public void testClassLoadingWithValidConfiguration() {
         Settings settings = Settings.builder()
-            .put(SharedSettings.ENTERPRISE_LICENSE_SETTING.getKey(), true)
             .put(SslConfigSettings.SSL_HTTP_ENABLED.getKey(), true)
             .put(SslConfigSettings.SSL_PSQL_ENABLED.getKey(), true)
             .put(SslConfigSettings.SSL_TRUSTSTORE_FILEPATH.getKey(), trustStoreFile.getAbsolutePath())
