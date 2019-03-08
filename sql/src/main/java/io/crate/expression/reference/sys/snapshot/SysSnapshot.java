@@ -28,12 +28,12 @@ public class SysSnapshot {
     private final String name;
     private final String repository;
     private final List<String> concreteIndices;
-    private final long started;
-    private final long finished;
+    private final Long started;
+    private final Long finished;
     private final String version;
     private final String state;
 
-    public SysSnapshot(String name, String repository, List<String> concreteIndices, long started, long finished, String version, String state) {
+    public SysSnapshot(String name, String repository, List<String> concreteIndices, Long started, Long finished, String version, String state) {
         this.name = name;
         this.repository = repository;
         this.concreteIndices = concreteIndices;
@@ -55,11 +55,11 @@ public class SysSnapshot {
         return concreteIndices;
     }
 
-    public long started() {
+    public Long started() {
         return started;
     }
 
-    public long finished() {
+    public Long finished() {
         return finished;
     }
 
