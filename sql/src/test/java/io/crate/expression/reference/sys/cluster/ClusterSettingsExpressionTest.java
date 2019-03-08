@@ -104,7 +104,10 @@ public class ClusterSettingsExpressionTest extends CrateDummyClusterServiceUnitT
         assertThat(
             Maps.getByPath(values, DecommissioningService.GRACEFUL_STOP_MIN_AVAILABILITY_SETTING.getKey()), is("FULL"));
 
-        assertSettingDeprecationsAndWarnings(new Setting<?>[] {SharedSettings.LICENSE_IDENT_SETTING.setting(),
-                DecommissioningService.GRACEFUL_STOP_REALLOCATE_SETTING.setting()});
+        assertSettingDeprecationsAndWarnings(new Setting<?>[] {
+            SharedSettings.LICENSE_IDENT_SETTING.setting(),
+            SharedSettings.ENTERPRISE_LICENSE_SETTING.setting(),
+            DecommissioningService.GRACEFUL_STOP_REALLOCATE_SETTING.setting() }
+        );
     }
 }
