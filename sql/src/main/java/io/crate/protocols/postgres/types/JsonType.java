@@ -47,6 +47,12 @@ class JsonType extends PGType {
     }
 
     @Override
+    public int typArray() {
+        return PGArray.JSON_ARRAY.oid();
+    }
+
+
+    @Override
     public int writeAsBinary(ByteBuf buffer, @Nonnull Object value) {
         byte[] bytes = encodeAsUTF8Text(value);
         buffer.writeInt(bytes.length);

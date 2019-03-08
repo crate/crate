@@ -42,6 +42,11 @@ class IntegerType extends PGType {
     }
 
     @Override
+    public int typArray() {
+        return PGArray.INT4_ARRAY.oid();
+    }
+
+    @Override
     public int writeAsBinary(ByteBuf buffer, @Nonnull Object value) {
         buffer.writeInt(TYPE_LEN);
         buffer.writeInt(((int) value));

@@ -54,6 +54,8 @@ public abstract class PGType {
         return typeLen;
     }
 
+    public abstract int typArray();
+
     public int typeMod() {
         return typeMod;
     }
