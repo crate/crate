@@ -41,6 +41,11 @@ class SmallIntType extends PGType {
     }
 
     @Override
+    public int typArray() {
+        return PGArray.INT2_ARRAY.oid();
+    }
+
+    @Override
     public int writeAsBinary(ByteBuf buffer, @Nonnull Object value) {
         buffer.writeInt(TYPE_LEN);
         buffer.writeShort((short) value);
