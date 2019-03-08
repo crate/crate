@@ -583,7 +583,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     @Test
     public void testDefaultColumns() {
         execute("select * from information_schema.columns order by table_schema, table_name");
-        assertEquals(669, response.rowCount());
+        assertEquals(670, response.rowCount());
     }
 
     @Test
@@ -624,6 +624,27 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
             "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| user_defined_type_name| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| false| true| NULL| NULL| NULL| 31| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
             "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| user_defined_type_schema| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| false| true| NULL| NULL| NULL| 32| information_schema| columns| information_schema| NULL| NULL| NULL\n")
         );
+    }
+
+    @Test
+    public void testSupportedPgTypeColumns() {
+        execute("select column_name, data_type from information_schema.columns " +
+                "where table_schema = 'pg_catalog' " +
+                "and table_name = 'pg_type' " +
+                "order by ordinal_position asc");
+        assertThat(response.rowCount(), is(10L));
+        assertThat(printedTable(response.rows()), is(
+            "oid| integer\n" +
+            "typarray| integer\n" +
+            "typbasetype| integer\n" +
+            "typdelim| string\n" +
+            "typelem| integer\n" +
+            "typlen| short\n" +
+            "typname| string\n" +
+            "typnamespace| integer\n" +
+            "typtype| string\n" +
+            "typtypmod| integer\n"
+        ));
     }
 
     @Test

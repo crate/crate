@@ -152,32 +152,38 @@ arrays or other non-primitive types.
 For compatibility reasons there is a trimmed down `pg_type <pgsql_pg_type_>`__ table available in
 CrateDB::
 
-    cr> select * from pg_catalog.pg_type order by oid;
-    +------+-------------+----------+---------+--------+--------------+--------------+---------+-----------+
-    |  oid | typbasetype | typdelim | typelem | typlen | typname      | typnamespace | typtype | typtypmod |
-    +------+-------------+----------+---------+--------+--------------+--------------+---------+-----------+
-    |   16 |           0 | ,        |       0 |      1 | bool         |    -68025646 | b       |        -1 |
-    |   18 |           0 | ,        |       0 |      1 | char         |    -68025646 | b       |        -1 |
-    |   20 |           0 | ,        |       0 |      8 | int8         |    -68025646 | b       |        -1 |
-    |   21 |           0 | ,        |       0 |      2 | int2         |    -68025646 | b       |        -1 |
-    |   23 |           0 | ,        |       0 |      4 | int4         |    -68025646 | b       |        -1 |
-    |  114 |           0 | ,        |       0 |     -1 | json         |    -68025646 | b       |        -1 |
-    |  199 |           0 | ,        |     114 |     -1 | _json        |    -68025646 | b       |        -1 |
-    |  700 |           0 | ,        |       0 |      4 | float4       |    -68025646 | b       |        -1 |
-    |  701 |           0 | ,        |       0 |      8 | float8       |    -68025646 | b       |        -1 |
-    | 1000 |           0 | ,        |      16 |     -1 | _bool        |    -68025646 | b       |        -1 |
-    | 1002 |           0 | ,        |      18 |     -1 | _char        |    -68025646 | b       |        -1 |
-    | 1005 |           0 | ,        |      21 |     -1 | _int2        |    -68025646 | b       |        -1 |
-    | 1007 |           0 | ,        |      23 |     -1 | _int4        |    -68025646 | b       |        -1 |
-    | 1015 |           0 | ,        |    1043 |     -1 | _varchar     |    -68025646 | b       |        -1 |
-    | 1016 |           0 | ,        |      20 |     -1 | _int8        |    -68025646 | b       |        -1 |
-    | 1021 |           0 | ,        |     700 |     -1 | _float4      |    -68025646 | b       |        -1 |
-    | 1022 |           0 | ,        |     701 |     -1 | _float8      |    -68025646 | b       |        -1 |
-    | 1043 |           0 | ,        |       0 |     -1 | varchar      |    -68025646 | b       |        -1 |
-    | 1184 |           0 | ,        |       0 |      8 | timestamptz  |    -68025646 | b       |        -1 |
-    | 1185 |           0 | ,        |    1184 |     -1 | _timestamptz |    -68025646 | b       |        -1 |
-    +------+-------------+----------+---------+--------+--------------+--------------+---------+-----------+
+    cr> select oid, typname, typarray, typelem, typlen from pg_catalog.pg_type order by oid;
+    +------+--------------+----------+---------+--------+
+    |  oid | typname      | typarray | typelem | typlen |
+    +------+--------------+----------+---------+--------+
+    |   16 | bool         |     1000 |       0 |      1 |
+    |   18 | char         |     1002 |       0 |      1 |
+    |   20 | int8         |     1016 |       0 |      8 |
+    |   21 | int2         |     1005 |       0 |      2 |
+    |   23 | int4         |     1007 |       0 |      4 |
+    |  114 | json         |      199 |       0 |     -1 |
+    |  199 | _json        |        0 |     114 |     -1 |
+    |  700 | float4       |     1021 |       0 |      4 |
+    |  701 | float8       |     1022 |       0 |      8 |
+    | 1000 | _bool        |        0 |      16 |     -1 |
+    | 1002 | _char        |        0 |      18 |     -1 |
+    | 1005 | _int2        |        0 |      21 |     -1 |
+    | 1007 | _int4        |        0 |      23 |     -1 |
+    | 1015 | _varchar     |        0 |    1043 |     -1 |
+    | 1016 | _int8        |        0 |      20 |     -1 |
+    | 1021 | _float4      |        0 |     700 |     -1 |
+    | 1022 | _float8      |        0 |     701 |     -1 |
+    | 1043 | varchar      |     1015 |       0 |     -1 |
+    | 1184 | timestamptz  |     1185 |       0 |      8 |
+    | 1185 | _timestamptz |        0 |    1184 |     -1 |
+    +------+--------------+----------+---------+--------+
     SELECT 20 rows in set (... sec)
+
+.. NOTE::
+
+   This is just a snapshot of the table.
+   Check table :ref:`information_schema.columns <information_schema_columns>`
+   to get information for all supported columns.
 
 Show Transaction Isolation
 --------------------------
