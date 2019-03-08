@@ -12,9 +12,8 @@ Enterprise Features
 Feature List
 ============
 
-When you first download CrateDB, the :ref:`license.enterprise
-<conf-node-enterprise-license>` setting is set to ``true`` and the following
-enterprise features are enabled:
+The default distribution of CrateDB contains the following enterprise features:
+
 
 - :ref:`administration_user_management`: manage multiple database users
 - :ref:`administration-privileges`: configure user privileges
@@ -33,6 +32,12 @@ enterprise features are enabled:
 - :ref:`window-function-nthvalue`: ``nth_value`` window function
 - `The CrateDB admin UI`_: `shards browser`_, `monitoring overview`_,
   `privileges browser`_
+
+
+.. note::
+
+   It is also possible to build a :ref:`community-edition` which won't contain
+   these features but which can be used without licensing restrictions.
 
 .. _enterprise_trial:
 
@@ -56,12 +61,8 @@ LICENSE <ref-set-license>` statement.
     - :ref:`alter_cluster_decommission`
 
 If you wish to continue using CrateDB without an enterprise license after the
-trial period ends you must set :ref:`license.enterprise
-<conf-node-enterprise-license>` to ``false``. This activates the `community
-edition`_ of CrateDB and restores all functionality except for the enterprise
-features.
+trial period ends you must switch to the :ref:`community-edition`.
 
-.. _community Edition: https://crate.io/products/cratedb-editions/
 .. _enterprise license: https://crate.io/products/cratedb-editions/
 .. _HyperLogLog++: https://research.google.com/pubs/pub40671.html
 .. _monitoring overview: https://crate.io/docs/clients/admin-ui/en/latest/monitoring.html
