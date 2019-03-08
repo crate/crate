@@ -20,7 +20,6 @@
 package io.crate.metadata;
 
 import io.crate.analyze.user.Privilege;
-import io.crate.settings.SharedSettings;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.settings.Settings;
 
@@ -43,43 +42,38 @@ public class PrivilegesMetaDataUpgrader implements CustomMetaDataUpgrader {
 
     @Override
     public Map<String, MetaData.Custom> apply(Settings settings, Map<String, MetaData.Custom> customMetaData) {
-        if (!SharedSettings.ENTERPRISE_LICENSE_SETTING.setting().get(settings)) {
+        UsersMetaData usersMetaData = (UsersMetaData) customMetaData.get(UsersMetaData.TYPE);
+        if (usersMetaData == null) {
             return customMetaData;
         }
+        List<String> users = usersMetaData.userNames();
+        if (users.size() == 0) {
+            return customMetaData;
+        }
+        UsersPrivilegesMetaData privilegesMetaData =
+            (UsersPrivilegesMetaData) customMetaData.get(UsersPrivilegesMetaData.TYPE);
+        if (privilegesMetaData == null) {
+            privilegesMetaData = new UsersPrivilegesMetaData();
+            customMetaData.put(UsersPrivilegesMetaData.TYPE, privilegesMetaData);
+        }
+        for (String userName : usersMetaData.userNames()) {
+            Set<Privilege> userPrivileges = privilegesMetaData.getUserPrivileges(userName);
+            if (userPrivileges == null) {
+                userPrivileges = new HashSet<>();
+                privilegesMetaData.createPrivileges(userName, userPrivileges);
 
-        UsersMetaData usersMetaData = (UsersMetaData) customMetaData.get(UsersMetaData.TYPE);
-        if (usersMetaData != null) {
-            List<String> users = usersMetaData.userNames();
-            if (users.size() == 0) {
-                return customMetaData;
-            }
-
-            UsersPrivilegesMetaData privilegesMetaData =
-                (UsersPrivilegesMetaData) customMetaData.get(UsersPrivilegesMetaData.TYPE);
-            if (privilegesMetaData == null) {
-                privilegesMetaData = new UsersPrivilegesMetaData();
-                customMetaData.put(UsersPrivilegesMetaData.TYPE, privilegesMetaData);
-            }
-            for (String userName : usersMetaData.userNames()) {
-                Set<Privilege> userPrivileges = privilegesMetaData.getUserPrivileges(userName);
-                if (userPrivileges == null) {
-                    userPrivileges = new HashSet<>();
-                    privilegesMetaData.createPrivileges(userName, userPrivileges);
-
-                    // add GRANT privileges for all available types on the CLUSTER class
-                    for (Privilege.Type privilegeType : Privilege.Type.values()) {
-                        userPrivileges.add(
-                            new Privilege(
-                                Privilege.State.GRANT,
-                                privilegeType,
-                                Privilege.Clazz.CLUSTER,
-                                null,
-                                CRATE_USER.name()));
-                    }
+                // add GRANT privileges for all available types on the CLUSTER class
+                for (Privilege.Type privilegeType : Privilege.Type.values()) {
+                    userPrivileges.add(
+                        new Privilege(
+                            Privilege.State.GRANT,
+                            privilegeType,
+                            Privilege.Clazz.CLUSTER,
+                            null,
+                            CRATE_USER.name()));
                 }
             }
         }
-
         return customMetaData;
     }
 }

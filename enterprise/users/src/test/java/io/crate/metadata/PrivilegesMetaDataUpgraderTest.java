@@ -21,7 +21,6 @@ package io.crate.metadata;
 
 import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.user.Privilege;
-import io.crate.settings.SharedSettings;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.collect.MapBuilder;
@@ -43,18 +42,6 @@ import static org.hamcrest.Matchers.notNullValue;
 public class PrivilegesMetaDataUpgraderTest extends CrateUnitTest {
 
     private static final PrivilegesMetaDataUpgrader UPGRADER = new PrivilegesMetaDataUpgrader();
-
-    @Test
-    public void testEnterpriseDisabledNothingChanged() throws Exception {
-        Map<String, MetaData.Custom> customMap = new HashMap<>(1);
-        customMap.put(UsersMetaData.TYPE, new UsersMetaData(UserDefinitions.SINGLE_USER_ONLY));
-        Map<String, MetaData.Custom> oldCustomMap = new HashMap<>(customMap);
-        Settings settings = Settings.builder()
-            .put(SharedSettings.ENTERPRISE_LICENSE_SETTING.getKey(), false)
-            .build();
-        Map<String, MetaData.Custom> newCustomMap = UPGRADER.apply(settings, customMap);
-        assertThat(newCustomMap, is(oldCustomMap));
-    }
 
     @Test
     public void testNoUsersNothingChanged() throws Exception {
