@@ -27,8 +27,13 @@ import org.elasticsearch.common.settings.Setting;
 
 public class SharedSettings {
 
+    /**
+     * @deprecated This will be removed in 4.0;
+     * We're switching to have 2 distributions: One with enterprise modules included and one without.
+     */
+    @Deprecated()
     public static final CrateSetting<Boolean> ENTERPRISE_LICENSE_SETTING = CrateSetting.of(Setting.boolSetting(
-        "license.enterprise", true, Setting.Property.NodeScope),
+        "license.enterprise", true, Setting.Property.NodeScope, Setting.Property.Deprecated),
         DataTypes.BOOLEAN);
 
     /**
