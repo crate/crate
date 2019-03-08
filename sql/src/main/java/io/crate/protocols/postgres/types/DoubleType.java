@@ -41,6 +41,11 @@ class DoubleType extends PGType {
     }
 
     @Override
+    public int typArray() {
+        return PGArray.FLOAT8_ARRAY.oid();
+    }
+
+    @Override
     public int writeAsBinary(ByteBuf buffer, @Nonnull Object value) {
         buffer.writeInt(TYPE_LEN);
         buffer.writeDouble(((double) value));

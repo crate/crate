@@ -261,6 +261,8 @@ options of all available views.
    cr> DROP view galaxies;
    DROP OK, 1 row affected (... sec)
 
+.. _information_schema_columns:
+
 ``columns``
 -----------
 
