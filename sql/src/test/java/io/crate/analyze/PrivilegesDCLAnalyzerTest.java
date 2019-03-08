@@ -26,7 +26,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.SessionContext;
-import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.analyze.user.Privilege;
 import io.crate.auth.user.User;
 import io.crate.exceptions.RelationUnknown;
@@ -39,11 +38,12 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.DocTableInfoFactory;
 import io.crate.metadata.doc.TestingDocTableInfoFactory;
 import io.crate.metadata.table.TestingTableInfo;
+import io.crate.settings.SharedSettings;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.inject.Provider;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
 import org.junit.Test;
@@ -79,7 +79,6 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
     private static final RelationName CUSTOM_SCHEMA_VIEW = new RelationName("my_schema", "locations_view");
 
     private SQLExecutor e;
-    private Provider<RelationAnalyzer> analyzerProvider = () -> null;
 
     @Before
     public void setUpSQLExecutor() throws Exception {
@@ -290,10 +289,14 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
     public void testGrantWithoutUserManagementEnabledThrowsException() {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("User management is not enabled");
-        e = SQLExecutor.builder(clusterService)
-            .settings(Settings.builder().put(ENTERPRISE_LICENSE_SETTING.getKey(), false).build())
-            .build();
-        e.analyze("GRANT DQL TO test");
+        try {
+            e = SQLExecutor.builder(clusterService)
+                .settings(Settings.builder().put(ENTERPRISE_LICENSE_SETTING.getKey(), false).build())
+                .build();
+            e.analyze("GRANT DQL TO test");
+        } finally {
+            assertSettingDeprecationsAndWarnings(new Setting[] { SharedSettings.ENTERPRISE_LICENSE_SETTING.setting() });
+        }
     }
 
     @Test
