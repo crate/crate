@@ -29,8 +29,8 @@ Unreleased Changes
 .. When resetting this file during a release, leave the headers in place, but
 .. add a single paragraph to each section with the word "None".
 
-.. Always cluster items into bigger topics. Link to the documentation whenever feasible.  
-.. Remember to give the right level of information: Users should understand  
+.. Always cluster items into bigger topics. Link to the documentation whenever feasible.
+.. Remember to give the right level of information: Users should understand
 .. the impact of the change without going into the depth of tech.
 
 .. rubric:: Table of Contents
@@ -137,13 +137,3 @@ Fixes
 
 - Fixed circuit breaker memory accounting of window functions to prevent OOM
   exceptions.
-
-- Fixed an issue that could cause queries on the :ref:`sys.snapshots
-  <sys-snapshots>` table to raise an error if a snapshot couldn't be retrieved.
-
-- Fixed an issue that caused inserts into partitioned tables to fail with an
-  ``unknown setting`` error if the table was created in an earlier version of
-  CrateDB using settings that have been removed in later versions.
-
-- Fixed an issue that could result in an ``ConcurrentModificationException``
-  error when querying the :ref:`sys-jobs-metrics` table.
