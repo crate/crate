@@ -29,6 +29,7 @@ import io.crate.analyze.AnalyzedCommit;
 import io.crate.analyze.AnalyzedDecommissionNodeStatement;
 import io.crate.analyze.AnalyzedDeleteStatement;
 import io.crate.analyze.AnalyzedGCDanglingArtifacts;
+import io.crate.analyze.AnalyzedRollback;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.AnalyzedStatementVisitor;
 import io.crate.analyze.AnalyzedSwapTable;
@@ -183,6 +184,11 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
 
     @Override
     public Plan visitCommit(AnalyzedCommit analyzedCommit, PlannerContext context) {
+        return NoopPlan.INSTANCE;
+    }
+
+    @Override
+    public Plan visitRollback(AnalyzedRollback analyzedRollback, PlannerContext context) {
         return NoopPlan.INSTANCE;
     }
 

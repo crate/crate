@@ -99,6 +99,13 @@ public class TestStatementBuilder {
     }
 
     @Test
+    public void testRollback() {
+        printStatement("ROLLBACK");
+        printStatement("ROLLBACK WORK");
+        printStatement("ROLLBACK TRANSACTION");
+    }
+
+    @Test
     public void testEmptyOverClauseAfterFunction() {
         printStatement("SELECT avg(x) OVER () FROM t");
     }

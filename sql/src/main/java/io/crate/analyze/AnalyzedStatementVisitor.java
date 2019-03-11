@@ -195,6 +195,10 @@ public class AnalyzedStatementVisitor<C, R> {
         return visitAnalyzedStatement(analyzedCommit, context);
     }
 
+    public R visitRollback(AnalyzedRollback analyzedRollback, C context) {
+        return visitAnalyzedStatement(analyzedRollback, context);
+    }
+
     public R visitPrivilegesStatement(PrivilegesAnalyzedStatement analysis, C context) {
         return visitDCLStatement(analysis, context);
     }

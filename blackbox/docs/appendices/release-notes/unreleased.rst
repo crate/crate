@@ -92,6 +92,10 @@ Deprecations
 Changes
 =======
 
+- Added the full PostgreSQL syntax of the ``ROLLBACK`` statement.
+  This improves the support for clients that are based on the Postgres wire
+  protocol. The ``ROLLBACK`` statement and its parameters are simply ignored.
+
 - Added support for :ref:`sql_escape_string_literals`.
 
 - Expose the sum of durations, total, and failed count metrics under the

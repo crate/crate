@@ -28,6 +28,7 @@ import io.crate.analyze.AlterUserAnalyzedStatement;
 import io.crate.analyze.AnalyzedBegin;
 import io.crate.analyze.AnalyzedCommit;
 import io.crate.analyze.AnalyzedDeleteStatement;
+import io.crate.analyze.AnalyzedRollback;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.AnalyzedStatementVisitor;
 import io.crate.analyze.AnalyzedUpdateStatement;
@@ -444,6 +445,11 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
 
         @Override
         public Void visitCommit(AnalyzedCommit analyzedCommit, User user) {
+            return null;
+        }
+
+        @Override
+        public Void visitRollback(AnalyzedRollback analyzedRollback, User user) {
             return null;
         }
 

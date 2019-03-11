@@ -147,6 +147,7 @@ import io.crate.sql.tree.RerouteOption;
 import io.crate.sql.tree.ResetStatement;
 import io.crate.sql.tree.RestoreSnapshot;
 import io.crate.sql.tree.RevokePrivilege;
+import io.crate.sql.tree.RollbackStatement;
 import io.crate.sql.tree.SearchedCaseExpression;
 import io.crate.sql.tree.Select;
 import io.crate.sql.tree.SelectItem;
@@ -224,6 +225,11 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     @Override
     public Node visitCommit(SqlBaseParser.CommitContext context) {
         return new CommitStatement();
+    }
+
+    @Override
+    public Node visitRollback(SqlBaseParser.RollbackContext context) {
+        return new RollbackStatement();
     }
 
     @Override

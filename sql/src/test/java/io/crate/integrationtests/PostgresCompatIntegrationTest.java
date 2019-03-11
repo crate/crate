@@ -85,6 +85,20 @@ public class PostgresCompatIntegrationTest extends SQLTransportIntegrationTest {
         assertNoErrorResponse(response);
     }
 
+    @Test
+    public void testRollbackStatement() {
+        execute("ROLLBACK");
+        assertNoErrorResponse(response);
+    }
+
+    @Test
+    public void testRollbackStatementWithParameters() {
+        execute("ROLLBACK WORK");
+        assertNoErrorResponse(response);
+        execute("ROLLBACK TRANSACTION");
+        assertNoErrorResponse(response);
+    }
+
     /**
      * In CrateDB -1 means row-count unknown, and -2 means error.
      * In JDBC -2 means row-count unknown and -3 means error.

@@ -34,6 +34,7 @@ statement
     : query                                                                          #default
     | BEGIN (WORK | TRANSACTION)? (transactionMode (',' transactionMode)*)?          #begin
     | COMMIT                                                                         #commit
+    | ROLLBACK (WORK | TRANSACTION)?                                                 #rollback
     | EXPLAIN (ANALYZE)? statement                                                   #explain
     | OPTIMIZE TABLE tableWithPartitions withProperties?                             #optimize
     | REFRESH TABLE tableWithPartitions                                              #refreshTable
@@ -648,7 +649,7 @@ nonReserved
     | PRECEDING | RANGE | REFRESH | ROW | ROWS | SCHEMAS | SECOND | SESSION
     | SHARDS | SHOW | STORAGE | STRICT | SYSTEM | TABLES | TABLESAMPLE | TEXT | TIME
     | TIMESTAMP | TO | TOKENIZER | TOKEN_FILTERS | TYPE | VALUES | VIEW | YEAR
-    | REPOSITORY | SNAPSHOT | RESTORE | GENERATED | ALWAYS | BEGIN | COMMIT
+    | REPOSITORY | SNAPSHOT | RESTORE | GENERATED | ALWAYS | BEGIN | COMMIT | ROLLBACK
     | ISOLATION | TRANSACTION | CHARACTERISTICS | LEVEL | LANGUAGE | OPEN | CLOSE | RENAME
     | PRIVILEGES | SCHEMA | PREPARE
     | REROUTE | MOVE | SHARD | ALLOCATE | REPLICA | CANCEL | CLUSTER | RETRY | FAILED
@@ -789,6 +790,7 @@ LICENSE : 'LICENSE';
 
 BEGIN: 'BEGIN';
 COMMIT: 'COMMIT';
+ROLLBACK: 'ROLLBACK';
 WORK: 'WORK';
 TRANSACTION: 'TRANSACTION';
 TRANSACTION_ISOLATION: 'TRANSACTION_ISOLATION';

@@ -199,12 +199,12 @@ is implemented::
     +-----------------------+
     SHOW 1 row in set (... sec)
 
-BEGIN/COMMIT Statements
------------------------
+BEGIN/COMMIT/ROLLBACK Statements
+--------------------------------
 
 For compatibility with clients that use the Postgres wire protocol, such as the
-Golang lib/pq and pgx drivers, the full PostgreSQL syntax of the ``BEGIN`` and
-``COMMIT`` statements is implemented, for example::
+Golang lib/pq and pgx drivers, the full PostgreSQL syntax of the ``BEGIN``,
+``COMMIT`` and ``ROLLBACK`` statements is implemented, for example::
 
     cr> BEGIN TRANSACTION ISOLATION LEVEL READ UNCOMMITTED,
     ...                   READ ONLY,
@@ -214,8 +214,11 @@ Golang lib/pq and pgx drivers, the full PostgreSQL syntax of the ``BEGIN`` and
     cr> COMMIT
     COMMIT OK, 0 rows affected  (... sec)
 
-Since CrateDB does not support transactions, both the ``COMMIT`` and the
-``BEGIN`` statement and any of its parameters are ignored.
+    cr> ROLLBACK
+    ROLLBACK OK, 0 rows affected  (... sec)
+
+Since CrateDB does not support transactions, all the above mentioned statements
+and any of its parameters are ignored.
 
 Client Compatibility
 ====================

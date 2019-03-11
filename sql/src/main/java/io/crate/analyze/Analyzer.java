@@ -80,6 +80,7 @@ import io.crate.sql.tree.RefreshStatement;
 import io.crate.sql.tree.ResetStatement;
 import io.crate.sql.tree.RestoreSnapshot;
 import io.crate.sql.tree.RevokePrivilege;
+import io.crate.sql.tree.RollbackStatement;
 import io.crate.sql.tree.SetStatement;
 import io.crate.sql.tree.ShowColumns;
 import io.crate.sql.tree.ShowCreateTable;
@@ -493,6 +494,11 @@ public class Analyzer {
         @Override
         public AnalyzedStatement visitCommit(CommitStatement node, Analysis context) {
             return new AnalyzedCommit();
+        }
+
+        @Override
+        public AnalyzedStatement visitRollback(RollbackStatement node, Analysis context) {
+            return new AnalyzedRollback();
         }
 
         @Override
