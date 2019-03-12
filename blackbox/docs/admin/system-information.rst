@@ -1422,7 +1422,7 @@ Here's an example query::
   |  1 | The setting 'discovery.zen.minimum_master_nodes' must not be ... |
   |  2 | The total number of partitions of one or more partitioned tab... |
   |  3 | The following tables need to be upgraded for compatibility wi... |
-  |  6 | Your CrateDB license is not close to expiry. Enjoy CrateDB!      |
+  |  6 | Your CrateDB license is valid. Enjoy CrateDB!                    |
   +----+--------------------------------------------------------------...-+
   SELECT 4 rows in set (... sec)
 
