@@ -592,38 +592,38 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute("select * from information_schema.columns where table_schema='information_schema' and table_name='columns' order by ordinal_position asc");
         assertThat(response.rowCount(), is(32L));
         assertThat(printedTable(response.rows()), is(
-            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| character_maximum_length| integer| NULL| NULL| NULL| NULL| NULL| NULL| NULL| false| true| 32| 2| NULL| 1| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
-            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| character_octet_length| integer| NULL| NULL| NULL| NULL| NULL| NULL| NULL| false| true| 32| 2| NULL| 2| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
-            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| character_set_catalog| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| false| true| NULL| NULL| NULL| 3| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
-            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| character_set_name| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| false| true| NULL| NULL| NULL| 4| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
-            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| character_set_schema| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| false| true| NULL| NULL| NULL| 5| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
-            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| check_action| integer| NULL| NULL| NULL| NULL| NULL| NULL| NULL| false| true| 32| 2| NULL| 6| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
-            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| check_references| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| false| true| NULL| NULL| NULL| 7| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
-            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| collation_catalog| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| false| true| NULL| NULL| NULL| 8| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
-            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| collation_name| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| false| true| NULL| NULL| NULL| 9| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
-            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| collation_schema| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| false| true| NULL| NULL| NULL| 10| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
-            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| column_default| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| false| true| NULL| NULL| NULL| 11| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
-            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| column_name| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| false| false| NULL| NULL| NULL| 12| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
-            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| data_type| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| false| false| NULL| NULL| NULL| 13| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
-            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| datetime_precision| integer| NULL| NULL| NULL| NULL| NULL| NULL| NULL| false| true| 32| 2| NULL| 14| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
-            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| domain_catalog| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| false| true| NULL| NULL| NULL| 15| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
-            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| domain_name| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| false| true| NULL| NULL| NULL| 16| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
-            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| domain_schema| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| false| true| NULL| NULL| NULL| 17| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
-            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| generation_expression| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| false| true| NULL| NULL| NULL| 18| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
-            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| interval_precision| integer| NULL| NULL| NULL| NULL| NULL| NULL| NULL| false| true| 32| 2| NULL| 19| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
-            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| interval_type| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| false| true| NULL| NULL| NULL| 20| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
-            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| is_generated| boolean| NULL| NULL| NULL| NULL| NULL| NULL| NULL| false| false| NULL| NULL| NULL| 21| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
-            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| is_nullable| boolean| NULL| NULL| NULL| NULL| NULL| NULL| NULL| false| false| NULL| NULL| NULL| 22| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
-            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| numeric_precision| integer| NULL| NULL| NULL| NULL| NULL| NULL| NULL| false| true| 32| 2| NULL| 23| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
-            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| numeric_precision_radix| integer| NULL| NULL| NULL| NULL| NULL| NULL| NULL| false| true| 32| 2| NULL| 24| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
-            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| numeric_scale| integer| NULL| NULL| NULL| NULL| NULL| NULL| NULL| false| true| 32| 2| NULL| 25| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
-            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| ordinal_position| short| NULL| NULL| NULL| NULL| NULL| NULL| NULL| false| false| 16| 2| NULL| 26| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
-            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| table_catalog| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| false| false| NULL| NULL| NULL| 27| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
-            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| table_name| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| false| false| NULL| NULL| NULL| 28| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
-            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| table_schema| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| false| false| NULL| NULL| NULL| 29| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
-            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| user_defined_type_catalog| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| false| true| NULL| NULL| NULL| 30| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
-            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| user_defined_type_name| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| false| true| NULL| NULL| NULL| 31| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
-            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| user_defined_type_schema| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| false| true| NULL| NULL| NULL| 32| information_schema| columns| information_schema| NULL| NULL| NULL\n")
+            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| character_maximum_length| integer| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NEVER| true| 32| 2| NULL| 1| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
+            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| character_octet_length| integer| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NEVER| true| 32| 2| NULL| 2| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
+            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| character_set_catalog| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NEVER| true| NULL| NULL| NULL| 3| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
+            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| character_set_name| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NEVER| true| NULL| NULL| NULL| 4| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
+            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| character_set_schema| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NEVER| true| NULL| NULL| NULL| 5| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
+            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| check_action| integer| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NEVER| true| 32| 2| NULL| 6| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
+            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| check_references| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NEVER| true| NULL| NULL| NULL| 7| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
+            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| collation_catalog| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NEVER| true| NULL| NULL| NULL| 8| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
+            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| collation_name| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NEVER| true| NULL| NULL| NULL| 9| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
+            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| collation_schema| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NEVER| true| NULL| NULL| NULL| 10| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
+            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| column_default| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NEVER| true| NULL| NULL| NULL| 11| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
+            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| column_name| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NEVER| false| NULL| NULL| NULL| 12| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
+            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| data_type| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NEVER| false| NULL| NULL| NULL| 13| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
+            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| datetime_precision| integer| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NEVER| true| 32| 2| NULL| 14| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
+            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| domain_catalog| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NEVER| true| NULL| NULL| NULL| 15| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
+            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| domain_name| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NEVER| true| NULL| NULL| NULL| 16| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
+            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| domain_schema| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NEVER| true| NULL| NULL| NULL| 17| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
+            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| generation_expression| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NEVER| true| NULL| NULL| NULL| 18| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
+            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| interval_precision| integer| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NEVER| true| 32| 2| NULL| 19| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
+            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| interval_type| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NEVER| true| NULL| NULL| NULL| 20| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
+            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| is_generated| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NEVER| false| NULL| NULL| NULL| 21| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
+            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| is_nullable| boolean| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NEVER| false| NULL| NULL| NULL| 22| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
+            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| numeric_precision| integer| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NEVER| true| 32| 2| NULL| 23| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
+            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| numeric_precision_radix| integer| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NEVER| true| 32| 2| NULL| 24| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
+            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| numeric_scale| integer| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NEVER| true| 32| 2| NULL| 25| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
+            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| ordinal_position| short| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NEVER| false| 16| 2| NULL| 26| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
+            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| table_catalog| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NEVER| false| NULL| NULL| NULL| 27| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
+            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| table_name| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NEVER| false| NULL| NULL| NULL| 28| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
+            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| table_schema| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NEVER| false| NULL| NULL| NULL| 29| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
+            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| udt_catalog| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NEVER| true| NULL| NULL| NULL| 30| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
+            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| udt_name| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NEVER| true| NULL| NULL| NULL| 31| information_schema| columns| information_schema| NULL| NULL| NULL\n" +
+            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| udt_schema| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NEVER| true| NULL| NULL| NULL| 32| information_schema| columns| information_schema| NULL| NULL| NULL\n")
         );
     }
 
@@ -672,7 +672,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertEquals("age", response.rows()[0][11]); // column_name
         assertEquals("integer", response.rows()[0][12]); // data_type
         assertEquals(null, response.rows()[0][13]); // datetime_precision
-        assertEquals(false, response.rows()[0][20]); // is_generated
+        assertEquals("NEVER", response.rows()[0][20]); // is_generated
         assertEquals(false, response.rows()[0][21]); // is_nullable
         assertEquals(32, response.rows()[0][22]); // numeric_precision
         assertEquals(2, response.rows()[0][23]); // numeric_precision_radix
@@ -1141,9 +1141,9 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     public void testSelectGeneratedColumnFromInformationSchemaColumns() {
         execute("create table t (lastname string, firstname string, name as (lastname || '_' || firstname)) " +
                 "with (number_of_replicas = 0)");
-        execute("select column_name, is_generated, generation_expression from information_schema.columns where is_generated = true");
+        execute("select column_name, is_generated, generation_expression from information_schema.columns where is_generated = 'ALWAYS'");
         assertThat(printedTable(response.rows()),
-            is("name| true| concat(concat(lastname, '_'), firstname)\n"));
+            is("name| ALWAYS| concat(concat(lastname, '_'), firstname)\n"));
     }
 
     @Test

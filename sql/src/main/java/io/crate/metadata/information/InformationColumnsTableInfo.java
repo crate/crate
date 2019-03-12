@@ -47,6 +47,9 @@ public class InformationColumnsTableInfo extends InformationTableInfo {
     public static final String NAME = "columns";
     public static final RelationName IDENT = new RelationName(InformationSchemaInfo.NAME, NAME);
 
+    private static final String IS_GENERATED_NEVER = "NEVER";
+    private static final String IS_GENERATED_ALWAYS = "ALWAYS";
+
     public static class Columns {
         static final ColumnIdent TABLE_SCHEMA = new ColumnIdent("table_schema");
         static final ColumnIdent TABLE_NAME = new ColumnIdent("table_name");
@@ -75,9 +78,9 @@ public class InformationColumnsTableInfo extends InformationTableInfo {
         static final ColumnIdent DOMAIN_CATALOG = new ColumnIdent("domain_catalog");
         static final ColumnIdent DOMAIN_SCHEMA = new ColumnIdent("domain_schema");
         static final ColumnIdent DOMAIN_NAME = new ColumnIdent("domain_name");
-        static final ColumnIdent USER_DEFINED_TYPE_CATALOG = new ColumnIdent("user_defined_type_catalog");
-        static final ColumnIdent USER_DEFINED_TYPE_SCHEMA = new ColumnIdent("user_defined_type_schema");
-        static final ColumnIdent USER_DEFINED_TYPE_NAME = new ColumnIdent("user_defined_type_name");
+        static final ColumnIdent USER_DEFINED_TYPE_CATALOG = new ColumnIdent("udt_catalog");
+        static final ColumnIdent USER_DEFINED_TYPE_SCHEMA = new ColumnIdent("udt_schema");
+        static final ColumnIdent USER_DEFINED_TYPE_NAME = new ColumnIdent("udt_name");
         static final ColumnIdent CHECK_REFERENCES = new ColumnIdent("check_references");
         static final ColumnIdent CHECK_ACTION = new ColumnIdent("check_action");
     }
@@ -90,7 +93,7 @@ public class InformationColumnsTableInfo extends InformationTableInfo {
             .register(Columns.COLUMN_NAME, DataTypes.STRING, false)
             .register(Columns.ORDINAL_POSITION, DataTypes.SHORT, false)
             .register(Columns.DATA_TYPE, DataTypes.STRING, false)
-            .register(Columns.IS_GENERATED, DataTypes.BOOLEAN, false)
+            .register(Columns.IS_GENERATED, DataTypes.STRING, false)
             .register(Columns.IS_NULLABLE, DataTypes.BOOLEAN, false)
             .register(Columns.GENERATION_EXPRESSION, DataTypes.STRING)
             .register(Columns.COLUMN_DEFAULT, DataTypes.STRING)
@@ -189,7 +192,12 @@ public class InformationColumnsTableInfo extends InformationTableInfo {
             .put(Columns.CHECK_ACTION,
                 () -> NestableCollectExpression.constant(null))
             .put(Columns.IS_GENERATED,
-                () -> NestableCollectExpression.forFunction(r -> r.info instanceof GeneratedReference))
+                () -> NestableCollectExpression.forFunction(r -> {
+                    if (r.info instanceof GeneratedReference) {
+                        return IS_GENERATED_ALWAYS;
+                    }
+                    return IS_GENERATED_NEVER;
+                }))
             .put(Columns.IS_NULLABLE,
                 () -> NestableCollectExpression.forFunction(r ->
                     !r.tableInfo.primaryKey().contains(r.info.column()) && r.info.isNullable()))
