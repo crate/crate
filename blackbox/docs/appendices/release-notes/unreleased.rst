@@ -47,4 +47,5 @@ None
 Fixes
 =====
 
-
+- Fixed circuit breaker memory accounting of window functions to prevent OOM
+  exceptions.

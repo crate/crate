@@ -105,12 +105,12 @@ public class WindowBatchIterator extends MappedForwardingBatchIterator<Row, Row>
 
         this.order = windowDefinition.orderBy();
 
-        // adding 8 extra bytes as some cells of each row will be part of a LinkedList which adds the overhead of
-        // 2 pointers for prev and next element (4 bytes each with compressed oops)
-        int extraRowOverhead = 8;
+        // adding 32 extra bytes as some cells of each row will be part of a LinkedList which adds the overhead of
+        // 24 bytes for each element (32 bytes each with compressed oops)
+        int extraRowOverhead = 32;
         if (standaloneInputs.size() > 0) {
             // another LinkedList is used for standalone inputs
-            extraRowOverhead += 8;
+            extraRowOverhead += 32;
         }
         RowAccountingWithEstimators rowAccounting =
             new RowAccountingWithEstimators(outputTypes, ramAccountingContext, extraRowOverhead);
