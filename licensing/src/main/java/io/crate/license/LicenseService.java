@@ -144,13 +144,25 @@ public class LicenseService extends AbstractLifecycleComponent implements Cluste
         return decryptedLicenseData != null && decryptedLicenseData.isExpired();
     }
 
-    public boolean hasValidLicense() {
-        if (enterpriseEnabled == false) {
-            return true;
-        }
+    public enum LicenseState {
+        VALID,
+        EXPIRED,
+        MAX_NODES_VIOLATED
+    }
+
+    public LicenseState getLicenseState() {
         // We consider an instance that is bound to loopback as a development instance and by-pass the license expiration.
         // This makes it easier for us to run our tests.
-        return boundToLocalhost() || !(isMaxNumberOfNodesExceeded() || isLicenseExpired(currentLicense()));
+        if (enterpriseEnabled == false || boundToLocalhost()) {
+            return LicenseState.VALID;
+        }
+        if (isMaxNumberOfNodesExceeded()) {
+            return LicenseState.MAX_NODES_VIOLATED;
+        }
+        if (isLicenseExpired(currentLicense())) {
+            return LicenseState.EXPIRED;
+        }
+        return LicenseState.VALID;
     }
 
     private boolean boundToLocalhost() {
