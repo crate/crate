@@ -43,14 +43,15 @@ The default distribution of CrateDB contains the following enterprise features:
 Trial
 =====
 
-You may evaluate CrateDB during a 30-day trial period, after which you must
-`request an enterprise license`_ and configure CrateDB using the :ref:`SET
-LICENSE <ref-set-license>` statement.
+You may evaluate CrateDB including all enterprise features with a trial
+license. This trial license is active by default and is limited to 3 nodes. If
+you require more than 3 nodes you must `request an enterprise license`_  and
+configure CrateDB using the :ref:`SET LICENSE <ref-set-license>` statement.
 
-.. NOTE::
+.. CAUTION::
 
-    When the trial period ends, CrateDB functionality will be limited to
-    executing the following statements:
+   If you exceed the 3 nodes limitation your cluster will stop accepting
+   queries. The functionality will be limited to:
 
     - :ref:`SET LICENSE <ref-set-license>`
 
@@ -59,8 +60,8 @@ LICENSE <ref-set-license>` statement.
 
     - :ref:`alter_cluster_decommission`
 
-If you wish to continue using CrateDB without an enterprise license after the
-trial period ends you must switch to the :ref:`community-edition`.
+If you wish to use CrateDB without an enterprise license and without the 3
+nodes limitation, you can switch to the :ref:`community-edition`.
 
 .. _enterprise license: https://crate.io/products/cratedb-editions/
 .. _HyperLogLog++: https://research.google.com/pubs/pub40671.html
