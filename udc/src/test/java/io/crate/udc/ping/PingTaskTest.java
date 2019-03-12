@@ -42,6 +42,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
@@ -158,6 +159,8 @@ public class PingTaskTest extends CrateDummyClusterServiceUnitTest {
             assertThat(map.get("license_expiry_date"), is(String.valueOf(LICENSE.expiryDateInMs())));
             assertThat(map, hasKey("license_issued_to"));
             assertThat(map.get("license_issued_to"), is(LICENSE.issuedTo()));
+
+            assertThat(Integer.parseInt(map.get("num_processors")), greaterThan(0));
         }
     }
 
