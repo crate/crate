@@ -27,7 +27,7 @@ import io.crate.license.DecryptedLicenseData;
 import io.crate.license.LicenseExpiryNotification;
 import io.crate.license.LicenseService;
 import io.crate.settings.SharedSettings;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.After;
@@ -40,16 +40,16 @@ import static org.elasticsearch.mock.orig.Mockito.when;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 
-public class LicenseExpiryCheckTest extends CrateUnitTest {
+public class LicenseCheckTest extends CrateDummyClusterServiceUnitTest {
 
     private LicenseService licenseService;
-    private LicenseExpiryCheck expirationCheck;
+    private LicenseCheck licenseCheck;
 
     @Before
     public void setupLicenseCheck() {
         licenseService = mock(LicenseService.class);
         Settings settings = Settings.builder().put("license.enterprise", true).build();
-        expirationCheck = new LicenseExpiryCheck(settings, licenseService);
+        licenseCheck = new LicenseCheck(settings, licenseService, clusterService);
     }
 
     @After
@@ -59,16 +59,17 @@ public class LicenseExpiryCheckTest extends CrateUnitTest {
 
     @Test
     public void testSysCheckMetadata() {
-        assertThat(expirationCheck.id(), is(6));
+        assertThat(licenseCheck.id(), is(6));
     }
 
     @Test
     public void testValidLicense() {
         DecryptedLicenseData thirtyDaysLicense = new DecryptedLicenseData(
             System.currentTimeMillis() + TimeUnit.DAYS.toMillis(30), "test", 2);
+        when(licenseService.getLicenseState()).thenReturn(LicenseService.LicenseState.VALID);
         when(licenseService.currentLicense()).thenReturn(thirtyDaysLicense);
         when(licenseService.getLicenseExpiryNotification(thirtyDaysLicense)).thenReturn(null);
-        assertThat(expirationCheck.validate(), is(true));
+        assertThat(licenseCheck.validate(), is(true));
     }
 
     @Test
@@ -76,10 +77,11 @@ public class LicenseExpiryCheckTest extends CrateUnitTest {
         DecryptedLicenseData sevenDaysLicense = new DecryptedLicenseData(
             System.currentTimeMillis() + TimeUnit.DAYS.toMillis(7), "test", 2);
 
+        when(licenseService.getLicenseState()).thenReturn(LicenseService.LicenseState.EXPIRED);
         when(licenseService.currentLicense()).thenReturn(sevenDaysLicense);
         when(licenseService.getLicenseExpiryNotification(sevenDaysLicense)).thenReturn(LicenseExpiryNotification.MODERATE);
-        assertThat(expirationCheck.validate(), is(false));
-        assertThat(expirationCheck.severity(), is(SysCheck.Severity.MEDIUM));
+        assertThat(licenseCheck.validate(), is(false));
+        assertThat(licenseCheck.severity(), is(SysCheck.Severity.MEDIUM));
     }
 
     @Test
@@ -87,16 +89,27 @@ public class LicenseExpiryCheckTest extends CrateUnitTest {
         DecryptedLicenseData sevenDaysLicense = new DecryptedLicenseData(
             System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(15), "test", 2);
 
+        when(licenseService.getLicenseState()).thenReturn(LicenseService.LicenseState.EXPIRED);
         when(licenseService.currentLicense()).thenReturn(sevenDaysLicense);
         when(licenseService.getLicenseExpiryNotification(sevenDaysLicense)).thenReturn(LicenseExpiryNotification.SEVERE);
-        assertThat(expirationCheck.validate(), is(false));
-        assertThat(expirationCheck.severity(), is(SysCheck.Severity.HIGH));
+        assertThat(licenseCheck.validate(), is(false));
+        assertThat(licenseCheck.severity(), is(SysCheck.Severity.HIGH));
+    }
+
+    @Test
+    public void testCheckFailsOnMaxNodesViolation() {
+        DecryptedLicenseData license = new DecryptedLicenseData(
+            System.currentTimeMillis() + TimeUnit.DAYS.toMillis(40), "test", 2);
+        when(licenseService.currentLicense()).thenReturn(license);
+        when(licenseService.getLicenseState()).thenReturn(LicenseService.LicenseState.MAX_NODES_VIOLATED);
+        assertThat(licenseCheck.validate(), is(false));
+        assertThat(licenseCheck.severity(), is(SysCheck.Severity.HIGH));
     }
 
     @Test
     public void testCheckIsAlwaysValidWhenEnterpriseIsDisabled() {
         Settings settings = Settings.builder().put("license.enterprise", false).build();
-        LicenseExpiryCheck expiryCheckNoEnterprise = new LicenseExpiryCheck(settings, mock(LicenseService.class));
+        LicenseCheck expiryCheckNoEnterprise = new LicenseCheck(settings, mock(LicenseService.class), clusterService);
         assertThat(expiryCheckNoEnterprise.validate(), is(true));
     }
 }

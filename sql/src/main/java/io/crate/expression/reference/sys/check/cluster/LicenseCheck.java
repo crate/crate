@@ -27,34 +27,39 @@ import io.crate.license.DecryptedLicenseData;
 import io.crate.license.LicenseExpiryNotification;
 import io.crate.license.LicenseService;
 import io.crate.settings.SharedSettings;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 
+import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 
 import static io.crate.expression.reference.sys.check.AbstractSysCheck.CLUSTER_CHECK_LINK_PATTERN;
 import static io.crate.expression.reference.sys.check.AbstractSysCheck.getLinkedDescription;
 import static io.crate.expression.reference.sys.check.SysCheck.Severity.HIGH;
+import static io.crate.expression.reference.sys.check.SysCheck.Severity.LOW;
 import static io.crate.expression.reference.sys.check.SysCheck.Severity.MEDIUM;
 import static io.crate.license.LicenseExpiryNotification.MODERATE;
 
 @Singleton
-public class LicenseExpiryCheck implements SysCheck {
+public class LicenseCheck implements SysCheck {
 
     private static final int ID = 6;
-    private static final String LICENSE_NOT_CLOSE_TO_EXPIRY_DESCRIPTION = "Your CrateDB license is not close to expiry. Enjoy CrateDB!";
+    private static final String LICENSE_OK = "Your CrateDB license is valid. Enjoy CrateDB!";
     private static final String LICENSE_NA_COMMUNITY_DESCRIPTION = "CrateDB enterprise is not enabled. Enjoy the community edition!";
     private final boolean enterpriseEnabled;
+    private final ClusterService clusterService;
 
     private String description;
     private Severity severity = Severity.LOW;
     private final LicenseService licenseService;
 
     @Inject
-    public LicenseExpiryCheck(Settings settings, LicenseService licenseService) {
+    public LicenseCheck(Settings settings, LicenseService licenseService, ClusterService clusterService) {
         enterpriseEnabled = SharedSettings.ENTERPRISE_LICENSE_SETTING.setting().get(settings);
-        description = (enterpriseEnabled) ? LICENSE_NOT_CLOSE_TO_EXPIRY_DESCRIPTION : LICENSE_NA_COMMUNITY_DESCRIPTION;
+        this.clusterService = clusterService;
+        this.description = LICENSE_NA_COMMUNITY_DESCRIPTION; // will be overwritten on validation if enterprise is enabled
         this.licenseService = licenseService;
     }
 
@@ -63,24 +68,39 @@ public class LicenseExpiryCheck implements SysCheck {
         if (!enterpriseEnabled) {
             return true;
         }
-
         DecryptedLicenseData currentLicense = licenseService.currentLicense();
         if (currentLicense == null) {
-            // node might've not received the license cluster state
+            // node might've not have received the license cluster state
             return true;
         }
+        LicenseService.LicenseState licenseState = licenseService.getLicenseState();
+        switch (licenseState) {
+            case VALID:
+                severity = LOW;
+                description = LICENSE_OK;
+                return true;
 
-        LicenseExpiryNotification licenseExpiryNotification = licenseService.getLicenseExpiryNotification(currentLicense);
+            case EXPIRED:
+                LicenseExpiryNotification licenseExpiryNotification = licenseService.getLicenseExpiryNotification(currentLicense);
+                description = getLinkedDescription(ID,
+                    licenseExpiryNotification.notificationMessage(currentLicense.millisToExpiration()),
+                    "For more information on Cluster Checks please visit: " + CLUSTER_CHECK_LINK_PATTERN);
+                severity = licenseExpiryNotification.equals(MODERATE) ? MEDIUM : HIGH;
+                return false;
 
-        if (licenseExpiryNotification != null) {
-            description = getLinkedDescription(ID,
-                licenseExpiryNotification.notificationMessage(currentLicense.millisToExpiration()),
-                "For more information on Cluster Checks please visit: " + CLUSTER_CHECK_LINK_PATTERN);
-            severity = licenseExpiryNotification.equals(MODERATE) ? MEDIUM : HIGH;
-            return false;
-        } else {
-            description = LICENSE_NOT_CLOSE_TO_EXPIRY_DESCRIPTION;
-            return true;
+            case MAX_NODES_VIOLATED:
+                severity = HIGH;
+                description = getLinkedDescription(ID, String.format(
+                    Locale.ENGLISH,
+                    "The license is limited to %d nodes, but there are %d nodes in the cluster. " +
+                    "To upgrade your license visit https://crate.io/license-update/",
+                    licenseService.currentLicense().maxNumberOfNodes(),
+                    clusterService.state().getNodes().getSize()
+                ), "For more information visit: " + CLUSTER_CHECK_LINK_PATTERN);
+                return false;
+
+            default:
+                throw new AssertionError("Illegal license state: " + licenseState);
         }
     }
 
