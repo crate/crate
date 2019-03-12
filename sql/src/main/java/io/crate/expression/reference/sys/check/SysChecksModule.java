@@ -21,7 +21,7 @@
 
 package io.crate.expression.reference.sys.check;
 
-import io.crate.expression.reference.sys.check.cluster.LicenseExpiryCheck;
+import io.crate.expression.reference.sys.check.cluster.LicenseCheck;
 import io.crate.expression.reference.sys.check.cluster.MinMasterNodesSysCheck;
 import io.crate.expression.reference.sys.check.cluster.NumberOfPartitionsSysCheck;
 import io.crate.expression.reference.sys.check.cluster.TablesNeedUpgradeSysCheck;
@@ -36,6 +36,6 @@ public class SysChecksModule extends AbstractModule {
         checksBinder.addBinding().to(MinMasterNodesSysCheck.class);
         checksBinder.addBinding().to(NumberOfPartitionsSysCheck.class);
         checksBinder.addBinding().to(TablesNeedUpgradeSysCheck.class);
-        checksBinder.addBinding().to(LicenseExpiryCheck.class);
+        checksBinder.addBinding().to(LicenseCheck.class);
     }
 }

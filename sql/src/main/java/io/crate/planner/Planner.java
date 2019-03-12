@@ -120,7 +120,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
             clusterService,
             functions,
             tableStats,
-            licenseService::hasValidLicense
+            () -> licenseService.getLicenseState() == LicenseService.LicenseState.VALID
         );
     }
 
