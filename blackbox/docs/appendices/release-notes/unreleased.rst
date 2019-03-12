@@ -92,6 +92,9 @@ Deprecations
 Changes
 =======
 
+- The :ref:`usage_data_collector` now includes information about the available
+  number of processors.
+
 - Added support for :ref:`sql_escape_string_literals`.
 
 - Expose the sum of durations, total, and failed count metrics under the

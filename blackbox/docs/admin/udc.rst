@@ -17,7 +17,7 @@ there is a larger retention span of the server software.
 The data collected is clearly stated here. If any future versions of this
 system collect additional data, we will clearly announce those changes.
 
-CrateDB is very concerned about your privacy. We do not disclose any personally
+CrateDB is concerned about your privacy. We do not disclose any personally
 identifiable information.
 
 .. rubric:: Table of Contents
@@ -45,8 +45,10 @@ CrateDB Version   The CrateDB version.
 Java Version      The Java version CrateDB is currently running with.
 Hardware Address  MAC address to uniquely identify instances behind
                   firewalls.
+Processor count   Number of available CPUs as reported by 
+                  ``Runtime.availableProcessors``
 Enterprise        Identifies whether the Enterprise Edition is used.
-License Ident     License Ident of the CrateDB Enterprise Edition.
+License           License information of the CrateDB Enterprise Edition.
 ================  =========================================================
 
 After startup, UDC waits for 10 minutes before sending the first ping. It does

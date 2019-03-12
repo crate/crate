@@ -66,8 +66,8 @@ public class PingTask extends TimerTask {
     private final Settings settings;
     private final LicenseService licenseService;
 
-    private AtomicLong successCounter = new AtomicLong(0);
-    private AtomicLong failCounter = new AtomicLong(0);
+    private final AtomicLong successCounter = new AtomicLong(0);
+    private final AtomicLong failCounter = new AtomicLong(0);
 
     public PingTask(ClusterService clusterService,
                     ExtendedNodeInfo extendedNodeInfo,
@@ -125,6 +125,7 @@ public class PingTask extends TimerTask {
         queryMap.put("enterprise", isEnterprise());
         queryMap.put("ping_count", Strings.toString(XContentFactory.jsonBuilder().map(getCounters())));
         queryMap.put("hardware_address", getHardwareAddress());
+        queryMap.put("num_processors", Integer.toString(Runtime.getRuntime().availableProcessors()));
         queryMap.put("crate_version", Version.CURRENT.externalNumber());
         queryMap.put("java_version", System.getProperty("java.version"));
 
