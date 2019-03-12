@@ -25,6 +25,7 @@ package io.crate.license;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.elasticsearch.common.io.Streams;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.transport.TransportService;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
@@ -34,8 +35,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.TimeUnit;
 
-import static io.crate.license.LicenseKey.VERSION;
 import static io.crate.license.LicenseKey.LicenseType;
+import static io.crate.license.LicenseKey.VERSION;
 import static java.util.concurrent.TimeUnit.DAYS;
 import static java.util.concurrent.TimeUnit.HOURS;
 import static org.hamcrest.core.Is.is;
@@ -68,7 +69,11 @@ public class LicenseServiceTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void setupLicenseService() {
-        licenseService = new LicenseService(Settings.EMPTY, mock(TransportSetLicenseAction.class), clusterService);
+        licenseService = new LicenseService(
+            Settings.EMPTY,
+            mock(TransportService.class),
+            mock(TransportSetLicenseAction.class),
+            clusterService);
     }
 
     @Test

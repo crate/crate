@@ -98,6 +98,9 @@ Deprecations
 Changes
 =======
 
+- The :ref:`usage_data_collector` now includes information about the available
+  number of processors.
+
 - Added support for :ref:`sql_escape_string_literals`.
 
 - Expose the sum of durations, total, and failed count metrics under the
@@ -142,13 +145,3 @@ Changes
 
 Fixes
 =====
-
-- Fixed an issue that could cause queries on the :ref:`sys.snapshots
-  <sys-snapshots>` table to raise an error if a snapshot couldn't be retrieved.
-
-- Fixed an issue that caused inserts into partitioned tables to fail with an
-  ``unknown setting`` error if the table was created in an earlier version of
-  CrateDB using settings that have been removed in later versions.
-
-- Fixed an issue that could result in an ``ConcurrentModificationException``
-  error when querying the :ref:`sys-jobs-metrics` table.
