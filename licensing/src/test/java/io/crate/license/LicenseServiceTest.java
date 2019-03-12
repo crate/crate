@@ -25,6 +25,7 @@ package io.crate.license;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.elasticsearch.common.io.Streams;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.transport.TransportService;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
@@ -68,7 +69,11 @@ public class LicenseServiceTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void setupLicenseService() {
-        licenseService = new LicenseService(Settings.EMPTY, mock(TransportSetLicenseAction.class), clusterService);
+        licenseService = new LicenseService(
+            Settings.EMPTY,
+            mock(TransportService.class),
+            mock(TransportSetLicenseAction.class),
+            clusterService);
     }
 
     @Test
