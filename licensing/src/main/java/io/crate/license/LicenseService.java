@@ -34,11 +34,16 @@ import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.transport.BoundTransportAddress;
+import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.gateway.GatewayService;
+import org.elasticsearch.transport.TransportService;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Predicate;
 
 import static io.crate.license.LicenseExpiryNotification.EXPIRED;
 import static io.crate.license.LicenseExpiryNotification.MODERATE;
@@ -70,18 +75,27 @@ import static io.crate.license.LicenseKey.decodeLicense;
  * */
 public class LicenseService extends AbstractLifecycleComponent implements ClusterStateListener {
 
+    private final TransportService transportService;
     private final TransportSetLicenseAction transportSetLicenseAction;
     private final ClusterService clusterService;
     private final boolean enterpriseEnabled;
+
+    /**
+     * true if the instance is bound to localhost (=development mode), otherwise false.
+     * null if the boundAddress isn't initialized yet.
+     */
+    private Boolean isBoundToLocalhost = null;
 
     private AtomicReference<DecryptedLicenseData> currentLicense = new AtomicReference<>();
 
     @Inject
     public LicenseService(Settings settings,
+                          TransportService transportService,
                           TransportSetLicenseAction transportSetLicenseAction,
                           ClusterService clusterService) {
         super(settings);
         enterpriseEnabled = SharedSettings.ENTERPRISE_LICENSE_SETTING.setting().get(settings);
+        this.transportService = transportService;
         this.transportSetLicenseAction = transportSetLicenseAction;
         this.clusterService = clusterService;
     }
@@ -130,7 +144,24 @@ public class LicenseService extends AbstractLifecycleComponent implements Cluste
         if (enterpriseEnabled == false) {
             return true;
         }
-        return !isLicenseExpired(currentLicense());
+        // We consider an instance that is bound to loopback as a development instance and by-pass the license expiration.
+        // This makes it easier for us to run our tests.
+        return boundToLocalhost() || !isLicenseExpired(currentLicense());
+    }
+
+    private boolean boundToLocalhost() {
+        if (isBoundToLocalhost == null) {
+            // boundAddress is initialized in LifecycleComponent.start;
+            // We guard here against changes in the initialization order of the components
+            BoundTransportAddress boundTransportAddress = transportService.boundAddress();
+            if (boundTransportAddress == null) {
+                return false;
+            }
+            Predicate<TransportAddress> isLoopbackAddress = t -> t.address().getAddress().isLoopbackAddress();
+            isBoundToLocalhost = Arrays.stream(boundTransportAddress.boundAddresses()).allMatch(isLoopbackAddress)
+                                 && isLoopbackAddress.test(boundTransportAddress.publishAddress());
+        }
+        return isBoundToLocalhost;
     }
 
     @Nullable
