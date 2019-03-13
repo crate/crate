@@ -60,6 +60,7 @@ public class PgTypeTable extends StaticTableInfo {
         static final ColumnIdent TYPTYPMOD = new ColumnIdent("typtypmod");
         static final ColumnIdent TYPNAMESPACE = new ColumnIdent("typnamespace");
         static final ColumnIdent TYPARRAY = new ColumnIdent("typarray");
+        static final ColumnIdent TYPNOTNULL = new ColumnIdent("typnotnull");
     }
 
     private static final String TYPTYPE = "b";
@@ -86,6 +87,8 @@ public class PgTypeTable extends StaticTableInfo {
                 () -> NestableCollectExpression.constant(TYPE_NAMESPACE_OID))
             .put(Columns.TYPARRAY,
                 () -> NestableCollectExpression.forFunction(PGType::typArray))
+            .put(Columns.TYPNOTNULL,
+                () -> NestableCollectExpression.constant(false))
             .build();
     }
 
@@ -100,7 +103,8 @@ public class PgTypeTable extends StaticTableInfo {
                 .register(Columns.TYPBASETYPE.name(), DataTypes.INTEGER, null)
                 .register(Columns.TYPTYPMOD.name(), DataTypes.INTEGER, null)
                 .register(Columns.TYPNAMESPACE.name(), DataTypes.INTEGER, null)
-                .register(Columns.TYPARRAY.name(), DataTypes.INTEGER, null),
+                .register(Columns.TYPARRAY.name(), DataTypes.INTEGER, null)
+                .register(Columns.TYPNOTNULL.name(), DataTypes.BOOLEAN, null),
             Collections.emptyList());
     }
 
