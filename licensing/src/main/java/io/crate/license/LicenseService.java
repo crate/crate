@@ -207,13 +207,12 @@ public class LicenseService extends AbstractLifecycleComponent implements Cluste
             if (nodes.isLocalNodeElectedMaster()) {
                 DecryptedLicenseData licenseData = new DecryptedLicenseData(
                     DecryptedLicenseData.UNLIMITED_EXPIRY_DATE_IN_MS,
-                    clusterState.getClusterName().value(),
+                    "Trial-" + clusterState.getClusterName().value(),
                     DecryptedLicenseData.MAX_NODES_FOR_V2_LICENSES
                 );
-                LicenseKey licenseKey = TrialLicense.createLicenseKey(
-                    LicenseKey.VERSION, licenseData);
+                LicenseKey licenseKey = TrialLicense.createLicenseKey(LicenseKey.VERSION, licenseData);
                 registerLicense(licenseKey,
-                    new ActionListener<SetLicenseResponse>() {
+                    new ActionListener<>() {
 
                         @Override
                         public void onResponse(SetLicenseResponse setLicenseResponse) {
