@@ -41,6 +41,7 @@ import org.elasticsearch.gateway.GatewayService;
 import org.elasticsearch.transport.TransportService;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -266,6 +267,13 @@ public class LicenseService extends AbstractLifecycleComponent implements Cluste
         } else if (newLicenseKey != null && !newLicenseKey.equals(previousLicenseKey)) {
             try {
                 DecryptedLicenseData decryptedLicenseData = licenseData(decodeLicense(newLicenseKey));
+                if (previousLicenseKey == null) {
+                    long expiryDateInMs = decryptedLicenseData.expiryDateInMs();
+                    logger.info("License loaded. issuedTo={} maxNodes={} expiration={}",
+                        decryptedLicenseData.issuedTo(),
+                        decryptedLicenseData.maxNumberOfNodes(),
+                        expiryDateInMs == Long.MAX_VALUE ? "None" : Instant.ofEpochMilli(expiryDateInMs));
+                }
                 LicenseExpiryNotification expiryNotification = getLicenseExpiryNotification(decryptedLicenseData);
 
                 if (expiryNotification != null) {
