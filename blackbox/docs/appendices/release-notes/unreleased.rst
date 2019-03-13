@@ -41,6 +41,9 @@ Unreleased Changes
 Breaking Changes
 ================
 
+- Removed the deprecated ``USR2`` signal handling. Use :ref:`ALTER CLUSTER
+  DECOMISSION <alter_cluster_decommission>` instead.
+
 - Renamed ``information_schema.columns.user_defined_type_*`` columns to
   ``information_schema_columns.udt_*`` for SQL standard compatibility.
 
@@ -86,10 +89,6 @@ Deprecations
 - Marked the ``cluster.graceful_stop.reallocate`` setting as deprecated.
   This setting was already being ignored, setting the value to `false` has
   no effect.
-
-- The node decommission using the ``USR2`` :ref:`cli_signals` has been
-  deprecated in favour of the
-  :ref:`ALTER CLUSTER DECOMISSION <alter_cluster_decommission>` statement.
 
 - Marked ``CREATE INGEST RULE`` and ``DROP INGEST RULE`` as deprecated.
   Given that the only implementation (MQTT) was deprecated and will be removed,

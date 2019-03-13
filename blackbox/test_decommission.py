@@ -21,7 +21,6 @@
 
 import unittest
 import os
-import signal
 import time
 import random
 import string
@@ -31,11 +30,6 @@ from crate.client.http import Client
 from crate.client.exceptions import ProgrammingError, ConnectionError
 from testutils.paths import crate_path
 from testutils.ports import bind_range, bind_port
-
-
-def decommission_using_signal(process):
-    os.kill(process.pid, signal.SIGUSR2)
-    return process.wait(timeout=60)
 
 
 def decommission(client, node):
@@ -180,26 +174,6 @@ class GracefulStopTest(unittest.TestCase):
         client = self.random_client()
         for key, value in settings.items():
             client.sql("set global transient {}=?".format(key), (value,))
-
-
-class TestProcessSignal(GracefulStopTest):
-    """
-    test signal handling of the crate process
-    """
-    NUM_SERVERS = 1
-
-    def test_signal_usr2(self):
-        """
-        crate stops when receiving the USR2 signal - single node
-        """
-        crate = self.crates[0]
-        process = crate.process
-
-        exit_value = decommission_using_signal(process)
-        self.assertTrue(
-            exit_value == 0,
-            "crate stopped with return value {0}. expected: 0".format(exit_value)
-        )
 
 
 class TestGracefulStopPrimaries(GracefulStopTest):
