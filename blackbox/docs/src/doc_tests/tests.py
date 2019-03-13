@@ -28,6 +28,7 @@ import time
 import shutil
 import json
 import re
+import sys
 import random
 import tempfile
 import logging
@@ -50,6 +51,17 @@ log = logging.getLogger('crate.testing.layer')
 ch = logging.StreamHandler()
 ch.setLevel(logging.ERROR)
 log.addHandler(ch)
+
+
+CRATE_CE = True if os.environ.get('CRATE_CE') is "1" else False
+
+CRATE_SETTINGS = {'psql.port': GLOBAL_PORT_POOL.get(),
+                  'es.api.enabled': 'true'}
+if CRATE_CE:
+    CRATE_SETTINGS['license.enterprise'] = 'false'
+else:
+    CRATE_SETTINGS['license.enterprise'] = 'true'
+    CRATE_SETTINGS['lang.js.enabled'] = 'true'
 
 
 class CrateTestShell(CrateShell):
@@ -414,12 +426,7 @@ def create_doctest_suite():
         port=CRATE_HTTP_PORT,
         transport_port=CRATE_TRANSPORT_PORT,
         env={'JAVA_HOME': os.environ.get('JAVA_HOME', '')},
-        settings={
-            'license.enterprise': 'true',
-            'lang.js.enabled': 'true',
-            'es.api.enabled': 'true',
-            'psql.port': GLOBAL_PORT_POOL.get(),
-        }
+        settings=CRATE_SETTINGS
     )
     tests = []
 
@@ -439,6 +446,25 @@ def create_doctest_suite():
         s.layer = crate_layer
         tests.append(s)
 
+    if not CRATE_CE:
+        # These tests uses features only available in the CrateDB Enterprise Edition
+        for fn in doctest_files('general/user-defined-functions.rst',
+                                'general/information-schema.rst',
+                                'general/builtins/aggregation.rst',
+                                'general/builtins/scalar.rst',
+                                'admin/user-management.rst',
+                                'admin/system-information.rst',
+                                'admin/ingestion/rules.rst',
+                                'admin/privileges.rst'):
+            s = docsuite(fn, setUp=setUpLocationsAndQuotes)
+            s.layer = crate_layer
+            tests.append(s)
+
+        for fn in doctest_files('general/builtins/window-functions.rst'):
+            s = docsuite(fn, setUp=setUpEmpDeptAndColourArticlesAndGeo)
+            s.layer = crate_layer
+            tests.append(s)
+
     for fn in doctest_files('general/ddl/create-table.rst',
                             'general/ddl/generated-columns.rst',
                             'general/ddl/constraints.rst',
@@ -451,24 +477,16 @@ def create_doctest_suite():
                             'general/ddl/fulltext-indices.rst',
                             'admin/runtime-config.rst',
                             'general/ddl/show-create-table.rst',
-                            'general/user-defined-functions.rst',
-                            'admin/user-management.rst',
                             'admin/snapshots.rst',
-                            'admin/privileges.rst',
-                            'admin/ingestion/rules.rst',
                             'general/dql/index.rst',
                             'general/dql/refresh.rst',
                             'admin/optimization.rst',
                             'general/dql/fulltext.rst',
                             'general/ddl/data-types.rst',
                             'general/occ.rst',
-                            'general/information-schema.rst',
                             'general/ddl/partitioned-tables.rst',
-                            'general/builtins/aggregation.rst',
                             'general/builtins/arithmetic.rst',
-                            'general/builtins/scalar.rst',
                             'general/builtins/table-functions.rst',
-                            'admin/system-information.rst',
                             'general/dql/selects.rst',
                             'interfaces/postgres.rst',
                             'general/ddl/views.rst',
@@ -484,8 +502,7 @@ def create_doctest_suite():
         tests.append(s)
 
     for fn in doctest_files('general/dql/joins.rst',
-                            'general/builtins/subquery-expressions.rst',
-                            'general/builtins/window-functions.rst',):
+                            'general/builtins/subquery-expressions.rst'):
         s = docsuite(fn, setUp=setUpEmpDeptAndColourArticlesAndGeo)
         s.layer = crate_layer
         tests.append(s)
