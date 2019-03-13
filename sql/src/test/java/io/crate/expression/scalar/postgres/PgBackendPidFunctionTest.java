@@ -36,6 +36,11 @@ public class PgBackendPidFunctionTest extends AbstractScalarFunctionsTest {
     }
 
     @Test
+    public void testPgBackendPidWithFQNFunctionName() throws Exception {
+        assertEvaluate("pg_catalog.pg_backend_pid()", -1);
+    }
+
+    @Test
     public void testInvalidType() throws Exception {
         expectedException.expectMessage("unknown function: pg_backend_pid(undefined)");
         sqlExpressions.asSymbol("pg_backend_pid(null)");
