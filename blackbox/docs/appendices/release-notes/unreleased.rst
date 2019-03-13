@@ -114,6 +114,9 @@ Changes
 Fixes
 =====
 
+- Fixed circuit breaker memory accounting of window functions to prevent OOM
+  exceptions.
+
 - Fixed an issue that could cause queries on the :ref:`sys.snapshots
   <sys-snapshots>` table to raise an error if a snapshot couldn't be retrieved.
 
