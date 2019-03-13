@@ -327,14 +327,14 @@ task chooseReleaseNotes(dependsOn: [':es:es-server:getVersion']) {
     }
 }
 
-tasks.withType(Tar){
+tasks.withType(Tar) {
     dependsOn ':es:es-server:getVersion'
     dependsOn 'chooseReleaseNotes'
     compression = Compression.GZIP
     extension = 'tar.gz'
 }
 
-tasks.withType(Zip){
+tasks.withType(Zip) {
     dependsOn ':es:es-server:getVersion'
     dependsOn 'chooseReleaseNotes'
 }

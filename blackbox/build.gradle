@@ -12,7 +12,11 @@ task bootstrap(type: Exec) {
     commandLine 'sh', "$projectDir/bootstrap.sh"
 }
 
-task unpackDistTar(dependsOn: [project(':app').installDist]) {
+task deleteCrateDist(type: Delete) {
+    delete crateDist
+}
+
+task unpackDistTar(dependsOn: [project(':app').installDist, deleteCrateDist]) {
     doLast {
         copy {
             from(project(':app').installDist.destinationDir) {
@@ -20,45 +24,37 @@ task unpackDistTar(dependsOn: [project(':app').installDist]) {
             }
             into crateDist
         }
+        lessLogging()
+        ignoreDiskThreshold()
     }
     outputs.dir crateDist
 }
 
-task lessLogging(dependsOn: unpackDistTar) {
+task unpackCommunityEditionDistTar(dependsOn: [project(':app').installCommunityEditionDist, deleteCrateDist]) {
     doLast {
-        def file = new File("$projectDir/tmp/crate/config/log4j2.properties")
-        file.write(file.text.replaceAll('rootLogger.level = info', 'rootLogger.level: warn'))
+        copy {
+            from(project(':app').installCommunityEditionDist.destinationDir) {
+                includeEmptyDirs = true
+            }
+            into crateDist
+        }
+        lessLogging()
+        ignoreDiskThreshold()
     }
+    outputs.dir crateDist
 }
 
-task ignoreDiskThreshold(dependsOn: unpackDistTar) {
-    doLast {
-        def file = new File("$projectDir/tmp/crate/config/crate.yml")
-        file.write(file.text.replaceAll(
-                '# cluster.routing.allocation.disk.threshold_enabled: true',
-                'cluster.routing.allocation.disk.threshold_enabled: false')
-        )
-    }
+def lessLogging() {
+    def file = new File("$projectDir/tmp/crate/config/log4j2.properties")
+    file.write(file.text.replaceAll('rootLogger.level = info', 'rootLogger.level: warn'))
 }
 
-task hdfsTest(type: Exec) {
-    commandLine "$projectDir/bin/test-hdfs"
-}
-
-task monitoringTest(type: Exec) {
-    commandLine "$projectDir/bin/test-jmx"
-}
-
-task itest(type: Exec) {
-    commandLine "$projectDir/bin/test-docs"
-}
-
-task gtest(type: Exec) {
-    commandLine "$projectDir/bin/test-decommission"
-}
-
-task dnsDiscoveryTest(type: Exec) {
-    commandLine "$projectDir/bin/test-dns-discovery"
+def ignoreDiskThreshold() {
+    def file = new File("$projectDir/tmp/crate/config/crate.yml")
+    file.write(file.text.replaceAll(
+        '# cluster.routing.allocation.disk.threshold_enabled: true',
+        'cluster.routing.allocation.disk.threshold_enabled: false')
+    )
 }
 
 task buildDocs(type: Exec, dependsOn: bootstrap) {
@@ -69,22 +65,40 @@ task developDocs(type: Exec, dependsOn: bootstrap) {
     commandLine "$projectDir/bin/sphinx", "dev"
 }
 
-hdfsTest.dependsOn(bootstrap, lessLogging, ignoreDiskThreshold,
-        project(':es:es-repository-hdfs').blackBoxTestJar)
-monitoringTest.dependsOn(bootstrap, lessLogging, ignoreDiskThreshold)
-itest.dependsOn(bootstrap, lessLogging, ignoreDiskThreshold)
-gtest.dependsOn(bootstrap, lessLogging, ignoreDiskThreshold)
-dnsDiscoveryTest.dependsOn(bootstrap, lessLogging, ignoreDiskThreshold)
+task hdfsTest(type: Exec, dependsOn: ['bootstrap', 'unpackDistTar', project(':es:es-repository-hdfs').blackBoxTestJar]) {
+    commandLine "$projectDir/bin/test-hdfs"
+}
+
+task monitoringTest(type: Exec, dependsOn: ['bootstrap', 'unpackDistTar']) {
+    commandLine "$projectDir/bin/test-jmx"
+}
+
+task itest(type: Exec, dependsOn: ['bootstrap', 'unpackDistTar']) {
+    commandLine "$projectDir/bin/test-docs"
+}
+
+task gtest(type: Exec, dependsOn: ['bootstrap', 'unpackDistTar']) {
+    commandLine "$projectDir/bin/test-decommission"
+}
+
+task dnsDiscoveryTest(type: Exec, dependsOn: ['bootstrap', 'unpackDistTar']) {
+    commandLine "$projectDir/bin/test-dns-discovery"
+}
+
+task ceItest(type: Exec, dependsOn: ['bootstrap', 'unpackCommunityEditionDistTar']) {
+    commandLine "$projectDir/bin/test-ce-docs"
+}
 
 task cleanDocs {
     doLast {
         FileCollection toDelete = files(
-                crateDist,
-                "$projectDir/docs/_out/html",
+            crateDist,
+            "$projectDir/docs/_out/html",
         )
         toDelete.each {
             File file -> delete file
         }
     }
 }
-clean.dependsOn([cleanDocs, cleanBootstrap, cleanUnpackDistTar])
+
+clean.dependsOn([cleanDocs, cleanBootstrap, cleanUnpackDistTar, deleteCrateDist])
