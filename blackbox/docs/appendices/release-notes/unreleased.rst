@@ -47,5 +47,9 @@ None
 Fixes
 =====
 
+- Fixed function resolution for postgresql functions ``pg_backend_pid``,
+  ``pg_get_expr`` and ``current_database`` when the schema prefix
+  ``pg_catalog`` is included.
+
 - Fixed circuit breaker memory accounting of window functions to prevent OOM
   exceptions.
