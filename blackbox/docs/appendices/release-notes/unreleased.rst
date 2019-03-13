@@ -41,6 +41,8 @@ Unreleased Changes
 Breaking Changes
 ================
 
+- Removed the deprecated ``license.ident`` setting.
+
 - Removed the deprecated ``USR2`` signal handling. Use :ref:`ALTER CLUSTER
   DECOMISSION <alter_cluster_decommission>` instead.
 
