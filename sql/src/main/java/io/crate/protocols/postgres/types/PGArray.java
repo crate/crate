@@ -52,6 +52,11 @@ class PGArray extends PGType {
     }
 
     @Override
+    public int typArray() {
+        return 0;
+    }
+
+    @Override
     public int typElem() {
         return innerType.oid();
     }

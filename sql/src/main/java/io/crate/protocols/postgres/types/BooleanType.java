@@ -53,6 +53,11 @@ class BooleanType extends PGType {
     }
 
     @Override
+    public int typArray() {
+        return PGArray.BOOL_ARRAY.oid();
+    }
+
+    @Override
     public int writeAsBinary(ByteBuf buffer, @Nonnull Object value) {
         byte byteValue = (byte) ((boolean) value ? 1 : 0);
         buffer.writeInt(TYPE_LEN);

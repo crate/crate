@@ -39,6 +39,11 @@ class CharType extends PGType {
     }
 
     @Override
+    public int typArray() {
+        return PGArray.CHAR_ARRAY.oid();
+    }
+
+    @Override
     public int writeAsBinary(ByteBuf buffer, @Nonnull Object value) {
         buffer.writeInt(1);
         buffer.writeByte(((byte) value));

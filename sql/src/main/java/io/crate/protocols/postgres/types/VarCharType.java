@@ -40,6 +40,11 @@ class VarCharType extends PGType {
     }
 
     @Override
+    public int typArray() {
+        return PGArray.VARCHAR_ARRAY.oid();
+    }
+
+    @Override
     public int writeAsBinary(ByteBuf buffer, @Nonnull Object value) {
         assert value instanceof String : "value must be a string, got: " + value;
         byte[] bytes = ((String) value).getBytes(StandardCharsets.UTF_8);
