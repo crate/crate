@@ -29,8 +29,10 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.FunctionName;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.types.DataTypes;
 
 import java.util.Collections;
@@ -38,9 +40,11 @@ import java.util.Collections;
 public class PgBackendPidFunction extends Scalar<Integer, Void> {
 
     public static final String NAME = "pg_backend_pid";
+    private static final FunctionName FQN = new FunctionName(PgCatalogSchemaInfo.NAME, NAME);
+
 
     public static final FunctionInfo INFO = new FunctionInfo(
-        new FunctionIdent(NAME, Collections.emptyList()),
+        new FunctionIdent(FQN, Collections.emptyList()),
         DataTypes.INTEGER,
         FunctionInfo.Type.SCALAR,
         FunctionInfo.NO_FEATURES);

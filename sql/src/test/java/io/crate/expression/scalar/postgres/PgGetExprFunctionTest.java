@@ -20,20 +20,22 @@
  * agreement.
  */
 
-package io.crate.expression.scalar;
+package io.crate.expression.scalar.postgres;
 
+import io.crate.expression.scalar.AbstractScalarFunctionsTest;
 import org.junit.Test;
 
-public class CurrentDatabaseFunctionTest extends AbstractScalarFunctionsTest {
+import static io.crate.testing.SymbolMatchers.isLiteral;
 
+public class PgGetExprFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
-    public void testCurrentDatabaseReturnsTheDefaultDBName() {
-        assertEvaluate("current_database()", "crate");
+    public void testPgGetExpr() throws Exception {
+        assertEvaluate("pg_get_expr('whatever', 1)", null);
     }
 
     @Test
-    public void testCurrentDatabaseWithFQNFunctionName() {
-        assertEvaluate("pg_catalog.current_database()", "crate");
+    public void testPgGetExprWithFQNFunctionName() throws Exception {
+        assertNormalize("pg_catalog.pg_get_expr('whatever', 1)", isLiteral(null));
     }
 }
