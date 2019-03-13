@@ -89,8 +89,8 @@ Changes
 - Added ``ALTER CLUSTER DECOMMISSION <nodeId | nodeName>`` statement that
   triggers the existing node decommission functionality.
 
-- Added ``pg_type.typlen``, ``pg_type.typarray`` and ``pg_type.typnamespace``
-  columns for improved postgresql compatibility.
+- Added ``pg_type`` columns: ``typlen``, ``typarray``, ``typnotnull``
+  and ``typnamespace`` for improved postgresql compatibility.
 
 - Added ``current_schemas(boolean)`` scalar function which will return the
   names of schemas in the ``search_path``.
