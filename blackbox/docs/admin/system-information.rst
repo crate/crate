@@ -175,7 +175,6 @@ applied cluster settings.
     | settings['indices']['recovery']['retry_delay_state_sync']                         | string       |
     | settings['license']                                                               | object       |
     | settings['license']['enterprise']                                                 | boolean      |
-    | settings['license']['ident']                                                      | string       |
     | settings['logger']                                                                | object_array |
     | settings['logger']['level']                                                       | string       |
     | settings['logger']['name']                                                        | string       |

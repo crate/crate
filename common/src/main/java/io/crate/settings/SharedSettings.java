@@ -35,13 +35,4 @@ public class SharedSettings {
     public static final CrateSetting<Boolean> ENTERPRISE_LICENSE_SETTING = CrateSetting.of(Setting.boolSetting(
         "license.enterprise", true, Setting.Property.NodeScope, Setting.Property.Deprecated),
         DataTypes.BOOLEAN);
-
-    /**
-        @deprecated Clients should use `Set License` statement to register their license
-     */
-    @Deprecated
-    public static final CrateSetting<String> LICENSE_IDENT_SETTING = CrateSetting.of(Setting.simpleString(
-        "license.ident", Setting.Property.NodeScope, Setting.Property.Deprecated),
-        DataTypes.STRING);
-
 }
