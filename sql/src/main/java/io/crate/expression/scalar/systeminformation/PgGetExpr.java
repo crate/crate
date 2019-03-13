@@ -26,8 +26,10 @@ import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.FunctionName;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.types.DataTypes;
 
 import java.util.Arrays;
@@ -35,6 +37,7 @@ import java.util.Arrays;
 public class PgGetExpr extends Scalar<String, Object> {
 
     public static final String NAME = "pg_get_expr";
+    private static final FunctionName FQN = new FunctionName(PgCatalogSchemaInfo.NAME, NAME);
 
     public static void register(ScalarFunctionModule scalarFunctionModule) {
         scalarFunctionModule.register(new PgGetExpr());
@@ -48,7 +51,7 @@ public class PgGetExpr extends Scalar<String, Object> {
     @Override
     public FunctionInfo info() {
         return new FunctionInfo(
-            new FunctionIdent(NAME, Arrays.asList(DataTypes.STRING, DataTypes.INTEGER)),
+            new FunctionIdent(FQN, Arrays.asList(DataTypes.STRING, DataTypes.INTEGER)),
             DataTypes.STRING);
     }
 }
