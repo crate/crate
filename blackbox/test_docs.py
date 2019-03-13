@@ -27,6 +27,7 @@ import time
 import shutil
 import json
 import re
+import sys
 import random
 import tempfile
 import logging
@@ -47,6 +48,17 @@ log = logging.getLogger('crate.testing.layer')
 ch = logging.StreamHandler()
 ch.setLevel(logging.ERROR)
 log.addHandler(ch)
+
+
+CRATE_CE = True if os.environ.get('CRATE_CE') is "1" else False
+
+CRATE_SETTINGS = {'psql.port': 0}
+if CRATE_CE:
+    CRATE_SETTINGS['license.enterprise']  = 'false'
+else:
+    CRATE_SETTINGS['license.enterprise']  = 'true'
+    CRATE_SETTINGS['lang.js.enabled'] = 'true'
+
 
 
 class CrateTestShell(CrateShell):
@@ -410,11 +422,7 @@ crate_layer = ConnectingCrateLayer(
     port=CRATE_HTTP_PORT,
     transport_port=0,
     env={'JAVA_HOME': os.environ.get('JAVA_HOME', '')},
-    settings={
-        'license.enterprise': 'true',
-        'lang.js.enabled': 'true',
-        'psql.port': 0,
-    }
+    settings=CRATE_SETTINGS
 )
 
 
@@ -451,6 +459,20 @@ def load_tests(loader, suite, ignore):
             )
         )
 
+    if not CRATE_CE:
+        # These tests uses features only available in the CrateDB Enterprise Edition
+        for fn in doctest_files('general/user-defined-functions.rst',
+                                'general/information-schema.rst',
+                                'general/builtins/aggregation.rst',
+                                'general/builtins/scalar.rst',
+                                'admin/user-management.rst',
+                                'admin/system-information.rst',
+                                'admin/privileges.rst'):
+            tests.append(docsuite(fn, setUp=setUpLocationsAndQuotes))
+
+        for fn in doctest_files('general/builtins/window-functions.rst'):
+            tests.append(docsuite(fn, setUp=setUpEmpDeptAndColourArticlesAndGeo))
+
     for fn in doctest_files('general/ddl/create-table.rst',
                             'general/ddl/generated-columns.rst',
                             'general/ddl/constraints.rst',
@@ -463,23 +485,16 @@ def load_tests(loader, suite, ignore):
                             'general/ddl/fulltext-indices.rst',
                             'admin/runtime-config.rst',
                             'general/ddl/show-create-table.rst',
-                            'general/user-defined-functions.rst',
-                            'admin/user-management.rst',
                             'admin/snapshots.rst',
-                            'admin/privileges.rst',
                             'general/dql/index.rst',
                             'general/dql/refresh.rst',
                             'admin/optimization.rst',
                             'general/dql/fulltext.rst',
                             'general/ddl/data-types.rst',
                             'general/occ.rst',
-                            'general/information-schema.rst',
                             'general/ddl/partitioned-tables.rst',
-                            'general/builtins/aggregation.rst',
                             'general/builtins/arithmetic.rst',
-                            'general/builtins/scalar.rst',
                             'general/builtins/table-functions.rst',
-                            'admin/system-information.rst',
                             'general/dql/selects.rst',
                             'interfaces/postgres.rst',
                             'general/ddl/views.rst',
@@ -491,8 +506,7 @@ def load_tests(loader, suite, ignore):
         tests.append(docsuite(fn, setUp=setUpCountries))
 
     for fn in doctest_files('general/dql/joins.rst',
-                            'general/builtins/subquery-expressions.rst',
-                            'general/builtins/window-functions.rst',):
+                            'general/builtins/subquery-expressions.rst'):
         tests.append(docsuite(fn, setUp=setUpEmpDeptAndColourArticlesAndGeo))
 
     for fn in doctest_files('general/dml.rst',):
