@@ -30,7 +30,6 @@ import io.crate.execution.jobs.TasksService;
 import io.crate.settings.CrateSetting;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
-import org.apache.lucene.util.Constants;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.cluster.health.TransportClusterHealthAction;
@@ -51,8 +50,6 @@ import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
-import sun.misc.Signal;
-import sun.misc.SignalHandler;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;
@@ -65,7 +62,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.function.IntSupplier;
 
 @Singleton
-public class DecommissioningService extends AbstractLifecycleComponent implements SignalHandler, ClusterStateListener {
+public class DecommissioningService extends AbstractLifecycleComponent implements ClusterStateListener {
 
     static final String DECOMMISSION_PREFIX = "crate.internal.decommission.";
     public static final CrateSetting<Settings> DECOMMISSION_INTERNAL_SETTING_GROUP = CrateSetting.of(Setting.groupSetting(
@@ -147,19 +144,6 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
         clusterSettings.addSettingsUpdateConsumer(GRACEFUL_STOP_TIMEOUT_SETTING.setting(), this::setGracefulStopTimeout);
         clusterSettings.addSettingsUpdateConsumer(GRACEFUL_STOP_FORCE_SETTING.setting(), this::setGracefulStopForce);
         clusterSettings.addSettingsUpdateConsumer(GRACEFUL_STOP_MIN_AVAILABILITY_SETTING.setting(), this::setDataAvailability);
-
-        // Signal handling here breaks FlightRecorder
-        // So this is a undocumented switch to disable this for benchmarking purposes
-        if (!System.getProperty("crate.signal_handler.disabled", "false").equalsIgnoreCase("true")) {
-            if (Constants.WINDOWS == false) {
-                try {
-                    Signal signal = new Signal("USR2");
-                    Signal.handle(signal, this);
-                } catch (IllegalArgumentException e) {
-                    logger.warn("SIGUSR2 signal not supported on {}.", System.getProperty("os.name"), e);
-                }
-            }
-        }
         this.executorService = executorService;
     }
 
@@ -314,14 +298,6 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
     @Override
     protected void doClose() {
         executorService.shutdownNow();
-    }
-
-    @Override
-    public void handle(Signal signal) {
-        deprecationLogger.deprecated(
-            "Node decommission using 'USR2' signal has been deprecated and will be removed in the future. " +
-            "It is recommended to use the 'ALTER CLUSTER DECOMMISSION' statement.");
-        decommission();
     }
 
     private void setGracefulStopTimeout(TimeValue gracefulStopTimeout) {

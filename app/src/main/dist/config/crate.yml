@@ -145,9 +145,6 @@ auth:
 # shutdown process runs into the cluster.graceful_stop.timeout.
 #cluster.graceful_stop.force: false
 #
-# By default the regular stop procedure does not consider the graceful_stop
-# settings, but only sending the USR2 signal to the process does.
-
 # In most cases you want to allow all kinds of shards allocations.
 #cluster.routing.allocation.enable = all
 #

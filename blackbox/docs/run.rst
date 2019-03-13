@@ -93,14 +93,5 @@ The CrateDB process can handle the following signals.
 |           |                                             |
 |           | Same behaviour as ``TERM``.                 |
 +-----------+---------------------------------------------+
-| ``USR2``  | Stops a running CrateDB process gracefully. |
-|           | See `Rolling Upgrade`_ for more             |
-|           | information                                 |
-|           |                                             |
-|           | ``kill -USR2 `cat /path/to/pidfile.pid```   |
-|           |                                             |
-|           | ``USR2`` is not supported on Windows.       |
-|           |                                             |
-+-----------+---------------------------------------------+
 
 .. _Rolling Upgrade: http://crate.io/docs/crate/guide/best_practices/rolling_upgrade.html
