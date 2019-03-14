@@ -21,7 +21,6 @@
 
 package io.crate.node;
 
-import io.crate.Constants;
 import io.crate.action.sql.SQLOperations;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.SQLResponse;
@@ -134,17 +133,5 @@ public class NodeSettingsTest extends CrateUnitTest {
             Matchers.endsWith("data")
         ));
         assertTrue(node.settings().get(PATH_LOGS_SETTING.getKey()).endsWith("logs"));
-    }
-
-    @Test
-    public void testDefaultPorts() {
-        assertEquals(
-            Constants.HTTP_PORT_RANGE,
-            node.settings().get("http.port")
-        );
-        assertEquals(
-            Constants.TRANSPORT_PORT_RANGE,
-            node.settings().get("transport.tcp.port")
-        );
     }
 }

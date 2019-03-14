@@ -23,7 +23,6 @@ package org.elasticsearch.node.internal;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Charsets;
-import io.crate.Constants;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.settings.CrateSetting;
 import org.apache.lucene.util.IOUtils;
@@ -53,8 +52,6 @@ import java.util.function.Function;
 import static org.elasticsearch.common.network.NetworkModule.TRANSPORT_TYPE_DEFAULT_KEY;
 import static org.elasticsearch.common.network.NetworkService.DEFAULT_NETWORK_HOST;
 import static org.elasticsearch.common.network.NetworkService.GLOBAL_NETWORK_HOST_SETTING;
-import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_PORT;
-import static org.elasticsearch.transport.TcpTransport.PORT;
 
 public class CrateSettingsPreparer {
 
@@ -122,8 +119,6 @@ public class CrateSettingsPreparer {
         // if there is also a elasticsearch.yml file this file will be read first and the settings in crate.yml
         // will overwrite them.
         putIfAbsent(settingsBuilder, TRANSPORT_TYPE_DEFAULT_KEY, Netty4Plugin.NETTY_TRANSPORT_NAME);
-        putIfAbsent(settingsBuilder, SETTING_HTTP_PORT.getKey(), Constants.HTTP_PORT_RANGE);
-        putIfAbsent(settingsBuilder, PORT.getKey(), Constants.TRANSPORT_PORT_RANGE);
         putIfAbsent(settingsBuilder, GLOBAL_NETWORK_HOST_SETTING.getKey(), DEFAULT_NETWORK_HOST);
 
         // Set the default cluster name if not explicitly defined

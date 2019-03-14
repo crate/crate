@@ -23,5 +23,5 @@ import org.elasticsearch.common.settings.Setting;
 
 public class SearchModule {
     public static final Setting<Integer> INDICES_MAX_CLAUSE_COUNT_SETTING = Setting.intSetting("indices.query.bool.max_clause_count",
-            1024, 1, Integer.MAX_VALUE, Setting.Property.NodeScope);
+            8192, 1, Integer.MAX_VALUE, Setting.Property.NodeScope);
 }
