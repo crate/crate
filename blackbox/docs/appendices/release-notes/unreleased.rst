@@ -47,7 +47,10 @@ Breaking Changes
 - Removed the deprecated ``license.ident`` setting.
 
 - Removed the deprecated ``USR2`` signal handling. Use :ref:`ALTER CLUSTER
-  DECOMISSION <alter_cluster_decommission>` instead.
+  DECOMISSION <alter_cluster_decommission>` instead. Be aware that the
+  behavior of sending ``USR2`` signals to a CrateDB process is now undefined
+  and up to the JVM. In some cases it may still terminate the instance but
+  without clean shutdown.
 
 - Renamed ``information_schema.columns.user_defined_type_*`` columns to
   ``information_schema_columns.udt_*`` for SQL standard compatibility.
