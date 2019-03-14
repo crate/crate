@@ -25,8 +25,8 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.util.NettyRuntime;
-import io.netty.util.internal.logging.InternalLogger;
 import io.netty.util.internal.logging.InternalLoggerFactory;
+import io.netty.util.internal.logging.Log4J2LoggerFactory;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.BytesRefIterator;
 import org.elasticsearch.common.Booleans;
@@ -42,14 +42,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class Netty4Utils {
 
     static {
-        InternalLoggerFactory.setDefaultFactory(new InternalLoggerFactory() {
-
-            @Override
-            public InternalLogger newInstance(final String name) {
-                return new Netty4InternalESLogger(name);
-            }
-
-        });
+        InternalLoggerFactory.setDefaultFactory(Log4J2LoggerFactory.INSTANCE);
     }
 
     public static void setup() {
