@@ -36,7 +36,7 @@ public enum ColumnPolicy {
 
     private Object mappingValue;
 
-    private ColumnPolicy(Object mappingValue) {
+    ColumnPolicy(Object mappingValue) {
         this.mappingValue = mappingValue;
     }
 

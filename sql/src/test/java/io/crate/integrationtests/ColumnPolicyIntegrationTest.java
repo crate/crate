@@ -323,7 +323,7 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table dynamic_table (" +
                 "  id integer primary key, " +
                 "  score double" +
-                ") with (number_of_replicas=0)");
+                ") with (number_of_replicas=0, column_policy='dynamic')");
         ensureYellow();
         execute("insert into dynamic_table (id, score) values (1, 42.24)");
         execute("refresh table dynamic_table");
@@ -350,7 +350,7 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table dynamic_table (" +
                 "  id integer primary key, " +
                 "  score double" +
-                ") with (number_of_replicas=0)");
+                ") with (number_of_replicas=0, column_policy='dynamic')");
         ensureYellow();
         execute("insert into dynamic_table (id, score) values (1, 4656234.345)");
         execute("refresh table dynamic_table");
@@ -523,12 +523,16 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
                 "  score double" +
                 ") with (number_of_replicas=0)");
         ensureYellow();
-        execute("alter table dynamic_table set (column_policy = 'strict')");
+        execute("alter table dynamic_table set (column_policy = 'dynamic')");
         waitNoPendingTasksOnAll();
-        assertThat(String.valueOf(getSourceMap("dynamic_table").get("dynamic")), is(ColumnPolicy.STRICT.value()));
+        assertThat(
+            String.valueOf(getSourceMap("dynamic_table").get("dynamic")),
+            is(String.valueOf(ColumnPolicy.DYNAMIC.mappingValue())));
         execute("alter table dynamic_table reset (column_policy)");
         waitNoPendingTasksOnAll();
-        assertThat(String.valueOf(getSourceMap("dynamic_table").get("dynamic")), is(String.valueOf(ColumnPolicy.DYNAMIC.mappingValue())));
+        assertThat(
+            String.valueOf(getSourceMap("dynamic_table").get("dynamic")),
+            is(String.valueOf(ColumnPolicy.STRICT.mappingValue())));
     }
 
     @Test
@@ -540,16 +544,16 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
         execute("insert into dynamic_table (id, score) values (1, 10)");
         execute("refresh table dynamic_table");
-        execute("alter table dynamic_table set (column_policy = 'strict')");
+        execute("alter table dynamic_table set (column_policy = 'dynamic')");
         waitNoPendingTasksOnAll();
         String indexName = new PartitionName(
             new RelationName("doc", "dynamic_table"), Arrays.asList("10.0")).asIndexName();
         Map<String, Object> sourceMap = getSourceMap(indexName);
-        assertThat(String.valueOf(sourceMap.get("dynamic")), is(ColumnPolicy.STRICT.value()));
+        assertThat(String.valueOf(sourceMap.get("dynamic")), is(String.valueOf(ColumnPolicy.DYNAMIC.mappingValue())));
         execute("alter table dynamic_table reset (column_policy)");
         waitNoPendingTasksOnAll();
         sourceMap = getSourceMap(indexName);
-        assertThat(String.valueOf(sourceMap.get("dynamic")), is(String.valueOf(ColumnPolicy.DYNAMIC.mappingValue())));
+        assertThat(String.valueOf(sourceMap.get("dynamic")), is(String.valueOf(ColumnPolicy.STRICT.mappingValue())));
     }
 
     @Test

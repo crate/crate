@@ -60,7 +60,8 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
                                                     " timestamp_field timestamp," +
                                                     " object_field object as (\"inner\" timestamp)," +
                                                     " ip_field ip" +
-                                                    ") clustered by (id) into %d shards with(number_of_replicas=0)", numShards);
+                                                    ") clustered by (id) into %d shards " +
+                                                    "with (number_of_replicas=0, column_policy = 'dynamic')", numShards);
         execute(stmt);
         ensureYellow();
     }
@@ -437,7 +438,8 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testDynamicEmptyArray() throws Exception {
-        execute("create table arr (id short primary key, tags array(string)) with (number_of_replicas=0)");
+        execute("create table arr (id short primary key, tags array(string)) " +
+                "with (number_of_replicas=0, column_policy = 'dynamic')");
         ensureYellow();
         execute("insert into arr (id, tags, new) values (1, ['wow', 'much', 'wow'], [])");
         refresh();
@@ -449,7 +451,8 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testDynamicNullArray() throws Exception {
-        execute("create table arr (id short primary key, tags array(string)) with (number_of_replicas=0)");
+        execute("create table arr (id short primary key, tags array(string)) " +
+                "with (number_of_replicas=0, column_policy = 'dynamic')");
         ensureYellow();
         execute("insert into arr (id, tags, new) values (2, ['wow', 'much', 'wow'], [null])");
         refresh();
@@ -461,7 +464,8 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testDynamicNullArrayAndDouble() throws Exception {
-        execute("create table arr (id short primary key, tags array(string)) with (number_of_replicas=0)");
+        execute("create table arr (id short primary key, tags array(string)) " +
+                "with (number_of_replicas=0, column_policy = 'dynamic')");
         ensureYellow();
         execute("insert into arr (id, tags, new) values (3, ['wow', 'much', 'wow'], ?)", new Object[]{new Double[]{null, 42.7}});
         refresh();

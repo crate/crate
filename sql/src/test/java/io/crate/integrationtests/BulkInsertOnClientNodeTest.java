@@ -74,7 +74,8 @@ public class BulkInsertOnClientNodeTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testInsertBulkDifferentTypesResultsInStreamingFailure() throws Exception {
-        execute("create table test (id integer primary key) clustered into 2 shards with (number_of_replicas=0)");
+        execute("create table test (id integer primary key) " +
+                "clustered into 2 shards with (column_policy='dynamic', number_of_replicas=0)");
         ensureYellow();
         SQLBulkResponse response = execute("insert into test (id, value) values (?, ?)",
             new Object[][]{

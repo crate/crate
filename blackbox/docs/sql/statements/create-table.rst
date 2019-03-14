@@ -525,7 +525,7 @@ allocation if needed.
 -----------------
 
 Specifies the column policy of the table. The default column policy is
-``dynamic``.
+``strict``.
 
 The column policy is defined like this::
 

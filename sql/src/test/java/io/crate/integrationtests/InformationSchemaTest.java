@@ -932,7 +932,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     public void testPartitionedTableShardsAndReplicas() throws Exception {
         execute("create table parted (par byte, content string) " +
                 "partitioned by (par) " +
-                "clustered into 2 shards with (number_of_replicas=0)");
+                "clustered into 2 shards with (number_of_replicas=0, column_policy='dynamic')");
         ensureGreen();
 
         execute("select table_name, number_of_shards, number_of_replicas from information_schema.tables where table_name='parted'");

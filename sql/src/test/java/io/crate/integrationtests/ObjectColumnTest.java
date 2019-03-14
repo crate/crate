@@ -307,7 +307,7 @@ public class ObjectColumnTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testAddUnderscoreColumnNameToObjectAtInsert() throws Exception {
-        execute("create table test (foo object)");
+        execute("create table test (foo object) with (column_policy = 'dynamic')");
         ensureYellow();
         execute("INSERT INTO test (o) (select {\"_w\"= 20})");
         refresh();

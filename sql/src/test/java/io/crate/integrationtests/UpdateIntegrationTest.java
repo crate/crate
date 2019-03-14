@@ -125,7 +125,7 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
          * Regression test
          * validating dynamically generated columns with NULL values led to NPE
          */
-        execute("create table test (id int primary key)");
+        execute("create table test (id int primary key) with (column_policy = 'dynamic')");
         ensureYellow();
         execute("insert into test (id) values (1)");
         refresh();

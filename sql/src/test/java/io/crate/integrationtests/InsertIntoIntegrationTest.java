@@ -1304,7 +1304,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testDynamicTimestampIntegrationTest() throws Exception {
-        execute("create table dyn_ts (id integer primary key)");
+        execute("create table dyn_ts (id integer primary key) with (column_policy = 'dynamic')");
         ensureYellow();
         execute("insert into dyn_ts (id, ts) values (0, '2015-01-01')");
         refresh();

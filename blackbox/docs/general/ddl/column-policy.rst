@@ -8,8 +8,8 @@ The Column Policy defines if a table enforces its defined schema or if it's
 allowed to store additional columns which are a not defined in the table
 schema.
 
-If the column policy is not defined within the ``with`` clause, ``dynamic``
-will be used.
+If the column policy is not defined within the ``with`` clause, ``strict`` will
+be used.
 
 ``strict``
 ==========
@@ -41,8 +41,8 @@ CrateDB will raise an error.
 ``dynamic``
 ===========
 
-The other option is ``dynamic`` which is the default policy. ``dynamic`` means
-that new columns can be added using ``insert``, ``update`` or ``copy from``.
+The other option is ``dynamic``. ``dynamic`` means that new columns can be
+added using ``insert``, ``update`` or ``copy from``.
 
 Note that adding new columns to a table with a ``dynamic`` policy will affect
 the schema of the table. Once a column is added, it shows up in the

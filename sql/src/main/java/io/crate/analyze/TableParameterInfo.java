@@ -75,7 +75,7 @@ public class TableParameterInfo {
     static final Setting<Object> COLUMN_POLICY =
         new Setting<>(
             new Setting.SimpleKey(ColumnPolicy.ES_MAPPING_NAME),
-            (s) -> ColumnPolicy.DYNAMIC.value(),
+            (s) -> ColumnPolicy.STRICT.value(),
             (s) -> ColumnPolicy.byName(s).mappingValue(),
             (o, m) -> {
                 if (ColumnPolicy.IGNORED.mappingValue().equals(o)) {

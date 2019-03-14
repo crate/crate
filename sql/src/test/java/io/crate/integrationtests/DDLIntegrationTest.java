@@ -55,7 +55,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table test (col1 integer primary key, col2 string) " +
                 "clustered into 5 shards with (number_of_replicas = 1, \"write.wait_for_active_shards\"=1)");
         String expectedMapping = "{\"default\":{" +
-                                 "\"dynamic\":\"true\",\"_meta\":{" +
+                                 "\"dynamic\":\"strict\",\"_meta\":{" +
                                  "\"primary_keys\":[\"col1\"]}," +
                                  "\"dynamic_templates\":[{\"strings\":{\"match_mapping_type\":\"string\",\"mapping\":{\"doc_values\":true,\"store\":false,\"type\":\"keyword\"}}}]," +
                                  "\"properties\":{" +
@@ -133,7 +133,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table test (col1 integer primary key, col2 string)" +
                 "clustered by (col1) into 10 shards with (number_of_replicas=2, \"write.wait_for_active_shards\"=1)");
         String expectedMapping = "{\"default\":{" +
-                                 "\"dynamic\":\"true\"," +
+                                 "\"dynamic\":\"strict\"," +
                                  "\"_meta\":{" +
                                  "\"primary_keys\":[\"col1\"]," +
                                  "\"routing\":\"col1\"}," +
@@ -184,7 +184,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table test (col1 geo_shape INDEX using QUADTREE with (precision='1m', distance_error_pct='0.25'))");
         ensureYellow();
         String expectedMapping = "{\"default\":{" +
-                                 "\"dynamic\":\"true\",\"_meta\":{}," +
+                                 "\"dynamic\":\"strict\",\"_meta\":{}," +
                                  "\"dynamic_templates\":[{\"strings\":{\"match_mapping_type\":\"string\",\"mapping\":{\"doc_values\":true,\"store\":false,\"type\":\"keyword\"}}}]," +
                                  "\"properties\":{" +
                                  "\"col1\":{\"type\":\"geo_shape\",\"tree\":\"quadtree\",\"precision\":\"1.0m\",\"distance_error_pct\":0.25}}}}";
@@ -196,7 +196,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table test (col1 geo_shape)");
         ensureYellow();
         String expectedMapping = "{\"default\":{" +
-                                 "\"dynamic\":\"true\",\"_meta\":{}," +
+                                 "\"dynamic\":\"strict\",\"_meta\":{}," +
                                  "\"dynamic_templates\":[{\"strings\":{\"match_mapping_type\":\"string\",\"mapping\":{\"doc_values\":true,\"store\":false,\"type\":\"keyword\"}}}]," +
                                  "\"properties\":{\"col1\":{\"type\":\"geo_shape\"}}}}";
         assertEquals(expectedMapping, getIndexMapping("test"));
@@ -710,7 +710,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table test (ts timestamp, day as date_trunc('day', ts)) with (number_of_replicas=0)");
         ensureYellow();
         String expectedMapping = "{\"default\":" +
-                                 "{\"dynamic\":\"true\"," +
+                                 "{\"dynamic\":\"strict\"," +
                                  "\"_meta\":{" +
                                  "\"generated_columns\":{\"day\":\"date_trunc('day', ts)\"}}," +
                                  "\"dynamic_templates\":[{\"strings\":{\"match_mapping_type\":\"string\",\"mapping\":{\"doc_values\":true,\"store\":false,\"type\":\"keyword\"}}}]," +

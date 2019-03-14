@@ -148,7 +148,7 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
 
     @Test
     public void testInsertBulkDifferentTypesResultsInRemoteFailure() throws Exception {
-        execute("create table foo (value integer) with (number_of_replicas=0)");
+        execute("create table foo (value integer) with (number_of_replicas=0, column_policy = 'dynamic')");
         ensureYellow();
         SQLBulkResponse response = execute("insert into foo (bar) values (?)",
             new Object[][]{
@@ -163,7 +163,7 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
 
     @Test
     public void testInsertDynamicNullArrayInBulk() throws Exception {
-        execute("create table foo (value integer) with (number_of_replicas=0)");
+        execute("create table foo (value integer) with (number_of_replicas=0, column_policy = 'dynamic')");
         ensureYellow();
         SQLBulkResponse res = execute("insert into foo (bar) values (?)",
             new Object[][]{

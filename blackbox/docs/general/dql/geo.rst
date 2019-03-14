@@ -48,7 +48,7 @@ alongside with other metadata. The shape is indexed with a maximum precision of
 
 Let's insert Austria::
 
-    cr> INSERT INTO country (mame, country_code, shape, capital, capital_location)
+    cr> INSERT INTO country (name, country_code, shape, capital, capital_location)
     ... VALUES (
     ...  'Austria',
     ...  'at',
