@@ -33,6 +33,8 @@ import io.netty.channel.RecvByteBufAllocator;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.logging.LogLevel;
+import io.netty.handler.logging.LoggingHandler;
 import io.netty.util.AttributeKey;
 import io.netty.util.concurrent.Future;
 import org.apache.logging.log4j.message.ParameterizedMessage;
@@ -297,7 +299,7 @@ public class Netty4Transport extends TcpTransport {
 
         @Override
         protected void initChannel(Channel ch) throws Exception {
-            ch.pipeline().addLast("logging", new ESLoggingHandler());
+            ch.pipeline().addLast("logging", new LoggingHandler(LogLevel.TRACE));
             ch.pipeline().addLast("size", new Netty4SizeHeaderFrameDecoder());
             // using a dot as a prefix means this cannot come from any settings parsed
             ch.pipeline().addLast("dispatcher", new Netty4MessageChannelHandler(Netty4Transport.this, ".client"));
@@ -324,7 +326,7 @@ public class Netty4Transport extends TcpTransport {
             NettyTcpChannel nettyTcpChannel = new NettyTcpChannel(ch);
             ch.attr(CHANNEL_KEY).set(nettyTcpChannel);
             serverAcceptedChannel(nettyTcpChannel);
-            ch.pipeline().addLast("logging", new ESLoggingHandler());
+            ch.pipeline().addLast("logging", new LoggingHandler(LogLevel.TRACE));
             ch.pipeline().addLast("size", new Netty4SizeHeaderFrameDecoder());
             ch.pipeline().addLast("dispatcher", new Netty4MessageChannelHandler(Netty4Transport.this, name));
         }
