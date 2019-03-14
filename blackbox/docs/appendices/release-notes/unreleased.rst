@@ -157,6 +157,9 @@ Changes
 Fixes
 =====
 
+- Fixed an issue which causes sub-select queries with certain ``ORDER BY``
+  constructs to fail.
+
 - Fixed function resolution for postgresql functions ``pg_backend_pid``,
   ``pg_get_expr`` and ``current_database`` when the schema prefix
   ``pg_catalog`` is included.

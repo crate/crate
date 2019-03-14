@@ -79,20 +79,23 @@ public class RelationBoundary extends OneInputPlan {
             List<Symbol> outputs = OperatorUtils.mappedSymbols(source.outputs(), reverseMapping);
             expressionMapping.putAll(source.expressionMapping());
             Map<LogicalPlan, SelectSymbol> subQueries = subqueryPlanner.planSubQueries(relation);
-            return new RelationBoundary(source, relation, outputs, expressionMapping, subQueries);
+            return new RelationBoundary(source, relation, outputs, expressionMapping, reverseMapping, subQueries);
         };
     }
 
     private final QueriedRelation relation;
+    private final Map<Symbol, Symbol> reverseMapping;
 
     private RelationBoundary(LogicalPlan source,
                              QueriedRelation relation,
                              List<Symbol> outputs,
                              Map<Symbol, Symbol> expressionMapping,
+                             Map<Symbol, Symbol> reverseMapping,
                              Map<LogicalPlan, SelectSymbol> subQueries) {
         super(source, outputs, expressionMapping, source.baseTables(), subQueries);
         subQueries.putAll(source.dependencies());
         this.relation = relation;
+        this.reverseMapping = reverseMapping;
     }
 
     @Override
@@ -137,7 +140,13 @@ public class RelationBoundary extends OneInputPlan {
 
     @Override
     protected LogicalPlan updateSource(LogicalPlan newSource, SymbolMapper mapper) {
-        return new RelationBoundary(newSource, relation, outputs, expressionMapping, dependencies);
+        return new RelationBoundary(
+            newSource,
+            relation,
+            OperatorUtils.mappedSymbols(newSource.outputs(), reverseMapping),
+            expressionMapping,
+            reverseMapping,
+            dependencies);
     }
 
     @Override
