@@ -28,9 +28,5 @@ public class Constants {
     // Mapping Type that contains table definitions
     public static final String DEFAULT_MAPPING_TYPE = "default";
 
-    // port ranges for HTTP and Transport
-    public static final String HTTP_PORT_RANGE = "4200-4300";
-    public static final String TRANSPORT_PORT_RANGE = "4300-4400";
-
     public static final int MAX_SHARD_MISSING_RETRIES = 3;
 }
