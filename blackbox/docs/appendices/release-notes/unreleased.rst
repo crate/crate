@@ -47,5 +47,8 @@ None
 Fixes
 =====
 
+- Fixed an issue which causes sub-select queries with certain ``ORDER BY``
+  constructs to fail.
+
 - Fixed circuit breaker memory accounting of window functions to prevent OOM
   exceptions.
