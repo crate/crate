@@ -397,7 +397,7 @@ public class PartitionedTableConcurrentIntegrationTest extends SQLTransportInteg
         execute("create table t1 (p int) " +
                 "clustered into 1 shards " +
                 "partitioned by (p) " +
-                "with (number_of_replicas = 0)");
+                "with (number_of_replicas = 0, column_policy = 'dynamic')");
 
         Thread insertNumbers = new Thread(() -> {
             for (int i = 0; i < 10; i++) {

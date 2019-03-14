@@ -83,7 +83,7 @@ public final class TableDefinitions {
          "  ints integer," +
          "  floats float," +
          "  index name_text_ft using fulltext (name, text)" +
-         ") clustered by (id)";
+         ") clustered by (id) with (column_policy = 'dynamic')";
     private static final RelationName USER_TABLE_IDENT_MULTI_PK = new RelationName(Schemas.DOC_SCHEMA_NAME, "users_multi_pk");
     public static final DocTableInfo USER_TABLE_INFO_MULTI_PK = TestingTableInfo.builder(USER_TABLE_IDENT_MULTI_PK, SHARD_ROUTING)
         .add("id", DataTypes.LONG)

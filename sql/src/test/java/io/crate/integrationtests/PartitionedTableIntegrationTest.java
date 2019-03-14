@@ -1199,7 +1199,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         execute("create table t1 (" +
                 "   id int primary key," +
                 "   date timestamp primary key" +
-                ") partitioned by (date) with (number_of_replicas=0)");
+                ") partitioned by (date) with (number_of_replicas=0, column_policy = 'dynamic')");
         ensureYellow();
         execute("insert into t1 (id, date, dynamic_added_col1) values (1, '2014-01-01', 'foo')");
         execute("insert into t1 (id, date, dynamic_added_col2) values (2, '2014-02-01', 'bar')");
@@ -1907,7 +1907,9 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
 
     @Test
     public void testGroupOnDynamicColumn() throws Exception {
-        execute("create table event (day timestamp primary key) clustered into 6 shards partitioned by (day)");
+        execute("create table event (day timestamp primary key) " +
+                "clustered into 6 shards partitioned by (day) " +
+                "with (column_policy = 'dynamic') ");
         ensureYellow();
         execute("insert into event (day) values ('2015-01-03')");
         execute("insert into event (day, sessionid) values ('2015-01-01', 'hello')");

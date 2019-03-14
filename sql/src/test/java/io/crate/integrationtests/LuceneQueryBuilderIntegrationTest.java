@@ -243,7 +243,7 @@ public class LuceneQueryBuilderIntegrationTest extends SQLTransportIntegrationTe
         execute("create table t (p int) " +
                 "clustered into 1 shards " +
                 "partitioned by (p) " +
-                "with (number_of_replicas = 0)");
+                "with (number_of_replicas = 0, column_policy = 'dynamic') ");
         execute("insert into t (p) values (1)");
         execute("insert into t (p, x, numbers, obj, objects, s, b) " +
                 "values (2, 10, [10, 20, 30], {x=10}, [{x=10}, {x=20}], 'foo', true)");

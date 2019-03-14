@@ -123,7 +123,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectCountStar() throws Exception {
-        execute("create table test (\"type\" string) with (number_of_replicas=0)");
+        execute("create table test (name string) with (number_of_replicas=0)");
         ensureYellow();
         execute("insert into test (name) values (?)", new Object[]{"Arthur"});
         execute("insert into test (name) values (?)", new Object[]{"Trillian"});
@@ -135,7 +135,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectZeroLimit() throws Exception {
-        execute("create table test (\"type\" string) with (number_of_replicas=0)");
+        execute("create table test (name string) with (number_of_replicas=0)");
         ensureYellow();
         execute("insert into test (name) values (?)", new Object[]{"Arthur"});
         execute("insert into test (name) values (?)", new Object[]{"Trillian"});
@@ -146,16 +146,15 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectZeroLimitOrderBy() throws Exception {
-        execute("create table test (\"type\" string) with (number_of_replicas=0)");
+        execute("create table test (name string) with (number_of_replicas=0)");
         ensureYellow();
         execute("insert into test (name) values (?)", new Object[]{"Arthur"});
         execute("insert into test (name) values (?)", new Object[]{"Trillian"});
         refresh();
-        execute("select * from test order by type limit 0");
+        execute("select * from test order by name limit 0");
         assertEquals(0L, response.rowCount());
 
     }
-
 
     @Test
     public void testSelectCountStarWithWhereClause() throws Exception {
@@ -1466,7 +1465,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testNewColumn() throws Exception {
-        execute("create table t (name string) with (number_of_replicas=0)");
+        execute("create table t (name string) with (number_of_replicas=0, column_policy = 'dynamic')");
         ensureYellow();
         execute("insert into t (name, score) values ('Ford', 1.2)");
     }

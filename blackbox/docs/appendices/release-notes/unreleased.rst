@@ -41,6 +41,9 @@ Unreleased Changes
 Breaking Changes
 ================
 
+- Changed the default :ref:`column_policy` on tables from ``dynamic`` to
+  ``strict``. Columns of type object still default to ``dynamic``.
+
 - Removed the deprecated ``license.ident`` setting.
 
 - Removed the deprecated ``USR2`` signal handling. Use :ref:`ALTER CLUSTER

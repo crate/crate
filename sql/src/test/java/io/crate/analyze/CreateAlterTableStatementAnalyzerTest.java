@@ -231,7 +231,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         AlterTableAnalyzedStatement analysisSet = e.analyze(
             "ALTER TABLE user_refresh_interval " +
             "SET (column_policy = 'strict')");
-        assertEquals(ColumnPolicy.STRICT.mappingValue(), analysisSet.tableParameter().mappings().get(TableParameterInfo.COLUMN_POLICY.getKey()));
+        assertEquals(ColumnPolicy.STRICT.mappingValue(),analysisSet.tableParameter().mappings().get(TableParameterInfo.COLUMN_POLICY.getKey()));
     }
 
     @Test

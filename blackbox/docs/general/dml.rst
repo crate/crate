@@ -120,7 +120,7 @@ Example of changing a field's data type, in this case, changing the
 
 ::
 
-    cr> insert into locations2 (id, name, date, kind, postition, description)
+    cr> insert into locations2 (id, name, date, kind, position, description)
     ... (
     ...     select id, name, date, kind, position, description
     ...     from locations
@@ -149,7 +149,7 @@ data partitioned by year::
 
 ::
 
-    cr> insert into locations_parted (id, name, year, date, kind, postition)
+    cr> insert into locations_parted (id, name, year, date, kind, position)
     ... (
     ...     select
     ...         id,
