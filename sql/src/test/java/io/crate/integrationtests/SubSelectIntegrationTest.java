@@ -715,6 +715,7 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(1L));
     }
 
+    @Test
     public void testSubscriptOnSubSelect() {
         execute("create table t1 (a object, c object)");
         execute("insert into t1 (a, c) values ({ b = 1 }, { d = { e = 2 }})");
@@ -728,5 +729,15 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
     public void testSubscriptOnSubSelectFromUnnestWithObjectLiteral() {
         execute("select col1['b'] from (select * from unnest([{b=1}])) t1");
         assertThat(printedTable(response.rows()), is(""));
+    }
+
+    @Test
+    public void testOrderByFunctionWithColumnOfSubSelect() {
+        execute("create table t1 (id int)");
+        execute("insert into t1 (id) values (1), (2)");
+        execute("refresh table t1");
+        execute("select id + 1 from (select id from t1) tt order by 1 desc");
+        assertThat(printedTable(response.rows()), is("3\n" +
+                                                     "2\n"));
     }
 }
