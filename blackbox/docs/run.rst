@@ -94,4 +94,12 @@ The CrateDB process can handle the following signals.
 |           | Same behaviour as ``TERM``.                 |
 +-----------+---------------------------------------------+
 
+.. TIP::
+
+    The ``TERM`` signal stops CrateDB immediately. As a result, pending
+    requests may fail. To ensure that any pending requests are completed before
+    the node is stopped, you can perform a `graceful stop`_ with the
+    :ref:`DECOMMISSION <alter_cluster_decommission>` statement instead.
+
 .. _Rolling Upgrade: http://crate.io/docs/crate/guide/best_practices/rolling_upgrade.html
+.. _graceful stop: https://crate.io/docs/crate/guide/en/latest/admin/rolling-upgrade.html#step-2-graceful-stop
