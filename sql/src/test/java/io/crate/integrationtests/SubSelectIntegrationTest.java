@@ -713,4 +713,14 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
         execute("select count(*) from t1 where r = (select r from t1 where id = 1)");
         assertThat(response.rowCount(), is(1L));
     }
+
+    @Test
+    public void testOrderByFunctionWithColumnOfSubSelect() {
+        execute("create table t1 (id int)");
+        execute("insert into t1 (id) values (1), (2)");
+        execute("refresh table t1");
+        execute("select id + 1 from (select id from t1) tt order by 1 desc");
+        assertThat(printedTable(response.rows()), is("3\n" +
+                                                     "2\n"));
+    }
 }
