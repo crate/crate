@@ -61,7 +61,6 @@ import io.crate.sql.tree.CommitStatement;
 import io.crate.sql.tree.ComparisonExpression;
 import io.crate.sql.tree.CopyFrom;
 import io.crate.sql.tree.CopyTo;
-import io.crate.sql.tree.CrateTableOption;
 import io.crate.sql.tree.CreateAnalyzer;
 import io.crate.sql.tree.CreateBlobTable;
 import io.crate.sql.tree.CreateFunction;
@@ -236,26 +235,16 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     @Override
     public Node visitCreateTable(SqlBaseParser.CreateTableContext context) {
         boolean notExists = context.EXISTS() != null;
+        SqlBaseParser.PartitionedByOrClusteredIntoContext tableOptsCtx = context.partitionedByOrClusteredInto();
+        Optional<ClusteredBy> clusteredBy = visitIfPresent(tableOptsCtx.clusteredBy(), ClusteredBy.class);
+        Optional<PartitionedBy> partitionedBy = visitIfPresent(tableOptsCtx.partitionedBy(), PartitionedBy.class);
         return new CreateTable(
             (Table) visit(context.table()),
             visitCollection(context.tableElement(), TableElement.class),
-            processTableOptions(context.partitionedByOrClusteredInto()),
+            partitionedBy,
+            clusteredBy,
             extractGenericProperties(context.withProperties()),
             notExists);
-    }
-
-    private List<CrateTableOption> processTableOptions(@Nullable SqlBaseParser.PartitionedByOrClusteredIntoContext ctx) {
-        if (ctx == null) {
-            return Collections.emptyList();
-        }
-        ArrayList<CrateTableOption> tableOptions = new ArrayList<>(2);
-        if (ctx.clusteredBy() != null) {
-            tableOptions.add((ClusteredBy) visit(ctx.clusteredBy()));
-        }
-        if (ctx.partitionedBy() != null) {
-            tableOptions.add((PartitionedBy) visit(ctx.partitionedBy()));
-        }
-        return tableOptions;
     }
 
     @Override

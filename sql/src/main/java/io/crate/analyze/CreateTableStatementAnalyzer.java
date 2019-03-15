@@ -30,37 +30,21 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.sql.tree.ClusteredBy;
-import io.crate.sql.tree.CrateTableOption;
 import io.crate.sql.tree.CreateTable;
-import io.crate.sql.tree.DefaultTraversalVisitor;
 import io.crate.sql.tree.Expression;
-import io.crate.sql.tree.Node;
 import io.crate.sql.tree.PartitionedBy;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 
 import java.util.Collections;
 import java.util.Locale;
 
-public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<CreateTableAnalyzedStatement,
-    CreateTableStatementAnalyzer.Context> {
+public final class CreateTableStatementAnalyzer {
 
     private static final String CLUSTERED_BY_IN_PARTITIONED_ERROR = "Cannot use CLUSTERED BY column in PARTITIONED BY clause";
     private final Schemas schemas;
     private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
     private final Functions functions;
     private final NumberOfShards numberOfShards;
-
-    static class Context {
-
-        private final CreateTableAnalyzedStatement statement;
-        private final ParameterContext parameterContext;
-
-        public Context(CreateTableAnalyzedStatement statement, ParameterContext parameterContext) {
-            this.statement = statement;
-            this.parameterContext = parameterContext;
-        }
-    }
-
 
     public CreateTableStatementAnalyzer(Schemas schemas,
                                         FulltextAnalyzerResolver fulltextAnalyzerResolver,
@@ -70,12 +54,6 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
         this.functions = functions;
         this.numberOfShards = numberOfShards;
-    }
-
-    @Override
-    protected CreateTableAnalyzedStatement visitNode(Node node, Context context) {
-        throw new RuntimeException(
-            String.format(Locale.ENGLISH, "Encountered node %s but expected a CreateTable node", node));
     }
 
     public CreateTableAnalyzedStatement analyze(CreateTable createTable,
@@ -112,55 +90,53 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
         statement.tableParameter().settingsBuilder().put(
             IndexMetaData.SETTING_NUMBER_OF_SHARDS, numberOfShards.defaultNumberOfShards());
 
-        Context context = new Context(statement, parameterContext);
         statement.analyzedTableElements(tableElements);
-        for (CrateTableOption option : createTable.crateTableOptions()) {
-            process(option, context);
-        }
+        createTable.clusteredBy().ifPresent(clusteredBy -> processClusteredBy(clusteredBy, statement, parameterContext));
+        createTable.partitionedBy().ifPresent(partitionedBy -> processPartitionedBy(partitionedBy, statement, parameterContext));
         return statement;
     }
 
-    @Override
-    public CreateTableAnalyzedStatement visitClusteredBy(ClusteredBy clusteredBy, Context context) {
+    private void processClusteredBy(ClusteredBy clusteredBy,
+                                    CreateTableAnalyzedStatement statement,
+                                    ParameterContext parameterContext) {
         if (clusteredBy.column().isPresent()) {
             ColumnIdent routingColumn = ColumnIdent.fromPath(
-                ExpressionToStringVisitor.convert(clusteredBy.column().get(), context.parameterContext.parameters()));
+                ExpressionToStringVisitor.convert(clusteredBy.column().get(), parameterContext.parameters()));
 
-            for (AnalyzedColumnDefinition column : context.statement.analyzedTableElements().partitionedByColumns) {
+            for (AnalyzedColumnDefinition column : statement.analyzedTableElements().partitionedByColumns) {
                 if (column.ident().equals(routingColumn)) {
                     throw new IllegalArgumentException(CLUSTERED_BY_IN_PARTITIONED_ERROR);
                 }
             }
-            if (!context.statement.hasColumnDefinition(routingColumn)) {
+            if (!statement.hasColumnDefinition(routingColumn)) {
                 throw new IllegalArgumentException(
                     String.format(Locale.ENGLISH, "Invalid or non-existent routing column \"%s\"",
                         routingColumn));
             }
-            if (context.statement.primaryKeys().size() > 0 &&
-                !context.statement.primaryKeys().contains(routingColumn.fqn())) {
+            if (statement.primaryKeys().size() > 0 &&
+                !statement.primaryKeys().contains(routingColumn.fqn())) {
                 throw new IllegalArgumentException("Clustered by column must be part of primary keys");
             }
 
-            context.statement.routing(routingColumn);
+            statement.routing(routingColumn);
         }
-        context.statement.tableParameter().settingsBuilder().put(
+        statement.tableParameter().settingsBuilder().put(
             IndexMetaData.SETTING_NUMBER_OF_SHARDS,
-            numberOfShards.fromClusteredByClause(clusteredBy, context.parameterContext.parameters())
+            numberOfShards.fromClusteredByClause(clusteredBy, parameterContext.parameters())
         );
-        return context.statement;
     }
 
-    @Override
-    public CreateTableAnalyzedStatement visitPartitionedBy(PartitionedBy node, Context context) {
+    private void processPartitionedBy(PartitionedBy node,
+                                      CreateTableAnalyzedStatement statement,
+                                      ParameterContext parameterContext) {
         for (Expression partitionByColumn : node.columns()) {
             ColumnIdent partitionedByIdent = ColumnIdent.fromPath(
-                ExpressionToStringVisitor.convert(partitionByColumn, context.parameterContext.parameters()));
-            context.statement.analyzedTableElements().changeToPartitionedByColumn(partitionedByIdent, false, context.statement.tableIdent());
-            ColumnIdent routing = context.statement.routing();
+                ExpressionToStringVisitor.convert(partitionByColumn, parameterContext.parameters()));
+            statement.analyzedTableElements().changeToPartitionedByColumn(partitionedByIdent, false, statement.tableIdent());
+            ColumnIdent routing = statement.routing();
             if (routing != null && routing.equals(partitionedByIdent)) {
                 throw new IllegalArgumentException(CLUSTERED_BY_IN_PARTITIONED_ERROR);
             }
         }
-        return null;
     }
 }

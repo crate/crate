@@ -26,7 +26,7 @@ import com.google.common.base.Objects;
 
 import java.util.Optional;
 
-public class ClusteredBy extends CrateTableOption {
+public final class ClusteredBy extends Node {
 
     private final Optional<Expression> column;
     private final Optional<Expression> numberOfShards;
