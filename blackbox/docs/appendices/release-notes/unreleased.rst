@@ -102,6 +102,10 @@ Deprecations
 Changes
 =======
 
+- Added :ref:`string_to_array <scalar-string-to-array>` scalar array function
+  that splits an input string into an array of string elements using a
+  separator and a null-string.
+
 - Added support for subscript expressions on an object column of a sub-relation.
   Examples: ``select a['b'] from (select a from t1)`` or ``select a['b'] from
   my_view`` where ``my_view`` is defined as ``select a from t1``.

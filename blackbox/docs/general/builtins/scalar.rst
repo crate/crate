@@ -1513,6 +1513,73 @@ Returns: ``integer``
     SELECT 1 row in set (... sec)
 
 
+.. _scalar-string-to-array:
+
+``string_to_array(string, separator, [ null_string ])``
+-------------------------------------------------------
+
+The ``string_to_array`` splits a string into an array of string elements using
+a supplied separator and an optional null-string to set matching substring
+elements to NULL.
+
+Returns: ``array(string)``
+
+::
+
+    cr> select string_to_array('Arthur,Ford,Trillian', ',');
+    +----------------------------------------------+
+    | string_to_array('Arthur,Ford,Trillian', ',') |
+    +----------------------------------------------+
+    | ["Arthur", "Ford", "Trillian"]               |
+    +----------------------------------------------+
+    SELECT 1 row in set (... sec)
+
+::
+
+    cr> select string_to_array('Arthur,Ford,Trillian', ',', 'Ford');
+    +------------------------------------------------------+
+    | string_to_array('Arthur,Ford,Trillian', ',', 'Ford') |
+    +------------------------------------------------------+
+    | ["Arthur", null, "Trillian"]                         |
+    +------------------------------------------------------+
+    SELECT 1 row in set (... sec)
+
+separator
+.........
+
+If the ``separator`` argument is NULL, each character of the input string
+becomes a separate element in the resulting array.
+
+::
+
+    cr> select string_to_array('Ford', NULL);
+    +-------------------------------+
+    | string_to_array('Ford', NULL) |
+    +-------------------------------+
+    | ["F", "o", "r", "d"]          |
+    +-------------------------------+
+    SELECT 1 row in set (... sec)
+
+If the separator is an empty string, then the entire input string is returned
+as a one-element array.
+
+::
+
+    cr> select string_to_array('Arthur,Ford', '');
+    +------------------------------------+
+    | string_to_array('Arthur,Ford', '') |
+    +------------------------------------+
+    | ["Arthur,Ford"]                    |
+    +------------------------------------+
+    SELECT 1 row in set (... sec)
+
+null_string
+...........
+
+If the ``null_string`` argument is omitted or NULL, none of the substrings of
+the input will be replaced by NULL.
+
+
 Conditional Functions and Expressions
 =====================================
 
