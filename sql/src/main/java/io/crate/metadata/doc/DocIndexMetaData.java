@@ -46,9 +46,10 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.table.ColumnPolicy;
+import io.crate.metadata.table.ColumnPolicies;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.parser.SqlParser;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.Expression;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -365,8 +366,7 @@ public class DocIndexMetaData {
             } else if (columnDataType.id() == ObjectType.ID
                        || (columnDataType.id() == ArrayType.ID
                            && ((ArrayType) columnDataType).innerType().id() == ObjectType.ID)) {
-                ColumnPolicy columnPolicy =
-                    ColumnPolicy.of(columnProperties.get("dynamic"));
+                ColumnPolicy columnPolicy = ColumnPolicies.decodeMappingValue(columnProperties.get("dynamic"));
                 add(newIdent, columnDataType, columnPolicy, Reference.IndexType.NO, false, nullable, false);
 
                 if (columnProperties.get("properties") != null) {
@@ -469,7 +469,7 @@ public class DocIndexMetaData {
     }
 
     private ColumnPolicy getColumnPolicy() {
-        return ColumnPolicy.of(mappingMap.get("dynamic"));
+        return ColumnPolicies.decodeMappingValue(mappingMap.get("dynamic"));
     }
 
     private void createColumnDefinitions() {

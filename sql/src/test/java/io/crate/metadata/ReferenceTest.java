@@ -21,7 +21,7 @@
 
 package io.crate.metadata;
 
-import io.crate.metadata.table.ColumnPolicy;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;

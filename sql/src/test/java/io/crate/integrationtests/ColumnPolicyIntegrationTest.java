@@ -25,7 +25,7 @@ import io.crate.Constants;
 import io.crate.action.sql.SQLActionException;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.table.ColumnPolicy;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
@@ -46,6 +46,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import static io.crate.metadata.table.ColumnPolicies.decodeMappingValue;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
@@ -390,7 +391,7 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
             XContentHelper.convertToMap(mappingStr.compressedReference(), false, XContentType.JSON);
         @SuppressWarnings("unchecked")
         Map<String, Object> mapping = (Map<String, Object>) typeAndMap.v2().get(Constants.DEFAULT_MAPPING_TYPE);
-        assertThat(String.valueOf(mapping.get("dynamic")), is(ColumnPolicy.STRICT.value()));
+        assertThat(decodeMappingValue(mapping.get("dynamic")), is(ColumnPolicy.STRICT));
 
         execute("insert into numbers (num, odd, prime) values (?, ?, ?)",
             new Object[]{6, true, false});
@@ -398,7 +399,7 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
 
         Map<String, Object> sourceMap = getSourceMap(
             new PartitionName(new RelationName("doc", "numbers"), Arrays.asList("true")).asIndexName());
-        assertThat(String.valueOf(sourceMap.get("dynamic")), is(ColumnPolicy.STRICT.value()));
+        assertThat(decodeMappingValue(sourceMap.get("dynamic")), is(ColumnPolicy.STRICT));
 
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("Column perfect unknown");
@@ -425,7 +426,7 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         Tuple<XContentType, Map<String, Object>> typeAndMap = XContentHelper.convertToMap(mappingStr.compressedReference(), false);
         @SuppressWarnings("unchecked")
         Map<String, Object> mapping = (Map<String, Object>) typeAndMap.v2().get(Constants.DEFAULT_MAPPING_TYPE);
-        assertThat(String.valueOf(mapping.get("dynamic")), is(ColumnPolicy.STRICT.value()));
+        assertThat(decodeMappingValue(mapping.get("dynamic")), is(ColumnPolicy.STRICT));
 
         execute("insert into numbers (num, odd, prime) values (?, ?, ?)",
             new Object[]{6, true, false});
@@ -433,7 +434,7 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
 
         Map<String, Object> sourceMap = getSourceMap(
             new PartitionName(new RelationName("doc", "numbers"), Arrays.asList("true")).asIndexName());
-        assertThat(String.valueOf(sourceMap.get("dynamic")), is(ColumnPolicy.STRICT.value()));
+        assertThat(decodeMappingValue(sourceMap.get("dynamic")), is(ColumnPolicy.STRICT));
 
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("Column perfect unknown");
@@ -526,13 +527,13 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         execute("alter table dynamic_table set (column_policy = 'dynamic')");
         waitNoPendingTasksOnAll();
         assertThat(
-            String.valueOf(getSourceMap("dynamic_table").get("dynamic")),
-            is(String.valueOf(ColumnPolicy.DYNAMIC.mappingValue())));
+            decodeMappingValue(getSourceMap("dynamic_table").get("dynamic")),
+            is(ColumnPolicy.DYNAMIC));
         execute("alter table dynamic_table reset (column_policy)");
         waitNoPendingTasksOnAll();
         assertThat(
-            String.valueOf(getSourceMap("dynamic_table").get("dynamic")),
-            is(String.valueOf(ColumnPolicy.STRICT.mappingValue())));
+            decodeMappingValue(getSourceMap("dynamic_table").get("dynamic")),
+            is(ColumnPolicy.STRICT));
     }
 
     @Test
@@ -549,11 +550,11 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         String indexName = new PartitionName(
             new RelationName("doc", "dynamic_table"), Arrays.asList("10.0")).asIndexName();
         Map<String, Object> sourceMap = getSourceMap(indexName);
-        assertThat(String.valueOf(sourceMap.get("dynamic")), is(String.valueOf(ColumnPolicy.DYNAMIC.mappingValue())));
+        assertThat(decodeMappingValue(sourceMap.get("dynamic")), is(ColumnPolicy.DYNAMIC));
         execute("alter table dynamic_table reset (column_policy)");
         waitNoPendingTasksOnAll();
         sourceMap = getSourceMap(indexName);
-        assertThat(String.valueOf(sourceMap.get("dynamic")), is(String.valueOf(ColumnPolicy.STRICT.mappingValue())));
+        assertThat(decodeMappingValue(sourceMap.get("dynamic")), is(ColumnPolicy.STRICT));
     }
 
     @Test
@@ -587,7 +588,7 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
             XContentHelper.convertToMap(mappingStr.compressedReference(), false, XContentType.JSON);
         @SuppressWarnings("unchecked")
         Map<String, Object> mapping = (Map<String, Object>) typeAndMap.v2().get(Constants.DEFAULT_MAPPING_TYPE);
-        assertThat(String.valueOf(mapping.get("dynamic")), is(String.valueOf(ColumnPolicy.DYNAMIC.mappingValue())));
+        assertThat(decodeMappingValue(mapping.get("dynamic")), is(ColumnPolicy.DYNAMIC));
 
         execute("insert into dynamic_table (id, score, new_col) values (?, ?, ?)",
             new Object[]{6, 3, "hello"});
@@ -596,15 +597,15 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
 
         Map<String, Object> sourceMap = getSourceMap(
             new PartitionName(new RelationName("doc", "dynamic_table"), Arrays.asList("10.0")).asIndexName());
-        assertThat(String.valueOf(sourceMap.get("dynamic")), is(String.valueOf(ColumnPolicy.DYNAMIC.mappingValue())));
+        assertThat(decodeMappingValue(sourceMap.get("dynamic")), is(ColumnPolicy.DYNAMIC));
 
         sourceMap = getSourceMap(new PartitionName(
             new RelationName("doc", "dynamic_table"), Arrays.asList("5.0")).asIndexName());
-        assertThat(String.valueOf(sourceMap.get("dynamic")), is(String.valueOf(ColumnPolicy.DYNAMIC.mappingValue())));
+        assertThat(decodeMappingValue(sourceMap.get("dynamic")), is(ColumnPolicy.DYNAMIC));
 
         sourceMap = getSourceMap(new PartitionName(
             new RelationName("doc", "dynamic_table"), Arrays.asList("3.0")).asIndexName());
-        assertThat(String.valueOf(sourceMap.get("dynamic")), is(String.valueOf(ColumnPolicy.DYNAMIC.mappingValue())));
+        assertThat(decodeMappingValue(sourceMap.get("dynamic")), is(ColumnPolicy.DYNAMIC));
     }
 
 }

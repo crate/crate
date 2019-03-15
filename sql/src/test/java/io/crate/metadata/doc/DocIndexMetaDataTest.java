@@ -22,9 +22,9 @@ import io.crate.metadata.IndexReference;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.view.ViewInfoFactory;
 import io.crate.sql.parser.SqlParser;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.Statement;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -1104,8 +1104,8 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
             .endObject()
             .endObject()
             .endObject();
-        DocIndexMetaData mdWrong = newMeta(getIndexMetaData("test_wrong", wrongBuilder), "test_wrong");
-        assertThat(mdWrong.columnPolicy(), is(ColumnPolicy.DYNAMIC));
+        expectedException.expectMessage("Invalid column policy: wrong");
+        newMeta(getIndexMetaData("test_wrong", wrongBuilder), "test_wrong");
     }
 
     @Test

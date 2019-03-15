@@ -25,6 +25,7 @@ import io.crate.common.collections.Maps;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.sql.parser.ParsingException;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
@@ -222,7 +223,7 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
         assertThat(columns.size(), is(2));
 
         AnalyzedColumnDefinition address = columns.get(0);
-        assertThat(address.objectType, is("strict"));
+        assertThat(address.objectType, is(ColumnPolicy.STRICT));
     }
 
     @Test
