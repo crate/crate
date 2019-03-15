@@ -28,6 +28,6 @@ include 'es',
         'enterprise:users',
         'enterprise:ssl-impl',
         'enterprise:functions',
+        'enterprise:licensing',
         'http',
-        'benchmarks',
-        'licensing'
+        'benchmarks'

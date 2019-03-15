@@ -1,0 +1,72 @@
+/*
+ * Licensed to Crate under one or more contributor license agreements.
+ * See the NOTICE file distributed with this work for additional
+ * information regarding copyright ownership.  Crate licenses this file
+ * to you under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.  You may
+ * obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied.  See the License for the specific language governing
+ * permissions and limitations under the License.
+ *
+ * However, if you have executed another commercial license agreement
+ * with Crate these terms will supersede the license and you may use the
+ * software solely pursuant to the terms of the relevant commercial
+ * agreement.
+ */
+
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.Paths
+
+// Allows us to run ./gradlew :enterprise:licensing:shadowJar
+// java -jar enterprise/licensing/build/libs/license.jar --key ...
+
+apply plugin: 'application'
+mainClassName = 'io.crate.license.LicenseTool'
+apply from: "$rootDir/enterprise/enterpriseModule.gradle"
+
+
+archivesBaseName = 'license'
+group = 'io.crate'
+description = 'CrateDB License Management'
+
+dependencies {
+    compile project(':es:es-core')
+    compile project(':common')
+    compile project(':sql')
+    testCompile project(':integration-testing')
+    testCompile project(path: ':sql', configuration: 'testOutput')
+    testCompile project(path: ':dex', configuration: 'testOutput')
+    testCompile "junit:junit:${versions.junit}"
+    testCompile("io.crate:crate-jdbc:${versions.crate_jdbc}") {
+        exclude group: 'net.java.dev.jna', module: 'jna'
+        exclude group: 'commons-logging', module: 'commons-logging'
+        exclude group: 'org.slf4j', module: 'jcl-over-slf4j'
+    }
+}
+
+processResources {
+  String cratePublicKey = System.getProperty("crate.public.key")
+  if (cratePublicKey != null) {
+    println "Processing provided crate public key ${cratePublicKey}"
+    if (Files.exists(Paths.get(cratePublicKey)) == false) {
+        throw new IllegalArgumentException('crate.public.key at specified path [' + cratePublicKey + '] does not exist')
+      }
+      from(cratePublicKey) {
+        rename { String filename -> 'public.key' }
+      }
+  } else {
+    println "No crate public key provided"
+  }
+}
+
+shadowJar {
+    // Ensure we'll end up in a file called `crate-license.jar` without any classifier suffix.
+    classifier = null
+}
