@@ -27,7 +27,8 @@ import com.google.common.collect.ImmutableSet;
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.metadata.settings.NumberOfReplicasSetting;
 import io.crate.metadata.settings.Validators;
-import io.crate.metadata.table.ColumnPolicy;
+import io.crate.metadata.table.ColumnPolicies;
+import io.crate.sql.tree.ColumnPolicy;
 import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.routing.UnassignedInfo;
@@ -72,14 +73,14 @@ public class TableParameterInfo {
     static final Setting<Integer> ALLOCATION_MAX_RETRIES = MaxRetryAllocationDecider.SETTING_ALLOCATION_MAX_RETRY;
     static final Setting<Integer> MAX_NGRAM_DIFF = IndexSettings.MAX_NGRAM_DIFF_SETTING;
     static final Setting<Integer> MAX_SHINGLE_DIFF = IndexSettings.MAX_SHINGLE_DIFF_SETTING;
-    static final Setting<Object> COLUMN_POLICY =
+    static final Setting<String> COLUMN_POLICY =
         new Setting<>(
-            new Setting.SimpleKey(ColumnPolicy.ES_MAPPING_NAME),
-            (s) -> ColumnPolicy.STRICT.value(),
-            (s) -> ColumnPolicy.byName(s).mappingValue(),
+            new Setting.SimpleKey(ColumnPolicies.ES_MAPPING_NAME),
+            s -> ColumnPolicy.STRICT.lowerCaseName(),
+            s -> ColumnPolicies.encodeMappingValue(ColumnPolicy.of(s)),
             (o, m) -> {
-                if (ColumnPolicy.IGNORED.mappingValue().equals(o)) {
-                    throw new IllegalArgumentException("Invalid value for argument '" + ColumnPolicy.CRATE_NAME + "'");
+                if (ColumnPolicies.encodeMappingValue(ColumnPolicy.IGNORED).equals(o)) {
+                    throw new IllegalArgumentException("Invalid value for argument '" + ColumnPolicies.CRATE_NAME + "'");
                 }
             },
             Setting.Property.IndexScope);

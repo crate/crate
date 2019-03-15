@@ -117,12 +117,12 @@ public class MetaDataToASTNodeResolver {
 
                 ColumnType columnType;
                 if (info.valueType().id() == ObjectType.ID) {
-                    columnType = new ObjectColumnType(info.columnPolicy().value(), extractColumnDefinitions(ident));
+                    columnType = new ObjectColumnType(info.columnPolicy().name(), extractColumnDefinitions(ident));
                 } else if (info.valueType().id() == ArrayType.ID) {
                     DataType innerType = ((CollectionType) info.valueType()).innerType();
                     ColumnType innerColumnType;
                     if (innerType.id() == ObjectType.ID) {
-                        innerColumnType = new ObjectColumnType(info.columnPolicy().value(), extractColumnDefinitions(ident));
+                        innerColumnType = new ObjectColumnType(info.columnPolicy().name(), extractColumnDefinitions(ident));
                     } else {
                         innerColumnType = new ColumnType(innerType.getName());
                     }
@@ -253,7 +253,7 @@ public class MetaDataToASTNodeResolver {
             }
             properties.add(new GenericProperty(
                 "column_policy",
-                new StringLiteral(tableInfo.columnPolicy().value())
+                new StringLiteral(tableInfo.columnPolicy().lowerCaseName())
             ));
             return properties;
         }

@@ -29,6 +29,8 @@ import com.google.common.collect.Sets;
 import io.crate.analyze.ddl.GeoSettingsApplier;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
+import io.crate.metadata.table.ColumnPolicies;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.Expression;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -70,8 +72,10 @@ public class AnalyzedColumnDefinition {
     private Reference.IndexType indexType;
     private String geoTree;
     private String analyzer;
+
     @VisibleForTesting
-    String objectType = "true"; // dynamic = true
+    ColumnPolicy objectType = ColumnPolicy.DYNAMIC;
+
     private boolean isPrimaryKey = false;
     private boolean isNotNull = false;
     private Settings analyzerSettings = Settings.EMPTY;
@@ -134,7 +138,7 @@ public class AnalyzedColumnDefinition {
         return this.dataType;
     }
 
-    void objectType(String objectType) {
+    void objectType(ColumnPolicy objectType) {
         this.objectType = objectType;
     }
 
@@ -277,7 +281,7 @@ public class AnalyzedColumnDefinition {
     }
 
     private void objectMapping(Map<String, Object> mapping) {
-        mapping.put("dynamic", objectType);
+        mapping.put("dynamic", ColumnPolicies.encodeMappingValue(objectType));
         Map<String, Object> childProperties = new HashMap<>();
         for (AnalyzedColumnDefinition child : children) {
             childProperties.put(child.name(), child.toMapping());

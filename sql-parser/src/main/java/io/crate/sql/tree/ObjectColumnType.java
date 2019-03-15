@@ -29,16 +29,16 @@ import java.util.Optional;
 
 public class ObjectColumnType extends ColumnType {
 
-    private final Optional<String> objectType;
+    private final Optional<ColumnPolicy> objectType;
     private final List<ColumnDefinition> nestedColumns;
 
     public ObjectColumnType(@Nullable String objectType, List<ColumnDefinition> nestedColumns) {
         super("object");
-        this.objectType = Optional.ofNullable(objectType);
+        this.objectType = objectType == null ? Optional.empty() : Optional.of(ColumnPolicy.of(objectType));
         this.nestedColumns = nestedColumns;
     }
 
-    public Optional<String> objectType() {
+    public Optional<ColumnPolicy> objectType() {
         return objectType;
     }
 

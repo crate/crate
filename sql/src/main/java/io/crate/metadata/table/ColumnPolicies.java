@@ -21,62 +21,48 @@
 
 package io.crate.metadata.table;
 
+import io.crate.sql.tree.ColumnPolicy;
 import org.elasticsearch.common.Booleans;
 
-import javax.annotation.Nullable;
-import java.util.Locale;
+import static io.crate.sql.tree.ColumnPolicy.DYNAMIC;
+import static io.crate.sql.tree.ColumnPolicy.IGNORED;
+import static io.crate.sql.tree.ColumnPolicy.STRICT;
 
-public enum ColumnPolicy {
-    DYNAMIC(true),
-    STRICT("strict"),
-    IGNORED(false);
+public final class ColumnPolicies {
 
     public static final String ES_MAPPING_NAME = "dynamic";
     public static final String CRATE_NAME = "column_policy";
 
-    private Object mappingValue;
-
-    ColumnPolicy(Object mappingValue) {
-        this.mappingValue = mappingValue;
-    }
-
-    public String value() {
-        return this.name().toLowerCase(Locale.ENGLISH);
-    }
-
-    /**
-     * get a column policy by its name (case insensitive)
-     */
-    public static ColumnPolicy byName(String name) {
-        return ColumnPolicy.valueOf(name.toUpperCase(Locale.ENGLISH));
-    }
-
-    /**
-     * get a column policy by its mapping value (true, false or 'strict')
-     */
-    public static ColumnPolicy of(@Nullable Object dynamic) {
-        return of(String.valueOf(dynamic));
-    }
-
-    public static ColumnPolicy of(String dynamic) {
-        if (Booleans.isTrue(dynamic)) {
+    public static ColumnPolicy decodeMappingValue(Object value) {
+        if (value == null) {
             return DYNAMIC;
         }
-        if (Booleans.isFalse(dynamic)) {
+        return decodeMappingValue(String.valueOf(value));
+    }
+
+    public static ColumnPolicy decodeMappingValue(String value) {
+        if (Booleans.isTrue(value)) {
+            return DYNAMIC;
+        }
+        if (Booleans.isFalse(value)) {
             return IGNORED;
         }
-        if (dynamic.equalsIgnoreCase("strict")) {
+        if (value.equalsIgnoreCase("strict")) {
             return STRICT;
         }
-        return DYNAMIC;
+        throw new IllegalArgumentException("Invalid column policy: " + value);
     }
 
-    /**
-     * returns the value to be used in an ES index mapping
-     * for the <code>dynamic</code> field
-     */
-    public Object mappingValue() {
-        return mappingValue;
+    public static String encodeMappingValue(ColumnPolicy columnPolicy) {
+        switch (columnPolicy) {
+            case DYNAMIC:
+                return String.valueOf(true);
+            case STRICT:
+                return "strict";
+            case IGNORED:
+                return String.valueOf(false);
+            default:
+                throw new AssertionError("Illegal columnPolicy: " + columnPolicy);
+        }
     }
-
 }

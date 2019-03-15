@@ -24,7 +24,7 @@ package io.crate.metadata;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.metadata.table.ColumnPolicy;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.SqlExpressions;

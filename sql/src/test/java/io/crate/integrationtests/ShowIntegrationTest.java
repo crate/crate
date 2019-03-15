@@ -95,15 +95,15 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
                 ")");
         execute("show create table test");
         assertRow("CREATE TABLE IF NOT EXISTS \"doc\".\"test\" (\n" +
-                  "   \"col_arr_obj_a\" ARRAY(OBJECT (DYNAMIC)),\n" +
-                  "   \"col_arr_obj_b\" ARRAY(OBJECT (STRICT) AS (\n" +
+                  "   \"col_arr_obj_a\" ARRAY(OBJECT(DYNAMIC)),\n" +
+                  "   \"col_arr_obj_b\" ARRAY(OBJECT(STRICT) AS (\n" +
                   "      \"id\" INTEGER\n" +
                   "   )),\n" +
                   "   \"col_arr_str\" ARRAY(STRING),\n" +
-                  "   \"col_obj_a\" OBJECT (DYNAMIC),\n" +
-                  "   \"col_obj_b\" OBJECT (DYNAMIC) AS (\n" +
+                  "   \"col_obj_a\" OBJECT(DYNAMIC),\n" +
+                  "   \"col_obj_b\" OBJECT(DYNAMIC) AS (\n" +
                   "      \"arr\" ARRAY(INTEGER),\n" +
-                  "      \"obj\" OBJECT (STRICT) AS (\n" +
+                  "      \"obj\" OBJECT(STRICT) AS (\n" +
                   "         \"id\" INTEGER,\n" +
                   "         \"name\" STRING\n" +
                   "      )\n" +
@@ -231,7 +231,7 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
                   "   \"day4\" TIMESTAMP GENERATED ALWAYS AS date_trunc('day', \"ts\"),\n" +
                   "   \"name\" STRING GENERATED ALWAYS AS concat(\"user\"['name'], 'foo'),\n" +
                   "   \"ts\" TIMESTAMP,\n" +
-                  "   \"user\" OBJECT (DYNAMIC) AS (\n" +
+                  "   \"user\" OBJECT(DYNAMIC) AS (\n" +
                   "      \"name\" STRING\n" +
                   "   )\n" +
                   ")");

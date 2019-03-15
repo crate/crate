@@ -36,9 +36,9 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.table.ColumnPolicy;
 import io.crate.sql.parser.ParsingException;
 import io.crate.sql.parser.SqlParser;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
@@ -231,7 +231,9 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         AlterTableAnalyzedStatement analysisSet = e.analyze(
             "ALTER TABLE user_refresh_interval " +
             "SET (column_policy = 'strict')");
-        assertEquals(ColumnPolicy.STRICT.mappingValue(),analysisSet.tableParameter().mappings().get(TableParameterInfo.COLUMN_POLICY.getKey()));
+        assertEquals(
+            ColumnPolicy.STRICT.lowerCaseName(),
+            analysisSet.tableParameter().mappings().get(TableParameterInfo.COLUMN_POLICY.getKey()));
     }
 
     @Test
