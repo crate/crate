@@ -51,8 +51,9 @@ import io.crate.expression.scalar.regex.RegexpReplaceFunction;
 import io.crate.expression.scalar.string.HashFunctions;
 import io.crate.expression.scalar.string.InitCapFunction;
 import io.crate.expression.scalar.string.LengthFunction;
-import io.crate.expression.scalar.string.StringCaseFunction;
 import io.crate.expression.scalar.string.ReplaceFunction;
+import io.crate.expression.scalar.string.StringCaseFunction;
+import io.crate.expression.scalar.string.TrimFunctions;
 import io.crate.expression.scalar.systeminformation.CurrentSchemaFunction;
 import io.crate.expression.scalar.systeminformation.CurrentSchemasFunction;
 import io.crate.expression.scalar.systeminformation.PgGetExpr;
@@ -125,6 +126,7 @@ public class ScalarFunctionModule extends AbstractModule {
 
         StringCaseFunction.register(this);
         InitCapFunction.register(this);
+        TrimFunctions.register(this);
 
         ConcatFunction.register(this);
 
