@@ -22,7 +22,7 @@
 package io.crate.udc.ping;
 
 import io.crate.http.HttpTestServer;
-import io.crate.license.DecryptedLicenseData;
+import io.crate.license.LicenseData;
 import io.crate.license.LicenseService;
 import io.crate.monitor.ExtendedNetworkInfo;
 import io.crate.monitor.ExtendedNodeInfo;
@@ -53,7 +53,7 @@ import static org.mockito.Mockito.when;
 
 public class PingTaskTest extends CrateDummyClusterServiceUnitTest {
 
-    static private DecryptedLicenseData LICENSE = new DecryptedLicenseData(
+    static private LicenseData LICENSE = new LicenseData(
         System.currentTimeMillis() + TimeUnit.DAYS.toMillis(30),
         "crate" ,
         3
@@ -168,6 +168,8 @@ public class PingTaskTest extends CrateDummyClusterServiceUnitTest {
             assertThat(Integer.parseInt(map.get("num_processors")), greaterThan(0));
             assertThat(map, hasKey("license_max_nodes"));
             assertThat(map.get("license_max_nodes"), is(String.valueOf(LICENSE.maxNumberOfNodes())));
+            assertThat(map, hasKey("enterprise_edition"));
+            assertThat(map.get("enterprise_edition"), is(String.valueOf(true)));
         }
     }
 
@@ -196,6 +198,8 @@ public class PingTaskTest extends CrateDummyClusterServiceUnitTest {
         assertThat(map, not(hasKey("license_expiry_date")));
         assertThat(map, not(hasKey("license_issued_to")));
         assertThat(map, not(hasKey("license_max_nodes")));
+        assertThat(map, hasKey("enterprise_edition"));
+        assertThat(map.get("enterprise_edition"), is(String.valueOf(false)));
     }
 
     @Test

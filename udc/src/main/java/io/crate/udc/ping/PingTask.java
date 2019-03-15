@@ -24,7 +24,7 @@ package io.crate.udc.ping;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
-import io.crate.license.DecryptedLicenseData;
+import io.crate.license.LicenseData;
 import io.crate.license.LicenseService;
 import io.crate.monitor.ExtendedNodeInfo;
 import io.crate.settings.SharedSettings;
@@ -129,11 +129,14 @@ public class PingTask extends TimerTask {
         queryMap.put("crate_version", Version.CURRENT.externalNumber());
         queryMap.put("java_version", System.getProperty("java.version"));
 
-        DecryptedLicenseData license = licenseService.currentLicense();
+        LicenseData license = licenseService.currentLicense();
         if (license != null) {
+            queryMap.put("enterprise_edition", String.valueOf(true));
             queryMap.put("license_expiry_date", String.valueOf(license.expiryDateInMs()));
             queryMap.put("license_issued_to", license.issuedTo());
             queryMap.put("license_max_nodes", String.valueOf(license.maxNumberOfNodes()));
+        } else {
+            queryMap.put("enterprise_edition", String.valueOf(false));
         }
 
         if (logger.isDebugEnabled()) {
