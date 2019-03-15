@@ -15,7 +15,6 @@ dependencies {
     compile project(':sql-parser')
     compile project(':udc')
     compile project(':ssl')
-    compile project(':licensing')
     compile "io.netty:netty-transport:${versions.netty4}"
     compile "io.netty:netty-codec:${versions.netty4}"
     compile "io.netty:netty-buffer:${versions.netty4}"

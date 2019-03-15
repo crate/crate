@@ -33,6 +33,6 @@ include 'es',
         'enterprise:ssl-impl',
         'enterprise:mqtt',
         'enterprise:functions',
+        'enterprise:licensing',
         'http',
-        'benchmarks',
-        'licensing'
+        'benchmarks'

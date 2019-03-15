@@ -22,7 +22,7 @@
 
 package io.crate.expression.reference.sys.cluster;
 
-import io.crate.license.DecryptedLicenseData;
+import io.crate.license.LicenseData;
 import io.crate.license.LicenseService;
 import io.crate.test.integration.CrateUnitTest;
 import org.junit.Before;
@@ -66,7 +66,7 @@ public class ClusterLicenseExpressionTest extends CrateUnitTest {
     @Test
     public void testExpressionValueReturnsLicenseFields() {
         when(licenseService.currentLicense())
-            .thenReturn(new DecryptedLicenseData(3L, "test", 2));
+            .thenReturn(new LicenseData(3L, "test", 2));
 
         Map<String, Object> expressionValues = licenseExpression.value();
         assertThat(expressionValues.size(), is(3));
@@ -78,7 +78,7 @@ public class ClusterLicenseExpressionTest extends CrateUnitTest {
     @Test
     public void testGetChild() {
         when(licenseService.currentLicense())
-            .thenReturn(new DecryptedLicenseData(3L, "test", 2));
+            .thenReturn(new LicenseData(3L, "test", 2));
 
         assertThat(licenseExpression.getChild(EXPIRY_DATE).value(), is(3L));
         assertThat(licenseExpression.getChild(ISSUED_TO).value(), is("test"));
@@ -88,9 +88,9 @@ public class ClusterLicenseExpressionTest extends CrateUnitTest {
     @Test
     public void testGetChildAfterValueCallReturnsUpdatedLicenseFields() {
         when(licenseService.currentLicense())
-            .thenReturn(new DecryptedLicenseData(3L, "test", 2))
-            .thenReturn(new DecryptedLicenseData(4L, "test2", 3))
-            .thenReturn(new DecryptedLicenseData(4L, "test2", 3));
+            .thenReturn(new LicenseData(3L, "test", 2))
+            .thenReturn(new LicenseData(4L, "test2", 3))
+            .thenReturn(new LicenseData(4L, "test2", 3));
 
         Map<String, Object> expressionValues = licenseExpression.value();
         assertThat(expressionValues.size(), is(3));

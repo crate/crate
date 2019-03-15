@@ -24,8 +24,8 @@ package io.crate.expression.reference.sys.cluster;
 
 import io.crate.expression.NestableInput;
 import io.crate.expression.reference.NestedObjectExpression;
-import io.crate.license.DecryptedLicenseData;
 import io.crate.license.LicenseService;
+import io.crate.license.LicenseData;
 import org.elasticsearch.common.inject.Inject;
 
 import java.util.Map;
@@ -46,16 +46,16 @@ public class ClusterLicenseExpression extends NestedObjectExpression {
 
     @Override
     public NestableInput getChild(String name) {
-        DecryptedLicenseData decryptedLicenseData = licenseService.currentLicense();
-        fillChildImplementations(decryptedLicenseData);
+        LicenseData licenseData = licenseService.currentLicense();
+        fillChildImplementations(licenseData);
         return super.getChild(name);
     }
 
-    private void fillChildImplementations(DecryptedLicenseData decryptedLicenseData) {
-        if (decryptedLicenseData != null) {
-            childImplementations.put(EXPIRY_DATE, () -> decryptedLicenseData.expiryDateInMs());
-            childImplementations.put(ISSUED_TO, () -> decryptedLicenseData.issuedTo());
-            childImplementations.put(MAX_NODES, () -> decryptedLicenseData.maxNumberOfNodes());
+    private void fillChildImplementations(LicenseData licenseData) {
+        if (licenseData != null) {
+            childImplementations.put(EXPIRY_DATE, licenseData::expiryDateInMs);
+            childImplementations.put(ISSUED_TO, licenseData::issuedTo);
+            childImplementations.put(MAX_NODES, licenseData::maxNumberOfNodes);
         } else {
             childImplementations.put(EXPIRY_DATE, () -> null);
             childImplementations.put(ISSUED_TO, () -> null);
@@ -65,12 +65,12 @@ public class ClusterLicenseExpression extends NestedObjectExpression {
 
     @Override
     public Map<String, Object> value() {
-        DecryptedLicenseData decryptedLicenseData = licenseService.currentLicense();
-        if (decryptedLicenseData == null) {
+        LicenseData licenseData = licenseService.currentLicense();
+        if (licenseData == null) {
             return null;
         }
 
-        fillChildImplementations(decryptedLicenseData);
+        fillChildImplementations(licenseData);
         return super.value();
     }
 }

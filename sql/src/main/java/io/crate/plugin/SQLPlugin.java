@@ -22,7 +22,6 @@
 package io.crate.plugin;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 import io.crate.action.sql.SQLOperations;
 import io.crate.analyze.repositories.RepositorySettingsModule;
 import io.crate.auth.AuthSettings;
@@ -47,6 +46,8 @@ import io.crate.expression.tablefunctions.TableFunctionModule;
 import io.crate.expression.udf.UserDefinedFunctionsMetaData;
 import io.crate.ingestion.IngestionModules;
 import io.crate.ingestion.IngestionService;
+import io.crate.license.CeLicenseModule;
+import io.crate.license.LicenseExtension;
 import io.crate.lucene.ArrayMapperService;
 import io.crate.metadata.DanglingArtifactsService;
 import io.crate.metadata.MetaDataModule;
@@ -106,6 +107,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
     private final Settings settings;
     private final UserExtension userExtension;
     private final IngestionModules ingestionModules;
+    private final LicenseExtension licenseExtension;
 
     @SuppressWarnings("WeakerAccess") // must be public for pluginLoader
     public SQLPlugin(Settings settings) {
@@ -113,9 +115,11 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
         if (ENTERPRISE_LICENSE_SETTING.setting().get(settings)) {
             userExtension = EnterpriseLoader.loadSingle(UserExtension.class);
             ingestionModules = EnterpriseLoader.loadSingle(IngestionModules.class);
+            licenseExtension = EnterpriseLoader.loadSingle(LicenseExtension.class);
         } else {
             userExtension = null;
             ingestionModules = null;
+            licenseExtension = null;
         }
     }
 
@@ -174,21 +178,23 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
 
     @Override
     public Collection<Class<? extends LifecycleComponent>> getGuiceServiceClasses() {
-        List<Class<? extends LifecycleComponent>> serviceClasses = Lists.newArrayList(
-            DecommissioningService.class,
-            NodeDisconnectJobMonitorService.class,
-            PostgresNetty.class,
-            TasksService.class,
-            Schemas.class,
-            ArrayMapperService.class,
-            IngestionService.class,
-            DanglingArtifactsService.class);
-
+        ImmutableList.Builder<Class<? extends LifecycleComponent>> builder =
+            ImmutableList.<Class<? extends LifecycleComponent>>builder()
+            .add(DecommissioningService.class)
+            .add(NodeDisconnectJobMonitorService.class)
+            .add(PostgresNetty.class)
+            .add(TasksService.class)
+            .add(Schemas.class)
+            .add(ArrayMapperService.class)
+            .add(IngestionService.class)
+            .add(DanglingArtifactsService.class);
         if (ingestionModules != null) {
-            serviceClasses.addAll(ingestionModules.getServiceClasses());
+            builder.addAll(ingestionModules.getServiceClasses());
         }
-
-        return ImmutableList.copyOf(serviceClasses);
+        if (licenseExtension != null) {
+            builder.addAll(licenseExtension.getGuiceServiceClasses());
+        }
+        return builder.build();
     }
 
     @Override
@@ -223,9 +229,13 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
         } else {
             modules.add(new UserFallbackModule());
         }
-
         if (ingestionModules != null) {
             modules.addAll(ingestionModules.getModules());
+        }
+        if (licenseExtension != null) {
+            modules.addAll(licenseExtension.getModules(settings));
+        } else {
+            modules.add(new CeLicenseModule());
         }
         return modules;
     }
@@ -276,6 +286,9 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
         if (userExtension != null) {
             entries.addAll(userExtension.getNamedWriteables());
         }
+        if (licenseExtension != null) {
+            entries.addAll(licenseExtension.getNamedWriteables());
+        }
         return entries;
     }
 
@@ -300,6 +313,9 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
 
         if (userExtension != null) {
             entries.addAll(userExtension.getNamedXContent());
+        }
+        if (licenseExtension != null) {
+            entries.addAll(licenseExtension.getNamedXContent());
         }
         return entries;
     }
