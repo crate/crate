@@ -21,12 +21,11 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
 
 import java.util.List;
+import java.util.Objects;
 
-public class PartitionedBy extends CrateTableOption {
+public final class PartitionedBy extends Node {
 
     private final List<Expression> columns;
 
@@ -50,14 +49,14 @@ public class PartitionedBy extends CrateTableOption {
 
         PartitionedBy that = (PartitionedBy) o;
 
-        if (columns != null ? !columns.equals(that.columns) : that.columns != null) return false;
-
-        return true;
+        return Objects.equals(columns, that.columns);
     }
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this).add("columns", columns).toString();
+        return "PartitionedBy{" +
+               "columns=" + columns +
+               '}';
     }
 
     @Override

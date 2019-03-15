@@ -36,7 +36,6 @@ import io.crate.sql.tree.ColumnConstraint;
 import io.crate.sql.tree.ColumnDefinition;
 import io.crate.sql.tree.ColumnStorageDefinition;
 import io.crate.sql.tree.ColumnType;
-import io.crate.sql.tree.CrateTableOption;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GenericProperties;
@@ -217,21 +216,21 @@ public class MetaDataToASTNodeResolver {
             return elements;
         }
 
-        private List<CrateTableOption> extractTableOptions() {
-            List<CrateTableOption> options = new ArrayList<>();
-            // CLUSTERED BY (...) INTO ... SHARDS
-            Expression clusteredByExpression = null;
-            ColumnIdent clusteredBy = tableInfo.clusteredBy();
-            if (clusteredBy != null && !clusteredBy.isSystemColumn()) {
-                clusteredByExpression = expressionFromColumn(clusteredBy);
+        private Optional<PartitionedBy> createPartitionedBy() {
+            if (tableInfo.partitionedBy().isEmpty()) {
+                return Optional.empty();
+            } else {
+                return Optional.of(new PartitionedBy(expressionsFromColumns(tableInfo.partitionedBy())));
             }
+        }
+
+        private Optional<ClusteredBy> createClusteredBy() {
+            ColumnIdent clusteredByColumn = tableInfo.clusteredBy();
+            Expression clusteredBy = clusteredByColumn == null || clusteredByColumn.isSystemColumn()
+                ? null
+                : expressionFromColumn(clusteredByColumn);
             Expression numShards = new LongLiteral(Integer.toString(tableInfo.numberOfShards()));
-            options.add(new ClusteredBy(Optional.ofNullable(clusteredByExpression), Optional.of(numShards)));
-            // PARTITIONED BY (...)
-            if (tableInfo.isPartitioned() && !tableInfo.partitionedBy().isEmpty()) {
-                options.add(new PartitionedBy(expressionsFromColumns(tableInfo.partitionedBy())));
-            }
-            return options;
+            return Optional.of(new ClusteredBy(Optional.ofNullable(clusteredBy), Optional.of(numShards)));
         }
 
         private GenericProperties extractTableProperties() {
@@ -263,8 +262,9 @@ public class MetaDataToASTNodeResolver {
         private CreateTable extractCreateTable() {
             Table table = extractTable();
             List<TableElement> tableElements = extractTableElements();
-            List<CrateTableOption> tableOptions = extractTableOptions();
-            return new CreateTable(table, tableElements, tableOptions, extractTableProperties(), true);
+            Optional<PartitionedBy> partitionedBy = createPartitionedBy();
+            Optional<ClusteredBy> clusteredBy = createClusteredBy();
+            return new CreateTable(table, tableElements, partitionedBy, clusteredBy, extractTableProperties(), true);
         }
 
         private Expression expressionFromColumn(ColumnIdent ident) {

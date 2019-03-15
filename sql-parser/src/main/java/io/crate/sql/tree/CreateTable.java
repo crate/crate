@@ -21,28 +21,29 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
-
 import java.util.List;
+import java.util.Optional;
 
-public class CreateTable extends Statement {
+public final class CreateTable extends Statement {
 
     private final Table name;
     private final List<TableElement> tableElements;
+    private final Optional<PartitionedBy> partitionedBy;
+    private final Optional<ClusteredBy> clusteredBy;
     private final boolean ifNotExists;
-    private final List<CrateTableOption> crateTableOptions;
     private final GenericProperties properties;
 
     public CreateTable(Table name,
                        List<TableElement> tableElements,
-                       List<CrateTableOption> crateTableOptions,
+                       Optional<PartitionedBy> partitionedBy,
+                       Optional<ClusteredBy> clusteredBy,
                        GenericProperties genericProperties,
                        boolean ifNotExists) {
         this.name = name;
         this.tableElements = tableElements;
+        this.partitionedBy = partitionedBy;
+        this.clusteredBy = clusteredBy;
         this.ifNotExists = ifNotExists;
-        this.crateTableOptions = crateTableOptions;
         this.properties = genericProperties;
     }
 
@@ -58,8 +59,12 @@ public class CreateTable extends Statement {
         return tableElements;
     }
 
-    public List<CrateTableOption> crateTableOptions() {
-        return crateTableOptions;
+    public Optional<ClusteredBy> clusteredBy() {
+        return clusteredBy;
+    }
+
+    public Optional<PartitionedBy> partitionedBy() {
+        return partitionedBy;
     }
 
     public GenericProperties properties() {
@@ -72,33 +77,40 @@ public class CreateTable extends Statement {
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hashCode(name, tableElements, crateTableOptions, properties, ifNotExists);
-    }
-
-    @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
         CreateTable that = (CreateTable) o;
 
-        if (!name.equals(that.name)) return false;
         if (ifNotExists != that.ifNotExists) return false;
-        if (!crateTableOptions.equals(that.crateTableOptions)) return false;
+        if (!name.equals(that.name)) return false;
         if (!tableElements.equals(that.tableElements)) return false;
-        if (!properties.equals(that.properties)) return false;
+        if (!partitionedBy.equals(that.partitionedBy)) return false;
+        if (!clusteredBy.equals(that.clusteredBy)) return false;
+        return properties.equals(that.properties);
+    }
 
-        return true;
+    @Override
+    public int hashCode() {
+        int result = name.hashCode();
+        result = 31 * result + tableElements.hashCode();
+        result = 31 * result + partitionedBy.hashCode();
+        result = 31 * result + clusteredBy.hashCode();
+        result = 31 * result + (ifNotExists ? 1 : 0);
+        result = 31 * result + properties.hashCode();
+        return result;
     }
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("name", name)
-            .add("tableElements", tableElements)
-            .add("crateTableOptions", crateTableOptions)
-            .add("ifNotExists", ifNotExists)
-            .add("properties", properties).toString();
+        return "CreateTable{" +
+               "name=" + name +
+               ", tableElements=" + tableElements +
+               ", partitionedBy=" + partitionedBy +
+               ", clusteredBy=" + clusteredBy +
+               ", ifNotExists=" + ifNotExists +
+               ", properties=" + properties +
+               '}';
     }
 }

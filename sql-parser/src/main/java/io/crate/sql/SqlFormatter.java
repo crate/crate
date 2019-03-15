@@ -34,7 +34,6 @@ import io.crate.sql.tree.ColumnDefinition;
 import io.crate.sql.tree.ColumnStorageDefinition;
 import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.CopyFrom;
-import io.crate.sql.tree.CrateTableOption;
 import io.crate.sql.tree.CreateFunction;
 import io.crate.sql.tree.CreateSnapshot;
 import io.crate.sql.tree.CreateTable;
@@ -88,6 +87,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.TreeMap;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
@@ -364,15 +364,16 @@ public final class SqlFormatter {
             builder.append(" ");
             appendNestedNodeList(node.tableElements(), indent);
 
-            if (!node.crateTableOptions().isEmpty()) {
+            Optional<ClusteredBy> clusteredBy = node.clusteredBy();
+            if (clusteredBy.isPresent()) {
                 builder.append("\n");
-                int count = 0, max = node.crateTableOptions().size();
-                for (CrateTableOption option : node.crateTableOptions()) {
-                    option.accept(this, indent);
-                    if (++count < max) builder.append("\n");
-                }
+                clusteredBy.get().accept(this, indent);
             }
-
+            Optional<PartitionedBy> partitionedBy = node.partitionedBy();
+            if (partitionedBy.isPresent()) {
+                builder.append("\n");
+                partitionedBy.get().accept(this, indent);
+            }
             if (!node.properties().isEmpty()) {
                 builder.append("\n");
                 node.properties().accept(this, indent);
