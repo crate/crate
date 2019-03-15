@@ -84,7 +84,6 @@ import org.elasticsearch.plugins.ActionPlugin;
 import org.elasticsearch.plugins.ClusterPlugin;
 import org.elasticsearch.plugins.MapperPlugin;
 import org.elasticsearch.plugins.Plugin;
-import org.elasticsearch.search.SearchModule;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -109,18 +108,6 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
         } else {
             userExtension = null;
         }
-    }
-
-    @Override
-    public Settings additionalSettings() {
-        Settings.Builder settingsBuilder = Settings.builder();
-
-        // Set maxClauses to 8192 for Boolean queries so that we allow the != ANY()
-        // to operate on arrays with more than 1024 elements which is the ES default value for this setting.
-        if (SearchModule.INDICES_MAX_CLAUSE_COUNT_SETTING.exists(settings) == false) {
-            settingsBuilder.put(SearchModule.INDICES_MAX_CLAUSE_COUNT_SETTING.getKey(), 8192);
-        }
-        return settingsBuilder.build();
     }
 
     @Override

@@ -22,7 +22,6 @@
 
 package org.elasticsearch.node.internal;
 
-import io.crate.Constants;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.common.io.PathUtils;
 import org.elasticsearch.common.network.NetworkModule;
@@ -45,6 +44,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.isIn;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
@@ -88,11 +88,7 @@ public class CrateSettingsPreparerTest {
         CrateSettingsPreparer.applyCrateDefaults(builder);
 
         assertThat(builder.get(NetworkModule.TRANSPORT_TYPE_DEFAULT_KEY), is(Netty4Plugin.NETTY_TRANSPORT_NAME));
-        assertThat(builder.get(HttpTransportSettings.SETTING_HTTP_PORT.getKey()), is(Constants.HTTP_PORT_RANGE));
-        assertThat(builder.get(PORT.getKey()), is(Constants.TRANSPORT_PORT_RANGE));
         assertThat(builder.get(NetworkService.GLOBAL_NETWORK_HOST_SETTING.getKey()), is(NetworkService.DEFAULT_NETWORK_HOST));
-
-        assertThat(builder.get(ClusterName.CLUSTER_NAME_SETTING.getKey()), is("crate"));
         assertThat(builder.get(Node.NODE_NAME_SETTING.getKey()), isIn(CrateSettingsPreparer.nodeNames()));
     }
 
@@ -139,16 +135,6 @@ public class CrateSettingsPreparerTest {
         Path config = PathUtils.get(getClass().getResource("config").toURI());
         Settings finalSettings = CrateSettingsPreparer.prepareEnvironment(settings, config).settings();
         assertThat(finalSettings.get("cluster.name"), is("clusterName"));
-    }
-
-    @Test
-    public void testClusterNameMissingFromBothConfigFileAndCommandLineArgs() throws Exception {
-        HashMap<String, String> settings = new HashMap<>();
-        settings.put("path.home", ".");
-        settings.put("cluster.name", "elasticsearch");
-        Path config = PathUtils.get(getClass().getResource("config").toURI());
-        Settings finalSettings = CrateSettingsPreparer.prepareEnvironment(settings, config).settings();
-        assertThat(finalSettings.get("cluster.name"), is("crate"));
     }
 
     @Test

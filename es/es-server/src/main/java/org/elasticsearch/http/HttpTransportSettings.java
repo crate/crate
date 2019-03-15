@@ -65,7 +65,7 @@ public final class HttpTransportSettings {
         listSetting("http.bind_host", SETTING_HTTP_HOST, Function.identity(), Property.NodeScope);
 
     public static final Setting<PortsRange> SETTING_HTTP_PORT =
-        new Setting<>("http.port", "9200-9300", PortsRange::new, Property.NodeScope);
+        new Setting<>("http.port", "4200-4300", PortsRange::new, Property.NodeScope);
     public static final Setting<Integer> SETTING_HTTP_PUBLISH_PORT =
         Setting.intSetting("http.publish_port", -1, -1, Property.NodeScope);
     public static final Setting<Boolean> SETTING_HTTP_DETAILED_ERRORS_ENABLED =
