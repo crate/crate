@@ -26,7 +26,6 @@ import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.ImmutableSortedSet;
 import io.crate.Constants;
 import io.crate.analyze.NumberOfReplicas;
@@ -64,9 +63,11 @@ import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -86,8 +87,7 @@ public class DocIndexMetaData {
     private final ImmutableSortedSet.Builder<Reference> columnsBuilder = ImmutableSortedSet.orderedBy(
         Comparator.comparing(o -> o.column().fqn()));
 
-    // columns should be ordered
-    private final ImmutableMap.Builder<ColumnIdent, Reference> referencesBuilder = ImmutableSortedMap.naturalOrder();
+    private final List<Reference> nestedColumns = new ArrayList<>();
     private final ImmutableList.Builder<Reference> partitionedByColumnsBuilder = ImmutableList.builder();
     private final ImmutableList.Builder<GeneratedReference> generatedColumnReferencesBuilder = ImmutableList.builder();
 
@@ -99,11 +99,11 @@ public class DocIndexMetaData {
     private final Map<String, Object> indicesMap;
     private final List<List<String>> partitionedByList;
     private final Set<Operation> supportedOperations;
-    private ImmutableList<Reference> columns;
+    private Collection<Reference> columns;
     private ImmutableMap<ColumnIdent, IndexReference> indices;
     private ImmutableList<Reference> partitionedByColumns;
     private ImmutableList<GeneratedReference> generatedColumnReferences;
-    private ImmutableMap<ColumnIdent, Reference> references;
+    private Map<ColumnIdent, Reference> references;
     private ImmutableList<ColumnIdent> primaryKey;
     private ImmutableCollection<ColumnIdent> notNullColumns;
     private ColumnIdent routingCol;
@@ -185,10 +185,11 @@ public class DocIndexMetaData {
 
         // don't add it if there is a partitioned equivalent of this column
         if (partitioned || !(partitionedBy != null && partitionedBy.contains(column))) {
-            if (ref.column().isTopLevel()) {
+            if (column.isTopLevel()) {
                 columnsBuilder.add(ref);
+            } else {
+                nestedColumns.add(ref);
             }
-            referencesBuilder.put(ref.column(), ref);
             if (ref instanceof GeneratedReference) {
                 generatedColumnReferencesBuilder.add((GeneratedReference) ref);
             }
@@ -210,7 +211,6 @@ public class DocIndexMetaData {
             treeLevels,
             distanceErrorPct);
         columnsBuilder.add(info);
-        referencesBuilder.put(column, info);
     }
 
     private ReferenceIdent refIdent(ColumnIdent column) {
@@ -543,10 +543,19 @@ public class DocIndexMetaData {
         columnPolicy = getColumnPolicy();
         createColumnDefinitions();
         indices = createIndexDefinitions();
-        columns = ImmutableList.copyOf(columnsBuilder.build());
+        columns = columnsBuilder.build();
         partitionedByColumns = partitionedByColumnsBuilder.build();
-        DocSysColumns.forTable(ident, referencesBuilder::put);
-        references = referencesBuilder.build();
+        references = new LinkedHashMap<>();
+        DocSysColumns.forTable(ident, references::put);
+        nestedColumns.sort(Comparator.comparing((Reference r) -> r.column().fqn()));
+        for (Reference ref : columns) {
+            references.put(ref.column(), ref);
+            for (Reference nestedColumn : nestedColumns) {
+                if (nestedColumn.column().getRoot().equals(ref.column())) {
+                    references.put(nestedColumn.column(), nestedColumn);
+                }
+            }
+        }
         generatedColumnReferences = generatedColumnReferencesBuilder.build();
         primaryKey = getPrimaryKey();
         routingCol = getRoutingCol();
@@ -555,11 +564,11 @@ public class DocIndexMetaData {
         return this;
     }
 
-    public ImmutableMap<ColumnIdent, Reference> references() {
+    public Map<ColumnIdent, Reference> references() {
         return references;
     }
 
-    public ImmutableList<Reference> columns() {
+    public Collection<Reference> columns() {
         return columns;
     }
 
