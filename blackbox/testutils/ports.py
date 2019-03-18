@@ -28,7 +28,7 @@ def bind_port(addr='127.0.0.1', port=0):
 def _bind_range(addr, size):
     start = bind_port(addr)
     yield start
-    end = start + size
+    end = start + size + 1
     for i in range(start + 1, end):
         yield bind_port(addr, i)
 
