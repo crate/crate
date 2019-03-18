@@ -50,11 +50,13 @@ import org.junit.Test;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
@@ -649,8 +651,11 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
             .endObject();
         IndexMetaData metaData = getIndexMetaData("test_notnull_columns", builder);
         DocIndexMetaData md = newMeta(metaData, "test_notnull_columns");
-        assertThat(md.columns().get(0).isNullable(), is(false));
-        assertThat(md.columns().get(1).isNullable(), is(false));
+
+        assertThat(
+            md.columns().stream().map(Reference::isNullable).collect(Collectors.toList()),
+            contains(false, false)
+        );
     }
 
     @Test
@@ -876,18 +881,19 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
                 .endObject()
             .endObject();
         DocIndexMetaData md = newMeta(getIndexMetaData("test_analyzer", builder), "test_analyzer");
-        assertThat(md.columns().size(), is(2));
-        assertThat(md.columns().get(0).indexType(), is(Reference.IndexType.ANALYZED));
-        assertThat(md.columns().get(0).column().fqn(), is("content_de"));
-        assertThat(md.columns().get(1).indexType(), is(Reference.IndexType.ANALYZED));
-        assertThat(md.columns().get(1).column().fqn(), is("content_en"));
+        List<Reference> columns = new ArrayList<>(md.columns());
+        assertThat(columns.size(), is(2));
+        assertThat(columns.get(0).indexType(), is(Reference.IndexType.ANALYZED));
+        assertThat(columns.get(0).column().fqn(), is("content_de"));
+        assertThat(columns.get(1).indexType(), is(Reference.IndexType.ANALYZED));
+        assertThat(columns.get(1).column().fqn(), is("content_en"));
     }
 
     @Test
     public void testGeoPointType() throws Exception {
         DocIndexMetaData md = getDocIndexMetaDataFromStatement("create table foo (p geo_point)");
         assertThat(md.columns().size(), is(1));
-        Reference reference = md.columns().get(0);
+        Reference reference = md.columns().iterator().next();
         assertThat(reference.valueType(), equalTo(DataTypes.GEO_POINT));
     }
 
@@ -1244,7 +1250,7 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
         DocIndexMetaData metaData = getDocIndexMetaDataFromStatement(
             "create table t (tags array(string) index using fulltext)");
 
-        Reference reference = metaData.columns().get(0);
+        Reference reference = metaData.columns().iterator().next();
         assertThat(reference.valueType(), equalTo(new ArrayType(DataTypes.STRING)));
     }
 
@@ -1319,6 +1325,6 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
     public void testColumnStoreBooleanIsParsedCorrectly() throws Exception {
         DocIndexMetaData md = getDocIndexMetaDataFromStatement(
             "create table t1 (x string STORAGE WITH (columnstore = false))");
-        assertThat(md.columns().get(0).isColumnStoreDisabled(), is(true));
+        assertThat(md.columns().iterator().next().isColumnStoreDisabled(), is(true));
     }
 }
