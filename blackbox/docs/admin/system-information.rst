@@ -1496,14 +1496,22 @@ should pass.
    with future versions of CrateDB. For this reason, you should create a new
    snapshot for each of your tables. (See :ref:`snapshot-restore`.)
 
-License expiry check
-....................
+License check
+.............
 
-This check warns you when your license is close to expiration. It will yield a
-``MEDIUM`` alert when your license is valid for less than 15 days and a
-``HIGH`` alert when your license is valid for less than a day.
-It's highly recommended you request a new license when this check triggers in
-order to avoid the situation where operations are rejected due to an invalid license.
+This check warns you when your license is close to expiration, is already
+expired, or if the cluster contains more nodes than allowed by your license. It
+will yield a ``MEDIUM`` alert when your license is valid for less than 15 days
+and a ``HIGH`` alert when your license is valid for less than a day.
+All other cases, like `already expired` or `max-nodes-violation`, it will result
+in a ``HIGH`` alert.
+We recommend that you request a new license when this check triggers in order to
+avoid the situation where operations are rejected due to an invalid license.
+
+.. NOTE::
+
+   This check is not active when running the CrateDB Community Edition as no
+   license is supported.
 
 .. _sys-health:
 
