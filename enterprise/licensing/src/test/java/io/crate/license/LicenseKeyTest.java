@@ -37,7 +37,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.stream.IntStream;
 
-import static io.crate.license.LicenseKey.LicenseType;
+import static io.crate.license.License.Type;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
@@ -62,10 +62,10 @@ public class LicenseKeyTest extends CrateUnitTest {
     }
 
     @Test
-    public void testDecodeErrorOnFirstReadIntResultsInMeaningfulError() {
+    public void testDecodeErrorOnFirstReadIntResultsInMeaningfulError() throws Exception {
         LicenseKey licenseKey = new LicenseKey("foo");
         expectedException.expectMessage("The provided license key has an invalid format");
-        LicenseKey.decodeLicense(licenseKey);
+        LicenseKey.decode(licenseKey);
     }
 
     @Test
@@ -112,10 +112,7 @@ public class LicenseKeyTest extends CrateUnitTest {
     @Test
     public void testCreateLicenseKeyDoesNotProduceNullKey() {
         LicenseKey licenseKey =
-            LicenseKey.createLicenseKey(
-                LicenseType.TRIAL,
-                LicenseKey.VERSION,
-                "testLicense".getBytes(StandardCharsets.UTF_8));
+            LicenseKey.encode(Type.TRIAL, LicenseKey.VERSION, "testLicense".getBytes(StandardCharsets.UTF_8));
         assertThat(licenseKey, is(notNullValue()));
     }
 
@@ -124,29 +121,29 @@ public class LicenseKeyTest extends CrateUnitTest {
         expectedException.expect(InvalidLicenseException.class);
         expectedException.expectMessage("Invalid License Type");
 
-        LicenseKey.createLicenseKey(LicenseType.of(-2), LicenseKey.VERSION, "testLicense".getBytes(StandardCharsets.UTF_8));
+        LicenseKey.encode(Type.of(-2), LicenseKey.VERSION, "testLicense".getBytes(StandardCharsets.UTF_8));
     }
 
     @Test
-    public void testDecodeLicense() {
-        DecodedLicense decodedLicense = LicenseKey.decodeLicense(createLicenseKey());
+    public void testDecodeLicense() throws Exception {
+        License decodedLicense = LicenseKey.decode(createLicenseKey());
 
         assertThat(decodedLicense, is(notNullValue()));
-        assertThat(decodedLicense.type(), is(LicenseType.TRIAL));
+        assertThat(decodedLicense.type(), is(Type.TRIAL));
         assertThat(decodedLicense.version(), is(1));
     }
 
     @Test
-    public void testDecodeTooLongLicenseRaisesException() {
+    public void testDecodeTooLongLicenseRaisesException() throws Exception {
         byte[] largeContent = new byte[LicenseKey.MAX_LICENSE_CONTENT_LENGTH + 1];
         IntStream.range(0, LicenseKey.MAX_LICENSE_CONTENT_LENGTH + 1).forEach(i -> largeContent[i] = 15);
 
         // adjust first bytes to match a valid license type
         ByteBuffer largeContentBuffer = ByteBuffer.wrap(largeContent);
-        largeContentBuffer.putInt(LicenseType.TRIAL.value());
+        largeContentBuffer.putInt(Type.TRIAL.value());
 
         expectedException.expect(InvalidLicenseException.class);
         expectedException.expectMessage("The provided license key exceeds the maximum length of " + LicenseKey.MAX_LICENSE_CONTENT_LENGTH);
-        LicenseKey.decodeLicense(new LicenseKey(new String(Base64.getEncoder().encode(largeContentBuffer.array()))));
+        LicenseKey.decode(new LicenseKey(new String(Base64.getEncoder().encode(largeContentBuffer.array()))));
     }
 }
