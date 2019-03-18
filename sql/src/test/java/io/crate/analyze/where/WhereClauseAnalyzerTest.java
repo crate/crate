@@ -169,8 +169,6 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         return analyzeSelect(stmt);
     }
 
-
-
     @Test
     public void testSelectWherePartitionedByColumn() throws Exception {
         WhereClause whereClause = analyzeSelectWhere("select id from parted where date = 1395874800000");
