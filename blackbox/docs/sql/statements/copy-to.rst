@@ -34,6 +34,13 @@ The created files are JSON formatted and contain one table row per line and,
 due to the distributed nature of CrateDB, *will remain on the same nodes*
 *where the shards are*.
 
+Here's an example:
+
+::
+
+    cr> COPY quotes TO DIRECTORY '/tmp/' with (compression='gzip');
+    COPY OK, 3 rows affected ...
+
 .. NOTE::
 
    Currently only user tables can be exported. System tables like ``sys.nodes``
@@ -74,6 +81,23 @@ The resulting string should be a valid URI of one of the supporting schemes:
 
 If no scheme is given (e.g.: '/path/to/dir') the default uri-scheme ``file://``
 will be used.
+
+.. NOTE::
+
+    If you are using Microsoft Windows, you must include the drive letter in
+    the file URI.
+
+    For example, the above file URI should instead be written as
+    ``file://C:\/tmp/import_data/quotes.json``.
+
+    Consult the `Windows documentation`_ for more information.
+
+.. TIP::
+
+    If you are running CrateDB inside a container (e.g., you are running
+    CrateDB on Docker) the file URI must point to a file inside the container.
+
+    You may have to configure a new `Docker volume`_ to accomplish this.
 
 .. NOTE::
 
@@ -162,6 +186,8 @@ Possible values for the ``format`` settings are:
   array per line in an output file. This is the default behavior if
   columns are defined.
 
+.. _Amazon S3: http://aws.amazon.com/s3/
+.. _Docker volume: https://docs.docker.com/storage/volumes/
 .. _gzip: http://www.gzip.org/
-.. _`Amazon S3`: http://aws.amazon.com/s3/
 .. _NFS: http://en.wikipedia.org/wiki/Network_File_System
+.. _Windows documentation: https://docs.microsoft.com/en-us/dotnet/standard/io/file-path-formats
