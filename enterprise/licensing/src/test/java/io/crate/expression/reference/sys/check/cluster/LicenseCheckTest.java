@@ -49,7 +49,7 @@ public class LicenseCheckTest extends CrateDummyClusterServiceUnitTest {
 
     @After
     public void assertSettingDeprecation() {
-        assertSettingDeprecationsAndWarnings(new Setting[] {SharedSettings.ENTERPRISE_LICENSE_SETTING.setting() });
+        assertSettingDeprecationsAndWarnings(new Setting[]{SharedSettings.ENTERPRISE_LICENSE_SETTING.setting()});
     }
 
     @Test
@@ -63,29 +63,41 @@ public class LicenseCheckTest extends CrateDummyClusterServiceUnitTest {
             System.currentTimeMillis() + TimeUnit.DAYS.toMillis(30), "test", 2);
         when(licenseService.getLicenseState()).thenReturn(LicenseService.LicenseState.VALID);
         when(licenseService.currentLicense()).thenReturn(thirtyDaysLicense);
+
+        assertThat(licenseCheck.severity(), is(SysCheck.Severity.LOW));
         assertThat(licenseCheck.validate(), is(true));
+        assertThat(licenseCheck.description(), is(
+            "Your CrateDB license is valid. Enjoy CrateDB!"));
     }
 
     @Test
     public void testLessThanFifteenDaysToExpiryTriggersMediumCheck() {
-        LicenseData sevenDaysLicense = new LicenseData(
+        LicenseData license = new LicenseData(
             System.currentTimeMillis() + TimeUnit.DAYS.toMillis(7), "test", 2);
 
-        when(licenseService.getLicenseState()).thenReturn(LicenseService.LicenseState.EXPIRED);
-        when(licenseService.currentLicense()).thenReturn(sevenDaysLicense);
+        when(licenseService.getLicenseState()).thenReturn(LicenseService.LicenseState.VALID);
+        when(licenseService.currentLicense()).thenReturn(license);
+
         assertThat(licenseCheck.validate(), is(false));
         assertThat(licenseCheck.severity(), is(SysCheck.Severity.MEDIUM));
+        assertThat(licenseCheck.description(), is("Your CrateDB license will expire in 6 days. For more information " +
+                                                  "on Licensing please visit: https://crate.io/license-update For more information " +
+                                                  "on Cluster Checks please visit: https://cr8.is/d-cluster-check-6"));
     }
 
     @Test
-    public void testLessThanOneDayToExpiryTriggersSevereCheck() {
-        LicenseData sevenDaysLicense = new LicenseData(
+    public void testLessThanOneDayToExpiryTriggersSeverityHigh() {
+        LicenseData license = new LicenseData(
             System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(15), "test", 2);
+        when(licenseService.getLicenseState()).thenReturn(LicenseService.LicenseState.VALID);
+        when(licenseService.currentLicense()).thenReturn(license);
 
-        when(licenseService.getLicenseState()).thenReturn(LicenseService.LicenseState.EXPIRED);
-        when(licenseService.currentLicense()).thenReturn(sevenDaysLicense);
         assertThat(licenseCheck.validate(), is(false));
         assertThat(licenseCheck.severity(), is(SysCheck.Severity.HIGH));
+        assertThat(licenseCheck.description(), is(
+            "Your CrateDB license will expire in 14 minutes. For more information " +
+            "on Licensing please visit: https://crate.io/license-update For more information " +
+            "on Cluster Checks please visit: https://cr8.is/d-cluster-check-6"));
     }
 
     @Test
@@ -94,14 +106,36 @@ public class LicenseCheckTest extends CrateDummyClusterServiceUnitTest {
             System.currentTimeMillis() + TimeUnit.DAYS.toMillis(40), "test", 2);
         when(licenseService.currentLicense()).thenReturn(license);
         when(licenseService.getLicenseState()).thenReturn(LicenseService.LicenseState.MAX_NODES_VIOLATED);
+
         assertThat(licenseCheck.validate(), is(false));
         assertThat(licenseCheck.severity(), is(SysCheck.Severity.HIGH));
+        assertThat(licenseCheck.description(), is(
+            "The license is limited to 2 nodes, but there are 1 nodes in the cluster." +
+            " To upgrade your license visit https://crate.io/license-update/ For more information" +
+            " visit: https://cr8.is/d-cluster-check-6"));
+    }
+
+    @Test
+    public void testLicenseExpired() {
+        LicenseData license = new LicenseData(0, "test", 2);
+
+        when(licenseService.getLicenseState()).thenReturn(LicenseService.LicenseState.EXPIRED);
+        when(licenseService.currentLicense()).thenReturn(license);
+
+        assertThat(licenseCheck.validate(), is(false));
+        assertThat(licenseCheck.severity(), is(SysCheck.Severity.HIGH));
+        assertThat(licenseCheck.description(), is(
+            "Your CrateDB license has expired. For more information on " +
+            "Licensing please visit: https://crate.io/license-update/?license=expired " +
+            "For more information on Cluster Checks please visit: https://cr8.is/d-cluster-check-6"));
     }
 
     @Test
     public void testCheckIsAlwaysValidWhenEnterpriseIsDisabled() {
         Settings settings = Settings.builder().put("license.enterprise", false).build();
         LicenseCheck expiryCheckNoEnterprise = new LicenseCheck(settings, mock(LicenseService.class), clusterService);
+
         assertThat(expiryCheckNoEnterprise.validate(), is(true));
+        assertThat(licenseCheck.description(), is("CrateDB enterprise is not enabled. Enjoy the community edition!"));
     }
 }
