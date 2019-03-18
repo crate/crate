@@ -1,0 +1,3 @@
+#!/bin/bash
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+CRATE_CE=1 $DIR/../.venv/bin/python -m unittest -v --failfast test_licensing

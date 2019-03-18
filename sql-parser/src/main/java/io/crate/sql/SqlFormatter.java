@@ -542,7 +542,9 @@ public final class SqlFormatter {
         public Void visitObjectColumnType(ObjectColumnType node, Integer indent) {
             builder.append("OBJECT");
             if (node.objectType().isPresent()) {
-                builder.append(String.format(Locale.ENGLISH, " (%s)", node.objectType().get().toUpperCase(Locale.ENGLISH)));
+                builder.append('(');
+                builder.append(node.objectType().get().name());
+                builder.append(')');
             }
             if (!node.nestedColumns().isEmpty()) {
                 builder.append(" AS ");

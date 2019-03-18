@@ -34,9 +34,9 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.blob.BlobTableInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
-import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.ShardedTable;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 import org.elasticsearch.Version;
@@ -185,9 +185,9 @@ public class InformationTablesTableInfo extends InformationTableInfo {
             .put(InformationTablesTableInfo.Columns.COLUMN_POLICY,
                 () -> NestableCollectExpression.forFunction(row -> {
                     if (row instanceof DocTableInfo) {
-                        return ((DocTableInfo) row).columnPolicy().value();
+                        return ((DocTableInfo) row).columnPolicy().lowerCaseName();
                     }
-                    return ColumnPolicy.STRICT.value();
+                    return ColumnPolicy.STRICT.lowerCaseName();
                 }))
             .put(InformationTablesTableInfo.Columns.BLOBS_PATH,
                 () -> NestableCollectExpression.forFunction(row -> {

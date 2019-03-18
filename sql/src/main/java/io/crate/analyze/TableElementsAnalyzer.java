@@ -34,6 +34,7 @@ import io.crate.sql.tree.ArrayLiteral;
 import io.crate.sql.tree.CollectionColumnType;
 import io.crate.sql.tree.ColumnConstraint;
 import io.crate.sql.tree.ColumnDefinition;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.ColumnStorageDefinition;
 import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.DefaultTraversalVisitor;
@@ -150,7 +151,7 @@ public class TableElementsAnalyzer {
                             if (parentRef.valueType().equals(new ArrayType(ObjectType.untyped()))) {
                                 parent.collectionType("array");
                             } else {
-                                parent.objectType(String.valueOf(parentRef.columnPolicy().mappingValue()));
+                                parent.objectType(parentRef.columnPolicy());
                             }
                         }
                     }
@@ -186,20 +187,7 @@ public class TableElementsAnalyzer {
         @Override
         public Void visitObjectColumnType(ObjectColumnType node, ColumnDefinitionContext context) {
             context.analyzedColumnDefinition.dataType(node.name());
-
-            switch (node.objectType().orElse("dynamic").toLowerCase(Locale.ENGLISH)) {
-                case "dynamic":
-                    context.analyzedColumnDefinition.objectType("true");
-                    break;
-                case "strict":
-                    context.analyzedColumnDefinition.objectType("strict");
-                    break;
-                case "ignored":
-                    context.analyzedColumnDefinition.objectType("false");
-                    break;
-                default:
-            }
-
+            context.analyzedColumnDefinition.objectType(node.objectType().orElse(ColumnPolicy.DYNAMIC));
             for (ColumnDefinition columnDefinition : node.nestedColumns()) {
                 ColumnDefinitionContext childContext = new ColumnDefinitionContext(
                     context.analyzedColumnDefinition,

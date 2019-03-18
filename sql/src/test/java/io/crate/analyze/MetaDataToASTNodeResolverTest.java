@@ -63,7 +63,7 @@ public class MetaDataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
         CreateTable node = MetaDataToASTNodeResolver.resolveCreateTable(tableInfo);
         assertEquals("CREATE TABLE IF NOT EXISTS \"doc\".\"test\" (\n" +
                      "   \"arr_geo_point\" ARRAY(GEO_POINT),\n" +
-                     "   \"arr_obj\" ARRAY(OBJECT (STRICT) AS (\n" +
+                     "   \"arr_obj\" ARRAY(OBJECT(STRICT) AS (\n" +
                      "      \"col_1\" LONG,\n" +
                      "      \"col_2\" STRING\n" +
                      "   )),\n" +
@@ -75,7 +75,7 @@ public class MetaDataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
                      "   \"ints\" INTEGER,\n" +
                      "   \"ip_addr\" IP,\n" +
                      "   \"longs\" LONG,\n" +
-                     "   \"obj\" OBJECT (DYNAMIC) AS (\n" +
+                     "   \"obj\" OBJECT(DYNAMIC) AS (\n" +
                      "      \"col_1\" LONG,\n" +
                      "      \"col_2\" STRING\n" +
                      "   ),\n" +
@@ -280,7 +280,7 @@ public class MetaDataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
                      "      analyzer = 'standard'\n" +
                      "   ),\n" +
                      "   \"col_c\" STRING INDEX OFF,\n" +
-                     "   \"col_d\" OBJECT (DYNAMIC) AS (\n" +
+                     "   \"col_d\" OBJECT(DYNAMIC) AS (\n" +
                      "      \"a\" STRING\n" +
                      "   ),\n" +
                      "   \"id\" LONG,\n" +

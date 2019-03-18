@@ -44,6 +44,8 @@ import io.crate.expression.reference.sys.cluster.SysClusterExpressionModule;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.tablefunctions.TableFunctionModule;
 import io.crate.expression.udf.UserDefinedFunctionsMetaData;
+import io.crate.license.LicenseExtension;
+import io.crate.license.CeLicenseModule;
 import io.crate.lucene.ArrayMapperService;
 import io.crate.metadata.DanglingArtifactsService;
 import io.crate.metadata.MetaDataModule;
@@ -99,14 +101,17 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
 
     private final Settings settings;
     private final UserExtension userExtension;
+    private final LicenseExtension licenseExtension;
 
     @SuppressWarnings("WeakerAccess") // must be public for pluginLoader
     public SQLPlugin(Settings settings) {
         this.settings = settings;
         if (ENTERPRISE_LICENSE_SETTING.setting().get(settings)) {
             userExtension = EnterpriseLoader.loadSingle(UserExtension.class);
+            licenseExtension = EnterpriseLoader.loadSingle(LicenseExtension.class);
         } else {
             userExtension = null;
+            licenseExtension = null;
         }
     }
 
@@ -144,14 +149,19 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
 
     @Override
     public Collection<Class<? extends LifecycleComponent>> getGuiceServiceClasses() {
-        return ImmutableList.of(
-            DecommissioningService.class,
-            NodeDisconnectJobMonitorService.class,
-            PostgresNetty.class,
-            TasksService.class,
-            Schemas.class,
-            ArrayMapperService.class,
-            DanglingArtifactsService.class);
+        ImmutableList.Builder<Class<? extends LifecycleComponent>> builder =
+            ImmutableList.<Class<? extends LifecycleComponent>>builder()
+            .add(DecommissioningService.class)
+            .add(NodeDisconnectJobMonitorService.class)
+            .add(PostgresNetty.class)
+            .add(TasksService.class)
+            .add(Schemas.class)
+            .add(ArrayMapperService.class)
+            .add(DanglingArtifactsService.class);
+        if (licenseExtension != null) {
+            builder.addAll(licenseExtension.getGuiceServiceClasses());
+        }
+        return builder.build();
     }
 
     @Override
@@ -185,6 +195,11 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
             modules.addAll(userExtension.getModules(settings));
         } else {
             modules.add(new UserFallbackModule());
+        }
+        if (licenseExtension != null) {
+            modules.addAll(licenseExtension.getModules(settings));
+        } else {
+            modules.add(new CeLicenseModule());
         }
         return modules;
     }
@@ -225,6 +240,9 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
         if (userExtension != null) {
             entries.addAll(userExtension.getNamedWriteables());
         }
+        if (licenseExtension != null) {
+            entries.addAll(licenseExtension.getNamedWriteables());
+        }
         return entries;
     }
 
@@ -244,6 +262,9 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
 
         if (userExtension != null) {
             entries.addAll(userExtension.getNamedXContent());
+        }
+        if (licenseExtension != null) {
+            entries.addAll(licenseExtension.getNamedXContent());
         }
         return entries;
     }
