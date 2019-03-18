@@ -427,15 +427,18 @@ Example CSV data::
 For further information, including how to import data to
 :ref:`partitioned_tables`, take a look at the :ref:`copy_from` reference.
 
-Import From a File URI
-......................
+Example
+.......
 
 .. highlight:: psql
 
-An example import from a file URI::
+Here's an example statement::
 
     cr> COPY quotes FROM 'file:///tmp/import_data/quotes.json';
     COPY OK, 3 rows affected (... sec)
+
+This statement imports data from the ``/tmp/import_data/quotes.json`` file and
+uses it to create a table named ``quotes``.
 
 .. Hidden: delete imported data
 
@@ -443,11 +446,6 @@ An example import from a file URI::
     REFRESH OK, 1 row affected (... sec)
     cr> delete from quotes;
     DELETE OK, 3 rows affected (... sec)
-
-.. NOTE::
-
-    If you are using Microsoft Windows, you must include the drive letter in
-    the file URI. Consult the `Windows documentation`_ for more information.
 
 If all files inside a directory should be imported a ``*`` wildcard has to be
 used::
@@ -544,30 +542,29 @@ and shard ID with gzip compression:
 
 .. Hidden: import data
 
-   cr> refresh table quotes;
+   cr> REFRESH TABLE quotes;
    REFRESH OK...
-   cr> copy quotes from '/tmp/import_data/*';
+   cr> COPY quotes FROM '/tmp/import_data/*';
    COPY OK, 3 rows affected (... sec)
 
 ::
 
-    cr> refresh table quotes;
+    cr> REFRESH TABLE quotes;
     REFRESH OK...
 
 ::
 
-    cr> copy quotes to DIRECTORY '/tmp/' with (compression='gzip');
+    cr> COPY quotes TO DIRECTORY '/tmp/' with (compression='gzip');
     COPY OK, 3 rows affected ...
 
 Instead of exporting a whole table, rows can be filtered by an optional WHERE
 clause condition. This is useful if only a subset of the data needs to be
 exported::
 
-    cr> copy quotes where match(quote_ft, 'time') to DIRECTORY '/tmp/' with (compression='gzip');
+    cr> COPY quotes WHERE match(quote_ft, 'time') TO DIRECTORY '/tmp/' WITH (compression='gzip');
     COPY OK, 2 rows affected ...
 
 For further details see :ref:`copy_to`.
 
-.. _`crate-python`: https://pypi.python.org/pypi/crate/
+.. _crate-python: https://pypi.python.org/pypi/crate/
 .. _PCRE: http://www.pcre.org/
-.. _Windows documentation: https://docs.microsoft.com/en-us/dotnet/standard/io/file-path-formats

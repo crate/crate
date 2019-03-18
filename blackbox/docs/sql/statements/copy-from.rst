@@ -37,6 +37,13 @@ import.
 The nodes in the cluster will attempt to read the files available at the URI
 and import the data.
 
+Here's an example:
+
+::
+
+    cr> COPY quotes FROM 'file:///tmp/import_data/quotes.json';
+    COPY OK, 3 rows affected (... sec)
+
 Supported Formats
 -----------------
 
@@ -90,11 +97,6 @@ URI
 A string literal or array of string literals containing URIs. Each URI must be
 formatted according to the `URI Scheme`_.
 
-.. NOTE::
-
-    If you are using Microsoft Windows, you must include the drive letter in
-    the file URI. Consult the `Windows documentation`_ for more information.
-
 In case the URI scheme is missing the value is assumed to be a file path and
 will be converted to a ``file://`` URI implicitly.
 
@@ -102,13 +104,13 @@ For example:
 
 .. code-block:: text
 
-    /tmp folder/file.json
+    `/tmp folder/file.json`
 
-Is converted to:
+Will be converted to:
 
 .. code-block:: text
 
-    'file:///tmp%20folder/file.json'
+    `file:///tmp%20folder/file.json`
 
 Supported Schemes
 -----------------
@@ -123,6 +125,23 @@ there.
 By default each node will attempt to read the files specified. In case the URI
 points to a shared folder (where other CrateDB nodes also have access) the
 ``shared`` option must be set to true in order to avoid importing duplicates.
+
+.. NOTE::
+
+    If you are using Microsoft Windows, you must include the drive letter in
+    the file URI.
+
+    For example, the above file URI should instead be written as
+    ``file://C:\/tmp/import_data/quotes.json``.
+
+    Consult the `Windows documentation`_ for more information.
+
+.. TIP::
+
+    If you are running CrateDB inside a container (e.g., you are running
+    CrateDB on Docker) the file URI must point to a file inside the container.
+
+    You may have to configure a new `Docker volume`_ to accomplish this.
 
 .. _copy_from_s3:
 
@@ -341,12 +360,13 @@ inserted records.
 |                                       | error occurred.                                |               |
 +---------------------------------------+------------------------------------------------+---------------+
 
-.. _`AWS documentation`: http://docs.aws.amazon.com/AmazonS3/latest/dev/RESTAuthentication.html
-.. _`AWS Java Documentation`: http://docs.aws.amazon.com/AmazonS3/latest/dev/AuthUsingAcctOrUserCredJava.html
-.. _`RFC2396`: http://www.ietf.org/rfc/rfc2396.txt
-.. _`URI Scheme`: https://en.wikipedia.org/wiki/URI_scheme
-.. _`URL encoded`: https://en.wikipedia.org/wiki/Percent-encoding
+.. _AWS documentation: http://docs.aws.amazon.com/AmazonS3/latest/dev/RESTAuthentication.html
+.. _AWS Java Documentation: http://docs.aws.amazon.com/AmazonS3/latest/dev/AuthUsingAcctOrUserCredJava.html
+.. _Docker volume: https://docs.docker.com/storage/volumes/
 .. _GeoJSON: http://geojson.org/
+.. _RFC2396: http://www.ietf.org/rfc/rfc2396.txt
+.. _URI Scheme: https://en.wikipedia.org/wiki/URI_scheme
+.. _URL encoded: https://en.wikipedia.org/wiki/Percent-encoding
 .. _URL: http://docs.oracle.com/javase/8/docs/api/java/net/URL.html
 .. _Windows documentation: https://docs.microsoft.com/en-us/dotnet/standard/io/file-path-formats
 .. _WKT: http://en.wikipedia.org/wiki/Well-known_text
