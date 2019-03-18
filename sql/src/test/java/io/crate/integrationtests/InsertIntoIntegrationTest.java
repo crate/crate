@@ -592,7 +592,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(13L));
 
         for (int i = 0; i < rowsOriginal.length; i++) {
-            rowsOriginal[i][5] = (long) ((int) rowsOriginal[i][5]);
+            rowsOriginal[i][4] = (long) ((int) rowsOriginal[i][4]);
         }
         assertThat(response.rows(), is(rowsOriginal));
     }
@@ -831,7 +831,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
         refresh();
 
-        execute("select * from custom.destination order by city");
+        execute("select city, name, zipcode from custom.destination order by city");
         assertThat(printedTable(response.rows()), is(
             "Berlin| Schulz| 10243\n" +
             "Leipzig| Dings| 14713\n" +

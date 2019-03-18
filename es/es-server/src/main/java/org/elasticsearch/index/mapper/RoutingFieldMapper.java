@@ -141,7 +141,7 @@ public class RoutingFieldMapper extends MetadataFieldMapper {
     }
 
     private RoutingFieldMapper(MappedFieldType fieldType, boolean required, Settings indexSettings) {
-        super(NAME, fieldType, Defaults.FIELD_TYPE, indexSettings);
+        super(NAME, null, fieldType, Defaults.FIELD_TYPE, indexSettings);
         this.required = required;
     }
 

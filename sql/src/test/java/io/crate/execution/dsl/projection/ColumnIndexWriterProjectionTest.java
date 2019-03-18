@@ -22,14 +22,14 @@
 
 package io.crate.execution.dsl.projection;
 
+import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
-import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.RowGranularity;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.RowGranularity;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.Settings;
@@ -101,10 +101,10 @@ public class ColumnIndexWriterProjectionTest {
     }
 
     private Reference ref(ColumnIdent column, DataType type) {
-        return new Reference(new ReferenceIdent(relationName, column), RowGranularity.DOC, type);
+        return new Reference(new ReferenceIdent(relationName, column), RowGranularity.DOC, type, null);
     }
 
     private Reference partitionRef(ColumnIdent column, DataType type) {
-        return new Reference(new ReferenceIdent(relationName, column), RowGranularity.PARTITION, type);
+        return new Reference(new ReferenceIdent(relationName, column), RowGranularity.PARTITION, type, null);
     }
 }

@@ -374,8 +374,9 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
         Map<String, Object> mappingProperties = analysis.mappingProperties();
         assertThat(mapToSortedString(mappingProperties),
-            is("details={inner={dynamic=true, properties={age={type=integer}, name={type=keyword}, " +
-               "tags={inner={type=keyword}, type=array}}, type=object}, type=array}, id={type=integer}"));
+            is("details={inner={dynamic=true, position=2, properties={age={type=integer}, name={type=keyword}, " +
+               "tags={inner={type=keyword}, type=array}}, type=object}, type=array}, " +
+               "id={position=1, type=integer}"));
     }
 
     @Test
@@ -1068,7 +1069,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         CreateTableAnalyzedStatement analysis = e.analyze(
             "create table columnstore_disabled (s string STORAGE WITH (columnstore = false))");
         Map<String, Object> mappingProperties = analysis.mappingProperties();
-        assertThat(mapToSortedString(mappingProperties), is("s={doc_values=false, type=keyword}"));
+        assertThat(mapToSortedString(mappingProperties), is("s={doc_values=false, position=1, type=keyword}"));
     }
 
     @Test
@@ -1098,7 +1099,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         assertThat(c.formattedGeneratedExpression(), is("2"));
         assertThat(stmt.analyzedTableElements().toMapping().toString(),
             is("{_meta={generated_columns={obj.c=2}}, " +
-               "properties={obj={dynamic=true, type=object, properties={c={type=long}}}}}"));
+               "properties={obj={dynamic=true, position=1, type=object, properties={c={type=long}}}}}"));
     }
 
     @Test

@@ -60,7 +60,7 @@ public class FetchPhaseTest {
         tableIndices.put(new RelationName(Schemas.DOC_SCHEMA_NAME, "i2"), "i2_s2");
 
         ReferenceIdent nameIdent = new ReferenceIdent(t1, "name");
-        Reference name = new Reference(nameIdent, RowGranularity.DOC, DataTypes.STRING);
+        Reference name = new Reference(nameIdent, RowGranularity.DOC, DataTypes.STRING, null);
 
         FetchPhase orig = new FetchPhase(
             1,

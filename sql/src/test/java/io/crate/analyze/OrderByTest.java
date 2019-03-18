@@ -40,7 +40,7 @@ public class OrderByTest extends CrateUnitTest {
     private static final RelationName TI = new RelationName("doc", "people");
 
     private Reference ref(String name) {
-        return new Reference(new ReferenceIdent(TI, name), RowGranularity.DOC, DataTypes.STRING);
+        return new Reference(new ReferenceIdent(TI, name), RowGranularity.DOC, DataTypes.STRING, null);
     }
 
     @Test

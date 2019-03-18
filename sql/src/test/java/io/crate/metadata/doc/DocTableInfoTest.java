@@ -31,7 +31,12 @@ public class DocTableInfoTest extends CrateUnitTest {
         DocTableInfo info = new DocTableInfo(
             relationName,
             ImmutableList.of(
-                new Reference(new ReferenceIdent(relationName, new ColumnIdent("o", ImmutableList.of())), RowGranularity.DOC, ObjectType.untyped())
+                new Reference(
+                    new ReferenceIdent(relationName, new ColumnIdent("o", ImmutableList.of())),
+                    RowGranularity.DOC,
+                    ObjectType.untyped(),
+                    null
+                )
             ),
             ImmutableList.of(),
             ImmutableList.of(),
@@ -76,7 +81,8 @@ public class DocTableInfoTest extends CrateUnitTest {
             ObjectType.untyped(),
             ColumnPolicy.STRICT,
             Reference.IndexType.NOT_ANALYZED,
-            true
+            true,
+            null
         );
 
         ImmutableMap<ColumnIdent, Reference> references = ImmutableMap.<ColumnIdent, Reference>builder()

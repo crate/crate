@@ -116,7 +116,7 @@ public final class IgnoredFieldMapper extends MetadataFieldMapper {
     }
 
     private IgnoredFieldMapper(Settings indexSettings) {
-        super(NAME, Defaults.FIELD_TYPE, Defaults.FIELD_TYPE, indexSettings);
+        super(NAME, null, Defaults.FIELD_TYPE, Defaults.FIELD_TYPE, indexSettings);
     }
 
     @Override

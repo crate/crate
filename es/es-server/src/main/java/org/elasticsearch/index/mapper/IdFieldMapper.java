@@ -245,7 +245,7 @@ public class IdFieldMapper extends MetadataFieldMapper {
     }
 
     private IdFieldMapper(MappedFieldType fieldType, IndexSettings indexSettings) {
-        super(NAME, fieldType, defaultFieldType(indexSettings), indexSettings.getSettings());
+        super(NAME, null, fieldType, defaultFieldType(indexSettings), indexSettings.getSettings());
     }
 
     @Override
