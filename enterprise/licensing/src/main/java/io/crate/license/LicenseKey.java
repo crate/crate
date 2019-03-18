@@ -38,32 +38,6 @@ public class LicenseKey extends AbstractNamedDiffable<MetaData.Custom> implement
 
     public static final String WRITEABLE_TYPE = "license";
 
-    enum LicenseType {
-        TRIAL(0),
-        ENTERPRISE(1);
-
-        private int value;
-
-        LicenseType(int value) {
-            this.value = value;
-        }
-
-        static LicenseType of(int value) {
-            switch (value) {
-                case 0:
-                    return LicenseType.TRIAL;
-                case 1:
-                    return LicenseType.ENTERPRISE;
-                default:
-                    throw new InvalidLicenseException("Invalid License Type of value: " + value);
-            }
-        }
-
-        int value() {
-            return value;
-        }
-    }
-
     static final int VERSION = 2;
 
     // limit the maximum license content number of bytes (this can vary based on the algorithm used for encryption and
@@ -84,15 +58,15 @@ public class LicenseKey extends AbstractNamedDiffable<MetaData.Custom> implement
         return licenseKey;
     }
 
-    public static DecodedLicense decodeLicense(LicenseKey licenseKey) {
+    public static License decode(LicenseKey licenseKey) throws IOException {
         byte[] keyBytes = Base64.getDecoder().decode(licenseKey.licenseKey());
-        LicenseType licenseType;
+        License.Type type;
         ByteBuffer byteBuffer;
         int version;
         int contentLength;
         try {
             byteBuffer = ByteBuffer.wrap(keyBytes);
-            licenseType = LicenseType.of(byteBuffer.getInt());
+            type = License.Type.of(byteBuffer.getInt());
             version = byteBuffer.getInt();
             contentLength = byteBuffer.getInt();
         } catch (InvalidLicenseException e) {
@@ -105,7 +79,14 @@ public class LicenseKey extends AbstractNamedDiffable<MetaData.Custom> implement
         }
         byte[] contentBytes = new byte[contentLength];
         byteBuffer.get(contentBytes);
-        return new DecodedLicense(licenseType, version, contentBytes);
+
+        switch (type) {
+            case ENTERPRISE:
+                return new EnterpriseLicense(version, contentBytes);
+            case TRIAL:
+            default:
+                return new TrialLicense(version, contentBytes);
+        }
     }
 
     /**
@@ -114,10 +95,10 @@ public class LicenseKey extends AbstractNamedDiffable<MetaData.Custom> implement
      *      base64Encode(licenseType, version, contentLength, content)
      *
      */
-    static LicenseKey createLicenseKey(LicenseType licenseType, int version, byte[] content) {
+    static LicenseKey encode(License.Type type, int version, byte[] content) {
         byte[] bytes = new byte[3 * Integer.BYTES + content.length];
         ByteBuffer byteBuffer = ByteBuffer.wrap(bytes);
-        byteBuffer.putInt(licenseType.value())
+        byteBuffer.putInt(type.value())
             .putInt(version)
             .putInt(content.length)
             .put(content);

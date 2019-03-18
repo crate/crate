@@ -18,29 +18,39 @@
 
 package io.crate.license;
 
-import static io.crate.license.LicenseKey.LicenseType;
+import io.crate.license.exception.InvalidLicenseException;
 
-public class DecodedLicense {
+public interface License {
 
-    private final LicenseType type;
-    private final int version;
-    private final byte[] encryptedContent;
+    enum Type {
+        TRIAL(0),
+        ENTERPRISE(1);
 
-    DecodedLicense(LicenseType type, int version, byte[] encryptedContent) {
-        this.type = type;
-        this.version = version;
-        this.encryptedContent = encryptedContent;
+        private final int value;
+
+        Type(int value) {
+            this.value = value;
+        }
+
+        static Type of(int value) {
+            switch (value) {
+                case 0:
+                    return TRIAL;
+                case 1:
+                    return ENTERPRISE;
+                default:
+                    throw new InvalidLicenseException("Invalid License Type of value: " + value);
+            }
+        }
+
+        int value() {
+            return value;
+        }
     }
 
-    public LicenseType type() {
-        return type;
-    }
+    Type type();
 
-    public int version() {
-        return version;
-    }
+    int version();
 
-    byte[] encryptedContent() {
-        return encryptedContent;
-    }
+    LicenseData licenseData();
 }
