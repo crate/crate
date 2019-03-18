@@ -38,9 +38,8 @@ import java.util.concurrent.TimeUnit;
 
 import static io.crate.license.EnterpriseLicenseService.MAX_NODES_FOR_V1_LICENSES;
 import static io.crate.license.EnterpriseLicenseService.UNLIMITED_EXPIRY_DATE_IN_MS;
-import static io.crate.license.EnterpriseLicenseService.licenseData;
 import static io.crate.license.LicenseConverterTest.createV1JsonLicense;
-import static io.crate.license.LicenseKey.LicenseType;
+import static io.crate.license.License.Type;
 import static io.crate.license.LicenseKey.VERSION;
 import static java.util.concurrent.TimeUnit.DAYS;
 import static java.util.concurrent.TimeUnit.HOURS;
@@ -63,14 +62,14 @@ public class LicenseServiceTest extends CrateDummyClusterServiceUnitTest {
 
     private static LicenseKey createEnterpriseLicenseKey(int version, LicenseData licenseData) {
         byte[] encryptedContent = encrypt(LicenseConverter.toJson(licenseData), getPrivateKey());
-        return LicenseKey.createLicenseKey(LicenseType.ENTERPRISE,
+        return LicenseKey.encode(Type.ENTERPRISE,
             version,
             encryptedContent);
     }
 
     private static LicenseKey createV1EnterpriseLicenseKey(long expiryDateInMs, String issuedTo) {
         byte[] encryptedContent = encrypt(createV1JsonLicense(expiryDateInMs, issuedTo), getPrivateKey());
-        return LicenseKey.createLicenseKey(LicenseType.ENTERPRISE,
+        return LicenseKey.encode(Type.ENTERPRISE,
             1,
             encryptedContent);
     }
@@ -98,7 +97,7 @@ public class LicenseServiceTest extends CrateDummyClusterServiceUnitTest {
     public void testGetLicenseDataForTrialLicenseKeyProduceValidValues() throws IOException {
         LicenseKey key = TrialLicense.createLicenseKey(VERSION,
             new LicenseData(Long.MAX_VALUE, "test", 3));
-        LicenseData licenseData = licenseData(LicenseKey.decodeLicense(key));
+        LicenseData licenseData = LicenseKey.decode(key).licenseData();
 
         assertThat(licenseData.expiryDateInMs(), Matchers.is(Long.MAX_VALUE));
         assertThat(licenseData.issuedTo(), Matchers.is("test"));
@@ -108,7 +107,7 @@ public class LicenseServiceTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testGetLicenseDataForTrialLicenseKeyV1ProduceValidValues() throws IOException {
         LicenseKey key = createV1TrialLicenseKey(Long.MAX_VALUE, "test");
-        LicenseData licenseData = licenseData(LicenseKey.decodeLicense(key));
+        LicenseData licenseData = LicenseKey.decode(key).licenseData();
 
         assertThat(licenseData.expiryDateInMs(), Matchers.is(Long.MAX_VALUE));
         assertThat(licenseData.issuedTo(), Matchers.is("test"));
@@ -119,7 +118,7 @@ public class LicenseServiceTest extends CrateDummyClusterServiceUnitTest {
     public void testGetLicenseDataForEnterpriseLicenseKeyProduceValidValues() throws IOException {
         LicenseKey key = createEnterpriseLicenseKey(VERSION,
             new LicenseData(Long.MAX_VALUE, "test", 20));
-        LicenseData licenseData = licenseData(LicenseKey.decodeLicense(key));
+        LicenseData licenseData = LicenseKey.decode(key).licenseData();
 
         assertThat(licenseData.expiryDateInMs(), Matchers.is(Long.MAX_VALUE));
         assertThat(licenseData.issuedTo(), Matchers.is("test"));
@@ -129,7 +128,7 @@ public class LicenseServiceTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testGetLicenseDataForEnterpriseLicenseKeyV1ProduceValidValues() throws IOException {
         LicenseKey key = createV1EnterpriseLicenseKey(Long.MAX_VALUE, "test");
-        LicenseData licenseData = licenseData(LicenseKey.decodeLicense(key));
+        LicenseData licenseData = LicenseKey.decode(key).licenseData();
 
         assertThat(licenseData.expiryDateInMs(), Matchers.is(Long.MAX_VALUE));
         assertThat(licenseData.issuedTo(), Matchers.is("test"));
