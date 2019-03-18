@@ -23,13 +23,9 @@ package io.crate.udc.ping;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableMap;
-<<<<<<< HEAD
+import com.google.common.collect.ImmutableMap;g
 import io.crate.Version;
-import io.crate.license.DecryptedLicenseData;
-=======
 import io.crate.license.LicenseData;
->>>>>>> 27ec2f662d... Convert `license` project into an enterprise module
 import io.crate.license.LicenseService;
 import io.crate.monitor.ExtendedNodeInfo;
 import io.crate.settings.SharedSettings;

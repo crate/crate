@@ -463,26 +463,18 @@ jar {
 }
 
 task collectEnterpriseModules(
-<<<<<<< HEAD
-        dependsOn: [':enterprise:users:jar',
-                    ':enterprise:ssl-impl:jar',
-                    ':enterprise:mqtt:jar']) {
-=======
     dependsOn: [':enterprise:users:jar',
                 ':enterprise:ssl-impl:jar',
-                ':enterprise:licensing:jar']) {
->>>>>>> 27ec2f662d... Convert `license` project into an enterprise module
+                ':enterprise:licensing:jar',
+                ':enterprise:mqtt:jar']) {
     // this task collects the enterprise module jar into a single folder
     // named enterprise from which the files are taken for the installDist task
     doLast {
         copy {
             from(project(':enterprise:users').tasks.jar.archivePath)
             from(project(':enterprise:ssl-impl').tasks.jar.archivePath)
-<<<<<<< HEAD
             from(project(':enterprise:mqtt').tasks.jar.archivePath)
-=======
             from(project(':enterprise:licensing').tasks.jar.archivePath)
->>>>>>> 27ec2f662d... Convert `license` project into an enterprise module
             into 'enterprise'
         }
     }

@@ -22,7 +22,6 @@
 package io.crate.plugin;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 import io.crate.action.sql.SQLOperations;
 import io.crate.analyze.repositories.RepositorySettingsModule;
 import io.crate.auth.AuthSettings;
@@ -45,13 +44,10 @@ import io.crate.expression.reference.sys.cluster.SysClusterExpressionModule;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.tablefunctions.TableFunctionModule;
 import io.crate.expression.udf.UserDefinedFunctionsMetaData;
-<<<<<<< HEAD
 import io.crate.ingestion.IngestionModules;
 import io.crate.ingestion.IngestionService;
-=======
-import io.crate.license.LicenseExtension;
 import io.crate.license.CeLicenseModule;
->>>>>>> 27ec2f662d... Convert `license` project into an enterprise module
+import io.crate.license.LicenseExtension;
 import io.crate.lucene.ArrayMapperService;
 import io.crate.metadata.DanglingArtifactsService;
 import io.crate.metadata.MetaDataModule;
@@ -110,28 +106,20 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
 
     private final Settings settings;
     private final UserExtension userExtension;
-<<<<<<< HEAD
     private final IngestionModules ingestionModules;
-=======
     private final LicenseExtension licenseExtension;
->>>>>>> 27ec2f662d... Convert `license` project into an enterprise module
 
     @SuppressWarnings("WeakerAccess") // must be public for pluginLoader
     public SQLPlugin(Settings settings) {
         this.settings = settings;
         if (ENTERPRISE_LICENSE_SETTING.setting().get(settings)) {
             userExtension = EnterpriseLoader.loadSingle(UserExtension.class);
-<<<<<<< HEAD
             ingestionModules = EnterpriseLoader.loadSingle(IngestionModules.class);
-        } else {
-            userExtension = null;
-            ingestionModules = null;
-=======
             licenseExtension = EnterpriseLoader.loadSingle(LicenseExtension.class);
         } else {
             userExtension = null;
+            ingestionModules = null;
             licenseExtension = null;
->>>>>>> 27ec2f662d... Convert `license` project into an enterprise module
         }
     }
 
@@ -190,23 +178,6 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
 
     @Override
     public Collection<Class<? extends LifecycleComponent>> getGuiceServiceClasses() {
-<<<<<<< HEAD
-        List<Class<? extends LifecycleComponent>> serviceClasses = Lists.newArrayList(
-            DecommissioningService.class,
-            NodeDisconnectJobMonitorService.class,
-            PostgresNetty.class,
-            TasksService.class,
-            Schemas.class,
-            ArrayMapperService.class,
-            IngestionService.class,
-            DanglingArtifactsService.class);
-
-        if (ingestionModules != null) {
-            serviceClasses.addAll(ingestionModules.getServiceClasses());
-        }
-
-        return ImmutableList.copyOf(serviceClasses);
-=======
         ImmutableList.Builder<Class<? extends LifecycleComponent>> builder =
             ImmutableList.<Class<? extends LifecycleComponent>>builder()
             .add(DecommissioningService.class)
@@ -215,12 +186,15 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
             .add(TasksService.class)
             .add(Schemas.class)
             .add(ArrayMapperService.class)
+            .add(IngestionService.class)
             .add(DanglingArtifactsService.class);
+        if (ingestionModules != null) {
+            builder.addAll(ingestionModules.getServiceClasses());
+        }
         if (licenseExtension != null) {
             builder.addAll(licenseExtension.getGuiceServiceClasses());
         }
         return builder.build();
->>>>>>> 27ec2f662d... Convert `license` project into an enterprise module
     }
 
     @Override
@@ -255,16 +229,14 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
         } else {
             modules.add(new UserFallbackModule());
         }
-<<<<<<< HEAD
 
         if (ingestionModules != null) {
             modules.addAll(ingestionModules.getModules());
-=======
+        }
         if (licenseExtension != null) {
             modules.addAll(licenseExtension.getModules(settings));
         } else {
             modules.add(new CeLicenseModule());
->>>>>>> 27ec2f662d... Convert `license` project into an enterprise module
         }
         return modules;
     }

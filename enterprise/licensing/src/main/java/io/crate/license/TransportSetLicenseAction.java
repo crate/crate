@@ -19,11 +19,8 @@
 package io.crate.license;
 
 import org.elasticsearch.action.ActionListener;
-<<<<<<< HEAD:licensing/src/main/java/io/crate/license/TransportSetLicenseAction.java
 import org.elasticsearch.action.support.ActionFilters;
-=======
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
->>>>>>> 27ec2f662d... Convert `license` project into an enterprise module:enterprise/licensing/src/main/java/io/crate/license/TransportSetLicenseAction.java
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateUpdateTask;

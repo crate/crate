@@ -189,26 +189,11 @@ public class EnterpriseLicenseService implements LicenseService, ClusterStateLis
                     MAX_NODES_FOR_V2_LICENSES
                 );
                 LicenseKey licenseKey = TrialLicense.createLicenseKey(LicenseKey.VERSION, licenseData);
-<<<<<<< HEAD:licensing/src/main/java/io/crate/license/LicenseService.java
-                registerLicense(licenseKey,
-                    new ActionListener<SetLicenseResponse>() {
-
-                        @Override
-                        public void onResponse(SetLicenseResponse setLicenseResponse) {
-                        }
-
-                        @Override
-                        public void onFailure(Exception e) {
-                            logger.error("Unable to register license", e);
-                        }
-                    });
-=======
                 registerLicense(licenseKey).whenComplete((ignored, t) -> {
                     if (t != null) {
                         logger.error("Unable to register license", t);
                     }
                 });
->>>>>>> 27ec2f662d... Convert `license` project into an enterprise module:enterprise/licensing/src/main/java/io/crate/license/EnterpriseLicenseService.java
             }
         }
     }
