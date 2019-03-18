@@ -20,12 +20,9 @@ package io.crate.license;
 
 import com.google.common.annotations.VisibleForTesting;
 
-import static io.crate.license.LicenseKey.LicenseType;
+import java.io.IOException;
 
-final class TrialLicense {
-
-    private TrialLicense() {
-    }
+final class TrialLicense implements License {
 
     static LicenseKey createLicenseKey(int version, LicenseData licenseData) {
         return createLicenseKey(version, LicenseConverter.toJson(licenseData));
@@ -34,7 +31,7 @@ final class TrialLicense {
     @VisibleForTesting
     static LicenseKey createLicenseKey(int version, byte[] decryptedContent) {
         byte[] encryptedContent = encrypt(decryptedContent);
-        return LicenseKey.createLicenseKey(LicenseType.TRIAL,
+        return LicenseKey.encode(Type.TRIAL,
             version,
             encryptedContent);
     }
@@ -43,7 +40,30 @@ final class TrialLicense {
         return CryptoUtils.encryptAES(data);
     }
 
-    static byte[] decrypt(byte[] encryptedContent) {
+    private static byte[] decrypt(byte[] encryptedContent) {
         return CryptoUtils.decryptAES(encryptedContent);
+    }
+
+    private final int version;
+    private final LicenseData licenseData;
+
+    TrialLicense(int version, byte[] encryptedContent) throws IOException {
+        this.version = version;
+        this.licenseData = LicenseConverter.fromJson(decrypt(encryptedContent), version);
+    }
+
+    @Override
+    public Type type() {
+        return Type.TRIAL;
+    }
+
+    @Override
+    public int version() {
+        return version;
+    }
+
+    @Override
+    public LicenseData licenseData() {
+        return licenseData;
     }
 }

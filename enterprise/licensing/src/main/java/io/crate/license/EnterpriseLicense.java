@@ -24,12 +24,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
-final class EnterpriseLicense {
+final class EnterpriseLicense implements License {
 
-    private EnterpriseLicense() {
-    }
-
-    static byte[] decrypt(byte[] encryptedContent) {
+    private static byte[] decrypt(byte[] encryptedContent) {
         return CryptoUtils.decryptRSAUsingPublicKey(encryptedContent, publicKey());
 
     }
@@ -44,5 +41,28 @@ final class EnterpriseLicense {
         } catch (NullPointerException e) {
             throw new IllegalStateException("The CrateDB distribution is missing its public key", e);
         }
+    }
+
+    private final int version;
+    private final LicenseData licenseData;
+
+    EnterpriseLicense(int version, byte[] encryptedContent) throws IOException {
+        this.version = version;
+        this.licenseData = LicenseConverter.fromJson(decrypt(encryptedContent), version);
+    }
+
+    @Override
+    public Type type() {
+        return Type.ENTERPRISE;
+    }
+
+    @Override
+    public int version() {
+        return version;
+    }
+
+    @Override
+    public LicenseData licenseData() {
+        return licenseData;
     }
 }
