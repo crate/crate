@@ -77,10 +77,7 @@ public class LicenseTool {
                 Cipher.ENCRYPT_MODE,
                 privateKey,
                 licenseData);
-        LicenseKey licenseKey = LicenseKey.createLicenseKey(
-            LicenseKey.LicenseType.ENTERPRISE,
-            2,
-            encryptedLicenseData);
+        LicenseKey licenseKey = LicenseKey.encode(License.Type.ENTERPRISE, 2, encryptedLicenseData);
         System.out.println(licenseKey.licenseKey());
     }
 }
