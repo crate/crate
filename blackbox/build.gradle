@@ -89,6 +89,10 @@ task ceItest(type: Exec, dependsOn: ['bootstrap', 'unpackCommunityEditionDistTar
     commandLine "$projectDir/bin/test-ce-docs", '-vvvxt', '!process_test'
 }
 
+task ceLicenseTest(type: Exec, dependsOn: ['bootstrap', 'unpackCommunityEditionDistTar']) {
+    commandLine "$projectDir/bin/test-ce-licensing"
+}
+
 task cleanDocs {
     doLast {
         FileCollection toDelete = files(

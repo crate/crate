@@ -107,6 +107,18 @@ pipeline {
             sh './gradlew --no-daemon ceItest'
           }
         }
+        stage('ce licenseTest jdk11') {
+          agent { label 'medium' }
+          tools {
+            jdk 'jdk11'
+          }
+          steps {
+            sh 'git clean -xdff'
+            checkout scm
+            sh 'git submodule update --init'
+            sh './gradlew --no-daemon ceLicenseTest'
+          }
+        }
         stage('itest jdk12') {
           agent { label 'medium' }
           tools {
