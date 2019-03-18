@@ -43,8 +43,13 @@ public class MapBackedRefResolverTest {
         ReferenceIdent ident = new ReferenceIdent(USERS_TI, new ColumnIdent("obj"));
         ReferenceResolver<NestableInput<?>> refResolver = new MapBackedRefResolver(
             Collections.singletonMap(ident, mock(NestableInput.class)));
-        NestableInput implementation = refResolver.getImplementation(new Reference(
-            new ReferenceIdent(USERS_TI, new ColumnIdent("obj", Arrays.asList("x", "z"))), RowGranularity.DOC, DataTypes.STRING));
+        NestableInput implementation = refResolver.getImplementation(
+            new Reference(
+                new ReferenceIdent(USERS_TI, new ColumnIdent("obj", Arrays.asList("x", "z"))),
+                RowGranularity.DOC,
+                DataTypes.STRING,
+                null
+            ));
 
         assertThat(implementation, Matchers.nullValue());
     }

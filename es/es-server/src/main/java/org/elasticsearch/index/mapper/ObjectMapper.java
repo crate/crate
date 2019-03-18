@@ -38,6 +38,7 @@ import java.util.Locale;
 import java.util.Map;
 
 import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeBooleanValue;
+import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeIntegerValue;
 
 
 public class ObjectMapper extends Mapper implements Cloneable {
@@ -62,6 +63,7 @@ public class ObjectMapper extends Mapper implements Cloneable {
         protected Dynamic dynamic = Defaults.DYNAMIC;
 
         protected final List<Mapper.Builder> mappersBuilders = new ArrayList<>();
+        private Integer position;
 
         public Builder(String name) {
             super(name);
@@ -98,15 +100,25 @@ public class ObjectMapper extends Mapper implements Cloneable {
             }
             context.path().remove();
 
-            ObjectMapper objectMapper = createMapper(name, context.path().pathAsText(name), enabled, dynamic,
+            ObjectMapper objectMapper = createMapper(name, position, context.path().pathAsText(name), enabled, dynamic,
                     mappers, context.indexSettings());
 
             return (Y) objectMapper;
         }
 
-        protected ObjectMapper createMapper(String name, String fullPath, boolean enabled, Dynamic dynamic,
-                Map<String, Mapper> mappers, @Nullable Settings settings) {
-            return new ObjectMapper(name, fullPath, enabled, dynamic, mappers, settings);
+        protected ObjectMapper createMapper(String name,
+                                            Integer position,
+                                            String fullPath,
+                                            boolean enabled,
+                                            Dynamic dynamic,
+                                            Map<String, Mapper> mappers,
+                                            @Nullable Settings settings) {
+            return new ObjectMapper(name, position, fullPath, enabled, dynamic, mappers, settings);
+        }
+
+        public T position(int position) {
+            this.position = position;
+            return this.builder;
         }
     }
 
@@ -126,7 +138,10 @@ public class ObjectMapper extends Mapper implements Cloneable {
         }
 
         protected static boolean parseObjectOrDocumentTypeProperties(String fieldName, Object fieldNode, ParserContext parserContext, ObjectMapper.Builder builder) {
-            if (fieldName.equals("dynamic")) {
+            if (fieldName.equals("position")) {
+                builder.position(nodeIntegerValue(fieldNode));
+                return true;
+            } else if (fieldName.equals("dynamic")) {
                 String value = fieldNode.toString();
                 if (value.equalsIgnoreCase("strict")) {
                     builder.dynamic(Dynamic.STRICT);
@@ -213,6 +228,8 @@ public class ObjectMapper extends Mapper implements Cloneable {
 
     }
 
+    private final Integer position;
+
     private final String fullPath;
 
     private final boolean enabled;
@@ -221,14 +238,19 @@ public class ObjectMapper extends Mapper implements Cloneable {
 
     private volatile CopyOnWriteHashMap<String, Mapper> mappers;
 
-    ObjectMapper(String name, String fullPath, boolean enabled, Dynamic dynamic,
-            Map<String, Mapper> mappers, Settings settings) {
+    ObjectMapper(String name, Integer position,
+                 String fullPath,
+                 boolean enabled,
+                 Dynamic dynamic,
+                 Map<String, Mapper> mappers,
+                 Settings settings) {
         super(name);
         assert settings != null;
         if (name.isEmpty()) {
             throw new IllegalArgumentException("name cannot be empty string");
         }
         this.fullPath = fullPath;
+        this.position = position;
         this.enabled = enabled;
         this.dynamic = dynamic;
         if (mappers == null) {
@@ -361,6 +383,10 @@ public class ObjectMapper extends Mapper implements Cloneable {
         return updated;
     }
 
+    protected Integer position() {
+        return position;
+    }
+
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         toXContent(builder, params, null);
@@ -371,6 +397,9 @@ public class ObjectMapper extends Mapper implements Cloneable {
         builder.startObject(simpleName());
         if (mappers.isEmpty() && custom == null) { // only write the object content type if there are no properties, otherwise, it is automatically detected
             builder.field("type", CONTENT_TYPE);
+        }
+        if (position != null) {
+            builder.field("position", position);
         }
         if (dynamic != null) {
             builder.field("dynamic", dynamic.name().toLowerCase(Locale.ROOT));

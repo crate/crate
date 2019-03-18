@@ -109,7 +109,7 @@ class AlterTableAddColumnAnalyzer {
             Reference pkInfo = tableInfo.getReference(pkIdent);
             assert pkInfo != null : "pk must not be null";
 
-            AnalyzedColumnDefinition pkColumn = new AnalyzedColumnDefinition(null);
+            AnalyzedColumnDefinition pkColumn = new AnalyzedColumnDefinition(null, null);
             pkColumn.ident(pkIdent);
             pkColumn.name(pkIdent.name());
             pkColumn.setPrimaryKeyConstraint();

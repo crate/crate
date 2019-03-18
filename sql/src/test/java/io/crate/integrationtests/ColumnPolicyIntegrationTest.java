@@ -144,10 +144,10 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         execute("select * from dynamic_table order by id");
         assertThat(response.rowCount(), is(2L));
         assertThat(response.cols().length, is(3));
-        assertThat(response.cols(), is(arrayContaining("boo", "id", "name")));
+        assertThat(response.cols(), is(arrayContaining("id", "name", "boo")));
         assertThat(TestingHelpers.printedTable(response.rows()), is(
-            "NULL| 1| Ford\n" +
-            "true| 2| Trillian\n"));
+            "1| Ford| NULL\n" +
+            "2| Trillian| true\n"));
     }
 
     @Test
@@ -315,8 +315,8 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         waitForMappingUpdateOnAll("dynamic_table", "boo");
         execute("select * from dynamic_table");
         assertThat(response.rowCount(), is(1L));
-        assertThat(response.cols(), is(arrayContaining("boo", "id", "name")));
-        assertThat(response.rows()[0], is(Matchers.<Object>arrayContaining(true, 1, "Trillian")));
+        assertThat(response.cols(), is(arrayContaining("id", "name", "boo")));
+        assertThat(response.rows()[0], is(Matchers.arrayContaining(1, "Trillian", true)));
     }
 
     @Test
@@ -340,10 +340,10 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         waitForMappingUpdateOnAll("dynamic_table", "good");
         execute("select * from dynamic_table order by id");
         assertThat(response.rowCount(), is(2L));
-        assertThat(response.cols(), is(arrayContaining("good", "id", "score")));
+        assertThat(response.cols(), is(arrayContaining("id", "score", "good")));
         assertThat(TestingHelpers.printedTable(response.rows()), is(
-            "NULL| 1| 42.24\n" +
-            "false| 2| -0.01\n"));
+            "1| 42.24| NULL\n" +
+            "2| -0.01| false\n"));
     }
 
     @Test
@@ -359,7 +359,7 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         execute("select * from dynamic_table");
         assertThat(response.rowCount(), is(1L));
         assertThat(response.cols(), is(arrayContaining("id", "score")));
-        assertThat(response.rows()[0], is(Matchers.<Object>arrayContaining(1, 4656234.345D)));
+        assertThat(response.rows()[0], is(Matchers.arrayContaining(1, 4656234.345D)));
 
         execute("update dynamic_table set name='Trillian', good=true where score > 0.0");
         execute("refresh table dynamic_table");
@@ -367,8 +367,8 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         waitForMappingUpdateOnAll("dynamic_table", "name");
         execute("select * from dynamic_table");
         assertThat(response.rowCount(), is(1L));
-        assertThat(response.cols(), is(arrayContaining("good", "id", "name", "score")));
-        assertThat(response.rows()[0], is(Matchers.<Object>arrayContaining(true, 1, "Trillian", 4656234.345D)));
+        assertThat(response.cols(), is(arrayContaining("id", "score", "name", "good")));
+        assertThat(response.rows()[0], is(Matchers.arrayContaining(1, 4656234.345D, "Trillian", true)));
     }
 
     @Test
@@ -479,10 +479,10 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         waitForMappingUpdateOnAll("numbers", "perfect");
         execute("select * from numbers order by num");
         assertThat(response.rowCount(), is(2L));
-        assertThat(response.cols(), arrayContaining("num", "odd", "perfect", "prime"));
+        assertThat(response.cols(), arrayContaining("num", "odd", "prime", "perfect"));
         assertThat(TestingHelpers.printedTable(response.rows()), is(
-            "6| true| NULL| false\n" +
-            "28| true| true| false\n"));
+            "6| true| false| NULL\n" +
+            "28| true| false| true\n"));
 
         execute("update numbers set prime=true, changed='2014-10-23T10:20', author='troll' where num=28");
         assertThat(response.rowCount(), is(1L));

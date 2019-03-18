@@ -60,8 +60,8 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
                                  "\"dynamic_templates\":[{\"strings\":{\"match_mapping_type\":\"string\",\"mapping\":{\"doc_values\":true,\"store\":false,\"type\":\"keyword\"}}}]," +
                                  "\"properties\":{" +
                                  // doc_values: true is default and not included
-                                 "\"col1\":{\"type\":\"integer\"}," +
-                                 "\"col2\":{\"type\":\"keyword\"}" +
+                                 "\"col1\":{\"type\":\"integer\",\"position\":1}," +
+                                 "\"col2\":{\"type\":\"keyword\",\"position\":2}" +
                                  "}}}";
 
         String expectedSettings = "{\"test\":{" +
@@ -163,8 +163,8 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
                                  "\"primary_keys\":[\"col1\"]}," +
                                  "\"dynamic_templates\":[{\"strings\":{\"match_mapping_type\":\"string\",\"mapping\":{\"doc_values\":true,\"store\":false,\"type\":\"keyword\"}}}]," +
                                  "\"properties\":{" +
-                                 "\"col1\":{\"type\":\"integer\"}," +
-                                 "\"col2\":{\"type\":\"keyword\"}" +
+                                 "\"col1\":{\"type\":\"integer\",\"position\":1}," +
+                                 "\"col2\":{\"type\":\"keyword\",\"position\":2}" +
                                  "}}}";
 
         String expectedSettings = "{\"test\":{" +
@@ -187,7 +187,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
                                  "\"dynamic\":\"strict\",\"_meta\":{}," +
                                  "\"dynamic_templates\":[{\"strings\":{\"match_mapping_type\":\"string\",\"mapping\":{\"doc_values\":true,\"store\":false,\"type\":\"keyword\"}}}]," +
                                  "\"properties\":{" +
-                                 "\"col1\":{\"type\":\"geo_shape\",\"tree\":\"quadtree\",\"precision\":\"1.0m\",\"distance_error_pct\":0.25}}}}";
+                                 "\"col1\":{\"type\":\"geo_shape\",\"tree\":\"quadtree\",\"position\":1,\"precision\":\"1.0m\",\"distance_error_pct\":0.25}}}}";
         assertEquals(expectedMapping, getIndexMapping("test"));
     }
 
@@ -198,7 +198,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         String expectedMapping = "{\"default\":{" +
                                  "\"dynamic\":\"strict\",\"_meta\":{}," +
                                  "\"dynamic_templates\":[{\"strings\":{\"match_mapping_type\":\"string\",\"mapping\":{\"doc_values\":true,\"store\":false,\"type\":\"keyword\"}}}]," +
-                                 "\"properties\":{\"col1\":{\"type\":\"geo_shape\"}}}}";
+                                 "\"properties\":{\"col1\":{\"type\":\"geo_shape\",\"position\":1}}}}";
         assertEquals(expectedMapping, getIndexMapping("test"));
 
     }
@@ -714,7 +714,10 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
                                  "\"_meta\":{" +
                                  "\"generated_columns\":{\"day\":\"date_trunc('day', ts)\"}}," +
                                  "\"dynamic_templates\":[{\"strings\":{\"match_mapping_type\":\"string\",\"mapping\":{\"doc_values\":true,\"store\":false,\"type\":\"keyword\"}}}]," +
-                                 "\"properties\":{\"day\":{\"type\":\"date\",\"format\":\"epoch_millis||strict_date_optional_time\"},\"ts\":{\"type\":\"date\",\"format\":\"epoch_millis||strict_date_optional_time\"}}}}";
+                                 "\"properties\":{" +
+                                 "\"day\":{\"type\":\"date\",\"position\":2,\"format\":\"epoch_millis||strict_date_optional_time\"}," +
+                                 "\"ts\":{\"type\":\"date\",\"position\":1,\"format\":\"epoch_millis||strict_date_optional_time\"}" +
+                                 "}}}";
 
         assertEquals(expectedMapping, getIndexMapping("test"));
     }

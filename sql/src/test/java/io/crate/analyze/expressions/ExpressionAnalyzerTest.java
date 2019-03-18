@@ -203,7 +203,10 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testInSelfJoinCaseFunctionsThatLookTheSameMustNotReuseFunctionAllocation() throws Exception {
         TableInfo tableInfo = mock(TableInfo.class);
         when(tableInfo.getReference(new ColumnIdent("id"))).thenReturn(
-            new Reference(new ReferenceIdent(new RelationName("doc", "t"), "id"), RowGranularity.DOC, DataTypes.INTEGER));
+            new Reference(new ReferenceIdent(new RelationName("doc", "t"), "id"),
+                          RowGranularity.DOC,
+                          DataTypes.INTEGER,
+                          null));
         when(tableInfo.ident()).thenReturn(new RelationName("doc", "t"));
         TableRelation tr1 = new TableRelation(tableInfo);
         TableRelation tr2 = new TableRelation(tableInfo);

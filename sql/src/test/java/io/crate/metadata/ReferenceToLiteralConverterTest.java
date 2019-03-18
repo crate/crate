@@ -41,7 +41,8 @@ public class ReferenceToLiteralConverterTest extends CrateUnitTest {
     public void testReplaceSimpleReference() throws Exception {
         Object[] inputValues = new Object[]{1};
         Reference idRef = new Reference(
-            new ReferenceIdent(TABLE_IDENT, new ColumnIdent("id")), RowGranularity.DOC, DataTypes.INTEGER);
+            new ReferenceIdent(TABLE_IDENT, new ColumnIdent("id")), RowGranularity.DOC, DataTypes.INTEGER, null
+        );
 
         ReferenceToLiteralConverter convertFunction = new ReferenceToLiteralConverter(
             ImmutableList.of(idRef), ImmutableList.of(idRef));
@@ -57,10 +58,14 @@ public class ReferenceToLiteralConverterTest extends CrateUnitTest {
             MapBuilder.newMapBuilder().put("name", "Ford").map()};
 
         Reference userRef = new Reference(
-            new ReferenceIdent(TABLE_IDENT, new ColumnIdent("user")), RowGranularity.DOC, ObjectType.untyped());
+            new ReferenceIdent(TABLE_IDENT, new ColumnIdent("user")), RowGranularity.DOC, ObjectType.untyped(), null
+        );
         Reference nameRef = new Reference(
             new ReferenceIdent(TABLE_IDENT, new ColumnIdent("user", ImmutableList.of("name"))),
-            RowGranularity.DOC, DataTypes.STRING);
+            RowGranularity.DOC,
+            DataTypes.STRING,
+            null
+        );
 
         ReferenceToLiteralConverter convertFunction = new ReferenceToLiteralConverter(
             ImmutableList.of(userRef), ImmutableList.of(nameRef));
@@ -78,10 +83,14 @@ public class ReferenceToLiteralConverterTest extends CrateUnitTest {
             ).map()};
 
         Reference userRef = new Reference(
-            new ReferenceIdent(TABLE_IDENT, new ColumnIdent("user")), RowGranularity.DOC, ObjectType.untyped());
+            new ReferenceIdent(TABLE_IDENT, new ColumnIdent("user")), RowGranularity.DOC, ObjectType.untyped(), null
+        );
         Reference nameRef = new Reference(
             new ReferenceIdent(TABLE_IDENT, new ColumnIdent("user", ImmutableList.of("profile", "name"))),
-            RowGranularity.DOC, DataTypes.STRING);
+            RowGranularity.DOC,
+            DataTypes.STRING,
+            null
+        );
 
         ReferenceToLiteralConverter convertFunction = new ReferenceToLiteralConverter(
             ImmutableList.of(userRef), ImmutableList.of(nameRef));

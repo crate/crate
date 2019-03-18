@@ -26,6 +26,7 @@ import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
 import org.elasticsearch.Version;
+import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.common.settings.Setting;
@@ -61,6 +62,7 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
         protected boolean docValuesSet = false;
         protected final MultiFields.Builder multiFieldsBuilder;
         protected CopyTo copyTo = CopyTo.empty();
+        protected Integer position;
 
         protected Builder(String name, MappedFieldType fieldType, MappedFieldType defaultFieldType) {
             super(name);
@@ -219,6 +221,10 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
                 fieldType.setHasDocValues(defaultDocValues);
             }
         }
+
+        public void position(int position) {
+            this.position = position;
+        }
     }
 
     protected final Version indexCreatedVersion;
@@ -227,9 +233,24 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
     protected MultiFields multiFields;
     protected CopyTo copyTo;
 
-    protected FieldMapper(String simpleName, MappedFieldType fieldType, MappedFieldType defaultFieldType, Settings indexSettings, MultiFields multiFields, CopyTo copyTo) {
+    /**
+     * Position of the field in the original CREATE TABLE statement
+     *
+     * This is null for system field mappers or for mappers within object fields.
+     */
+    @Nullable
+    protected Integer position;
+
+    protected FieldMapper(String simpleName,
+                          @Nullable Integer position,
+                          MappedFieldType fieldType,
+                          MappedFieldType defaultFieldType,
+                          Settings indexSettings,
+                          MultiFields multiFields,
+                          CopyTo copyTo) {
         super(simpleName);
         assert indexSettings != null;
+        this.position = position;
         this.indexCreatedVersion = Version.indexCreated(indexSettings);
         if (simpleName.isEmpty()) {
             throw new IllegalArgumentException("name cannot be empty string");
@@ -240,6 +261,10 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
         this.defaultFieldType = defaultFieldType;
         this.multiFields = multiFields;
         this.copyTo = Objects.requireNonNull(copyTo);
+    }
+
+    public Integer position() {
+        return position;
     }
 
     @Override
@@ -377,6 +402,9 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
         boolean defaultIndexed = defaultFieldType.indexOptions() != IndexOptions.NONE;
         if (includeDefaults || indexed != defaultIndexed) {
             builder.field("index", indexed);
+        }
+        if (position != null) {
+            builder.field("position", position);
         }
         if (includeDefaults || fieldType().stored() != defaultFieldType.stored()) {
             builder.field("store", fieldType().stored());
