@@ -86,7 +86,8 @@ Using an IDE
 
 We recommend that you use `IntelliJ IDEA`_ for development.
 
-Gradle can be used to generate project files that can be opened in IntelliJ::
+Do **not** use the Gradle plugin in `IntelliJ IDEA`_ but instead use the
+following Gradle task and then import the ``crate.ipr`` file within Intellij::
 
     $ ./gradlew idea
 
