@@ -107,6 +107,14 @@ public class TrimFunctionTest extends AbstractScalarFunctionsTest {
     }
 
     @Test
+    public void testEvaluateTrimWithoutCharsToTrim() {
+        assertEvaluate("trim(leading from name)", "trim", Literal.of(" trim"));
+        assertEvaluate("trim(both from name)", "trim", Literal.of("  trim  "));
+        assertEvaluate("trim(trailing from name)", " trim", Literal.of(" trim  "));
+        assertEvaluate("trim(from name)", "trim", Literal.of(" trim "));
+    }
+
+    @Test
     public void testEvaluateNullInputOptimisedTrim() {
         assertEvaluate("trim(name)", null, Literal.of(DataTypes.STRING, null));
     }
