@@ -22,7 +22,6 @@
 package io.crate.testing;
 
 import com.google.common.base.Joiner;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import io.crate.analyze.where.DocKeys;
 import io.crate.collections.Lists2;
@@ -45,10 +44,8 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.inject.ModulesBuilder;
-import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
@@ -73,6 +70,7 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Function;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
@@ -118,8 +116,6 @@ public class TestingHelpers {
         }
         if (o == null) {
             out.print("NULL");
-        } else if (o instanceof BytesRef) {
-            out.print(((BytesRef) o).utf8ToString());
         } else if (o instanceof Object[]) {
             out.print("[");
             Object[] oArray = (Object[]) o;
@@ -205,8 +201,8 @@ public class TestingHelpers {
         if (cells == null) {
             cells = new Object[]{null};
         }
-        final List<Object> expected = Lists.transform(Arrays.asList(cells), BytesRefs::toString);
-        return new TypeSafeDiagnosingMatcher<Row>() {
+        final List<Object> expected = Arrays.asList(cells);
+        return new TypeSafeDiagnosingMatcher<>() {
             @Override
             protected boolean matchesSafely(Row item, Description mismatchDescription) {
                 if (item.numColumns() != expected.size()) {
@@ -215,7 +211,7 @@ public class TestingHelpers {
                     return false;
                 }
                 for (int i = 0; i < item.numColumns(); i++) {
-                    String actual = BytesRefs.toString(item.get(i));
+                    Object actual = item.get(i);
                     if (!Objects.equals(expected.get(i), actual)) {
                         mismatchDescription.appendText("value at pos ")
                             .appendValue(i)
@@ -239,19 +235,10 @@ public class TestingHelpers {
 
     public static Matcher<DocKeys.DocKey> isDocKey(Object... keys) {
         final List<Object> expected = Arrays.asList(keys);
-        return new TypeSafeDiagnosingMatcher<DocKeys.DocKey>() {
+        return new TypeSafeDiagnosingMatcher<>() {
             @Override
             protected boolean matchesSafely(DocKeys.DocKey item, Description mismatchDescription) {
-                List<Object> docKeyValues = Lists2.map(
-                    item.values(),
-                    s -> {
-                        Object val = ((Literal) s).value();
-                        if (val instanceof BytesRef) {
-                            val = ((BytesRef) val).utf8ToString();
-                        }
-                        return val;
-                    }
-                );
+                List<Object> docKeyValues = Lists2.map(item.values(), s -> ((Literal) s).value());
                 if (!expected.equals(docKeyValues)) {
                     mismatchDescription.appendText("is DocKey with values: ").appendValue(docKeyValues);
                     return false;
@@ -322,7 +309,7 @@ public class TestingHelpers {
     }
 
     public static Matcher<SQLResponse> isPrintedTable(String expectedPrintedResponse) {
-        return new FeatureMatcher<SQLResponse, String>(equalTo(expectedPrintedResponse), "same output", "printedTable") {
+        return new FeatureMatcher<>(equalTo(expectedPrintedResponse), "same output", "printedTable") {
             @Override
             protected String featureValueOf(SQLResponse actual) {
                 return printedTable(actual.rows());
@@ -330,11 +317,11 @@ public class TestingHelpers {
         };
     }
 
-    public static <T, K extends Comparable> Matcher<Iterable<? extends T>> isSortedBy(final com.google.common.base.Function<T, K> extractSortingKeyFunction) {
+    public static <T, K extends Comparable> Matcher<Iterable<? extends T>> isSortedBy(final Function<T, K> extractSortingKeyFunction) {
         return isSortedBy(extractSortingKeyFunction, false, null);
     }
 
-    public static <T, K extends Comparable> Matcher<Iterable<? extends T>> isSortedBy(final com.google.common.base.Function<T, K> extractSortingKeyFunction,
+    public static <T, K extends Comparable> Matcher<Iterable<? extends T>> isSortedBy(final Function<T, K> extractSortingKeyFunction,
                                                                                       final boolean descending,
                                                                                       @Nullable final Boolean nullsFirst) {
         Ordering<K> ordering = Ordering.natural();
@@ -386,7 +373,7 @@ public class TestingHelpers {
     }
 
     public static Matcher<Iterable<? extends Row>> hasSortedRows(final int sortingPos, final boolean reverse, @Nullable final Boolean nullsFirst) {
-        return TestingHelpers.isSortedBy(new com.google.common.base.Function<Row, Comparable>() {
+        return TestingHelpers.isSortedBy(new Function<>() {
             @Nullable
             @Override
             public Comparable apply(@Nullable Row input) {

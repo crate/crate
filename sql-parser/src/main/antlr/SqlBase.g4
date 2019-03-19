@@ -236,6 +236,8 @@ primaryExpression
     | (CURRENT_USER | USER)                                                          #currentUser
     | SESSION_USER                                                                   #sessionUser
     | SUBSTRING '(' expr FROM expr (FOR expr)? ')'                                   #substring
+    | TRIM '(' ((trimMode=(LEADING | TRAILING | BOTH))?
+                (charsToTrim=expr)? FROM)? target=expr ')'                           #trim
     | EXTRACT '(' stringLiteralOrIdentifier FROM expr ')'                            #extract
     | CAST '(' expr AS dataType ')'                                                  #cast
     | TRY_CAST '(' expr AS dataType ')'                                              #cast
@@ -655,7 +657,7 @@ nonReserved
     | DO | NOTHING | CONFLICT | TRANSACTION_ISOLATION | RETURN | SUMMARY
     | WORK | SERIALIZABLE | REPEATABLE | COMMITTED | UNCOMMITTED | READ | WRITE | DEFERRABLE
     | STRING_TYPE | IP | DOUBLE | FLOAT | TIMESTAMP | LONG | INT | INTEGER | SHORT | BYTE | BOOLEAN
-    | REPLACE | SWAP | GC | DANGLING | ARTIFACTS | DECOMMISSION
+    | REPLACE | SWAP | GC | DANGLING | ARTIFACTS | DECOMMISSION | LEADING | TRAILING | BOTH | TRIM
     ;
 
 SELECT: 'SELECT';
@@ -693,6 +695,10 @@ ESCAPE: 'ESCAPE';
 ASC: 'ASC';
 DESC: 'DESC';
 SUBSTRING: 'SUBSTRING';
+TRIM: 'TRIM';
+LEADING: 'LEADING';
+TRAILING: 'TRAILING';
+BOTH: 'BOTH';
 FOR: 'FOR';
 DATE: 'DATE';
 TIME: 'TIME';
