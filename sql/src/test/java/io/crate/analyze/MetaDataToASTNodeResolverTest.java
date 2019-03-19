@@ -62,26 +62,26 @@ public class MetaDataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
 
         CreateTable node = MetaDataToASTNodeResolver.resolveCreateTable(tableInfo);
         assertEquals("CREATE TABLE IF NOT EXISTS \"doc\".\"test\" (\n" +
+                     "   \"bools\" BOOLEAN,\n" +
+                     "   \"bytes\" BYTE,\n" +
+                     "   \"strings\" STRING,\n" +
+                     "   \"shorts\" SHORT,\n" +
+                     "   \"floats\" FLOAT,\n" +
+                     "   \"doubles\" DOUBLE,\n" +
+                     "   \"ints\" INTEGER,\n" +
+                     "   \"longs\" LONG,\n" +
+                     "   \"timestamp\" TIMESTAMP,\n" +
+                     "   \"ip_addr\" IP,\n" +
+                     "   \"arr_simple\" ARRAY(STRING),\n" +
                      "   \"arr_geo_point\" ARRAY(GEO_POINT),\n" +
                      "   \"arr_obj\" ARRAY(OBJECT(STRICT) AS (\n" +
                      "      \"col_1\" LONG,\n" +
                      "      \"col_2\" STRING\n" +
                      "   )),\n" +
-                     "   \"arr_simple\" ARRAY(STRING),\n" +
-                     "   \"bools\" BOOLEAN,\n" +
-                     "   \"bytes\" BYTE,\n" +
-                     "   \"doubles\" DOUBLE,\n" +
-                     "   \"floats\" FLOAT,\n" +
-                     "   \"ints\" INTEGER,\n" +
-                     "   \"ip_addr\" IP,\n" +
-                     "   \"longs\" LONG,\n" +
                      "   \"obj\" OBJECT(DYNAMIC) AS (\n" +
                      "      \"col_1\" LONG,\n" +
                      "      \"col_2\" STRING\n" +
-                     "   ),\n" +
-                     "   \"shorts\" SHORT,\n" +
-                     "   \"strings\" STRING,\n" +
-                     "   \"timestamp\" TIMESTAMP\n" +
+                     "   )\n" +
                      ")\n" +
                      "CLUSTERED INTO 5 SHARDS\n" +
                      "WITH (\n" +
@@ -217,9 +217,9 @@ public class MetaDataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
 
         CreateTable node = MetaDataToASTNodeResolver.resolveCreateTable(tableInfo);
         assertEquals("CREATE TABLE IF NOT EXISTS \"myschema\".\"test\" (\n" +
-                     "   \"cluster_column\" STRING,\n" +
                      "   \"id\" LONG,\n" +
-                     "   \"partition_column\" STRING\n" +
+                     "   \"partition_column\" STRING,\n" +
+                     "   \"cluster_column\" STRING\n" +
                      ")\n" +
                      "CLUSTERED BY (\"cluster_column\") INTO 5 SHARDS\n" +
                      "PARTITIONED BY (\"partition_column\")\n" +
@@ -275,6 +275,7 @@ public class MetaDataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
 
         CreateTable node = MetaDataToASTNodeResolver.resolveCreateTable(tableInfo);
         assertEquals("CREATE TABLE IF NOT EXISTS \"myschema\".\"test\" (\n" +
+                     "   \"id\" LONG,\n" +
                      "   \"col_a\" STRING,\n" +
                      "   \"col_b\" STRING INDEX USING FULLTEXT WITH (\n" +
                      "      analyzer = 'standard'\n" +
@@ -283,7 +284,6 @@ public class MetaDataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
                      "   \"col_d\" OBJECT(DYNAMIC) AS (\n" +
                      "      \"a\" STRING\n" +
                      "   ),\n" +
-                     "   \"id\" LONG,\n" +
                      "   INDEX \"col_a_col_b_ft\" USING FULLTEXT (\"col_b\", \"col_a\") WITH (\n" +
                      "      analyzer = 'english'\n" +
                      "   ),\n" +

@@ -44,27 +44,25 @@ Run CrateDB like so::
 
     $ ./gradlew run
 
-or with remote debugging enabled::
+The ``run``  commands will set the HOME to ``sandbox/crate`` and so uses the
+configuration files located there.
 
-    $ ./gradlew runDebug
 
-*Note*: If you run CrateDB like this, CrateDB will wait for a remote debugger
-on port ``5005`` before fully starting up!
+Build the CrateDB distribution tarball like so::
 
-Both ``run`` and ``runDebug`` comands will set the HOME to ``sandbox/crate`` and
-so uses the configuration files located there.
+    $ ./gradlew distTar
 
-To install the CrateDB locally, run::
+The built tarball will be in::
+
+   ./app/build/distributions/
+
+To build and unpack the distribution in one step, run::
 
     $ ./gradlew installDist
 
 And then start CrateDB like this::
 
     ./app/build/install/crate/bin/crate
-
-Build a tarball like so::
-
-    $ ./gradlew distTar
 
 Build a tarball of the Community Edition like so::
 
@@ -88,7 +86,8 @@ Using an IDE
 
 We recommend that you use `IntelliJ IDEA`_ for development.
 
-Gradle can be used to generate project files that can be opened in IntelliJ::
+Do **not** use the Gradle plugin in `IntelliJ IDEA`_ but instead use the
+following Gradle task and then import the ``crate.ipr`` file within Intellij::
 
     $ ./gradlew idea
 

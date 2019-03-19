@@ -32,6 +32,7 @@ import io.crate.types.ObjectType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Comparator;
 import java.util.Objects;
@@ -47,6 +48,7 @@ public class Reference extends Symbol {
     }
 
     protected DataType type;
+    private final Integer position;
     private final ReferenceIdent ident;
     private final ColumnPolicy columnPolicy;
     private final RowGranularity granularity;
@@ -56,6 +58,7 @@ public class Reference extends Symbol {
 
     public Reference(StreamInput in) throws IOException {
         ident = new ReferenceIdent(in);
+        position = in.readOptionalVInt();
         type = DataTypes.fromStream(in);
         granularity = RowGranularity.fromStream(in);
 
@@ -65,19 +68,8 @@ public class Reference extends Symbol {
         columnStoreDisabled = in.readBoolean();
     }
 
-    public Reference(ReferenceIdent ident,
-                     RowGranularity granularity,
-                     DataType type) {
-        this(ident, granularity, type, ColumnPolicy.DYNAMIC, IndexType.NOT_ANALYZED, true);
-    }
-
-    public Reference(ReferenceIdent ident,
-                     RowGranularity granularity,
-                     DataType type,
-                     ColumnPolicy columnPolicy,
-                     IndexType indexType,
-                     boolean nullable) {
-        this(ident, granularity, type, columnPolicy, indexType, nullable, false);
+    public Reference(ReferenceIdent ident, RowGranularity granularity, DataType type, @Nullable Integer position) {
+        this(ident, granularity, type, ColumnPolicy.DYNAMIC, IndexType.NOT_ANALYZED, true, position);
     }
 
     public Reference(ReferenceIdent ident,
@@ -86,7 +78,19 @@ public class Reference extends Symbol {
                      ColumnPolicy columnPolicy,
                      IndexType indexType,
                      boolean nullable,
-                     boolean columnStoreDisabled) {
+                     @Nullable Integer position) {
+        this(ident, granularity, type, columnPolicy, indexType, nullable, false, position);
+    }
+
+    public Reference(ReferenceIdent ident,
+                     RowGranularity granularity,
+                     DataType type,
+                     ColumnPolicy columnPolicy,
+                     IndexType indexType,
+                     boolean nullable,
+                     boolean columnStoreDisabled,
+                     @Nullable Integer position) {
+        this.position = position;
         this.ident = ident;
         this.type = type;
         this.granularity = granularity;
@@ -100,7 +104,14 @@ public class Reference extends Symbol {
      * Returns a cloned Reference with the given ident
      */
     public Reference getRelocated(ReferenceIdent newIdent) {
-        return new Reference(newIdent, granularity, type, columnPolicy, indexType, nullable, columnStoreDisabled);
+        return new Reference(newIdent,
+                             granularity,
+                             type,
+                             columnPolicy,
+                             indexType,
+                             nullable,
+                             columnStoreDisabled,
+                             position);
     }
 
     @Override
@@ -147,12 +158,18 @@ public class Reference extends Symbol {
         return columnStoreDisabled;
     }
 
+    @Nullable
+    public Integer position() {
+        return position;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Reference reference = (Reference) o;
-        return nullable == reference.nullable &&
+        return Objects.equals(position, reference.position) &&
+               nullable == reference.nullable &&
                columnStoreDisabled == reference.columnStoreDisabled &&
                Objects.equals(type, reference.type) &&
                Objects.equals(ident, reference.ident) &&
@@ -163,7 +180,7 @@ public class Reference extends Symbol {
 
     @Override
     public int hashCode() {
-        return Objects.hash(type, ident, columnPolicy, granularity, indexType, nullable, columnStoreDisabled);
+        return Objects.hash(position, type, ident, columnPolicy, granularity, indexType, nullable, columnStoreDisabled);
     }
 
     @Override
@@ -176,6 +193,7 @@ public class Reference extends Symbol {
         MoreObjects.ToStringHelper helper = MoreObjects.toStringHelper(this)
             .add("ident", ident)
             .add("granularity", granularity)
+            .add("position", position)
             .add("type", type);
         if (type.id() == ObjectType.ID) {
             helper.add("column policy", columnPolicy.name());
@@ -189,6 +207,7 @@ public class Reference extends Symbol {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         ident.writeTo(out);
+        out.writeOptionalVInt(position);
         DataTypes.toStream(type, out);
         RowGranularity.toStream(granularity, out);
 

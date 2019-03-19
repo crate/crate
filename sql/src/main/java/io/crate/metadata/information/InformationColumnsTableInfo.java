@@ -91,7 +91,7 @@ public class InformationColumnsTableInfo extends InformationTableInfo {
             .register(Columns.TABLE_NAME, DataTypes.STRING, false)
             .register(Columns.TABLE_CATALOG, DataTypes.STRING, false)
             .register(Columns.COLUMN_NAME, DataTypes.STRING, false)
-            .register(Columns.ORDINAL_POSITION, DataTypes.SHORT, false)
+            .register(Columns.ORDINAL_POSITION, DataTypes.INTEGER, false)
             .register(Columns.DATA_TYPE, DataTypes.STRING, false)
             .register(Columns.IS_GENERATED, DataTypes.STRING, false)
             .register(Columns.IS_NULLABLE, DataTypes.BOOLEAN, false)

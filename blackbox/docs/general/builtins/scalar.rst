@@ -289,6 +289,50 @@ Replaces all occurrences of ``from`` in ``text`` with ``to``.
    +---------------------------------------------+
    SELECT 1 row in set (... sec)
 
+.. _scalar-trim:
+
+``trim({LEADING | TRAILING | BOTH} 'str_arg_1' FROM 'str_arg_2')``
+------------------------------------------------------------------
+
+Removes the longest string containing characters from ``str_arg_1``
+(``' '`` by default) from the start, end, or both ends
+(``BOTH`` is the default) of ``str_arg_2``.
+
+Synopsis::
+
+    trim([ [ {LEADING | TRAILING | BOTH} ] [ str_arg_1 ] FROM ] str_arg_2)
+
+Examples
+::
+
+   cr> select trim(BOTH 'ab' from 'abcba');
+   +-----------------------------+
+   | trim('abcba', 'ab', 'BOTH') |
+   +-----------------------------+
+   | c                           |
+   +-----------------------------+
+   SELECT 1 row in set (... sec)
+
+::
+
+   cr> select trim('ab' from 'abcba');
+   +---------------------+
+   | trim('abcba', 'ab') |
+   +---------------------+
+   | c                   |
+   +---------------------+
+   SELECT 1 row in set (... sec)
+
+::
+
+   cr> select trim('   abcba   ');
+   +---------------------+
+   | trim('   abcba   ') |
+   +---------------------+
+   | abcba               |
+   +---------------------+
+   SELECT 1 row in set (... sec)
+
 
 Date and Time Functions
 =======================

@@ -71,16 +71,25 @@ public class NodeStatsCollectSourceTest extends CrateUnitTest {
         SysNodesTableInfo tableInfo = mock(SysNodesTableInfo.class);
         when(tableInfo.ident()).thenReturn(new RelationName("sys", "nodes"));
         when(tableInfo.getReference(new ColumnIdent("id"))).thenReturn(
-            new Reference(new ReferenceIdent(new RelationName("sys", "nodes"), "id"), RowGranularity.DOC, DataTypes.STRING));
+            new Reference(new ReferenceIdent(new RelationName("sys", "nodes"), "id"),
+                          RowGranularity.DOC,
+                          DataTypes.STRING,
+                          null));
         when(tableInfo.getReference(SysNodesTableInfo.Columns.NAME)).thenReturn(
             new Reference(
                 new ReferenceIdent(SysNodesTableInfo.IDENT, SysNodesTableInfo.Columns.NAME),
-                RowGranularity.DOC, DataTypes.STRING)
+                RowGranularity.DOC,
+                DataTypes.STRING,
+                null
+            )
         );
         when(tableInfo.getReference(SysNodesTableInfo.Columns.HOSTNAME)).thenReturn(
             new Reference(
                 new ReferenceIdent(SysNodesTableInfo.IDENT, SysNodesTableInfo.Columns.HOSTNAME),
-                RowGranularity.DOC, DataTypes.STRING)
+                RowGranularity.DOC,
+                DataTypes.STRING,
+                null
+            )
         );
 
 

@@ -347,6 +347,65 @@ public class TestSqlParser {
         assertInstanceOf("USER", FunctionCall.class);
     }
 
+    @Test
+    public void testTrimFunctionExpression() {
+        assertExpression("TRIM(BOTH 'A' FROM chars)",
+            new FunctionCall(new QualifiedName("trim"), ImmutableList.of(
+                new QualifiedNameReference(new QualifiedName("chars")),
+                new StringLiteral("A"),
+                new StringLiteral("BOTH")
+            ))
+        );
+    }
+
+    @Test
+    public void testTrimFunctionExpressionSingleArgument() {
+        assertExpression("TRIM(chars)",
+            new FunctionCall(new QualifiedName("trim"), ImmutableList.of(
+                new QualifiedNameReference(new QualifiedName("chars"))
+            ))
+        );
+    }
+
+    @Test
+    public void testTrimFunctionAllArgs() {
+        assertInstanceOf("TRIM(LEADING 'A' FROM chars)", FunctionCall.class);
+        assertInstanceOf("TRIM(TRAILING 'A' FROM chars)", FunctionCall.class);
+        assertInstanceOf("TRIM(BOTH 'A' FROM chars)", FunctionCall.class);
+    }
+
+    @Test
+    public void testTrimFunctionDefaultTrimModeOnly() {
+        assertInstanceOf("TRIM('A' FROM chars)", FunctionCall.class);
+    }
+
+    @Test
+    public void testTrimFunctionDefaultCharsToTrimOnly() {
+        assertInstanceOf("TRIM(LEADING FROM chars)", FunctionCall.class);
+        assertInstanceOf("TRIM(TRAILING FROM chars)", FunctionCall.class);
+        assertInstanceOf("TRIM(BOTH FROM chars)", FunctionCall.class);
+        assertInstanceOf("TRIM(FROM chars)", FunctionCall.class);
+    }
+
+    @Test
+    public void testTrimFunctionDefaultTrimModeAndCharsToTrim() {
+        assertInstanceOf("TRIM(chars)", FunctionCall.class);
+    }
+
+    @Test
+    public void testTrimFunctionMissingFromWhenCharsToTrimIsPresentThrowsException() {
+        expectedException.expect(ParsingException.class);
+        expectedException.expectMessage("line 1:10: no viable alternative at input 'TRIM(' ' chars'");
+        assertInstanceOf("TRIM(' ' chars)", FunctionCall.class);
+    }
+
+    @Test
+    public void testTrimFunctionInvalidTrimModeThrowsException() {
+        expectedException.expect(ParsingException.class);
+        expectedException.expectMessage("line 1:12: no viable alternative at input 'TRIM(BOTHH ' '");
+        assertInstanceOf("TRIM(BOTHH ' ' FROM chars)", FunctionCall.class);
+    }
+
     private void assertInstanceOf(String expr, Class<? extends Node> cls) {
         Expression expression = SqlParser.createExpression(expr);
         assertThat(expression, instanceOf(cls));

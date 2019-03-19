@@ -172,6 +172,7 @@ import io.crate.sql.tree.TimeLiteral;
 import io.crate.sql.tree.TimestampLiteral;
 import io.crate.sql.tree.TokenFilters;
 import io.crate.sql.tree.Tokenizer;
+import io.crate.sql.tree.TrimMode;
 import io.crate.sql.tree.TryCast;
 import io.crate.sql.tree.Union;
 import io.crate.sql.tree.Update;
@@ -1404,6 +1405,24 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     }
 
     @Override
+    public Node visitTrim(SqlBaseParser.TrimContext ctx) {
+        List<Expression> arguments = new ArrayList<>();
+
+        arguments.add((Expression) visit(ctx.target));
+
+        if (ctx.charsToTrim != null) {
+            Expression charsToTrim = visitIfPresent(ctx.charsToTrim, Expression.class)
+                .orElse(new StringLiteral(" "));
+            arguments.add(charsToTrim);
+        }
+        if (ctx.trimMode != null) {
+            arguments.add(new StringLiteral(getTrimMode(ctx.trimMode).value()));
+        }
+
+        return new FunctionCall(QualifiedName.of("trim"), Collections.unmodifiableList(arguments));
+    }
+
+    @Override
     public Node visitCurrentSchema(SqlBaseParser.CurrentSchemaContext context) {
         return new FunctionCall(QualifiedName.of("current_schema"), ImmutableList.of());
     }
@@ -1709,6 +1728,22 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
                 return ArithmeticExpression.Type.MODULUS;
             default:
                 throw new UnsupportedOperationException("Unsupported operator: " + operator.getText());
+        }
+    }
+
+    private TrimMode getTrimMode(Token type) {
+        if (type == null) {
+            return TrimMode.BOTH;
+        }
+        switch (type.getType()) {
+            case SqlBaseLexer.BOTH:
+                return TrimMode.BOTH;
+            case SqlBaseLexer.LEADING:
+                return TrimMode.LEADING;
+            case SqlBaseLexer.TRAILING:
+                return TrimMode.TRAILING;
+            default:
+                throw new UnsupportedOperationException("Unsupported trim mode: " + type.getText());
         }
     }
 

@@ -83,7 +83,12 @@ import static org.mockito.Mockito.mock;
 
 public class LuceneOrderedDocCollectorTest extends RandomizedTest {
 
-    private static final Reference REFERENCE = new Reference(new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, "table"), "value"), RowGranularity.DOC, DataTypes.LONG);
+    private static final Reference REFERENCE = new Reference(
+        new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, "table"), "value"),
+        RowGranularity.DOC,
+        DataTypes.LONG,
+        null
+    );
     private final NumberFieldMapper.NumberType fieldType = NumberFieldMapper.NumberType.LONG;
     private NumberFieldMapper.NumberFieldType valueFieldType;
 
@@ -251,8 +256,8 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
             new Reference(
                 new ReferenceIdent(
                     new RelationName(Schemas.DOC_SCHEMA_NAME, "table"),
-                    DocSysColumns.SCORE),
-                RowGranularity.DOC, DataTypes.FLOAT);
+                    DocSysColumns.SCORE), RowGranularity.DOC, DataTypes.FLOAT, null
+            );
 
         OrderBy orderBy = new OrderBy(ImmutableList.of(sysColReference, REFERENCE),
             new boolean[]{false, false},

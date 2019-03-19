@@ -299,7 +299,6 @@ public class InformationSchemaIterables implements ClusterStateListener {
 
         private final Iterator<Reference> columns;
         private final RelationInfo tableInfo;
-        private Short ordinal = 1;
 
         ColumnsIterator(RelationInfo tableInfo) {
             columns = stream(tableInfo.spliterator(), false)
@@ -318,11 +317,11 @@ public class InformationSchemaIterables implements ClusterStateListener {
             if (!hasNext()) {
                 throw new NoSuchElementException("Columns iterator exhausted");
             }
-            Reference colRef = columns.next();
-            if (colRef.column().isTopLevel() == false) {
-                return new ColumnContext(tableInfo, colRef, null);
+            Reference ref = columns.next();
+            if (ref.column().isTopLevel() == false) {
+                return new ColumnContext(tableInfo, ref, null);
             }
-            return new ColumnContext(tableInfo, colRef, ordinal++);
+            return new ColumnContext(tableInfo, ref, ref.position());
         }
     }
 
