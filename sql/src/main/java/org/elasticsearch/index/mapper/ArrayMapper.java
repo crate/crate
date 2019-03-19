@@ -75,9 +75,14 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
     public static final String INNER_TYPE = "inner";
     private Mapper innerMapper;
 
-    ArrayMapper(String simpleName, MappedFieldType fieldType, MappedFieldType defaultFieldType,
-                          Settings indexSettings, MultiFields multiFields, Mapper innerMapper) {
-        super(simpleName, fieldType, defaultFieldType, indexSettings, multiFields, CopyTo.empty());
+    ArrayMapper(String simpleName,
+                Integer position,
+                MappedFieldType fieldType,
+                MappedFieldType defaultFieldType,
+                Settings indexSettings,
+                MultiFields multiFields,
+                Mapper innerMapper) {
+        super(simpleName, position, fieldType, defaultFieldType, indexSettings, multiFields, CopyTo.empty());
         this.innerMapper = innerMapper;
     }
 
@@ -100,8 +105,15 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
         @Override
         public ArrayMapper build(BuilderContext context) {
             Mapper innerMapper = innerBuilder.build(context);
-            return new ArrayMapper(name, fieldType, defaultFieldType, context.indexSettings(),
-                multiFieldsBuilder.build(this, context), innerMapper);
+            return new ArrayMapper(
+                name,
+                position,
+                fieldType,
+                defaultFieldType,
+                context.indexSettings(),
+                multiFieldsBuilder.build(this, context),
+                innerMapper
+            );
         }
     }
 

@@ -21,7 +21,6 @@
 
 package io.crate.integrationtests;
 
-import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import io.crate.action.sql.SQLActionException;
 import io.crate.metadata.IndexMappings;
@@ -369,7 +368,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
             $(partitionName.ident()));
         assertThat(response.rows()[0][0], is(1L));
 
-        execute("select * from parted");
+        execute("select date, name from parted");
         assertThat(
             printedTable(response.rows()),
             is("13959981214861| Ford\n"));
@@ -1073,10 +1072,10 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         refresh();
         execute("select * from quotes where id = 1 and num = 4");
         assertThat(response.rowCount(), is(1L));
-        assertThat(Joiner.on(", ").join(response.cols()), is("id, num, quote"));
+        assertThat(String.join(", ", response.cols()), is("id, quote, num"));
         assertThat((Integer) response.rows()[0][0], is(1));
-        assertThat((Double) response.rows()[0][1], is(4.0d));
-        assertThat((String) response.rows()[0][2], is("Don't panic"));
+        assertThat((String) response.rows()[0][1], is("Don't panic"));
+        assertThat((Double) response.rows()[0][2], is(4.0d));
     }
 
     @Test

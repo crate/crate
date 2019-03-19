@@ -84,8 +84,10 @@ public class DocIndexMetaData {
     private final Map<String, Object> mappingMap;
     private final Map<ColumnIdent, IndexReference.Builder> indicesBuilder = new HashMap<>();
 
-    private final ImmutableSortedSet.Builder<Reference> columnsBuilder = ImmutableSortedSet.orderedBy(
-        Comparator.comparing(o -> o.column().fqn()));
+    private final Comparator<Reference> sortByPositionThenName = Comparator
+        .comparing((Reference r) -> MoreObjects.firstNonNull(r.position(), 0))
+        .thenComparing(o -> o.column().fqn());
+    private final ImmutableSortedSet.Builder<Reference> columnsBuilder = ImmutableSortedSet.orderedBy(sortByPositionThenName);
 
     private final List<Reference> nestedColumns = new ArrayList<>();
     private final ImmutableList.Builder<GeneratedReference> generatedColumnReferencesBuilder = ImmutableList.builder();
@@ -139,7 +141,7 @@ public class DocIndexMetaData {
         closed = state == IndexMetaData.State.CLOSE;
     }
 
-    private static Map<String, Object> getMappingMap(IndexMetaData metaData) throws IOException {
+    private static Map<String, Object> getMappingMap(IndexMetaData metaData) {
         MappingMetaData mappingMetaData = metaData.mappingOrDefault(Constants.DEFAULT_MAPPING_TYPE);
         if (mappingMetaData == null) {
             return ImmutableMap.of();
@@ -159,7 +161,8 @@ public class DocIndexMetaData {
         return indexMetaData.getState() == IndexMetaData.State.CLOSE;
     }
 
-    private void add(ColumnIdent column,
+    private void add(Integer position,
+                     ColumnIdent column,
                      DataType type,
                      ColumnPolicy columnPolicy,
                      Reference.IndexType indexType,
@@ -172,9 +175,9 @@ public class DocIndexMetaData {
             indexType = Reference.IndexType.NOT_ANALYZED;
         }
         if (generatedExpression == null) {
-            ref = newInfo(column, type, columnPolicy, indexType, isNotNull, columnStoreEnabled);
+            ref = newInfo(position, column, type, columnPolicy, indexType, isNotNull, columnStoreEnabled);
         } else {
-            ref = newGeneratedColumnInfo(column, type, columnPolicy, indexType, generatedExpression, isNotNull);
+            ref = newGeneratedColumnInfo(position, column, type, columnPolicy, indexType, generatedExpression, isNotNull);
         }
         if (column.isTopLevel()) {
             columnsBuilder.add(ref);
@@ -186,12 +189,13 @@ public class DocIndexMetaData {
         }
     }
 
-    private void addGeoReference(ColumnIdent column,
+    private void addGeoReference(Integer position, ColumnIdent column,
                                  @Nullable String tree,
                                  @Nullable String precision,
                                  @Nullable Integer treeLevels,
                                  @Nullable Double distanceErrorPct) {
         GeoReference info = new GeoReference(
+            position,
             refIdent(column),
             tree,
             precision,
@@ -204,14 +208,22 @@ public class DocIndexMetaData {
         return new ReferenceIdent(ident, column);
     }
 
-    private GeneratedReference newGeneratedColumnInfo(ColumnIdent column,
+    private GeneratedReference newGeneratedColumnInfo(Integer position,
+                                                      ColumnIdent column,
                                                       DataType type,
                                                       ColumnPolicy columnPolicy,
                                                       Reference.IndexType indexType,
                                                       String generatedExpression,
                                                       boolean isNotNull) {
         return new GeneratedReference(
-            refIdent(column), granularity(column), type, columnPolicy, indexType, generatedExpression, isNotNull);
+            position,
+            refIdent(column),
+            granularity(column),
+            type,
+            columnPolicy,
+            indexType,
+            generatedExpression,
+            isNotNull);
     }
 
     private RowGranularity granularity(ColumnIdent column) {
@@ -221,13 +233,16 @@ public class DocIndexMetaData {
         return RowGranularity.DOC;
     }
 
-    private Reference newInfo(ColumnIdent column,
+    private Reference newInfo(Integer position,
+                              ColumnIdent column,
                               DataType type,
                               ColumnPolicy columnPolicy,
                               Reference.IndexType indexType,
                               boolean nullable,
                               boolean columnStoreEnabled) {
-        return new Reference(refIdent(column), granularity(column), type, columnPolicy, indexType, nullable, columnStoreEnabled);
+        return new Reference(
+            refIdent(column), granularity(column), type, columnPolicy, indexType, nullable, columnStoreEnabled, position
+        );
     }
 
     /**
@@ -339,8 +354,10 @@ public class DocIndexMetaData {
             DataType columnDataType = getColumnDataType(columnProperties);
             ColumnIdent newIdent = childIdent(columnIdent, columnEntry.getKey());
 
+
             boolean nullable = !notNullColumns.contains(newIdent);
             columnProperties = furtherColumnProperties(columnProperties);
+            Integer position = (Integer) columnProperties.getOrDefault("position", null);
             Reference.IndexType columnIndexType = getColumnIndexType(columnProperties);
             boolean columnsStoreDisabled = !Booleans.parseBoolean(
                 columnProperties.getOrDefault(DOC_VALUES, true).toString());
@@ -349,12 +366,12 @@ public class DocIndexMetaData {
                 String precision = (String) columnProperties.get("precision");
                 Integer treeLevels = (Integer) columnProperties.get("tree_levels");
                 Double distanceErrorPct = (Double) columnProperties.get("distance_error_pct");
-                addGeoReference(newIdent, geoTree, precision, treeLevels, distanceErrorPct);
+                addGeoReference(position, newIdent, geoTree, precision, treeLevels, distanceErrorPct);
             } else if (columnDataType.id() == ObjectType.ID
                        || (columnDataType.id() == ArrayType.ID
                            && ((ArrayType) columnDataType).innerType().id() == ObjectType.ID)) {
                 ColumnPolicy columnPolicy = ColumnPolicies.decodeMappingValue(columnProperties.get("dynamic"));
-                add(newIdent, columnDataType, columnPolicy, Reference.IndexType.NO, nullable, false);
+                add(position, newIdent, columnDataType, columnPolicy, Reference.IndexType.NO, nullable, false);
 
                 if (columnProperties.get("properties") != null) {
                     // walk nested
@@ -368,7 +385,7 @@ public class DocIndexMetaData {
                     for (String copyToColumn : copyToColumns) {
                         ColumnIdent targetIdent = ColumnIdent.fromPath(copyToColumn);
                         IndexReference.Builder builder = getOrCreateIndexBuilder(targetIdent);
-                        builder.addColumn(newInfo(newIdent, columnDataType, ColumnPolicy.DYNAMIC, columnIndexType, false, columnsStoreDisabled));
+                        builder.addColumn(newInfo(position, newIdent, columnDataType, ColumnPolicy.DYNAMIC, columnIndexType, false, columnsStoreDisabled));
                     }
                 }
                 // is it an index?
@@ -377,7 +394,7 @@ public class DocIndexMetaData {
                     builder.indexType(columnIndexType)
                         .analyzer((String) columnProperties.get("analyzer"));
                 } else {
-                    add(newIdent, columnDataType, ColumnPolicy.DYNAMIC, columnIndexType, nullable, columnsStoreDisabled);
+                    add(position, newIdent, columnDataType, ColumnPolicy.DYNAMIC, columnIndexType, nullable, columnsStoreDisabled);
                 }
             }
         }
@@ -523,7 +540,7 @@ public class DocIndexMetaData {
         columns = columnsBuilder.build();
         references = new LinkedHashMap<>();
         DocSysColumns.forTable(ident, references::put);
-        nestedColumns.sort(Comparator.comparing((Reference r) -> r.column().fqn()));
+        nestedColumns.sort(sortByPositionThenName);
         for (Reference ref : columns) {
             references.put(ref.column(), ref);
             for (Reference nestedColumn : nestedColumns) {

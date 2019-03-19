@@ -102,7 +102,8 @@ public abstract class AbstractTableRelation<T extends TableInfo> implements Anal
                 reference.columnPolicy(),
                 reference.indexType(),
                 reference.isNullable(),
-                reference.isColumnStoreDisabled()
+                reference.isColumnStoreDisabled(),
+                reference.position()
             );
     }
 

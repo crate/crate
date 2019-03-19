@@ -56,6 +56,7 @@ import java.util.Map;
 import java.util.Objects;
 
 import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeBooleanValue;
+import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeIntegerValue;
 import static org.elasticsearch.index.mapper.GeoPointFieldMapper.Names.IGNORE_MALFORMED;
 
 /**
@@ -189,8 +190,17 @@ public class GeoShapeFieldMapper extends FieldMapper {
             }
             setupFieldType(context);
 
-            return new GeoShapeFieldMapper(name, fieldType, ignoreMalformed(context), coerce(context), ignoreZValue(context),
-                    context.indexSettings(), multiFieldsBuilder.build(this, context), copyTo);
+            return new GeoShapeFieldMapper(
+                name,
+                position,
+                fieldType,
+                ignoreMalformed(context),
+                coerce(context),
+                ignoreZValue(context),
+                context.indexSettings(),
+                multiFieldsBuilder.build(this, context),
+                copyTo
+            );
         }
     }
 
@@ -234,6 +244,9 @@ public class GeoShapeFieldMapper extends FieldMapper {
                     iterator.remove();
                 } else if (Names.STRATEGY_POINTS_ONLY.equals(fieldName)) {
                     pointsOnly = nodeBooleanValue(fieldNode, fieldName + '.' + Names.STRATEGY_POINTS_ONLY);
+                    iterator.remove();
+                } else if ("position".equals(fieldName)) {
+                    builder.position(nodeIntegerValue(fieldNode));
                     iterator.remove();
                 }
             }
@@ -479,10 +492,16 @@ public class GeoShapeFieldMapper extends FieldMapper {
     protected Explicit<Boolean> ignoreMalformed;
     protected Explicit<Boolean> ignoreZValue;
 
-    public GeoShapeFieldMapper(String simpleName, MappedFieldType fieldType, Explicit<Boolean> ignoreMalformed,
-                               Explicit<Boolean> coerce, Explicit<Boolean> ignoreZValue, Settings indexSettings,
-                               MultiFields multiFields, CopyTo copyTo) {
-        super(simpleName, fieldType, Defaults.FIELD_TYPE, indexSettings, multiFields, copyTo);
+    public GeoShapeFieldMapper(String simpleName,
+                               Integer position,
+                               MappedFieldType fieldType,
+                               Explicit<Boolean> ignoreMalformed,
+                               Explicit<Boolean> coerce,
+                               Explicit<Boolean> ignoreZValue,
+                               Settings indexSettings,
+                               MultiFields multiFields,
+                               CopyTo copyTo) {
+        super(simpleName, position, fieldType, Defaults.FIELD_TYPE, indexSettings, multiFields, copyTo);
         this.coerce = coerce;
         this.ignoreMalformed = ignoreMalformed;
         this.ignoreZValue = ignoreZValue;
@@ -561,6 +580,10 @@ public class GeoShapeFieldMapper extends FieldMapper {
 
         if (includeDefaults || fieldType().tree().equals(Defaults.TREE) == false) {
             builder.field(Names.TREE, fieldType().tree());
+        }
+
+        if (position != null) {
+            builder.field("position", position);
         }
 
         if (fieldType().treeLevels() != 0) {

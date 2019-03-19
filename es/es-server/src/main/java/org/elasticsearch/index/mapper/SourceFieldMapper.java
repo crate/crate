@@ -186,7 +186,7 @@ public class SourceFieldMapper extends MetadataFieldMapper {
     }
 
     private SourceFieldMapper(boolean enabled, String[] includes, String[] excludes, Settings indexSettings) {
-        super(NAME, Defaults.FIELD_TYPE.clone(), Defaults.FIELD_TYPE, indexSettings); // Only stored.
+        super(NAME, null, Defaults.FIELD_TYPE.clone(), Defaults.FIELD_TYPE, indexSettings); // Only stored.
         this.enabled = enabled;
         this.includes = includes;
         this.excludes = excludes;

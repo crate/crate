@@ -36,6 +36,7 @@ import java.util.Map.Entry;
 import static org.elasticsearch.common.xcontent.support.XContentMapValues.isArray;
 import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeBooleanValue;
 import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeFloatValue;
+import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeIntegerValue;
 import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeMapValue;
 import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeStringValue;
 
@@ -228,6 +229,9 @@ public class TypeParsers {
                     parseCopyFields(propNode, builder);
                 }
                 iterator.remove();
+            } else if (propName.equals("position")) {
+                builder.position(nodeIntegerValue(propNode));
+                iterator.remove();;
             }
         }
     }

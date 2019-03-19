@@ -31,16 +31,16 @@ public class ColumnContext {
     public final RelationInfo tableInfo;
     public final Reference info;
     @Nullable
-    public final Short ordinal;
+    public final Integer ordinal;
 
-    public ColumnContext(RelationInfo tableInfo, Reference ref, @Nullable Short ordinal) {
+    public ColumnContext(RelationInfo tableInfo, Reference ref, @Nullable Integer ordinal) {
         this.tableInfo = tableInfo;
         this.info = ref;
         this.ordinal = ordinal;
     }
 
     @Nullable
-    public Short getOrdinal() {
+    public Integer getOrdinal() {
         return ordinal;
     }
 }

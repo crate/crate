@@ -48,6 +48,8 @@ public class ColumnRegistrar {
     private final RelationName relationName;
     private final RowGranularity rowGranularity;
 
+    private int position = 1;
+
     public ColumnRegistrar(RelationName relationName, RowGranularity rowGranularity) {
         this.relationName = relationName;
         this.rowGranularity = rowGranularity;
@@ -68,8 +70,16 @@ public class ColumnRegistrar {
     }
 
     public ColumnRegistrar register(ColumnIdent column, DataType type, boolean nullable) {
-        Reference ref = new Reference(new ReferenceIdent(relationName, column), rowGranularity, type,
-            ColumnPolicy.STRICT, Reference.IndexType.NOT_ANALYZED, nullable);
+        Reference ref = new Reference(
+            new ReferenceIdent(relationName, column),
+            rowGranularity,
+            type,
+            ColumnPolicy.STRICT,
+            Reference.IndexType.NOT_ANALYZED,
+            nullable,
+            position
+        );
+        position++;
         if (ref.column().isTopLevel()) {
             columnsBuilder.add(ref);
         }
@@ -86,13 +96,22 @@ public class ColumnRegistrar {
             return;
         }
         Map<String, DataType> innerTypes = ((ObjectType) dataType).innerTypes();
+        int pos = 0;
         for (Map.Entry<String, DataType> entry : innerTypes.entrySet()) {
             List<String> subPath = new ArrayList<>(path);
             subPath.add(entry.getKey());
             ColumnIdent ci = new ColumnIdent(topLevelName, subPath);
             DataType innerType = entry.getValue();
-            Reference ref = new Reference(new ReferenceIdent(relationName, ci), rowGranularity, innerType,
-                ColumnPolicy.STRICT, Reference.IndexType.NOT_ANALYZED, true);
+            Reference ref = new Reference(
+                new ReferenceIdent(relationName, ci),
+                rowGranularity,
+                innerType,
+                ColumnPolicy.STRICT,
+                Reference.IndexType.NOT_ANALYZED,
+                true,
+                pos
+            );
+            pos++;
             infosBuilder.put(ref.column(), ref);
             registerPossibleObjectInnerTypes(ci.name(), ci.path(), innerType);
         }

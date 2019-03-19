@@ -78,13 +78,22 @@ public class NodeStatsTest extends CrateUnitTest {
     public void prepare() {
         idRef = new Reference(
             new ReferenceIdent(SysNodesTableInfo.IDENT, SysNodesTableInfo.Columns.ID),
-            RowGranularity.DOC, DataTypes.STRING);
+            RowGranularity.DOC,
+            DataTypes.STRING,
+            null
+        );
         nameRef = new Reference(
             new ReferenceIdent(SysNodesTableInfo.IDENT, SysNodesTableInfo.Columns.ID),
-            RowGranularity.DOC, DataTypes.STRING);
+            RowGranularity.DOC,
+            DataTypes.STRING,
+            null
+        );
         hostnameRef = new Reference(
             new ReferenceIdent(SysNodesTableInfo.IDENT, SysNodesTableInfo.Columns.HOSTNAME),
-            RowGranularity.DOC, DataTypes.STRING);
+            RowGranularity.DOC,
+            DataTypes.STRING,
+            null
+        );
         collectPhase = mock(RoutedCollectPhase.class);
         when(collectPhase.where()).thenReturn(Literal.BOOLEAN_FALSE);
 

@@ -85,8 +85,15 @@ public class IpFieldMapper extends FieldMapper {
         @Override
         public IpFieldMapper build(BuilderContext context) {
             setupFieldType(context);
-            return new IpFieldMapper(name, fieldType, defaultFieldType, ignoreMalformed(context),
-                    context.indexSettings(), multiFieldsBuilder.build(this, context), copyTo);
+            return new IpFieldMapper(
+                name,
+                position,
+                fieldType,
+                defaultFieldType,
+                ignoreMalformed(context),
+                context.indexSettings(),
+                multiFieldsBuilder.build(this, context),
+                copyTo);
         }
     }
 
@@ -256,13 +263,14 @@ public class IpFieldMapper extends FieldMapper {
 
     private IpFieldMapper(
             String simpleName,
+            Integer position,
             MappedFieldType fieldType,
             MappedFieldType defaultFieldType,
             Explicit<Boolean> ignoreMalformed,
             Settings indexSettings,
             MultiFields multiFields,
             CopyTo copyTo) {
-        super(simpleName, fieldType, defaultFieldType, indexSettings, multiFields, copyTo);
+        super(simpleName, position, fieldType, defaultFieldType, indexSettings, multiFields, copyTo);
         this.ignoreMalformed = ignoreMalformed;
     }
 
