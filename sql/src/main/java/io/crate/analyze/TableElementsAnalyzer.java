@@ -52,9 +52,10 @@ import io.crate.types.ObjectType;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+
+import static java.util.Collections.singletonList;
 
 public class TableElementsAnalyzer {
 
@@ -67,9 +68,12 @@ public class TableElementsAnalyzer {
                                                 RelationName relationName,
                                                 @Nullable TableInfo tableInfo) {
         AnalyzedTableElements analyzedTableElements = new AnalyzedTableElements();
-        for (TableElement tableElement : tableElements) {
+        int positionOffset = tableInfo == null ? 0 : tableInfo.columns().size();
+        for (int i = 0; i < tableElements.size(); i++) {
+            TableElement tableElement = tableElements.get(i);
+            int position = positionOffset + i + 1;
             ColumnDefinitionContext ctx = new ColumnDefinitionContext(
-                null, parameters, fulltextAnalyzerResolver, analyzedTableElements, relationName, tableInfo);
+                position, null, parameters, fulltextAnalyzerResolver, analyzedTableElements, relationName, tableInfo);
             ANALYZER.process(tableElement, ctx);
             if (ctx.analyzedColumnDefinition.ident() != null) {
                 analyzedTableElements.add(ctx.analyzedColumnDefinition);
@@ -82,10 +86,11 @@ public class TableElementsAnalyzer {
                                                 Row parameters,
                                                 FulltextAnalyzerResolver fulltextAnalyzerResolver,
                                                 TableInfo tableInfo) {
-        return analyze(Arrays.asList(tableElement), parameters, fulltextAnalyzerResolver, tableInfo.ident(), tableInfo);
+        return analyze(singletonList(tableElement), parameters, fulltextAnalyzerResolver, tableInfo.ident(), tableInfo);
     }
 
     private static class ColumnDefinitionContext {
+
         private final Row parameters;
         final FulltextAnalyzerResolver fulltextAnalyzerResolver;
         AnalyzedColumnDefinition analyzedColumnDefinition;
@@ -94,13 +99,14 @@ public class TableElementsAnalyzer {
         @Nullable
         final TableInfo tableInfo;
 
-        ColumnDefinitionContext(@Nullable AnalyzedColumnDefinition parent,
+        ColumnDefinitionContext(Integer position,
+                                @Nullable AnalyzedColumnDefinition parent,
                                 Row parameters,
                                 FulltextAnalyzerResolver fulltextAnalyzerResolver,
                                 AnalyzedTableElements analyzedTableElements,
                                 RelationName relationName,
                                 @Nullable TableInfo tableInfo) {
-            this.analyzedColumnDefinition = new AnalyzedColumnDefinition(parent);
+            this.analyzedColumnDefinition = new AnalyzedColumnDefinition(position, parent);
             this.parameters = parameters;
             this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
             this.analyzedTableElements = analyzedTableElements;
@@ -129,34 +135,34 @@ public class TableElementsAnalyzer {
 
         @Override
         public Void visitAddColumnDefinition(AddColumnDefinition node, ColumnDefinitionContext context) {
-            ColumnIdent ident = ExpressionToColumnIdentVisitor.convert(node.name());
-            context.analyzedColumnDefinition.name(ident.name());
+            ColumnIdent column = ExpressionToColumnIdentVisitor.convert(node.name());
+            context.analyzedColumnDefinition.name(column.name());
+            assert context.tableInfo != null : "Table must be available for `addColumnDefinition`";
 
             // nested columns can only be added using alter table so no other columns exist.
             assert context.analyzedTableElements.columns().size() == 0 :
                 "context.analyzedTableElements.columns().size() must be 0";
 
             final AnalyzedColumnDefinition root = context.analyzedColumnDefinition;
-            if (!ident.path().isEmpty()) {
+            if (!column.path().isEmpty()) {
                 AnalyzedColumnDefinition parent = context.analyzedColumnDefinition;
                 AnalyzedColumnDefinition leaf = parent;
-                for (String name : ident.path()) {
+                for (String name : column.path()) {
                     parent.dataType(ObjectType.NAME);
                     // Check if parent is already defined.
                     // If it is an array, set the collection type to array, or if it's an object keep the object column
                     // policy.
-                    if (context.tableInfo != null) {
-                        Reference parentRef = context.tableInfo.getReference(parent.ident());
-                        if (parentRef != null) {
-                            if (parentRef.valueType().equals(new ArrayType(ObjectType.untyped()))) {
-                                parent.collectionType("array");
-                            } else {
-                                parent.objectType(parentRef.columnPolicy());
-                            }
+                    Reference parentRef = context.tableInfo.getReference(parent.ident());
+                    if (parentRef != null) {
+                        parent.position = parentRef.column().isTopLevel() ? parentRef.position() : null;
+                        if (parentRef.valueType().equals(new ArrayType(ObjectType.untyped()))) {
+                            parent.collectionType("array");
+                        } else {
+                            parent.objectType(parentRef.columnPolicy());
                         }
                     }
                     parent.markAsParentColumn();
-                    leaf = new AnalyzedColumnDefinition(parent);
+                    leaf = new AnalyzedColumnDefinition(null, parent);
                     leaf.name(name);
                     parent.addChild(leaf);
                     parent = leaf;
@@ -188,8 +194,10 @@ public class TableElementsAnalyzer {
         public Void visitObjectColumnType(ObjectColumnType node, ColumnDefinitionContext context) {
             context.analyzedColumnDefinition.dataType(node.name());
             context.analyzedColumnDefinition.objectType(node.objectType().orElse(ColumnPolicy.DYNAMIC));
-            for (ColumnDefinition columnDefinition : node.nestedColumns()) {
+            for (int i = 0; i < node.nestedColumns().size(); i++) {
+                ColumnDefinition columnDefinition = node.nestedColumns().get(i);
                 ColumnDefinitionContext childContext = new ColumnDefinitionContext(
+                    null,
                     context.analyzedColumnDefinition,
                     context.parameters,
                     context.fulltextAnalyzerResolver,

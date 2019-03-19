@@ -23,14 +23,14 @@ package io.crate.expression.reference.sys.check.cluster;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
+import io.crate.expression.NestableInput;
+import io.crate.expression.reference.sys.check.AbstractSysCheck;
+import io.crate.expression.reference.sys.cluster.ClusterSettingsExpression;
 import io.crate.metadata.ClusterReferenceResolver;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
-import io.crate.expression.NestableInput;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.sys.SysClusterTableInfo;
-import io.crate.expression.reference.sys.check.AbstractSysCheck;
-import io.crate.expression.reference.sys.cluster.ClusterSettingsExpression;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -53,8 +53,7 @@ public class MinMasterNodesSysCheck extends AbstractSysCheck {
             SysClusterTableInfo.IDENT,
             ClusterSettingsExpression.NAME,
             Lists.newArrayList(Splitter.on(".").split(ElectMasterService.DISCOVERY_ZEN_MINIMUM_MASTER_NODES_SETTING.getKey()))
-        ),
-        RowGranularity.DOC, DataTypes.INTEGER
+        ), RowGranularity.DOC, DataTypes.INTEGER, null
     );
 
     @Inject

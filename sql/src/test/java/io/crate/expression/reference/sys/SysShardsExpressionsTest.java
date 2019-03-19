@@ -153,8 +153,15 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testShardInfoLookup() throws Exception {
-        Reference info = new Reference(new ReferenceIdent(SysShardsTableInfo.IDENT, SysShardsTableInfo.Columns.ID),
-            RowGranularity.SHARD, IntegerType.INSTANCE, ColumnPolicy.STRICT, Reference.IndexType.NOT_ANALYZED, true);
+        Reference info = new Reference(
+            new ReferenceIdent(SysShardsTableInfo.IDENT, SysShardsTableInfo.Columns.ID),
+            RowGranularity.SHARD,
+            IntegerType.INSTANCE,
+            ColumnPolicy.STRICT,
+            Reference.IndexType.NOT_ANALYZED,
+            true,
+            3
+        );
         assertEquals(info, schemas.getTableInfo(SysShardsTableInfo.IDENT).getReference(SysShardsTableInfo.Columns.ID));
     }
 

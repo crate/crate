@@ -49,7 +49,7 @@ public class EvaluatingNormalizerTest extends CrateUnitTest {
         Map<ReferenceIdent, NestableInput> referenceImplementationMap = new HashMap<>(1, 1);
 
         ReferenceIdent dummyLoadIdent = new ReferenceIdent(new RelationName("test", "dummy"), "load");
-        dummyLoadInfo = new Reference(dummyLoadIdent, RowGranularity.NODE, DataTypes.DOUBLE);
+        dummyLoadInfo = new Reference(dummyLoadIdent, RowGranularity.NODE, DataTypes.DOUBLE, null);
 
         referenceImplementationMap.put(dummyLoadIdent, constant(0.08d));
         functions = getFunctions();
@@ -74,7 +74,9 @@ public class EvaluatingNormalizerTest extends CrateUnitTest {
         Symbol name_ref = new Reference(
             new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, "foo"), "name"),
             RowGranularity.DOC,
-            DataTypes.STRING);
+            DataTypes.STRING,
+            null
+        );
         Symbol x_literal = Literal.of("x");
         Symbol y_literal = Literal.of("y");
 

@@ -117,8 +117,16 @@ public class GeoPointFieldMapper extends FieldMapper implements ArrayValueMapper
                                          MultiFields multiFields, Explicit<Boolean> ignoreMalformed,
                                          Explicit<Boolean> ignoreZValue, CopyTo copyTo) {
             setupFieldType(context);
-            return new GeoPointFieldMapper(simpleName, fieldType, defaultFieldType, indexSettings, multiFields,
-                ignoreMalformed, ignoreZValue, copyTo);
+            return new GeoPointFieldMapper(
+                simpleName,
+                position,
+                fieldType,
+                defaultFieldType,
+                indexSettings,
+                multiFields,
+                ignoreMalformed,
+                ignoreZValue,
+                copyTo);
         }
 
         @Override
@@ -179,10 +187,16 @@ public class GeoPointFieldMapper extends FieldMapper implements ArrayValueMapper
     protected Explicit<Boolean> ignoreMalformed;
     protected Explicit<Boolean> ignoreZValue;
 
-    public GeoPointFieldMapper(String simpleName, MappedFieldType fieldType, MappedFieldType defaultFieldType,
-                               Settings indexSettings, MultiFields multiFields, Explicit<Boolean> ignoreMalformed,
-                               Explicit<Boolean> ignoreZValue, CopyTo copyTo) {
-        super(simpleName, fieldType, defaultFieldType, indexSettings, multiFields, copyTo);
+    public GeoPointFieldMapper(String simpleName,
+                               Integer position,
+                               MappedFieldType fieldType,
+                               MappedFieldType defaultFieldType,
+                               Settings indexSettings,
+                               MultiFields multiFields,
+                               Explicit<Boolean> ignoreMalformed,
+                               Explicit<Boolean> ignoreZValue,
+                               CopyTo copyTo) {
+        super(simpleName, position, fieldType, defaultFieldType, indexSettings, multiFields, copyTo);
         this.ignoreMalformed = ignoreMalformed;
         this.ignoreZValue = ignoreZValue;
     }

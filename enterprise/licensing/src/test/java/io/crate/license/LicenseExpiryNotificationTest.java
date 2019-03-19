@@ -32,35 +32,35 @@ public class LicenseExpiryNotificationTest extends CrateUnitTest {
 
     @Test
     public void testModerateNotification() {
-        String moderateNotification = MODERATE.notificationMessage(TimeUnit.DAYS.toMillis(2));
+        String moderateNotification = MODERATE.message(TimeUnit.DAYS.toMillis(2));
         assertThat(moderateNotification, containsString("Your CrateDB license will expire in 2 days"));
         assertThat(moderateNotification, containsString("For more information on Licensing please visit: https://crate.io/license-update"));
     }
 
     @Test
     public void testSevereHoursNotification() {
-        String moderateNotification = SEVERE.notificationMessage(TimeUnit.HOURS.toMillis(24));
+        String moderateNotification = SEVERE.message(TimeUnit.HOURS.toMillis(24));
         assertThat(moderateNotification, containsString("Your CrateDB license will expire in 24 hours"));
         assertThat(moderateNotification, containsString("For more information on Licensing please visit: https://crate.io/license-update"));
     }
 
     @Test
     public void testSevereMinutesNotification() {
-        String moderateNotification = SEVERE.notificationMessage( TimeUnit.MINUTES.toMillis(46));
+        String moderateNotification = SEVERE.message( TimeUnit.MINUTES.toMillis(46));
         assertThat(moderateNotification, containsString("Your CrateDB license will expire in 46 minutes"));
         assertThat(moderateNotification, containsString("For more information on Licensing please visit: https://crate.io/license-update"));
     }
 
     @Test
     public void testSevereSecondsNotification() {
-        String moderateNotification = SEVERE.notificationMessage( TimeUnit.SECONDS.toMillis(22));
+        String moderateNotification = SEVERE.message( TimeUnit.SECONDS.toMillis(22));
         assertThat(moderateNotification, containsString("Your CrateDB license will expire in 22 seconds"));
         assertThat(moderateNotification, containsString("For more information on Licensing please visit: https://crate.io/license-update"));
     }
 
     @Test
     public void testExpiredNotification() {
-        String expiredNotification = EXPIRED.notificationMessage(-TimeUnit.HOURS.toMillis(4));
+        String expiredNotification = EXPIRED.message(-TimeUnit.HOURS.toMillis(4));
         assertThat(expiredNotification, containsString("Your CrateDB license has expired."));
         assertThat(expiredNotification, containsString("For more information on Licensing please visit: https://crate.io/license-update/?license=expired"));
     }

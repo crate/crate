@@ -69,7 +69,7 @@ public class ViewsITest extends SQLTransportIntegrationTest {
 
     @Test
     public void testViewCanBeUsedForJoins() {
-        execute("CREATE TABLE t1 (x INTEGER, a STRING)");
+        execute("CREATE TABLE t1 (a STRING, x INTEGER)");
         execute("INSERT INTO t1 (x, a) VALUES (1, 'foo')");
         execute("REFRESH TABLE t1");
         execute("CREATE VIEW v1 AS select * FROM t1");

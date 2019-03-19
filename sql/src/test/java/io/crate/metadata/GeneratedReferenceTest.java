@@ -50,7 +50,9 @@ public class GeneratedReferenceTest extends CrateUnitTest {
     public void testStreaming() throws Exception {
         ReferenceIdent referenceIdent = new ReferenceIdent(T3.T1_INFO.ident(), "generated_column");
         String formattedGeneratedExpression = "concat(a, 'bar')";
-        GeneratedReference generatedReferenceInfo = new GeneratedReference(referenceIdent, RowGranularity.DOC,
+        GeneratedReference generatedReferenceInfo = new GeneratedReference(null,
+            referenceIdent,
+            RowGranularity.DOC,
             StringType.INSTANCE, ColumnPolicy.STRICT, Reference.IndexType.ANALYZED,
             formattedGeneratedExpression, false);
 

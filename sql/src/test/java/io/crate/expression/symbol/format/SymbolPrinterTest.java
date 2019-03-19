@@ -149,19 +149,21 @@ public class SymbolPrinterTest extends CrateUnitTest {
 
     @Test
     public void testReference() throws Exception {
-        Reference r = new Reference(new ReferenceIdent(
+        Reference r = new Reference(
+            new ReferenceIdent(
             new RelationName("sys", "table"),
-            new ColumnIdent("column", Arrays.asList("path", "nested"))),
-            RowGranularity.DOC, DataTypes.STRING);
+            new ColumnIdent("column", Arrays.asList("path", "nested"))), RowGranularity.DOC, DataTypes.STRING, null
+        );
         assertPrint(r, "sys.\"table\".\"column\"['path']['nested']");
     }
 
     @Test
     public void testDocReference() throws Exception {
-        Reference r = new Reference(new ReferenceIdent(
+        Reference r = new Reference(
+            new ReferenceIdent(
             new RelationName("doc", "table"),
-            new ColumnIdent("column", Arrays.asList("path", "nested"))),
-            RowGranularity.DOC, DataTypes.STRING);
+            new ColumnIdent("column", Arrays.asList("path", "nested"))), RowGranularity.DOC, DataTypes.STRING, null
+        );
         assertPrint(r, "doc.\"table\".\"column\"['path']['nested']");
     }
 
@@ -175,10 +177,11 @@ public class SymbolPrinterTest extends CrateUnitTest {
 
     @Test
     public void testReferenceEscaped() throws Exception {
-        Reference r = new Reference(new ReferenceIdent(
+        Reference r = new Reference(
+            new ReferenceIdent(
             new RelationName("doc", "table"),
-            new ColumnIdent("colum\"n")),
-            RowGranularity.DOC, DataTypes.STRING);
+            new ColumnIdent("colum\"n")), RowGranularity.DOC, DataTypes.STRING, null
+        );
         assertPrint(r, "doc.\"table\".\"colum\"\"n\"");
     }
 

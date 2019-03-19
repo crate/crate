@@ -48,7 +48,6 @@ import java.util.function.Predicate;
 import static io.crate.license.License.Type;
 import static io.crate.license.LicenseKey.decode;
 
-
 /**
  * The service responsible for the license generation and verification.
  *
@@ -226,11 +225,11 @@ public class EnterpriseLicenseService implements LicenseService, ClusterStateLis
                 if (expiryNotification != null) {
                     long millisToExpiration = licenseData.millisToExpiration();
                     if (expiryNotification.equals(LicenseExpiryNotification.EXPIRED)) {
-                        logger.error(expiryNotification.notificationMessage(millisToExpiration));
+                        logger.error(expiryNotification.message(millisToExpiration));
                     } else if (expiryNotification.equals(LicenseExpiryNotification.SEVERE)) {
-                        logger.error(expiryNotification.notificationMessage(millisToExpiration));
+                        logger.error(expiryNotification.message(millisToExpiration));
                     } else if (expiryNotification.equals(LicenseExpiryNotification.MODERATE)) {
-                        logger.warn(expiryNotification.notificationMessage(millisToExpiration));
+                        logger.warn(expiryNotification.message(millisToExpiration));
                     }
                 }
 

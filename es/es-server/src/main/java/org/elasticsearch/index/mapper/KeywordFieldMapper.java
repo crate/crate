@@ -143,8 +143,15 @@ public final class KeywordFieldMapper extends FieldMapper {
                 fieldType().setSearchAnalyzer(new NamedAnalyzer("whitespace", AnalyzerScope.INDEX, new WhitespaceAnalyzer()));
             }
             return new KeywordFieldMapper(
-                    name, fieldType, defaultFieldType, ignoreAbove,
-                    context.indexSettings(), multiFieldsBuilder.build(this, context), copyTo);
+                name,
+                position,
+                fieldType,
+                defaultFieldType,
+                ignoreAbove,
+                context.indexSettings(),
+                multiFieldsBuilder.build(this, context),
+                copyTo
+            );
         }
     }
 
@@ -317,10 +324,15 @@ public final class KeywordFieldMapper extends FieldMapper {
 
     private int ignoreAbove;
 
-    protected KeywordFieldMapper(String simpleName, MappedFieldType fieldType, MappedFieldType defaultFieldType,
-                                int ignoreAbove,
-                                Settings indexSettings, MultiFields multiFields, CopyTo copyTo) {
-        super(simpleName, fieldType, defaultFieldType, indexSettings, multiFields, copyTo);
+    protected KeywordFieldMapper(String simpleName,
+                                 Integer position,
+                                 MappedFieldType fieldType,
+                                 MappedFieldType defaultFieldType,
+                                 int ignoreAbove,
+                                 Settings indexSettings,
+                                 MultiFields multiFields,
+                                 CopyTo copyTo) {
+        super(simpleName, position, fieldType, defaultFieldType, indexSettings, multiFields, copyTo);
         assert fieldType.indexOptions().compareTo(IndexOptions.DOCS_AND_FREQS) <= 0;
         this.ignoreAbove = ignoreAbove;
     }

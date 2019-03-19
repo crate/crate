@@ -196,8 +196,16 @@ public class TextFieldMapper extends FieldMapper {
                 }
             }
             return new TextFieldMapper(
-                    name, fieldType(), defaultFieldType, positionIncrementGap, prefixMapper,
-                    context.indexSettings(), multiFieldsBuilder.build(this, context), copyTo);
+                name,
+                position,
+                fieldType(),
+                defaultFieldType,
+                positionIncrementGap,
+                prefixMapper,
+                context.indexSettings(),
+                multiFieldsBuilder.build(this, context),
+                copyTo
+            );
         }
     }
 
@@ -405,7 +413,7 @@ public class TextFieldMapper extends FieldMapper {
     private static final class PhraseFieldMapper extends FieldMapper {
 
         PhraseFieldMapper(PhraseFieldType fieldType, Settings indexSettings) {
-            super(fieldType.name(), fieldType, fieldType, indexSettings, MultiFields.empty(), CopyTo.empty());
+            super(fieldType.name(), null, fieldType, fieldType, indexSettings, MultiFields.empty(), CopyTo.empty());
         }
 
         @Override
@@ -422,7 +430,7 @@ public class TextFieldMapper extends FieldMapper {
     private static final class PrefixFieldMapper extends FieldMapper {
 
         protected PrefixFieldMapper(PrefixFieldType fieldType, Settings indexSettings) {
-            super(fieldType.name(), fieldType, fieldType, indexSettings, MultiFields.empty(), CopyTo.empty());
+            super(fieldType.name(), null, fieldType, fieldType, indexSettings, MultiFields.empty(), CopyTo.empty());
         }
 
         void addField(String value, List<IndexableField> fields) {
@@ -672,10 +680,16 @@ public class TextFieldMapper extends FieldMapper {
     private PrefixFieldMapper prefixFieldMapper;
     private PhraseFieldMapper phraseFieldMapper;
 
-    protected TextFieldMapper(String simpleName, TextFieldType fieldType, MappedFieldType defaultFieldType,
-                                int positionIncrementGap, PrefixFieldMapper prefixFieldMapper,
-                                Settings indexSettings, MultiFields multiFields, CopyTo copyTo) {
-        super(simpleName, fieldType, defaultFieldType, indexSettings, multiFields, copyTo);
+    protected TextFieldMapper(String simpleName,
+                              Integer position,
+                              TextFieldType fieldType,
+                              MappedFieldType defaultFieldType,
+                              int positionIncrementGap,
+                              PrefixFieldMapper prefixFieldMapper,
+                              Settings indexSettings,
+                              MultiFields multiFields,
+                              CopyTo copyTo) {
+        super(simpleName, position, fieldType, defaultFieldType, indexSettings, multiFields, copyTo);
         assert fieldType.tokenized();
         assert fieldType.hasDocValues() == false;
         if (fieldType().indexOptions() == IndexOptions.NONE && fieldType().fielddata()) {

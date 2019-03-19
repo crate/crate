@@ -57,14 +57,14 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
         String expected = "CREATE TABLE IF NOT EXISTS \"doc\".\"test\" (\n" +
                           "   \"col_bool\" BOOLEAN,\n" +
                           "   \"col_byte\" BYTE,\n" +
-                          "   \"col_double\" DOUBLE,\n" +
-                          "   \"col_float\" FLOAT,\n" +
-                          "   \"col_geo\" GEO_POINT,\n" +
+                          "   \"col_short\" SHORT,\n" +
                           "   \"col_int\" INTEGER,\n" +
                           "   \"col_long\" LONG,\n" +
-                          "   \"col_short\" SHORT,\n" +
+                          "   \"col_float\" FLOAT,\n" +
+                          "   \"col_double\" DOUBLE,\n" +
                           "   \"col_str\" STRING,\n" +
-                          "   \"col_ts\" TIMESTAMP\n" +
+                          "   \"col_ts\" TIMESTAMP,\n" +
+                          "   \"col_geo\" GEO_POINT\n" +
                           ")\n";
         execute("create table test (" +
                 " col_bool boolean," +
@@ -95,11 +95,11 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
                 ")");
         execute("show create table test");
         assertRow("CREATE TABLE IF NOT EXISTS \"doc\".\"test\" (\n" +
+                  "   \"col_arr_str\" ARRAY(STRING),\n" +
                   "   \"col_arr_obj_a\" ARRAY(OBJECT(DYNAMIC)),\n" +
                   "   \"col_arr_obj_b\" ARRAY(OBJECT(STRICT) AS (\n" +
                   "      \"id\" INTEGER\n" +
                   "   )),\n" +
-                  "   \"col_arr_str\" ARRAY(STRING),\n" +
                   "   \"col_obj_a\" OBJECT(DYNAMIC),\n" +
                   "   \"col_obj_b\" OBJECT(DYNAMIC) AS (\n" +
                   "      \"arr\" ARRAY(INTEGER),\n" +
@@ -167,8 +167,8 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
                 "partitioned by (\"date\")");
         execute("show create table test");
         assertRow("CREATE TABLE IF NOT EXISTS \"doc\".\"test\" (\n" +
-                  "   \"date\" TIMESTAMP,\n" +
-                  "   \"id\" LONG\n" +
+                  "   \"id\" LONG,\n" +
+                  "   \"date\" TIMESTAMP\n" +
                   ")\n" +
                   "CLUSTERED INTO 4 SHARDS\n" +
                   "PARTITIONED BY (\"date\")\n" +
@@ -197,9 +197,9 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
                 ") clustered into 8 shards");
         execute("show create table test_pk_multi");
         assertRow("CREATE TABLE IF NOT EXISTS \"doc\".\"test_pk_multi\" (\n" +
-                  "   \"col_a\" STRING,\n" +
-                  "   \"col_z\" STRING,\n" +
                   "   \"id\" INTEGER,\n" +
+                  "   \"col_z\" STRING,\n" +
+                  "   \"col_a\" STRING,\n" +
                   "   PRIMARY KEY (\"col_z\", \"col_a\")\n" +
                   ")\n" +
                   "CLUSTERED INTO 8 SHARDS\n" +
@@ -222,13 +222,13 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
                 ")");
         execute("show create table test_generated_column");
         assertRow("CREATE TABLE IF NOT EXISTS \"doc\".\"test_generated_column\" (\n" +
-                  "   \"col1\" LONG GENERATED ALWAYS AS CAST(\"ts\" AS long) + 1,\n" +
-                  "   \"col2\" STRING GENERATED ALWAYS AS CAST((CAST(\"ts\" AS long) + 1) AS string),\n" +
-                  "   \"col3\" STRING GENERATED ALWAYS AS CAST((CAST(\"ts\" AS long) + 1) AS string),\n" +
                   "   \"day1\" TIMESTAMP GENERATED ALWAYS AS date_trunc('day', \"ts\"),\n" +
                   "   \"day2\" TIMESTAMP GENERATED ALWAYS AS date_trunc('day', \"ts\") INDEX OFF,\n" +
                   "   \"day3\" TIMESTAMP GENERATED ALWAYS AS date_trunc('day', \"ts\"),\n" +
                   "   \"day4\" TIMESTAMP GENERATED ALWAYS AS date_trunc('day', \"ts\"),\n" +
+                  "   \"col1\" LONG GENERATED ALWAYS AS CAST(\"ts\" AS long) + 1,\n" +
+                  "   \"col2\" STRING GENERATED ALWAYS AS CAST((CAST(\"ts\" AS long) + 1) AS string),\n" +
+                  "   \"col3\" STRING GENERATED ALWAYS AS CAST((CAST(\"ts\" AS long) + 1) AS string),\n" +
                   "   \"name\" STRING GENERATED ALWAYS AS concat(\"user\"['name'], 'foo'),\n" +
                   "   \"ts\" TIMESTAMP,\n" +
                   "   \"user\" OBJECT(DYNAMIC) AS (\n" +

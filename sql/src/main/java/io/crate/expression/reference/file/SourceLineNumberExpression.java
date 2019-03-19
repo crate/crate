@@ -37,9 +37,8 @@ public class SourceLineNumberExpression extends LineCollectorExpression<Long> {
 
     public static Reference getReferenceForRelation(RelationName relationName) {
         return new Reference(
-            new ReferenceIdent(relationName, COLUMN_IDENT),
-            RowGranularity.DOC,
-            DataTypes.LONG);
+            new ReferenceIdent(relationName, COLUMN_IDENT), RowGranularity.DOC, DataTypes.LONG, null
+        );
     }
 
     private LineContext lineContext;

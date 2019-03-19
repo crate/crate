@@ -33,7 +33,7 @@ public class QueryThenFetchIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testCrateSearchServiceSupportsOrderByOnFunctionWithBooleanReturnType() throws Exception {
-        execute("create table t (name string, b byte) with (number_of_replicas = 0)");
+        execute("create table t (b byte, name string) with (number_of_replicas = 0)");
         execute("insert into t (name, b) values ('Marvin', 0), ('Trillian', 1), ('Arthur', 2), ('Max', 3)");
         execute("refresh table t");
         ensureGreen();

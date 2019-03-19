@@ -33,11 +33,11 @@ If the '*' operator is used, all columns defined in the schema are returned for
 each row::
 
     cr> select * from locations order by id limit 1 offset 1;
-    +----...-+--------------...-+----+-------------+--...-+--...-+----------+------------------...-+
-    | date   | description      | id | information | kind | name | position | race                 |
-    +----...-+--------------...-+----+-------------+--...-+--...-+----------+------------------...-+
-    | 308... | Motivated by ... | 10 |        NULL | P... | A... | 3        | {"description": ...} |
-    +----...-+--------------...-+----+-------------+--...-+--...-+----------+------------------...-+
+    +----+-------------------+--------------+--------+----------+---------...-+-------...-+-------------+
+    | id | name              |         date | kind   | position | description | race      | information |
+    +----+-------------------+--------------+--------+----------+---------...-+-------...-+-------------+
+    | 10 | Arkintoofle Minor | 308534400000 | Planet |        3 | Motivate... | {"desc... |        NULL |
+    +----+-------------------+--------------+--------+----------+---------...-+-------...-+-------------+
     SELECT 1 row in set (... sec)
 
 Aliases can be used to change the output name of the columns::

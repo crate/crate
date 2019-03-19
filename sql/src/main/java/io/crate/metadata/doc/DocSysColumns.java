@@ -83,8 +83,14 @@ public class DocSysColumns {
         .build();
 
     private static Reference newInfo(RelationName table, ColumnIdent column, DataType dataType) {
-        return new Reference(new ReferenceIdent(table, column), RowGranularity.DOC, dataType, ColumnPolicy.STRICT,
-            Reference.IndexType.NOT_ANALYZED, false);
+        return new Reference(new ReferenceIdent(table, column),
+                             RowGranularity.DOC,
+                             dataType,
+                             ColumnPolicy.STRICT,
+                             Reference.IndexType.NOT_ANALYZED,
+                             false,
+                             null
+        );
     }
 
     /**

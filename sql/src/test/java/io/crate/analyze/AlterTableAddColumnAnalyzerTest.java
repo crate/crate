@@ -208,6 +208,7 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
         AnalyzedColumnDefinition friends = columns.get(0);
         assertThat(mapToSortedString(friends.toMapping()), is("inner={" +
                                                                 "dynamic=true, " +
+                                                                "position=10, " +
                                                                 "properties={" +
                                                                     "is_nice={type=boolean}" +
                                                                 "}, " +
@@ -270,7 +271,7 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
 
         Map<String, Object> mapping = analysis.analyzedTableElements().toMapping();
         assertThat(mapToSortedString(mapping),
-            is("_meta={primary_keys=[id]}, properties={details={dynamic=true, " +
+            is("_meta={primary_keys=[id]}, properties={details={dynamic=true, position=6, " +
                "properties={foo={dynamic=true, properties={name={type=keyword}, score={type=float}}, type=object}}, " +
                "type=object}, id={type=long}}"));
     }
@@ -330,7 +331,7 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
 
         Map<String, Object> mapping = analysis.analyzedTableElements().toMapping();
         assertThat(mapToSortedString(mapping),
-            is("_meta={}, properties={details={dynamic=true, " +
+            is("_meta={}, properties={details={dynamic=true, position=1, " +
                "properties={stuff={dynamic=true, properties={foo={dynamic=true, properties={price={type=keyword}, " +
                "score={type=float}}, type=object}}, type=object}}, type=object}}"));
     }
@@ -363,6 +364,6 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
         Map<String, Object> mapping = analysis.analyzedTableElements().toMapping();
         assertThat(mapToSortedString(mapping),
             is("_meta={primary_keys=[id]}, properties={id={type=long}, " +
-               "string_no_docvalues={doc_values=false, type=keyword}}"));
+               "string_no_docvalues={doc_values=false, position=18, type=keyword}}"));
     }
 }

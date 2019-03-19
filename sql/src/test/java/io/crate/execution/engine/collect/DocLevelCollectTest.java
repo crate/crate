@@ -86,15 +86,15 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
     private static final Reference testDocLevelReference = new Reference(
         new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, TEST_TABLE_NAME), "doc"),
         RowGranularity.DOC,
-        DataTypes.INTEGER);
+        DataTypes.INTEGER,
+        null
+    );
     private static final Reference underscoreIdReference = new Reference(
         new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, TEST_TABLE_NAME), "_id"),
         RowGranularity.DOC,
-        DataTypes.STRING);
-    private static final Reference underscoreRawReference = new Reference(
-        new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, TEST_TABLE_NAME), "_raw"),
-        RowGranularity.DOC,
-        DataTypes.STRING);
+        DataTypes.STRING,
+        null
+    );
 
     private static final String PARTITIONED_TABLE_NAME = "parted_table";
 
@@ -213,12 +213,12 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
             SessionContext.systemSessionContext());
         RoutedCollectPhase collectNode = getCollectNode(
             Arrays.asList(
-                new Reference(new ReferenceIdent(relationName, "id"),
-                    RowGranularity.DOC,
-                    DataTypes.INTEGER),
-                new Reference(new ReferenceIdent(relationName, "date"),
-                    RowGranularity.SHARD,
-                    DataTypes.TIMESTAMP)),
+                new Reference(
+                    new ReferenceIdent(relationName, "id"), RowGranularity.DOC, DataTypes.INTEGER, null
+                ),
+                new Reference(
+                    new ReferenceIdent(relationName, "date"), RowGranularity.SHARD, DataTypes.TIMESTAMP, null
+                )),
             routing,
             WhereClause.MATCH_ALL
         );

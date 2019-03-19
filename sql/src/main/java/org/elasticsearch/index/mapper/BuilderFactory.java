@@ -47,10 +47,13 @@ public class BuilderFactory implements DynamicArrayFieldMapperBuilderFactory {
                 ObjectMapper objectMapper = (ObjectMapper) innerMapper;
                 return new ObjectArrayMapper(name, objectMapper, context.indexSettings().getSettings());
             }
+            FieldMapper fieldMapper = (FieldMapper) innerMapper;
+
             MappedFieldType mappedFieldType = new ArrayFieldType(((FieldMapper.Builder) innerBuilder).fieldType());
             mappedFieldType.setName(name);
             return new ArrayMapper(
                 name,
+                fieldMapper.position(),
                 mappedFieldType,
                 mappedFieldType.clone(),
                 context.indexSettings().getSettings(),
