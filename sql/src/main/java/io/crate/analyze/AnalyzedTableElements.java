@@ -31,13 +31,13 @@ import io.crate.expression.scalar.cast.CastFunctionResolver;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.format.SymbolPrinter;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.types.ArrayType;
 import io.crate.types.CollectionType;
 import io.crate.types.DataType;
@@ -338,10 +338,12 @@ public class AnalyzedTableElements {
             reference = new Reference(
                 new ReferenceIdent(relationName, columnDefinition.ident()),
                 RowGranularity.DOC,
-                columnDefinition.dataType()
+                columnDefinition.dataType(),
+                columnDefinition.position
             );
         } else {
             reference = new GeneratedReference(
+                columnDefinition.position,
                 new ReferenceIdent(relationName, columnDefinition.ident()),
                 RowGranularity.DOC,
                 columnDefinition.dataType() == null ? DataTypes.UNDEFINED : columnDefinition.dataType(),

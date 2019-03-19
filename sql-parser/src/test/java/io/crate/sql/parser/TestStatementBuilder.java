@@ -796,6 +796,14 @@ public class TestStatementBuilder {
     }
 
     @Test
+    public void testTrimFunctionStmtBuilder() {
+        printStatement("SELECT trim(LEADING ' ' FROM  x) FROM t");
+        printStatement("SELECT trim(' ' FROM  x) FROM t");
+        printStatement("SELECT trim(FROM  x) FROM t");
+        printStatement("SELECT trim(x) FROM t");
+    }
+
+    @Test
     public void testSystemInformationFunctionsStmtBuilder() {
         printStatement("select current_schema");
         printStatement("select current_schema()");

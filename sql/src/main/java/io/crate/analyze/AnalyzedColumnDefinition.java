@@ -65,6 +65,7 @@ public class AnalyzedColumnDefinition {
     );
 
     private final AnalyzedColumnDefinition parent;
+    public Integer position;
     private ColumnIdent ident;
     private String name;
     private DataType dataType;
@@ -92,7 +93,8 @@ public class AnalyzedColumnDefinition {
     @Nullable
     private Expression generatedExpression;
 
-    AnalyzedColumnDefinition(@Nullable AnalyzedColumnDefinition parent) {
+    AnalyzedColumnDefinition(Integer position, @Nullable AnalyzedColumnDefinition parent) {
+        this.position = position;
         this.parent = parent;
     }
 
@@ -217,6 +219,9 @@ public class AnalyzedColumnDefinition {
         addTypeOptions(mapping);
         mapping.put("type", typeNameForESMapping());
 
+        if (position != null) {
+            mapping.put("position", position);
+        }
         if (indexType == Reference.IndexType.NO) {
             // we must use a boolean <p>false</p> and NO string "false", otherwise parser support for old indices will fail
             mapping.put("index", false);

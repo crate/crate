@@ -65,19 +65,6 @@ Here's an example::
     cr> create table my_table (
     ...   title string,
     ...   author string
-    ... );
-    CREATE OK, 1 row affected (... sec)
-
-.. hide:
-
-    cr> drop table my_table;
-    DROP OK, 1 row affected (... sec)
-
-Which is exactly the same as::
-
-    cr> create table my_table (
-    ...   title string,
-    ...   author string
     ... ) with (column_policy = 'dynamic');
     CREATE OK, 1 row affected (... sec)
 
@@ -93,9 +80,9 @@ Which will update the table schema::
     | SHOW CREATE TABLE doc.my_table                      |
     +-----------------------------------------------------+
     | CREATE TABLE IF NOT EXISTS "doc"."my_table" (       |
+    |    "title" STRING,                                  |
     |    "author" STRING,                                 |
-    |    "new_col" LONG,                                  |
-    |    "title" STRING                                   |
+    |    "new_col" LONG                                   |
     | )                                                   |
     | CLUSTERED INTO 4 SHARDS                             |
     ...

@@ -125,6 +125,8 @@ public class TestingTableInfo extends DocTableInfo {
         private final Routing routing;
         private ColumnPolicy columnPolicy = ColumnPolicy.DYNAMIC;
 
+        private int position = 1;
+
         public Builder(RelationName ident, Routing routing) {
             this.routing = routing;
             this.ident = ident;
@@ -190,8 +192,7 @@ public class TestingTableInfo extends DocTableInfo {
 
         private Reference genInfo(ColumnIdent columnIdent, DataType type) {
             return new Reference(
-                new ReferenceIdent(ident, columnIdent.name(), columnIdent.path()),
-                RowGranularity.DOC, type
+                new ReferenceIdent(ident, columnIdent.name(), columnIdent.path()), RowGranularity.DOC, type, null
             );
         }
 
@@ -238,8 +239,17 @@ public class TestingTableInfo extends DocTableInfo {
             if (partitionBy) {
                 rowGranularity = RowGranularity.PARTITION;
             }
-            Reference ref = new Reference(new ReferenceIdent(ident, column, path),
-                rowGranularity, type, columnPolicy, indexType, nullable, columnStoreDisabled);
+            Reference ref = new Reference(
+                new ReferenceIdent(ident, column, path),
+                rowGranularity,
+                type,
+                columnPolicy,
+                indexType,
+                nullable,
+                columnStoreDisabled,
+                position
+            );
+            position++;
             if (ref.column().isTopLevel()) {
                 columns.add(ref);
             }
@@ -260,6 +270,8 @@ public class TestingTableInfo extends DocTableInfo {
                 return;
             }
             Map<String, DataType> innerTypes = ((ObjectType) type).innerTypes();
+            int prevPosition = position;
+            position = prevPosition;
             for (Map.Entry<String, DataType> entry : innerTypes.entrySet()) {
                 ArrayList<String> newPath = new ArrayList<>();
                 if (path != null) {
@@ -268,6 +280,7 @@ public class TestingTableInfo extends DocTableInfo {
                 newPath.add(entry.getKey());
                 add(column, entry.getValue(), newPath);
             }
+            position = prevPosition;
         }
 
         public Builder addGeneratedColumn(String column, DataType type, String expression, boolean partitionBy) {
@@ -280,8 +293,11 @@ public class TestingTableInfo extends DocTableInfo {
             if (partitionBy) {
                 rowGranularity = RowGranularity.PARTITION;
             }
-            GeneratedReference ref = new GeneratedReference(new ReferenceIdent(ident, column),
+            GeneratedReference ref = new GeneratedReference(
+                position,
+                new ReferenceIdent(ident, column),
                 rowGranularity, type, ColumnPolicy.DYNAMIC, Reference.IndexType.NOT_ANALYZED, expression, nullable);
+            position++;
 
             generatedColumns.add(ref);
             if (ref.column().isTopLevel()) {

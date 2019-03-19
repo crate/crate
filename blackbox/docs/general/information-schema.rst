@@ -277,22 +277,22 @@ table::
     +-------------------+--------------------------------+------+--------------+
     | table_name        | column_name                    |  pos | data_type    |
     +-------------------+--------------------------------+------+--------------+
-    | locations         | date                           |    1 | timestamp    |
-    | locations         | description                    |    2 | string       |
-    | locations         | id                             |    3 | string       |
-    | locations         | information                    |    4 | object_array |
+    | locations         | date                           |    3 | timestamp    |
+    | locations         | description                    |    6 | string       |
+    | locations         | id                             |    1 | string       |
+    | locations         | information                    |    8 | object_array |
     | locations         | information['evolution_level'] | NULL | short        |
     | locations         | information['population']      | NULL | long         |
-    | locations         | kind                           |    5 | string       |
-    | locations         | name                           |    6 | string       |
-    | locations         | position                       |    7 | integer      |
-    | locations         | race                           |    8 | object       |
+    | locations         | kind                           |    4 | string       |
+    | locations         | name                           |    2 | string       |
+    | locations         | position                       |    5 | integer      |
+    | locations         | race                           |    7 | object       |
     | locations         | race['description']            | NULL | string       |
     | locations         | race['interests']              | NULL | string_array |
     | locations         | race['name']                   | NULL | string       |
-    | partitioned_table | date                           |    1 | timestamp    |
-    | partitioned_table | id                             |    2 | long         |
-    | partitioned_table | title                          |    3 | string       |
+    | partitioned_table | date                           |    3 | timestamp    |
+    | partitioned_table | id                             |    1 | long         |
+    | partitioned_table | title                          |    2 | string       |
     | quotes            | id                             |    1 | integer      |
     | quotes            | quote                          |    2 | string       |
     +-------------------+--------------------------------+------+--------------+
@@ -304,50 +304,45 @@ infinite recursion of your mind, beware!)::
     cr> select column_name, data_type, ordinal_position
     ... from information_schema.columns
     ... where table_schema = 'information_schema'
-    ... and table_name = 'columns' order by ordinal_position asc;
+    ... and table_name = 'columns' order by column_name asc;
     +--------------------------+-----------+------------------+
     | column_name              | data_type | ordinal_position |
     +--------------------------+-----------+------------------+
-    | character_maximum_length | integer   |                1 |
-    | character_octet_length   | integer   |                2 |
-    | character_set_catalog    | string    |                3 |
-    | character_set_name       | string    |                4 |
-    | character_set_schema     | string    |                5 |
-    | check_action             | integer   |                6 |
-    | check_references         | string    |                7 |
-    | collation_catalog        | string    |                8 |
-    | collation_name           | string    |                9 |
-    | collation_schema         | string    |               10 |
-    | column_default           | string    |               11 |
-    | column_name              | string    |               12 |
-    | data_type                | string    |               13 |
-    | datetime_precision       | integer   |               14 |
-    | domain_catalog           | string    |               15 |
-    | domain_name              | string    |               16 |
-    | domain_schema            | string    |               17 |
-    | generation_expression    | string    |               18 |
-    | interval_precision       | integer   |               19 |
-    | interval_type            | string    |               20 |
-    | is_generated             | string    |               21 |
-    | is_nullable              | boolean   |               22 |
-    | numeric_precision        | integer   |               23 |
-    | numeric_precision_radix  | integer   |               24 |
-    | numeric_scale            | integer   |               25 |
-    | ordinal_position         | short     |               26 |
-    | table_catalog            | string    |               27 |
-    | table_name               | string    |               28 |
-    | table_schema             | string    |               29 |
-    | udt_catalog              | string    |               30 |
-    | udt_name                 | string    |               31 |
-    | udt_schema               | string    |               32 |
+    | character_maximum_length | integer   |               11 |
+    | character_octet_length   | integer   |               12 |
+    | character_set_catalog    | string    |               19 |
+    | character_set_name       | string    |               21 |
+    | character_set_schema     | string    |               20 |
+    | check_action             | integer   |               32 |
+    | check_references         | string    |               31 |
+    | collation_catalog        | string    |               22 |
+    | collation_name           | string    |               24 |
+    | collation_schema         | string    |               23 |
+    | column_default           | string    |               10 |
+    | column_name              | string    |                4 |
+    | data_type                | string    |                6 |
+    | datetime_precision       | integer   |               16 |
+    | domain_catalog           | string    |               25 |
+    | domain_name              | string    |               27 |
+    | domain_schema            | string    |               26 |
+    | generation_expression    | string    |                9 |
+    | interval_precision       | integer   |               18 |
+    | interval_type            | string    |               17 |
+    | is_generated             | string    |                7 |
+    | is_nullable              | boolean   |                8 |
+    | numeric_precision        | integer   |               13 |
+    | numeric_precision_radix  | integer   |               14 |
+    | numeric_scale            | integer   |               15 |
+    | ordinal_position         | integer   |                5 |
+    | table_catalog            | string    |                3 |
+    | table_name               | string    |                2 |
+    | table_schema             | string    |                1 |
+    | udt_catalog              | string    |               28 |
+    | udt_name                 | string    |               30 |
+    | udt_schema               | string    |               29 |
     +--------------------------+-----------+------------------+
     SELECT 32 rows in set (... sec)
 
-.. NOTE::
-
-  Columns are always sorted alphabetically in ascending order regardless of the
-  order they were defined on table creation. Thus the ``ordinal_position``
-  reflects the alphabetical position.
 
 .. rubric:: Schema
 

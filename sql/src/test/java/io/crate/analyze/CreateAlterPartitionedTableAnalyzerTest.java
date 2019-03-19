@@ -97,7 +97,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
 
         // partitioned columns must be not indexed in mapping
         Map<String, Object> nameMapping = (Map<String, Object>) analysis.mappingProperties().get("name");
-        assertThat(mapToSortedString(nameMapping), is("index=false, type=keyword"));
+        assertThat(mapToSortedString(nameMapping), is("index=false, position=3, type=keyword"));
 
         Map<String, Object> metaMapping = (Map) analysis.mapping().get("_meta");
         assertThat((Map<String, Object>) metaMapping.get("columns"), not(hasKey("name")));
@@ -117,8 +117,8 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
         assertThat(analysis.partitionedBy().size(), is(2));
         Map<String, Object> properties = analysis.mappingProperties();
         assertThat(mapToSortedString(properties),
-            is("date={format=epoch_millis||strict_date_optional_time, index=false, type=date}, " +
-               "name={index=false, type=keyword}"));
+            is("date={format=epoch_millis||strict_date_optional_time, index=false, position=2, type=date}, " +
+               "name={index=false, position=1, type=keyword}"));
         assertThat((Map<String, Object>) ((Map) analysis.mapping().get("_meta")).get("columns"),
             allOf(
                 not(hasKey("name")),
@@ -141,7 +141,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
         assertThat(analysis.partitionedBy().size(), is(2));
         Map<String, Object> oMapping = (Map<String, Object>) analysis.mappingProperties().get("o");
         assertThat(mapToSortedString(oMapping), is(
-            "dynamic=true, properties={name={index=false, type=keyword}}, type=object"));
+            "dynamic=true, position=3, properties={name={index=false, type=keyword}}, type=object"));
         assertThat((Map<String, Object>) ((Map) analysis.mapping().get("_meta")).get("columns"), not(hasKey("date")));
 
         Map metaColumns = (Map) ((Map) analysis.mapping().get("_meta")).get("columns");
@@ -220,7 +220,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
         assertThat(analysis.partitionedBy().get(0), contains("id1", "integer"));
 
         Map<String, Object> oMapping = (Map<String, Object>) analysis.mappingProperties().get("id1");
-        assertThat(mapToSortedString(oMapping), is("index=false, type=integer"));
+        assertThat(mapToSortedString(oMapping), is("index=false, position=1, type=integer"));
         assertThat((Map<String, Object>) ((Map) analysis.mapping().get("_meta")).get("columns"),
             not(hasKey("id1")));
     }

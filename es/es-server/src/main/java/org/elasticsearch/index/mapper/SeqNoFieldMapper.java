@@ -222,7 +222,7 @@ public class SeqNoFieldMapper extends MetadataFieldMapper {
     }
 
     public SeqNoFieldMapper(Settings indexSettings) {
-        super(NAME, SeqNoDefaults.FIELD_TYPE, SeqNoDefaults.FIELD_TYPE, indexSettings);
+        super(NAME, null, SeqNoDefaults.FIELD_TYPE, SeqNoDefaults.FIELD_TYPE, indexSettings);
     }
 
     @Override

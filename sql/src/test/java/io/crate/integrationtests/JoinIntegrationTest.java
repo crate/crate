@@ -782,7 +782,7 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into orders(id, customer_id, price) values (1,1,20.0), (2,1,10.0), (3,1,30.0), (4,1,40.0), (5,1,50.0)");
         execute("refresh table orders");
 
-        String stmt = "SELECT * FROM" +
+        String stmt = "SELECT t1.company_id, t1.country, t1.id, t1.name, t2.customer_id, t2.id, t2.price FROM" +
                       "  customers t1, " +
                       "  (SELECT * FROM (SELECT * from orders order by price desc limit 4) t ORDER BY price limit 3) t2 " +
                       "WHERE t2.customer_id = t1.id " +

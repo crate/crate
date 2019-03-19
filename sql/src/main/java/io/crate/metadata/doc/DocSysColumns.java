@@ -68,13 +68,13 @@ public class DocSysColumns {
     public static final ColumnIdent FETCHID = new ColumnIdent(Names.FETCHID);
 
     public static final ImmutableMap<ColumnIdent, DataType> COLUMN_IDENTS = ImmutableMap.<ColumnIdent, DataType>builder()
+        .put(DOC, ObjectType.untyped())
+        .put(FETCHID, DataTypes.LONG)
         .put(ID, DataTypes.STRING)
-        .put(VERSION, DataTypes.LONG)
+        .put(RAW, DataTypes.STRING)
         .put(SCORE, DataTypes.FLOAT)
         .put(UID, DataTypes.STRING)
-        .put(DOC, ObjectType.untyped())
-        .put(RAW, DataTypes.STRING)
-        .put(FETCHID, DataTypes.LONG)
+        .put(VERSION, DataTypes.LONG)
         .build();
 
     private static final ImmutableMap<ColumnIdent, String> LUCENE_COLUMN_NAMES = ImmutableMap.<ColumnIdent, String>builder()
@@ -83,8 +83,14 @@ public class DocSysColumns {
         .build();
 
     private static Reference newInfo(RelationName table, ColumnIdent column, DataType dataType) {
-        return new Reference(new ReferenceIdent(table, column), RowGranularity.DOC, dataType, ColumnPolicy.STRICT,
-            Reference.IndexType.NOT_ANALYZED, false);
+        return new Reference(new ReferenceIdent(table, column),
+                             RowGranularity.DOC,
+                             dataType,
+                             ColumnPolicy.STRICT,
+                             Reference.IndexType.NOT_ANALYZED,
+                             false,
+                             null
+        );
     }
 
     /**

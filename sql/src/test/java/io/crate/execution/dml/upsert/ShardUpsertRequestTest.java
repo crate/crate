@@ -48,9 +48,9 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
     private static final RelationName CHARACTERS_IDENTS = new RelationName(Schemas.DOC_SCHEMA_NAME, "characters");
 
     private static final Reference ID_REF = new Reference(
-        new ReferenceIdent(CHARACTERS_IDENTS, "id"), RowGranularity.DOC, DataTypes.INTEGER);
+        new ReferenceIdent(CHARACTERS_IDENTS, "id"), RowGranularity.DOC, DataTypes.INTEGER, null);
     private static final Reference NAME_REF = new Reference(
-        new ReferenceIdent(CHARACTERS_IDENTS, "name"), RowGranularity.DOC, DataTypes.STRING);
+        new ReferenceIdent(CHARACTERS_IDENTS, "name"), RowGranularity.DOC, DataTypes.STRING, null);
 
     @Test
     public void testStreaming() throws Exception {

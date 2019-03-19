@@ -264,17 +264,14 @@ CPU
 **processors**
   | *Runtime:* ``no``
 
-  The number of available processes is automatically guessed, and so most of
-  the time you will not need to configure this explicitly.
+  The number of processors is used to set the size of the thread pools CrateDB
+  is using appropriately. If not set explicitly CrateDB will infer the number
+  from the available processors on the system.
 
-  However, in some situations, such as when CrateDB is being run on top of
-  Docker, the number of processors may be guessed incorrectly. If this happens,
-  you can manually configure the number of processors using this setting.
-
-  You can also use this setting to manually constrain the number of CPUs made
-  available to CrateDB. You might want to do this if you're running CrateDB in
-  a multitenant setup (i.e. more than one CrateDB node running on the same
-  hardware).
+  In environments where the CPU amount can be restricted (like Docker) or when
+  multiple CrateDB instances are running on the same hardware, the inferred
+  number might be too high. In such a case it is recommended to set the value
+  explicitly.
 
 Memory
 ======

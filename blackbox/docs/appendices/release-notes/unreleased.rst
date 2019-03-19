@@ -41,13 +41,21 @@ Unreleased Changes
 Breaking Changes
 ================
 
+- Changed the ordering of columns to be based on their position in the
+  :ref:`CREATE TABLE <ref-create-table>` statement. This was done to improve
+  compatibility with PostgreSQL and will affect queries like ``SELECT * FROM``
+  or ``INSERT INTO <table> VALUES (...)``
+
 - Changed the default :ref:`column_policy` on tables from ``dynamic`` to
   ``strict``. Columns of type object still default to ``dynamic``.
 
 - Removed the deprecated ``license.ident`` setting.
 
 - Removed the deprecated ``USR2`` signal handling. Use :ref:`ALTER CLUSTER
-  DECOMISSION <alter_cluster_decommission>` instead.
+  DECOMISSION <alter_cluster_decommission>` instead. Be aware that the
+  behavior of sending ``USR2`` signals to a CrateDB process is now undefined
+  and up to the JVM. In some cases it may still terminate the instance but
+  without clean shutdown.
 
 - Renamed ``information_schema.columns.user_defined_type_*`` columns to
   ``information_schema_columns.udt_*`` for SQL standard compatibility.
@@ -101,6 +109,9 @@ Deprecations
 
 Changes
 =======
+
+- Added :ref:`trim <scalar-trim>` scalar string function that trims
+  the (leading, trailing or both) set of characters from an input string.
 
 - Added :ref:`string_to_array <scalar-string-to-array>` scalar array function
   that splits an input string into an array of string elements using a

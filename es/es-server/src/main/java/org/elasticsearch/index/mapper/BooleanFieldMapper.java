@@ -81,8 +81,14 @@ public class BooleanFieldMapper extends FieldMapper {
         @Override
         public BooleanFieldMapper build(BuilderContext context) {
             setupFieldType(context);
-            return new BooleanFieldMapper(name, fieldType, defaultFieldType,
-                context.indexSettings(), multiFieldsBuilder.build(this, context), copyTo);
+            return new BooleanFieldMapper(
+                name,
+                position,
+                fieldType,
+                defaultFieldType,
+                context.indexSettings(),
+                multiFieldsBuilder.build(this, context),
+                copyTo);
         }
     }
 
@@ -195,9 +201,14 @@ public class BooleanFieldMapper extends FieldMapper {
         }
     }
 
-    protected BooleanFieldMapper(String simpleName, MappedFieldType fieldType, MappedFieldType defaultFieldType,
-                                 Settings indexSettings, MultiFields multiFields, CopyTo copyTo) {
-        super(simpleName, fieldType, defaultFieldType, indexSettings, multiFields, copyTo);
+    protected BooleanFieldMapper(String simpleName,
+                                 Integer position,
+                                 MappedFieldType fieldType,
+                                 MappedFieldType defaultFieldType,
+                                 Settings indexSettings,
+                                 MultiFields multiFields,
+                                 CopyTo copyTo) {
+        super(simpleName, position, fieldType, defaultFieldType, indexSettings, multiFields, copyTo);
     }
 
     @Override

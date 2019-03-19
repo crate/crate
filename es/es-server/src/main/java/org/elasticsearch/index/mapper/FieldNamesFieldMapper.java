@@ -206,7 +206,7 @@ public class FieldNamesFieldMapper extends MetadataFieldMapper {
     }
 
     private FieldNamesFieldMapper(MappedFieldType fieldType, Settings indexSettings) {
-        super(NAME, fieldType, Defaults.FIELD_TYPE, indexSettings);
+        super(NAME, null, fieldType, Defaults.FIELD_TYPE, indexSettings);
     }
 
     @Override

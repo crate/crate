@@ -129,8 +129,17 @@ public class NumberFieldMapper extends FieldMapper {
         @Override
         public NumberFieldMapper build(BuilderContext context) {
             setupFieldType(context);
-            return new NumberFieldMapper(name, fieldType, defaultFieldType, ignoreMalformed(context),
-                    coerce(context), context.indexSettings(), multiFieldsBuilder.build(this, context), copyTo);
+            return new NumberFieldMapper(
+                name,
+                position,
+                fieldType,
+                defaultFieldType,
+                ignoreMalformed(context),
+                coerce(context),
+                context.indexSettings(),
+                multiFieldsBuilder.build(this, context),
+                copyTo
+            );
         }
     }
 
@@ -940,6 +949,7 @@ public class NumberFieldMapper extends FieldMapper {
 
     private NumberFieldMapper(
             String simpleName,
+            Integer position,
             MappedFieldType fieldType,
             MappedFieldType defaultFieldType,
             Explicit<Boolean> ignoreMalformed,
@@ -947,7 +957,7 @@ public class NumberFieldMapper extends FieldMapper {
             Settings indexSettings,
             MultiFields multiFields,
             CopyTo copyTo) {
-        super(simpleName, fieldType, defaultFieldType, indexSettings, multiFields, copyTo);
+        super(simpleName, position, fieldType, defaultFieldType, indexSettings, multiFields, copyTo);
         this.ignoreMalformed = ignoreMalformed;
         this.coerce = coerce;
     }

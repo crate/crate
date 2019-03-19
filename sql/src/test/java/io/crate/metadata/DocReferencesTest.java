@@ -33,7 +33,7 @@ public class DocReferencesTest {
 
     private static Reference stringRef(String path) {
         ColumnIdent columnIdent = ColumnIdent.fromPath(path);
-        return new Reference(new ReferenceIdent(RELATION_ID, columnIdent), RowGranularity.DOC, DataTypes.STRING);
+        return new Reference(new ReferenceIdent(RELATION_ID, columnIdent), RowGranularity.DOC, DataTypes.STRING, null);
     }
 
     @Test

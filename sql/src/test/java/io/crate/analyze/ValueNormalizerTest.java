@@ -85,9 +85,7 @@ public class ValueNormalizerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testNormalizePrimitiveLiteral() throws Exception {
         Reference ref = new Reference(
-            new ReferenceIdent(TEST_TABLE_IDENT, new ColumnIdent("bool")),
-            RowGranularity.DOC,
-            DataTypes.BOOLEAN
+            new ReferenceIdent(TEST_TABLE_IDENT, new ColumnIdent("bool")), RowGranularity.DOC, DataTypes.BOOLEAN, null
         );
         Literal<Boolean> trueLiteral = Literal.of(true);
 

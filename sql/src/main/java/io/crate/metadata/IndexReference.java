@@ -44,6 +44,7 @@ public class IndexReference extends Reference {
         private IndexType indexType = IndexType.ANALYZED;
         private List<Reference> columns = new ArrayList<>();
         private String analyzer = null;
+        private Integer position = null;
 
         public Builder(ReferenceIdent ident) {
             Preconditions.checkNotNull(ident, "ident is null");
@@ -65,8 +66,13 @@ public class IndexReference extends Reference {
             return this;
         }
 
+        public Builder position(int position) {
+            this.position = position;
+            return this;
+        }
+
         public IndexReference build() {
-            return new IndexReference(ident, indexType, columns, analyzer);
+            return new IndexReference(position, ident, indexType, columns, analyzer);
         }
     }
 
@@ -84,11 +90,12 @@ public class IndexReference extends Reference {
         }
     }
 
-    public IndexReference(ReferenceIdent ident,
+    public IndexReference(Integer position,
+                          ReferenceIdent ident,
                           IndexType indexType,
                           List<Reference> columns,
                           @Nullable String analyzer) {
-        super(ident, RowGranularity.DOC, DataTypes.STRING, ColumnPolicy.DYNAMIC, indexType, false, true);
+        super(ident, RowGranularity.DOC, DataTypes.STRING, ColumnPolicy.DYNAMIC, indexType, false, true, position);
         this.columns = MoreObjects.firstNonNull(columns, Collections.<Reference>emptyList());
         this.analyzer = analyzer;
     }
