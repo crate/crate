@@ -23,7 +23,6 @@ package io.crate.types;
 
 import io.crate.Streamer;
 import io.crate.TimestampFormat;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -61,9 +60,6 @@ public class TimestampType extends DataType<Long> implements FixedWidthType, Str
     public Long value(Object value) throws ClassCastException {
         if (value == null) {
             return null;
-        }
-        if (value instanceof BytesRef) {
-            return valueFromString(((BytesRef) value).utf8ToString());
         }
         if (value instanceof String) {
             return valueFromString((String) value);

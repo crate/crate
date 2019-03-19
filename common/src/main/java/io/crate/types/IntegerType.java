@@ -22,7 +22,6 @@
 package io.crate.types;
 
 import io.crate.Streamer;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -66,9 +65,6 @@ public class IntegerType extends DataType<Integer> implements Streamer<Integer>,
         }
         if (value instanceof String) {
             return Integer.parseInt((String) value);
-        }
-        if (value instanceof BytesRef) {
-            return Integer.parseInt(((BytesRef) value).utf8ToString());
         }
 
         long longVal = ((Number) value).longValue();
