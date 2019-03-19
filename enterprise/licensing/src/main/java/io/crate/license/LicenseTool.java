@@ -60,7 +60,9 @@ public class LicenseTool {
             expirationDate = DataTypes.TIMESTAMP.value(expirationDateArg.value(optionSet));
             issuedTo = issuedToArg.value(optionSet);
             maxNodes = maxNodesArg.value(optionSet);
-            if (maxNodes <= 0) throw new IllegalArgumentException("max-nodes needs to be a positive number");
+            if (maxNodes <= 0) {
+                throw new IllegalArgumentException("max-nodes needs to be a positive number");
+            }
         } catch (Exception e) {
             parser.printHelpOn(System.err);
             System.exit(1);
