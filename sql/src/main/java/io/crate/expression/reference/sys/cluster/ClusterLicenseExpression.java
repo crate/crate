@@ -24,8 +24,8 @@ package io.crate.expression.reference.sys.cluster;
 
 import io.crate.expression.NestableInput;
 import io.crate.expression.reference.NestedObjectExpression;
-import io.crate.license.LicenseService;
 import io.crate.license.LicenseData;
+import io.crate.license.LicenseService;
 import org.elasticsearch.common.inject.Inject;
 
 import java.util.Map;
@@ -53,7 +53,13 @@ public class ClusterLicenseExpression extends NestedObjectExpression {
 
     private void fillChildImplementations(LicenseData licenseData) {
         if (licenseData != null) {
-            childImplementations.put(EXPIRY_DATE, licenseData::expiryDateInMs);
+            childImplementations.put(EXPIRY_DATE, () -> {
+                if (licenseData.expiryDateInMs() == Long.MAX_VALUE) {
+                    return null;
+                } else {
+                    return licenseData.expiryDateInMs();
+                }
+            });
             childImplementations.put(ISSUED_TO, licenseData::issuedTo);
             childImplementations.put(MAX_NODES, licenseData::maxNumberOfNodes);
         } else {
