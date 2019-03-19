@@ -22,7 +22,6 @@
 package io.crate.types;
 
 import io.crate.Streamer;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -63,9 +62,6 @@ public class ByteType extends DataType<Byte> implements Streamer<Byte>, FixedWid
         }
         if (value instanceof String) {
             return Byte.parseByte((String) value);
-        }
-        if (value instanceof BytesRef) {
-            return Byte.parseByte(((BytesRef) value).utf8ToString());
         }
         int val = ((Number) value).intValue();
         if (val < Byte.MIN_VALUE || Byte.MAX_VALUE < val) {
