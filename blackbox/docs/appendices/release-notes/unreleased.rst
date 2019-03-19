@@ -110,6 +110,9 @@ Deprecations
 Changes
 =======
 
+- Added :ref:`trim <scalar-trim>` scalar string function that trims
+  the (leading, trailing or both) set of characters from an input string.
+
 - Added :ref:`string_to_array <scalar-string-to-array>` scalar array function
   that splits an input string into an array of string elements using a
   separator and a null-string.
