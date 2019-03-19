@@ -1406,20 +1406,20 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     @Override
     public Node visitTrim(SqlBaseParser.TrimContext ctx) {
-        List<Expression> arguments = new ArrayList<>();
+        Expression target = (Expression) visit(ctx.target);
 
-        arguments.add((Expression) visit(ctx.target));
-
-        if (ctx.charsToTrim != null) {
-            Expression charsToTrim = visitIfPresent(ctx.charsToTrim, Expression.class)
-                .orElse(new StringLiteral(" "));
-            arguments.add(charsToTrim);
-        }
-        if (ctx.trimMode != null) {
-            arguments.add(new StringLiteral(getTrimMode(ctx.trimMode).value()));
+        if (ctx.charsToTrim == null && ctx.trimMode == null) {
+            return new FunctionCall(QualifiedName.of("trim"), List.of(target));
         }
 
-        return new FunctionCall(QualifiedName.of("trim"), Collections.unmodifiableList(arguments));
+        Expression charsToTrim = visitIfPresent(ctx.charsToTrim, Expression.class)
+            .orElse(new StringLiteral(" "));
+        StringLiteral trimMode = new StringLiteral(getTrimMode(ctx.trimMode).value());
+
+        return new FunctionCall(
+            QualifiedName.of("trim"),
+            List.of(target, charsToTrim, trimMode)
+        );
     }
 
     @Override
