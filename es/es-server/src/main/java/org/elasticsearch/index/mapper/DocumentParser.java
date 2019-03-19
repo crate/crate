@@ -77,8 +77,6 @@ final class DocumentParser {
             throw new IllegalStateException("found leftover path elements: " + remainingPath);
         }
 
-        context.postParse();
-
         return parsedDocument(source, context, createDynamicUpdate(mapping, docMapper, context.getDynamicMappers()));
     }
 
