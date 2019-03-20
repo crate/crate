@@ -31,6 +31,7 @@ import org.junit.Test;
 
 import java.util.concurrent.TimeUnit;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -80,9 +81,8 @@ public class LicenseCheckTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(licenseCheck.validate(), is(false));
         assertThat(licenseCheck.severity(), is(SysCheck.Severity.MEDIUM));
-        assertThat(licenseCheck.description(), is("Your CrateDB license will expire in 6 days. For more information " +
-                                                  "on Licensing please visit: https://crate.io/license-update For more information " +
-                                                  "on Cluster Checks please visit: https://cr8.is/d-cluster-check-6"));
+        // Verify the description only partly as the LicenseData.millisToExpiration() can vary
+        assertThat(licenseCheck.description(), containsString("Your CrateDB license will expire in"));
     }
 
     @Test
@@ -94,10 +94,8 @@ public class LicenseCheckTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(licenseCheck.validate(), is(false));
         assertThat(licenseCheck.severity(), is(SysCheck.Severity.HIGH));
-        assertThat(licenseCheck.description(), is(
-            "Your CrateDB license will expire in 14 minutes. For more information " +
-            "on Licensing please visit: https://crate.io/license-update For more information " +
-            "on Cluster Checks please visit: https://cr8.is/d-cluster-check-6"));
+        // Verify the description only partly as the LicenseData.millisToExpiration() can vary
+        assertThat(licenseCheck.description(), containsString("Your CrateDB license will expire in"));
     }
 
     @Test
