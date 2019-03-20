@@ -27,7 +27,6 @@ import io.crate.metadata.settings.CrateSettings;
 import io.crate.settings.CrateSetting;
 import org.apache.lucene.util.IOUtils;
 import org.elasticsearch.cli.UserException;
-import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.common.logging.LogConfigurator;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.SettingsException;
@@ -120,12 +119,6 @@ public class CrateSettingsPreparer {
         // will overwrite them.
         putIfAbsent(settingsBuilder, TRANSPORT_TYPE_DEFAULT_KEY, Netty4Plugin.NETTY_TRANSPORT_NAME);
         putIfAbsent(settingsBuilder, GLOBAL_NETWORK_HOST_SETTING.getKey(), DEFAULT_NETWORK_HOST);
-
-        // Set the default cluster name if not explicitly defined
-        String clusterName = settingsBuilder.get(ClusterName.CLUSTER_NAME_SETTING.getKey());
-        if (clusterName == null || clusterName.equals(ClusterName.DEFAULT.value())) {
-            settingsBuilder.put(ClusterName.CLUSTER_NAME_SETTING.getKey(), "crate");
-        }
 
         // Set a random node name if none is explicitly defined
         if (settingsBuilder.get(Node.NODE_NAME_SETTING.getKey()) == null) {
