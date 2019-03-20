@@ -50,12 +50,12 @@ public class TablesNeedUpgradeSysCheckTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testNoUpgradeRequired() throws Exception {
+    public void testUpgradeRequired() throws Exception {
         startUpNodeWithDataDir("/indices/data_home/cratedata-3.2.3.zip");
         execute("select * from sys.shards where min_lucene_version = '7.5.0';");
         assertThat(response.rowCount(), is(4L));
         execute("select * from sys.checks where id = 3");
         assertThat(response.rowCount(), is(1L));
-        assertThat(response.rows()[0][0], is("The following tables need to be upgraded for compatibility with future versions of CrateDB: [] https://cr8.is/d-cluster-check-3"));
+        assertThat(response.rows()[0][0], is("The following tables need to be upgraded for compatibility with future versions of CrateDB: [x.demo] https://cr8.is/d-cluster-check-3"));
     }
 }

@@ -273,7 +273,7 @@ public class TextFieldMapper extends FieldMapper {
 
         @Override
         protected TokenStreamComponents wrapComponents(String fieldName, TokenStreamComponents components) {
-            return new TokenStreamComponents(components.getTokenizer(), new FixedShingleFilter(components.getTokenStream(), 2));
+            return new TokenStreamComponents(components.getSource(), new FixedShingleFilter(components.getTokenStream(), 2));
         }
     }
 
@@ -297,8 +297,8 @@ public class TextFieldMapper extends FieldMapper {
 
         @Override
         protected TokenStreamComponents wrapComponents(String fieldName, TokenStreamComponents components) {
-            TokenFilter filter = new EdgeNGramTokenFilter(components.getTokenStream(), minChars, maxChars);
-            return new TokenStreamComponents(components.getTokenizer(), filter);
+            TokenFilter filter = new EdgeNGramTokenFilter(components.getTokenStream(), minChars, maxChars, false);
+            return new TokenStreamComponents(components.getSource(), filter);
         }
     }
 

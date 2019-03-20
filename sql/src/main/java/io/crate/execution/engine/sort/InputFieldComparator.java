@@ -28,7 +28,7 @@ import io.crate.types.DataType;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.FieldComparator;
 import org.apache.lucene.search.LeafFieldComparator;
-import org.apache.lucene.search.Scorer;
+import org.apache.lucene.search.Scorable;
 import org.elasticsearch.common.Nullable;
 
 import java.io.IOException;
@@ -123,7 +123,7 @@ class InputFieldComparator extends FieldComparator implements LeafFieldComparato
     }
 
     @Override
-    public void setScorer(Scorer scorer) {
+    public void setScorer(Scorable scorer) {
     }
 
     @Override

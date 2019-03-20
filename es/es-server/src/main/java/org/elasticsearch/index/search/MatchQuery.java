@@ -287,7 +287,7 @@ public class MatchQuery {
                 if (commonTermsCutoff == null) {
                     query = builder.createBooleanQuery(field, value.toString(), occur);
                 } else {
-                    query = builder.createCommonTermsQuery(field, value.toString(), occur, occur, commonTermsCutoff, fieldType);
+                    query = builder.createCommonTermsQuery(field, value.toString(), occur, occur, commonTermsCutoff);
                 }
                 break;
             case PHRASE:
@@ -500,21 +500,22 @@ public class MatchQuery {
         }
 
         public Query createCommonTermsQuery(String field, String queryText, Occur highFreqOccur, Occur lowFreqOccur, float
-            maxTermFrequency, MappedFieldType fieldType) {
+            maxTermFrequency) {
             Query booleanQuery = createBooleanQuery(field, queryText, lowFreqOccur);
             if (booleanQuery != null && booleanQuery instanceof BooleanQuery) {
                 BooleanQuery bq = (BooleanQuery) booleanQuery;
-                return boolToExtendedCommonTermsQuery(bq, highFreqOccur, lowFreqOccur, maxTermFrequency, fieldType);
+                return boolToExtendedCommonTermsQuery(bq, highFreqOccur, lowFreqOccur, maxTermFrequency);
             }
             return booleanQuery;
         }
 
-        private Query boolToExtendedCommonTermsQuery(BooleanQuery bq, Occur highFreqOccur, Occur lowFreqOccur, float
-            maxTermFrequency, MappedFieldType fieldType) {
-            ExtendedCommonTermsQuery query = new ExtendedCommonTermsQuery(highFreqOccur, lowFreqOccur, maxTermFrequency,
-                fieldType);
+        private Query boolToExtendedCommonTermsQuery(BooleanQuery bq,
+                                                     Occur highFreqOccur,
+                                                     Occur lowFreqOccur,
+                                                     float maxTermFrequency) {
+            ExtendedCommonTermsQuery query = new ExtendedCommonTermsQuery(highFreqOccur, lowFreqOccur, maxTermFrequency);
             for (BooleanClause clause : bq.clauses()) {
-                if (!(clause.getQuery() instanceof TermQuery)) {
+                if ((clause.getQuery() instanceof TermQuery) == false) {
                     return bq;
                 }
                 query.add(((TermQuery) clause.getQuery()).getTerm());
@@ -600,7 +601,7 @@ public class MatchQuery {
     }
 
     /**
-     * Called when a phrase query is built with {@link QueryBuilder#analyzePhrase(String, TokenStream, int)}.
+     * Called when a phrase query is built with {@link QueryBuilder#analyzePhrase(String, TokenStream, int)}
      * Subclass can override this function to blend this query to multiple fields.
      */
     protected Query blendPhraseQuery(PhraseQuery query, MappedFieldType fieldType) {

@@ -80,15 +80,17 @@ final class StoreRecovery {
      * Recovers a shard from it's local file system store. This method required pre-knowledge about if the shard should
      * exist on disk ie. has been previously allocated or if the shard is a brand new allocation without pre-existing index
      * files / transaction logs. This
+     *
      * @param indexShard the index shard instance to recovery the shard into
-     * @return  <code>true</code> if the shard has been recovered successfully, <code>false</code> if the recovery
+     * @return <code>true</code> if the shard has been recovered successfully, <code>false</code> if the recovery
      * has been ignored due to a concurrent modification of if the clusters state has changed due to async updates.
      * @see Store
      */
     boolean recoverFromStore(final IndexShard indexShard) {
         if (canRecover(indexShard)) {
             RecoverySource.Type recoveryType = indexShard.recoveryState().getRecoverySource().getType();
-            assert recoveryType == RecoverySource.Type.EMPTY_STORE || recoveryType == RecoverySource.Type.EXISTING_STORE :
+            assert
+                recoveryType == RecoverySource.Type.EMPTY_STORE || recoveryType == RecoverySource.Type.EXISTING_STORE :
                 "expected store recovery type but was: " + recoveryType;
             return executeRecovery(indexShard, () -> {
                 logger.debug("starting recovery from store ...");
@@ -101,7 +103,9 @@ final class StoreRecovery {
     boolean recoverFromLocalShards(BiConsumer<String, MappingMetaData> mappingUpdateConsumer, final IndexShard indexShard, final List<LocalShardSnapshot> shards) throws IOException {
         if (canRecover(indexShard)) {
             RecoverySource.Type recoveryType = indexShard.recoveryState().getRecoverySource().getType();
-            assert recoveryType == RecoverySource.Type.LOCAL_SHARDS: "expected local shards recovery type: " + recoveryType;
+            assert
+                recoveryType == RecoverySource.Type.LOCAL_SHARDS :
+                "expected local shards recovery type: " + recoveryType;
             if (shards.isEmpty()) {
                 throw new IllegalArgumentException("shards must not be empty");
             }
@@ -124,7 +128,7 @@ final class StoreRecovery {
                     final Directory[] sources = shards.stream().map(LocalShardSnapshot::getSnapshotDirectory).toArray(Directory[]::new);
                     final long maxSeqNo = shards.stream().mapToLong(LocalShardSnapshot::maxSeqNo).max().getAsLong();
                     final long maxUnsafeAutoIdTimestamp =
-                            shards.stream().mapToLong(LocalShardSnapshot::maxUnsafeAutoIdTimestamp).max().getAsLong();
+                        shards.stream().mapToLong(LocalShardSnapshot::maxUnsafeAutoIdTimestamp).max().getAsLong();
                     addIndices(indexShard.recoveryState().getIndex(), directory, indexSort, sources, maxSeqNo, maxUnsafeAutoIdTimestamp,
                         indexShard.indexSettings().getIndexMetaData(), indexShard.shardId().id(), isSplit);
                     internalRecoverFromStore(indexShard);
@@ -140,9 +144,14 @@ final class StoreRecovery {
         return false;
     }
 
-    void addIndices(final RecoveryState.Index indexRecoveryStats, final Directory target, final Sort indexSort, final Directory[] sources,
-            final long maxSeqNo, final long maxUnsafeAutoIdTimestamp, IndexMetaData indexMetaData, int shardId, boolean split) throws IOException {
-
+    void addIndices(final RecoveryState.Index indexRecoveryStats,
+                    final Directory target, final Sort indexSort,
+                    final Directory[] sources,
+                    final long maxSeqNo,
+                    final long maxUnsafeAutoIdTimestamp,
+                    IndexMetaData indexMetaData,
+                    int shardId,
+                    boolean split) throws IOException {
         // clean target directory (if previous recovery attempt failed) and create a fresh segment file with the proper lucene version
         Lucene.cleanLuceneIndex(target);
         assert sources.length > 0;
@@ -236,7 +245,7 @@ final class StoreRecovery {
 
                         @Override
                         public byte readByte() throws IOException {
-                           throw new UnsupportedOperationException("use a buffer if you wanna perform well");
+                            throw new UnsupportedOperationException("use a buffer if you wanna perform well");
                         }
 
                         @Override
@@ -260,6 +269,7 @@ final class StoreRecovery {
     /**
      * Recovers an index from a given {@link Repository}. This method restores a
      * previously created index snapshot into an existing initializing shard.
+     *
      * @param indexShard the index shard instance to recovery the snapshot from
      * @param repository the repository holding the physical files the shard should be recovered from
      * @return <code>true</code> if the shard has been recovered successfully, <code>false</code> if the recovery
@@ -300,22 +310,23 @@ final class StoreRecovery {
             // to call post recovery.
             final IndexShardState shardState = indexShard.state();
             final RecoveryState recoveryState = indexShard.recoveryState();
-            assert shardState != IndexShardState.CREATED && shardState != IndexShardState.RECOVERING : "recovery process of " + shardId + " didn't get to post_recovery. shardState [" + shardState + "]";
+            assert shardState != IndexShardState.CREATED && shardState != IndexShardState.RECOVERING :
+                "recovery process of " + shardId + " didn't get to post_recovery. shardState [" + shardState + "]";
 
             if (logger.isTraceEnabled()) {
                 RecoveryState.Index index = recoveryState.getIndex();
                 StringBuilder sb = new StringBuilder();
                 sb.append("    index    : files           [").append(index.totalFileCount()).append("] with total_size [")
-                        .append(new ByteSizeValue(index.totalBytes())).append("], took[")
-                        .append(TimeValue.timeValueMillis(index.time())).append("]\n");
+                    .append(new ByteSizeValue(index.totalBytes())).append("], took[")
+                    .append(TimeValue.timeValueMillis(index.time())).append("]\n");
                 sb.append("             : recovered_files [").append(index.recoveredFileCount()).append("] with total_size [")
-                        .append(new ByteSizeValue(index.recoveredBytes())).append("]\n");
+                    .append(new ByteSizeValue(index.recoveredBytes())).append("]\n");
                 sb.append("             : reusing_files   [").append(index.reusedFileCount()).append("] with total_size [")
-                        .append(new ByteSizeValue(index.reusedBytes())).append("]\n");
+                    .append(new ByteSizeValue(index.reusedBytes())).append("]\n");
                 sb.append("    verify_index    : took [").append(TimeValue.timeValueMillis(recoveryState.getVerifyIndex().time())).append("], check_index [")
-                        .append(timeValueMillis(recoveryState.getVerifyIndex().checkIndexTime())).append("]\n");
+                    .append(timeValueMillis(recoveryState.getVerifyIndex().checkIndexTime())).append("]\n");
                 sb.append("    translog : number_of_operations [").append(recoveryState.getTranslog().recoveredOperations())
-                        .append("], took [").append(TimeValue.timeValueMillis(recoveryState.getTranslog().time())).append("]");
+                    .append("], took [").append(TimeValue.timeValueMillis(recoveryState.getTranslog().time())).append("]");
                 logger.trace("recovery completed from [shard_store], took [{}]\n{}", timeValueMillis(recoveryState.getTimer().time()), sb);
             } else if (logger.isDebugEnabled()) {
                 logger.debug("recovery completed from [shard_store], took [{}]", timeValueMillis(recoveryState.getTimer().time()));
@@ -326,7 +337,8 @@ final class StoreRecovery {
                 // got closed on us, just ignore this recovery
                 return false;
             }
-            if ((e.getCause() instanceof IndexShardClosedException) || (e.getCause() instanceof IndexShardNotStartedException)) {
+            if ((e.getCause() instanceof IndexShardClosedException) ||
+                (e.getCause() instanceof IndexShardNotStartedException)) {
                 // got closed on us, just ignore this recovery
                 return false;
             }
@@ -347,7 +359,8 @@ final class StoreRecovery {
      */
     private void internalRecoverFromStore(IndexShard indexShard) throws IndexShardRecoveryException {
         final RecoveryState recoveryState = indexShard.recoveryState();
-        final boolean indexShouldExists = recoveryState.getRecoverySource().getType() != RecoverySource.Type.EMPTY_STORE;
+        final boolean indexShouldExists =
+            recoveryState.getRecoverySource().getType() != RecoverySource.Type.EMPTY_STORE;
         indexShard.prepareForIndexRecovery();
         long version = -1;
         SegmentInfos si = null;
@@ -367,7 +380,9 @@ final class StoreRecovery {
                         files += " (failure=" + ExceptionsHelper.detailedMessage(inner) + ")";
                     }
                     if (indexShouldExists) {
-                        throw new IndexShardRecoveryException(shardId, "shard allocated for local recovery (post api), should exist, but doesn't, current files: " + files, e);
+                        throw new IndexShardRecoveryException(shardId,
+                            "shard allocated for local recovery (post api), should exist, but doesn't, current files: " +
+                            files, e);
                     }
                 }
                 if (si != null) {

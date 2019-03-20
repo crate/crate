@@ -30,6 +30,7 @@ import org.apache.lucene.search.ConstantScoreWeight;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreMode;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.TwoPhaseIterator;
 import org.apache.lucene.search.Weight;
@@ -60,7 +61,7 @@ final class ShardSplittingQuery extends Query {
         this.shardId = shardId;
     }
     @Override
-    public Weight createWeight(IndexSearcher searcher, boolean needsScores, float boost) {
+    public Weight createWeight(IndexSearcher searcher, ScoreMode scoreMode, float boost) {
         return new ConstantScoreWeight(this, boost) {
             @Override
             public String toString() {
@@ -89,7 +90,7 @@ final class ShardSplittingQuery extends Query {
                         // this this index is routing partitioned.
                         Visitor visitor = new Visitor(leafReader);
                         TwoPhaseIterator twoPhaseIterator = new RoutingPartitionedDocIdSetIterator(visitor);
-                        return new ConstantScoreScorer(this, score(), twoPhaseIterator);
+                        return new ConstantScoreScorer(this, score(), scoreMode, twoPhaseIterator);
                     } else {
                         // in the _routing case we first go and find all docs that have a routing value and mark the ones we have to delete
                         findSplitDocs(RoutingFieldMapper.NAME, ref -> {
@@ -113,7 +114,7 @@ final class ShardSplittingQuery extends Query {
                     }
                 }
 
-                return new ConstantScoreScorer(this, score(), new BitSetIterator(bitSet, bitSet.length()));
+                return new ConstantScoreScorer(this, score(), scoreMode, new BitSetIterator(bitSet, bitSet.length()));
             }
 
             @Override

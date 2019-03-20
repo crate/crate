@@ -58,8 +58,8 @@ relevant the row::
     +-----------+-----------+
     | name      |    _score |
     +-----------+-----------+
-    | Bartledan | 1.6672127 |
-    | Altair    | 1.3862944 |
+    | Bartledan | 0.757824  |
+    | Altair    | 0.6301338 |
     +-----------+-----------+
     SELECT 2 rows in set (... sec)
 
@@ -310,8 +310,8 @@ the :ref:`_score <sql_administration_system_column_score>` can be selected::
     +-----------+-----------+
     | name      |    _score |
     +-----------+-----------+
-    | Bartledan | 1.6672127 |
-    | Altair    | 1.3862944 |
+    | Bartledan | 0.757824  |
+    | Altair    | 0.6301338 |
     +-----------+-----------+
     SELECT 2 rows in set (... sec)
 
@@ -353,11 +353,11 @@ For searching of matching phrases (tokens are in the exact same order) use
     +-------------------+------------+
     | name              |     _score |
     +-------------------+------------+
-    | NULL              | 3.435174   |
-    | Altair            | 1.3862944  |
-    | Aldebaran         | 1.2243153  |
-    | Outer Eastern Rim | 0.8561404  |
-    | North West Ripple | 0.83460975 |
+    | NULL              | 1.5614429  |
+    | Altair            | 0.6301338  |
+    | Aldebaran         | 0.55650693 |
+    | Outer Eastern Rim | 0.3891547  |
+    | North West Ripple | 0.37936807 |
     +-------------------+------------+
     SELECT 5 rows in set (... sec)
 
@@ -370,7 +370,7 @@ For searching of matching phrases (tokens are in the exact same order) use
     +------+-------------------------+-----------+
     | name | description             |    _score |
     +------+-------------------------+-----------+
-    | NULL | The end of the Galaxy.% | 3.4351742 |
+    | NULL | The end of the Galaxy.% | 1.5614429 |
     +------+-------------------------+-----------+
     SELECT 1 row in set (... sec)
 
@@ -423,8 +423,8 @@ Anyway let's do it here for demonstration purpose::
     +-----------+-----------+
     | name      |    _score |
     +-----------+-----------+
-    | Altair    | 2.3862944 |
-    | Bartledan | 2.6672127 |
+    | Altair    | 1.6301339 |
+    | Bartledan | 1.757824  |
     +-----------+-----------+
     SELECT 2 rows in set (... sec)
 

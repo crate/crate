@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import io.crate.analyze.OrderBy;
 import io.crate.data.Row;
+import io.crate.execution.engine.distribution.merge.KeyIterable;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.LuceneMissingValue;
@@ -74,6 +75,7 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -293,15 +295,15 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
 
         // without minScore filter we get 2 and 2 docs - this is not necessary for the test but is here
         // to make sure the "FuzzyQuery" matches the right documents
-        collector = collectorWithMinScore(searcher, columnReferences, query, null);
+        collector = collector(searcher, columnReferences, query, null, true);
         assertThat(Iterables.size(collector.collect()), is(2));
         assertThat(Iterables.size(collector.collect()), is(2));
 
-        collector = collectorWithMinScore(searcher, columnReferences, query, 0.30f);
+        collector = collector(searcher, columnReferences, query, 0.15f, true);
         int count = 0;
         // initialSearch -> 2 rows
         for (Row row : collector.collect()) {
-            assertThat((float) row.get(0), Matchers.greaterThanOrEqualTo(0.30f));
+            assertThat((float) row.get(0), Matchers.greaterThanOrEqualTo(0.15f));
             count++;
         }
         assertThat(count, is(2));
@@ -309,10 +311,64 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
         count = 0;
         // searchMore -> 1 row is below minScore
         for (Row row : collector.collect()) {
-            assertThat((float) row.get(0), Matchers.greaterThanOrEqualTo(0.30f));
+            assertThat((float) row.get(0), Matchers.greaterThanOrEqualTo(0.15f));
             count++;
         }
         assertThat(count, is(1));
+    }
+
+    @Test
+    public void testSearchNoScores() throws Exception {
+        IndexWriter w = new IndexWriter(new RAMDirectory(), new IndexWriterConfig(new KeywordAnalyzer()));
+        KeywordFieldMapper.KeywordFieldType fieldType = new KeywordFieldMapper.KeywordFieldType();
+        fieldType.setName("x");
+        fieldType.freeze();
+
+        for (int i = 0; i < 3; i++) {
+            addDoc(w, fieldType, "Arthur");
+        }
+        addDoc(w, fieldType, "Arthur"); // not "Arthur" to lower score
+        w.commit();
+        IndexSearcher searcher = new IndexSearcher(DirectoryReader.open(w, true, true));
+
+        List<LuceneCollectorExpression<?>> columnReferences = Collections.singletonList(new ScoreCollectorExpression());
+        Query query = fieldType.termsQuery(Collections.singletonList("Arthur"), null);
+        LuceneOrderedDocCollector collector = collector(searcher, columnReferences, query, null, false);
+        KeyIterable<ShardId, Row> result = collector.collect();
+
+        assertThat(Iterables.size(result), is(2));
+
+        Iterator<Row> values = result.iterator();
+
+        assertThat(values.next().get(0), Matchers.is(Float.NaN));
+        assertThat(values.next().get(0), Matchers.is(Float.NaN));
+    }
+
+    @Test
+    public void testSearchWithScores() throws Exception {
+        IndexWriter w = new IndexWriter(new RAMDirectory(), new IndexWriterConfig(new KeywordAnalyzer()));
+        KeywordFieldMapper.KeywordFieldType fieldType = new KeywordFieldMapper.KeywordFieldType();
+        fieldType.setName("x");
+        fieldType.freeze();
+
+        for (int i = 0; i < 3; i++) {
+            addDoc(w, fieldType, "Arthur");
+        }
+        addDoc(w, fieldType, "Arthur"); // not "Arthur" to lower score
+        w.commit();
+        IndexSearcher searcher = new IndexSearcher(DirectoryReader.open(w, true, true));
+
+        List<LuceneCollectorExpression<?>> columnReferences = Collections.singletonList(new ScoreCollectorExpression());
+        Query query = fieldType.termsQuery(Collections.singletonList("Arthur"), null);
+        LuceneOrderedDocCollector collector = collector(searcher, columnReferences, query, null, true);
+        KeyIterable<ShardId, Row> result = collector.collect();
+
+        assertThat(Iterables.size(result), is(2));
+
+        Iterator<Row> values = result.iterator();
+
+        assertThat(values.next().get(0), Matchers.is(1.0F));
+        assertThat(values.next().get(0), Matchers.is(1.0F));
     }
 
     private static void addDoc(IndexWriter w, KeywordFieldMapper.KeywordFieldType fieldType, String value) throws IOException {
@@ -322,22 +378,22 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
         w.addDocument(doc);
     }
 
-    private LuceneOrderedDocCollector collectorWithMinScore(IndexSearcher searcher,
-                                                            List<LuceneCollectorExpression<?>> columnReferences,
-                                                            Query query,
-                                                            @Nullable Float minScore) {
+    private LuceneOrderedDocCollector collector(IndexSearcher searcher,
+                                                List<LuceneCollectorExpression<?>> columnReferences,
+                                                Query query,
+                                                @Nullable Float minScore, boolean doDocScores) {
         return new LuceneOrderedDocCollector(
-                new ShardId("dummy", UUIDs.base64UUID(), 0),
-                searcher,
-                query,
-                minScore,
-                true,
-                2,
-                new CollectorContext(mappedFieldType -> null),
-                f -> null,
-                new Sort(SortField.FIELD_SCORE),
-                columnReferences,
-                columnReferences
-            );
+            new ShardId("dummy", UUIDs.base64UUID(), 0),
+            searcher,
+            query,
+            minScore,
+            doDocScores,
+            2,
+            new CollectorContext(mappedFieldType -> null),
+            f -> null,
+            new Sort(SortField.FIELD_SCORE),
+            columnReferences,
+            columnReferences
+        );
     }
 }

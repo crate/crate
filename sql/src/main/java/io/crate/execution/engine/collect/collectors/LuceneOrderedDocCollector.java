@@ -132,10 +132,7 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
         TopFieldCollector topFieldCollector = TopFieldCollector.create(
             sort,
             batchSize,
-            true,
-            doDocsScores,
-            doDocsScores,
-            false           // trackTotalHits - we don't use the number of total hits
+            0 // do not process any hits
         );
         return doSearch(topFieldCollector, minScore, query);
     }
@@ -152,11 +149,9 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
             sort,
             batchSize,
             lastDoc,
-            true,
-            doDocsScores,
-            doDocsScores,
-            false           // trackTotalHits - we don't use the number of total hits
+            0 // do not process any hits
         );
+
         return doSearch(topFieldCollector, minScore, query(lastDoc));
     }
 
@@ -168,7 +163,11 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
             collector = new MinimumScoreCollector(collector, minScore);
         }
         searcher.search(query, collector);
-        return scoreDocToIterable(topFieldCollector.topDocs().scoreDocs);
+        ScoreDoc[] scoreDocs = topFieldCollector.topDocs().scoreDocs;
+        if (doDocsScores) {
+            TopFieldCollector.populateScores(scoreDocs, searcher, query);
+        }
+        return scoreDocToIterable(scoreDocs);
     }
 
     private KeyIterable<ShardId, Row> scoreDocToIterable(ScoreDoc[] scoreDocs) {
