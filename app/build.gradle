@@ -292,7 +292,6 @@ uploadArchives {
 
 ext {
     downloadDir = new File(buildDir, 'downloads')
-    adminui_version = '1.11.4'
 }
 
 def rootDir = project.parent.projectDir
@@ -543,8 +542,8 @@ task downloadAdminUI {
         } else {
             dest = download(
                 downloadDir,
-                "https://cdn.crate.io/downloads/releases/crate-admin-${adminui_version}.tar.gz",
-                "crate-admin-${adminui_version}.tar.gz"
+                "https://cdn.crate.io/downloads/releases/crate-admin-${versions.crate_admin_ui}.tar.gz",
+                "crate-admin-${versions.crate_admin_ui}.tar.gz"
             )
         }
         extractTopfolder(dest, "${buildDir}/crate-admin/_site")
