@@ -1011,7 +1011,7 @@ CrateDB supports the :ref:`OVER <over>` clause to enable the execution of
 
 CrateDB supports the ``group by`` clause. This clause can be used to group the
 resulting rows by the value(s) of one or more columns. That means that rows
-that contain duplicate values will be merged together.
+that contain duplicate values will be merged.
 
 This is useful if used in conjunction with aggregation functions::
 
@@ -1036,13 +1036,13 @@ This is useful if used in conjunction with aggregation functions::
    Grouping will be executed against the real table column when aliases that
    shadow the table columns are used.
 
-   Grouping on multi-value fields doesn't work. If such a field is encountered
-   during a group by operation an error is thrown.
+   Grouping on array columns doesn't work, but arrays can be unnested in a
+   subquery using :ref:`unnest`, it is then possible to use GROUP BY on the
+   subquery.
 
-   Additionally, grouping can only be applied to columns with a plain index,
-   which is the default for all columns.
-
-   For more information, refer to :ref:`sql_ddl_index_plain`.
+   GROUP BY doesn't work on columns of type :ref:`STRING <data-type-string>` if
+   the column is indexed using a fulltext analyzer. By default STRING columns
+   are indexed using a plain analyzer which allows GROUP BY operations.
 
 .. _sql_dql_having:
 

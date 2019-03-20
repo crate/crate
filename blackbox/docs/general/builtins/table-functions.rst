@@ -50,6 +50,9 @@ no column.
     cr> select * from empty_row();
     SELECT OK, 1 row affected  (... sec)
 
+
+.. _unnest:
+
 ``unnest( array [ array , ] )``
 ===============================
 
