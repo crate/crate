@@ -33,7 +33,6 @@ import org.elasticsearch.common.settings.SettingsException;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.node.InternalSettingsPreparer;
 import org.elasticsearch.node.Node;
-import org.elasticsearch.transport.Netty4Plugin;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -48,7 +47,6 @@ import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Function;
 
-import static org.elasticsearch.common.network.NetworkModule.TRANSPORT_TYPE_DEFAULT_KEY;
 import static org.elasticsearch.common.network.NetworkService.DEFAULT_NETWORK_HOST;
 import static org.elasticsearch.common.network.NetworkService.GLOBAL_NETWORK_HOST_SETTING;
 
@@ -114,10 +112,6 @@ public class CrateSettingsPreparer {
 
     @VisibleForTesting
     static void applyCrateDefaults(Settings.Builder settingsBuilder) {
-        // read also from crate.yml by default if no other config path has been set
-        // if there is also a elasticsearch.yml file this file will be read first and the settings in crate.yml
-        // will overwrite them.
-        putIfAbsent(settingsBuilder, TRANSPORT_TYPE_DEFAULT_KEY, Netty4Plugin.NETTY_TRANSPORT_NAME);
         putIfAbsent(settingsBuilder, GLOBAL_NETWORK_HOST_SETTING.getKey(), DEFAULT_NETWORK_HOST);
 
         // Set a random node name if none is explicitly defined
