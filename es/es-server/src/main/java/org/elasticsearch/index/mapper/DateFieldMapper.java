@@ -129,8 +129,15 @@ public class DateFieldMapper extends FieldMapper {
         @Override
         public DateFieldMapper build(BuilderContext context) {
             setupFieldType(context);
-            return new DateFieldMapper(name, fieldType, defaultFieldType, ignoreMalformed(context),
-                    context.indexSettings(), multiFieldsBuilder.build(this, context), copyTo);
+            return new DateFieldMapper(
+                name,
+                position,
+                fieldType,
+                defaultFieldType,
+                ignoreMalformed(context),
+                context.indexSettings(),
+                multiFieldsBuilder.build(this, context),
+                copyTo);
         }
     }
 
@@ -331,13 +338,14 @@ public class DateFieldMapper extends FieldMapper {
 
     private DateFieldMapper(
             String simpleName,
+            Integer position,
             MappedFieldType fieldType,
             MappedFieldType defaultFieldType,
             Explicit<Boolean> ignoreMalformed,
             Settings indexSettings,
             MultiFields multiFields,
             CopyTo copyTo) {
-        super(simpleName, fieldType, defaultFieldType, indexSettings, multiFields, copyTo);
+        super(simpleName, position, fieldType, defaultFieldType, indexSettings, multiFields, copyTo);
         this.ignoreMalformed = ignoreMalformed;
     }
 

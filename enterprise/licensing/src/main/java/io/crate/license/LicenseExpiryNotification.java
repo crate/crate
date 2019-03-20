@@ -18,28 +18,26 @@
 
 package io.crate.license;
 
-import org.elasticsearch.common.Nullable;
-
+import java.time.Duration;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 public enum LicenseExpiryNotification {
-    MODERATE {
+    VALID {
         @Override
-        public String notificationMessage(long millisToExpiration) {
-            return String.format(Locale.ENGLISH, LICENSE_NOTIFICATION_TEMPLATE,
-                MILLISECONDS.toDays(millisToExpiration), "days");
+        public String message(long millisToExpiration) {
+            return LICENSE_VALID;
         }
     },
     SEVERE {
         @Override
-        public String notificationMessage(long millisToExpiration) {
-            if (millisToExpiration > 3_600_000) {
+        public String message(long millisToExpiration) {
+            if (millisToExpiration >= Duration.ofHours(1).toMillis()) {
                 return String.format(Locale.ENGLISH, LICENSE_NOTIFICATION_TEMPLATE,
                     MILLISECONDS.toHours(millisToExpiration), "hours");
-            } else if (millisToExpiration > 60_000) {
+            } else if (millisToExpiration >= Duration.ofMinutes(1).toMillis()) {
                 return String.format(Locale.ENGLISH, LICENSE_NOTIFICATION_TEMPLATE,
                     MILLISECONDS.toMinutes(millisToExpiration), "minutes");
             } else {
@@ -48,17 +46,20 @@ public enum LicenseExpiryNotification {
             }
         }
     },
+    MODERATE {
+        @Override
+        public String message(long millisToExpiration) {
+            return String.format(Locale.ENGLISH, LICENSE_NOTIFICATION_TEMPLATE,
+                MILLISECONDS.toDays(millisToExpiration), "days");
+        }
+    },
     EXPIRED {
         @Override
-        public String notificationMessage(long millisToExpiration) {
+        public String message(long millisToExpiration) {
             return LICENSE_EXPIRED_MESSAGE;
         }
     };
 
-    private static final String LICENSE_EXPIRED_MESSAGE = "Your CrateDB license has expired. For more information on Licensing please visit: https://crate.io/license-update/?license=expired";
-    private static final String LICENSE_NOTIFICATION_TEMPLATE = "Your CrateDB license will expire in %d %s. For more information on Licensing please visit: https://crate.io/license-update";
-
-    @Nullable
     public static LicenseExpiryNotification of(LicenseData licenseData) {
         long millisToExpiration = licenseData.millisToExpiration();
         if (millisToExpiration < 0) {
@@ -68,8 +69,14 @@ public enum LicenseExpiryNotification {
         } else if (millisToExpiration < TimeUnit.DAYS.toMillis(15)) {
             return MODERATE;
         }
-        return null;
+        return VALID;
     }
 
-    public abstract String notificationMessage(long millisToExpiration);
+    public abstract String message(long millisToExpiration);
+
+    public static final String LICENSE_EXPIRED_MESSAGE = "Your CrateDB license has expired. For more information on Licensing please visit: https://crate.io/license-update/?license=expired";
+    public static final String LICENSE_NOTIFICATION_TEMPLATE = "Your CrateDB license will expire in %d %s. For more information on Licensing please visit: https://crate.io/license-update";
+    public static final String LICENSE_VALID = "Your CrateDB license is valid. Enjoy CrateDB!";
+    public static final String LICENSE_ENTERPRISE_DISABLED = "CrateDB enterprise is not enabled. Enjoy the community edition!";
+
 }

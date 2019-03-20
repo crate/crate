@@ -33,6 +33,7 @@ import org.elasticsearch.cli.EnvironmentAwareCommand;
 import org.elasticsearch.cli.ExitCodes;
 import org.elasticsearch.cli.Terminal;
 import org.elasticsearch.cli.UserException;
+import org.elasticsearch.common.logging.LogConfigurator;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.monitor.jvm.JvmInfo;
@@ -77,6 +78,7 @@ public class CrateDB extends EnvironmentAwareCommand {
      * Main entry point for starting crate
      */
     public static void main(final String[] args) throws Exception {
+        LogConfigurator.registerErrorListener();
         final CrateDB crate = new CrateDB();
         int status = main(args, crate, Terminal.DEFAULT);
         if (status != ExitCodes.OK) {

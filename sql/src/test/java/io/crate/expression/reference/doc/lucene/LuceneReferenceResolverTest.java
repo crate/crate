@@ -42,17 +42,17 @@ public class LuceneReferenceResolverTest extends CrateUnitTest {
 
     @Test
     public void testGetImplementationWithColumnsOfTypeCollection() {
-        Reference arrayRef = new Reference(new ReferenceIdent(
-            new RelationName("s", "t"), "a"),
-            RowGranularity.DOC,
-            DataTypes.DOUBLE_ARRAY);
+        Reference arrayRef = new Reference(
+            new ReferenceIdent(
+            new RelationName("s", "t"), "a"), RowGranularity.DOC, DataTypes.DOUBLE_ARRAY, null
+        );
         assertThat(luceneReferenceResolver.getImplementation(arrayRef),
             instanceOf(DocCollectorExpression.ChildDocCollectorExpression.class));
 
-        Reference setRef = new Reference(new ReferenceIdent(
-            new RelationName("s", "t"), "a"),
-            RowGranularity.DOC,
-            new SetType(DataTypes.DOUBLE));
+        Reference setRef = new Reference(
+            new ReferenceIdent(
+            new RelationName("s", "t"), "a"), RowGranularity.DOC, new SetType(DataTypes.DOUBLE), null
+        );
         assertThat(luceneReferenceResolver.getImplementation(setRef),
             instanceOf(DocCollectorExpression.ChildDocCollectorExpression.class));
     }

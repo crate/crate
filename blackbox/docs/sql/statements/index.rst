@@ -10,6 +10,8 @@ SQL Statements
     alter-cluster
     alter-table
     alter-user
+    begin
+    commit
     copy-from
     copy-to
     create-analyzer

@@ -102,4 +102,12 @@ public class ClusterLicenseExpressionTest extends CrateUnitTest {
         assertThat(licenseExpression.getChild(ISSUED_TO).value(), is("test2"));
         assertThat(licenseExpression.getChild(MAX_NODES).value(), is(3));
     }
+
+    @Test
+    public void testExpiryDateIsNullForUnlimitedSentinel() {
+        when(licenseService.currentLicense())
+            .thenReturn(new LicenseData(Long.MAX_VALUE, "test", 2));
+
+        assertThat(licenseExpression.getChild(EXPIRY_DATE).value(), is(nullValue()));
+    }
 }

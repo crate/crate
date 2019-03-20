@@ -26,6 +26,7 @@ import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
 import io.crate.data.BatchIterator;
 import io.crate.data.Bucket;
+import io.crate.data.Buckets;
 import io.crate.data.CollectionBucket;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
@@ -39,7 +40,6 @@ import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionImplementation;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
@@ -49,6 +49,7 @@ import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.SearchPath;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.table.TableInfo;
@@ -66,6 +67,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.hamcrest.core.Is.is;
@@ -114,7 +116,12 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
             clusterService().state(),
             routingProvider,
             WhereClause.MATCH_ALL, RoutingProvider.ShardSelection.ANY, SessionContext.systemSessionContext());
-        Reference clusterNameRef = new Reference(new ReferenceIdent(SysClusterTableInfo.IDENT, new ColumnIdent(ClusterNameExpression.NAME)), RowGranularity.CLUSTER, DataTypes.STRING);
+        Reference clusterNameRef = new Reference(
+            new ReferenceIdent(SysClusterTableInfo.IDENT, new ColumnIdent(ClusterNameExpression.NAME)),
+            RowGranularity.CLUSTER,
+            DataTypes.STRING,
+            null
+        );
         RoutedCollectPhase collectNode = collectNode(routing, Arrays.<Symbol>asList(clusterNameRef), RowGranularity.CLUSTER);
         Bucket result = collect(collectNode);
         assertThat(result.size(), is(1));
@@ -164,25 +171,30 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
             WhereClause.MATCH_ALL, RoutingProvider.ShardSelection.ANY, SessionContext.systemSessionContext());
         List<Symbol> toCollect = new ArrayList<>();
         for (Reference ref : tableInfo.columns()) {
-            toCollect.add(ref);
+            if (Set.of("column_name", "data_type", "table_name").contains(ref.column().name())) {
+                toCollect.add(ref);
+            }
         }
         RoutedCollectPhase collectNode = collectNode(routing, toCollect, RowGranularity.DOC);
-        Bucket result = collect(collectNode);
+        List<Object[]> result = Arrays.asList(Buckets.materialize(collect(collectNode))).subList(0, 10);
 
         String expected =
-            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| id| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NEVER| true| NULL| NULL| NULL| 1| sys| cluster| sys| NULL| NULL| NULL\n" +
-            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| license| object| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NEVER| true| NULL| NULL| NULL| 2| sys| cluster| sys| NULL| NULL| NULL\n" +
-            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| license['expiry_date']| timestamp| 3| NULL| NULL| NULL| NULL| NULL| NULL| NEVER| true| NULL| NULL| NULL| NULL| sys| cluster| sys| NULL| NULL| NULL\n" +
-            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| license['issued_to']| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NEVER| true| NULL| NULL| NULL| NULL| sys| cluster| sys| NULL| NULL| NULL\n" +
-            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| license['max_nodes']| integer| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NEVER| true| 32| 2| NULL| NULL| sys| cluster| sys| NULL| NULL| NULL\n" +
-            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| master_node| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NEVER| true| NULL| NULL| NULL| 3| sys| cluster| sys| NULL| NULL| NULL\n" +
-            "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| name| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NEVER| true| NULL| NULL| NULL| 4| sys| cluster| sys| NULL| NULL| NULL";
+            "character_maximum_length| integer| columns\n" +
+            "character_octet_length| integer| columns\n" +
+            "character_set_catalog| string| columns\n" +
+            "character_set_name| string| columns\n" +
+            "character_set_schema| string| columns\n" +
+            "check_action| integer| columns\n" +
+            "check_references| string| columns\n" +
+            "collation_catalog| string| columns\n" +
+            "collation_name| string| columns\n" +
+            "collation_schema| string| columns";
 
 
-        assertThat(TestingHelpers.printedTable(result), Matchers.containsString(expected));
+        assertThat(TestingHelpers.printedTable(result.toArray(new Object[0][])), Matchers.containsString(expected));
 
         // second time - to check if the internal iterator resets
-        result = collect(collectNode);
-        assertThat(TestingHelpers.printedTable(result), Matchers.containsString(expected));
+        result = Arrays.asList(Buckets.materialize(collect(collectNode))).subList(0, 10);
+        assertThat(TestingHelpers.printedTable(result.toArray(new Object[0][])), Matchers.containsString(expected));
     }
 }

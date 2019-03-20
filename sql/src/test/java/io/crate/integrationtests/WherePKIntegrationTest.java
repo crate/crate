@@ -211,8 +211,8 @@ public class WherePKIntegrationTest extends SQLTransportIntegrationTest {
     public void testEmptyClusteredByUnderId() throws Exception {
         // regression test that empty routing executes correctly
         execute("create table auto_id (" +
-                "  name string," +
-                "  location geo_point" +
+                "  location geo_point, " +
+                "  name string" +
                 ") with (number_of_replicas=0)");
         ensureYellow();
 
@@ -229,8 +229,8 @@ public class WherePKIntegrationTest extends SQLTransportIntegrationTest {
     public void testEmptyClusteredByExplicit() throws Exception {
         // regression test that empty routing executes correctly
         execute("create table explicit_routing (" +
-                "  name string," +
-                "  location geo_point" +
+                "  location geo_point, " +
+                "  name string " +
                 ") clustered by (name) with (number_of_replicas=0)");
         ensureYellow();
         execute("insert into explicit_routing (name, location) values (',', [36.567, 52.998]), ('Dornbirn', [54.45, 4.567])");

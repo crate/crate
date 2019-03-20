@@ -331,7 +331,7 @@ public class LuceneQueryBuilderIntegrationTest extends SQLTransportIntegrationTe
         execute("insert into bag (id, ob) values (2, [{bbb = 2}])");
         execute("refresh table bag");
 
-        execute("SELECT * FROM bag WHERE ob IS NOT NULL");
+        execute("SELECT id, ob FROM bag WHERE ob IS NOT NULL");
         assertThat(printedTable(response.rows()), is("2| [{bbb=2}]\n"));
     }
 

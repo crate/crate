@@ -22,7 +22,6 @@
 package io.crate.types;
 
 import io.crate.Streamer;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -66,9 +65,6 @@ public class DoubleType extends DataType<Double> implements FixedWidthType, Stre
         }
         if (value instanceof String) {
             return Double.valueOf((String) value);
-        }
-        if (value instanceof BytesRef) {
-            return Double.valueOf(((BytesRef) value).utf8ToString());
         }
         return ((Number) value).doubleValue();
     }

@@ -40,6 +40,7 @@ import static io.crate.license.EnterpriseLicenseService.MAX_NODES_FOR_V1_LICENSE
 import static io.crate.license.EnterpriseLicenseService.UNLIMITED_EXPIRY_DATE_IN_MS;
 import static io.crate.license.LicenseConverterTest.createV1JsonLicense;
 import static io.crate.license.License.Type;
+import static io.crate.license.LicenseExpiryNotification.VALID;
 import static io.crate.license.LicenseKey.VERSION;
 import static java.util.concurrent.TimeUnit.DAYS;
 import static java.util.concurrent.TimeUnit.HOURS;
@@ -183,10 +184,10 @@ public class LicenseServiceTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testLicenseNotificationIsNullForLicenseWithMoreThan15DaysLeft() {
+    public void testLicenseNotificationIsValidForLicenseWithMoreThan15DaysLeft() {
         LicenseData licenseData = new LicenseData(
             System.currentTimeMillis() + DAYS.toMillis(30), "test", 3);
-        assertThat(LicenseExpiryNotification.of(licenseData), is(Matchers.nullValue()));
+        assertThat(LicenseExpiryNotification.of(licenseData), is(LicenseExpiryNotification.VALID));
     }
 
     @Test

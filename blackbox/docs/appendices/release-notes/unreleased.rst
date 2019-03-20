@@ -41,6 +41,11 @@ Unreleased Changes
 Breaking Changes
 ================
 
+- Changed the ordering of columns to be based on their position in the
+  :ref:`CREATE TABLE <ref-create-table>` statement. This was done to improve
+  compatibility with PostgreSQL and will affect queries like ``SELECT * FROM``
+  or ``INSERT INTO <table> VALUES (...)``
+
 - Changed the default :ref:`column_policy` on tables from ``dynamic`` to
   ``strict``. Columns of type object still default to ``dynamic``.
 

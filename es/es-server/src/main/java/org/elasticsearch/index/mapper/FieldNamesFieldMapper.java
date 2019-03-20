@@ -19,12 +19,10 @@
 
 package org.elasticsearch.index.mapper;
 
-import org.apache.logging.log4j.LogManager;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.search.Query;
-import org.elasticsearch.common.logging.DeprecationLogger;
 import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -47,9 +45,6 @@ import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeBo
  * Added in Elasticsearch 1.3.
  */
 public class FieldNamesFieldMapper extends MetadataFieldMapper {
-
-    private static final DeprecationLogger DEPRECATION_LOGGER = new DeprecationLogger(
-            LogManager.getLogger(FieldNamesFieldMapper.class));
 
     public static final String NAME = "_field_names";
 
@@ -192,12 +187,7 @@ public class FieldNamesFieldMapper extends MetadataFieldMapper {
 
         @Override
         public Query termQuery(Object value, QueryShardContext context) {
-            if (isEnabled() == false) {
-                throw new IllegalStateException("Cannot run [exists] queries if the [_field_names] field is disabled");
-            }
-            DEPRECATION_LOGGER.deprecated(
-                    "terms query on the _field_names field is deprecated and will be removed, use exists query instead");
-            return super.termQuery(value, context);
+            throw new UnsupportedOperationException("Terms query on _field_names is no longer supported");
         }
     }
 
@@ -206,7 +196,7 @@ public class FieldNamesFieldMapper extends MetadataFieldMapper {
     }
 
     private FieldNamesFieldMapper(MappedFieldType fieldType, Settings indexSettings) {
-        super(NAME, fieldType, Defaults.FIELD_TYPE, indexSettings);
+        super(NAME, null, fieldType, Defaults.FIELD_TYPE, indexSettings);
     }
 
     @Override

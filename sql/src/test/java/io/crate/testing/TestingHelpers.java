@@ -185,7 +185,9 @@ public class TestingHelpers {
         return new Reference(
             new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, tableName), columnIdent),
             RowGranularity.DOC,
-            dataType);
+            dataType,
+            null
+        );
     }
 
     public static String readFile(String path) throws IOException {
@@ -286,7 +288,7 @@ public class TestingHelpers {
             default:
                 throw new IllegalArgumentException("fqColumnName must contain <table>.<column> or <schema>.<table>.<column>");
         }
-        return new Reference(refIdent, rowGranularity, dataType);
+        return new Reference(refIdent, rowGranularity, dataType, null);
     }
 
     public static <T> Matcher<T> isSQL(final String stmt) {

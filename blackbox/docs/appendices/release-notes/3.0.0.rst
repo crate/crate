@@ -185,7 +185,7 @@ Changes
   ``key_column_usage``, ``columns``, and ``tables`` to be SQL compliant.
 
 - Arrays can now contain mixed types if they're safely convertible. JSON
-  libraries tend to encode values like ``[ 0.0, 1.2]`` as ``[ 0, 1.2 ]``, this
+  libraries tend to encode values like ``[0.0, 1.2]`` as ``[0, 1.2]``, this
   caused an error because of the strict type match we enforced before.
 
 - Implemented ``constraint_schema`` and ``table_schema`` in

@@ -36,10 +36,12 @@ import org.elasticsearch.index.mapper.array.DynamicArrayFieldMapperBuilderFactor
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.StreamSupport;
 
 /** A parser for documents, given mappings from a DocumentMapper */
 final class DocumentParser {
@@ -423,7 +425,9 @@ final class DocumentParser {
             } else if (dynamic == ObjectMapper.Dynamic.TRUE) {
                 Mapper.Builder builder = context.root().findTemplateBuilder(context, currentFieldName, XContentFieldType.OBJECT);
                 if (builder == null) {
-                    builder = new ObjectMapper.Builder(currentFieldName).enabled(true);
+                    builder = new ObjectMapper.Builder(currentFieldName)
+                        .position(getPositionForDynamicField(context, mapper))
+                        .enabled(true);
                 }
                 Mapper.BuilderContext builderContext = new Mapper.BuilderContext(context.indexSettings().getSettings(), context.path());
                 objectMapper = builder.build(builderContext);
@@ -751,6 +755,12 @@ final class DocumentParser {
         } else {
             builder = createBuilderFromDynamicValue(context, token, currentFieldName);
         }
+        if (parentMapper.equals(context.root())) {
+            int position = getPositionForDynamicField(context, parentMapper);
+            if (builder instanceof FieldMapper.Builder) {
+                ((FieldMapper.Builder) builder).position(position);
+            }
+        }
         Mapper mapper = builder.build(builderContext);
         if (existingFieldType != null) {
             // try to not introduce a conflict
@@ -759,6 +769,13 @@ final class DocumentParser {
         context.addDynamicMapper(mapper);
 
         parseObjectOrField(context, mapper);
+    }
+
+    private static int getPositionForDynamicField(ParseContext context, Mapper parentMapper) {
+        return StreamSupport.stream(parentMapper.spliterator(), false)
+                    .map(m -> m instanceof FieldMapper ? ((FieldMapper) m).position() : ((ObjectMapper) m).position())
+                    .mapToInt(x -> x == null ? 0 : x)
+                    .max().orElse(0) + 1 + context.getDynamicMappers().size();
     }
 
     /** Creates instances of the fields that the current field should be copied to */

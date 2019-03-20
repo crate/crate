@@ -40,8 +40,8 @@ public class ReferenceTest extends CrateUnitTest {
         ReferenceIdent referenceIdent = new ReferenceIdent(relationName, "object_column");
         DataType dataType1 = new ArrayType(ObjectType.untyped());
         DataType dataType2 = new ArrayType(ObjectType.untyped());
-        Reference reference1 = new Reference(referenceIdent, RowGranularity.DOC, dataType1);
-        Reference reference2 = new Reference(referenceIdent, RowGranularity.DOC, dataType2);
+        Reference reference1 = new Reference(referenceIdent, RowGranularity.DOC, dataType1, null);
+        Reference reference2 = new Reference(referenceIdent, RowGranularity.DOC, dataType2, null);
         assertTrue(reference1.equals(reference2));
     }
 
@@ -49,11 +49,15 @@ public class ReferenceTest extends CrateUnitTest {
     public void testStreaming() throws Exception {
         RelationName relationName = new RelationName("doc", "test");
         ReferenceIdent referenceIdent = new ReferenceIdent(relationName, "object_column");
-        Reference reference = new Reference(referenceIdent,
+        Reference reference = new Reference(
+            referenceIdent,
             RowGranularity.DOC,
             new ArrayType(ObjectType.untyped()),
             ColumnPolicy.STRICT,
-            Reference.IndexType.ANALYZED, false);
+            Reference.IndexType.ANALYZED,
+            false,
+            null
+        );
 
         BytesStreamOutput out = new BytesStreamOutput();
         Reference.toStream(reference, out);

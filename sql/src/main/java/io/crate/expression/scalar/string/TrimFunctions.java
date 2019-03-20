@@ -87,15 +87,15 @@ public final class TrimFunctions {
 
         @Override
         public Scalar<String, String> compile(List<Symbol> arguments) {
-            if (arguments.size() == 3) {
-                Symbol modeSymbol = arguments.get(2);
-                if (!Literal.isLiteral(modeSymbol, DataTypes.STRING)) {
-                    return this;
-                }
-                TrimMode mode = TrimMode.of((String) ((Input) modeSymbol).value());
-                if (mode != TrimMode.BOTH) {
-                    return this;
-                }
+            assert arguments.size() == 3 : "number of args must be 3";
+
+            Symbol modeSymbol = arguments.get(2);
+            if (!Literal.isLiteral(modeSymbol, DataTypes.STRING)) {
+                return this;
+            }
+            TrimMode mode = TrimMode.of((String) ((Input) modeSymbol).value());
+            if (mode != TrimMode.BOTH) {
+                return this;
             }
 
             Symbol charsToTrimSymbol = arguments.get(1);
@@ -112,6 +112,7 @@ public final class TrimFunctions {
 
         @Override
         public String evaluate(TransactionContext txnCtx, Input<String>[] args) {
+            assert args.length == 3 : "number of args must be 3";
             String target = args[0].value();
             if (target == null) {
                 return null;
@@ -122,9 +123,7 @@ public final class TrimFunctions {
                 return target;
             }
 
-            TrimMode mode = args.length == 3
-                ? TrimMode.of(args[2].value())
-                : TrimMode.BOTH;
+            TrimMode mode = TrimMode.of(args[2].value());
 
             HashSet<Character> charsToTrim =
                 new HashSet<>(Chars.asList(charsToTrimArg.toCharArray()));

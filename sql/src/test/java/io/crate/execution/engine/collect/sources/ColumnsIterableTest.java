@@ -68,11 +68,11 @@ public class ColumnsIterableTest {
         ImmutableList<ColumnContext> contexts = ImmutableList.copyOf(columns);
 
         // sub columns must have NULL ordinal value
-        assertThat(contexts.get(1).ordinal, is(new Short("2")));
+        assertThat(contexts.get(1).ordinal, is(2));
         assertThat(contexts.get(2).ordinal, nullValue());
 
         // array of object sub columns also
-        assertThat(contexts.get(3).ordinal, is(new Short("3")));
+        assertThat(contexts.get(3).ordinal, is(3));
         assertThat(contexts.get(4).ordinal, nullValue());
     }
 }

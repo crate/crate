@@ -80,9 +80,9 @@ Which will update the table schema::
     | SHOW CREATE TABLE doc.my_table                      |
     +-----------------------------------------------------+
     | CREATE TABLE IF NOT EXISTS "doc"."my_table" (       |
+    |    "title" STRING,                                  |
     |    "author" STRING,                                 |
-    |    "new_col" LONG,                                  |
-    |    "title" STRING                                   |
+    |    "new_col" LONG                                   |
     | )                                                   |
     | CLUSTERED INTO 4 SHARDS                             |
     ...

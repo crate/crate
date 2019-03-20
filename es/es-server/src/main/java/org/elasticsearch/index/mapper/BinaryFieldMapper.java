@@ -70,8 +70,14 @@ public class BinaryFieldMapper extends FieldMapper {
         @Override
         public BinaryFieldMapper build(BuilderContext context) {
             setupFieldType(context);
-            return new BinaryFieldMapper(name, fieldType, defaultFieldType,
-                    context.indexSettings(), multiFieldsBuilder.build(this, context), copyTo);
+            return new BinaryFieldMapper(
+                name,
+                position,
+                fieldType,
+                defaultFieldType,
+                context.indexSettings(),
+                multiFieldsBuilder.build(this, context),
+                copyTo);
         }
     }
 
@@ -142,9 +148,14 @@ public class BinaryFieldMapper extends FieldMapper {
         }
     }
 
-    protected BinaryFieldMapper(String simpleName, MappedFieldType fieldType, MappedFieldType defaultFieldType,
-                                Settings indexSettings, MultiFields multiFields, CopyTo copyTo) {
-        super(simpleName, fieldType, defaultFieldType, indexSettings, multiFields, copyTo);
+    protected BinaryFieldMapper(String simpleName,
+                                Integer position,
+                                MappedFieldType fieldType,
+                                MappedFieldType defaultFieldType,
+                                Settings indexSettings,
+                                MultiFields multiFields,
+                                CopyTo copyTo) {
+        super(simpleName, position, fieldType, defaultFieldType, indexSettings, multiFields, copyTo);
     }
 
     @Override

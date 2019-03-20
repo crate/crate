@@ -66,7 +66,7 @@ public class IndexWriterProjectorUnitTest extends CrateDummyClusterServiceUnitTe
     private static final ColumnIdent ID_IDENT = new ColumnIdent("id");
     private static final RelationName BULK_IMPORT_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "bulk_import");
     private static final Reference RAW_SOURCE_REFERENCE = new Reference(
-        new ReferenceIdent(BULK_IMPORT_IDENT, "_raw"), RowGranularity.DOC, DataTypes.STRING);
+        new ReferenceIdent(BULK_IMPORT_IDENT, "_raw"), RowGranularity.DOC, DataTypes.STRING, null);
 
     private ExecutorService executor;
     private ScheduledExecutorService scheduler;
