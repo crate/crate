@@ -80,8 +80,6 @@ public class CrateSettingsPreparerTest {
     public void testDefaultCrateSettings() throws Exception {
         Settings.Builder builder = Settings.builder();
         CrateSettingsPreparer.applyCrateDefaults(builder);
-
-        assertThat(builder.get(NetworkService.GLOBAL_NETWORK_HOST_SETTING.getKey()), is(NetworkService.DEFAULT_NETWORK_HOST));
         assertThat(builder.get(Node.NODE_NAME_SETTING.getKey()), isIn(CrateSettingsPreparer.nodeNames()));
     }
 
