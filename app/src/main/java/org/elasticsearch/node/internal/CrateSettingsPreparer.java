@@ -47,9 +47,6 @@ import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Function;
 
-import static org.elasticsearch.common.network.NetworkService.DEFAULT_NETWORK_HOST;
-import static org.elasticsearch.common.network.NetworkService.GLOBAL_NETWORK_HOST_SETTING;
-
 public class CrateSettingsPreparer {
 
     public static Environment prepareEnvironment(Map<String, String> cmdLineSettings, Path configPath) throws UserException {
@@ -112,17 +109,9 @@ public class CrateSettingsPreparer {
 
     @VisibleForTesting
     static void applyCrateDefaults(Settings.Builder settingsBuilder) {
-        putIfAbsent(settingsBuilder, GLOBAL_NETWORK_HOST_SETTING.getKey(), DEFAULT_NETWORK_HOST);
-
         // Set a random node name if none is explicitly defined
         if (settingsBuilder.get(Node.NODE_NAME_SETTING.getKey()) == null) {
             settingsBuilder.put(Node.NODE_NAME_SETTING.getKey(), randomNodeName());
-        }
-    }
-
-    private static void putIfAbsent(Settings.Builder settingsBuilder, String setting, String value) {
-        if (settingsBuilder.get(setting) == null) {
-            settingsBuilder.put(setting, value);
         }
     }
 
