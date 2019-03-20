@@ -23,7 +23,6 @@
 package io.crate.common.collections;
 
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.common.lucene.BytesRefs;
 import org.junit.Test;
 
 import java.util.HashMap;
@@ -42,12 +41,12 @@ public class MapComparatorTest extends CrateUnitTest {
 
     @Test
     public void testCompareMapsWithNullValues() {
-        Map<String, Integer> map1 = new HashMap<String, Integer>() {{
+        Map<String, Integer> map1 = new HashMap<>() {{
             put("str1", 1);
             put("str2", null);
             put("str3", 3);
         }};
-        Map<String, Integer> map2 = new HashMap<String, Integer>() {{
+        Map<String, Integer> map2 = new HashMap<>() {{
             put("str1", 1);
             put("str2", 2);
             put("str3", 3);
@@ -61,12 +60,12 @@ public class MapComparatorTest extends CrateUnitTest {
 
     @Test
     public void testCompareMapsWithValuesOfTheSameClass() {
-        Map<String, Integer> map1 = new HashMap<String, Integer>() {{
+        Map<String, Integer> map1 = new HashMap<>() {{
             put("str1", 1);
             put("str2", 2);
             put("str3", 3);
         }};
-        Map<String, Integer> map2 = new HashMap<String, Integer>() {{
+        Map<String, Integer> map2 = new HashMap<>() {{
             put("str1", 1);
             put("str2", 2);
             put("str3", 3);
@@ -80,12 +79,12 @@ public class MapComparatorTest extends CrateUnitTest {
     }
 
     public void testCompareMapsWithValuesOfDifferentClass() {
-        Map<String, Number> map1 = new HashMap<String, Number>() {{
+        Map<String, Number> map1 = new HashMap<>() {{
             put("str1", 1);
             put("str2", 2);
             put("str3", 3);
         }};
-        Map<String, Number> map2 = new HashMap<String, Number>() {{
+        Map<String, Number> map2 = new HashMap<>() {{
             put("str1", 1);
             put("str2", 2L);
             put("str3", 3);
@@ -99,18 +98,16 @@ public class MapComparatorTest extends CrateUnitTest {
     }
 
     public void testCompareMapsWithStringAndBytesRef() {
-        /**
+        /*
          * this can happen when you compare an object with an object literal
          * ... WHERE o = {"x" = 'foo'}
          */
-        Map<String, Object> map1 = new HashMap<String, Object>() {{
+        Map<String, Object> map1 = new HashMap<>() {{
             put("str1", "a");
-            put("str2", "b");
             put("str3", "3");
         }};
-        Map<String, Object> map2 = new HashMap<String, Object>() {{
+        Map<String, Object> map2 = new HashMap<>() {{
             put("str1", "a");
-            put("str2", BytesRefs.toBytesRef("b"));
             put("str3", 3);
         }};
         assertThat(MapComparator.compareMaps(map1, map2), is(0));

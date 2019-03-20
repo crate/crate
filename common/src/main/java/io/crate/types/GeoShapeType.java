@@ -23,7 +23,6 @@ package io.crate.types;
 
 import io.crate.Streamer;
 import io.crate.geo.GeoJSONUtils;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.lucene.BytesRefs;
@@ -68,7 +67,7 @@ public class GeoShapeType extends DataType<Map<String, Object>> implements Strea
             return null;
         }
         try {
-            if (value instanceof BytesRef || value instanceof String) {
+            if (value instanceof String) {
                 return GeoJSONUtils.wkt2Map(BytesRefs.toString(value));
             }
             if (value instanceof Shape) {

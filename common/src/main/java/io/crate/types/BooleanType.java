@@ -23,7 +23,6 @@ package io.crate.types;
 
 import com.google.common.collect.ImmutableMap;
 import io.crate.Streamer;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -74,9 +73,6 @@ public class BooleanType extends DataType<Boolean> implements Streamer<Boolean>,
         }
         if (value instanceof String) {
             return booleanFromString((String) value);
-        }
-        if (value instanceof BytesRef) {
-            return booleanFromString(((BytesRef) value).utf8ToString());
         }
         if (value instanceof Number) {
             return booleanFromNumber((Number) value);

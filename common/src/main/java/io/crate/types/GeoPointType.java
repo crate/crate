@@ -23,10 +23,8 @@ package io.crate.types;
 
 import com.google.common.base.Preconditions;
 import io.crate.Streamer;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.lucene.BytesRefs;
 import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
 import org.locationtech.spatial4j.exception.InvalidShapeException;
 import org.locationtech.spatial4j.io.WKTReader;
@@ -77,9 +75,6 @@ public class GeoPointType extends DataType<Double[]> implements Streamer<Double[
             checkLengthIs2(doubles.length);
             validate(doubles);
             return doubles;
-        }
-        if (value instanceof BytesRef) {
-            return pointFromString(BytesRefs.toString(value));
         }
         if (value instanceof String) {
             return pointFromString((String) value);

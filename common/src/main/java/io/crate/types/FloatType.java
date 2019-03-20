@@ -22,7 +22,6 @@
 package io.crate.types;
 
 import io.crate.Streamer;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -66,9 +65,6 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, Fixed
         }
         if (value instanceof String) {
             return Float.parseFloat((String) value);
-        }
-        if (value instanceof BytesRef) {
-            return Float.parseFloat(((BytesRef) value).utf8ToString());
         }
         double doubleValue = ((Number) value).doubleValue();
         if (doubleValue < -Float.MAX_VALUE || Float.MAX_VALUE < doubleValue) {

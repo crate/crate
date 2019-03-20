@@ -22,7 +22,6 @@
 package io.crate.types;
 
 import io.crate.Streamer;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -66,9 +65,6 @@ public class ShortType extends DataType<Short> implements Streamer<Short>, Fixed
         }
         if (value instanceof String) {
             return Short.valueOf((String) value);
-        }
-        if (value instanceof BytesRef) {
-            return Short.valueOf(((BytesRef) value).utf8ToString());
         }
         int intVal = ((Number) value).intValue();
         if (intVal < Short.MIN_VALUE || Short.MAX_VALUE < intVal) {

@@ -22,7 +22,6 @@
 package io.crate.types;
 
 import io.crate.test.integration.CrateUnitTest;
-import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;
@@ -30,50 +29,47 @@ import static org.hamcrest.Matchers.is;
 public class LongTypeTest extends CrateUnitTest {
 
     @Test
-    public void testBytesRefToLongParsing() throws Exception {
-        assertBytesRefParsing("12839", 12839L);
-        assertBytesRefParsing("-12839", -12839L);
-        assertBytesRefParsing(Long.toString(Long.MAX_VALUE), Long.MAX_VALUE);
-        assertBytesRefParsing(Long.toString(Long.MIN_VALUE), Long.MIN_VALUE);
+    public void testBytesRefToLongParsing() {
+        assertLongConversion("12839", 12839L);
+        assertLongConversion("-12839", -12839L);
+        assertLongConversion(Long.toString(Long.MAX_VALUE), Long.MAX_VALUE);
+        assertLongConversion(Long.toString(Long.MIN_VALUE), Long.MIN_VALUE);
 
-        assertBytesRefParsing("+2147483647111", 2147483647111L);
+        assertLongConversion("+2147483647111", 2147483647111L);
     }
 
     @Test
-    public void testConversionWithNonAsciiCharacter() throws Exception {
+    public void testConversionWithNonAsciiCharacter() {
         expectedException.expect(NumberFormatException.class);
         expectedException.expectMessage("\u03C0"); // "π" GREEK SMALL LETTER PI
-        assertBytesRefParsing("\u03C0", 0L);
+        assertLongConversion("\u03C0", 0L);
     }
 
     @Test
-    public void testInvalidFirstChar() throws Exception {
+    public void testInvalidFirstChar() {
         expectedException.expect(NumberFormatException.class);
-        assertBytesRefParsing(" 1", 1L);
+        assertLongConversion(" 1", 1L);
     }
 
     @Test
-    public void testOnlyMinusSign() throws Exception {
+    public void testOnlyMinusSign() {
         expectedException.expect(NumberFormatException.class);
-        assertBytesRefParsing("-", 1L);
+        assertLongConversion("-", 1L);
     }
 
     @Test
-    public void testOnlyPlusSign() throws Exception {
+    public void testOnlyPlusSign() {
         expectedException.expect(NumberFormatException.class);
-        expectedException.expectMessage("\"+\" cannot be converted to type long");
-        assertBytesRefParsing("+", 1L);
+        assertLongConversion("+", 1L);
     }
 
     @Test
-    public void testNumberThatIsGreaterThanMaxValue() throws Exception {
+    public void testNumberThatIsGreaterThanMaxValue() {
         expectedException.expect(NumberFormatException.class);
-        assertBytesRefParsing(Long.toString(Long.MAX_VALUE) + "111", Long.MIN_VALUE);
+        assertLongConversion(Long.MAX_VALUE + "111", Long.MIN_VALUE);
     }
 
-    private void assertBytesRefParsing(String s, long l) {
-        BytesRef bytesRef = new BytesRef(s);
-        assertThat(LongType.INSTANCE.value(bytesRef), is(l));
-        assertThat(LongType.INSTANCE.value(TypeTestUtils.addOffset(bytesRef)), is(l));
+    private static void assertLongConversion(Object actual, Long expected) {
+        assertThat(LongType.INSTANCE.value(actual), is(expected));
     }
 }
