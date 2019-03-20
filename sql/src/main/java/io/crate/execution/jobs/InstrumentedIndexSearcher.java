@@ -25,6 +25,7 @@ package io.crate.execution.jobs;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreMode;
 import org.apache.lucene.search.Weight;
 import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.search.profile.Timer;
@@ -48,13 +49,13 @@ public class InstrumentedIndexSearcher extends IndexSearcher implements Releasab
     }
 
     @Override
-    public Weight createWeight(Query query, boolean needsScores, float boost) throws IOException {
+    public Weight createWeight(Query query, ScoreMode scoreMode, float boost) throws IOException {
         QueryProfileBreakdown profile = profiler.getQueryBreakdown(query);
         Timer timer = profile.getTimer(QueryTimingType.CREATE_WEIGHT);
         timer.start();
         final Weight weight;
         try {
-            weight = super.createWeight(query, needsScores, boost);
+            weight = super.createWeight(query, scoreMode, boost);
         } finally {
             timer.stop();
             profiler.pollLastElement();

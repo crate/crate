@@ -23,7 +23,7 @@ package io.crate.expression.reference.doc.lucene;
 
 import io.crate.data.Input;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.search.Scorer;
+import org.apache.lucene.search.Scorable;
 
 import java.io.IOException;
 
@@ -45,7 +45,7 @@ public abstract class LuceneCollectorExpression<ReturnType> implements Input<Ret
     public void setNextReader(LeafReaderContext context) throws IOException {
     }
 
-    public void setScorer(Scorer scorer) {
+    public void setScorer(Scorable scorer) {
 
     }
 }

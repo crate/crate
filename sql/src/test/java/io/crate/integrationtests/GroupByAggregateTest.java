@@ -1122,8 +1122,8 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
         execute("insert into locations (altitude, name, description) values (70, 'Crate SF', 'A nice place with lot of sunshine')");
         execute("refresh table locations");
 
-        execute("select min(altitude) as altitude, name from locations where match(description, 'nice') " +
-                "and _score >= 1.14 group by name order by name");
+        execute("select min(altitude) as altitude, name, _score from locations where match(description, 'nice') " +
+                "and _score >= 1.08 group by name, _score order by name");
         assertEquals(2L, response.rowCount());
     }
 

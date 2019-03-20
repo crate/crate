@@ -21,17 +21,17 @@
 
 package io.crate.expression.reference.doc.lucene;
 
-import org.apache.lucene.search.Scorer;
+import org.apache.lucene.search.Scorable;
 
 import java.io.IOException;
 
 public class ScoreCollectorExpression extends LuceneCollectorExpression<Float> {
 
-    private Scorer scorer;
+    private Scorable scorer;
     private float score;
 
     @Override
-    public void setScorer(Scorer scorer) {
+    public void setScorer(Scorable scorer) {
         this.scorer = scorer;
     }
 

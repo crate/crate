@@ -19,15 +19,19 @@
 
 package org.elasticsearch.analysis.common;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.lucene.analysis.CharArraySet;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.miscellaneous.WordDelimiterGraphFilter;
 import org.apache.lucene.analysis.miscellaneous.WordDelimiterIterator;
+import org.elasticsearch.Version;
+import org.elasticsearch.common.logging.DeprecationLogger;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.analysis.AbstractTokenFilterFactory;
 import org.elasticsearch.index.analysis.Analysis;
+import org.elasticsearch.index.analysis.TokenFilterFactory;
 
 import java.util.List;
 import java.util.Set;
@@ -45,12 +49,15 @@ import static org.elasticsearch.analysis.common.WordDelimiterTokenFilterFactory.
 
 public class WordDelimiterGraphTokenFilterFactory extends AbstractTokenFilterFactory {
 
+    private static final DeprecationLogger DEPRECATION_LOGGER =
+        new DeprecationLogger(LogManager.getLogger(WordDelimiterGraphTokenFilterFactory.class));
+
     private final byte[] charTypeTable;
     private final int flags;
     private final CharArraySet protoWords;
+    private final boolean adjustOffsets;
 
-    public WordDelimiterGraphTokenFilterFactory(IndexSettings indexSettings, Environment env,
-            String name, Settings settings) {
+    public WordDelimiterGraphTokenFilterFactory(IndexSettings indexSettings, Environment env, String name, Settings settings) {
         super(indexSettings, name, settings);
 
         // Sample Format for the type table:
@@ -88,11 +95,23 @@ public class WordDelimiterGraphTokenFilterFactory extends AbstractTokenFilterFac
         Set<?> protectedWords = Analysis.getWordSet(env, settings, "protected_words");
         this.protoWords = protectedWords == null ? null : CharArraySet.copy(protectedWords);
         this.flags = flags;
+        this.adjustOffsets = settings.getAsBoolean("adjust_offsets", true);
     }
 
     @Override
     public TokenStream create(TokenStream tokenStream) {
-        return new WordDelimiterGraphFilter(tokenStream, charTypeTable, flags, protoWords);
+        return new WordDelimiterGraphFilter(tokenStream, adjustOffsets, charTypeTable, flags, protoWords);
+    }
+
+    @Override
+    public TokenFilterFactory getSynonymFilter() {
+        if (indexSettings.getIndexVersionCreated().onOrAfter(Version.V_4_0_0)) {
+            throw new IllegalArgumentException("Token filter [" + name() + "] cannot be used to parse synonyms");
+        } else {
+            DEPRECATION_LOGGER.deprecatedAndMaybeLog("synonym_tokenfilters", "Token filter [" + name() +
+                                                                             "] will not be usable to parse synonyms after v4.0");
+            return this;
+        }
     }
 
     private int getFlag(int flag, Settings settings, String key, boolean defaultValue) {

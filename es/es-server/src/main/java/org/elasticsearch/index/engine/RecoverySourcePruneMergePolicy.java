@@ -33,13 +33,11 @@ import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.StoredFieldVisitor;
-import org.apache.lucene.search.BooleanClause;
-import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.ConjunctionDISI;
 import org.apache.lucene.search.DocIdSetIterator;
-import org.apache.lucene.search.DocValuesFieldExistsQuery;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreMode;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.util.BitSet;
@@ -67,12 +65,9 @@ final class RecoverySourcePruneMergePolicy extends OneMergeWrappingMergePolicy {
         if (recoverySource == null || recoverySource.nextDoc() == DocIdSetIterator.NO_MORE_DOCS) {
             return reader; // early terminate - nothing to do here since non of the docs has a recovery source anymore.
         }
-        BooleanQuery.Builder builder = new BooleanQuery.Builder();
-        builder.add(new DocValuesFieldExistsQuery(recoverySourceField), BooleanClause.Occur.FILTER);
-        builder.add(retainSourceQuerySupplier.get(), BooleanClause.Occur.FILTER);
         IndexSearcher s = new IndexSearcher(reader);
         s.setQueryCache(null);
-        Weight weight = s.createWeight(s.rewrite(builder.build()), false, 1.0f);
+        Weight weight = s.createWeight(s.rewrite(retainSourceQuerySupplier.get()), ScoreMode.COMPLETE_NO_SCORES, 1.0f);
         Scorer scorer = weight.scorer(reader.getContext());
         if (scorer != null) {
             return new SourcePruningFilterCodecReader(recoverySourceField, reader, BitSet.of(scorer.iterator(), reader.maxDoc()));

@@ -24,6 +24,7 @@ import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.search.FieldComparator;
+import org.apache.lucene.search.Scorable;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.SortField;
 import org.apache.lucene.util.BytesRef;
@@ -69,7 +70,7 @@ public class BytesRefFieldComparatorSource extends IndexFieldData.XFieldComparat
         return indexFieldData.load(context).getBytesValues();
     }
 
-    protected void setScorer(Scorer scorer) {}
+    protected void setScorer(Scorable scorer) {}
 
     @Override
     public FieldComparator<?> newComparator(String fieldname, int numHits, int sortPos, boolean reversed) {
@@ -92,7 +93,7 @@ public class BytesRefFieldComparatorSource extends IndexFieldData.XFieldComparat
                 }
 
                 @Override
-                public void setScorer(Scorer scorer) {
+                public void setScorer(Scorable scorer) {
                     BytesRefFieldComparatorSource.this.setScorer(scorer);
                 }
 
@@ -108,7 +109,7 @@ public class BytesRefFieldComparatorSource extends IndexFieldData.XFieldComparat
             }
 
             @Override
-            public void setScorer(Scorer scorer) {
+            public void setScorer(Scorable scorer) {
                 BytesRefFieldComparatorSource.this.setScorer(scorer);
             }
 

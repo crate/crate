@@ -35,6 +35,7 @@ import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.Explanation;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreMode;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.TwoPhaseIterator;
 import org.apache.lucene.search.Weight;
@@ -82,7 +83,7 @@ class GenericFunctionQuery extends Query {
     }
 
     @Override
-    public Weight createWeight(IndexSearcher searcher, boolean needsScores, float boost) throws IOException {
+    public Weight createWeight(IndexSearcher searcher, ScoreMode scoreMode, float boost) throws IOException {
         return new Weight(this) {
             @Override
             public boolean isCacheable(LeafReaderContext ctx) {
@@ -113,7 +114,7 @@ class GenericFunctionQuery extends Query {
 
             @Override
             public Scorer scorer(LeafReaderContext context) throws IOException {
-                return new ConstantScoreScorer(this, 0f, getTwoPhaseIterator(context));
+                return new ConstantScoreScorer(this, 0f, scoreMode, getTwoPhaseIterator(context));
             }
         };
     }

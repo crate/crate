@@ -22,21 +22,16 @@
 
 package io.crate.execution.engine.collect.collectors;
 
-import org.apache.lucene.search.DocIdSetIterator;
-import org.apache.lucene.search.Scorer;
+import org.apache.lucene.search.Scorable;
 
 /**
  * Dummy {@link org.apache.lucene.search.Scorer} implementation just for passing the
  * <code>score</code> float value of a {@link org.apache.lucene.search.ScoreDoc} to a
  * {@link io.crate.expression.reference.doc.lucene.ScoreCollectorExpression}.
  */
-class DummyScorer extends Scorer {
+class DummyScorer extends Scorable {
 
     private float score;
-
-    public DummyScorer() {
-        super(null);
-    }
 
     public void score(float score) {
         this.score = score;
@@ -47,10 +42,6 @@ class DummyScorer extends Scorer {
         return score;
     }
 
-    @Override
-    public DocIdSetIterator iterator() {
-        return null;
-    }
 
     @Override
     public int docID() {

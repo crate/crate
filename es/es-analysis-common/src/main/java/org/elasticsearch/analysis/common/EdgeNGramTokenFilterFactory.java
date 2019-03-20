@@ -41,8 +41,8 @@ public class EdgeNGramTokenFilterFactory extends AbstractTokenFilterFactory {
 
     EdgeNGramTokenFilterFactory(IndexSettings indexSettings, Environment environment, String name, Settings settings) {
         super(indexSettings, name, settings);
-        this.minGram = settings.getAsInt("min_gram", NGramTokenFilter.DEFAULT_MIN_NGRAM_SIZE);
-        this.maxGram = settings.getAsInt("max_gram", NGramTokenFilter.DEFAULT_MAX_NGRAM_SIZE);
+        this.minGram = settings.getAsInt("min_gram", 1);
+        this.maxGram = settings.getAsInt("max_gram", 2);
         this.side = parseSide(settings.get("side", "front"));
     }
 
@@ -63,7 +63,7 @@ public class EdgeNGramTokenFilterFactory extends AbstractTokenFilterFactory {
             result = new ReverseStringFilter(result);
         }
 
-        result = new EdgeNGramTokenFilter(result, minGram, maxGram);
+        result = new EdgeNGramTokenFilter(result, minGram, maxGram, false);
 
         // side=BACK is not supported anymore but applying ReverseStringFilter up-front and after the token filter has the same effect
         if (side == SIDE_BACK) {

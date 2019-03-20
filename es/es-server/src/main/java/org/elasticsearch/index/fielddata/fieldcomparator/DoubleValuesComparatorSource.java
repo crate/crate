@@ -71,10 +71,6 @@ public class DoubleValuesComparatorSource extends IndexFieldData.XFieldComparato
                 final NumericDoubleValues selectedValues = FieldData.replaceMissing(sortMode.select(values), dMissingValue);
                 return selectedValues.getRawDoubleValues();
             }
-            @Override
-            public void setScorer(Scorer scorer) {
-                DoubleValuesComparatorSource.this.setScorer(scorer);
-            }
         };
     }
 }

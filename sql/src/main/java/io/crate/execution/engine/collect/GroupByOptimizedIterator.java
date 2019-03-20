@@ -53,6 +53,7 @@ import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.ScoreMode;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.util.Bits;
@@ -259,7 +260,7 @@ final class GroupByOptimizedIterator {
                                                                        LuceneQueryBuilder.Context queryContext) throws IOException {
         final Map<BytesRef, Object[]> statesByKey = new HashMap<>();
         IndexSearcher indexSearcher = searcher.searcher();
-        final Weight weight = indexSearcher.createWeight(indexSearcher.rewrite(queryContext.query()), false, 1f);
+        final Weight weight = indexSearcher.createWeight(indexSearcher.rewrite(queryContext.query()), ScoreMode.COMPLETE, 1f);
         final List<LeafReaderContext> leaves = indexSearcher.getTopReaderContext().leaves();
         final List<CollectExpression<Row, ?>> aggExpressions = ctxForAggregations.expressions();
         Object[] nullStates = null;

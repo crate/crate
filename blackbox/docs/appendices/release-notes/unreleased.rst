@@ -122,6 +122,10 @@ Breaking Changes
 Deprecations
 ============
 
+- Marked SynonymFilter tokenizer as deprecated.
+
+- Marked LowerCase tokenizer as deprecated.
+
 - The query frequency and average duration :ref:`query_stats_mbean` metrics
   have been deprecated in favour of the new total count and sum of durations
   metrics.
@@ -136,6 +140,10 @@ Deprecations
 
 Changes
 =======
+
+- Upgraded to Lucene 8.0.0, and as part of this the BM25 scoring has changed.
+  The order of the scores remain the same, but the values of the scores differ.
+  Fulltext queries including ``_score`` filters may behave slightly different.
 
 - Added :ref:`quote_ident <scalar-quote-ident>` scalar string function that
   quotes a string if it is needed.
