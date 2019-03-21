@@ -54,6 +54,7 @@ import java.util.Collections;
 
 import static io.crate.testing.TestingHelpers.getFunctions;
 import static io.crate.testing.TestingHelpers.isSQL;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
@@ -339,5 +340,19 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat((((NestedLoopPhase) ((Join) ((QueryThenFetch) build).subPlan()).joinPhase())).blockNestedLoop,
             is(false));
+    }
+
+    @Test
+    public void testPlanChainedJoinsWithWindowFunctionInOutput() {
+        txnCtx.sessionContext().setHashJoinEnabled(false);
+        MultiSourceSelect mss = e.normalize("SELECT t1.a, t2.b, row_number() OVER(ORDER BY t3.z) " +
+                                            "FROM t1 t1 " +
+                                            "JOIN t2 t2 on t1.a = t2.b " +
+                                            "JOIN t3 t3 on t3.c = t2.b");
+        LogicalPlanner logicalPlanner = new LogicalPlanner(functions, new TableStats());
+        LogicalPlan join = logicalPlanner.plan(mss, plannerCtx);
+
+        WindowAgg windowAggOperator = (WindowAgg) ((FetchOrEval) ((RootRelationBoundary) join).source).source;
+        assertThat(join.outputs(), hasItem(windowAggOperator.windowFunctions().get(0)));
     }
 }

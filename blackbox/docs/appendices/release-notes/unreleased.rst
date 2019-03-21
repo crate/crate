@@ -117,6 +117,10 @@ Changes
 Fixes
 =====
 
+- Fixed an issue which caused an ``IndexOutOfBoundsException`` when a
+  :ref:`window function <window-functions>` with an ordered window was selected
+  in a ``join`` statement.
+
 - Fixed an issue which causes sub-select queries with certain ``ORDER BY``
   constructs to fail.
 
