@@ -25,6 +25,7 @@ import io.crate.action.sql.SessionContext;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.analyze.repositories.RepositoryParamValidator;
+import io.crate.auth.user.UserManager;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.RelationsUnknown;
 import io.crate.execution.ddl.RepositoryService;
@@ -99,8 +100,6 @@ import org.elasticsearch.index.analysis.AnalysisRegistry;
 import java.util.ArrayList;
 import java.util.Locale;
 
-import static io.crate.settings.SharedSettings.ENTERPRISE_LICENSE_SETTING;
-
 @Singleton
 public class Analyzer {
 
@@ -157,7 +156,8 @@ public class Analyzer {
                     ClusterService clusterService,
                     AnalysisRegistry analysisRegistry,
                     RepositoryService repositoryService,
-                    RepositoryParamValidator repositoryParamValidator) {
+                    RepositoryParamValidator repositoryParamValidator,
+                    UserManager userManager) {
         this.relationAnalyzer = relationAnalyzer;
         this.schemas = schemas;
         this.dropTableAnalyzer = new DropTableAnalyzer(schemas);
@@ -208,7 +208,7 @@ public class Analyzer {
         this.restoreSnapshotAnalyzer = new RestoreSnapshotAnalyzer(repositoryService, schemas);
         this.createFunctionAnalyzer = new CreateFunctionAnalyzer();
         this.dropFunctionAnalyzer = new DropFunctionAnalyzer();
-        this.privilegesAnalyzer = new PrivilegesAnalyzer(ENTERPRISE_LICENSE_SETTING.setting().get(settings));
+        this.privilegesAnalyzer = new PrivilegesAnalyzer(userManager.isEnabled());
         this.createUserAnalyzer = new CreateUserAnalyzer(functions);
         this.alterUserAnalyzer = new AlterUserAnalyzer(functions);
         this.decommissionNodeAnalyzer = new DecommissionNodeAnalyzer(functions);

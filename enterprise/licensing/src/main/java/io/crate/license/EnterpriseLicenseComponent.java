@@ -18,7 +18,6 @@
 
 package io.crate.license;
 
-import io.crate.settings.SharedSettings;
 import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
@@ -32,7 +31,6 @@ public class EnterpriseLicenseComponent extends AbstractLifecycleComponent {
     private final ClusterService clusterService;
     @Nullable
     private final ClusterStateListener listener;
-    private final boolean enterpriseEnabled;
 
     @Inject
     public EnterpriseLicenseComponent(Settings settings,
@@ -41,15 +39,12 @@ public class EnterpriseLicenseComponent extends AbstractLifecycleComponent {
         super(settings);
         this.clusterService = clusterService;
         this.listener = licenseService.clusterStateListener();
-        enterpriseEnabled = SharedSettings.ENTERPRISE_LICENSE_SETTING.setting().get(settings);
     }
 
     @Override
     protected void doStart() {
-        if (enterpriseEnabled) {
-            if (listener != null) {
-                clusterService.addListener(listener);
-            }
+        if (listener != null) {
+            clusterService.addListener(listener);
         }
     }
 

@@ -22,11 +22,9 @@ import io.crate.expression.reference.sys.check.SysCheck;
 import io.crate.license.LicenseData;
 import io.crate.license.LicenseExpiryNotification;
 import io.crate.license.LicenseService;
-import io.crate.settings.SharedSettings;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.Settings;
 
 import java.time.Duration;
 import java.util.Locale;
@@ -35,33 +33,28 @@ import java.util.concurrent.CompletableFuture;
 import static io.crate.expression.reference.sys.check.AbstractSysCheck.CLUSTER_CHECK_LINK_PATTERN;
 import static io.crate.expression.reference.sys.check.AbstractSysCheck.getLinkedDescription;
 import static io.crate.expression.reference.sys.check.SysCheck.Severity.HIGH;
-import static io.crate.expression.reference.sys.check.SysCheck.Severity.MEDIUM;
 import static io.crate.expression.reference.sys.check.SysCheck.Severity.LOW;
+import static io.crate.expression.reference.sys.check.SysCheck.Severity.MEDIUM;
 
 @Singleton
 public class LicenseCheck implements SysCheck {
 
     private static final int ID = 6;
-    private final boolean enterpriseEnabled;
     private final ClusterService clusterService;
     private final LicenseService licenseService;
 
-    // description will be overwritten on validation if enterprise is enabled
-    private String description = LicenseExpiryNotification.LICENSE_ENTERPRISE_DISABLED;
+    // description will be overwritten on validation
+    private String description = LicenseExpiryNotification.LICENSE_VALID;
     private Severity severity = Severity.LOW;
 
     @Inject
-    public LicenseCheck(Settings settings, LicenseService licenseService, ClusterService clusterService) {
-        enterpriseEnabled = SharedSettings.ENTERPRISE_LICENSE_SETTING.setting().get(settings);
+    public LicenseCheck(LicenseService licenseService, ClusterService clusterService) {
         this.clusterService = clusterService;
         this.licenseService = licenseService;
     }
 
     @Override
     public boolean validate() {
-        if (!enterpriseEnabled) {
-            return true;
-        }
         LicenseData currentLicense = licenseService.currentLicense();
         if (currentLicense == null) {
             // node might've not have received the license cluster state
@@ -89,8 +82,8 @@ public class LicenseCheck implements SysCheck {
                 return false;
 
             case MAX_NODES_VIOLATED:
-                description = buildMaxNodeViolatedDescription(licenseService.currentLicense(),
-                    clusterService.state().getNodes().getSize());
+                description = buildMaxNodeViolatedDescription(
+                    currentLicense, clusterService.state().getNodes().getSize());
                 severity = HIGH;
                 return false;
 

@@ -21,7 +21,6 @@ package io.crate.license;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.action.FutureActionListener;
 import io.crate.license.exception.InvalidLicenseException;
-import io.crate.settings.SharedSettings;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
@@ -31,7 +30,6 @@ import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.BoundTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.gateway.GatewayService;
@@ -79,7 +77,6 @@ public class EnterpriseLicenseService implements LicenseService, ClusterStateLis
     private final Logger logger;
     private final TransportService transportService;
     private final TransportSetLicenseAction transportSetLicenseAction;
-    private final boolean enterpriseEnabled;
 
     /**
      * true if the instance is bound to localhost (=development mode), otherwise false.
@@ -91,10 +88,8 @@ public class EnterpriseLicenseService implements LicenseService, ClusterStateLis
     private final AtomicBoolean isMaxNumberOfNodesExceeded = new AtomicBoolean(false);
 
     @Inject
-    public EnterpriseLicenseService(Settings settings,
-                                    TransportService transportService,
+    public EnterpriseLicenseService(TransportService transportService,
                                     TransportSetLicenseAction transportSetLicenseAction) {
-        enterpriseEnabled = SharedSettings.ENTERPRISE_LICENSE_SETTING.setting().get(settings);
         this.transportService = transportService;
         this.transportSetLicenseAction = transportSetLicenseAction;
         this.logger = LogManager.getLogger(getClass());
@@ -131,7 +126,7 @@ public class EnterpriseLicenseService implements LicenseService, ClusterStateLis
     public LicenseState getLicenseState() {
         // We consider an instance that is bound to loopback as a development instance and by-pass the license expiration.
         // This makes it easier for us to run our tests.
-        if (enterpriseEnabled == false || boundToLocalhost()) {
+        if (boundToLocalhost()) {
             return LicenseState.VALID;
         }
         if (isMaxNumberOfNodesExceeded()) {

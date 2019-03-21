@@ -25,7 +25,6 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.io.Streams;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.transport.TransportService;
 import org.hamcrest.Matchers;
 import org.junit.Before;
@@ -38,9 +37,8 @@ import java.util.concurrent.TimeUnit;
 
 import static io.crate.license.EnterpriseLicenseService.MAX_NODES_FOR_V1_LICENSES;
 import static io.crate.license.EnterpriseLicenseService.UNLIMITED_EXPIRY_DATE_IN_MS;
-import static io.crate.license.LicenseConverterTest.createV1JsonLicense;
 import static io.crate.license.License.Type;
-import static io.crate.license.LicenseExpiryNotification.VALID;
+import static io.crate.license.LicenseConverterTest.createV1JsonLicense;
 import static io.crate.license.LicenseKey.VERSION;
 import static java.util.concurrent.TimeUnit.DAYS;
 import static java.util.concurrent.TimeUnit.HOURS;
@@ -89,7 +87,6 @@ public class LicenseServiceTest extends CrateDummyClusterServiceUnitTest {
     @Before
     public void setupLicenseService() {
         licenseService = new EnterpriseLicenseService(
-            Settings.EMPTY,
             mock(TransportService.class),
             mock(TransportSetLicenseAction.class));
     }

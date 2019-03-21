@@ -224,4 +224,9 @@ public class UserManagerService implements UserManager, ClusterStateListener {
         }
         return null;
     }
+
+    @Override
+    public boolean isEnabled() {
+        return true;
+    }
 }

@@ -667,21 +667,3 @@ Custom attributes are not validated by CrateDB, unlike core node attributes.
 Custom attributes can, however, be :ref:`used to control shard allocation
 <conf-routing-allocation-awareness>`.
 
-
-.. _conf-node-enterprise-license:
-
-Enterprise License
-==================
-
-**license.enterprise**
-  | *Default:*  ``true``
-  | *Runtime:*  ``no``
-
-  This is a deprecated setting that allows you to disable the `Enterprise
-  Edition`_ features of CrateDB, enabling you to use all community edition
-  features of CrateDB without restrictions or license.
-  The setting will be removed in CrateDB 4.0 and instead you'll have to
-  `Acquire a license`_ or switch to the :ref:`community-edition` distribution.
-
-.. _`Enterprise Edition`: https://crate.io/enterprise-edition/
-.. _`Acquire a license`: https://crate.io/pricing/

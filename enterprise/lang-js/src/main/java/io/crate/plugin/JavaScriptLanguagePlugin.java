@@ -20,7 +20,6 @@ package io.crate.plugin;
 
 import io.crate.Plugin;
 import io.crate.module.JavaScriptLanguageModule;
-import io.crate.settings.SharedSettings;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
@@ -34,8 +33,7 @@ public class JavaScriptLanguagePlugin implements Plugin {
     private final boolean isEnabled;
 
     public JavaScriptLanguagePlugin(Settings settings) {
-        isEnabled = JavaScriptLanguageModule.LANG_JS_ENABLED.get(settings) &&
-                    SharedSettings.ENTERPRISE_LICENSE_SETTING.setting().get(settings);
+        isEnabled = JavaScriptLanguageModule.LANG_JS_ENABLED.get(settings);
     }
 
     @Override

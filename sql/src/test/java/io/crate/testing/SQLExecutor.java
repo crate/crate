@@ -47,6 +47,7 @@ import io.crate.analyze.relations.StatementAnalysisContext;
 import io.crate.analyze.repositories.RepositoryParamValidator;
 import io.crate.analyze.repositories.RepositorySettingsModule;
 import io.crate.auth.user.User;
+import io.crate.auth.user.UserManager;
 import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.data.Rows;
@@ -88,6 +89,7 @@ import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.QualifiedName;
+import io.crate.user.StubUserManager;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
@@ -226,6 +228,7 @@ public class SQLExecutor {
         private final Random random;
         private String[] searchPath = new String[]{Schemas.DOC_SCHEMA_NAME};
         private User user = User.CRATE_USER;
+        private UserManager userManager = new StubUserManager();
 
         private TableStats tableStats = new TableStats();
         private Settings settings = Settings.EMPTY;
@@ -395,7 +398,8 @@ public class SQLExecutor {
                     ),
                     new ModulesBuilder().add(new RepositorySettingsModule())
                         .createInjector()
-                        .getInstance(RepositoryParamValidator.class)
+                        .getInstance(RepositoryParamValidator.class),
+                    userManager
                 ),
                 new Planner(
                     Settings.EMPTY,
@@ -554,6 +558,11 @@ public class SQLExecutor {
 
         public Builder setTableStats(TableStats tableStats) {
             this.tableStats = tableStats;
+            return this;
+        }
+
+        public Builder setUserManager(UserManager userManager) {
+            this.userManager = userManager;
             return this;
         }
     }

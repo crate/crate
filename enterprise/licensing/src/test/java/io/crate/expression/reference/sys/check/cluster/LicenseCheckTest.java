@@ -21,11 +21,8 @@ package io.crate.expression.reference.sys.check.cluster;
 import io.crate.expression.reference.sys.check.SysCheck;
 import io.crate.license.LicenseData;
 import io.crate.license.LicenseService;
-import io.crate.settings.SharedSettings;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -44,13 +41,7 @@ public class LicenseCheckTest extends CrateDummyClusterServiceUnitTest {
     @Before
     public void setupLicenseCheck() {
         licenseService = mock(LicenseService.class);
-        Settings settings = Settings.builder().put("license.enterprise", true).build();
-        licenseCheck = new LicenseCheck(settings, licenseService, clusterService);
-    }
-
-    @After
-    public void assertSettingDeprecation() {
-        assertSettingDeprecationsAndWarnings(new Setting[]{SharedSettings.ENTERPRISE_LICENSE_SETTING.setting()});
+        licenseCheck = new LicenseCheck(licenseService, clusterService);
     }
 
     @Test
@@ -126,14 +117,5 @@ public class LicenseCheckTest extends CrateDummyClusterServiceUnitTest {
             "Your CrateDB license has expired. For more information on " +
             "Licensing please visit: https://crate.io/license-update/?license=expired " +
             "For more information on Cluster Checks please visit: https://cr8.is/d-cluster-check-6"));
-    }
-
-    @Test
-    public void testCheckIsAlwaysValidWhenEnterpriseIsDisabled() {
-        Settings settings = Settings.builder().put("license.enterprise", false).build();
-        LicenseCheck expiryCheckNoEnterprise = new LicenseCheck(settings, mock(LicenseService.class), clusterService);
-
-        assertThat(expiryCheckNoEnterprise.validate(), is(true));
-        assertThat(licenseCheck.description(), is("CrateDB enterprise is not enabled. Enjoy the community edition!"));
     }
 }

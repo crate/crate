@@ -41,7 +41,10 @@ Unreleased Changes
 Breaking Changes
 ================
 
-- Removed the HTTP pipelining functionality. We are not aware of any client 
+- Removed the deprecated ``license.enterprise`` setting. To use CrateDB without
+  any enterprise features one should use the Community Edition instead.
+
+- Removed the HTTP pipelining functionality. We are not aware of any client
   using this functionality.
 
 - Changed the ordering of columns to be based on their position in the

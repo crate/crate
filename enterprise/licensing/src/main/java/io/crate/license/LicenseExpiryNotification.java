@@ -77,6 +77,4 @@ public enum LicenseExpiryNotification {
     public static final String LICENSE_EXPIRED_MESSAGE = "Your CrateDB license has expired. For more information on Licensing please visit: https://crate.io/license-update/?license=expired";
     public static final String LICENSE_NOTIFICATION_TEMPLATE = "Your CrateDB license will expire in %d %s. For more information on Licensing please visit: https://crate.io/license-update";
     public static final String LICENSE_VALID = "Your CrateDB license is valid. Enjoy CrateDB!";
-    public static final String LICENSE_ENTERPRISE_DISABLED = "CrateDB enterprise is not enabled. Enjoy the community edition!";
-
 }
