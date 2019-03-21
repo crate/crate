@@ -170,16 +170,16 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testNumericTypeOutOfRange() throws Exception {
+    public void testNumericTypeOutOfRange() {
         expectedException.expect(ColumnValidationException.class);
-        expectedException.expectMessage("Validation failed for shorts: Cannot cast -100000 to type short");
+        expectedException.expectMessage("Validation failed for shorts: Cannot cast -100000 to type smallint");
         analyze("update users set shorts=-100000");
     }
 
     @Test
-    public void testNumericOutOfRangeFromFunction() throws Exception {
+    public void testNumericOutOfRangeFromFunction() {
         expectedException.expect(ColumnValidationException.class);
-        expectedException.expectMessage("Validation failed for bytes: Cannot cast 1234 to type byte");
+        expectedException.expectMessage("Validation failed for bytes: Cannot cast 1234 to type char");
         analyze("update users set bytes=abs(-1234)");
     }
 

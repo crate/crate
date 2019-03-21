@@ -64,9 +64,9 @@ public class DistanceFunctionTest extends AbstractScalarFunctionsTest {
     }
 
     @Test
-    public void testNormalizeWithInvalidReferences() throws Exception {
+    public void testNormalizeWithInvalidReferences() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot cast [10.04, 28.02] to type string");
+        expectedException.expectMessage("Cannot cast [10.04, 28.02] to type text");
         assertNormalize("distance(name, [10.04, 28.02])", null);
     }
 

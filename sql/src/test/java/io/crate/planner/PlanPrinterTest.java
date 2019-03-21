@@ -57,12 +57,12 @@ public class PlanPrinterTest extends CrateDummyClusterServiceUnitTest {
         assertThat(mapStr, containsString(
             "{QueryThenFetch={type=executionPlan, subPlan={Collect={type=executionPlan, " +
                "collectPhase={COLLECT={type=executionPhase, id=0, executionNodes=[n1], " +
-                   "distribution={distributedByColumn=0, type=BROADCAST}, toCollect=Ref{doc.t1._fetchid, long}, Ref{doc.t1.a, string}, " +
+                   "distribution={distributedByColumn=0, type=BROADCAST}, toCollect=Ref{doc.t1._fetchid, bigint}, Ref{doc.t1.a, text}, " +
                    "projections=[" +
-                       "{type=TopN, limit=10, offset=0, outputs=IC{0, long}, IC{1, string}}, " +
-                       "{type=Fetch, outputs=IC{1, string}, " +
-                           "Fetch{IC{0, long}, Ref{doc.t1._doc['x'], integer}}, " +
-                           "Fetch{IC{0, long}, Ref{doc.t1._doc['i'], integer}}, fetchSize="));
+                       "{type=TopN, limit=10, offset=0, outputs=IC{0, bigint}, IC{1, text}}, " +
+                       "{type=Fetch, outputs=IC{1, text}, " +
+                           "Fetch{IC{0, bigint}, Ref{doc.t1._doc['x'], integer}}, " +
+                           "Fetch{IC{0, bigint}, Ref{doc.t1._doc['i'], integer}}, fetchSize="));
         // fetchSize depends on machine's heap size
         assertThat(mapStr, containsString("}], " +
                "routing={n1={t1=[0]}}, where=Ref{doc.t1.x, integer} > 10}}}}, " +
@@ -80,12 +80,12 @@ public class PlanPrinterTest extends CrateDummyClusterServiceUnitTest {
         assertThat(map.toString(),
             is("{Collect={type=executionPlan, " +
                "collectPhase={COLLECT={type=executionPhase, id=0, executionNodes=[n1], " +
-                   "distribution={distributedByColumn=0, type=BROADCAST}, toCollect=Ref{doc.t1.x, integer}, Ref{doc.t1.a, string}, " +
+                   "distribution={distributedByColumn=0, type=BROADCAST}, toCollect=Ref{doc.t1.x, integer}, Ref{doc.t1.a, text}, " +
                    "projections=[" +
-                       "{type=HashAggregation, keys=IC{1, string}, aggregations=Aggregation{max, args=[IC{0, integer}]}}, " +
-                       "{type=HashAggregation, keys=IC{0, string}, aggregations=Aggregation{max, args=[IC{1, integer}]}}, " +
+                       "{type=HashAggregation, keys=IC{1, text}, aggregations=Aggregation{max, args=[IC{0, integer}]}}, " +
+                       "{type=HashAggregation, keys=IC{0, text}, aggregations=Aggregation{max, args=[IC{1, integer}]}}, " +
                        "{type=Filter, filter=IC{1, integer} > 10}, " +
-                       "{type=OrderByTopN, limit=-1, offset=0, outputs=IC{0, string}, IC{1, integer}, orderBy=[IC{0, string} ASC]}], " +
+                       "{type=OrderByTopN, limit=-1, offset=0, outputs=IC{0, text}, IC{1, integer}, orderBy=[IC{0, text} ASC]}], " +
                     "routing={n1={t1=[0]}}, where=true}}}}"));
     }
 
@@ -104,13 +104,13 @@ public class PlanPrinterTest extends CrateDummyClusterServiceUnitTest {
                        "routing={n1={t1=[0]}}, where=Ref{doc.t1.x, integer} > 10}}}}, " +
                "right={Collect={type=executionPlan, " +
                    "collectPhase={COLLECT={type=executionPhase, id=1, executionNodes=[n1], " +
-                       "distribution={distributedByColumn=0, type=SAME_NODE}, toCollect=Ref{doc.t2._fetchid, long}, " +
+                       "distribution={distributedByColumn=0, type=SAME_NODE}, toCollect=Ref{doc.t2._fetchid, bigint}, " +
                        "routing={n1={t2=[0, 1]}}, where=Ref{doc.t2.y, integer} < 10}}}}, " +
                "joinPhase={NESTED_LOOP={type=executionPhase, id=2, executionNodes=[n1], " +
                    "joinType=CROSS, distribution={distributedByColumn=0, type=BROADCAST}, " +
                    "projections=[" +
-                       "{type=Eval, outputs=IC{0, integer}, IC{1, long}}, " +
-                       "{type=Fetch, outputs=IC{0, integer}, Fetch{IC{1, long}, Ref{doc.t2._doc['y'], integer}}, fetchSize="));
+                       "{type=Eval, outputs=IC{0, integer}, IC{1, bigint}}, " +
+                       "{type=Fetch, outputs=IC{0, integer}, Fetch{IC{1, bigint}, Ref{doc.t2._doc['y'], integer}}, fetchSize="));
         // fetchSize depends on machine's heap size
         assertThat(mapStr, containsString("}]}}}}, " +
                "fetchPhase={FETCH={type=executionPhase, id=3, executionNodes=[n1], fetchRefs=Ref{doc.t2._doc['y'], integer}}}}}"));

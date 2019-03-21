@@ -33,9 +33,9 @@ import static io.crate.testing.SymbolMatchers.isLiteral;
 public class ArrayFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
-    public void testTypeValidation() throws Exception {
+    public void testTypeValidation() {
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast 'foo' to type long");
+        expectedException.expectMessage("Cannot cast 'foo' to type bigint");
         assertEvaluate("ARRAY[1, 'foo']", null);
     }
 

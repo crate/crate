@@ -332,13 +332,13 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testAlterTableAddColumn() throws Exception {
+    public void testAlterTableAddColumn() {
         execute("create table t (id int primary key) with (number_of_replicas=0)");
         execute("alter table t add column name string");
 
         execute("select data_type from information_schema.columns where " +
                 "table_name = 't' and column_name = 'name'");
-        assertThat((String) response.rows()[0][0], is("string"));
+        assertThat(response.rows()[0][0], is("text"));
 
         execute("alter table t add column o object as (age int)");
         execute("select data_type from information_schema.columns where " +
@@ -510,7 +510,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(TestingHelpers.getColumn(response.rows(), 0),
             is(Matchers.<Object>arrayContaining("col1", "col1['col2']", "col1['col2']['col3']")));
         assertThat(TestingHelpers.getColumn(response.rows(), 1),
-            is(Matchers.<Object>arrayContaining("object", "object", "string_array")));
+            is(Matchers.arrayContaining("object", "object", "text_array")));
 
         execute("DROP TABLE my_table");
         ensureYellow();
@@ -525,7 +525,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(TestingHelpers.getColumn(response.rows(), 0),
             is(Matchers.<Object>arrayContaining("col1", "col1['col2']", "col1['col2']['col3']", "col1['col2']['col3']['col4']")));
         assertThat(TestingHelpers.getColumn(response.rows(), 1),
-            is(Matchers.<Object>arrayContaining("object", "object", "object", "long_array")));
+            is(Matchers.arrayContaining("object", "object", "object", "bigint_array")));
     }
 
     @Test

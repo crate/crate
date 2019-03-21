@@ -39,7 +39,7 @@ public class NegateFunctionsTest extends AbstractScalarFunctionsTest {
     @Test
     public void testNegateOnStringResultsInError() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot negate values of type string");
+        expectedException.expectMessage("Cannot negate values of type text");
         assertEvaluate("- name", null);
     }
 

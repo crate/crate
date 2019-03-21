@@ -99,7 +99,7 @@ accessible by all master and data nodes in the cluster.
 .. _ref-create-repository-types-fs-location:
 
 **location**
-  | *Type:*    ``string``
+  | *Type:*    ``text``
   | *Required*
 
   An absolute or relative path to the directory where snapshots get stored. If
@@ -121,7 +121,7 @@ accessible by all master and data nodes in the cluster.
   The actual table data is not compressed.
 
 **chunk_size**
-  | *Type:*    ``long`` or ``string``
+  | *Type:*    ``bigint`` or ``text``
   | *Default:* ``null``
 
   Defines the maximum size of a single file that gets created during snapshot
@@ -139,18 +139,18 @@ A repository that stores its snapshot inside an HDFS file-system.
 .. rubric:: Parameters
 
 **uri**
-  | *Type:*    ``string``
+  | *Type:*    ``text``
   | *Default:* default filesystem URI for the given Hadoop HDFS configuration
 
   HDFS uri of the form ``hdfs:// <host>:<port>/``.
 
 **security.principal**
-  | *Type:*    ``string``
+  | *Type:*    ``text``
 
   A qualified kerberos principal used to authenticate against HDFS.
 
 **path**
-  | *Type:*    ``string``
+  | *Type:*    ``text``
 
   HDFS filesystem path to where the data gets stored.
 
@@ -180,7 +180,7 @@ A repository that stores its snapshot inside an HDFS file-system.
   The actual table data is not compressed.
 
 **chunk_size**
-  | *Type:*    ``long`` or ``string``
+  | *Type:*    ``bigint`` or ``text``
   | *Default:* ``null``
 
   Defines the maximum size of a single file that gets created during snapshot
@@ -198,33 +198,33 @@ A repository that stores its snapshot on the Amazon S3 service.
 .. rubric:: Parameters
 
 **bucket**
-  | *Type:*    ``string``
+  | *Type:*    ``text``
 
   Name of the S3 bucket used for storing snapshots. If the bucket
   does not yet exist, a new bucket will be created on S3 (assuming the
   required permissions are set).
 
 **endpoint**
-  | *Type:*    ``string``
+  | *Type:*    ``text``
   | *Default:* Default AWS API endpoint
 
   Endpoint to the S3 API. If a specific region is desired, specify it by using
   this setting.
 
 **protocol**
-  | *Type:*    ``string``
+  | *Type:*    ``text``
   | *Values:*  ``http``, ``https``
   | *Default:* ``https``
 
   Protocol to be used.
 
 **base_path**
-  | *Type:*    ``string``
+  | *Type:*    ``text``
 
   Path within the bucket to the repository.
 
 **access_key**
-  | *Type:*    ``string``
+  | *Type:*    ``text``
   | *Default:* Value defined through :ref:`s3.client.default.access_key
         <s3-credentials-access-key>` setting.
 
@@ -237,7 +237,7 @@ A repository that stores its snapshot on the Amazon S3 service.
      querying the ``sys.repositories`` table.
 
 **secret_key**
-  | *Type:*    ``string``
+  | *Type:*    ``text``
   | *Default:* Value defined through :ref:`s3.client.default.secret_key
      <s3-credentials-secret-key>` setting.
 
@@ -250,7 +250,7 @@ A repository that stores its snapshot on the Amazon S3 service.
      querying the ``sys.repositories`` table.
 
 **chunk_size**
-  | *Type:*    ``long`` or ``string``
+  | *Type:*    ``bigint`` or ``text``
   | *Default:* ``null``
 
   Defines the maximum size of a single file that gets created during snapshot
@@ -274,7 +274,7 @@ A repository that stores its snapshot on the Amazon S3 service.
   ``AES256`` algorithm.
 
 **buffer_size**
-  | *Type:*    ``string``
+  | *Type:*    ``text``
   | *Default:* ``5mb``
   | *Minimum:* ``5mb``
 
@@ -301,7 +301,7 @@ A repository that stores its snapshot on the Amazon S3 service.
   If set to ``true`` the repository is made read-only.
 
 **canned_acl**
-  | *Type:*    ``string``
+  | *Type:*    ``text``
   | *Values:*  ``private``, ``public-read``, ``public-read-write``,
                ``authenticated-read``, ``log-delivery-write``,
                ``bucket-owner-read``, or ``bucket-owner-full-control``
@@ -323,7 +323,7 @@ A read-only repository that points to the location of a
 .. rubric:: Parameters
 
 **read_only**
-  | *Type:*    ``string``
+  | *Type:*    ``text``
 
   This url must point to the root of the shared
   :ref:`ref-create-repository-types-fs` repository.

@@ -169,11 +169,11 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                                 "                Count[doc.t2 | All]\n" +
                                 "            ]\n" +
                                 "            Limit[2;0]\n" +
-                                "            Collect[doc.t1 | [1] | (x > cast(SelectSymbol{long_array} AS integer))]\n" +
+                                "            Collect[doc.t1 | [1] | (x > cast(SelectSymbol{bigint_array} AS integer))]\n" +
                                 "        ]\n" +
                                 "    ]\n" +
                                 "    FetchOrEval[a, x, i]\n" +
-                                "    Collect[doc.t1 | [_fetchid] | (x > cast(SelectSymbol{long_array} AS integer))]\n" +
+                                "    Collect[doc.t1 | [_fetchid] | (x > cast(SelectSymbol{bigint_array} AS integer))]\n" +
                                 "]\n"));
     }
 

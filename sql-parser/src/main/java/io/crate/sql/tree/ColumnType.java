@@ -25,7 +25,7 @@ import com.google.common.base.Objects;
 
 public class ColumnType extends Expression {
 
-    public static enum Type {
+    public enum Type {
         PRIMITIVE,
         ARRAY,
         SET

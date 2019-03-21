@@ -64,7 +64,7 @@ public class PowerFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testInvalidNumberOfArguments() {
-        expectedException.expectMessage("unknown function: power(long)");
+        expectedException.expectMessage("unknown function: power(bigint)");
         assertEvaluate("power(2)", null);
     }
 }

@@ -20,8 +20,8 @@ insert/update/copy_to which is not defined in the schema.
 Example::
 
     cr> create table my_table (
-    ...   title string,
-    ...   author string
+    ...   title text,
+    ...   author text
     ... ) with (column_policy = 'strict');
     CREATE OK, 1 row affected (... sec)
 
@@ -63,8 +63,8 @@ column will result in an error, except the string can be implicit casted to a
 Here's an example::
 
     cr> create table my_table (
-    ...   title string,
-    ...   author string
+    ...   title text,
+    ...   author text
     ... ) with (column_policy = 'dynamic');
     CREATE OK, 1 row affected (... sec)
 
@@ -80,9 +80,9 @@ Which will update the table schema::
     | SHOW CREATE TABLE doc.my_table                      |
     +-----------------------------------------------------+
     | CREATE TABLE IF NOT EXISTS "doc"."my_table" (       |
-    |    "title" STRING,                                  |
-    |    "author" STRING,                                 |
-    |    "new_col" LONG                                   |
+    |    "title" TEXT,                                    |
+    |    "author" TEXT,                                   |
+    |    "new_col" BIGINT                                 |
     | )                                                   |
     | CLUSTERED INTO 4 SHARDS                             |
     ...

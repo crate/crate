@@ -228,9 +228,9 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
     }
 
     @Test
-    public void testInsertWithNumericTypeOutOfRange() throws Exception {
+    public void testInsertWithNumericTypeOutOfRange() {
         expectedException.expect(ColumnValidationException.class);
-        expectedException.expectMessage("Validation failed for bytes: Cannot cast 1234 to type byte");
+        expectedException.expectMessage("Validation failed for bytes: Cannot cast 1234 to type char");
         e.analyze("insert into users (name, id, bytes) values ('Trillian', 4, 1234)");
     }
 
@@ -438,9 +438,9 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
     }
 
     @Test
-    public void testInsertInvalidObjectArrayFieldInObjectArray() throws Exception {
+    public void testInsertInvalidObjectArrayFieldInObjectArray() {
         expectedException.expect(ColumnValidationException.class);
-        expectedException.expectMessage("Validation failed for tags['metadata']['id']: Invalid long");
+        expectedException.expectMessage("Validation failed for tags['metadata']['id']: Invalid bigint");
         e.analyze("insert into deeply_nested (tags) " +
                 "values (" +
                 "  [" +
@@ -668,9 +668,9 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
     }
 
     @Test
-    public void testInsertWithBulkArgsTypeMissMatch() throws Exception {
+    public void testInsertWithBulkArgsTypeMissMatch() {
         expectedException.expect(ColumnValidationException.class);
-        expectedException.expectMessage("Validation failed for id: Cannot cast '11!' to type long");
+        expectedException.expectMessage("Validation failed for id: Cannot cast '11!' to type bigint");
         e.analyze("insert into users (id, name) values (?, ?)",
             new Object[][]{
                 new Object[]{10, "foo"},
@@ -781,22 +781,22 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
     }
 
     @Test
-    public void testInvalidTypeParamLiteral() throws Exception {
+    public void testInvalidTypeParamLiteral() {
         expectedException.expect(ColumnValidationException.class);
         expectedException.expectMessage("Validation failed for tags: Cannot cast " +
                                         "[['the', 'answer'], ['what''s', 'the', 'question', '?']] " +
-                                        "to type string_array");
+                                        "to type text_array");
 
         e.analyze("insert into users (id, name, tags) values (42, 'Deep Thought', [['the', 'answer'], ['what''s', 'the', 'question', '?']])");
 
     }
 
     @Test
-    public void testInvalidTypeParam() throws Exception {
+    public void testInvalidTypeParam() {
         expectedException.expect(ColumnValidationException.class);
         expectedException.expectMessage("Validation failed for tags: Cannot cast " +
                                         "[['the', 'answer'], ['what''s', 'the', 'question', '?']] " +
-                                        "to type string_array");
+                                        "to type text_array");
 
         e.analyze("insert into users (id, name, tags) values (42, 'Deep Thought', ?)", new Object[]{
             new String[][]{
@@ -808,11 +808,11 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
     }
 
     @Test
-    public void testInvalidTypeBulkParam() throws Exception {
+    public void testInvalidTypeBulkParam() {
         expectedException.expect(ColumnValidationException.class);
         expectedException.expectMessage("Validation failed for tags: Cannot cast " +
                                         "[['the', 'answer'], ['what''s', 'the', 'question', '?']] " +
-                                        "to type string_array");
+                                        "to type text_array");
 
         e.analyze("insert into users (id, name, tags) values (42, 'Deep Thought', ?)", new Object[][]{
             new Object[]{
@@ -980,7 +980,7 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
     @Test
     public void testInsertFromValuesWithOnConflictDoUpdateAndValueUsage() {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: values(string)");
+        expectedException.expectMessage("unknown function: values(text)");
         e.analyze("insert into users (id, name) values (1, 'Arthur') " +
                   "on conflict (id) do update set name = values (name)");
     }

@@ -63,9 +63,9 @@ public class SingleRowSubselectAnalyzerTest extends CrateDummyClusterServiceUnit
     }
 
     @Test
-    public void testSingleRowSubselectInSelectList() throws Exception {
+    public void testSingleRowSubselectInSelectList() {
         QueriedRelation relation = e.analyze("select (select b from t2 limit 1) from t1");
-        assertThat(relation.outputs(), isSQL("SelectSymbol{string_array}"));
+        assertThat(relation.outputs(), isSQL("SelectSymbol{text_array}"));
     }
 
     @Test
@@ -97,20 +97,20 @@ public class SingleRowSubselectAnalyzerTest extends CrateDummyClusterServiceUnit
     }
 
     @Test
-    public void testLikeSupportsSubQueries() throws Exception {
+    public void testLikeSupportsSubQueries() {
         QueriedRelation relation = e.analyze("select * from users where name like (select 'foo')");
         assertThat(relation.where().query(),
-            isSQL("(doc.users.name LIKE SelectSymbol{string_array})"));
+            isSQL("(doc.users.name LIKE SelectSymbol{text_array})"));
     }
 
     @Test
-    public void testAnySupportsSubQueries() throws Exception {
+    public void testAnySupportsSubQueries() {
         QueriedRelation relation = e.analyze("select * from users where (select 'bar') = ANY (tags)");
         assertThat(relation.where().query(),
-            isSQL("(SelectSymbol{string_array} = ANY(doc.users.tags))"));
+            isSQL("(SelectSymbol{text_array} = ANY(doc.users.tags))"));
 
         relation = e.analyze("select * from users where 'bar' = ANY (select 'bar')");
         assertThat(relation.where().query(),
-            isSQL("('bar' = ANY(SelectSymbol{string_array}))"));
+            isSQL("('bar' = ANY(SelectSymbol{text_array}))"));
     }
 }

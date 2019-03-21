@@ -89,7 +89,7 @@ Generate a series of values from inclusive start to inclusive stop with
 ``step`` increments.
 The ``step`` parameter is optional and defaults to 1.
 
-The arguments can be either of type ``integer`` or ``long`` and the return
+The arguments can be either of type ``integer`` or ``bigint`` and the return
 value will match the argument types.
 
 ::

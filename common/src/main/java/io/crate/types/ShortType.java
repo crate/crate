@@ -47,7 +47,7 @@ public class ShortType extends DataType<Short> implements Streamer<Short>, Fixed
 
     @Override
     public String getName() {
-        return "short";
+        return "smallint";
     }
 
     @Override

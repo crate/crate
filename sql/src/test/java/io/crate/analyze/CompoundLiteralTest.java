@@ -134,9 +134,9 @@ public class CompoundLiteralTest extends CrateUnitTest {
     }
 
     @Test
-    public void testArrayDifferentTypes() throws Exception {
+    public void testArrayDifferentTypes() {
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast 'string' to type long");
+        expectedException.expectMessage("Cannot cast 'string' to type bigint");
         analyzeExpression("[1, 'string']");
     }
 

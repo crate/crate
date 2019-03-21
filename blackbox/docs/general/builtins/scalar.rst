@@ -21,7 +21,7 @@ String Functions
 Concatenates a variable number of arguments into a single string. It ignores
 ``NULL`` values.
 
-Returns: ``string``
+Returns: ``text``
 
 ::
 
@@ -49,7 +49,7 @@ You can also use the ``||`` operator::
 Formats a string similar to the C function ``printf``. For details about the
 format string syntax, see `formatter`_
 
-Returns: ``string``
+Returns: ``text``
 
 ::
 
@@ -82,7 +82,7 @@ Returns: ``string``
 Extracts a part of a string. ``from`` specifies where to start and ``count``
 the length of the part.
 
-Returns: ``string``
+Returns: ``text``
 
 ::
 
@@ -194,7 +194,7 @@ Returns: ``integer``
 Converts all characters to lowercase. ``lower`` does not perform
 locale-sensitive or context-sensitive mappings.
 
-Returns: ``string``
+Returns: ``text``
 
 ::
 
@@ -212,7 +212,7 @@ Returns: ``string``
 Converts all characters to uppercase. ``upper`` does not perform
 locale-sensitive or context-sensitive mappings.
 
-Returns: ``string``
+Returns: ``text``
 
 ::
 
@@ -232,7 +232,7 @@ Returns: ``string``
 Converts the first letter of each word to upper case and the rest to lower case
 (*capitalize letters*).
 
-Returns: ``string``
+Returns: ``text``
 
 ::
 
@@ -249,7 +249,7 @@ Returns: ``string``
 ``sha1('string')``
 ------------------
 
-Returns: ``string``
+Returns: ``text``
 
 Computes the SHA1 checksum of the given string.
 
@@ -266,7 +266,7 @@ Computes the SHA1 checksum of the given string.
 ``md5('string')``
 -----------------
 
-Returns: ``string``
+Returns: ``text``
 
 Computes the MD5 checksum of the given string.
 
@@ -503,7 +503,7 @@ The following fields are supported:
   | the second field
 
 ``EPOCH``
-  | *Return type:* ``double``
+  | *Return type:* ``double precision``
   | The number of seconds since Jan 1, 1970.
   | Can be negative if earlier than Jan 1, 1970.
 
@@ -548,7 +548,7 @@ are given.
 The ``date_format`` function formats a timestamp as string according to the
 (optional) format string.
 
-Returns: ``string``
+Returns: ``text``
 
 Synopsis
 ........
@@ -654,7 +654,7 @@ Geo Functions
 ``distance(geo_point1, geo_point2)``
 ------------------------------------
 
-Returns: ``double``
+Returns: ``double precision``
 
 The ``distance`` function can be used to calculate the distance between two
 points on earth. It uses the `Haversine formula`_ which gives great-circle
@@ -760,13 +760,13 @@ cannot be used in the :ref:`sql_reference_order_by`.
 ``latitude(geo_point)`` and ``longitude(geo_point)``
 ----------------------------------------------------
 
-Returns: ``double``
+Returns: ``double precision``
 
 The ``latitude`` and ``longitude`` function return the coordinates of latitude
 or longitude of a point, or ``NULL`` if not available. The input must be a
-column of type ``geo_point``, a valid WKT string or a double-array. See
-:ref:`geo_point_data_type` for more information on the implicit type casting of
-geo points.
+column of type ``geo_point``, a valid WKT string or a ``double precision``
+array. See :ref:`geo_point_data_type` for more information on the implicit type
+casting of geo points.
 
 Example::
 
@@ -793,13 +793,13 @@ implicit type casting from strings to geo point::
 ``geohash(geo_point)``
 ----------------------
 
-Returns: ``string``
+Returns: ``text``
 
 Returns a `GeoHash <http://en.wikipedia.org/wiki/Geohash>`_ representation
 based on full precision (12 characters) of the input point, or ``NULL`` if not
 available. The input has to be a column of type ``geo_point``, a valid WKT
-string or a double-array.See :ref:`geo_point_data_type` for more information of
-the implicit type casting of geo points.
+string or a ``double precision`` array. See :ref:`geo_point_data_type` for more
+information of the implicit type casting of geo points.
 
 Example::
 
@@ -841,11 +841,11 @@ number::
 
 Returns the smallest integer or long value that is not less than the argument.
 
-Returns: ``long`` or ``integer``
+Returns: ``bigint`` or ``integer``
 
-Return value will be of type integer if the input value is an integer or float.
-If the input value is of type long or double the return value will be of type
-long::
+Return value will be of type ``integer`` if the input value is an integer or
+float. If the input value is of type ``bigint`` or ``double precision`` the
+return value will be of type ``bigint``::
 
     cr> select ceil(29.9);
     +------------+
@@ -863,11 +863,11 @@ long::
 Returns the largest integer or long value that is not greater than the
 argument.
 
-Returns: ``long`` or ``integer``
+Returns: ``bigint`` or ``integer``
 
 Return value will be an integer if the input value is an integer or a float. If
-the input value is of type long or double the return value will be of type
-long.
+the input value is of type ``bigint`` or ``double precision`` the return value
+will be of type ``bigint``.
 
 See below for an example::
 
@@ -884,7 +884,7 @@ See below for an example::
 
 Returns the natural logarithm of given ``number``.
 
-Returns: ``double``
+Returns: ``double precision``
 
 See below for an example::
 
@@ -907,7 +907,7 @@ See below for an example::
 
 Returns the logarithm of given ``x`` to base ``b``.
 
-Returns: ``double``
+Returns: ``double precision``
 
 See below for an example, which essentially is the same as above::
 
@@ -943,11 +943,11 @@ The second argument (``b``) is optional. If not present, base 10 is used::
 
 Returns the given argument ``a`` raised to the power of argument ``b``.
 
-Returns: ``double``
+Returns: ``double precision``
 
-The return type of the power function is always double, even when both the
-inputs are integral types, in order to be consistent across positive and
-negative exponents (which will yield decimal types)
+The return type of the power function is always ``double precision``, even when
+both the inputs are integral types, in order to be consistent across positive
+and negative exponents (which will yield decimal types).
 
 See below for an example::
 
@@ -964,7 +964,7 @@ See below for an example::
 
 The ``random`` function returns a random value in the range 0.0 <= X < 1.0.
 
-Returns: ``double``
+Returns: ``double precision``
 
 .. NOTE::
 
@@ -975,13 +975,13 @@ Returns: ``double``
 ``round(number)``
 -----------------
 
-If the input is of type double or long the result is the closest long to the
-argument, with ties rounding up.
+If the input is of type ``double precision`` or ``bigint`` the result is the
+closest ``bigint`` to the argument, with ties rounding up.
 
-If the input is of type float or integer the result is the closest integer to
-the argument, with ties rounding up.
+If the input is of type ``real`` or ``integer`` the result is the closest
+integer to the argument, with ties rounding up.
 
-Returns: ``long`` or ``integer``
+Returns: ``bigint`` or ``integer``
 
 See below for an example::
 
@@ -998,7 +998,7 @@ See below for an example::
 
 Returns the square root of the argument.
 
-Returns: ``double``
+Returns: ``double precision``
 
 See below for an example::
 
@@ -1015,7 +1015,7 @@ See below for an example::
 
 Returns the sine of the argument.
 
-Returns: ``double``
+Returns: ``double precision``
 
 See below for an example::
 
@@ -1032,7 +1032,7 @@ See below for an example::
 
 Returns the arcsine of the argument.
 
-Returns: ``double``
+Returns: ``double precision``
 
 See below for an example::
 
@@ -1049,7 +1049,7 @@ See below for an example::
 
 Returns the cosine of the argument.
 
-Returns: ``double``
+Returns: ``double precision``
 
 See below for an example::
 
@@ -1066,7 +1066,7 @@ See below for an example::
 
 Returns the arccosine of the argument.
 
-Returns: ``double``
+Returns: ``double precision``
 
 See below for an example::
 
@@ -1083,7 +1083,7 @@ See below for an example::
 
 Returns the tangent of the argument.
 
-Returns: ``double``
+Returns: ``double precision``
 
 See below for an example::
 
@@ -1100,7 +1100,7 @@ See below for an example::
 
 Returns the arctangent of the argument.
 
-Returns: ``double``
+Returns: ``double precision``
 
 See below for an example::
 
@@ -1136,7 +1136,7 @@ See the api documentation for more details.
 This function uses the regular expression pattern in ``pattern`` to match
 against the ``source`` string.
 
-Returns: ``string_array``
+Returns: ``text_array``
 
 If ``source`` matches, an array of the matched regular expression groups is
 returned.
@@ -1159,7 +1159,7 @@ For example matching the regular expression ``([Aa](.+)z)`` against
  * group 1: ``alcatraz`` (from first to last parenthesis or whole pattern)
  * group 2: ``lcatra`` (beginning at second parenthesis)
 
-The ``regexp_matches`` function will return all groups as a string array::
+The ``regexp_matches`` function will return all groups as a ``text`` array::
 
     cr> select regexp_matches('alcatraz', '(a(.+)z)') as matched;
     +------------------------+
@@ -1253,7 +1253,7 @@ of a subsequence matching ``pattern`` in the ``source`` string with the
 ``replacement`` string. If no subsequence in ``source`` matches the regular
 expression ``pattern``, ``source`` is returned unchanged.
 
-Returns: ``string``
+Returns: ``text``
 
 ``pattern`` is a java regular expression. For details on the regexp syntax, see
 `Java Regular Expressions`_.
@@ -1562,11 +1562,11 @@ Returns: ``integer``
 ``string_to_array(string, separator, [ null_string ])``
 -------------------------------------------------------
 
-The ``string_to_array`` splits a string into an array of string elements using
-a supplied separator and an optional null-string to set matching substring
-elements to NULL.
+The ``string_to_array`` splits a string into an array of ``text`` elements
+using a supplied separator and an optional null-string to set matching
+substring elements to NULL.
 
-Returns: ``array(string)``
+Returns: ``array(text)``
 
 ::
 
@@ -1652,7 +1652,7 @@ true, the result is null.
 
 .. Hidden: create table case_example
 
-    cr> create table case_example (id long);
+    cr> create table case_example (id bigint);
     CREATE OK, 1 row affected (... sec)
     cr> insert into case_example (id) values (0),(1),(2),(3);
     INSERT OK, 4 rows affected (... sec)
@@ -1730,7 +1730,7 @@ instead.
 
 .. Hidden: create table if_example
 
-    cr> create table if_example (id long);
+    cr> create table if_example (id bigint);
     CREATE OK, 1 row affected (... sec)
     cr> insert into if_example (id) values (0),(1),(2),(3);
     INSERT OK, 4 rows affected (... sec)
@@ -1846,7 +1846,7 @@ The ``CURRENT_SCHEMA`` system information function returns the name of the
 current schema of the session. If no current schema is set, this function will
 return the default schema, which is ``doc``.
 
-Returns: ``string``
+Returns: ``text``
 
 The default schema can be set when using the `JDBC
 <https://crate.io/docs/reference/jdbc/#jdbc-url-format>`_ and `HTTP clients
@@ -1885,7 +1885,7 @@ state, optionally including implicit schemas (e.g. ``pg_catalog``). If no custom
 the default :ref:`search_path <conf-session-search-path>` schemas.
 
 
-Returns: ``array(string)``
+Returns: ``array(text)``
 
 Synopsis::
 
@@ -1914,7 +1914,7 @@ Example::
 The ``CURRENT_USER`` system information function returns the name of the
 current connected user or ``crate`` if the user management module is disabled.
 
-Returns: ``string``
+Returns: ``text``
 
 Synopsis::
 
@@ -1942,7 +1942,7 @@ Example::
 
 Equivalent to `CURRENT_USER`_.
 
-Returns: ``string``
+Returns: ``text``
 
 Synopsis::
 
@@ -1971,7 +1971,7 @@ Example::
 The ``SESSION_USER`` system information function returns the name of the
 current connected user or ``crate`` if the user management module is disabled.
 
-Returns: ``string``
+Returns: ``text``
 
 Synopsis::
 

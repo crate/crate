@@ -176,7 +176,7 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
         waitForMappingUpdateOnAll("foo", "bar");
         execute("select data_type from information_schema.columns where table_name = 'foo' and column_name = 'bar'");
         // integer values for unknown columns will be result in a long type for range safety
-        assertThat(response.rows()[0][0], is("long_array"));
+        assertThat(response.rows()[0][0], is("bigint_array"));
     }
 
     @Test

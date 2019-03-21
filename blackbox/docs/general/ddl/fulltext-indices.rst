@@ -48,7 +48,7 @@ and will never produce a hit when queried.
 ::
 
     cr> create table table_a (
-    ...   first_column string INDEX OFF
+    ...   first_column text INDEX OFF
     ... );
     CREATE OK, 1 row affected (... sec)
 
@@ -79,14 +79,14 @@ Using the ``plain`` index method is the default behaviour but can also be
 declared explicitly::
 
     cr> create table table_b1 (
-    ...   first_column string INDEX using plain
+    ...   first_column text INDEX using plain
     ... );
     CREATE OK, 1 row affected (... sec)
 
 This results in the same behaviour than without any index declaration::
 
     cr> create table table_b2 (
-    ...   first_column string
+    ...   first_column text
     ... );
     CREATE OK, 1 row affected (... sec)
 
@@ -104,7 +104,7 @@ If no analyzer is specified when using a fulltext index, the
 :ref:`standard <standard-analyzer>` analyzer is used::
 
     cr> create table table_c (
-    ...   first_column string INDEX using fulltext
+    ...   first_column text INDEX using fulltext
     ... );
     CREATE OK, 1 row affected (... sec)
 
@@ -112,7 +112,7 @@ Defining the usage of a concrete analyzer is straight forward by defining the
 analyzer as a parameter using the ``WITH`` statement::
 
     cr> create table table_d (
-    ...   first_column string INDEX using fulltext with (analyzer = 'english')
+    ...   first_column text INDEX using fulltext with (analyzer = 'english')
     ... );
     CREATE OK, 1 row affected (... sec)
 
@@ -124,7 +124,7 @@ column as input. This is especially useful if you want to search for both, the
 exact and analyzed data::
 
     cr> create table table_e (
-    ...   first_column string,
+    ...   first_column text,
     ...   INDEX first_column_ft using fulltext (first_column)
     ... );
     CREATE OK, 1 row affected (... sec)
@@ -132,7 +132,7 @@ exact and analyzed data::
 Of course defining a custom analyzer is possible here too::
 
     cr> create table table_f (
-    ...   first_column string,
+    ...   first_column text,
     ...   INDEX first_column_ft
     ...     using fulltext(first_column) with (analyzer = 'english')
     ... );
@@ -147,8 +147,8 @@ Defining a composite (or combined) index is done using the same syntax as above
 despite multiple columns are given to the ``fulltext`` index method::
 
     cr> create table documents_a (
-    ...   title string,
-    ...   body string,
+    ...   title text,
+    ...   body text,
     ...   INDEX title_body_ft
     ...     using fulltext(title, body) with (analyzer = 'english')
     ... );
@@ -157,9 +157,9 @@ despite multiple columns are given to the ``fulltext`` index method::
 Composite indices can include nested columns within object columns as well::
 
     cr> create table documents_b (
-    ...   title string,
+    ...   title text,
     ...   author object(dynamic) as (
-    ...     name string,
+    ...     name text,
     ...     birthday timestamp
     ...   ),
     ...   INDEX author_title_ft using fulltext(title, author['name'])
@@ -207,7 +207,7 @@ Here is a simple Example::
 .. hide: Test table creation with custom analyzer::
 
     cr> create table hidden_test_table (
-    ...     fc string index using fulltext with(analyzer=myanalyzer)
+    ...     fc text index using fulltext with(analyzer=myanalyzer)
     ... );
     CREATE OK...
 

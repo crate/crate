@@ -32,7 +32,7 @@ public class ArrayLengthQueryBuilderTest extends LuceneQueryBuilderTest {
     @Test
     public void testArrayLengthGtColumnIsNotOptimized() {
         Query query = convert("array_length(y_array, 1) > x");
-        assertThat(query.toString(), is("Ref{doc.users.x, integer} < array_length(Ref{doc.users.y_array, long_array}, 1)"));
+        assertThat(query.toString(), is("Ref{doc.users.x, integer} < array_length(Ref{doc.users.y_array, bigint_array}, 1)"));
     }
 
     @Test
@@ -63,7 +63,7 @@ public class ArrayLengthQueryBuilderTest extends LuceneQueryBuilderTest {
         Query query = convert("array_length(y_array, 1) > 1");
         assertThat(
             query.toString(),
-            is("+NumTermsPerDoc: y_array #array_length(Ref{doc.users.y_array, long_array}, 1) > 1")
+            is("+NumTermsPerDoc: y_array #array_length(Ref{doc.users.y_array, bigint_array}, 1) > 1")
         );
     }
 

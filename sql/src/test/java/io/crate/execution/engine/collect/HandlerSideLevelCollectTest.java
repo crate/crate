@@ -181,14 +181,14 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         String expected =
             "character_maximum_length| integer| columns\n" +
             "character_octet_length| integer| columns\n" +
-            "character_set_catalog| string| columns\n" +
-            "character_set_name| string| columns\n" +
-            "character_set_schema| string| columns\n" +
+            "character_set_catalog| text| columns\n" +
+            "character_set_name| text| columns\n" +
+            "character_set_schema| text| columns\n" +
             "check_action| integer| columns\n" +
-            "check_references| string| columns\n" +
-            "collation_catalog| string| columns\n" +
-            "collation_name| string| columns\n" +
-            "collation_schema| string| columns";
+            "check_references| text| columns\n" +
+            "collation_catalog| text| columns\n" +
+            "collation_name| text| columns\n" +
+            "collation_schema| text| columns";
 
 
         assertThat(TestingHelpers.printedTable(result.toArray(new Object[0][])), Matchers.containsString(expected));
