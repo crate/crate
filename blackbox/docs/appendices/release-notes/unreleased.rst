@@ -117,6 +117,10 @@ Changes
 Fixes
 =====
 
+- Fixed an issue which caused a ``NullPointerException`` when executing a
+  :ref:`window function <window-functions>` over an ordered window which
+  contains null values under the ordered column.
+
 - Fixed an issue which caused an ``IndexOutOfBoundsException`` when a
   :ref:`window function <window-functions>` with an ordered window was selected
   in a ``join`` statement.
