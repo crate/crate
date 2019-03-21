@@ -35,9 +35,9 @@ import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.planner.DependencyCarrier;
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.DummyUserManager;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
+import io.crate.user.StubUserManager;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandler;
@@ -73,7 +73,7 @@ import static org.mockito.Mockito.when;
 
 public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
 
-    private static final Provider<UserManager> USER_MANAGER_PROVIDER = DummyUserManager::new;
+    private static final Provider<UserManager> USER_MANAGER_PROVIDER = StubUserManager::new;
 
     private SQLOperations sqlOperations;
     private List<Session> sessions = new ArrayList<>();

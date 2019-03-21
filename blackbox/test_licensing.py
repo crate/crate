@@ -34,8 +34,7 @@ CRATE_CE = True if os.environ.get('CRATE_CE') is "1" else False
 TRIAL_MAX_NODES = 3
 
 CRATE_SETTINGS = {
-    'psql.port': 0,
-    'license.enterprise': 'true' if CRATE_CE else 'false'
+    'psql.port': 0
 }
 
 

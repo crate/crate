@@ -19,7 +19,6 @@
 package io.crate.integrationtests;
 
 import io.crate.execution.engine.collect.stats.JobsLogService;
-import io.crate.settings.SharedSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
@@ -34,13 +33,11 @@ public class UserSessionIntegrationTest extends BaseUsersIntegrationTest {
         Settings settings = super.nodeSettings(nodeOrdinal);
         if (nodeOrdinal == 0) { // Enterprise enabled
             return Settings.builder().put(settings)
-                .put(JobsLogService.STATS_ENABLED_SETTING.getKey(), true)
-                .put(SharedSettings.ENTERPRISE_LICENSE_SETTING.getKey(), true).build();
+                .put(JobsLogService.STATS_ENABLED_SETTING.getKey(), true).build();
         }
         // Enterprise disabled
         return Settings.builder().put(settings)
-            .put(JobsLogService.STATS_ENABLED_SETTING.getKey(), true)
-            .put(SharedSettings.ENTERPRISE_LICENSE_SETTING.getKey(), false).build();
+            .put(JobsLogService.STATS_ENABLED_SETTING.getKey(), true).build();
     }
 
     @Test

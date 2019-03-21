@@ -26,7 +26,6 @@ import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
 import io.crate.settings.CrateSetting;
-import io.crate.settings.SharedSettings;
 import io.crate.udc.service.UDCService;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
@@ -172,12 +171,6 @@ public class SysClusterSettingsTest extends SQLTransportIntegrationTest {
             MemorySizeValue.parseBytesSizeValueOrHeapRatio(
                 CrateCircuitBreakerService.JOBS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING.setting().getDefaultRaw(Settings.EMPTY),
                 CrateCircuitBreakerService.JOBS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING.getKey()).toString());
-    }
-
-    @Test
-    public void testDefaultEnterpriseSettings() {
-        execute("select settings from sys.cluster");
-        assertSettingsDefault(SharedSettings.ENTERPRISE_LICENSE_SETTING);
     }
 
     @Test

@@ -113,6 +113,7 @@ public class StatementPrivilegeValidatorTest extends CrateDummyClusterServiceUni
             .enableDefaultTables()
             .setUser(superUser)
             .addView(new RelationName("doc", "v1"), "select * from users")
+            .setUserManager(userManager)
             .build();
     }
 

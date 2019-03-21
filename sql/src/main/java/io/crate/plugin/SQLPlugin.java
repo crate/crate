@@ -44,8 +44,8 @@ import io.crate.expression.reference.sys.cluster.SysClusterExpressionModule;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.tablefunctions.TableFunctionModule;
 import io.crate.expression.udf.UserDefinedFunctionsMetaData;
-import io.crate.license.LicenseExtension;
 import io.crate.license.CeLicenseModule;
+import io.crate.license.LicenseExtension;
 import io.crate.lucene.ArrayMapperService;
 import io.crate.metadata.DanglingArtifactsService;
 import io.crate.metadata.MetaDataModule;
@@ -87,6 +87,7 @@ import org.elasticsearch.plugins.ClusterPlugin;
 import org.elasticsearch.plugins.MapperPlugin;
 import org.elasticsearch.plugins.Plugin;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -95,24 +96,19 @@ import java.util.Map;
 import java.util.function.UnaryOperator;
 
 import static com.google.common.collect.Lists.newArrayList;
-import static io.crate.settings.SharedSettings.ENTERPRISE_LICENSE_SETTING;
 
 public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, ClusterPlugin {
 
     private final Settings settings;
+    @Nullable
     private final UserExtension userExtension;
+    @Nullable
     private final LicenseExtension licenseExtension;
 
-    @SuppressWarnings("WeakerAccess") // must be public for pluginLoader
     public SQLPlugin(Settings settings) {
         this.settings = settings;
-        if (ENTERPRISE_LICENSE_SETTING.setting().get(settings)) {
-            userExtension = EnterpriseLoader.loadSingle(UserExtension.class);
-            licenseExtension = EnterpriseLoader.loadSingle(LicenseExtension.class);
-        } else {
-            userExtension = null;
-            licenseExtension = null;
-        }
+        userExtension = EnterpriseLoader.loadSingle(UserExtension.class);
+        licenseExtension = EnterpriseLoader.loadSingle(LicenseExtension.class);
     }
 
     @Override

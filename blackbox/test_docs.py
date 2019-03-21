@@ -53,10 +53,7 @@ log.addHandler(ch)
 CRATE_CE = True if os.environ.get('CRATE_CE') is "1" else False
 
 CRATE_SETTINGS = {'psql.port': 0}
-if CRATE_CE:
-    CRATE_SETTINGS['license.enterprise']  = 'false'
-else:
-    CRATE_SETTINGS['license.enterprise']  = 'true'
+if not CRATE_CE:
     CRATE_SETTINGS['lang.js.enabled'] = 'true'
 
 

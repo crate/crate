@@ -32,7 +32,6 @@ import io.crate.expression.NestableInput;
 import io.crate.expression.reference.NestedObjectExpression;
 import io.crate.planner.TableStatsService;
 import io.crate.settings.CrateSetting;
-import io.crate.settings.SharedSettings;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 import io.crate.udc.service.UDCService;
@@ -104,10 +103,7 @@ public final class CrateSettings implements ClusterStateListener {
             UDCService.UDC_ENABLED_SETTING,
             UDCService.UDC_URL_SETTING,
             UDCService.UDC_INITIAL_DELAY_SETTING,
-            UDCService.UDC_INTERVAL_SETTING,
-
-            // ENTERPRISE
-            SharedSettings.ENTERPRISE_LICENSE_SETTING
+            UDCService.UDC_INTERVAL_SETTING
         ));
 
     private static final List<CrateSetting> EXPOSED_ES_SETTINGS = Collections.unmodifiableList(

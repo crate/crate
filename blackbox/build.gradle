@@ -89,6 +89,10 @@ task ceItest(type: Exec, dependsOn: ['bootstrap', 'unpackCommunityEditionDistTar
     commandLine "$projectDir/bin/test-ce-docs"
 }
 
+task ceNoEnterpriseTest(type: Exec, dependsOn: ['bootstrap', 'unpackCommunityEditionDistTar']) {
+    commandLine "$projectDir/bin/test-ce-no-enterprise"
+}
+
 task ceLicenseTest(type: Exec, dependsOn: ['bootstrap', 'unpackCommunityEditionDistTar']) {
     commandLine "$projectDir/bin/test-ce-licensing"
 }

@@ -25,7 +25,6 @@ package io.crate.window;
 import io.crate.plugin.EnterpriseFunctionsPlugin;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.Plugin;
 
 import java.util.Collection;
@@ -39,8 +38,8 @@ public class EnterpriseFunctionsProxyTestPlugin extends Plugin {
 
     private final EnterpriseFunctionsPlugin plugin;
 
-    public EnterpriseFunctionsProxyTestPlugin(Settings settings) {
-        this.plugin = new EnterpriseFunctionsPlugin(settings);
+    public EnterpriseFunctionsProxyTestPlugin() {
+        this.plugin = new EnterpriseFunctionsPlugin();
     }
 
     @Override

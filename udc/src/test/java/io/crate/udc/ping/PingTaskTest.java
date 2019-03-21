@@ -28,11 +28,9 @@ import io.crate.monitor.ExtendedNetworkInfo;
 import io.crate.monitor.ExtendedNodeInfo;
 import io.crate.monitor.ExtendedOsInfo;
 import io.crate.monitor.SysInfo;
-import io.crate.settings.SharedSettings;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.type.TypeReference;
-import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.hamcrest.Matchers;
 import org.junit.After;
@@ -97,22 +95,6 @@ public class PingTaskTest extends CrateDummyClusterServiceUnitTest {
     public void testGetHardwareAddressMacAddrNull() throws Exception {
         PingTask pingTask = createPingTask();
         assertThat(pingTask.getHardwareAddress(), Matchers.nullValue());
-    }
-
-    @Test
-    public void testIsEnterpriseField() throws Exception {
-        PingTask pingTask = createPingTask();
-        try {
-            assertThat(pingTask.isEnterprise(), is(SharedSettings.ENTERPRISE_LICENSE_SETTING.getDefault().toString()));
-
-            pingTask = createPingTask(
-                "http://dummy",
-                Settings.builder().put(SharedSettings.ENTERPRISE_LICENSE_SETTING.getKey(), false).build()
-            );
-            assertThat(pingTask.isEnterprise(), is("false"));
-        } finally {
-            assertSettingDeprecationsAndWarnings(new Setting[] { SharedSettings.ENTERPRISE_LICENSE_SETTING.setting() });
-        }
     }
 
     @Test

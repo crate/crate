@@ -83,4 +83,8 @@ public interface UserManager extends UserLookup {
      * All exceptions will be validated by this before sending them to the client.
      */
     ExceptionAuthorizedValidator getExceptionValidator(@Nullable User user, String defaultSchema);
+
+    default boolean isEnabled() {
+        return false;
+    }
 }
