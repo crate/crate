@@ -24,6 +24,7 @@ import org.elasticsearch.cli.Terminal;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.collect.Tuple;
+import org.elasticsearch.common.logging.LogConfigurator;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.SettingsException;
 import org.elasticsearch.env.Environment;
@@ -37,22 +38,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
+import static org.elasticsearch.node.NodeNames.randomNodeName;
+
 public class InternalSettingsPreparer {
 
-    private static final String[] ALLOWED_SUFFIXES = {".yml", ".yaml", ".json"};
 
     public static final String SECRET_PROMPT_VALUE = "${prompt.secret}";
     public static final String TEXT_PROMPT_VALUE = "${prompt.text}";
-
-    /**
-     * Prepares the settings by gathering all elasticsearch system properties and setting defaults.
-     */
-    public static Settings prepareSettings(Settings input) {
-        Settings.Builder output = Settings.builder();
-        initializeSettings(output, input, Collections.emptyMap());
-        finalizeSettings(output, null);
-        return output.build();
-    }
 
     /**
      * Prepares the settings by gathering all elasticsearch system properties, optionally loading the configuration settings,
@@ -85,16 +77,11 @@ public class InternalSettingsPreparer {
         initializeSettings(output, input, properties);
         Environment environment = new Environment(output.build(), configPath);
 
-        if (Files.exists(environment.configFile().resolve("elasticsearch.yaml"))) {
-            throw new SettingsException("elasticsearch.yaml was deprecated in 5.5.0 and must be renamed to elasticsearch.yml");
-        }
-
-        if (Files.exists(environment.configFile().resolve("elasticsearch.json"))) {
-            throw new SettingsException("elasticsearch.json was deprecated in 5.5.0 and must be converted to elasticsearch.yml");
-        }
+        LogConfigurator.configureWithoutConfig(environment.settings());
+        LogConfigurator.registerErrorListener();
 
         output = Settings.builder(); // start with a fresh output
-        Path path = environment.configFile().resolve("elasticsearch.yml");
+        Path path = environment.configFile().resolve("crate.yml");
         if (Files.exists(path)) {
             try {
                 output.loadFromPath(path);
@@ -149,6 +136,9 @@ public class InternalSettingsPreparer {
         // put the cluster name
         if (output.get(ClusterName.CLUSTER_NAME_SETTING.getKey()) == null) {
             output.put(ClusterName.CLUSTER_NAME_SETTING.getKey(), ClusterName.CLUSTER_NAME_SETTING.getDefault(Settings.EMPTY).value());
+        }
+        if (output.get(Node.NODE_NAME_SETTING.getKey()) == null) {
+            output.put(Node.NODE_NAME_SETTING.getKey(), randomNodeName());
         }
 
         replacePromptPlaceholders(output, terminal);

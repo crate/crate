@@ -26,7 +26,6 @@ subprojects {
     }
 
     test {
-        enabled = false
         jacoco {
             enabled = false
         }
