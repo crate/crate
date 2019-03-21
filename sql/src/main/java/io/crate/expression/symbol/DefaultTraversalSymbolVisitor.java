@@ -21,6 +21,8 @@
 
 package io.crate.expression.symbol;
 
+import io.crate.analyze.OrderBy;
+
 public abstract class DefaultTraversalSymbolVisitor<C, R> extends SymbolVisitor<C, R> {
 
     /*
@@ -41,6 +43,15 @@ public abstract class DefaultTraversalSymbolVisitor<C, R> extends SymbolVisitor<
     public R visitWindowFunction(WindowFunction symbol, C context) {
         for (Symbol arg : symbol.arguments()) {
             process(arg, context);
+        }
+        OrderBy orderBy = symbol.windowDefinition().orderBy();
+        if (orderBy != null) {
+            for (Symbol orderBySymbol : orderBy.orderBySymbols()) {
+                process(orderBySymbol, context);
+            }
+        }
+        for (Symbol partition : symbol.windowDefinition().partitions()) {
+            process(partition, context);
         }
         return null;
     }
