@@ -576,11 +576,6 @@ test {
     }
 }
 
-sourceSets {
-    test {
-        output.resourcesDir = 'build/resources'
-    }
-}
 
 clean.dependsOn(['cleanDownloadPlugins',
                  'cleanCollectEnterpriseModules'])
