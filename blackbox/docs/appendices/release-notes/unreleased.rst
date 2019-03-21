@@ -41,6 +41,9 @@ Unreleased Changes
 Breaking Changes
 ================
 
+- Removed the HTTP pipelining functionality. We are not aware of any client 
+  using this functionality.
+
 - Changed the ordering of columns to be based on their position in the
   :ref:`CREATE TABLE <ref-create-table>` statement. This was done to improve
   compatibility with PostgreSQL and will affect queries like ``SELECT * FROM``
