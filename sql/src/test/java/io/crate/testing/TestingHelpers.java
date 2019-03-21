@@ -30,6 +30,7 @@ import io.crate.data.Bucket;
 import io.crate.data.Buckets;
 import io.crate.data.Row;
 import io.crate.execution.engine.aggregation.impl.AggregationImplModule;
+import io.crate.execution.engine.window.WindowFunctionModule;
 import io.crate.expression.operator.OperatorModule;
 import io.crate.expression.predicate.PredicateModule;
 import io.crate.expression.scalar.ScalarFunctionModule;
@@ -170,6 +171,7 @@ public class TestingHelpers {
             .add(new PredicateModule())
             .add(new TableFunctionModule())
             .add(new ScalarFunctionModule())
+            .add(new WindowFunctionModule())
             .add(new OperatorModule()).createInjector().getInstance(Functions.class);
     }
 
