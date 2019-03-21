@@ -25,9 +25,6 @@ javadoc {
 }
 
 
-sourceCompatibility = "11"
-targetCompatibility = "11"
-
 if (project.hasProperty('testLogging')) {
     // Used to enable logging for tests
     test {

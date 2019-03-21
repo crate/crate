@@ -64,11 +64,3 @@ test {
 }
 
 clean.dependsOn('cleanTest')
-
-sourceSets {
-    test {
-        resources {
-            srcDir 'src/test/resources'
-        }
-    }
-}

@@ -12,9 +12,6 @@ subprojects {
         mavenCentral()
     }
 
-    sourceCompatibility = "8"
-    targetCompatibility = "8"
-
     compileJava {
         options.warnings = false
         options.deprecation = false
