@@ -52,16 +52,15 @@ import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.QueryStringDecoder;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.bytes.BytesReference;
-import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.http.netty4.cors.Netty4CorsConfig;
 import org.elasticsearch.http.netty4.cors.Netty4CorsHandler;
-import org.elasticsearch.http.netty4.pipelining.HttpPipelinedRequest;
 import org.elasticsearch.transport.netty4.Netty4Utils;
 
 import javax.annotation.Nullable;
@@ -82,7 +81,7 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 
-public class SqlHttpHandler extends SimpleChannelInboundHandler<HttpPipelinedRequest> {
+public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
 
     private static final Logger LOGGER = LogManager.getLogger(SqlHttpHandler.class);
     private static final String REQUEST_HEADER_USER = "User";
@@ -111,8 +110,7 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<HttpPipelinedReq
     }
 
     @Override
-    protected void channelRead0(ChannelHandlerContext ctx, HttpPipelinedRequest msg) {
-        FullHttpRequest request = (FullHttpRequest) msg.last();
+    protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest request) {
         if (request.uri().startsWith("/_sql")) {
             ensureSession(request);
             Map<String, List<String>> parameters = new QueryStringDecoder(request.uri()).parameters();
@@ -120,17 +118,17 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<HttpPipelinedReq
             handleSQLRequest(content, paramContainFlag(parameters, "types"))
                 .whenComplete((result, t) -> {
                     try {
-                        sendResponse(ctx, msg, request, parameters, result, t);
+                        sendResponse(ctx, request, parameters, result, t);
                     } catch (Throwable ex) {
                         LOGGER.error("Error sending response", ex);
                         throw ex;
                     } finally {
                         content.release();
-                        msg.release();
+                        request.release();
                     }
                 });
         } else {
-            ctx.fireChannelRead(msg);
+            ctx.fireChannelRead(request);
         }
     }
 
@@ -152,7 +150,6 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<HttpPipelinedReq
     }
 
     private void sendResponse(ChannelHandlerContext ctx,
-                              HttpPipelinedRequest msg,
                               FullHttpRequest request,
                               Map<String, List<String>> parameters,
                               XContentBuilder result,
@@ -187,7 +184,7 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<HttpPipelinedReq
         if (closeConnection) {
             promise.addListener(ChannelFutureListener.CLOSE);
         }
-        ctx.writeAndFlush(msg.createHttpResponse(resp, promise), promise);
+        ctx.writeAndFlush(resp, promise);
     }
 
     private boolean isCloseConnection(FullHttpRequest request) {
