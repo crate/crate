@@ -21,11 +21,7 @@
 
 package io.crate.expression.scalar;
 
-import io.crate.expression.symbol.Literal;
 import io.crate.exceptions.ConversionException;
-import io.crate.types.ArrayType;
-import io.crate.types.IntegerType;
-import io.crate.types.LongType;
 import org.junit.Test;
 
 import static io.crate.testing.SymbolMatchers.isLiteral;
@@ -33,22 +29,22 @@ import static io.crate.testing.SymbolMatchers.isLiteral;
 public class ConcatFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
-    public void testTooFewArguments() throws Exception {
+    public void testTooFewArguments() {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: concat(string)");
+        expectedException.expectMessage("unknown function: concat(text)");
         assertNormalize("concat('foo')", null);
     }
 
     @Test
-    public void testArgumentThatHasNoStringRepr() throws Exception {
+    public void testArgumentThatHasNoStringRepr() {
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast [1] to type string");
+        expectedException.expectMessage("Cannot cast [1] to type text");
         assertNormalize("concat('foo', [1])", null);
     }
 
 
     @Test
-    public void testNormalizeWithNulls() throws Exception {
+    public void testNormalizeWithNulls() {
         assertNormalize("concat(null, null)", isLiteral(""));
         assertNormalize("concat(null, 'foo')", isLiteral("foo"));
         assertNormalize("concat('foo', null)", isLiteral("foo"));
@@ -57,20 +53,20 @@ public class ConcatFunctionTest extends AbstractScalarFunctionsTest {
     }
 
     @Test
-    public void testTwoStrings() throws Exception {
+    public void testTwoStrings() {
         assertNormalize("concat('foo', 'bar')", isLiteral("foobar"));
     }
 
     @Test
-    public void testManyStrings() throws Exception {
+    public void testManyStrings() {
         assertNormalize("concat('foo', null, '_', null, 'testing', null, 'is_boring')",
             isLiteral("foo_testingis_boring"));
     }
 
     @Test
-    public void testStringAndNumber() throws Exception {
+    public void testStringAndNumber() {
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast 'foo' to type long");
+        expectedException.expectMessage("Cannot cast 'foo' to type bigint");
         assertNormalize("concat('foo', 3)", isLiteral("foo3"));
     }
 
@@ -85,9 +81,9 @@ public class ConcatFunctionTest extends AbstractScalarFunctionsTest {
     }
 
     @Test
-    public void testTwoArraysOfIncompatibleInnerTypes() throws Exception {
+    public void testTwoArraysOfIncompatibleInnerTypes() {
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast [[1, 2]] to type long_array");
+        expectedException.expectMessage("Cannot cast [[1, 2]] to type bigint_array");
         assertNormalize("concat([1, 2], [[1, 2]])", null);
     }
 

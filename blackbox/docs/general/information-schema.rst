@@ -52,8 +52,8 @@ number of replicas.
 .. hide: CREATE TABLE::
 
    cr> create table partitioned_table (
-   ... id long,
-   ... title string,
+   ... id bigint,
+   ... title text,
    ... date timestamp
    ... ) partitioned by (date);
    CREATE OK, 1 row affected (... sec)
@@ -132,37 +132,37 @@ columns::
 +----------------------------------+------------------------------------------------------------------------------------+-------------+
 | Name                             | Description                                                                        | Data Type   |
 +==================================+====================================================================================+=============+
-| ``blobs_path``                   | The data path of the blob table                                                    | ``String``  |
+| ``blobs_path``                   | The data path of the blob table                                                    | ``TEXT``    |
 +----------------------------------+------------------------------------------------------------------------------------+-------------+
-| ``closed``                       | The state of the table                                                             | ``Boolean`` |
+| ``closed``                       | The state of the table                                                             | ``BOOLEAN`` |
 +----------------------------------+------------------------------------------------------------------------------------+-------------+
-| ``clustered_by``                 | The routing column used to cluster the table                                       | ``String``  |
+| ``clustered_by``                 | The routing column used to cluster the table                                       | ``TEXT``    |
 +----------------------------------+------------------------------------------------------------------------------------+-------------+
-| ``column_policy``                | Defines whether the table uses a ``STRICT`` or a ``DYNAMIC`` :ref:`column_policy`  | ``String``  |
+| ``column_policy``                | Defines whether the table uses a ``STRICT`` or a ``DYNAMIC`` :ref:`column_policy`  | ``TEXT``    |
 +----------------------------------+------------------------------------------------------------------------------------+-------------+
-| ``number_of_replicas``           | The number of replicas the table currently has                                     | ``Integer`` |
+| ``number_of_replicas``           | The number of replicas the table currently has                                     | ``INTEGER`` |
 +----------------------------------+------------------------------------------------------------------------------------+-------------+
-| ``number_of_shards``             | The number of shards the table is currently distributed across                     | ``Integer`` |
+| ``number_of_shards``             | The number of shards the table is currently distributed across                     | ``INTEGER`` |
 +----------------------------------+------------------------------------------------------------------------------------+-------------+
-| ``partitioned_by``               | The column used to partition the table                                             | ``String``  |
+| ``partitioned_by``               | The column used to partition the table                                             | ``TEXT``    |
 +----------------------------------+------------------------------------------------------------------------------------+-------------+
-| ``reference_generation``         | Specifies how values in the self-referencing column are generated                  | ``String``  |
+| ``reference_generation``         | Specifies how values in the self-referencing column are generated                  | ``TEXT``    |
 +----------------------------------+------------------------------------------------------------------------------------+-------------+
-| ``routing_hash_function``        | The name of the hash function used for internal routing                            | ``String``  |
+| ``routing_hash_function``        | The name of the hash function used for internal routing                            | ``TEXT``    |
 +----------------------------------+------------------------------------------------------------------------------------+-------------+
-| ``self_referencing_column_name`` | The name of the column that uniquely identifies each row (always ``_id``)          | ``String``  |
+| ``self_referencing_column_name`` | The name of the column that uniquely identifies each row (always ``_id``)          | ``TEXT``    |
 +----------------------------------+------------------------------------------------------------------------------------+-------------+
-| ``settings``                     | :ref:`with_clause`                                                                 | ``Object``  |
+| ``settings``                     | :ref:`with_clause`                                                                 | ``OBJECT``  |
 +----------------------------------+------------------------------------------------------------------------------------+-------------+
-| ``table_catalog``                | Refers to the ``table_schema``                                                     | ``String``  |
+| ``table_catalog``                | Refers to the ``table_schema``                                                     | ``TEXT``    |
 +----------------------------------+------------------------------------------------------------------------------------+-------------+
-| ``table_name``                   | The name of the table                                                              | ``String``  |
+| ``table_name``                   | The name of the table                                                              | ``TEXT``    |
 +----------------------------------+------------------------------------------------------------------------------------+-------------+
-| ``table_schema``                 | The name of the schema the table belongs to                                        | ``String``  |
+| ``table_schema``                 | The name of the schema the table belongs to                                        | ``TEXT``    |
 +----------------------------------+------------------------------------------------------------------------------------+-------------+
-| ``table_type``                   | The type of the table (``BASE TABLE`` for tables, ``VIEW`` for views)              | ``String``  |
+| ``table_type``                   | The type of the table (``BASE TABLE`` for tables, ``VIEW`` for views)              | ``TEXT``    |
 +----------------------------------+------------------------------------------------------------------------------------+-------------+
-| ``version``                      | A collection of version numbers relevent to the table                              | ``Object``  |
+| ``version``                      | A collection of version numbers relevent to the table                              | ``OBJECT``  |
 +----------------------------------+------------------------------------------------------------------------------------+-------------+
 
 ``settings``
@@ -180,7 +180,7 @@ With ``ALTER TABLE`` they can be set on already existing tables.
 The following statement creates a new table and sets the refresh interval of
 shards to 500 ms and sets the shard allocation for primary shards only::
 
-    cr> create table parameterized_table (id int, content string)
+    cr> create table parameterized_table (id integer, content text)
     ... with ("refresh_interval"=500, "routing.allocation.enable"='primaries');
     CREATE OK, 1 row affected (... sec)
 
@@ -236,19 +236,19 @@ options of all available views.
 +---------------------+-------------------------------------------------------------------------------------+-------------+
 | Name                | Description                                                                         | Data Type   |
 +=====================+=====================================================================================+=============+
-| ``table_catalog``   | The catalog of the table of the view (refers to ``table_schema``)                   | ``String``  |
+| ``table_catalog``   | The catalog of the table of the view (refers to ``table_schema``)                   | ``TEXT``    |
 +---------------------+-------------------------------------------------------------------------------------+-------------+
-| ``table_schema``    | The schema of the table of the view                                                 | ``String``  |
+| ``table_schema``    | The schema of the table of the view                                                 | ``TEXT``    |
 +---------------------+-------------------------------------------------------------------------------------+-------------+
-| ``table_name``      | The name of the table of the view                                                   | ``String``  |
+| ``table_name``      | The name of the table of the view                                                   | ``TEXT``    |
 +---------------------+-------------------------------------------------------------------------------------+-------------+
-| ``view_definition`` | The SELECT statement that defines the view                                          | ``String``  |
+| ``view_definition`` | The SELECT statement that defines the view                                          | ``TEXT``    |
 +---------------------+-------------------------------------------------------------------------------------+-------------+
-| ``check_option``    | Not applicable for CrateDB, always return ``NONE``                                  | ``String``  |
+| ``check_option``    | Not applicable for CrateDB, always return ``NONE``                                  | ``TEXT``    |
 +---------------------+-------------------------------------------------------------------------------------+-------------+
-| ``is_updatable``    | Whether the view is updatable. Not applicable for CrateDB, always returns ``FALSE`` | ``Boolean`` |
+| ``is_updatable``    | Whether the view is updatable. Not applicable for CrateDB, always returns ``FALSE`` | ``BOOLEAN`` |
 +---------------------+-------------------------------------------------------------------------------------+-------------+
-| ``owner``           | The user that created the view                                                      | ``String``  |
+| ``owner``           | The user that created the view                                                      | ``TEXT``    |
 +---------------------+-------------------------------------------------------------------------------------+-------------+
 
 .. note::
@@ -278,23 +278,23 @@ table::
     | table_name        | column_name                    |  pos | data_type    |
     +-------------------+--------------------------------+------+--------------+
     | locations         | date                           |    3 | timestamp    |
-    | locations         | description                    |    6 | string       |
-    | locations         | id                             |    1 | string       |
+    | locations         | description                    |    6 | text         |
+    | locations         | id                             |    1 | text         |
     | locations         | information                    |    8 | object_array |
-    | locations         | information['evolution_level'] | NULL | short        |
-    | locations         | information['population']      | NULL | long         |
-    | locations         | kind                           |    4 | string       |
-    | locations         | name                           |    2 | string       |
+    | locations         | information['evolution_level'] | NULL | smallint     |
+    | locations         | information['population']      | NULL | bigint       |
+    | locations         | kind                           |    4 | text         |
+    | locations         | name                           |    2 | text         |
     | locations         | position                       |    5 | integer      |
     | locations         | race                           |    7 | object       |
-    | locations         | race['description']            | NULL | string       |
-    | locations         | race['interests']              | NULL | string_array |
-    | locations         | race['name']                   | NULL | string       |
+    | locations         | race['description']            | NULL | text         |
+    | locations         | race['interests']              | NULL | text_array   |
+    | locations         | race['name']                   | NULL | text         |
     | partitioned_table | date                           |    3 | timestamp    |
-    | partitioned_table | id                             |    1 | long         |
-    | partitioned_table | title                          |    2 | string       |
+    | partitioned_table | id                             |    1 | bigint       |
+    | partitioned_table | title                          |    2 | text         |
     | quotes            | id                             |    1 | integer      |
-    | quotes            | quote                          |    2 | string       |
+    | quotes            | quote                          |    2 | text         |
     +-------------------+--------------------------------+------+--------------+
     SELECT 18 rows in set (... sec)
 
@@ -310,36 +310,36 @@ infinite recursion of your mind, beware!)::
     +--------------------------+-----------+------------------+
     | character_maximum_length | integer   |               11 |
     | character_octet_length   | integer   |               12 |
-    | character_set_catalog    | string    |               19 |
-    | character_set_name       | string    |               21 |
-    | character_set_schema     | string    |               20 |
+    | character_set_catalog    | text      |               19 |
+    | character_set_name       | text      |               21 |
+    | character_set_schema     | text      |               20 |
     | check_action             | integer   |               32 |
-    | check_references         | string    |               31 |
-    | collation_catalog        | string    |               22 |
-    | collation_name           | string    |               24 |
-    | collation_schema         | string    |               23 |
-    | column_default           | string    |               10 |
-    | column_name              | string    |                4 |
-    | data_type                | string    |                6 |
+    | check_references         | text      |               31 |
+    | collation_catalog        | text      |               22 |
+    | collation_name           | text      |               24 |
+    | collation_schema         | text      |               23 |
+    | column_default           | text      |               10 |
+    | column_name              | text      |                4 |
+    | data_type                | text      |                6 |
     | datetime_precision       | integer   |               16 |
-    | domain_catalog           | string    |               25 |
-    | domain_name              | string    |               27 |
-    | domain_schema            | string    |               26 |
-    | generation_expression    | string    |                9 |
+    | domain_catalog           | text      |               25 |
+    | domain_name              | text      |               27 |
+    | domain_schema            | text      |               26 |
+    | generation_expression    | text      |                9 |
     | interval_precision       | integer   |               18 |
-    | interval_type            | string    |               17 |
-    | is_generated             | string    |                7 |
+    | interval_type            | text      |               17 |
+    | is_generated             | text      |                7 |
     | is_nullable              | boolean   |                8 |
     | numeric_precision        | integer   |               13 |
     | numeric_precision_radix  | integer   |               14 |
     | numeric_scale            | integer   |               15 |
     | ordinal_position         | integer   |                5 |
-    | table_catalog            | string    |                3 |
-    | table_name               | string    |                2 |
-    | table_schema             | string    |                1 |
-    | udt_catalog              | string    |               28 |
-    | udt_name                 | string    |               30 |
-    | udt_schema               | string    |               29 |
+    | table_catalog            | text      |                3 |
+    | table_name               | text      |                2 |
+    | table_schema             | text      |                1 |
+    | udt_catalog              | text      |               28 |
+    | udt_name                 | text      |               30 |
+    | udt_schema               | text      |               29 |
     +--------------------------+-----------+------------------+
     SELECT 32 rows in set (... sec)
 
@@ -349,90 +349,90 @@ infinite recursion of your mind, beware!)::
 +-------------------------------+-----------------------------------------------+---------------+
 |            Name               |                Description                    |   Data Type   |
 +===============================+===============================================+===============+
-| ``table_catalog``             | Refers to the ``table_schema``                | ``String``    |
+| ``table_catalog``             | Refers to the ``table_schema``                | ``TEXT``      |
 +-------------------------------+-----------------------------------------------+---------------+
-| ``table_schema``              | Schema name containing the table              | ``String``    |
+| ``table_schema``              | Schema name containing the table              | ``TEXT``      |
 +-------------------------------+-----------------------------------------------+---------------+
-| ``table_name``                | Table Name                                    | ``String``    |
+| ``table_name``                | Table Name                                    | ``TEXT``      |
 +-------------------------------+-----------------------------------------------+---------------+
-| ``column_name``               | Column Name                                   | ``String``    |
+| ``column_name``               | Column Name                                   | ``TEXT``      |
 |                               | For fields in object columns this is not an   |               |
 |                               | identifier but a path and therefore must not  |               |
 |                               | be double quoted when programmatically        |               |
 |                               | obtained.                                     |               |
 +-------------------------------+-----------------------------------------------+---------------+
-| ``ordinal_position``          | The position of the column within the         | ``Integer``   |
+| ``ordinal_position``          | The position of the column within the         | ``INTEGER``   |
 |                               | table                                         |               |
 +-------------------------------+-----------------------------------------------+---------------+
-| ``is_nullable``               | Whether the column is nullable                | ``Boolean``   |
+| ``is_nullable``               | Whether the column is nullable                | ``BOOLEAN``   |
 +-------------------------------+-----------------------------------------------+---------------+
-| ``data_type``                 | The data type of the column                   | ``String``    |
+| ``data_type``                 | The data type of the column                   | ``TEXT``      |
 |                               |                                               |               |
 |                               | For further information see :ref:`data-types` |               |
 +-------------------------------+-----------------------------------------------+---------------+
-| ``column_default``            | Not implemented (always returns ``NULL``)     | ``String``    |
+| ``column_default``            | Not implemented (always returns ``NULL``)     | ``TEXT``      |
 +-------------------------------+-----------------------------------------------+---------------+
-| ``character_maximum_length``  | Not implemented (always returns ``NULL``)     | ``Integer``   |
+| ``character_maximum_length``  | Not implemented (always returns ``NULL``)     | ``INTEGER``   |
 |                               |                                               |               |
-|                               | Please refer to :ref:`data-type-string` type  |               |
+|                               | Please refer to :ref:`data-type-text` type    |               |
 +-------------------------------+-----------------------------------------------+---------------+
-| ``character_octet_length``    | Not implemented (always returns ``NULL``)     | ``Integer``   |
+| ``character_octet_length``    | Not implemented (always returns ``NULL``)     | ``INTEGER``   |
 |                               |                                               |               |
-|                               | Please refer to :ref:`data-type-string` type  |               |
+|                               | Please refer to :ref:`data-type-text` type    |               |
 +-------------------------------+-----------------------------------------------+---------------+
-| ``numeric_precision``         | Indicates the number of significant digits    | ``Integer``   |
+| ``numeric_precision``         | Indicates the number of significant digits    | ``INTEGER``   |
 |                               | for a numeric ``data_type``. For all other    |               |
 |                               | data types this column is ``NULL``.           |               |
 +-------------------------------+-----------------------------------------------+---------------+
-| ``numeric_precision_radix``   | Indicates in which base the value in the      | ``Integer``   |
+| ``numeric_precision_radix``   | Indicates in which base the value in the      | ``INTEGER``   |
 |                               | column ``numeric_precision`` for a numeric    |               |
 |                               | ``data_type`` is exposed. This can either be  |               |
 |                               | 2 (binary) or 10 (decimal). For all other     |               |
 |                               | data types this column is ``NULL``.           |               |
 +-------------------------------+-----------------------------------------------+---------------+
-| ``numeric_scale``             | Not implemented (always returns ``NULL``)     | ``Integer``   |
+| ``numeric_scale``             | Not implemented (always returns ``NULL``)     | ``INTEGER``   |
 +-------------------------------+-----------------------------------------------+---------------+
-| ``datetime_precision``        | Contains the fractional seconds precision for | ``Integer``   |
+| ``datetime_precision``        | Contains the fractional seconds precision for | ``INTEGER``   |
 |                               | a ``timestamp`` ``data_type``. For all other  |               |
 |                               | data types this column is ``null``.           |               |
 +-------------------------------+-----------------------------------------------+---------------+
-| ``interval_type``             | Not implemented (always returns ``NULL``)     | ``String``    |
+| ``interval_type``             | Not implemented (always returns ``NULL``)     | ``TEXT``      |
 +-------------------------------+-----------------------------------------------+---------------+
-| ``interval_precision``        | Not implemented (always returns ``NULL``)     | ``Integer``   |
+| ``interval_precision``        | Not implemented (always returns ``NULL``)     | ``INTEGER``   |
 +-------------------------------+-----------------------------------------------+---------------+
-| ``character_set_catalog``     | Not implemented (always returns ``NULL``)     | ``String``    |
+| ``character_set_catalog``     | Not implemented (always returns ``NULL``)     | ``TEXT``      |
 +-------------------------------+-----------------------------------------------+---------------+
-| ``character_set_schema``      | Not implemented (always returns ``NULL``)     | ``String``    |
+| ``character_set_schema``      | Not implemented (always returns ``NULL``)     | ``TEXT``      |
 +-------------------------------+-----------------------------------------------+---------------+
-| ``character_set_name``        | Not implemented (always returns ``NULL``)     | ``String``    |
+| ``character_set_name``        | Not implemented (always returns ``NULL``)     | ``TEXT``      |
 +-------------------------------+-----------------------------------------------+---------------+
-| ``collation_catalog``         | Not implemented (always returns ``NULL``)     | ``String``    |
+| ``collation_catalog``         | Not implemented (always returns ``NULL``)     | ``TEXT``      |
 +-------------------------------+-----------------------------------------------+---------------+
-| ``collation_schema``          | Not implemented (always returns ``NULL``)     | ``String``    |
+| ``collation_schema``          | Not implemented (always returns ``NULL``)     | ``TEXT``      |
 +-------------------------------+-----------------------------------------------+---------------+
-| ``collation_name``            | Not implemented (always returns ``NULL``)     | ``String``    |
+| ``collation_name``            | Not implemented (always returns ``NULL``)     | ``TEXT``      |
 +-------------------------------+-----------------------------------------------+---------------+
-| ``domain_catalog``            | Not implemented (always returns ``NULL``)     | ``String``    |
+| ``domain_catalog``            | Not implemented (always returns ``NULL``)     | ``TEXT``      |
 +-------------------------------+-----------------------------------------------+---------------+
-| ``domain_schema``             | Not implemented (always returns ``NULL``)     | ``String``    |
+| ``domain_schema``             | Not implemented (always returns ``NULL``)     | ``TEXT``      |
 +-------------------------------+-----------------------------------------------+---------------+
-| ``domain_name``               | Not implemented (always returns ``NULL``)     | ``String``    |
+| ``domain_name``               | Not implemented (always returns ``NULL``)     | ``TEXT``      |
 +-------------------------------+-----------------------------------------------+---------------+
-| ``udt_catalog``               | Not implemented (always returns ``NULL``)     | ``String``    |
+| ``udt_catalog``               | Not implemented (always returns ``NULL``)     | ``TEXT``      |
 +-------------------------------+-----------------------------------------------+---------------+
-| ``udt_schema``                | Not implemented (always returns ``NULL``)     | ``String``    |
+| ``udt_schema``                | Not implemented (always returns ``NULL``)     | ``TEXT``      |
 +-------------------------------+-----------------------------------------------+---------------+
-| ``udt_name``                  | Not implemented (always returns ``NULL``)     | ``String``    |
+| ``udt_name``                  | Not implemented (always returns ``NULL``)     | ``TEXT``      |
 +-------------------------------+-----------------------------------------------+---------------+
-| ``check_references``          | Not implemented (always returns ``NULL``)     | ``String``    |
+| ``check_references``          | Not implemented (always returns ``NULL``)     | ``TEXT``      |
 +-------------------------------+-----------------------------------------------+---------------+
-| ``check_action``              | Not implemented (always returns ``NULL``)     | ``Integer``   |
+| ``check_action``              | Not implemented (always returns ``NULL``)     | ``INTEGER``   |
 +-------------------------------+-----------------------------------------------+---------------+
-| ``generation_expression``     | The expression used to generate ad column.    | ``String``    |
+| ``generation_expression``     | The expression used to generate ad column.    | ``TEXT``      |
 |                               | If the column is not generated ``NULL`` is    |               |
 |                               | returned.                                     |               |
 +-------------------------------+-----------------------------------------------+---------------+
-| ``is_generated``              | Returns ``ALWAYS`` or ``NEVER`` wether the    | ``String``    |
+| ``is_generated``              | Returns ``ALWAYS`` or ``NEVER`` wether the    | ``TEXT``      |
 |                               | column is generated or not.                   |               |
 +-------------------------------+-----------------------------------------------+---------------+
 
@@ -449,7 +449,7 @@ type, name and which table they are defined in.
 
 .. hide:
 
-    cr> create table tbl (col STRING NOT NULL);
+    cr> create table tbl (col TEXT NOT NULL);
     CREATE OK, 1 row affected (... sec)
 
 ::
@@ -479,7 +479,7 @@ tables:
 
 .. hide:
 
-    cr> create table students (id long, department integer, name string, primary key(id, department))
+    cr> create table students (id bigint, department integer, name text, primary key(id, department))
     CREATE OK, 1 row affected (... sec)
 
 ::
@@ -500,21 +500,21 @@ tables:
 +-------------------------+-------------------------------------------------------------------------+-------------+
 | Name                    | Description                                                             | Data Type   |
 +=========================+=========================================================================+=============+
-| ``constraint_catalog``  | Refers to ``table_catalog``                                             | ``String``  |
+| ``constraint_catalog``  | Refers to ``table_catalog``                                             | ``TEXT``    |
 +-------------------------+-------------------------------------------------------------------------+-------------+
-| ``constraint_schema``   | Refers to ``table_schema``                                              | ``String``  |
+| ``constraint_schema``   | Refers to ``table_schema``                                              | ``TEXT``    |
 +-------------------------+-------------------------------------------------------------------------+-------------+
-| ``constraint_name``     | Name of the constraint                                                  | ``String``  |
+| ``constraint_name``     | Name of the constraint                                                  | ``TEXT``    |
 +-------------------------+-------------------------------------------------------------------------+-------------+
-| ``table_catalog``       | Refers to ``table_schema``                                              | ``String``  |
+| ``table_catalog``       | Refers to ``table_schema``                                              | ``TEXT``    |
 +-------------------------+-------------------------------------------------------------------------+-------------+
-| ``table_schema``        | Name of the schema that contains the table that contains the constraint | ``String``  |
+| ``table_schema``        | Name of the schema that contains the table that contains the constraint | ``TEXT``    |
 +-------------------------+-------------------------------------------------------------------------+-------------+
-| ``table_name``          | Name of the table that contains the constraint                          | ``String``  |
+| ``table_name``          | Name of the table that contains the constraint                          | ``TEXT``    |
 +-------------------------+-------------------------------------------------------------------------+-------------+
-| ``column_name``         | Name of the column that contains the constraint                         | ``String``  |
+| ``column_name``         | Name of the column that contains the constraint                         | ``TEXT``    |
 +-------------------------+-------------------------------------------------------------------------+-------------+
-| ``ordinal_position``    | Position of the column within the contraint (starts with 1)             | ``Integer`` |
+| ``ordinal_position``    | Position of the column within the contraint (starts with 1)             | ``INTEGER`` |
 +-------------------------+-------------------------------------------------------------------------+-------------+
 
 .. _is_table_partitions:
@@ -532,7 +532,7 @@ For further information see :ref:`partitioned_tables`.
 
 .. hide:
 
-    cr> create table a_partitioned_table (id int, content string)
+    cr> create table a_partitioned_table (id integer, content text)
     ... partitioned by (content);
     CREATE OK, 1 row affected (... sec)
 
@@ -649,21 +649,21 @@ Or get an overview of how many routines and routine types are available::
 +--------------------+-------------+
 | Name               | Data Type   |
 +====================+=============+
-| routine_name       | String      |
+| routine_name       | ``TEXT``    |
 +--------------------+-------------+
-| routine_type       | String      |
+| routine_type       | ``TEXT``    |
 +--------------------+-------------+
-| routine_body       | String      |
+| routine_body       | ``TEXT``    |
 +--------------------+-------------+
-| routine_schema     | String      |
+| routine_schema     | ``TEXT``    |
 +--------------------+-------------+
-| data_type          | String      |
+| data_type          | ``TEXT``    |
 +--------------------+-------------+
-| is_deterministic   | Boolean     |
+| is_deterministic   | ``BOOLEAN`` |
 +--------------------+-------------+
-| routine_definition | String      |
+| routine_definition | ``TEXT``    |
 +--------------------+-------------+
-| specific_name      | String      |
+| specific_name      | ``TEXT``    |
 +--------------------+-------------+
 
 :routine_name:
@@ -734,19 +734,19 @@ CrateDB based to the current SQL standard (see :ref:`sql_supported_features`)::
 +------------------+-----------+----------+
 | Name             | Data Type | Nullable |
 +==================+===========+==========+
-| feature_id       | String    | NO       |
+| feature_id       | ``TEXT``  | NO       |
 +------------------+-----------+----------+
-| feature_name     | String    | NO       |
+| feature_name     | ``TEXT``  | NO       |
 +------------------+-----------+----------+
-| sub_feature_id   | String    | NO       |
+| sub_feature_id   | ``TEXT``  | NO       |
 +------------------+-----------+----------+
-| sub_feature_name | String    | NO       |
+| sub_feature_name | ``TEXT``  | NO       |
 +------------------+-----------+----------+
-| is_supported     | String    | NO       |
+| is_supported     | ``TEXT``  | NO       |
 +------------------+-----------+----------+
-| is_verified_by   | String    | YES      |
+| is_verified_by   | ``TEXT``  | YES      |
 +------------------+-----------+----------+
-| comments         | String    | YES      |
+| comments         | ``TEXT``  | YES      |
 +------------------+-----------+----------+
 
 :feature_id:

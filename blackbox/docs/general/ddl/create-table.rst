@@ -18,11 +18,11 @@ name for the table and names and types of the columns.
 See :ref:`data-types` for information about the supported data types.
 
 Let's create a simple table with two columns of type ``integer`` and
-``string``::
+``text``::
 
     cr> create table my_table (
     ...   first_column integer,
-    ...   second_column string
+    ...   second_column text
     ... );
     CREATE OK, 1 row affected (... sec)
 
@@ -51,7 +51,7 @@ schema like so::
 
     cr> create table my_schema.my_table (
     ...   pk int primary key,
-    ...   label string,
+    ...   label text,
     ...   position geo_point
     ... );
     CREATE OK, 1 row affected (... sec)
@@ -96,7 +96,7 @@ Every table that is created without an explicit schema name, will be created in
 the ``doc`` schema::
 
     cr> create table my_doc_table (
-    ...   a_column byte,
+    ...   a_column char,
     ...   another_one geo_point
     ... );
     CREATE OK, 1 row affected (... sec)

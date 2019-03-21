@@ -516,7 +516,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testWhereInSelectDifferentDataTypeValueIncompatibleDataTypes() throws Exception {
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast 'foo' to type long");
+        expectedException.expectMessage("Cannot cast 'foo' to type bigint");
         analyze("select 'found' from users where 1 in (1, 'foo', 2)");
     }
 
@@ -697,7 +697,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testLimitWithWrongArgument() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot cast 'invalid' to type long");
+        expectedException.expectMessage("Cannot cast 'invalid' to type bigint");
         analyze("select * from sys.shards limit ?", new Object[]{"invalid"});
     }
 
@@ -900,12 +900,12 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
-    public void testImplicitContainmentOnObjectArrayFields() throws Exception {
+    public void testImplicitContainmentOnObjectArrayFields() {
         // users.friends is an object array,
         // so its fields are selected as arrays,
         // ergo simple comparison does not work here
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot cast 5 to type long_array");
+        expectedException.expectMessage("Cannot cast 5 to type bigint_array");
         analyze("select * from users where 5 = friends['id']");
     }
 
@@ -1180,9 +1180,9 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
-    public void testMatchPredicateWithWrongQueryTerm() throws Exception {
+    public void testMatchPredicateWithWrongQueryTerm() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot cast {} to type string");
+        expectedException.expectMessage("Cannot cast {} to type text");
         analyze("select name from users order by match(name, {})");
     }
 
@@ -1386,9 +1386,9 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
 
     @Test
-    public void testRegexpMatchInvalidArg() throws Exception {
+    public void testRegexpMatchInvalidArg() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot cast floats to type string");
+        expectedException.expectMessage("Cannot cast floats to type text");
         analyze("select * from users where floats ~ 'foo'");
     }
 

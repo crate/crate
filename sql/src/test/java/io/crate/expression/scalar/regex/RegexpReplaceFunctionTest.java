@@ -71,9 +71,9 @@ public class RegexpReplaceFunctionTest extends AbstractScalarFunctionsTest {
     }
 
     @Test
-    public void testNormalizeSymbolWithInvalidArgumentType() throws Exception {
+    public void testNormalizeSymbolWithInvalidArgumentType() {
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast [1, 2] to type string");
+        expectedException.expectMessage("Cannot cast [1, 2] to type text");
 
         assertNormalize("regexp_replace('foobar', '.*', [1,2])", isLiteral(""));
     }

@@ -41,7 +41,7 @@ public class StringToArrayFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testOneArgument() {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: string_to_array(string)");
+        expectedException.expectMessage("unknown function: string_to_array(text)");
         assertEvaluate("string_to_array('xyz')", null);
     }
 

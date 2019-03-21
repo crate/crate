@@ -33,10 +33,10 @@ but on a kind of a grid with the given precision as resolution.
 Creating tables containing geographic information is straightforward::
 
     cr> CREATE TABLE country (
-    ...   name string,
-    ...   country_code string primary key,
+    ...   name text,
+    ...   country_code text primary key,
     ...   shape geo_shape INDEX USING "geohash" WITH (precision='100m'),
-    ...   capital string,
+    ...   capital text,
     ...   capital_location geo_point
     ... ) WITH (number_of_replicas=0);
     CREATE OK, 1 row affected  (... sec)
@@ -104,8 +104,8 @@ Let's insert Austria::
    cr> REFRESH TABLE countries;
    REFRESH OK, 1 row affected  (... sec)
 
-:ref:`Geographic points <geo_point_data_type>` can be inserted as double array
-with lon and lat as seen above or as `WKT`_ string.
+:ref:`Geographic points <geo_point_data_type>` can be inserted as a
+``double precision`` array with lon and lat as seen above or as `WKT`_ string.
 
 :ref:`Geographic shapes <geo_shape_data_type>` can be inserted as `GeoJSON`_
 :ref:`object literal <data-type-object-literals>` or parameter as seen above
@@ -125,7 +125,7 @@ Match Predicate
 The ``MATCH`` predicate can be used to perform multiple kinds of searches on
 indices or indexed columns. While it can be used to perform
 :ref:`fulltext searches <sql_dql_fulltext_search>` on analyzed indices of
-type :ref:`data-type-string`, it is also handy for operating on geographic
+type :ref:`data-type-text`, it is also handy for operating on geographic
 indices, querying for relations between geographical shapes and points.
 
 ::

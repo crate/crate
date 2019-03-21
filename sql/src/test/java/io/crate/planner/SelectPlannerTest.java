@@ -229,7 +229,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         QueryThenFetch qtf = e.plan("select name from users where name = 'x' order by id limit 10");
         Merge merge = (Merge) qtf.subPlan();
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) ((Collect) merge.subPlan()).collectPhase());
-        assertThat(collectPhase.where().representation(), is("Ref{doc.users.name, string} = x"));
+        assertThat(collectPhase.where().representation(), is("Ref{doc.users.name, text} = x"));
 
         TopNProjection topNProjection = (TopNProjection) collectPhase.projections().get(0);
         assertThat(topNProjection.limit(), is(10));
@@ -253,7 +253,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         Merge merge = e.plan("select name from users where name = 'x' order by name limit 10");
         Collect collect = (Collect) merge.subPlan();
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
-        assertThat(collectPhase.where().representation(), is("Ref{doc.users.name, string} = x"));
+        assertThat(collectPhase.where().representation(), is("Ref{doc.users.name, text} = x"));
 
         MergePhase mergePhase = merge.mergePhase();
         assertThat(mergePhase.outputTypes().size(), is(1));
@@ -315,7 +315,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(indices, Matchers.contains(
             new PartitionName(new RelationName("doc", "parted"), Arrays.asList("123")).asIndexName()));
 
-        assertThat(collectPhase.where().representation(), is("Ref{doc.parted_pks.name, string} = x"));
+        assertThat(collectPhase.where().representation(), is("Ref{doc.parted_pks.name, text} = x"));
 
         MergePhase mergePhase = merge.mergePhase();
         assertThat(mergePhase.outputTypes().size(), is(3));
@@ -327,7 +327,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         Merge merge = (Merge) qtf.subPlan();
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) ((Collect) merge.subPlan()).collectPhase());
 
-        assertThat(collectPhase.where().representation(), is("Ref{doc.users.name, string} = x"));
+        assertThat(collectPhase.where().representation(), is("Ref{doc.users.name, text} = x"));
 
         MergePhase mergePhase = merge.mergePhase();
         assertThat(mergePhase.outputTypes().size(), is(2));

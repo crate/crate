@@ -593,36 +593,36 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertThat(printedTable(response.rows()), is(
             "character_maximum_length| integer\n" +
             "character_octet_length| integer\n" +
-            "character_set_catalog| string\n" +
-            "character_set_name| string\n" +
-            "character_set_schema| string\n" +
+            "character_set_catalog| text\n" +
+            "character_set_name| text\n" +
+            "character_set_schema| text\n" +
             "check_action| integer\n" +
-            "check_references| string\n" +
-            "collation_catalog| string\n" +
-            "collation_name| string\n" +
-            "collation_schema| string\n" +
-            "column_default| string\n" +
-            "column_name| string\n" +
-            "data_type| string\n" +
+            "check_references| text\n" +
+            "collation_catalog| text\n" +
+            "collation_name| text\n" +
+            "collation_schema| text\n" +
+            "column_default| text\n" +
+            "column_name| text\n" +
+            "data_type| text\n" +
             "datetime_precision| integer\n" +
-            "domain_catalog| string\n" +
-            "domain_name| string\n" +
-            "domain_schema| string\n" +
-            "generation_expression| string\n" +
+            "domain_catalog| text\n" +
+            "domain_name| text\n" +
+            "domain_schema| text\n" +
+            "generation_expression| text\n" +
             "interval_precision| integer\n" +
-            "interval_type| string\n" +
-            "is_generated| string\n" +
+            "interval_type| text\n" +
+            "is_generated| text\n" +
             "is_nullable| boolean\n" +
             "numeric_precision| integer\n" +
             "numeric_precision_radix| integer\n" +
             "numeric_scale| integer\n" +
             "ordinal_position| integer\n" +
-            "table_catalog| string\n" +
-            "table_name| string\n" +
-            "table_schema| string\n" +
-            "udt_catalog| string\n" +
-            "udt_name| string\n" +
-            "udt_schema| string\n")
+            "table_catalog| text\n" +
+            "table_name| text\n" +
+            "table_schema| text\n" +
+            "udt_catalog| text\n" +
+            "udt_name| text\n" +
+            "udt_schema| text\n")
         );
     }
 
@@ -637,13 +637,13 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
             "oid| integer\n" +
             "typarray| integer\n" +
             "typbasetype| integer\n" +
-            "typdelim| string\n" +
+            "typdelim| text\n" +
             "typelem| integer\n" +
-            "typlen| short\n" +
-            "typname| string\n" +
+            "typlen| smallint\n" +
+            "typname| text\n" +
             "typnamespace| integer\n" +
             "typnotnull| boolean\n" +
-            "typtype| string\n" +
+            "typtype| text\n" +
             "typtypmod| integer\n"
         ));
     }
@@ -741,12 +741,12 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertEquals("test", response.rows()[0][0]);
         assertEquals("col1", response.rows()[0][1]);
         assertEquals(1, response.rows()[0][2]);
-        assertEquals("string", response.rows()[0][3]);
+        assertEquals("text", response.rows()[0][3]);
 
         assertEquals("test", response.rows()[1][0]);
         assertEquals("col2", response.rows()[1][1]);
         assertEquals(2, response.rows()[1][2]);
-        assertEquals("string", response.rows()[1][3]);
+        assertEquals("text", response.rows()[1][3]);
     }
 
     @Test
@@ -1092,9 +1092,9 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(4L));
 
         String expected = "data_points| data| object\n" +
-                          "data_points| data['somelongroute']| long\n" +
-                          "data_points| data['somestringroute']| string\n" +
-                          "data_points| day| string\n";
+                          "data_points| data['somelongroute']| bigint\n" +
+                          "data_points| data['somestringroute']| text\n" +
+                          "data_points| day| text\n";
         assertEquals(expected, printedTable(response.rows()));
     }
 

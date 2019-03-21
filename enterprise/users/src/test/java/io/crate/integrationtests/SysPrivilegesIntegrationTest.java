@@ -65,12 +65,12 @@ public class SysPrivilegesIntegrationTest extends BaseUsersIntegrationTest {
     public void testTableColumns() {
         executeAsSuperuser("select column_name, data_type from information_schema.columns" +
                 " where table_name='privileges' and table_schema='sys'");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("class| string\n" +
-                                                                    "grantee| string\n" +
-                                                                    "grantor| string\n" +
-                                                                    "ident| string\n" +
-                                                                    "state| string\n" +
-                                                                    "type| string\n"));
+        assertThat(TestingHelpers.printedTable(response.rows()), is("class| text\n" +
+                                                                    "grantee| text\n" +
+                                                                    "grantor| text\n" +
+                                                                    "ident| text\n" +
+                                                                    "state| text\n" +
+                                                                    "type| text\n"));
     }
 
     @Test

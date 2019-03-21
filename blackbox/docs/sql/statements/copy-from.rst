@@ -25,7 +25,7 @@ where ``option`` can be one of:
 - ``bulk_size`` *integer*
 - ``shared`` *boolean*
 - ``num_readers`` *integer*
-- ``compression`` *string*
+- ``compression`` *text*
 - ``overwrite_duplicates`` *boolean*
 
 Description
@@ -332,18 +332,18 @@ inserted records.
 | ``node``                              | Information about the node that has processed  | ``OBJECT``    |
 |                                       | the URI resource.                              |               |
 +---------------------------------------+------------------------------------------------+---------------+
-| ``node['id']``                        | The id of the node.                            | ``STRING``    |
+| ``node['id']``                        | The id of the node.                            | ``TEXT``      |
 +---------------------------------------+------------------------------------------------+---------------+
-| ``node['name']``                      | The name of the node.                          | ``STRING``    |
+| ``node['name']``                      | The name of the node.                          | ``TEXT``      |
 +---------------------------------------+------------------------------------------------+---------------+
-| ``uri``                               | The URI the node has processed.                | ``STRING``    |
+| ``uri``                               | The URI the node has processed.                | ``TEXT``      |
 +---------------------------------------+------------------------------------------------+---------------+
-| ``error_count``                       | The total number of records which failed.      | ``LONG``      |
+| ``error_count``                       | The total number of records which failed.      | ``BIGINT``    |
 |                                       | A NULL value indicates a general URI reading   |               |
 |                                       | error, the error will be listed inside the     |               |
 |                                       | ``errors`` column.                             |               |
 +---------------------------------------+------------------------------------------------+---------------+
-| ``success_count``                     | The total number of records which were         | ``LONG``      |
+| ``success_count``                     | The total number of records which were         | ``BIGINT``    |
 |                                       | inserted.                                      |               |
 |                                       | A NULL value indicates a general URI reading   |               |
 |                                       | error, the error will be listed inside the     |               |
@@ -354,7 +354,7 @@ inserted records.
 +---------------------------------------+------------------------------------------------+---------------+
 | ``errors[ERROR_MSG]``                 | Contains information about a type of an error. | ``OBJECT``    |
 +---------------------------------------+------------------------------------------------+---------------+
-| ``errors[ERROR_MSG]['count']``        | The number records failed with this error.     | ``LONG``      |
+| ``errors[ERROR_MSG]['count']``        | The number records failed with this error.     | ``BIGINT``    |
 +---------------------------------------+------------------------------------------------+---------------+
 | ``errors[ERROR_MSG]['line_numbers']`` | The line numbers of the source URI where the   | ``ARRAY``     |
 |                                       | error occurred.                                |               |

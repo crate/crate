@@ -120,7 +120,7 @@ public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTe
         );
 
         String validation = udfService.getLanguage(JS).validate(udfMeta);
-        assertThat(validation, startsWith("Invalid JavaScript in function 'doc.f(double)'"));
+        assertThat(validation, startsWith("Invalid JavaScript in function 'doc.f(double precision)'"));
         assertThat(validation, endsWith("^ in <eval> at line number 1 at column number 27"));
     }
 

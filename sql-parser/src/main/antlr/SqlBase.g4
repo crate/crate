@@ -533,10 +533,15 @@ rerouteOption
     ;
 
 dataType
-    : ident                     #dataTypeIdent
+    : definedDataType           #defDataType
+    | ident                     #dataTypeIdent
     | objectTypeDefinition      #objectDataType
     | arrayTypeDefinition       #arrayDataType
     | setTypeDefinition         #setDataType
+    ;
+
+definedDataType
+    : DOUBLE PRECISION
     ;
 
 objectTypeDefinition
@@ -658,7 +663,7 @@ nonReserved
     | REROUTE | MOVE | SHARD | ALLOCATE | REPLICA | CANCEL | CLUSTER | RETRY | FAILED
     | DO | NOTHING | CONFLICT | TRANSACTION_ISOLATION | RETURN | SUMMARY
     | WORK | SERIALIZABLE | REPEATABLE | COMMITTED | UNCOMMITTED | READ | WRITE | DEFERRABLE
-    | STRING_TYPE | IP | DOUBLE | FLOAT | TIMESTAMP | LONG | INT | INTEGER | SHORT | BYTE | BOOLEAN
+    | STRING_TYPE | IP | DOUBLE | FLOAT | TIMESTAMP | LONG | INT | INTEGER | SHORT | BYTE | BOOLEAN | PRECISION
     | REPLACE | SWAP | GC | DANGLING | ARTIFACTS | DECOMMISSION | LEADING | TRAILING | BOTH | TRIM
     ;
 
@@ -784,6 +789,7 @@ INT: 'INT';
 LONG: 'LONG';
 FLOAT: 'FLOAT';
 DOUBLE: 'DOUBLE';
+PRECISION: 'PRECISION';
 TIMESTAMP: 'TIMESTAMP';
 IP: 'IP';
 OBJECT: 'OBJECT';

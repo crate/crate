@@ -130,10 +130,10 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
             assertFunctionIsCreatedOnAll(sqlExecutor.getCurrentSchema(), "foo", ImmutableList.of(DataTypes.STRING));
 
             execute("select foo(str) from test order by id asc");
-            assertThat(response.rows()[0][0], is("DUMMY EATS string"));
+            assertThat(response.rows()[0][0], is("DUMMY EATS text"));
 
             execute("select foo(id) from test order by id asc");
-            assertThat(response.rows()[0][0], is("DUMMY EATS long"));
+            assertThat(response.rows()[0][0], is("DUMMY EATS bigint"));
         } finally {
             dropFunction("foo", ImmutableList.of(DataTypes.LONG));
             dropFunction("foo", ImmutableList.of(DataTypes.STRING));
@@ -189,10 +189,10 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
             assertThat(response.rowCount(), is(1L));
             assertThat(response.rows()[0][0], is("subtract_test"));
             assertThat(response.rows()[0][1], is("dummy_lang"));
-            assertThat(response.rows()[0][2], is("long"));
+            assertThat(response.rows()[0][2], is("bigint"));
             assertThat(response.rows()[0][3], is("function subtract_test(a, b, c) { return a - b - c; }"));
             assertThat(response.rows()[0][4], is(sqlExecutor.getCurrentSchema()));
-            assertThat(response.rows()[0][5], is("subtract_test(long, long, long)"));
+            assertThat(response.rows()[0][5], is("subtract_test(bigint, bigint, bigint)"));
         } finally {
             execute("drop function if exists subtract_test(long, long, long)");
         }
@@ -241,7 +241,7 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
     }
 
     private void dropFunction(String name, List<DataType> types) throws Exception {
-        execute(String.format(Locale.ENGLISH, "drop function %s(%s)",
+        execute(String.format(Locale.ENGLISH, "drop function %s(\"%s\")",
             name, types.stream().map(DataType::getName).collect(Collectors.joining(", "))));
         assertThat(response.rowCount(), is(1L));
         assertFunctionIsDeletedOnAll(sqlExecutor.getCurrentSchema(), name, types);

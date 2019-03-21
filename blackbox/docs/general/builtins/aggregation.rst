@@ -45,7 +45,7 @@ query.
 ``count(columName)`` is also possible, but currently only works on a primary key
 column. The semantics are the same.
 
-The return value is always of type ``long``.
+The return value is always of type ``bigint``.
 
 ::
 
@@ -151,8 +151,8 @@ Example::
     SELECT 1 row in set (... sec)
 
 ``min`` returns ``NULL`` if the column does not contain any value but ``NULL``.
-It is allowed on columns with primitive data types. On ``string`` columns it
-will return the lexicographically smallest.
+It is allowed on columns with primitive data types. On ``text`` columns it will
+return the lexicographically smallest.
 
 ::
 
@@ -213,10 +213,11 @@ Some Examples::
 =======
 
 returns the sum of a set of numeric input values that are not ``NULL``.
-Depending on the argument type a suitable return type is chosen. For float and
-double argument types the return type is equal to the argument type. For byte,
-short, integer and long the return type changes to long. If the range of long
-values (-2^64 to 2^64-1) gets exceeded an ArithmeticException will be raised.
+Depending on the argument type a suitable return type is chosen. For ``real``
+and ``double precison`` argument types the return type is equal to the argument
+type. For ``char``, ``smallint``, ``integer`` and ``bigint`` the return type
+changes to ``bigint``. If the range of ``bigint`` values (-2^64 to 2^64-1) gets
+exceeded an `ArithmeticException` will be raised.
 
 ::
 
@@ -244,15 +245,15 @@ values (-2^64 to 2^64-1) gets exceeded an ArithmeticException will be raised.
 ::
 
     cr> select sum(name), kind from locations group by kind order by sum(name) desc;
-    SQLActionException[SQLParseException: Cannot cast name to type [double, float, long, integer, short, byte]]
+    SQLActionException[SQLParseException: Cannot cast name to type [double precision, real, bigint, integer, smallint, char]]
 
 ``avg`` and ``mean``
 ====================
 
 The ``avg`` and ``mean`` aggregation function returns the arithmetic mean, the
-*average*, of all values in a column that are not ``NULL`` as a double value.
-It accepts all numeric columns and timestamp columns as single argument. Using
-``avg`` on other column types is not allowed.
+*average*, of all values in a column that are not ``NULL`` as a
+``double precision`` value. It accepts all numeric columns and timestamp
+columns as single argument. Using ``avg`` on other column types is not allowed.
 
 Example::
 
@@ -334,8 +335,8 @@ non-null values in a column. It is a measure about how far a set of numbers is
 spread. A variance of ``0.0`` indicates that all values are the same.
 
 ``variance`` is defined on all numeric types and on timestamp. It returns a
-double value. If all values were null or we got no value at all ``NULL`` is
-returned.
+``double precision`` value. If all values were null or we got no value at all
+``NULL`` is returned.
 
 Example::
 
@@ -365,8 +366,8 @@ values. A low standard deviation indicates that the values tend to be near the
 mean.
 
 ``stddev`` is defined on all numeric types and on timestamp. It always returns
-double values. If all values were null or we got no value at all ``NULL`` is
-returned.
+``double precision`` values. If all values were null or we got no value at all
+``NULL`` is returned.
 
 Example::
 
@@ -401,10 +402,10 @@ be defined conveniently as the 50th percentile.
 
 The function expects a single fraction or an array of fractions and a column
 name. Independent of the input column data type the result of ``percentile``
-always returns a double. If the value at the specified column is ``null`` the
-row is ignored. Fractions must be double precision values between 0 and 1. When
-supplied a single fraction, the function will return a single value
-corresponding to the percentile of the specified fraction::
+always returns a ``double precision``. If the value at the specified column is
+``null`` the row is ignored. Fractions must be double precision values between
+0 and 1. When supplied a single fraction, the function will return a single
+value corresponding to the percentile of the specified fraction::
 
     cr> select percentile(position, 0.95), kind from locations
     ... group by kind order by kind;
@@ -501,7 +502,7 @@ do.
 The ``hyperloglog_distinct`` aggregate function calculates an approximate count
 of distinct non-null values using the `HyperLogLog++`_ algorithm.
 
-The return value data type is always a long.
+The return value data type is always a ``bigint``.
 
 The first argument can be a reference to a column of all
 :ref:`sql_ddl_datatypes_primitives`. :ref:`sql_ddl_datatypes_compound` and

@@ -37,7 +37,7 @@ SHARDS`` statement upon the table creation.
 Example::
 
     cr> create table my_table5 (
-    ...   first_column int
+    ...   first_column integer
     ... ) clustered into 10 shards;
     CREATE OK, 1 row affected (... sec)
 
@@ -71,8 +71,8 @@ The column used for routing can be freely defined using the ``CLUSTERED BY
 Example::
 
     cr> create table my_table6 (
-    ...   first_column int,
-    ...   second_column string
+    ...   first_column integer,
+    ...   second_column text
     ... ) clustered by (first_column);
     CREATE OK, 1 row affected (... sec)
 
@@ -83,17 +83,17 @@ If the routing column is defined explicitly, it must match a primary key
 column::
 
     cr> create table my_table8 (
-    ...   first_column int primary key,
-    ...   second_column string primary key,
-    ...   third_column string
+    ...   first_column integer primary key,
+    ...   second_column text primary key,
+    ...   third_column text
     ... ) clustered by (first_column);
     CREATE OK, 1 row affected (... sec)
 
 Example for combining custom routing and shard definition::
 
     cr> create table my_table9 (
-    ...   first_column int primary key,
-    ...   second_column string primary key,
-    ...   third_column string
+    ...   first_column integer primary key,
+    ...   second_column text primary key,
+    ...   third_column text
     ... ) clustered by (first_column) into 10 shards;
     CREATE OK, 1 row affected (... sec)

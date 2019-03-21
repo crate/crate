@@ -41,6 +41,27 @@ Unreleased Changes
 Breaking Changes
 ================
 
+- Renamed CrateDB data types to the corresponding PostgreSQL data types.
+
+   +--------------+----------------------+
+   | Current Name | New Name             |
+   +==============+======================+
+   | ``short``    | ``smallint``         |
+   +--------------+----------------------+
+   | ``long``     | ``bigint``           |
+   +--------------+----------------------+
+   | ``float``    | ``real``             |
+   +--------------+----------------------+
+   | ``double``   | ``double precision`` |
+   +--------------+----------------------+
+   | ``byte``     | ``char``             |
+   +--------------+----------------------+
+   | ``string``   | ``text``             |
+   +--------------+----------------------+
+
+  See :ref:`data-types` for more detailed information. The old data type names
+  are registered as aliases for backward comparability.
+
 - Removed the deprecated ``license.enterprise`` setting. To use CrateDB without
   any enterprise features one should use the Community Edition instead.
 

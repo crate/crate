@@ -94,9 +94,9 @@ public class MatchesFunctionTest extends AbstractScalarFunctionsTest {
     }
 
     @Test
-    public void testNormalizeSymbolWithInvalidNumberOfArguments() throws Exception {
+    public void testNormalizeSymbolWithInvalidNumberOfArguments() {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: regexp_matches(string)");
+        expectedException.expectMessage("unknown function: regexp_matches(text)");
         assertNormalize("regexp_matches('foobar')", null);
     }
 }

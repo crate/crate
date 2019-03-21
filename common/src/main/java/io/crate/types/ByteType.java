@@ -47,7 +47,7 @@ public class ByteType extends DataType<Byte> implements Streamer<Byte>, FixedWid
 
     @Override
     public String getName() {
-        return "byte";
+        return "char";
     }
 
     @Override

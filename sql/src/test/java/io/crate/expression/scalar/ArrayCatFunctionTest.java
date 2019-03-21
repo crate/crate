@@ -57,9 +57,9 @@ public class ArrayCatFunctionTest extends AbstractScalarFunctionsTest {
     }
 
     @Test
-    public void testOneArgument() throws Exception {
+    public void testOneArgument() {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: array_cat(long_array)");
+        expectedException.expectMessage("unknown function: array_cat(bigint_array)");
         assertEvaluate("array_cat([1])", null);
     }
 

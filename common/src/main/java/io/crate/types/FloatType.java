@@ -47,7 +47,7 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, Fixed
 
     @Override
     public String getName() {
-        return "float";
+        return "real";
     }
 
     @Override

@@ -387,13 +387,13 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testAnyWithArrayOnBothSidesResultsInNiceErrorMessage() {
-        expectedException.expectMessage("Cannot cast long to type integer_array");
+        expectedException.expectMessage("Cannot cast bigint to type integer_array");
         executor.analyze("select * from tarr where xs = ANY([10, 20])");
     }
 
     @Test
     public void testCallingUnknownFunctionWithExplicitSchemaRaisesNiceError() {
-        expectedException.expectMessage("unknown function: foo.bar(long)");
+        expectedException.expectMessage("unknown function: foo.bar(bigint)");
         executor.analyze("select foo.bar(1)");
     }
 

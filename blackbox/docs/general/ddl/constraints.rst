@@ -19,7 +19,7 @@ Example::
 
     cr> create table my_table1 (
     ...   first_column integer primary key,
-    ...   second_column string
+    ...   second_column text
     ... );
     CREATE OK, 1 row affected (... sec)
 
@@ -30,8 +30,8 @@ Defining multiple columns with a primary key constraint is also supported::
 
     cr> create table my_table1pk (
     ...   first_column integer primary key,
-    ...   second_column string primary key,
-    ...   third_column string
+    ...   second_column text primary key,
+    ...   third_column text
     ... );
     CREATE OK, 1 row affected (... sec)
 
@@ -39,8 +39,8 @@ Or using a alternate syntax::
 
     cr> create table my_table1pk1 (
     ...   first_column integer,
-    ...   second_column string,
-    ...   third_column string,
+    ...   second_column text,
+    ...   third_column text,
     ...   primary key (first_column, second_column)
     ... );
     CREATE OK, 1 row affected (... sec)
@@ -61,7 +61,7 @@ Example::
 
     cr> create table my_table2 (
     ...   first_column integer primary key,
-    ...   second_column string not null
+    ...   second_column text not null
     ... );
     CREATE OK, 1 row affected (... sec)
 

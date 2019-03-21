@@ -28,7 +28,7 @@ Syntax:
 
     expression IN (value [, ...])
 
-The binary operator ``IN`` allows you to verfiy the membership of the left-hand
+The binary operator ``IN`` allows you to verify the membership of the left-hand
 operand in the right-hand parenthesized list of scalar expressions.
 
 Returns ``true`` if any of the right-hand expression is found in the result of

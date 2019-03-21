@@ -53,9 +53,9 @@ public class GeoHashFunctionTest extends AbstractScalarFunctionsTest {
     }
 
     @Test
-    public void testWithTooManyArguments() throws Exception {
+    public void testWithTooManyArguments() {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: geohash(string, string)");
+        expectedException.expectMessage("unknown function: geohash(text, text)");
         assertNormalize("geohash('POINT (10 20)', 'foo')", null);
     }
 

@@ -63,8 +63,8 @@ public class UserManagementIntegrationTest extends BaseUsersIntegrationTest {
     public void testSysUsersTableColumns() throws Exception {
         // The sys users table contains two columns, name and superuser
         executeAsSuperuser("select column_name, data_type from information_schema.columns where table_name='users' and table_schema='sys'");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("name| string\n" +
-                                                                    "password| string\n" +
+        assertThat(TestingHelpers.printedTable(response.rows()), is("name| text\n" +
+                                                                    "password| text\n" +
                                                                     "superuser| boolean\n"));
     }
 
