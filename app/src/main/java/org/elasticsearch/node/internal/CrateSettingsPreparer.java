@@ -27,14 +27,12 @@ import io.crate.metadata.settings.CrateSettings;
 import io.crate.settings.CrateSetting;
 import org.apache.lucene.util.IOUtils;
 import org.elasticsearch.cli.UserException;
-import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.common.logging.LogConfigurator;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.SettingsException;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.node.InternalSettingsPreparer;
 import org.elasticsearch.node.Node;
-import org.elasticsearch.transport.Netty4Plugin;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -48,10 +46,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Function;
-
-import static org.elasticsearch.common.network.NetworkModule.TRANSPORT_TYPE_DEFAULT_KEY;
-import static org.elasticsearch.common.network.NetworkService.DEFAULT_NETWORK_HOST;
-import static org.elasticsearch.common.network.NetworkService.GLOBAL_NETWORK_HOST_SETTING;
 
 public class CrateSettingsPreparer {
 
@@ -115,27 +109,9 @@ public class CrateSettingsPreparer {
 
     @VisibleForTesting
     static void applyCrateDefaults(Settings.Builder settingsBuilder) {
-        // read also from crate.yml by default if no other config path has been set
-        // if there is also a elasticsearch.yml file this file will be read first and the settings in crate.yml
-        // will overwrite them.
-        putIfAbsent(settingsBuilder, TRANSPORT_TYPE_DEFAULT_KEY, Netty4Plugin.NETTY_TRANSPORT_NAME);
-        putIfAbsent(settingsBuilder, GLOBAL_NETWORK_HOST_SETTING.getKey(), DEFAULT_NETWORK_HOST);
-
-        // Set the default cluster name if not explicitly defined
-        String clusterName = settingsBuilder.get(ClusterName.CLUSTER_NAME_SETTING.getKey());
-        if (clusterName == null || clusterName.equals(ClusterName.DEFAULT.value())) {
-            settingsBuilder.put(ClusterName.CLUSTER_NAME_SETTING.getKey(), "crate");
-        }
-
         // Set a random node name if none is explicitly defined
         if (settingsBuilder.get(Node.NODE_NAME_SETTING.getKey()) == null) {
             settingsBuilder.put(Node.NODE_NAME_SETTING.getKey(), randomNodeName());
-        }
-    }
-
-    private static void putIfAbsent(Settings.Builder settingsBuilder, String setting, String value) {
-        if (settingsBuilder.get(setting) == null) {
-            settingsBuilder.put(setting, value);
         }
     }
 

@@ -22,15 +22,11 @@
 
 package org.elasticsearch.node.internal;
 
-import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.common.io.PathUtils;
-import org.elasticsearch.common.network.NetworkModule;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.SettingsException;
-import org.elasticsearch.http.HttpTransportSettings;
 import org.elasticsearch.node.Node;
-import org.elasticsearch.transport.Netty4Plugin;
 import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
@@ -39,12 +35,10 @@ import org.junit.rules.ExpectedException;
 import java.nio.file.Path;
 import java.util.HashMap;
 
-import static org.elasticsearch.transport.TcpTransport.PORT;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.isIn;
-import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
@@ -86,9 +80,6 @@ public class CrateSettingsPreparerTest {
     public void testDefaultCrateSettings() throws Exception {
         Settings.Builder builder = Settings.builder();
         CrateSettingsPreparer.applyCrateDefaults(builder);
-
-        assertThat(builder.get(NetworkModule.TRANSPORT_TYPE_DEFAULT_KEY), is(Netty4Plugin.NETTY_TRANSPORT_NAME));
-        assertThat(builder.get(NetworkService.GLOBAL_NETWORK_HOST_SETTING.getKey()), is(NetworkService.DEFAULT_NETWORK_HOST));
         assertThat(builder.get(Node.NODE_NAME_SETTING.getKey()), isIn(CrateSettingsPreparer.nodeNames()));
     }
 

@@ -78,7 +78,7 @@ OBJECT``. With CrateDB, Binary Data is instead stored in separate BLOB Tables
 Transactions (``BEGIN``, ``COMMIT``, and ``ROLLBACK``)
 ------------------------------------------------------
 
-CrateDB is focussed on providing analytical capabilities over supporting
+CrateDB is focused on providing analytical capabilities over supporting
 traditional transactional use cases, and thus it does not provide transaction
 control. Every statement commits immediately and is replicated within the
 cluster.
