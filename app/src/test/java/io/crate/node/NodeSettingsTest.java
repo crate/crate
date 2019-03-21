@@ -27,8 +27,10 @@ import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.elasticsearch.cli.Terminal;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
-import org.elasticsearch.node.internal.CrateSettingsPreparer;
+import org.elasticsearch.node.InternalSettingsPreparer;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
@@ -97,7 +99,7 @@ public class NodeSettingsTest extends CrateUnitTest {
         // Avoid connecting to other test nodes
         settings.put("discovery.type", "single-node");
 
-        Environment environment = CrateSettingsPreparer.prepareEnvironment(settings, configPath);
+        Environment environment = InternalSettingsPreparer.prepareEnvironment(Settings.EMPTY, Terminal.DEFAULT, settings, configPath);
         node = new CrateNode(environment);
         node.start();
         sqlOperations = node.injector().getInstance(SQLOperations.class);
