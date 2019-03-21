@@ -38,6 +38,7 @@ import io.crate.types.DataType;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.BiPredicate;
 
 /**
@@ -125,7 +126,7 @@ public class WindowBatchIterator extends MappedForwardingBatchIterator<Row, Row>
         arePeerCellsPredicate = (prevRowCells, currentRowCells) -> {
             for (int i = 0; i < orderByIndexes.length; i++) {
                 int samplingIndex = orderByIndexes[i];
-                if (!prevRowCells[samplingIndex].equals(currentRowCells[samplingIndex])) {
+                if (!Objects.equals(prevRowCells[samplingIndex], currentRowCells[samplingIndex])) {
                     return false;
                 }
             }

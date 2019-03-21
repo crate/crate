@@ -22,8 +22,13 @@
 
 package io.crate.execution.engine.window;
 
+import com.google.common.collect.ImmutableList;
+import io.crate.analyze.OrderBy;
 import io.crate.analyze.WindowDefinition;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.data.InMemoryBatchIterator;
+import io.crate.data.Row1;
+import io.crate.expression.symbol.Literal;
 import io.crate.testing.BatchIteratorTester;
 import io.crate.testing.BatchSimulatingIterator;
 import io.crate.testing.TestingBatchIterators;
@@ -38,8 +43,11 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import static io.crate.data.SentinelRow.SENTINEL;
+import static java.util.Collections.singletonList;
 import static org.elasticsearch.common.collect.Tuple.tuple;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
 
 public class WindowBatchIteratorTest {
@@ -133,8 +141,32 @@ public class WindowBatchIteratorTest {
         assertThat(ramAccountingContext.totalBytes(), is(480L));
     }
 
+    @Test
+    public void testWindowBatchIteratorWithOrderedWindowOverNullValues() throws Exception {
+        OrderBy orderBy = new OrderBy(singletonList(Literal.of(1L)), new boolean[]{true}, new Boolean[]{true});
+        WindowDefinition windowDefinition = new WindowDefinition(Collections.emptyList(), orderBy, null);
+
+        WindowBatchIterator windowBatchIterator = new WindowBatchIterator(
+            windowDefinition,
+            Collections.emptyList(),
+            Collections.emptyList(),
+            InMemoryBatchIterator.of(ImmutableList.of(new Row1(null), new Row1(2)), SENTINEL),
+            Collections.singletonList(seenNull()),
+            Collections.singletonList(DataTypes.INTEGER),
+            ramAccountingContext,
+            new int[]{0});
+        TestingRowConsumer consumer = new TestingRowConsumer();
+        consumer.accept(windowBatchIterator, null);
+
+        List<Object[]> result = consumer.getResult();
+        assertThat(result, containsInAnyOrder(new Object[]{true}, new Object[]{false}));
+    }
+
     private static WindowDefinition emptyWindow() {
         return new WindowDefinition(Collections.emptyList(), null, null);
     }
 
+    private static WindowFunction seenNull() {
+        return (rowIdx, currentFrame) -> currentFrame.getRows().iterator().next()[0] == null;
+    }
 }
