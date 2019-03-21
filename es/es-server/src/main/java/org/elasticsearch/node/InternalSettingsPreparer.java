@@ -19,10 +19,8 @@
 
 package org.elasticsearch.node;
 
-import org.elasticsearch.Version;
 import org.elasticsearch.cli.Terminal;
 import org.elasticsearch.cluster.ClusterName;
-import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.logging.LogConfigurator;
 import org.elasticsearch.common.settings.Settings;
@@ -41,10 +39,6 @@ import java.util.function.Function;
 import static org.elasticsearch.node.NodeNames.randomNodeName;
 
 public class InternalSettingsPreparer {
-
-
-    public static final String SECRET_PROMPT_VALUE = "${prompt.secret}";
-    public static final String TEXT_PROMPT_VALUE = "${prompt.text}";
 
     /**
      * Prepares the settings by gathering all elasticsearch system properties, optionally loading the configuration settings,
@@ -140,57 +134,5 @@ public class InternalSettingsPreparer {
         if (output.get(Node.NODE_NAME_SETTING.getKey()) == null) {
             output.put(Node.NODE_NAME_SETTING.getKey(), randomNodeName());
         }
-
-        replacePromptPlaceholders(output, terminal);
-    }
-
-    private static void replacePromptPlaceholders(Settings.Builder settings, Terminal terminal) {
-        List<String> secretToPrompt = new ArrayList<>();
-        List<String> textToPrompt = new ArrayList<>();
-        for (String key : settings.keys()) {
-            switch (settings.get(key)) {
-                case SECRET_PROMPT_VALUE:
-                    secretToPrompt.add(key);
-                    break;
-                case TEXT_PROMPT_VALUE:
-                    textToPrompt.add(key);
-                    break;
-            }
-        }
-        for (String setting : secretToPrompt) {
-            String secretValue = promptForValue(setting, terminal, true);
-            if (Strings.hasLength(secretValue)) {
-                settings.put(setting, secretValue);
-            } else {
-                // TODO: why do we remove settings if prompt returns empty??
-                settings.remove(setting);
-            }
-        }
-        for (String setting : textToPrompt) {
-            String textValue = promptForValue(setting, terminal, false);
-            if (Strings.hasLength(textValue)) {
-                settings.put(setting, textValue);
-            } else {
-                // TODO: why do we remove settings if prompt returns empty??
-                settings.remove(setting);
-            }
-        }
-    }
-
-    private static String promptForValue(String key, Terminal terminal, boolean secret) {
-        if (terminal == null) {
-            throw new UnsupportedOperationException("found property [" + key + "] with value ["
-                + (secret ? SECRET_PROMPT_VALUE : TEXT_PROMPT_VALUE)
-                + "]. prompting for property values is only supported when running elasticsearch in the foreground");
-        }
-
-        terminal.println(Terminal.Verbosity.SILENT,
-            "Prompting for property values is deprecated since " + Version.ES_V_6_5_1
-                + ". Some setting values can be stored in the keystore. Consult the docs for more information.");
-
-        if (secret) {
-            return new String(terminal.readSecret("Enter value for [" + key + "]: "));
-        }
-        return terminal.readText("Enter value for [" + key + "]: ");
     }
 }
