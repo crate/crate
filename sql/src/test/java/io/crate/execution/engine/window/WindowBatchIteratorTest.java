@@ -22,11 +22,15 @@
 
 package io.crate.execution.engine.window;
 
+import io.crate.analyze.OrderBy;
 import io.crate.analyze.WindowDefinition;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Row;
+import io.crate.data.Row1;
 import io.crate.execution.engine.collect.CollectExpression;
+import io.crate.expression.symbol.Literal;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.testing.BatchIteratorTester;
@@ -43,8 +47,11 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import static io.crate.data.SentinelRow.SENTINEL;
+import static java.util.Collections.singletonList;
 import static org.elasticsearch.common.collect.Tuple.tuple;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 
 public class WindowBatchIteratorTest {
@@ -139,8 +146,47 @@ public class WindowBatchIteratorTest {
         assertThat(ramAccountingContext.totalBytes(), is(480L));
     }
 
+    @Test
+    public void testWindowBatchIteratorWithOrderedWindowOverNullValues() throws Exception {
+        OrderBy orderBy = new OrderBy(singletonList(Literal.of(1L)), new boolean[]{true}, new Boolean[]{true});
+        WindowDefinition windowDefinition = new WindowDefinition(Collections.emptyList(), orderBy, null);
+
+        WindowBatchIterator windowBatchIterator = new WindowBatchIterator(
+            windowDefinition,
+            Collections.emptyList(),
+            Collections.emptyList(),
+            InMemoryBatchIterator.of(List.of(new Row1(null), new Row1(2)), SENTINEL),
+            Collections.singletonList(firstCellValue()),
+            Collections.emptyList(),
+            Collections.singletonList(DataTypes.INTEGER),
+            ramAccountingContext,
+            new int[]{0},
+            new Input[0]);
+        TestingRowConsumer consumer = new TestingRowConsumer();
+        consumer.accept(windowBatchIterator, null);
+
+        List<Object[]> result = consumer.getResult();
+        assertThat(result, contains(new Object[]{null}, new Object[]{null}));
+    }
+
     private static WindowDefinition emptyWindow() {
         return new WindowDefinition(Collections.emptyList(), null, null);
+    }
+
+    private static WindowFunction firstCellValue() {
+        return new WindowFunction() {
+            @Override
+            public Object execute(int rowIdx, WindowFrameState currentFrame, List<? extends CollectExpression<Row, ?>> expressions, Input... args) {
+                return currentFrame.getRows().iterator().next()[0];
+            }
+
+            @Override
+            public FunctionInfo info() {
+                return new FunctionInfo(
+                    new FunctionIdent("first_cell_value", Collections.emptyList()),
+                    DataTypes.INTEGER);
+            }
+        };
     }
 
     private static WindowFunction rowNumberWindowFunction() {
