@@ -46,6 +46,9 @@ dependencies {
     compile "org.apache.logging.log4j:log4j-1.2-api:${versions.log4j2}"
 
     compile "net.java.dev.jna:jna:${versions.jna}"
+
+    testCompile "junit:junit:${versions.junit}"
+    testCompile "org.hamcrest:hamcrest-all:${versions.hamcrest}"
 }
 
 task getVersion(dependsOn: 'classes') {
