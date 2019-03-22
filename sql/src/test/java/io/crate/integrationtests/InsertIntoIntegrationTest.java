@@ -461,20 +461,22 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testInsertFromQueryWithSysColumn() throws Exception {
-        execute("create table target (name string, a string, b string) clustered into 1 shards with (number_of_replicas = 0)");
+        execute("create table target (name string, a string, b string, docid int) " +
+                "clustered into 1 shards with (number_of_replicas = 0)");
         execute("create table source (name string) clustered into 1 shards with (number_of_replicas = 0)");
         ensureYellow();
 
         execute("insert into source (name) values ('yalla')");
         execute("refresh table source");
 
-        execute("insert into target (name, a, b) (select name, _raw, _id from source)");
+        execute("insert into target (name, a, b, docid) (select name, _raw, _id, _docid from source)");
         execute("refresh table target");
 
-        execute("select name, a, b from target");
-        assertThat((String) response.rows()[0][0], is("yalla"));
-        assertThat((String) response.rows()[0][1], is("{\"name\":\"yalla\"}"));
-        assertThat((String) response.rows()[0][2], IsNull.notNullValue());
+        execute("select name, a, b, docid from target");
+        assertThat(response.rows()[0][0], is("yalla"));
+        assertThat(response.rows()[0][1], is("{\"name\":\"yalla\"}"));
+        assertThat(response.rows()[0][2], IsNull.notNullValue());
+        assertThat(response.rows()[0][3], is(0));
     }
 
     @Test

@@ -113,6 +113,9 @@ Deprecations
 Changes
 =======
 
+- Added a new ``_docid`` :ref:`system column
+  <sql_administration_system_columns>`.
+
 - Added :ref:`trim <scalar-trim>` scalar string function that trims
   the (leading, trailing or both) set of characters from an input string.
 

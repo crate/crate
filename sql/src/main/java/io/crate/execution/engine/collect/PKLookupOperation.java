@@ -131,6 +131,7 @@ public final class PKLookupOperation {
                     throw new RuntimeException(e);
                 }
                 return new Doc(
+                    docIdAndVersion.docId,
                     shard.shardId().getIndexName(),
                     id,
                     docIdAndVersion.version,

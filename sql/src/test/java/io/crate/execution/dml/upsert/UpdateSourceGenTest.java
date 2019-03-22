@@ -70,6 +70,7 @@ public class UpdateSourceGenTest extends CrateDummyClusterServiceUnitTest {
         Map<String, Object> source = singletonMap("x", 1);
         BytesReference updatedSource = updateSourceGen.generateSource(
             new Doc(
+                1,
                 table.concreteIndices()[0],
                 "1",
                 1,
@@ -109,6 +110,7 @@ public class UpdateSourceGenTest extends CrateDummyClusterServiceUnitTest {
             .endObject());
         BytesReference updatedSource = updateSourceGen.generateSource(
             new Doc(
+                1,
                 table.concreteIndices()[0],
                 "4",
                 1,
@@ -137,6 +139,7 @@ public class UpdateSourceGenTest extends CrateDummyClusterServiceUnitTest {
         );
         BytesReference updatedSource = updateSourceGen.generateSource(
             new Doc(
+                1,
                 table.concreteIndices()[0],
                 "1",
                 1,
@@ -166,7 +169,7 @@ public class UpdateSourceGenTest extends CrateDummyClusterServiceUnitTest {
         );
 
         BytesReference source = sourceGen.generateSource(
-            new Doc(table.concreteIndices()[0], "1", 1, emptyMap(), () -> "{}"),
+            new Doc(1, table.concreteIndices()[0], "1", 1, emptyMap(), () -> "{}"),
             assignments.sources(),
             new Object[0]
         );

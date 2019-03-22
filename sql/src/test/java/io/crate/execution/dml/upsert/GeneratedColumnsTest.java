@@ -72,6 +72,7 @@ public class GeneratedColumnsTest extends CrateDummyClusterServiceUnitTest {
             .endObject()
             .endObject());
         generatedColumns.setNextRow(new Doc(
+            1,
             table.concreteIndices()[0],
             "1",
             1,
