@@ -19,12 +19,6 @@
 
 package org.elasticsearch.common.transport;
 
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Streamable;
-
-import java.io.IOException;
-
 /**
  * A bounded transport address is a tuple of {@link TransportAddress}, one array that represents
  * the addresses the transport is bound to, and the other is the published one that represents the address clients
@@ -32,14 +26,11 @@ import java.io.IOException;
  *
  *
  */
-public class BoundTransportAddress implements Streamable {
+public class BoundTransportAddress {
 
     private TransportAddress[] boundAddresses;
 
     private TransportAddress publishAddress;
-
-    BoundTransportAddress() {
-    }
 
     public BoundTransportAddress(TransportAddress[] boundAddresses, TransportAddress publishAddress) {
         if (boundAddresses == null || boundAddresses.length < 1) {
@@ -55,31 +46,6 @@ public class BoundTransportAddress implements Streamable {
 
     public TransportAddress publishAddress() {
         return publishAddress;
-    }
-
-    public static BoundTransportAddress readBoundTransportAddress(StreamInput in) throws IOException {
-        BoundTransportAddress addr = new BoundTransportAddress();
-        addr.readFrom(in);
-        return addr;
-    }
-
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        int boundAddressLength = in.readInt();
-        boundAddresses = new TransportAddress[boundAddressLength];
-        for (int i = 0; i < boundAddressLength; i++) {
-            boundAddresses[i] = new TransportAddress(in);
-        }
-        publishAddress = new TransportAddress(in);
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        out.writeInt(boundAddresses.length);
-        for (TransportAddress address : boundAddresses) {
-            address.writeTo(out);
-        }
-        publishAddress.writeTo(out);
     }
 
     @Override

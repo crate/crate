@@ -22,9 +22,6 @@ package org.elasticsearch.common.unit;
 import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.logging.DeprecationLogger;
 import org.elasticsearch.common.xcontent.ToXContentFragment;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -33,7 +30,7 @@ import java.io.IOException;
 import java.util.Locale;
 import java.util.Objects;
 
-public class ByteSizeValue implements Writeable, Comparable<ByteSizeValue>, ToXContentFragment {
+public class ByteSizeValue implements Comparable<ByteSizeValue>, ToXContentFragment {
 
     private static final DeprecationLogger DEPRECATION_LOGGER = new DeprecationLogger(LogManager.getLogger(ByteSizeValue.class));
 
@@ -41,17 +38,6 @@ public class ByteSizeValue implements Writeable, Comparable<ByteSizeValue>, ToXC
 
     private final long size;
     private final ByteSizeUnit unit;
-
-    public ByteSizeValue(StreamInput in) throws IOException {
-        size = in.readZLong();
-        unit = ByteSizeUnit.readFrom(in);
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        out.writeZLong(size);
-        unit.writeTo(out);
-    }
 
     public ByteSizeValue(long bytes) {
         this(bytes, ByteSizeUnit.BYTES);

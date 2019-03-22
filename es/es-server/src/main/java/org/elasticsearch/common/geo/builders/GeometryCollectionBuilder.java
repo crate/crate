@@ -19,16 +19,13 @@
 
 package org.elasticsearch.common.geo.builders;
 
-import org.elasticsearch.common.geo.GeoShapeType;
-import org.elasticsearch.common.geo.parsers.ShapeParser;
-import org.elasticsearch.common.geo.parsers.GeoWKTParser;
-import org.locationtech.spatial4j.shape.Shape;
-
 import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.common.geo.GeoShapeType;
 import org.elasticsearch.common.geo.XShapeCollection;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.geo.parsers.GeoWKTParser;
+import org.elasticsearch.common.geo.parsers.ShapeParser;
 import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.locationtech.spatial4j.shape.Shape;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -48,24 +45,6 @@ public class GeometryCollectionBuilder extends ShapeBuilder {
      * Build and empty GeometryCollectionBuilder.
      */
     public GeometryCollectionBuilder() {
-    }
-
-    /**
-     * Read from a stream.
-     */
-    public GeometryCollectionBuilder(StreamInput in) throws IOException {
-        int shapes = in.readVInt();
-        for (int i = 0; i < shapes; i++) {
-            shape(in.readNamedWriteable(ShapeBuilder.class));
-        }
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        out.writeVInt(shapes.size());
-        for (ShapeBuilder shape : shapes) {
-            out.writeNamedWriteable(shape);
-        }
     }
 
     public GeometryCollectionBuilder shape(ShapeBuilder shape) {

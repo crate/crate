@@ -19,15 +19,13 @@
 
 package org.elasticsearch.common.geo.builders;
 
+import org.elasticsearch.common.geo.GeoShapeType;
+import org.elasticsearch.common.geo.parsers.ShapeParser;
+import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.LineString;
-
-import org.elasticsearch.common.geo.GeoShapeType;
-import org.elasticsearch.common.geo.parsers.ShapeParser;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.locationtech.spatial4j.shape.jts.JtsGeometry;
 
 import java.io.IOException;
@@ -54,13 +52,6 @@ public class LineStringBuilder extends ShapeBuilder<JtsGeometry, LineStringBuild
 
     public LineStringBuilder(CoordinatesBuilder coordinates) {
         this(coordinates.build());
-    }
-
-    /**
-     * Read from a stream.
-     */
-    public LineStringBuilder(StreamInput in) throws IOException {
-        super(in);
     }
 
     @Override

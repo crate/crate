@@ -20,20 +20,15 @@
 package org.elasticsearch.common.unit;
 
 import org.elasticsearch.common.geo.GeoUtils;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
-
-import java.io.IOException;
 
 /**
- * The DistanceUnit enumerates several units for measuring distances. These units 
+ * The DistanceUnit enumerates several units for measuring distances. These units
  * provide methods for converting strings and methods to convert units among each
  * others. Some methods like {@link DistanceUnit#getEarthCircumference} refer to
  * the earth ellipsoid defined in {@link GeoUtils}. The default unit used within
  * this project is <code>METERS</code> which is defined by <code>DEFAULT</code>
  */
-public enum DistanceUnit implements Writeable {
+public enum DistanceUnit {
     INCH(0.0254, "in", "inch"),
     YARD(0.9144, "yd", "yards"),
     FEET(0.3048, "ft", "feet"),
@@ -53,7 +48,7 @@ public enum DistanceUnit implements Writeable {
 
     public static final DistanceUnit DEFAULT = METERS;
 
-    private double meters; 
+    private double meters;
     private final String[] names;
 
     DistanceUnit(double meters, String...names) {
@@ -63,7 +58,7 @@ public enum DistanceUnit implements Writeable {
 
     /**
      * Measures the circumference of earth in this unit
-     * 
+     *
      * @return length of earth circumference in this unit
      */
     public double getEarthCircumference() {
@@ -103,7 +98,7 @@ public enum DistanceUnit implements Writeable {
 
     /**
      * Parses a given distance and converts it to the specified unit.
-     * 
+     *
      * @param distance String defining a distance (value and unit)
      * @param defaultUnit unit assumed if none is defined
      * @param to unit of result
@@ -116,7 +111,7 @@ public enum DistanceUnit implements Writeable {
 
     /**
      * Parses a given distance and converts it to this unit.
-     * 
+     *
      * @param distance String defining a distance (value and unit)
      * @param defaultUnit unit to expect if none if provided
      * @return parsed distance
@@ -127,7 +122,7 @@ public enum DistanceUnit implements Writeable {
 
     /**
      * Convert a String to a {@link DistanceUnit}
-     * 
+     *
      * @param unit name of the unit
      * @return unit matching the given name
      * @throws IllegalArgumentException if no unit matches the given name
@@ -185,9 +180,9 @@ public enum DistanceUnit implements Writeable {
 
         /**
          * Parse a {@link Distance} from a given String. If no unit is given
-         * <code>DistanceUnit.DEFAULT</code> will be used 
-         * 
-         * @param distance String defining a {@link Distance} 
+         * <code>DistanceUnit.DEFAULT</code> will be used
+         *
+         * @param distance String defining a {@link Distance}
          * @return parsed {@link Distance}
          */
         public static Distance parseDistance(String distance) {
@@ -196,10 +191,10 @@ public enum DistanceUnit implements Writeable {
 
         /**
          * Parse a {@link Distance} from a given String
-         * 
-         * @param distance String defining a {@link Distance} 
+         *
+         * @param distance String defining a {@link Distance}
          * @param defaultUnit {@link DistanceUnit} to be assumed
-         *          if not unit is provided in the first argument  
+         *          if not unit is provided in the first argument
          * @return parsed {@link Distance}
          */
         private static Distance parseDistance(String distance, DistanceUnit defaultUnit) {
@@ -212,32 +207,5 @@ public enum DistanceUnit implements Writeable {
             }
             return new Distance(Double.parseDouble(distance), defaultUnit);
         }
-    }
-
-    /**
-     * Read a {@link DistanceUnit} from a {@link StreamInput}.
-     *
-     * @param in {@link StreamInput} to read the {@link DistanceUnit} from
-     * @return {@link DistanceUnit} read from the {@link StreamInput}
-     * @throws IOException if no unit can be read from the {@link StreamInput}
-     * @throws IllegalArgumentException if no matching {@link DistanceUnit} can be found
-     */
-    public static DistanceUnit readFromStream(StreamInput in) throws IOException {
-        byte b = in.readByte();
-
-        if (b < 0 || b >= values().length) {
-            throw new IllegalArgumentException("No type for distance unit matching [" + b + "]");
-        }
-        return values()[b];
-    }
-
-    /**
-     * Write a {@link DistanceUnit} to a {@link StreamOutput}.
-     *
-     * @param out {@link StreamOutput} to write to
-     */
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        out.writeByte((byte) this.ordinal());
     }
 }

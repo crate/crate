@@ -19,9 +19,6 @@
 
 package org.elasticsearch.http;
 
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.transport.BoundTransportAddress;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.xcontent.ToXContentFragment;
@@ -29,21 +26,10 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 
 import java.io.IOException;
 
-public class HttpInfo implements Writeable, ToXContentFragment {
+public class HttpInfo implements ToXContentFragment {
 
     private final BoundTransportAddress address;
     private final long maxContentLength;
-
-    public HttpInfo(StreamInput in) throws IOException {
-        address = BoundTransportAddress.readBoundTransportAddress(in);
-        maxContentLength = in.readLong();
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        address.writeTo(out);
-        out.writeLong(maxContentLength);
-    }
 
     public HttpInfo(BoundTransportAddress address, long maxContentLength) {
         this.address = address;

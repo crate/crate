@@ -29,7 +29,6 @@ import org.apache.lucene.codecs.DocValuesFormat;
 import org.apache.lucene.codecs.PostingsFormat;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.Version;
-import org.elasticsearch.action.admin.cluster.node.info.PluginsAndModules;
 import org.elasticsearch.bootstrap.JarHell;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.collect.Tuple;
@@ -79,7 +78,6 @@ public class PluginsService extends AbstractComponent {
      * We keep around a list of plugins and modules
      */
     private final List<Tuple<PluginInfo, Plugin>> plugins;
-    private final PluginsAndModules info;
     public static final Setting<List<String>> MANDATORY_SETTING =
         Setting.listSetting("plugin.mandatory", Collections.emptyList(), Function.identity(), Property.NodeScope);
 
@@ -156,7 +154,6 @@ public class PluginsService extends AbstractComponent {
         List<Tuple<PluginInfo, Plugin>> loaded = loadBundles(seenBundles);
         pluginsLoaded.addAll(loaded);
 
-        this.info = new PluginsAndModules(pluginsList, modulesList);
         this.plugins = Collections.unmodifiableList(pluginsLoaded);
 
         // Checking expected plugins
@@ -180,8 +177,8 @@ public class PluginsService extends AbstractComponent {
 
         // we don't log jars in lib/ we really shouldn't log modules,
         // but for now: just be transparent so we can debug any potential issues
-        logPluginInfo(info.getModuleInfos(), "module", logger);
-        logPluginInfo(info.getPluginInfos(), "plugin", logger);
+        logPluginInfo(modulesList, "module", logger);
+        logPluginInfo(pluginsList, "plugin", logger);
     }
 
     private static void logPluginInfo(final List<PluginInfo> pluginInfos, final String type, final Logger logger) {
@@ -259,13 +256,6 @@ public class PluginsService extends AbstractComponent {
         for (Tuple<PluginInfo, Plugin> plugin : plugins) {
             plugin.v2().onIndexModule(indexModule);
         }
-    }
-
-    /**
-     * Get information about plugins and modules
-     */
-    public PluginsAndModules info() {
-        return info;
     }
 
     // a "bundle" is a group of jars in a single classloader

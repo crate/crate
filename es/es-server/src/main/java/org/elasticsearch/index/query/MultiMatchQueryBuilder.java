@@ -24,9 +24,6 @@ import org.apache.lucene.search.Query;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.common.ParseField;
 import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.common.unit.Fuzziness;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
@@ -82,7 +79,7 @@ public class MultiMatchQueryBuilder extends AbstractQueryBuilder<MultiMatchQuery
         return NAME;
     }
 
-    public enum Type implements Writeable {
+    public enum Type {
 
         /**
          * Uses the best matching boolean field as main score and uses
@@ -150,15 +147,6 @@ public class MultiMatchQueryBuilder extends AbstractQueryBuilder<MultiMatchQuery
                 throw new ElasticsearchParseException("failed to parse [{}] query type [{}]. unknown type.", NAME, value);
             }
             return type;
-        }
-
-        public static Type readFromStream(StreamInput in) throws IOException {
-            return Type.values()[in.readVInt()];
-        }
-
-        @Override
-        public void writeTo(StreamOutput out) throws IOException {
-            out.writeVInt(this.ordinal());
         }
     }
 

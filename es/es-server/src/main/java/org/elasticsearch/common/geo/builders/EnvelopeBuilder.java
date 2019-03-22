@@ -22,12 +22,9 @@ package org.elasticsearch.common.geo.builders;
 import org.elasticsearch.common.geo.GeoShapeType;
 import org.elasticsearch.common.geo.parsers.GeoWKTParser;
 import org.elasticsearch.common.geo.parsers.ShapeParser;
-import org.locationtech.spatial4j.shape.Rectangle;
-import org.locationtech.jts.geom.Coordinate;
-
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.spatial4j.shape.Rectangle;
 
 import java.io.IOException;
 import java.util.Objects;
@@ -50,20 +47,6 @@ public class EnvelopeBuilder extends ShapeBuilder<Rectangle, EnvelopeBuilder> {
         }
         this.topLeft = topLeft;
         this.bottomRight = bottomRight;
-    }
-
-    /**
-     * Read from a stream.
-     */
-    public EnvelopeBuilder(StreamInput in) throws IOException {
-        topLeft = readFromStream(in);
-        bottomRight = readFromStream(in);
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        writeCoordinateTo(topLeft, out);
-        writeCoordinateTo(bottomRight, out);
     }
 
     public Coordinate topLeft() {
