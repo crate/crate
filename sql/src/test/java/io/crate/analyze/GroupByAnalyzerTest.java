@@ -24,7 +24,6 @@ package io.crate.analyze;
 
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.relations.QueriedRelation;
-import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -425,12 +424,5 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                                                    "group by name having sum(power(power(id::double, id::double), id::double)) > 0");
         assertThat(relation.querySpec().having().query(),
             isSQL("(sum(power(power(to_double(doc.users.id), to_double(doc.users.id)), to_double(doc.users.id))) > 0.0)"));
-    }
-
-    @Test
-    public void testGroupByHiddenColumn() throws Exception {
-        expectedException.expect(ColumnUnknownException.class);
-        expectedException.expectMessage("Column _docid unknown");
-        analyze("select count(*) from users group by _docid");
     }
 }

@@ -87,6 +87,9 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
             case DocSysColumns.Names.FETCHID:
                 return new FetchIdCollectorExpression();
 
+            case DocSysColumns.Names.DOCID:
+                return new DocIdCollectorExpression();
+
             case DocSysColumns.Names.SCORE:
                 return new ScoreCollectorExpression();
 

@@ -4,7 +4,7 @@
 System Columns
 ==============
 
-On every table CrateDB implements several implicitly defined system columns.
+On every user table CrateDB implements several implicitly defined system columns.
 Their names are reserved and cannot be used as user-defined column names. All
 system columns are prefixed with an underscore, consist of lowercase letters
 and might contain underscores in between.
@@ -42,3 +42,9 @@ _id
   shards.
 
 .. _Optimistic Concurrency Control: http://en.wikipedia.org/wiki/Optimistic_concurrency_control
+
+
+_docid
+  ``_docid`` exposes the internal id a document has within a Lucene segment.
+  Although the id is unique within a segment, it is not unique across segments
+  or shards and can change the value in case segments are merged.

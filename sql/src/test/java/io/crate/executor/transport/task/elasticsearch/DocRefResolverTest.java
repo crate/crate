@@ -49,7 +49,7 @@ public class DocRefResolverTest extends CrateUnitTest {
     private static final DocRefResolver REF_RESOLVER =
         new DocRefResolver(Collections.emptyList());
     private static final Doc GET_RESULT =
-        new Doc("t1", "abc", 1L, XContentHelper.convertToMap(SOURCE, false, XContentType.JSON).v2(), SOURCE::utf8ToString);
+        new Doc(2, "t1", "abc", 1L, XContentHelper.convertToMap(SOURCE, false, XContentType.JSON).v2(), SOURCE::utf8ToString);
 
     @Test
     public void testSystemColumnsCollectExpressions() throws Exception {
@@ -57,7 +57,8 @@ public class DocRefResolverTest extends CrateUnitTest {
             refInfo("t1._id", DocSysColumns.COLUMN_IDENTS.get(DocSysColumns.ID), RowGranularity.DOC),
             refInfo("t1._version", DocSysColumns.COLUMN_IDENTS.get(DocSysColumns.VERSION), RowGranularity.DOC),
             refInfo("t1._doc", DocSysColumns.COLUMN_IDENTS.get(DocSysColumns.DOC), RowGranularity.DOC),
-            refInfo("t1._raw", DocSysColumns.COLUMN_IDENTS.get(DocSysColumns.RAW), RowGranularity.DOC)
+            refInfo("t1._raw", DocSysColumns.COLUMN_IDENTS.get(DocSysColumns.RAW), RowGranularity.DOC),
+            refInfo("t1._docid", DocSysColumns.COLUMN_IDENTS.get(DocSysColumns.DOCID), RowGranularity.DOC)
         );
 
         List<CollectExpression<Doc, ?>> collectExpressions = new ArrayList<>(4);
@@ -71,5 +72,6 @@ public class DocRefResolverTest extends CrateUnitTest {
         assertThat(collectExpressions.get(1).value(), is(1L));
         assertThat(collectExpressions.get(2).value(), is(XContentHelper.convertToMap(SOURCE, false, XContentType.JSON).v2()));
         assertThat(collectExpressions.get(3).value(), is(SOURCE.utf8ToString()));
+        assertThat(collectExpressions.get(4).value(), is(2));
     }
 }
