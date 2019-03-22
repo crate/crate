@@ -22,7 +22,7 @@ pipeline {
           steps {
             sh 'git clean -xdff'
             checkout scm
-            sh './gradlew --no-daemon --parallel -PtestForks=8 test forbiddenApisMain jacocoReport'
+            sh 'timeout 30m ./gradlew --no-daemon --parallel -PtestForks=8 test forbiddenApisMain jacocoReport'
             sh 'curl -s https://codecov.io/bash | bash'
           }
           post {
@@ -42,7 +42,7 @@ pipeline {
           steps {
             sh 'git clean -xdff'
             checkout scm
-            sh './gradlew --no-daemon --parallel -PtestForks=8 test jacocoReport'
+            sh 'timeout 30m ./gradlew --no-daemon --parallel -PtestForks=8 test jacocoReport'
             sh 'curl -s https://codecov.io/bash | bash'
           }
           post {
@@ -59,7 +59,7 @@ pipeline {
           steps {
             sh 'git clean -xdff'
             checkout scm
-            sh './gradlew --no-daemon itest'
+            sh 'timeout 20m ./gradlew --no-daemon itest'
           }
         }
         stage('ce itest jdk11') {
@@ -70,7 +70,7 @@ pipeline {
           steps {
             sh 'git clean -xdff'
             checkout scm
-            sh './gradlew --no-daemon ceItest'
+            sh 'timeout 20m ./gradlew --no-daemon ceItest'
           }
         }
         stage('ce licenseTest jdk11') {
@@ -81,7 +81,7 @@ pipeline {
           steps {
             sh 'git clean -xdff'
             checkout scm
-            sh './gradlew --no-daemon ceLicenseTest'
+            sh 'timeout 20m ./gradlew --no-daemon ceLicenseTest'
           }
         }
         stage('itest jdk12') {
@@ -92,7 +92,7 @@ pipeline {
           steps {
             sh 'git clean -xdff'
             checkout scm
-            sh './gradlew --no-daemon itest'
+            sh 'timeout 20m ./gradlew --no-daemon itest'
           }
         }
         stage('blackbox tests') {
