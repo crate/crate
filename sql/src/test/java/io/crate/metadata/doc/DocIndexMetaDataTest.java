@@ -179,7 +179,7 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
         IndexMetaData metaData = getIndexMetaData("test1", builder);
         DocIndexMetaData md = newMeta(metaData, "test1");
         assertThat(md.columns().size(), is(4));
-        assertThat(md.references().size(), is(17));
+        assertThat(md.references().size(), is(18));
         assertThat(md.references().get(new ColumnIdent("implicit_dynamic")).columnPolicy(), is(ColumnPolicy.DYNAMIC));
         assertThat(md.references().get(new ColumnIdent("explicit_dynamic")).columnPolicy(), is(ColumnPolicy.DYNAMIC));
         assertThat(md.references().get(new ColumnIdent("ignored")).columnPolicy(), is(ColumnPolicy.IGNORED));
@@ -252,7 +252,7 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
         DocIndexMetaData md = newMeta(metaData, "test1");
 
         assertThat(md.columns().size(), is(11));
-        assertThat(md.references().size(), is(20));
+        assertThat(md.references().size(), is(21));
 
         Reference birthday = md.references().get(new ColumnIdent("person", "birthday"));
         assertThat(birthday.valueType(), is(DataTypes.TIMESTAMP));
@@ -289,15 +289,9 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
         assertThat(stringAnalyzedBWC.indexType(), is(Reference.IndexType.ANALYZED));
 
         ImmutableList<Reference> references = ImmutableList.copyOf(md.references().values());
-        List<String> fqns = Lists.transform(references, new Function<Reference, String>() {
-            @Nullable
-            @Override
-            public String apply(@Nullable Reference input) {
-                return input.column().fqn();
-            }
-        });
+        List<String> fqns = Lists.transform(references, r -> r.column().fqn());
         assertThat(fqns, Matchers.is(
-            ImmutableList.of("_doc", "_fetchid", "_id", "_raw", "_score", "_uid", "_version",
+            ImmutableList.of("_doc", "_fetchid", "_id", "_raw", "_score", "_uid", "_version", "_docid",
                 "integerIndexed", "integerIndexedBWC", "integerNotIndexed", "integerNotIndexedBWC",
                 "person", "person.birthday", "person.first_name",
                 "stringAnalyzed", "stringAnalyzedBWC", "stringNotAnalyzed", "stringNotAnalyzedBWC",
@@ -358,7 +352,7 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
         DocIndexMetaData md = newMeta(metaData, "test1");
 
         assertEquals(6, md.columns().size());
-        assertEquals(16, md.references().size());
+        assertEquals(17, md.references().size());
         assertEquals(1, md.partitionedByColumns().size());
         assertEquals(DataTypes.TIMESTAMP, md.partitionedByColumns().get(0).valueType());
         assertThat(md.partitionedByColumns().get(0).column().fqn(), is("datum"));
@@ -392,7 +386,7 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
 
         // partitioned by column is not added twice
         assertEquals(2, md.columns().size());
-        assertEquals(9, md.references().size());
+        assertEquals(10, md.references().size());
         assertEquals(1, md.partitionedByColumns().size());
     }
 
@@ -426,7 +420,7 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
 
         // partitioned by column is not added twice
         assertEquals(2, md.columns().size());
-        assertEquals(10, md.references().size());
+        assertEquals(11, md.references().size());
         assertEquals(1, md.partitionedByColumns().size());
     }
 
@@ -493,14 +487,18 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
             .endObject();
 
         DocIndexMetaData metaData = newMeta(getIndexMetaData("test", builder), "test");
-        Reference id = metaData.references().get(new ColumnIdent("_id"));
+        Map<ColumnIdent,Reference> references = metaData.references();
+        Reference id = references.get(new ColumnIdent("_id"));
         assertNotNull(id);
 
-        Reference version = metaData.references().get(new ColumnIdent("_version"));
+        Reference version = references.get(new ColumnIdent("_version"));
         assertNotNull(version);
 
-        Reference score = metaData.references().get(new ColumnIdent("_score"));
+        Reference score = references.get(new ColumnIdent("_score"));
         assertNotNull(score);
+
+        Reference docId = references.get(new ColumnIdent("_docid"));
+        assertNotNull(docId);
     }
 
     @Test

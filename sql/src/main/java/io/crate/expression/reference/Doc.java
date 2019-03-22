@@ -33,20 +33,27 @@ public final class Doc {
 
     private final Map<String, Object> source;
     private final Supplier<String> raw;
+    private final int docId;
     private final String index;
     private final String id;
     private final long version;
 
-    public Doc(String index,
+    public Doc(int docId,
+               String index,
                String id,
                long version,
                Map<String, Object> source,
                Supplier<String> raw) {
+        this.docId = docId;
         this.index = index;
         this.id = id;
         this.version = version;
         this.source = source;
         this.raw = raw;
+    }
+
+    public int docId() {
+        return docId;
     }
 
     public long getVersion() {
@@ -71,6 +78,7 @@ public final class Doc {
 
     public Doc withUpdatedSource(Map<String, Object> updatedSource) {
         return new Doc(
+            docId,
             index,
             id,
             version,
