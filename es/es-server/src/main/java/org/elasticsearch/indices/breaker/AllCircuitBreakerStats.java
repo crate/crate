@@ -19,25 +19,15 @@
 
 package org.elasticsearch.indices.breaker;
 
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
-
-import java.io.IOException;
-
 /**
  * Stats class encapsulating all of the different circuit breaker stats
  */
-public class AllCircuitBreakerStats implements Writeable {
+public class AllCircuitBreakerStats {
 
     private final CircuitBreakerStats[] allStats;
 
-    public AllCircuitBreakerStats(CircuitBreakerStats[] allStats) {
+    AllCircuitBreakerStats(CircuitBreakerStats[] allStats) {
         this.allStats = allStats;
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        out.writeArray(allStats);
     }
 
     public CircuitBreakerStats[] getAllStats() {

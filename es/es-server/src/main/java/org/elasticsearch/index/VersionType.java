@@ -18,15 +18,11 @@
  */
 package org.elasticsearch.index;
 
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.lucene.uid.Versions;
 
-import java.io.IOException;
 import java.util.Locale;
 
-public enum VersionType implements Writeable {
+public enum VersionType {
     INTERNAL((byte) 0) {
         @Override
         public boolean isVersionConflictForWrites(long currentVersion, long expectedVersion, boolean deleted) {
@@ -366,14 +362,5 @@ public enum VersionType implements Writeable {
             return FORCE;
         }
         throw new IllegalArgumentException("No version type match [" + value + "]");
-    }
-
-    public static VersionType readFromStream(StreamInput in) throws IOException {
-        return in.readEnum(VersionType.class);
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        out.writeEnum(this);
     }
 }

@@ -22,13 +22,10 @@ package org.elasticsearch.common.geo.builders;
 import org.elasticsearch.common.geo.GeoShapeType;
 import org.elasticsearch.common.geo.parsers.GeoWKTParser;
 import org.elasticsearch.common.geo.parsers.ShapeParser;
+import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.LineString;
-
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.locationtech.spatial4j.shape.jts.JtsGeometry;
 
 import java.io.IOException;
@@ -42,26 +39,8 @@ public class MultiLineStringBuilder extends ShapeBuilder<JtsGeometry, MultiLineS
 
     private final ArrayList<LineStringBuilder> lines = new ArrayList<>();
 
-    /**
-     * Read from a stream.
-     */
-    public MultiLineStringBuilder(StreamInput in) throws IOException {
-        int size = in.readVInt();
-        for (int i = 0; i < size; i++) {
-            linestring(new LineStringBuilder(in));
-        }
-    }
-
     public MultiLineStringBuilder() {
         super();
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        out.writeVInt(lines.size());
-        for (LineStringBuilder line : lines) {
-            line.writeTo(out);
-        }
     }
 
     public MultiLineStringBuilder linestring(LineStringBuilder line) {

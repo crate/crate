@@ -87,8 +87,7 @@ public class ChildMemoryCircuitBreaker implements CircuitBreaker {
      * Method used to trip the breaker, delegates to the parent to determine
      * whether to trip the breaker or not
      */
-    @Override
-    public void circuitBreak(String fieldName, long bytesNeeded) {
+    private void circuitBreak(String fieldName, long bytesNeeded) {
         this.trippedCount.incrementAndGet();
         final String message = "[" + this.name + "] Data too large, data for [" + fieldName + "]" +
                 " would be [" + bytesNeeded + "/" + new ByteSizeValue(bytesNeeded) + "]" +

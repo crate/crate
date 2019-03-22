@@ -22,8 +22,6 @@ package org.elasticsearch.common.geo.builders;
 import org.elasticsearch.common.ParseField;
 import org.elasticsearch.common.geo.GeoShapeType;
 import org.elasticsearch.common.geo.parsers.ShapeParser;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.unit.DistanceUnit;
 import org.elasticsearch.common.unit.DistanceUnit.Distance;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -48,21 +46,6 @@ public class CircleBuilder extends ShapeBuilder<Circle, CircleBuilder> {
      */
     public CircleBuilder() {
         this.center = ZERO_ZERO;
-    }
-
-    /**
-     * Read from a stream.
-     */
-    public CircleBuilder(StreamInput in) throws IOException {
-        center(readFromStream(in));
-        radius(in.readDouble(), DistanceUnit.readFromStream(in));
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        writeCoordinateTo(center, out);
-        out.writeDouble(radius);
-        unit.writeTo(out);
     }
 
     /**
