@@ -51,6 +51,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public class WriterProjection extends Projection {
 
@@ -84,26 +85,26 @@ public class WriterProjection extends Projection {
         Arrays.asList(Literal.of("%s_%s_%s.json"), TABLE_NAME_REF, SHARD_ID_REF, PARTITION_IDENT_REF)
     );
 
-    private Symbol uri;
-    private List<Symbol> inputs;
+    private final Symbol uri;
+    private final List<Symbol> inputs;
 
     @Nullable
-    private List<String> outputNames;
+    private final List<String> outputNames;
 
     /*
      * add values that should be added or overwritten
      * all symbols must normalize to literals on the shard level.
      */
-    private Map<ColumnIdent, Symbol> overwrites;
+    private final Map<ColumnIdent, Symbol> overwrites;
 
-    private OutputFormat outputFormat;
+    private final OutputFormat outputFormat;
 
     public enum OutputFormat {
         JSON_OBJECT,
         JSON_ARRAY
     }
 
-    private CompressionType compressionType;
+    private final CompressionType compressionType;
 
     public enum CompressionType {
         GZIP
@@ -131,6 +132,8 @@ public class WriterProjection extends Projection {
             for (int i = 0; i < size; i++) {
                 outputNames.add(in.readString());
             }
+        } else {
+            outputNames = null;
         }
         inputs = Symbols.listFromStream(in);
         int numOverwrites = in.readVInt();
@@ -217,11 +220,11 @@ public class WriterProjection extends Projection {
 
         WriterProjection that = (WriterProjection) o;
 
-        if (outputNames != null ? !outputNames.equals(that.outputNames) : that.outputNames != null)
+        if (!Objects.equals(outputNames, that.outputNames))
             return false;
         if (!uri.equals(that.uri)) return false;
         if (!overwrites.equals(that.overwrites)) return false;
-        if (compressionType != null ? !compressionType.equals(that.compressionType) : that.compressionType != null)
+        if (!Objects.equals(compressionType, that.compressionType))
             return false;
         if (!outputFormat.equals(that.outputFormat)) return false;
 
