@@ -151,6 +151,12 @@ For more information regarding views, please see the
 Behavior of ``GRANT``, ``DENY`` and ``REVOKE``
 ==============================================
 
+.. NOTE::
+
+    You can only grant, deny, or revoke privileges for an existing user. You
+    must :ref:`create a user <administration_user_management>` and then
+    configure privileges.
+
 .. CAUTION::
 
     Stale permissions might be introduced if ``DDL`` statements were invoked
