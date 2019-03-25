@@ -140,7 +140,13 @@ task myJavadocs(type: Javadoc, dependsOn: processResources) {
         project(':udc').sourceSets.main.allJava
 }
 
-task javadocJar(type: Jar, dependsOn: [myJavadocs]) {
+task javadocJar(type: Jar, dependsOn: [':es:es-server:getVersion', myJavadocs]) {
+    doFirst {
+        manifest.attributes 'Implementation-Version': project(':es:es-server').getVersion.version
+        manifest.attributes 'Build-Date': project(':es:es-server').getVersion.buildDate
+        manifest.attributes 'Change': project(':es:es-server').getVersion.buildShortHash
+        project.version = project(':es:es-server').getVersion.version
+    }
     classifier = 'javadoc'
     from myJavadocs.destinationDir
     manifest {
@@ -148,15 +154,15 @@ task javadocJar(type: Jar, dependsOn: [myJavadocs]) {
     }
 }
 
-task buildJavadocJar(dependsOn: [':es:es-server:getVersion', myJavadocs]) {
-    doLast {
-        ext.version = project(':es:es-server').getVersion.version
-        project.version = ext.version
-        tasks.javadocJar.execute()
-    }
-}
+task buildJavadocJar(dependsOn: javadocJar) {}
 
 task sourceJar(type: Jar) {
+    doFirst {
+        manifest.attributes 'Implementation-Version': project(':es:es-server').getVersion.version
+        manifest.attributes 'Build-Date': project(':es:es-server').getVersion.buildDate
+        manifest.attributes 'Change': project(':es:es-server').getVersion.buildShortHash
+        project.version = project(':es:es-server').getVersion.version
+    }
     classifier = 'sources'
     from(sourceSets.main.allSource +
         project(':common').sourceSets.main.allJava +
@@ -171,12 +177,7 @@ task sourceJar(type: Jar) {
     }
 }
 
-task buildSourceJar(dependsOn: [':es:es-server:getVersion']) {
-    doLast {
-        ext.version = project(':es:es-server').getVersion.version
-        project.version = ext.version
-        tasks.sourceJar.execute()
-    }
+task buildSourceJar(dependsOn: sourceJar) {
 }
 
 artifacts {
