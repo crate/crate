@@ -1049,7 +1049,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     */
     @Override
     public Node visitUnquotedIdentifier(SqlBaseParser.UnquotedIdentifierContext context) {
-        return new StringLiteral(context.IDENTIFIER().getText().replace("``", "`").toLowerCase(Locale.ENGLISH));
+        return new StringLiteral(context.getText().toLowerCase(Locale.ENGLISH));
     }
 
     @Override
