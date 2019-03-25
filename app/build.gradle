@@ -142,7 +142,13 @@ task myJavadocs(type: Javadoc, dependsOn: processResources) {
         project(':udc').sourceSets.main.allJava
 }
 
-task javadocJar(type: Jar, dependsOn: [myJavadocs]) {
+task javadocJar(type: Jar, dependsOn: [':common:getVersion', myJavadocs]) {
+    doFirst {
+        manifest.attributes 'Implementation-Version': project(':common').getVersion.version
+        manifest.attributes 'Build-Date': project(':common').getVersion.buildDate
+        manifest.attributes 'Change': project(':common').getVersion.buildShortHash
+        project.version = project(':common').getVersion.version
+    }
     classifier = 'javadoc'
     from myJavadocs.destinationDir
     manifest {
@@ -150,15 +156,15 @@ task javadocJar(type: Jar, dependsOn: [myJavadocs]) {
     }
 }
 
-task buildJavadocJar(dependsOn: [':common:getVersion', myJavadocs]) {
-    doLast {
-        ext.version = project(':common').getVersion.version
-        project.version = ext.version
-        tasks.javadocJar.execute()
-    }
-}
+task buildJavadocJar(dependsOn: javadocJar) {}
 
 task sourceJar(type: Jar) {
+    doFirst {
+        manifest.attributes 'Implementation-Version': project(':common').getVersion.version
+        manifest.attributes 'Build-Date': project(':common').getVersion.buildDate
+        manifest.attributes 'Change': project(':common').getVersion.buildShortHash
+        project.version = project(':common').getVersion.version
+    }
     classifier = 'sources'
     from(sourceSets.main.allSource +
         project(':common').sourceSets.main.allJava +
@@ -173,12 +179,7 @@ task sourceJar(type: Jar) {
     }
 }
 
-task buildSourceJar(dependsOn: [':common:getVersion']) {
-    doLast {
-        ext.version = project(':common').getVersion.version
-        project.version = ext.version
-        tasks.sourceJar.execute()
-    }
+task buildSourceJar(dependsOn: sourceJar) {
 }
 
 artifacts {
