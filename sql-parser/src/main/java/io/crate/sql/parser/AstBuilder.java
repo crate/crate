@@ -1600,17 +1600,25 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     }
 
     @Override
-    public Node visitDataType(SqlBaseParser.DataTypeContext context) {
-        if (context.objectTypeDefinition() != null) {
-            return new ObjectColumnType(
-                getObjectType(context.objectTypeDefinition().type),
-                visitCollection(context.objectTypeDefinition().columnDefinition(), ColumnDefinition.class));
-        } else if (context.arrayTypeDefinition() != null) {
-            return CollectionColumnType.array((ColumnType) visit(context.arrayTypeDefinition().dataType()));
-        } else if (context.setTypeDefinition() != null) {
-            return CollectionColumnType.set((ColumnType) visit(context.setTypeDefinition().dataType()));
-        }
+    public Node visitDataTypeIdent(SqlBaseParser.DataTypeIdentContext context) {
         return new ColumnType(getIdentText(context.ident()));
+    }
+
+    @Override
+    public Node visitArrayTypeDefinition(SqlBaseParser.ArrayTypeDefinitionContext context) {
+        return CollectionColumnType.array((ColumnType) visit(context.dataType()));
+    }
+
+    @Override
+    public Node visitObjectTypeDefinition(SqlBaseParser.ObjectTypeDefinitionContext context) {
+        return new ObjectColumnType(
+            getObjectType(context.type),
+            visitCollection(context.columnDefinition(), ColumnDefinition.class));
+    }
+
+    @Override
+    public Node visitSetTypeDefinition(SqlBaseParser.SetTypeDefinitionContext context) {
+        return CollectionColumnType.set((ColumnType) visit(context.dataType()));
     }
 
     private String getObjectType(Token type) {

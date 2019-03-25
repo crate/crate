@@ -533,10 +533,10 @@ rerouteOption
     ;
 
 dataType
-    : ident
-    | objectTypeDefinition
-    | arrayTypeDefinition
-    | setTypeDefinition
+    : ident                     #dataTypeIdent
+    | objectTypeDefinition      #objectDataType
+    | arrayTypeDefinition       #arrayDataType
+    | setTypeDefinition         #setDataType
     ;
 
 objectTypeDefinition
