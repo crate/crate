@@ -1053,8 +1053,11 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     }
 
     @Override
-    public Node visitQuotedIdentifierAlternative(SqlBaseParser.QuotedIdentifierAlternativeContext context) {
-        return new StringLiteral(context.getText().replace("\"\"", "\""));
+    public Node visitQuotedIdentifier(SqlBaseParser.QuotedIdentifierContext context) {
+        String token = context.getText();
+        String identifier = token.substring(1, token.length() - 1)
+            .replace("\"\"", "\"");
+        return new StringLiteral(identifier);
     }
 
     @Nullable
@@ -1607,7 +1610,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         } else if (context.setTypeDefinition() != null) {
             return CollectionColumnType.set((ColumnType) visit(context.setTypeDefinition().dataType()));
         }
-        return new ColumnType(context.getText().toLowerCase(Locale.ENGLISH));
+        return new ColumnType(getIdentText(context.ident()));
     }
 
     private String getObjectType(Token type) {
