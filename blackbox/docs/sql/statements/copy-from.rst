@@ -104,13 +104,13 @@ For example:
 
 .. code-block:: text
 
-    `/tmp folder/file.json`
+    '/tmp folder/file.json'
 
 Will be converted to:
 
 .. code-block:: text
 
-    `file:///tmp%20folder/file.json`
+    'file:///tmp%20folder/file.json'
 
 Supported Schemes
 -----------------
@@ -118,37 +118,48 @@ Supported Schemes
 ``file``
 ........
 
-The provided (absolute) path should point to files available *on at least one
-node* with read access to the CrateDB process (with its default user 'crate')
-there.
+You can use the ``file://`` schema to specify an absolute path to one or more
+files accessible via the local filesystem of one or more CrateDB nodes.
 
-By default each node will attempt to read the files specified. In case the URI
-points to a shared folder (where other CrateDB nodes also have access) the
-``shared`` option must be set to true in order to avoid importing duplicates.
+The files must be accessible on at least one node and the system user running
+the ``crate`` process must have read access to every file specified.
+
+The ``file://`` schema supports wildcard expansion using the ``*`` character.
+So, ``file:///tmp/import_data/*.json`` would expand to include every JSON file
+in the ``/tmp/import_data`` directory.
+
+By default, every node will attempt to import every file. If the file is
+accessible on multiple nodes, you can set the `shared`_ option to true in
+order to avoid importing duplicates.
+
+Use :ref:`return_summary` to get information about what actions were performed
+on each node.
+
+.. TIP::
+
+    If you are running CrateDB inside a container, the file must be inside the
+    container. If you are using Docker, you may have to configure a `Docker
+    volume`_ to accomplish this.
 
 .. NOTE::
 
     If you are using Microsoft Windows, you must include the drive letter in
     the file URI.
 
-    For example, the above file URI should instead be written as
-    ``file://C:\/tmp/import_data/quotes.json``.
+    For example:
+
+    .. code-block:: text
+
+        file://C:\/tmp/import_data/quotes.json
 
     Consult the `Windows documentation`_ for more information.
-
-.. TIP::
-
-    If you are running CrateDB inside a container (e.g., you are running
-    CrateDB on Docker) the file URI must point to a file inside the container.
-
-    You may have to configure a new `Docker volume`_ to accomplish this.
 
 .. _copy_from_s3:
 
 ``s3``
 ......
 
-Can be used to access buckets on the Amazon AWS S3 Service:
+The ``s3://`` schema can be used to access buckets on the Amazon AWS S3 Service:
 
 .. code-block:: text
 
@@ -157,7 +168,7 @@ Can be used to access buckets on the Amazon AWS S3 Service:
 If no credentials are set the s3 client will operate in anonymous mode, see
 `AWS Java Documentation`_.
 
-Using the 's3://' URI scheme sets the ``shared`` option implicitly.
+Using the ``s3://`` schema automatically sets the `shared`_ to true.
 
 .. NOTE::
 
@@ -272,8 +283,8 @@ nodes, whereas the ``id`` regex is applied on the ``node id``.
 If both keys are set, *both* regular expressions have to match for a node to be
 included.
 
-If the ``shared`` option if false, a strict node filter might exclude nodes
-with access to the data leading to a partial import.
+If the `shared`_ option is false, a strict node filter might exclude nodes with
+access to the data leading to a partial import.
 
 To verify which nodes match the filter, run the statement with
 :doc:`EXPLAIN <explain>`.
@@ -287,7 +298,7 @@ number greater than the number of available nodes it will still use each node
 only once to do the import. However, the value must be an integer greater than
 0.
 
-If ``shared`` is set to false this option has to be used with caution. It might
+If `shared`_ is set to false this option has to be used with caution. It might
 exclude the wrong nodes, causing COPY FROM to read no files or only a subset of
 the files.
 
