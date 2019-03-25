@@ -391,7 +391,8 @@ Import and Export
 Importing Data
 --------------
 
-Using the ``COPY FROM`` SQL statement, data can be imported into CrateDB.
+Using the ``COPY FROM`` statement, CrateDB nodes can import data from local
+files or files that are available over the network.
 
 The supported data formats are JSON and CSV. The format is inferred from the
 file extension, if possible. Alternatively the format can also be provided as an
@@ -440,6 +441,22 @@ Here's an example statement::
 This statement imports data from the ``/tmp/import_data/quotes.json`` file and
 uses it to create a table named ``quotes``.
 
+.. NOTE::
+
+    The file you specify must be available on one of the CrateDB nodes. *This
+    statement will not work with files that are local to your client.*
+
+    For the above statement, every node in the cluster will attempt to import
+    data from a file located at ``/tmp/import_data/quotes.json`` relative to
+    the ``crate`` process (i.e., if you are running CrateDB inside a container,
+    the file must also be inside the container).
+
+    If you want to import data from a file that on your local computer using
+    ``COPY FROM``, you must first transfer the file to one of the CrateDB
+    nodes.
+
+    Consult the :ref:`copy_from` reference for additional information.
+
 .. Hidden: delete imported data
 
     cr> refresh table quotes;
@@ -447,8 +464,8 @@ uses it to create a table named ``quotes``.
     cr> delete from quotes;
     DELETE OK, 3 rows affected (... sec)
 
-If all files inside a directory should be imported a ``*`` wildcard has to be
-used::
+If you want to import all files inside the ``/tmp/import_data`` directory on
+every CrateDB node, you can use a wildcard, like so::
 
     cr> COPY quotes FROM '/tmp/import_data/*' WITH (bulk_size = 4);
     COPY OK, 3 rows affected (... sec)
@@ -462,7 +479,7 @@ used::
     cr> refresh table quotes;
     REFRESH OK, 1 row affected (... sec)
 
-This wildcard can also be used to only match certain files::
+This wildcard can also be used to only match certain files in a directory::
 
     cr> COPY quotes FROM '/tmp/import_data/qu*.json';
     COPY OK, 3 rows affected (... sec)
@@ -476,8 +493,8 @@ This wildcard can also be used to only match certain files::
     cr> refresh table quotes;
     REFRESH OK, 1 row affected (... sec)
 
-Import With Detailed Error Reporting
-....................................
+Detailed Error Reporting
+........................
 
 If the ``RETURN_SUMMARY`` clause is specified, a result set containing information
 about failures and successfully imported records is returned.
