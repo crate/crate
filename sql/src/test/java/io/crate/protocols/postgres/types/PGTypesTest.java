@@ -37,13 +37,16 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.junit.Test;
 
+import static io.crate.types.DataTypes.GEO_POINT;
+import static io.crate.types.DataTypes.GEO_SHAPE;
+import static io.crate.types.DataTypes.PRIMITIVE_TYPES;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 
 public class PGTypesTest extends CrateUnitTest {
 
     @Test
-    public void testCrate2PGType() throws Exception {
+    public void testCrate2PGType() {
         assertThat(PGTypes.get(DataTypes.STRING), instanceOf(VarCharType.class));
         assertThat(PGTypes.get(ObjectType.untyped()), instanceOf(JsonType.class));
         assertThat(PGTypes.get(DataTypes.BOOLEAN), instanceOf(BooleanType.class));
@@ -54,14 +57,10 @@ public class PGTypesTest extends CrateUnitTest {
         assertThat(PGTypes.get(DataTypes.DOUBLE), instanceOf(DoubleType.class));
         assertThat("Crate IP type is mapped to PG varchar", PGTypes.get(DataTypes.IP),
             instanceOf(VarCharType.class));
-        assertThat("Crate array type is mapped to PGArray", PGTypes.get(new ArrayType(DataTypes.BYTE)),
-            instanceOf(PGArray.class));
-        assertThat("Crate set type is mapped to PGArray", PGTypes.get(new SetType(DataTypes.BYTE)),
-            instanceOf(PGArray.class));
     }
 
     @Test
-    public void testPG2CrateType() throws Exception {
+    public void testPG2CrateType() {
         assertThat(PGTypes.fromOID(VarCharType.OID), instanceOf(StringType.class));
         assertThat(PGTypes.fromOID(JsonType.OID), instanceOf(ObjectType.class));
         assertThat(PGTypes.fromOID(BooleanType.OID), instanceOf(io.crate.types.BooleanType.class));
@@ -70,14 +69,40 @@ public class PGTypesTest extends CrateUnitTest {
         assertThat(PGTypes.fromOID(BigIntType.OID), instanceOf(LongType.class));
         assertThat(PGTypes.fromOID(RealType.OID), instanceOf(FloatType.class));
         assertThat(PGTypes.fromOID(DoubleType.OID), instanceOf(io.crate.types.DoubleType.class));
-        assertThat("PG array is mapped to Crate Array", PGTypes.fromOID(PGArray.CHAR_ARRAY.oid()),
-            instanceOf(io.crate.types.ArrayType.class));
     }
 
     @Test
     public void testTextOidIsMappedToString() {
         assertThat(PGTypes.fromOID(25), is(DataTypes.STRING));
         assertThat(PGTypes.fromOID(1009), is(new ArrayType(DataTypes.STRING)));
+    }
+
+    @Test
+    public void testCrateCollection2PgType() {
+        for (DataType type : PRIMITIVE_TYPES) {
+            assertThat(PGTypes.get(new ArrayType(type)), instanceOf(PGArray.class));
+            assertThat(PGTypes.get(new SetType(type)), instanceOf(PGArray.class));
+        }
+
+        assertThat(PGTypes.get(new ArrayType(GEO_POINT)), instanceOf(PGArray.class));
+        assertThat(PGTypes.get(new SetType(GEO_POINT)), instanceOf(PGArray.class));
+
+        assertThat(PGTypes.get(new ArrayType(GEO_SHAPE)), instanceOf(PGArray.class));
+        assertThat(PGTypes.get(new SetType(GEO_SHAPE)), instanceOf(PGArray.class));
+    }
+
+    @Test
+    public void testPgArray2CrateType() {
+        assertThat(PGTypes.fromOID(PGArray.CHAR_ARRAY.oid()), instanceOf(ArrayType.class));
+        assertThat(PGTypes.fromOID(PGArray.INT2_ARRAY.oid()), instanceOf(ArrayType.class));
+        assertThat(PGTypes.fromOID(PGArray.INT4_ARRAY.oid()), instanceOf(ArrayType.class));
+        assertThat(PGTypes.fromOID(PGArray.INT8_ARRAY.oid()), instanceOf(ArrayType.class));
+        assertThat(PGTypes.fromOID(PGArray.FLOAT4_ARRAY.oid()), instanceOf(ArrayType.class));
+        assertThat(PGTypes.fromOID(PGArray.FLOAT8_ARRAY.oid()), instanceOf(ArrayType.class));
+        assertThat(PGTypes.fromOID(PGArray.BOOL_ARRAY.oid()), instanceOf(ArrayType.class));
+        assertThat(PGTypes.fromOID(PGArray.TIMESTAMPZ_ARRAY.oid()), instanceOf(ArrayType.class));
+        assertThat(PGTypes.fromOID(PGArray.VARCHAR_ARRAY.oid()), instanceOf(ArrayType.class));
+        assertThat(PGTypes.fromOID(PGArray.JSON_ARRAY.oid()), instanceOf(ArrayType.class));
     }
 
     private static class Entry {
