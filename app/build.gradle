@@ -156,8 +156,6 @@ task javadocJar(type: Jar, dependsOn: [':common:getVersion', myJavadocs]) {
     }
 }
 
-task buildJavadocJar(dependsOn: javadocJar) {}
-
 task sourceJar(type: Jar) {
     doFirst {
         manifest.attributes 'Implementation-Version': project(':common').getVersion.version
@@ -179,20 +177,21 @@ task sourceJar(type: Jar) {
     }
 }
 
-task buildSourceJar(dependsOn: sourceJar) {
-}
-
 artifacts {
     archives jar
     archives sourceJar
     archives javadocJar
 }
 
-task signJars(type: Sign, dependsOn: [jar, buildSourceJar, buildJavadocJar]) {
+task signJars(type: Sign, dependsOn: [jar, sourceJar, javadocJar]) {
     sign configurations.archives
 }
 
+<<<<<<< HEAD
 install.dependsOn([jar, ':common:getVersion', buildSourceJar, buildJavadocJar])
+=======
+install.dependsOn([jar, ':es:es-server:getVersion', sourceJar, javadocJar])
+>>>>>>> 5facab83c5... Remove unused :app gradle tasks for jar building
 install {
     repositories {
         mavenInstaller {
@@ -234,7 +233,11 @@ install {
 project.ext.bintrayUsername = project.hasProperty('bintrayUsername') ? bintrayUsername : ""
 project.ext.bintrayPassword = project.hasProperty('bintrayPassword') ? bintrayPassword : ""
 
+<<<<<<< HEAD
 uploadArchives.dependsOn([jar, ':common:getVersion', buildSourceJar, buildJavadocJar, signJars])
+=======
+uploadArchives.dependsOn([jar, ':es:es-server:getVersion', sourceJar, javadocJar, signJars])
+>>>>>>> 5facab83c5... Remove unused :app gradle tasks for jar building
 uploadArchives {
     repositories {
         mavenDeployer {
