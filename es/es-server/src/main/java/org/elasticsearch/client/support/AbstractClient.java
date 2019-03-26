@@ -70,9 +70,6 @@ import org.elasticsearch.action.admin.indices.refresh.RefreshAction;
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequestBuilder;
 import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
-import org.elasticsearch.action.admin.indices.settings.get.GetSettingsAction;
-import org.elasticsearch.action.admin.indices.settings.get.GetSettingsRequest;
-import org.elasticsearch.action.admin.indices.settings.get.GetSettingsResponse;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsAction;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequestBuilder;
@@ -444,16 +441,6 @@ public abstract class AbstractClient extends AbstractComponent implements Client
         @Override
         public DeleteIndexTemplateRequestBuilder prepareDeleteTemplate(String name) {
             return new DeleteIndexTemplateRequestBuilder(this, DeleteIndexTemplateAction.INSTANCE, name);
-        }
-
-        @Override
-        public ActionFuture<GetSettingsResponse> getSettings(GetSettingsRequest request) {
-            return execute(GetSettingsAction.INSTANCE, request);
-        }
-
-        @Override
-        public void getSettings(GetSettingsRequest request, ActionListener<GetSettingsResponse> listener) {
-            execute(GetSettingsAction.INSTANCE, request, listener);
         }
     }
 }
