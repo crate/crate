@@ -36,7 +36,6 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.SettingsFilter;
 import org.elasticsearch.common.util.BigArrays;
-import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.NodeEnvironment;
@@ -55,7 +54,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
-import java.util.function.UnaryOperator;
 
 import static org.elasticsearch.common.network.NetworkModule.HTTP_TYPE_KEY;
 import static org.elasticsearch.env.Environment.PATH_HOME_SETTING;
@@ -67,11 +65,9 @@ public class HttpTransportPlugin extends Plugin implements NetworkPlugin, Action
     private static final String CRATE_HTTP_TRANSPORT_NAME = "crate";
 
     private final PipelineRegistry pipelineRegistry;
-    private final Settings settings;
 
-    public HttpTransportPlugin(Settings settings) {
+    public HttpTransportPlugin() {
         this.pipelineRegistry = new PipelineRegistry();
-        this.settings = settings;
     }
 
     public String name() {
@@ -126,11 +122,6 @@ public class HttpTransportPlugin extends Plugin implements NetworkPlugin, Action
                 xContentRegistry,
                 dispatcher,
                 pipelineRegistry));
-    }
-
-    @Override
-    public UnaryOperator<RestHandler> getRestHandlerWrapper(ThreadContext threadContext) {
-        return restHandler -> new CrateRestMainAction.RestFilter(settings, restHandler);
     }
 
     @Override

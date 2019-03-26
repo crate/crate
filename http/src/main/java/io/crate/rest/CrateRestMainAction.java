@@ -22,7 +22,6 @@
 
 package io.crate.rest;
 
-import com.google.common.collect.ImmutableList;
 import org.elasticsearch.Build;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.Version;
@@ -47,15 +46,12 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Base64;
-import java.util.List;
-import java.util.Locale;
 import java.util.regex.Pattern;
 
 import static io.crate.protocols.http.StaticSite.serveSite;
 import static org.elasticsearch.node.Node.NODE_NAME_SETTING;
 import static org.elasticsearch.rest.RestRequest.Method.GET;
 import static org.elasticsearch.rest.RestRequest.Method.HEAD;
-import static org.elasticsearch.rest.RestStatus.BAD_REQUEST;
 import static org.elasticsearch.rest.RestStatus.INTERNAL_SERVER_ERROR;
 import static org.elasticsearch.rest.RestStatus.OK;
 
@@ -73,13 +69,6 @@ public class CrateRestMainAction implements RestHandler {
     public static final String PATH = "/";
 
     private static final Pattern USER_AGENT_BROWSER_PATTERN = Pattern.compile("(Mozilla|Chrome|Safari|Opera|Android|AppleWebKit)+?[/\\s][\\d.]+");
-    private static final List<String> SUPPORTED_ENDPOINTS = ImmutableList.of(
-        "/_sql",
-        "/_blobs",
-        "/index.html",
-        "/admin",
-        "/_plugin"
-    );
 
     private static final SecureString EMPTY_PASSWORD = new SecureString(new char[] {});
     private static final Tuple<String, SecureString> EMPTY_CREDENTIALS_TUPLE = new Tuple<>("", EMPTY_PASSWORD);
@@ -99,19 +88,6 @@ public class CrateRestMainAction implements RestHandler {
         controller.registerHandler(GET, "/admin", (req, channel, client) -> redirectToRoot(channel));
         controller.registerHandler(GET, "/_plugin/crate-admin", (req, channel, client) -> redirectToRoot(channel));
         controller.registerHandler(GET, "/index.html", (req, channel, client) -> serveSite(siteDirectory, req, channel));
-    }
-
-    private static boolean endpointAllowed(String rawPath) {
-        return isRoot(rawPath) || isSupportedEndpoint(rawPath);
-    }
-
-    private static boolean isSupportedEndpoint(String rawPath) {
-        for (int i = 0; i < SUPPORTED_ENDPOINTS.size(); i++) {
-            if (rawPath.startsWith(SUPPORTED_ENDPOINTS.get(i))) {
-                return true;
-            }
-        }
-        return false;
     }
 
     // handle possible (wrong) URL '//' too
@@ -223,30 +199,6 @@ public class CrateRestMainAction implements RestHandler {
     @Override
     public void handleRequest(RestRequest request, RestChannel channel, NodeClient client) throws Exception {
         serveJSONOrSite(request, channel, client);
-    }
-
-    public static class RestFilter implements RestHandler {
-        private final RestHandler delegate;
-
-        public RestFilter(Settings settings, RestHandler delegate) {
-            this.delegate = delegate;
-        }
-
-        @Override
-        public void handleRequest(RestRequest request, RestChannel channel, NodeClient client) throws Exception {
-            String rawPath = request.rawPath();
-            if (endpointAllowed(rawPath)) {
-                delegate.handleRequest(request, channel, client);
-            } else {
-                channel.sendResponse(new BytesRestResponse(
-                    BAD_REQUEST,
-                    String.format(Locale.ENGLISH,
-                        "No handler found for uri [%s] and method [%s]",
-                        request.uri(),
-                        request.method())
-                ));
-            }
-        }
     }
 
     public static Tuple<String, SecureString> extractCredentialsFromHttpBasicAuthHeader(String authHeaderValue) {
