@@ -49,6 +49,9 @@ class Netty4HttpRequestHandler extends SimpleChannelInboundHandler<Object> {
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
+        if (!(msg instanceof FullHttpRequest)) {
+            return;
+        }
         final FullHttpRequest request = (FullHttpRequest) msg;
         final FullHttpRequest copy =
                 new DefaultFullHttpRequest(
