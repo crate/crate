@@ -116,6 +116,8 @@ Deprecations
 Changes
 =======
 
+- Added missing Postgresql type mapping for the ``array(ip)`` collection type.
+
 - Added a new ``_docid`` :ref:`system column
   <sql_administration_system_columns>`.
 

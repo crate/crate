@@ -52,7 +52,6 @@ public class PGTypes {
         .put(DataTypes.TIMESTAMP, TimestampType.INSTANCE)
         .put(DataTypes.IP, VarCharType.INSTANCE) // postgres has no IP type, so map it to varchar - it matches the client representation
         .put(DataTypes.UNDEFINED, VarCharType.INSTANCE)
-        .put(DataTypes.GEO_POINT, PGArray.FLOAT8_ARRAY)
         .put(DataTypes.GEO_SHAPE, JsonType.INSTANCE)
         .put(new ArrayType(DataTypes.BYTE), PGArray.CHAR_ARRAY)
         .put(new ArrayType(DataTypes.SHORT), PGArray.INT2_ARRAY)
@@ -63,6 +62,7 @@ public class PGTypes {
         .put(new ArrayType(DataTypes.BOOLEAN), PGArray.BOOL_ARRAY)
         .put(new ArrayType(DataTypes.TIMESTAMP), PGArray.TIMESTAMPZ_ARRAY)
         .put(new ArrayType(DataTypes.STRING), PGArray.VARCHAR_ARRAY)
+        .put(new ArrayType(DataTypes.IP), PGArray.VARCHAR_ARRAY)
         .put(new ArrayType(DataTypes.GEO_POINT), PGArray.FLOAT8_ARRAY)
         .put(new ArrayType(DataTypes.GEO_SHAPE), PGArray.JSON_ARRAY)
         .put(new ArrayType(ObjectType.untyped()), JsonType.INSTANCE)
@@ -75,9 +75,11 @@ public class PGTypes {
         .put(new SetType(DataTypes.BOOLEAN), PGArray.BOOL_ARRAY)
         .put(new SetType(DataTypes.TIMESTAMP), PGArray.TIMESTAMPZ_ARRAY)
         .put(new SetType(DataTypes.STRING), PGArray.VARCHAR_ARRAY)
+        .put(new SetType(DataTypes.IP), PGArray.VARCHAR_ARRAY)
         .put(new SetType(DataTypes.GEO_POINT), PGArray.FLOAT8_ARRAY)
         .put(new SetType(DataTypes.GEO_SHAPE), PGArray.JSON_ARRAY)
         .put(new SetType(ObjectType.untyped()), JsonType.INSTANCE)
+        .put(DataTypes.GEO_POINT, PGArray.FLOAT8_ARRAY)     // Must come after array(double) -> float8-array mapping to avoid override in the static block further below
         .build();
 
     private static final IntObjectMap<DataType> PG_TYPES_TO_CRATE_TYPE = new IntObjectHashMap<>();
