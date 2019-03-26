@@ -371,16 +371,20 @@ idents
     ;
 
 ident
-    : IDENTIFIER                                                                     #unquotedIdentifier
-    | quotedIdentifier                                                               #quotedIdentifierAlternative
-    | nonReserved                                                                    #unquotedIdentifier
-    | BACKQUOTED_IDENTIFIER                                                          #backQuotedIdentifier
-    | DIGIT_IDENTIFIER                                                               #digitIdentifier
-    | COLON_IDENT                                                                    #colonIdentifier
+    : unquotedIdent
+    | quotedIdent
     ;
 
-quotedIdentifier
-    : QUOTED_IDENTIFIER
+unquotedIdent
+    : IDENTIFIER                        #unquotedIdentifier
+    | nonReserved                       #unquotedIdentifier
+    | DIGIT_IDENTIFIER                  #digitIdentifier        // not supported
+    | COLON_IDENT                       #colonIdentifier        // not supported
+    ;
+
+quotedIdent
+    : QUOTED_IDENTIFIER                 #quotedIdentifier
+    | BACKQUOTED_IDENTIFIER             #backQuotedIdentifier   // not supported
     ;
 
 stringLiteralOrIdentifier
@@ -529,12 +533,10 @@ rerouteOption
     ;
 
 dataType
-    : IDENTIFIER
-    | quotedIdentifier
-    | nonReserved
-    | objectTypeDefinition
-    | arrayTypeDefinition
-    | setTypeDefinition
+    : ident                     #dataTypeIdent
+    | objectTypeDefinition      #objectDataType
+    | arrayTypeDefinition       #arrayDataType
+    | setTypeDefinition         #setDataType
     ;
 
 objectTypeDefinition
