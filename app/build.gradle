@@ -187,11 +187,7 @@ task signJars(type: Sign, dependsOn: [jar, sourceJar, javadocJar]) {
     sign configurations.archives
 }
 
-<<<<<<< HEAD
-install.dependsOn([jar, ':common:getVersion', buildSourceJar, buildJavadocJar])
-=======
-install.dependsOn([jar, ':es:es-server:getVersion', sourceJar, javadocJar])
->>>>>>> 5facab83c5... Remove unused :app gradle tasks for jar building
+install.dependsOn([jar, ':common:getVersion', sourceJar, javadocJar])
 install {
     repositories {
         mavenInstaller {
@@ -233,11 +229,7 @@ install {
 project.ext.bintrayUsername = project.hasProperty('bintrayUsername') ? bintrayUsername : ""
 project.ext.bintrayPassword = project.hasProperty('bintrayPassword') ? bintrayPassword : ""
 
-<<<<<<< HEAD
-uploadArchives.dependsOn([jar, ':common:getVersion', buildSourceJar, buildJavadocJar, signJars])
-=======
-uploadArchives.dependsOn([jar, ':es:es-server:getVersion', sourceJar, javadocJar, signJars])
->>>>>>> 5facab83c5... Remove unused :app gradle tasks for jar building
+uploadArchives.dependsOn([jar, ':common:getVersion', sourceJar, javadocJar, signJars])
 uploadArchives {
     repositories {
         mavenDeployer {
