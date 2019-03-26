@@ -37,7 +37,6 @@ from urllib.request import urlretrieve
 
 JMX_PORT = bind_port()
 CRATE_HTTP_PORT = bind_port()
-JMX_PORT_ENTERPRISE_DISABLED = bind_port()
 
 JMX_OPTS = '''
      -Dcom.sun.management.jmxremote
@@ -59,25 +58,8 @@ enterprise_crate = CrateLayer(
     crate_home=crate_path(),
     port=CRATE_HTTP_PORT,
     transport_port=0,
-    env=env,
-    settings={
-        'license.enterprise': True,
-    }
+    env=env
 )
-
-env = os.environ.copy()
-env["CRATE_JAVA_OPTS"] = JMX_OPTS.format(JMX_PORT_ENTERPRISE_DISABLED)
-community_crate = CrateLayer(
-    'crate',
-    crate_home=crate_path(),
-    port=bind_port(),
-    transport_port=0,
-    env=env,
-    settings={
-        'license.enterprise': False,
-    }
-)
-
 
 class JmxClient:
 
@@ -229,27 +211,4 @@ rejected:        0
         self.assertRegex(output, r'overhead:\s+(\d+\.?\d+)')
         self.assertRegex(output, r'trippedCount:\s+(\d+)')
         self.assertRegex(output, r'used:\s+(\d+)')
-
-
-class NoEnterpriseJmxIntegrationTest(unittest.TestCase):
-
-    @classmethod
-    def setUpClass(cls):
-        community_crate.start()
-
-    @classmethod
-    def tearDownClass(cls):
-        community_crate.stop()
-
-    def test_enterprise_setting_disabled(self):
-        jmx_client = JmxClient(JMX_PORT_ENTERPRISE_DISABLED)
-        stdout, stderr = jmx_client.query_jmx(
-            'io.crate.monitoring:type=QueryStats',
-            'SelectQueryTotalCount'
-        )
-
-        self.assertEqual(
-            stderr,
-            'MBean not found: io.crate.monitoring:type=QueryStats\n')
-        self.assertEqual(stdout, '')
 

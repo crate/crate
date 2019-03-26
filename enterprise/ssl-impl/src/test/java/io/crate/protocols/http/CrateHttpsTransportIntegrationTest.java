@@ -24,7 +24,6 @@ package io.crate.protocols.http;
 
 import io.crate.integrationtests.SQLHttpIntegrationTest;
 import io.crate.protocols.ssl.SslConfigSettings;
-import io.crate.settings.SharedSettings;
 import io.crate.testing.UseJdbc;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -76,7 +75,6 @@ public class CrateHttpsTransportIntegrationTest extends SQLHttpIntegrationTest {
     protected Settings nodeSettings(int nodeOrdinal) {
         return Settings.builder()
             .put(super.nodeSettings(nodeOrdinal))
-            .put(SharedSettings.ENTERPRISE_LICENSE_SETTING.getKey(), true)
             .put(SslConfigSettings.SSL_HTTP_ENABLED.getKey(), true)
             .put(SslConfigSettings.SSL_KEYSTORE_FILEPATH.getKey(), keyStoreFile.getAbsolutePath())
             .put(SslConfigSettings.SSL_KEYSTORE_PASSWORD.getKey(), "keystorePassword")

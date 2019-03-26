@@ -18,12 +18,6 @@ The JMX monitoring feature exposes query metrics via the `JMX`_ API.
 Setup
 =====
 
-Enable the Enterprise License
------------------------------
-
-You can enable the :ref:`conf-node-enterprise-license` via the CrateDB
-configuration file.
-
 Enable Collecting Stats
 -----------------------
 

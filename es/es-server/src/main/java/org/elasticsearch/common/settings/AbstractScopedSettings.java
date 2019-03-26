@@ -393,8 +393,8 @@ public abstract class AbstractScopedSettings extends AbstractComponent {
             if (keys.isEmpty() == false) {
                 msg += " did you mean " + (keys.size() == 1 ? "[" + keys.get(0) + "]": "any of " + keys.toString()) + "?";
             } else {
-                msg += " please check that any required plugins are installed or `license.enterprise` is enabled, " +
-                    "if the plugin(s) require(s) it, or check the breaking changes documentation for removed settings";
+                msg += " please check that any required plugins are installed," +
+                    " or check the breaking changes documentation for removed settings";
             }
             throw new IllegalArgumentException(msg);
         } else  {

@@ -27,7 +27,6 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.license.LicenseData;
 import io.crate.license.LicenseService;
 import io.crate.monitor.ExtendedNodeInfo;
-import io.crate.settings.SharedSettings;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
@@ -93,11 +92,6 @@ public class PingTask extends TimerTask {
         return clusterService.localNode().isMasterNode();
     }
 
-    @VisibleForTesting
-    String isEnterprise() {
-        return SharedSettings.ENTERPRISE_LICENSE_SETTING.setting().getRaw(settings);
-    }
-
     private Map<String, Object> getCounters() {
         return ImmutableMap.of(
             "success", successCounter.get(),
@@ -122,7 +116,6 @@ public class PingTask extends TimerTask {
         queryMap.put("cluster_id", getClusterId());
         queryMap.put("kernel", Strings.toString(XContentFactory.jsonBuilder().map(getKernelData())));
         queryMap.put("master", isMasterNode().toString());
-        queryMap.put("enterprise", isEnterprise());
         queryMap.put("ping_count", Strings.toString(XContentFactory.jsonBuilder().map(getCounters())));
         queryMap.put("hardware_address", getHardwareAddress());
         queryMap.put("num_processors", Integer.toString(Runtime.getRuntime().availableProcessors()));

@@ -28,6 +28,7 @@ import io.crate.action.sql.Option;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.user.Privilege;
 import io.crate.auth.user.User;
+import io.crate.auth.user.UserManager;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.expression.udf.UserDefinedFunctionService;
@@ -38,13 +39,11 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.DocTableInfoFactory;
 import io.crate.metadata.doc.TestingDocTableInfoFactory;
 import io.crate.metadata.table.TestingTableInfo;
-import io.crate.settings.SharedSettings;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.user.StubUserManager;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -59,7 +58,6 @@ import static io.crate.analyze.user.Privilege.State.REVOKE;
 import static io.crate.analyze.user.Privilege.Type.DDL;
 import static io.crate.analyze.user.Privilege.Type.DML;
 import static io.crate.analyze.user.Privilege.Type.DQL;
-import static io.crate.settings.SharedSettings.ENTERPRISE_LICENSE_SETTING;
 import static io.crate.testing.TestingHelpers.getFunctions;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.contains;
@@ -78,6 +76,13 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
 
     private static final RelationName CUSTOM_SCHEMA_VIEW = new RelationName("my_schema", "locations_view");
 
+    private static final UserManager USER_MANAGER = new StubUserManager() {
+        @Override
+        public boolean isEnabled() {
+            return true;
+        }
+    };
+
     private SQLExecutor e;
 
     @Before
@@ -86,6 +91,7 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
             .addSchema(new DocSchemaInfo(CUSTOM_SCHEMA_IDENT.schema(), clusterService, getFunctions(),
                 new UserDefinedFunctionService(clusterService, getFunctions()), (ident, state) -> null, CUSTOM_SCHEMA_TABLE_FACTORY))
             .addView(CUSTOM_SCHEMA_VIEW, "Select * from my_schema.locations limit 2")
+            .setUserManager(USER_MANAGER)
             .build();
     }
 
@@ -287,16 +293,13 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
 
     @Test
     public void testGrantWithoutUserManagementEnabledThrowsException() {
+        e = SQLExecutor.builder(clusterService)
+            .setUserManager(new StubUserManager())
+            .build();
+
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("User management is not enabled");
-        try {
-            e = SQLExecutor.builder(clusterService)
-                .settings(Settings.builder().put(ENTERPRISE_LICENSE_SETTING.getKey(), false).build())
-                .build();
-            e.analyze("GRANT DQL TO test");
-        } finally {
-            assertSettingDeprecationsAndWarnings(new Setting[] { SharedSettings.ENTERPRISE_LICENSE_SETTING.setting() });
-        }
+        e.analyze("GRANT DQL TO test");
     }
 
     @Test

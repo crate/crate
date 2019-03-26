@@ -21,20 +21,11 @@ package io.crate.plugin;
 import com.google.common.collect.ImmutableList;
 import io.crate.Plugin;
 import io.crate.module.CrateMonitoringModule;
-import io.crate.settings.SharedSettings;
 import org.elasticsearch.common.inject.Module;
-import org.elasticsearch.common.settings.Settings;
 
 import java.util.Collection;
-import java.util.Collections;
 
 public class CrateMonitoringPlugin implements Plugin {
-
-    private final boolean isEnterprise;
-
-    public CrateMonitoringPlugin(Settings settings) {
-        isEnterprise = SharedSettings.ENTERPRISE_LICENSE_SETTING.setting().get(settings);
-    }
 
     @Override
     public String name() {
@@ -48,6 +39,6 @@ public class CrateMonitoringPlugin implements Plugin {
 
     @Override
     public Collection<Module> createGuiceModules() {
-        return isEnterprise ? ImmutableList.of(new CrateMonitoringModule()) : Collections.emptyList();
+        return ImmutableList.of(new CrateMonitoringModule());
     }
 }

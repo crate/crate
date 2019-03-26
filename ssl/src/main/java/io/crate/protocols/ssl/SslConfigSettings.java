@@ -23,7 +23,6 @@
 package io.crate.protocols.ssl;
 
 import io.crate.settings.CrateSetting;
-import io.crate.settings.SharedSettings;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
@@ -72,12 +71,10 @@ public final class SslConfigSettings {
         DataTypes.STRING);
 
     static boolean isHttpsEnabled(Settings settings) {
-        return SharedSettings.ENTERPRISE_LICENSE_SETTING.setting().get(settings) &&
-                SSL_HTTP_ENABLED.setting().get(settings);
+        return SSL_HTTP_ENABLED.setting().get(settings);
     }
 
     public static boolean isPSQLSslEnabled(Settings settings) {
-        return SharedSettings.ENTERPRISE_LICENSE_SETTING.setting().get(settings) &&
-               SSL_PSQL_ENABLED.setting().get(settings);
+        return SSL_PSQL_ENABLED.setting().get(settings);
     }
 }

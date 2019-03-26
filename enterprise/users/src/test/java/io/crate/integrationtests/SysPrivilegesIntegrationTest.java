@@ -18,14 +18,9 @@
 
 package io.crate.integrationtests;
 
-import io.crate.action.sql.Session;
-import io.crate.action.sql.SQLActionException;
 import io.crate.analyze.user.Privilege;
 import io.crate.auth.user.UserManager;
-import io.crate.settings.SharedSettings;
 import io.crate.testing.TestingHelpers;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -38,7 +33,6 @@ import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.core.Is.is;
 
-@ESIntegTestCase.ClusterScope(numClientNodes = 0, supportsDedicatedMasters = false, numDataNodes = 0)
 public class SysPrivilegesIntegrationTest extends BaseUsersIntegrationTest {
 
     private static final Set<Privilege> PRIVILEGES = new HashSet<>(Arrays.asList(
@@ -46,54 +40,29 @@ public class SysPrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         new Privilege(Privilege.State.GRANT, Privilege.Type.DML, Privilege.Clazz.CLUSTER, null, "crate")));
     private static final List<String> USERNAMES = Arrays.asList("ford", "arthur", "normal");
 
-    private String nodeEnterpriseEnabled;
-    private String nodeEnterpriseDisabled;
-
-    @Override
-    protected Session createSuperUserSession() {
-        return createSuperUserSession(true);
-    }
-
-    private Session createSuperUserSession(boolean enterpriseEnabled) {
-        return createSuperUserSession(enterpriseEnabled ? nodeEnterpriseEnabled : nodeEnterpriseDisabled);
-    }
-
-    @Override
-    protected Session createUserSession() {
-        return createUserSession(nodeEnterpriseEnabled);
-    }
-
-    @Override
-    public void createSessions() {
-        // we start nodes manually, sessions must be created afterwards
-    }
 
     @Before
     public void setUpNodesUsersAndPrivileges() throws Exception {
-        nodeEnterpriseEnabled = internalCluster().startNode();
-        nodeEnterpriseDisabled = internalCluster().startNode(Settings.builder()
-            .put("node.master", false) // node has no create/drop user transports
-            .put(SharedSettings.ENTERPRISE_LICENSE_SETTING.getKey(), false));
         super.createSessions();
 
         for (String userName : USERNAMES) {
             executeAsSuperuser("create user " + userName);
         }
 
-        UserManager userManager = internalCluster().getInstance(UserManager.class, nodeEnterpriseEnabled);
+        UserManager userManager = internalCluster().getInstance(UserManager.class);
         Long rowCount = userManager.applyPrivileges(USERNAMES, PRIVILEGES).get(5, TimeUnit.SECONDS);
         assertThat(rowCount, is(6L));
     }
 
     @After
-    public void dropUsersAndPrivileges() throws Exception {
+    public void dropUsersAndPrivileges() {
         for (String userName : USERNAMES) {
             executeAsSuperuser("drop user " + userName);
         }
     }
 
     @Test
-    public void testTableColumns() throws Exception {
+    public void testTableColumns() {
         executeAsSuperuser("select column_name, data_type from information_schema.columns" +
                 " where table_name='privileges' and table_schema='sys'");
         assertThat(TestingHelpers.printedTable(response.rows()), is("class| string\n" +
@@ -105,7 +74,7 @@ public class SysPrivilegesIntegrationTest extends BaseUsersIntegrationTest {
     }
 
     @Test
-    public void testListingAsSuperUser() throws Exception {
+    public void testListingAsSuperUser() {
         executeAsSuperuser("select * from sys.privileges order by grantee, type");
         assertThat(TestingHelpers.printedTable(response.rows()), is("CLUSTER| arthur| crate| NULL| GRANT| DML\n" +
                                                                     "CLUSTER| arthur| crate| NULL| GRANT| DQL\n" +
@@ -116,7 +85,7 @@ public class SysPrivilegesIntegrationTest extends BaseUsersIntegrationTest {
     }
 
     @Test
-    public void testListingAsUserWithPrivilege() throws Exception {
+    public void testListingAsUserWithPrivilege() {
         executeAsSuperuser("select * from sys.privileges order by grantee, type");
         assertThat(TestingHelpers.printedTable(response.rows()), is("CLUSTER| arthur| crate| NULL| GRANT| DML\n" +
                                                                     "CLUSTER| arthur| crate| NULL| GRANT| DQL\n" +
@@ -124,12 +93,5 @@ public class SysPrivilegesIntegrationTest extends BaseUsersIntegrationTest {
                                                                     "CLUSTER| ford| crate| NULL| GRANT| DQL\n" +
                                                                     "CLUSTER| normal| crate| NULL| GRANT| DML\n" +
                                                                     "CLUSTER| normal| crate| NULL| GRANT| DQL\n"));
-    }
-
-    @Test
-    public void testTableNotAvailableIfEnterpriseIsOff() throws Exception {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("RelationUnknown: Relation 'sys.privileges' unknown");
-        execute("select * from sys.privileges", null, createSuperUserSession(false));
     }
 }
