@@ -36,8 +36,6 @@ import org.elasticsearch.action.admin.indices.recovery.RecoveryResponse;
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequestBuilder;
 import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
-import org.elasticsearch.action.admin.indices.settings.get.GetSettingsRequest;
-import org.elasticsearch.action.admin.indices.settings.get.GetSettingsResponse;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequestBuilder;
 import org.elasticsearch.action.admin.indices.stats.IndicesStatsRequest;
@@ -287,17 +285,4 @@ public interface IndicesAdminClient extends ElasticsearchClient {
      * Gets an index template (optional).
      */
     GetIndexTemplatesRequestBuilder prepareGetTemplates(String... name);
-
-    /**
-     * Executed a per index settings get request and returns the settings for the indices specified.
-     * Note: this is a per index request and will not include settings that are set on the cluster
-     * level. This request is not exhaustive, it will not return default values for setting.
-     */
-    void getSettings(GetSettingsRequest request, ActionListener<GetSettingsResponse> listener);
-
-    /**
-     * Executed a per index settings get request.
-     * @see #getSettings(org.elasticsearch.action.admin.indices.settings.get.GetSettingsRequest)
-     */
-    ActionFuture<GetSettingsResponse> getSettings(GetSettingsRequest request);
 }
