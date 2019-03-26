@@ -88,6 +88,19 @@ pipeline {
             sh './gradlew --no-daemon itest'
           }
         }
+        stage('test jar jdk11') {
+          agent { label 'medium' }
+          tools {
+            jdk 'jdk11'
+          }
+          steps {
+            sh 'git clean -xdff'
+            checkout scm
+            sh 'git submodule update --init'
+            unstash 'crate'
+            sh 'timeout 20m ./gradlew --no-daemon :app:jar :app:sourceJar :app:javadocJar'
+          }
+        }
       }
     }
   }
