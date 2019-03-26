@@ -19,6 +19,7 @@
 
 package org.elasticsearch.transport;
 
+import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.network.NetworkModule;
 import org.elasticsearch.common.network.NetworkService;
@@ -93,8 +94,8 @@ public class Netty4Plugin extends Plugin implements NetworkPlugin {
                                                                         NamedWriteableRegistry namedWriteableRegistry,
                                                                         NamedXContentRegistry xContentRegistry,
                                                                         NetworkService networkService,
-                                                                        HttpServerTransport.Dispatcher dispatcher) {
+                                                                        NodeClient nodeClient) {
         return Collections.singletonMap(NETTY_HTTP_TRANSPORT_NAME,
-            () -> new Netty4HttpServerTransport(settings, networkService, bigArrays, threadPool, xContentRegistry, dispatcher));
+            () -> new Netty4HttpServerTransport(settings, networkService, bigArrays, threadPool, xContentRegistry));
     }
 }

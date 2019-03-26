@@ -122,7 +122,6 @@ import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.plugins.PluginsService;
 import org.elasticsearch.plugins.RepositoryPlugin;
 import org.elasticsearch.repositories.RepositoriesModule;
-import org.elasticsearch.rest.RestController;
 import org.elasticsearch.search.SearchModule;
 import org.elasticsearch.snapshots.SnapshotShardsService;
 import org.elasticsearch.snapshots.SnapshotsService;
@@ -428,15 +427,23 @@ public abstract class Node implements Closeable {
                                                  namedWriteableRegistry).stream())
                 .collect(Collectors.toList());
 
-            ActionModule actionModule = new ActionModule(settings, clusterModule.getIndexNameExpressionResolver(),
-                settingsModule.getIndexScopedSettings(), settingsModule.getClusterSettings(), settingsModule.getSettingsFilter(),
-                threadPool, pluginsService.filterPlugins(ActionPlugin.class), client, circuitBreakerService);
+            ActionModule actionModule = new ActionModule(
+                settings,
+                settingsModule.getClusterSettings(),
+                pluginsService.filterPlugins(ActionPlugin.class));
             modules.add(actionModule);
-
-            final RestController restController = actionModule.getRestController();
-            final NetworkModule networkModule = new NetworkModule(settings, pluginsService.filterPlugins(NetworkPlugin.class),
-                threadPool, bigArrays, pageCacheRecycler, circuitBreakerService, namedWriteableRegistry, xContentRegistry,
-                networkService, restController);
+            final NetworkModule networkModule = new NetworkModule(
+                settings,
+                pluginsService.filterPlugins(NetworkPlugin.class),
+                threadPool,
+                bigArrays,
+                pageCacheRecycler,
+                circuitBreakerService,
+                namedWriteableRegistry,
+                xContentRegistry,
+                networkService,
+                client
+            );
             Collection<UnaryOperator<Map<String, MetaData.Custom>>> customMetaDataUpgraders =
                 pluginsService.filterPlugins(Plugin.class).stream()
                     .map(Plugin::getCustomMetaDataUpgrader)
@@ -524,8 +531,6 @@ public abstract class Node implements Closeable {
             this.pluginLifecycleComponents = Collections.unmodifiableList(pluginLifecycleComponents);
             client.initialize(injector.getInstance(new Key<Map<GenericAction, TransportAction>>() {}));
 
-            logger.debug("initializing HTTP handlers ...");
-            actionModule.initRestHandlers(() -> clusterService.state().nodes());
             logger.info("initialized");
 
             success = true;

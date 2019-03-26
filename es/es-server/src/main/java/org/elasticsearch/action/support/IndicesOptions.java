@@ -19,13 +19,11 @@
 package org.elasticsearch.action.support;
 
 
-import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.ToXContentFragment;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.rest.RestRequest;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -287,14 +285,6 @@ public class IndicesOptions implements ToXContentFragment {
         }
 
         return new IndicesOptions(opts, wildcards);
-    }
-
-    public static IndicesOptions fromRequest(RestRequest request, IndicesOptions defaultSettings) {
-        return fromParameters(
-                request.param("expand_wildcards"),
-                request.param("ignore_unavailable"),
-                request.param("allow_no_indices"),
-                defaultSettings);
     }
 
     public static IndicesOptions fromMap(Map<String, Object> map, IndicesOptions defaultSettings) {

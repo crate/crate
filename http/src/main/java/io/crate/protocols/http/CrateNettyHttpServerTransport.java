@@ -25,67 +25,68 @@ package io.crate.protocols.http;
 import io.crate.plugin.PipelineRegistry;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelPipeline;
-import org.apache.logging.log4j.Logger;
+import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.common.io.PathUtils;
-import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
-import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
 import org.elasticsearch.http.netty4.cors.Netty4CorsHandler;
-import org.elasticsearch.rest.RestChannel;
-import org.elasticsearch.rest.RestRequest;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.file.Path;
 
 import static org.elasticsearch.env.Environment.PATH_HOME_SETTING;
 import static org.elasticsearch.http.HttpTransportSettings.SETTING_CORS_ENABLED;
+import static org.elasticsearch.node.Node.NODE_NAME_SETTING;
 
 
 public class CrateNettyHttpServerTransport extends Netty4HttpServerTransport {
 
     private final PipelineRegistry pipelineRegistry;
+    private final NodeClient nodeClient;
 
     public CrateNettyHttpServerTransport(Settings settings,
                                          NetworkService networkService,
                                          BigArrays bigArrays,
                                          ThreadPool threadPool,
                                          NamedXContentRegistry namedXContentRegistry,
-                                         Dispatcher dispatcher,
-                                         PipelineRegistry pipelineRegistry) {
-        super(settings, networkService, bigArrays, threadPool, namedXContentRegistry,
-            new CrateDispatcher(settings, dispatcher));
+                                         PipelineRegistry pipelineRegistry,
+                                         NodeClient nodeClient) {
+        super(settings, networkService, bigArrays, threadPool, namedXContentRegistry);
         this.pipelineRegistry = pipelineRegistry;
+        this.nodeClient = nodeClient;
     }
 
     @Override
     public HttpChannelHandler configureServerChannelHandler() {
-        return new CrateHttpChannelHandler(this, detailedErrorsEnabled, threadPool);
+        return new CrateHttpChannelHandler(this, nodeClient);
     }
 
     protected class CrateHttpChannelHandler extends HttpChannelHandler {
 
         private final CrateNettyHttpServerTransport transport;
+        private final NodeClient nodeClient;
+        private final Path home;
+        private final String nodeName;
 
-        CrateHttpChannelHandler(CrateNettyHttpServerTransport transport,
-                                boolean detailedErrorsEnabled,
-                                ThreadPool threadPool) {
-            super(transport, detailedErrorsEnabled, threadPool.getThreadContext());
+        CrateHttpChannelHandler(CrateNettyHttpServerTransport transport, NodeClient nodeClient) {
+            super(transport);
             this.transport = transport;
+            this.nodeClient = nodeClient;
+            this.nodeName = NODE_NAME_SETTING.get(settings);
+            this.home = PathUtils.get(PATH_HOME_SETTING.get(settings)).normalize();
         }
 
         @Override
         protected void initChannel(Channel ch) throws Exception {
             super.initChannel(ch);
             ChannelPipeline pipeline = ch.pipeline();
+            pipeline.addLast("handler", new MainAndStaticFileHandler(nodeName, home, nodeClient, transport.getCorsConfig()));
             pipelineRegistry.registerItems(pipeline, transport.getCorsConfig());
             // re-arrange cors so that it is utilized before the auth handler.
             // (Options pre-flight requests shouldn't require auth)
@@ -105,37 +106,5 @@ public class CrateNettyHttpServerTransport extends Netty4HttpServerTransport {
         // which does not have an address.
         // An embedded socket address is handled like a local connection via loopback.
         return InetAddresses.forString("127.0.0.1");
-    }
-
-    private static class CrateDispatcher implements HttpServerTransport.Dispatcher {
-
-        private static final Logger LOG = LogManager.getLogger(CrateDispatcher.class);
-
-        private final Path sitePath;
-        private final Dispatcher fallbackDispatcher;
-
-        CrateDispatcher(Settings settings, Dispatcher fallbackDispatcher) {
-            this.sitePath = PathUtils.get(PATH_HOME_SETTING.get(settings)).normalize().resolve("lib").resolve("site");
-            this.fallbackDispatcher = fallbackDispatcher;
-        }
-
-        @Override
-        public void dispatchRequest(RestRequest request, RestChannel channel, ThreadContext threadContext) {
-            if (request.rawPath().startsWith("/static")) {
-                try {
-                    StaticSite.serveSite(sitePath, request, channel);
-                } catch (IOException e) {
-                    LOG.error("Couldn't serve static file", e);
-                    fallbackDispatcher.dispatchBadRequest(request, channel, threadContext, e);
-                }
-            } else {
-                fallbackDispatcher.dispatchRequest(request, channel, threadContext);
-            }
-        }
-
-        @Override
-        public void dispatchBadRequest(RestRequest request, RestChannel channel, ThreadContext threadContext, Throwable cause) {
-            fallbackDispatcher.dispatchBadRequest(request, channel, threadContext, cause);
-        }
     }
 }
