@@ -154,8 +154,6 @@ task javadocJar(type: Jar, dependsOn: [':es:es-server:getVersion', myJavadocs]) 
     }
 }
 
-task buildJavadocJar(dependsOn: javadocJar) {}
-
 task sourceJar(type: Jar) {
     doFirst {
         manifest.attributes 'Implementation-Version': project(':es:es-server').getVersion.version
@@ -177,20 +175,17 @@ task sourceJar(type: Jar) {
     }
 }
 
-task buildSourceJar(dependsOn: sourceJar) {
-}
-
 artifacts {
     archives jar
     archives sourceJar
     archives javadocJar
 }
 
-task signJars(type: Sign, dependsOn: [jar, buildSourceJar, buildJavadocJar]) {
+task signJars(type: Sign, dependsOn: [jar, sourceJar, javadocJar]) {
     sign configurations.archives
 }
 
-install.dependsOn([jar, ':es:es-server:getVersion', buildSourceJar, buildJavadocJar])
+install.dependsOn([jar, ':es:es-server:getVersion', sourceJar, javadocJar])
 install {
     repositories {
         mavenInstaller {
@@ -232,7 +227,7 @@ install {
 project.ext.bintrayUsername = project.hasProperty('bintrayUsername') ? bintrayUsername : ""
 project.ext.bintrayPassword = project.hasProperty('bintrayPassword') ? bintrayPassword : ""
 
-uploadArchives.dependsOn([jar, ':es:es-server:getVersion', buildSourceJar, buildJavadocJar, signJars])
+uploadArchives.dependsOn([jar, ':es:es-server:getVersion', sourceJar, javadocJar, signJars])
 uploadArchives {
     repositories {
         mavenDeployer {
