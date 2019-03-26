@@ -18,11 +18,7 @@
  */
 package org.elasticsearch.plugins;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Supplier;
-
+import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
@@ -35,6 +31,11 @@ import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.Transport;
 import org.elasticsearch.transport.TransportInterceptor;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Supplier;
 
 /**
  * Plugin for extending network and transport related classes
@@ -70,12 +71,14 @@ public interface NetworkPlugin {
      * Returns a map of {@link HttpServerTransport} suppliers.
      * See {@link org.elasticsearch.common.network.NetworkModule#HTTP_TYPE_SETTING} to configure a specific implementation.
      */
-    default Map<String, Supplier<HttpServerTransport>> getHttpTransports(Settings settings, ThreadPool threadPool, BigArrays bigArrays,
+    default Map<String, Supplier<HttpServerTransport>> getHttpTransports(Settings settings,
+                                                                         ThreadPool threadPool,
+                                                                         BigArrays bigArrays,
                                                                          CircuitBreakerService circuitBreakerService,
                                                                          NamedWriteableRegistry namedWriteableRegistry,
                                                                          NamedXContentRegistry xContentRegistry,
                                                                          NetworkService networkService,
-                                                                         HttpServerTransport.Dispatcher dispatcher) {
+                                                                         NodeClient nodeClient) {
         return Collections.emptyMap();
     }
 }

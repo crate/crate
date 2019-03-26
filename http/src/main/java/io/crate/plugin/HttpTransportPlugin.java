@@ -22,19 +22,13 @@
 package io.crate.plugin;
 
 import io.crate.protocols.http.CrateNettyHttpServerTransport;
-import io.crate.rest.CrateRestMainAction;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.node.DiscoveryNodes;
+import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.io.PathUtils;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.network.NetworkService;
-import org.elasticsearch.common.settings.ClusterSettings;
-import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.settings.SettingsFilter;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.env.Environment;
@@ -44,11 +38,8 @@ import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.plugins.ActionPlugin;
 import org.elasticsearch.plugins.NetworkPlugin;
 import org.elasticsearch.plugins.Plugin;
-import org.elasticsearch.rest.RestController;
-import org.elasticsearch.rest.RestHandler;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -56,7 +47,6 @@ import java.util.Map;
 import java.util.function.Supplier;
 
 import static org.elasticsearch.common.network.NetworkModule.HTTP_TYPE_KEY;
-import static org.elasticsearch.env.Environment.PATH_HOME_SETTING;
 import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_COMPRESSION;
 
 
@@ -111,7 +101,7 @@ public class HttpTransportPlugin extends Plugin implements NetworkPlugin, Action
                                                                         NamedWriteableRegistry namedWriteableRegistry,
                                                                         NamedXContentRegistry xContentRegistry,
                                                                         NetworkService networkService,
-                                                                        HttpServerTransport.Dispatcher dispatcher) {
+                                                                        NodeClient nodeClient) {
         return Collections.singletonMap(
             CRATE_HTTP_TRANSPORT_NAME,
             () -> new CrateNettyHttpServerTransport(
@@ -120,19 +110,7 @@ public class HttpTransportPlugin extends Plugin implements NetworkPlugin, Action
                 bigArrays,
                 threadPool,
                 xContentRegistry,
-                dispatcher,
-                pipelineRegistry));
-    }
-
-    @Override
-    public List<RestHandler> getRestHandlers(Settings settings,
-                                             RestController restController,
-                                             ClusterSettings clusterSettings,
-                                             IndexScopedSettings indexScopedSettings,
-                                             SettingsFilter settingsFilter,
-                                             IndexNameExpressionResolver indexNameExpressionResolver,
-                                             Supplier<DiscoveryNodes> nodesInCluster) {
-        Path siteDir = PathUtils.get(PATH_HOME_SETTING.get(settings)).normalize().resolve("lib").resolve("site");
-        return Collections.singletonList(new CrateRestMainAction(settings, siteDir, restController));
+                pipelineRegistry,
+                nodeClient));
     }
 }

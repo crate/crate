@@ -20,18 +20,19 @@
  * agreement.
  */
 
-package io.crate.rest;
+package io.crate.protocols.http;
 
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.settings.SecureString;
 import org.junit.Test;
 
-import static io.crate.rest.CrateRestMainAction.isAcceptJson;
-import static io.crate.rest.CrateRestMainAction.isBrowser;
+import static io.crate.protocols.http.Headers.extractCredentialsFromHttpBasicAuthHeader;
+import static io.crate.protocols.http.Headers.isAcceptJson;
+import static io.crate.protocols.http.Headers.isBrowser;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
-public class CrateRestMainActionTest {
+public class HeadersTest {
 
     @Test
     public void testIsBrowser() {
@@ -49,27 +50,27 @@ public class CrateRestMainActionTest {
 
     @Test
     public void testExtractUsernamePasswordFromHttpBasicAuthHeader() {
-        Tuple<String, SecureString> creds = CrateRestMainAction.extractCredentialsFromHttpBasicAuthHeader("");
+        Tuple<String, SecureString> creds = extractCredentialsFromHttpBasicAuthHeader("");
         assertThat(creds.v1(), is(""));
         assertThat(creds.v2().toString(), is(""));
 
-        creds = CrateRestMainAction.extractCredentialsFromHttpBasicAuthHeader(null);
+        creds = extractCredentialsFromHttpBasicAuthHeader(null);
         assertThat(creds.v1(), is(""));
         assertThat(creds.v2().toString(), is(""));
 
-        creds = CrateRestMainAction.extractCredentialsFromHttpBasicAuthHeader("Basic QXJ0aHVyOkV4Y2FsaWJ1cg==");
+        creds = extractCredentialsFromHttpBasicAuthHeader("Basic QXJ0aHVyOkV4Y2FsaWJ1cg==");
         assertThat(creds.v1(), is("Arthur"));
         assertThat(creds.v2().toString(), is("Excalibur"));
 
-        creds = CrateRestMainAction.extractCredentialsFromHttpBasicAuthHeader("Basic QXJ0aHVyOjp0ZXN0OnBhc3N3b3JkOg==");
+        creds = extractCredentialsFromHttpBasicAuthHeader("Basic QXJ0aHVyOjp0ZXN0OnBhc3N3b3JkOg==");
         assertThat(creds.v1(), is("Arthur"));
         assertThat(creds.v2().toString(), is(":test:password:"));
 
-        creds = CrateRestMainAction.extractCredentialsFromHttpBasicAuthHeader("Basic QXJ0aHVyOg==");
+        creds = extractCredentialsFromHttpBasicAuthHeader("Basic QXJ0aHVyOg==");
         assertThat(creds.v1(), is("Arthur"));
         assertThat(creds.v2().toString(), is(""));
 
-        creds = CrateRestMainAction.extractCredentialsFromHttpBasicAuthHeader("Basic OnBhc3N3b3Jk");
+        creds = extractCredentialsFromHttpBasicAuthHeader("Basic OnBhc3N3b3Jk");
         assertThat(creds.v1(), is(""));
         assertThat(creds.v2().toString(), is("password"));
     }

@@ -24,24 +24,12 @@ import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.action.GenericAction;
 import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.action.support.TransportActions;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.settings.ClusterSettings;
-import org.elasticsearch.common.settings.IndexScopedSettings;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.settings.SettingsFilter;
-import org.elasticsearch.common.util.concurrent.ThreadContext;
-import org.elasticsearch.rest.RestController;
-import org.elasticsearch.rest.RestHandler;
 
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.Supplier;
-import java.util.function.UnaryOperator;
-import java.util.stream.Collectors;
 
 /**
  * An additional extension point for {@link Plugin}s that extends Elasticsearch's scripting functionality. Implement it like this:
@@ -64,15 +52,6 @@ public interface ActionPlugin {
     }
 
     /**
-     * Rest handlers added by this plugin.
-     */
-    default List<RestHandler> getRestHandlers(Settings settings, RestController restController, ClusterSettings clusterSettings,
-            IndexScopedSettings indexScopedSettings, SettingsFilter settingsFilter,
-            IndexNameExpressionResolver indexNameExpressionResolver, Supplier<DiscoveryNodes> nodesInCluster) {
-        return Collections.emptyList();
-    }
-
-    /**
      * Returns headers which should be copied through rest requests on to internal requests.
      */
     default Collection<String> getRestHeaders() {
@@ -84,31 +63,6 @@ public interface ActionPlugin {
      */
     default Collection<String> getTaskHeaders() {
         return Collections.emptyList();
-    }
-
-    /**
-     * Returns a function used to wrap each rest request before handling the request.
-     * The returned {@link UnaryOperator} is called for every incoming rest request and receives
-     * the original rest handler as it's input. This allows adding arbitrary functionality around
-     * rest request handlers to do for instance logging or authentication.
-     * A simple example of how to only allow GET request is here:
-     * <pre>
-     * {@code
-     *    UnaryOperator<RestHandler> getRestHandlerWrapper(ThreadContext threadContext) {
-     *      return originalHandler -> (RestHandler) (request, channel, client) -> {
-     *        if (request.method() != Method.GET) {
-     *          throw new IllegalStateException("only GET requests are allowed");
-     *        }
-     *        originalHandler.handleRequest(request, channel, client);
-     *      };
-     *    }
-     * }
-     * </pre>
-     *
-     * Note: Only one installed plugin may implement a rest wrapper.
-     */
-    default UnaryOperator<RestHandler> getRestHandlerWrapper(ThreadContext threadContext) {
-        return null;
     }
 
     final class ActionHandler<Request extends ActionRequest, Response extends ActionResponse> {

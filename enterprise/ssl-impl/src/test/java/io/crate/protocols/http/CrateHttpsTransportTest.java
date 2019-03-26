@@ -25,16 +25,15 @@ import io.crate.test.integration.CrateUnitTest;
 import io.netty.channel.Channel;
 import io.netty.channel.embedded.EmbeddedChannel;
 import io.netty.handler.ssl.SslHandler;
+import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.mockito.Mockito;
 
 import java.io.File;
 import java.io.IOException;
@@ -44,6 +43,7 @@ import java.util.Collections;
 import static io.crate.protocols.ssl.SslConfigurationTest.getAbsoluteFilePathFromClassPath;
 import static org.elasticsearch.env.Environment.PATH_HOME_SETTING;
 import static org.hamcrest.Matchers.instanceOf;
+import static org.mockito.Mockito.mock;
 
 public class CrateHttpsTransportTest extends CrateUnitTest {
 
@@ -88,10 +88,10 @@ public class CrateHttpsTransportTest extends CrateUnitTest {
                 settings,
                 networkService,
                 BigArrays.NON_RECYCLING_INSTANCE,
-                Mockito.mock(ThreadPool.class),
+                mock(ThreadPool.class),
                 NamedXContentRegistry.EMPTY,
-                Mockito.mock(HttpServerTransport.Dispatcher.class),
-                pipelineRegistry);
+                pipelineRegistry,
+                mock(NodeClient.class));
 
         Channel channel = new EmbeddedChannel();
         try {

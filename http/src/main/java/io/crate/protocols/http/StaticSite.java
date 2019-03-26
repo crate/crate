@@ -23,10 +23,15 @@
 package io.crate.protocols.http;
 
 import com.google.common.collect.ImmutableMap;
+import io.netty.buffer.ByteBufAllocator;
+import io.netty.handler.codec.http.DefaultFullHttpResponse;
+import io.netty.handler.codec.http.FullHttpRequest;
+import io.netty.handler.codec.http.FullHttpResponse;
+import io.netty.handler.codec.http.HttpHeaderNames;
+import io.netty.handler.codec.http.HttpMethod;
+import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.handler.codec.http.HttpVersion;
 import org.elasticsearch.common.io.FileSystemUtils;
-import org.elasticsearch.rest.BytesRestResponse;
-import org.elasticsearch.rest.RestChannel;
-import org.elasticsearch.rest.RestRequest;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -36,19 +41,16 @@ import java.util.Locale;
 import java.util.Map;
 
 import static java.nio.file.Files.readAttributes;
-import static org.elasticsearch.rest.RestStatus.FORBIDDEN;
-import static org.elasticsearch.rest.RestStatus.INTERNAL_SERVER_ERROR;
-import static org.elasticsearch.rest.RestStatus.NOT_FOUND;
-import static org.elasticsearch.rest.RestStatus.OK;
 
 public final class StaticSite {
 
-    public static void serveSite(Path siteDirectory, RestRequest request, RestChannel channel) throws IOException {
-        if (request.method() != RestRequest.Method.GET) {
-            channel.sendResponse(new BytesRestResponse(FORBIDDEN, "GET is the only allowed method"));
-            return;
+    public static FullHttpResponse serveSite(Path siteDirectory,
+                                             FullHttpRequest request,
+                                             ByteBufAllocator alloc) throws IOException {
+        if (request.method() != HttpMethod.GET) {
+            return new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.FORBIDDEN);
         }
-        String sitePath = request.rawPath();
+        String sitePath = request.uri();
         while (sitePath.length() > 0 && sitePath.charAt(0) == '/') {
             sitePath = sitePath.substring(1);
         }
@@ -67,24 +69,24 @@ public final class StaticSite {
         // return not found instead of forbidden to prevent malicious requests to find out if files exist or don't exist
         if (!Files.exists(file) || FileSystemUtils.isHidden(file) ||
             !file.toAbsolutePath().normalize().startsWith(siteDirectory.toAbsolutePath().normalize())) {
-            final String msg = "Requested file [" + file + "] was not found";
-            channel.sendResponse(new BytesRestResponse(NOT_FOUND, msg));
-            return;
+
+            return Responses.contentResponse(
+                HttpResponseStatus.NOT_FOUND, alloc, "Requested file [" + file + "] was not found");
         }
 
         BasicFileAttributes attributes = readAttributes(file, BasicFileAttributes.class);
         if (!attributes.isRegularFile()) {
             // If it's not a regular file, we send a 403
             final String msg = "Requested file [" + file + "] is not a valid file.";
-            channel.sendResponse(new BytesRestResponse(FORBIDDEN, msg));
-            return;
+            return Responses.contentResponse(HttpResponseStatus.NOT_FOUND, alloc, msg);
         }
-
         try {
             byte[] data = Files.readAllBytes(file);
-            channel.sendResponse(new BytesRestResponse(OK, guessMimeType(file.toAbsolutePath().toString()), data));
+            var resp = Responses.contentResponse(HttpResponseStatus.OK, alloc, data);
+            resp.headers().set(HttpHeaderNames.CONTENT_TYPE, guessMimeType(file.toAbsolutePath().toString()));
+            return resp;
         } catch (IOException e) {
-            channel.sendResponse(new BytesRestResponse(INTERNAL_SERVER_ERROR, e.getMessage()));
+            return Responses.contentResponse(HttpResponseStatus.INTERNAL_SERVER_ERROR, alloc, e.getMessage());
         }
     }
 

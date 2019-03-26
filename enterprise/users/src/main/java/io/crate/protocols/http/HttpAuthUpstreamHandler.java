@@ -26,7 +26,6 @@ import io.crate.auth.Protocol;
 import io.crate.auth.user.User;
 import io.crate.protocols.SSL;
 import io.crate.protocols.postgres.ConnectionProperties;
-import io.crate.rest.CrateRestMainAction;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
@@ -39,9 +38,9 @@ import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpUtil;
 import io.netty.handler.codec.http.HttpVersion;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.collect.Tuple;
-import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.common.settings.SecureString;
 import org.elasticsearch.common.settings.Settings;
@@ -162,7 +161,7 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
         String username = null;
         if (request.headers().contains(HttpHeaderNames.AUTHORIZATION.toString())) {
             // Prefer Http Basic Auth
-            return CrateRestMainAction.extractCredentialsFromHttpBasicAuthHeader(
+            return Headers.extractCredentialsFromHttpBasicAuthHeader(
                 request.headers().get(HttpHeaderNames.AUTHORIZATION.toString()));
         } else {
             // prefer commonName as userName over AUTH_TRUST_HTTP_DEFAULT_HEADER user

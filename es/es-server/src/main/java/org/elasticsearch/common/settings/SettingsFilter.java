@@ -22,7 +22,6 @@ import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.common.xcontent.ToXContent.Params;
-import org.elasticsearch.rest.RestRequest;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -70,12 +69,6 @@ public final class SettingsFilter extends AbstractComponent {
      */
     public static boolean isValidPattern(String pattern) {
         return AbstractScopedSettings.isValidKey(pattern) || Regex.isSimpleMatchPattern(pattern);
-    }
-
-    public void addFilterSettingParams(RestRequest request) {
-        if (patterns.isEmpty() == false) {
-            request.params().put(SETTINGS_FILTER_PARAM, patternString);
-        }
     }
 
     public static Settings filterSettings(Params params, Settings settings) {

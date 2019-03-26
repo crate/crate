@@ -19,6 +19,7 @@
 
 package org.elasticsearch.common.network;
 
+import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.cluster.routing.allocation.command.AllocateEmptyPrimaryAllocationCommand;
 import org.elasticsearch.cluster.routing.allocation.command.AllocateReplicaAllocationCommand;
 import org.elasticsearch.cluster.routing.allocation.command.AllocateStalePrimaryAllocationCommand;
@@ -96,17 +97,28 @@ public final class NetworkModule {
      * Creates a network module that custom networking classes can be plugged into.
      * @param settings The settings for the node
      */
-    public NetworkModule(Settings settings, List<NetworkPlugin> plugins, ThreadPool threadPool,
+    public NetworkModule(Settings settings,
+                         List<NetworkPlugin> plugins,
+                         ThreadPool threadPool,
                          BigArrays bigArrays,
                          PageCacheRecycler pageCacheRecycler,
                          CircuitBreakerService circuitBreakerService,
                          NamedWriteableRegistry namedWriteableRegistry,
                          NamedXContentRegistry xContentRegistry,
-                         NetworkService networkService, HttpServerTransport.Dispatcher dispatcher) {
+                         NetworkService networkService,
+                         NodeClient nodeClient) {
         this.settings = settings;
         for (NetworkPlugin plugin : plugins) {
-            Map<String, Supplier<HttpServerTransport>> httpTransportFactory = plugin.getHttpTransports(settings, threadPool, bigArrays,
-                circuitBreakerService, namedWriteableRegistry, xContentRegistry, networkService, dispatcher);
+            Map<String, Supplier<HttpServerTransport>> httpTransportFactory = plugin.getHttpTransports(
+                settings,
+                threadPool,
+                bigArrays,
+                circuitBreakerService,
+                namedWriteableRegistry,
+                xContentRegistry,
+                networkService,
+                nodeClient
+            );
             for (Map.Entry<String, Supplier<HttpServerTransport>> entry : httpTransportFactory.entrySet()) {
                 registerHttpTransport(entry.getKey(), entry.getValue());
             }

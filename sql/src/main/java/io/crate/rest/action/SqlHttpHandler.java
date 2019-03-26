@@ -38,7 +38,7 @@ import io.crate.breaker.RamAccountingContext;
 import io.crate.breaker.RowAccountingWithEstimators;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Symbols;
-import io.crate.rest.CrateRestMainAction;
+import io.crate.protocols.http.Headers;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
@@ -47,8 +47,6 @@ import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.HttpHeaderNames;
-import io.netty.handler.codec.http.HttpHeaderValues;
-import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.QueryStringDecoder;
@@ -77,6 +75,7 @@ import java.util.function.Function;
 import static io.crate.action.sql.Session.UNNAMED;
 import static io.crate.concurrent.CompletableFutures.failedFuture;
 import static io.crate.exceptions.SQLExceptions.createSQLActionException;
+import static io.crate.protocols.http.Headers.isCloseConnection;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
@@ -177,21 +176,13 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         Netty4CorsHandler.setCorsResponseHeaders(request, resp, corsConfig);
         resp.headers().add(HttpHeaderNames.CONTENT_LENGTH, String.valueOf(content.readableBytes()));
         boolean closeConnection = isCloseConnection(request);
-        if (httpVersion.equals(HttpVersion.HTTP_1_0) && !closeConnection) {
-            resp.headers().add(HttpHeaderNames.CONNECTION, "Keep-Alive");
-        }
         ChannelPromise promise = ctx.newPromise();
         if (closeConnection) {
             promise.addListener(ChannelFutureListener.CLOSE);
+        } else {
+            Headers.setKeepAlive(httpVersion, resp);
         }
         ctx.writeAndFlush(resp, promise);
-    }
-
-    private boolean isCloseConnection(FullHttpRequest request) {
-        HttpHeaders headers = request.headers();
-        return HttpHeaderValues.CLOSE.contentEqualsIgnoreCase(headers.get(HttpHeaderNames.CONNECTION))
-               || (request.protocolVersion().equals(HttpVersion.HTTP_1_0)
-                   && !HttpHeaderValues.KEEP_ALIVE.contentEqualsIgnoreCase(headers.get(HttpHeaderNames.CONNECTION)));
     }
 
     private CompletableFuture<XContentBuilder> handleSQLRequest(ByteBuf content, boolean includeTypes) {
@@ -311,7 +302,7 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
     }
 
     User userFromAuthHeader(@Nullable String authHeaderValue) {
-        String username = CrateRestMainAction.extractCredentialsFromHttpBasicAuthHeader(authHeaderValue).v1();
+        String username = Headers.extractCredentialsFromHttpBasicAuthHeader(authHeaderValue).v1();
         // Fallback to trusted user from configuration
         if (username == null || username.isEmpty()) {
             username = AuthSettings.AUTH_TRUST_HTTP_DEFAULT_HEADER.setting().get(settings);

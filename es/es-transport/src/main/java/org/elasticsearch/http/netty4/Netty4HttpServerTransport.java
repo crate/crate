@@ -40,10 +40,7 @@ import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpRequestDecoder;
 import io.netty.handler.codec.http.HttpResponseEncoder;
-import io.netty.handler.timeout.ReadTimeoutException;
 import io.netty.handler.timeout.ReadTimeoutHandler;
-import org.apache.logging.log4j.message.ParameterizedMessage;
-import org.apache.logging.log4j.util.Supplier;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
@@ -54,14 +51,12 @@ import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.SettingsException;
 import org.elasticsearch.common.transport.BoundTransportAddress;
-import org.elasticsearch.common.transport.NetworkExceptionHelper;
 import org.elasticsearch.common.transport.PortsRange;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
-import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.http.BindHttpException;
@@ -71,8 +66,6 @@ import org.elasticsearch.http.HttpStats;
 import org.elasticsearch.http.netty4.cors.Netty4CorsConfig;
 import org.elasticsearch.http.netty4.cors.Netty4CorsConfigBuilder;
 import org.elasticsearch.http.netty4.cors.Netty4CorsHandler;
-import org.elasticsearch.rest.RestChannel;
-import org.elasticsearch.rest.RestRequest;
 import org.elasticsearch.rest.RestUtils;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.BindTransportException;
@@ -222,7 +215,6 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
     private final int readTimeoutMillis;
 
     protected final int maxCompositeBufferComponents;
-    private final Dispatcher dispatcher;
 
     protected volatile ServerBootstrap serverBootstrap;
 
@@ -236,15 +228,17 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
 
     private final Netty4CorsConfig corsConfig;
 
-    public Netty4HttpServerTransport(Settings settings, NetworkService networkService, BigArrays bigArrays, ThreadPool threadPool,
-                                     NamedXContentRegistry xContentRegistry, Dispatcher dispatcher) {
+    public Netty4HttpServerTransport(Settings settings,
+                                     NetworkService networkService,
+                                     BigArrays bigArrays,
+                                     ThreadPool threadPool,
+                                     NamedXContentRegistry xContentRegistry) {
         super(settings);
         Netty4Utils.setAvailableProcessors(EsExecutors.PROCESSORS_SETTING.get(settings));
         this.networkService = networkService;
         this.bigArrays = bigArrays;
         this.threadPool = threadPool;
         this.xContentRegistry = xContentRegistry;
-        this.dispatcher = dispatcher;
 
         ByteSizeValue maxContentLength = SETTING_HTTP_MAX_CONTENT_LENGTH.get(settings);
         this.maxChunkSize = SETTING_HTTP_MAX_CHUNK_SIZE.get(settings);
@@ -523,62 +517,16 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
         return corsConfig;
     }
 
-    void dispatchRequest(final RestRequest request, final RestChannel channel) {
-        final ThreadContext threadContext = threadPool.getThreadContext();
-        try (ThreadContext.StoredContext ignore = threadContext.stashContext()) {
-            dispatcher.dispatchRequest(request, channel, threadContext);
-        }
-    }
-
-    void dispatchBadRequest(final RestRequest request, final RestChannel channel, final Throwable cause) {
-        final ThreadContext threadContext = threadPool.getThreadContext();
-        try (ThreadContext.StoredContext ignore = threadContext.stashContext()) {
-            dispatcher.dispatchBadRequest(request, channel, threadContext, cause);
-        }
-    }
-
-    protected void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        if (cause instanceof ReadTimeoutException) {
-            if (logger.isTraceEnabled()) {
-                logger.trace("Read timeout [{}]", ctx.channel().remoteAddress());
-            }
-            ctx.channel().close();
-        } else {
-            if (!lifecycle.started()) {
-                // ignore
-                return;
-            }
-            if (!NetworkExceptionHelper.isCloseConnectionException(cause)) {
-                logger.warn(
-                    (Supplier<?>) () -> new ParameterizedMessage(
-                        "caught exception while handling client http traffic, closing connection {}", ctx.channel()),
-                    cause);
-                ctx.channel().close();
-            } else {
-                logger.debug(
-                    (Supplier<?>) () -> new ParameterizedMessage(
-                        "caught exception while handling client http traffic, closing connection {}", ctx.channel()),
-                    cause);
-                ctx.channel().close();
-            }
-        }
-    }
-
     public ChannelHandler configureServerChannelHandler() {
-        return new HttpChannelHandler(this, detailedErrorsEnabled, threadPool.getThreadContext());
+        return new HttpChannelHandler(this);
     }
 
     protected static class HttpChannelHandler extends ChannelInitializer<Channel> {
 
         private final Netty4HttpServerTransport transport;
-        private final Netty4HttpRequestHandler requestHandler;
 
-        protected HttpChannelHandler(
-                final Netty4HttpServerTransport transport,
-                final boolean detailedErrorsEnabled,
-                final ThreadContext threadContext) {
+        protected HttpChannelHandler(final Netty4HttpServerTransport transport) {
             this.transport = transport;
-            this.requestHandler = new Netty4HttpRequestHandler(transport, detailedErrorsEnabled, threadContext);
         }
 
         @Override
@@ -602,7 +550,6 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
             if (SETTING_CORS_ENABLED.get(transport.settings())) {
                 ch.pipeline().addLast("cors", new Netty4CorsHandler(transport.getCorsConfig()));
             }
-            ch.pipeline().addLast("handler", requestHandler);
         }
 
         @Override
@@ -610,7 +557,5 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
             ExceptionsHelper.maybeDieOnAnotherThread(cause);
             super.exceptionCaught(ctx, cause);
         }
-
     }
-
 }

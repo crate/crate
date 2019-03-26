@@ -19,8 +19,6 @@
 
 package org.elasticsearch.action;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthAction;
 import org.elasticsearch.action.admin.cluster.health.TransportClusterHealthAction;
 import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryAction;
@@ -75,32 +73,16 @@ import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeAction;
 import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeSettingsAction;
 import org.elasticsearch.action.support.DestructiveOperations;
 import org.elasticsearch.action.support.TransportAction;
-import org.elasticsearch.client.node.NodeClient;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.NamedRegistry;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
 import org.elasticsearch.common.settings.ClusterSettings;
-import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.settings.SettingsFilter;
-import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.plugins.ActionPlugin;
 import org.elasticsearch.plugins.ActionPlugin.ActionHandler;
-import org.elasticsearch.rest.RestController;
-import org.elasticsearch.rest.RestHandler;
-import org.elasticsearch.tasks.Task;
-import org.elasticsearch.threadpool.ThreadPool;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
-import java.util.function.UnaryOperator;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static java.util.Collections.unmodifiableMap;
 
@@ -109,48 +91,13 @@ import static java.util.Collections.unmodifiableMap;
  */
 public class ActionModule extends AbstractModule {
 
-    private static final Logger logger = LogManager.getLogger(ActionModule.class);
-
-    private final Settings settings;
-    private final IndexNameExpressionResolver indexNameExpressionResolver;
-    private final IndexScopedSettings indexScopedSettings;
-    private final ClusterSettings clusterSettings;
-    private final SettingsFilter settingsFilter;
-    private final List<ActionPlugin> actionPlugins;
     private final Map<String, ActionHandler<?, ?>> actions;
     private final DestructiveOperations destructiveOperations;
-    private final RestController restController;
 
-    public ActionModule(Settings settings, IndexNameExpressionResolver indexNameExpressionResolver,
-                        IndexScopedSettings indexScopedSettings, ClusterSettings clusterSettings, SettingsFilter settingsFilter,
-                        ThreadPool threadPool, List<ActionPlugin> actionPlugins, NodeClient nodeClient,
-            CircuitBreakerService circuitBreakerService) {
-        this.settings = settings;
-        this.indexNameExpressionResolver = indexNameExpressionResolver;
-        this.indexScopedSettings = indexScopedSettings;
-        this.clusterSettings = clusterSettings;
-        this.settingsFilter = settingsFilter;
-        this.actionPlugins = actionPlugins;
+    public ActionModule(Settings settings, ClusterSettings clusterSettings, List<ActionPlugin> actionPlugins) {
         actions = setupActions(actionPlugins);
         destructiveOperations = new DestructiveOperations(settings, clusterSettings);
-        Set<String> headers = Stream.concat(
-            actionPlugins.stream().flatMap(p -> p.getRestHeaders().stream()),
-            Stream.of(Task.X_OPAQUE_ID)
-        ).collect(Collectors.toSet());
-        UnaryOperator<RestHandler> restWrapper = null;
-        for (ActionPlugin plugin : actionPlugins) {
-            UnaryOperator<RestHandler> newRestWrapper = plugin.getRestHandlerWrapper(threadPool.getThreadContext());
-            if (newRestWrapper != null) {
-                logger.debug("Using REST wrapper from plugin " + plugin.getClass().getName());
-                if (restWrapper != null) {
-                    throw new IllegalArgumentException("Cannot have more than one plugin implementing a REST wrapper");
-                }
-                restWrapper = newRestWrapper;
-            }
-        }
-        restController = new RestController(settings, headers, restWrapper, nodeClient, circuitBreakerService);
     }
-
 
     public Map<String, ActionHandler<?, ?>> getActions() {
         return actions;
@@ -208,21 +155,9 @@ public class ActionModule extends AbstractModule {
         return unmodifiableMap(actions.getRegistry());
     }
 
-    public void initRestHandlers(Supplier<DiscoveryNodes> nodesInCluster) {
-        Consumer<RestHandler> registerHandler = a -> {
-        };
-        for (ActionPlugin plugin : actionPlugins) {
-            for (RestHandler handler : plugin.getRestHandlers(settings, restController, clusterSettings, indexScopedSettings,
-                    settingsFilter, indexNameExpressionResolver, nodesInCluster)) {
-                registerHandler.accept(handler);
-            }
-        }
-    }
-
     @Override
     protected void configure() {
         bind(DestructiveOperations.class).toInstance(destructiveOperations);
-        bind(RestController.class).toInstance(restController);
 
         // register GenericAction -> transportAction Map used by NodeClient
         @SuppressWarnings("rawtypes")
@@ -236,9 +171,5 @@ public class ActionModule extends AbstractModule {
                 bind(supportAction).asEagerSingleton();
             }
         }
-    }
-
-    public RestController getRestController() {
-        return restController;
     }
 }
