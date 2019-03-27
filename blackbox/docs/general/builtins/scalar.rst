@@ -333,6 +333,28 @@ Examples
    +---------------------+
    SELECT 1 row in set (... sec)
 
+.. _scalar-quote-ident:
+
+``quote_ident(text)``
+---------------------
+
+Returns: ``text``
+
+Quotes a provided string argument. The string is quoted only when in is need.
+For example, if it contains non-identifier characters, keywords or would be
+case-folded. Embedded quotes are properly doubled.
+
+The quoted string can be used as an identifier in an SQL statement.
+
+::
+
+   cr> select quote_ident('Column name');
+   +----------------------------+
+   | quote_ident('Column name') |
+   +----------------------------+
+   | "Column name"              |
+   +----------------------------+
+   SELECT 1 row in set (... sec)
 
 Date and Time Functions
 =======================

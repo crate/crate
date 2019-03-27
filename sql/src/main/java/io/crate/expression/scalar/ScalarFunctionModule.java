@@ -51,6 +51,7 @@ import io.crate.expression.scalar.regex.RegexpReplaceFunction;
 import io.crate.expression.scalar.string.HashFunctions;
 import io.crate.expression.scalar.string.InitCapFunction;
 import io.crate.expression.scalar.string.LengthFunction;
+import io.crate.expression.scalar.string.QuoteIdentFunction;
 import io.crate.expression.scalar.string.ReplaceFunction;
 import io.crate.expression.scalar.string.StringCaseFunction;
 import io.crate.expression.scalar.string.TrimFunctions;
@@ -133,6 +134,7 @@ public class ScalarFunctionModule extends AbstractModule {
         LengthFunction.register(this);
         HashFunctions.register(this);
         ReplaceFunction.register(this);
+        QuoteIdentFunction.register(this);
 
         Ignore3vlFunction.register(this);
 

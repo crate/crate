@@ -137,6 +137,9 @@ Deprecations
 Changes
 =======
 
+- Added :ref:`quote_ident <scalar-quote-ident>` scalar string function that
+  quotes a string if it is needed.
+
 - Added missing Postgresql type mapping for the ``array(ip)`` collection type.
 
 - Added a new ``_docid`` :ref:`system column
