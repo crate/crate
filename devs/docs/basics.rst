@@ -44,7 +44,7 @@ Run CrateDB like so::
 
     $ ./gradlew run
 
-The ``run``  commands will set the HOME to ``sandbox/crate`` and so uses the
+The ``run`` command will set the HOME to ``sandbox/crate`` and so use the
 configuration files located there.
 
 
