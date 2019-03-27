@@ -117,6 +117,9 @@ Changes
 Fixes
 =====
 
+- Fix quoting of identifiers that contain leading digits or spaces when
+  printing relation or column names.
+
 - Fixed an issue which caused a ``NullPointerException`` when executing a
   :ref:`window function <window-functions>` over an ordered window which
   contains null values under the ordered column.
