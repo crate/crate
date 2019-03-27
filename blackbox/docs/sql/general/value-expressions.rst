@@ -123,7 +123,8 @@ Function Call
 A function is declared by its name followed by its arguments enclosed in
 parentheses::
 
-    function_name([expression [, expression ... ]]) [ OVER([ORDER BY expression] [, ...]) ]
+    function_name([expression [, expression ... ]])
+      [OVER( [PARTITION BY expression [, ...] ] [ORDER BY expression [, ...] ]) ]
 
 .. SEEALSO::
 
