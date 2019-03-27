@@ -22,7 +22,6 @@ package org.elasticsearch.http.netty4;
 import com.carrotsearch.hppc.IntHashSet;
 import com.carrotsearch.hppc.IntSet;
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.channel.AdaptiveRecvByteBufAllocator;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandler;
@@ -83,7 +82,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
-import static org.elasticsearch.common.settings.Setting.byteSizeSetting;
 import static org.elasticsearch.common.util.concurrent.EsExecutors.daemonThreadFactory;
 import static org.elasticsearch.http.HttpTransportSettings.SETTING_CORS_ALLOW_CREDENTIALS;
 import static org.elasticsearch.http.HttpTransportSettings.SETTING_CORS_ALLOW_HEADERS;
@@ -162,22 +160,6 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
 
     public static final Setting<ByteSizeValue> SETTING_HTTP_NETTY_RECEIVE_PREDICTOR_SIZE =
         Setting.byteSizeSetting("http.netty.receive_predictor_size", new ByteSizeValue(64, ByteSizeUnit.KB), Property.NodeScope);
-
-    /**
-     * @deprecated This (undocumented) setting is deprecated to reduce complexity and is removed in 7.0. See #26165 for details.
-     */
-    @Deprecated
-    public static final Setting<ByteSizeValue> SETTING_HTTP_NETTY_RECEIVE_PREDICTOR_MIN =
-        byteSizeSetting("http.netty.receive_predictor_min", SETTING_HTTP_NETTY_RECEIVE_PREDICTOR_SIZE,
-            Property.NodeScope, Property.Deprecated);
-
-    /**
-     * @deprecated This (undocumented) setting is deprecated to reduce complexity and is removed in 7.0. See #26165 for details.
-     */
-    @Deprecated
-    public static final Setting<ByteSizeValue> SETTING_HTTP_NETTY_RECEIVE_PREDICTOR_MAX =
-        byteSizeSetting("http.netty.receive_predictor_max", SETTING_HTTP_NETTY_RECEIVE_PREDICTOR_SIZE,
-            Property.NodeScope, Property.Deprecated);
 
 
     protected final NetworkService networkService;
@@ -259,17 +241,8 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
         this.detailedErrorsEnabled = SETTING_HTTP_DETAILED_ERRORS_ENABLED.get(settings);
         this.readTimeoutMillis = Math.toIntExact(SETTING_HTTP_READ_TIMEOUT.get(settings).getMillis());
 
-        // See AdaptiveReceiveBufferSizePredictor#DEFAULT_XXX for default values in netty..., we can use higher ones for us, even fixed one
-        ByteSizeValue receivePredictorMin = SETTING_HTTP_NETTY_RECEIVE_PREDICTOR_MIN.get(settings);
-        ByteSizeValue receivePredictorMax = SETTING_HTTP_NETTY_RECEIVE_PREDICTOR_MAX.get(settings);
-        if (receivePredictorMax.getBytes() == receivePredictorMin.getBytes()) {
-            recvByteBufAllocator = new FixedRecvByteBufAllocator(Math.toIntExact(receivePredictorMax.getBytes()));
-        } else {
-            recvByteBufAllocator = new AdaptiveRecvByteBufAllocator(
-                Math.toIntExact(receivePredictorMin.getBytes()),
-                Math.toIntExact(receivePredictorMin.getBytes()),
-                Math.toIntExact(receivePredictorMax.getBytes()));
-        }
+        ByteSizeValue receivePredictor = SETTING_HTTP_NETTY_RECEIVE_PREDICTOR_SIZE.get(settings);
+        recvByteBufAllocator = new FixedRecvByteBufAllocator(receivePredictor.bytesAsInt());
 
         this.compression = SETTING_HTTP_COMPRESSION.get(settings);
         this.compressionLevel = SETTING_HTTP_COMPRESSION_LEVEL.get(settings);
@@ -287,9 +260,9 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
         this.maxContentLength = maxContentLength;
 
         logger.debug("using max_chunk_size[{}], max_header_size[{}], max_initial_line_length[{}], max_content_length[{}], " +
-                "receive_predictor[{}->{}], max_composite_buffer_components[{}], pipelining_max_events[{}]",
+                "receive_predictor[{}], max_composite_buffer_components[{}], pipelining_max_events[{}]",
             maxChunkSize, maxHeaderSize, maxInitialLineLength, this.maxContentLength,
-            receivePredictorMin, receivePredictorMax, maxCompositeBufferComponents, pipeliningMaxEvents);
+            receivePredictor, maxCompositeBufferComponents, pipeliningMaxEvents);
     }
 
     public Settings settings() {
