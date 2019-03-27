@@ -37,7 +37,7 @@ import java.util.stream.Collectors;
 
 public class Identifiers {
 
-    private static final Pattern IDENTIFIER = Pattern.compile("'([A-Z_]+)'");
+    private static final Pattern IDENTIFIER = Pattern.compile("(^[a-z_]+[0-9_]*)");
     private static final Pattern ESCAPE_REPLACE_RE = Pattern.compile("\"", Pattern.LITERAL);
     private static final String ESCAPE_REPLACEMENT = Matcher.quoteReplacement("\"\"");
 
@@ -65,13 +65,7 @@ public class Identifiers {
     }
 
     private static boolean areQuotesRequired(String identifier) {
-        for (int i = 0; i < identifier.length(); i++) {
-            int cp = identifier.codePointAt(i);
-            if (cp == '"' || cp == '[' || cp == ']' || cp == '(' || cp == ')' || Character.isUpperCase(cp)) {
-                return true;
-            }
-        }
-        return isKeyWord(identifier);
+        return isKeyWord(identifier) || !IDENTIFIER.matcher(identifier).matches();
     }
 
     public static boolean isKeyWord(String identifier) {
@@ -90,13 +84,15 @@ public class Identifiers {
         HashSet<String> candidates = new HashSet<>();
         Vocabulary vocabulary = SqlBaseLexer.VOCABULARY;
         for (int i = 0; i < vocabulary.getMaxTokenType(); i++) {
-            String literalName = vocabulary.getLiteralName(i);
-            if (literalName == null) {
+            String literal = vocabulary.getLiteralName(i);
+            if (literal == null) {
                 continue;
             }
-            Matcher matcher = IDENTIFIER.matcher(literalName);
+            literal = literal.replace("'", "");
+
+            Matcher matcher = IDENTIFIER.matcher(literal.toLowerCase(Locale.ENGLISH));
             if (matcher.matches()) {
-                candidates.add(matcher.group(1));
+                candidates.add(literal);
             }
         }
         return candidates;
