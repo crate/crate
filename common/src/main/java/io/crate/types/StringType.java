@@ -55,7 +55,7 @@ public class StringType extends DataType<String> implements Streamer<String> {
 
     @Override
     public String getName() {
-        return "string";
+        return "text";
     }
 
     @Override

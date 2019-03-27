@@ -188,7 +188,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         assertThat(join.joinPhase().leftMergePhase().inputTypes(), contains(DataTypes.LONG, DataTypes.LONG));
         assertThat(join.joinPhase().rightMergePhase().inputTypes(), contains(DataTypes.LONG));
         assertThat(join.joinPhase().projections().get(0).outputs().toString(),
-            is("[IC{0, long}, IC{1, long}, IC{2, long}]"));
+            is("[IC{0, bigint}, IC{1, bigint}, IC{2, bigint}]"));
     }
 
     @Test
@@ -212,7 +212,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         assertThat(join.joinPhase().leftMergePhase().inputTypes(), Matchers.contains(DataTypes.LONG));
         assertThat(join.joinPhase().rightMergePhase().inputTypes(), Matchers.contains(DataTypes.LONG, DataTypes.LONG));
         assertThat(join.joinPhase().projections().get(0).outputs().toString(),
-            is("[IC{1, long}, IC{2, long}, IC{0, long}]"));
+            is("[IC{1, bigint}, IC{2, bigint}, IC{0, bigint}]"));
     }
 
     @Test

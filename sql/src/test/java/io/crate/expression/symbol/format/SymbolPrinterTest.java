@@ -248,8 +248,8 @@ public class SymbolPrinterTest extends CrateUnitTest {
     }
 
     @Test
-    public void testCast() throws Exception {
-        assertPrintIsParseable("CAST (formatter.bar AS TIMESTAMP)");
+    public void testCast() {
+        assertPrintIsParseable("CAST (formatter.bar AS timestamp)");
         assertPrintIsParseable("CAST (TRUE AS string)");
         assertPrintIsParseable("CAST (1+2 AS string)");
     }
@@ -290,9 +290,9 @@ public class SymbolPrinterTest extends CrateUnitTest {
     public void testStyles() throws Exception {
         Symbol nestedFn = sqlExpressions.asSymbol("abs(sqrt(ln(bar+cast(\"select\" as long)+1+1+1+1+1+1)))");
         assertThat(printer.printQualified(nestedFn),
-            is("abs(sqrt(ln((((((((doc.formatter.bar + cast(doc.formatter.\"select\" AS long)) + 1) + 1) + 1) + 1) + 1) + 1))))"));
+            is("abs(sqrt(ln((((((((doc.formatter.bar + cast(doc.formatter.\"select\" AS bigint)) + 1) + 1) + 1) + 1) + 1) + 1))))"));
         assertThat(printer.printUnqualified(nestedFn),
-            is("abs(sqrt(ln((((((((bar + cast(\"select\" AS long)) + 1) + 1) + 1) + 1) + 1) + 1))))"));
+            is("abs(sqrt(ln((((((((bar + cast(\"select\" AS bigint)) + 1) + 1) + 1) + 1) + 1) + 1))))"));
     }
 
     @Test

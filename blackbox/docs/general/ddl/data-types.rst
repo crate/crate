@@ -34,13 +34,13 @@ These are values that are atomic, not composed of separate parts, no containers
 or collections.
 
 * `boolean`_
-* `byte <numeric types_>`_
-* `short <numeric types_>`_
+* `char <special character types_>`_
+* `smallint <numeric types_>`_
 * `integer <numeric types_>`_
-* `long <numeric types_>`_
-* `float <numeric types_>`_
-* `double <numeric types_>`_
-* `string`_
+* `bigint <numeric types_>`_
+* `real <numeric types_>`_
+* `double precision <numeric types_>`_
+* `text`_
 * `ip`_
 * `timestamp`_
 
@@ -80,16 +80,16 @@ A basic boolean type. Accepting ``true`` and ``false`` as values. Example::
     cr> drop table my_bool_table;
     DROP OK, 1 row affected (... sec)
 
-.. _data-type-string:
+.. _data-type-text:
 
-``string``
-==========
+``text``
+========
 
 A text-based basic type containing one or more characters. All unicode
 characters are allowed. Example::
 
     cr> create table my_table2 (
-    ...   first_column string
+    ...   first_column text
     ... );
     CREATE OK, 1 row affected (... sec)
 
@@ -104,39 +104,38 @@ Columns of type string can also be analyzed. See :ref:`sql_ddl_index_fulltext`.
 Numeric Types
 =============
 
-CrateDB supports a set of numeric types: ``integer``, ``long``, ``short``,
-``double``, ``float`` and ``byte``.
+CrateDB supports a set of the following numeric data types:
 
-The ``float`` and ``double`` data types are inexact, variable-precision numeric
-types. It means that these types are stored as an approximation. Therefore,
-storage, calculation, and retrieval of the value will not always result in an
-exact representation of the actual floating-point value.
++----------------------+----------+-----------------------------+-----------------------------+
+| Name                 | Size     | Description                 | Range                       |
++======================+==========+=============================+=============================+
+| ``smallint``         | 2 bytes  | small-range integer         | -32,768 to 32,767           |
++----------------------+----------+-----------------------------+-----------------------------+
+| ``integer``          | 4 bytes  | integer                     | -2^31 to 2^31-1.            |
++----------------------+----------+-----------------------------+-----------------------------+
+| ``bigint``           | 8 bytes  | large-range integer         | -2^63 to 2^63-1             |
++----------------------+----------+-----------------------------+-----------------------------+
+| ``real``             | 4 bytes  | inexact, variable-precision | 6 decimal digits precision  |
++----------------------+----------+-----------------------------+-----------------------------+
+| ``double precision`` | 8 bytes  | inexact, variable-precision | 15 decimal digits precision |
++----------------------+----------+-----------------------------+-----------------------------+
+
+The ``real`` and ``double precision`` data types are inexact, variable-precision
+numeric types. It means that these types are stored as an approximation.
+Therefore, storage, calculation, and retrieval of the value will not always
+result in an exact representation of the actual floating-point value.
 
 For instance, the result of applying ``sum`` or ``avg`` aggregate functions may
 slightly vary between query executions or comparing floating-point values for
 equality might not always be correct.
 
-All types have the same ranges as corresponding `Java types`_. You can insert
-any number for any type, be it a ``float``, ``integer``, or ``byte`` as long as
-its within the corresponding range. Example::
-
-    cr> create table my_table3 (
-    ...   first_column integer,
-    ...   second_column long,
-    ...   third_column short,
-    ...   fourth_column double,
-    ...   fifth_column float,
-    ...   sixth_column byte
-    ... );
-    CREATE OK, 1 row affected (... sec)
-
 Special Floating Point Values
 -----------------------------
 
 CrateDB conforms to the `IEEE 754`_ standard concerning special values for
-floating point types (``float``, ``double``). This means that it also
-supports  ``NaN``, ``Infinity``, ``-Infinity`` (negative infinity), and ``-0``
-(signed zero).
+``real`` and ``double precision`` floating point data types. This means that
+it also supports  ``NaN``, ``Infinity``, ``-Infinity`` (negative infinity),
+and ``-0`` (signed zero).
 
 ::
 
@@ -149,7 +148,19 @@ supports  ``NaN``, ``Infinity``, ``-Infinity`` (negative infinity), and ``-0``
     SELECT 1 row in set (... sec)
 
 These special numeric values can also be inserted into a column of type
-``float`` or ``double`` using a ``string`` literal.
+``real`` or ``double precision`` using a ``text`` literal.
+
+::
+
+    cr> create table my_table3 (
+    ...   first_column integer,
+    ...   second_column bigint,
+    ...   third_column smallint,
+    ...   fourth_column double precision,
+    ...   fifth_column real,
+    ...   sixth_column char
+    ... );
+    CREATE OK, 1 row affected (... sec)
 
 ::
 
@@ -162,7 +173,7 @@ These special numeric values can also be inserted into a column of type
 ======
 
 The ``ip`` type allows to store IPv4 and IPv6 addresses by inserting their string
-representation. Internally it maps to a ``long`` allowing expected sorting,
+representation. Internally it maps to a ``bigint`` allowing expected sorting,
 filtering, and aggregation.
 
 Example::
@@ -192,21 +203,21 @@ Example::
 =============
 
 The timestamp type is a special type which maps to a formatted string.
-Internally it maps to the UTC milliseconds since 1970-01-01T00:00:00Z stored as
-``long``. Timestamps are always returned as ``long`` values.
+Internally it maps to the UTC milliseconds since ``1970-01-01T00:00:00Z`` stored
+as ``bigint``. Timestamps are always returned as ``bigint`` values.
 
 The default format is dateOptionalTime_ and cannot be changed currently.
 
 Formatted date strings containing timezone offset information will be converted
 to UTC.
 
-Formated string without timezone offset information will be treated as UTC.
+Formatted string without timezone offset information will be treated as UTC.
 
-Timestamps will also accept a ``long`` representing UTC milliseconds since the
-epoch or a ``float`` or ``double`` representing UTC seconds since the epoch
-with milliseconds as fractions.
+Timestamps will also accept a ``bigint`` representing UTC milliseconds since
+the epoch or a ``real`` or ``double precision`` representing UTC seconds since
+the epoch with milliseconds as fractions.
 
-Due to internal date parsing, not the full ``long`` range is supported for
+Due to internal date parsing, not the full ``bigint`` range is supported for
 timestamp values, but only dates between year ``292275054BC`` and
 ``292278993AD``, which is slightly smaller.
 
@@ -450,11 +461,11 @@ no schema (with a schema created on the fly on first inserts in case of
 Example::
 
     cr> create table my_table11 (
-    ...   title string,
+    ...   title text,
     ...   col1 object,
     ...   col3 object(strict) as (
     ...     age integer,
-    ...     name string,
+    ...     name text,
     ...     col31 object as (
     ...       birthday timestamp
     ...     )
@@ -478,9 +489,9 @@ always be null, which is the most useless column one could create.
 Example::
 
     cr> create table my_table12 (
-    ...   title string,
+    ...   title text,
     ...   author object(strict) as (
-    ...     name string,
+    ...     name text,
     ...     birthday timestamp
     ...   )
     ... );
@@ -509,9 +520,9 @@ column will result in an error.
 Examples::
 
     cr> create table my_table13 (
-    ...   title string,
+    ...   title text,
     ...   author object as (
-    ...     name string,
+    ...     name text,
     ...     birthday timestamp
     ...   )
     ... );
@@ -525,9 +536,9 @@ Examples::
 which is exactly the same as::
 
     cr> create table my_table14 (
-    ...   title string,
+    ...   title text,
     ...   author object(dynamic) as (
-    ...     name string,
+    ...     name text,
     ...     birthday timestamp
     ...   )
     ... );
@@ -557,10 +568,10 @@ inserted into it, but otherwise ignore them.
 ::
 
     cr> create table my_table15 (
-    ...   title string,
+    ...   title text,
     ...   details object(ignored) as (
     ...     num_pages integer,
-    ...     font_size float
+    ...     font_size real
     ...   )
     ... );
     CREATE OK, 1 row affected (... sec)
@@ -655,9 +666,10 @@ CrateDB supports arrays.
 An array is a collection of other data types. These are:
 
 * boolean
-* string
+* text
 * ip
-* all numeric types (integer, long, short, double, float, byte)
+* all numeric types (integer, bigint, smallint, double precision, real)
+* char
 * timestamp
 * object
 * geo_point
@@ -665,8 +677,8 @@ An array is a collection of other data types. These are:
 Array types are defined as follows::
 
     cr> create table my_table_arrays (
-    ...     tags array(string),
-    ...     objects array(object as (age integer, name string))
+    ...     tags array(text),
+    ...     objects array(object as (age integer, name text))
     ... );
     CREATE OK, 1 row affected (... sec)
 
@@ -715,6 +727,15 @@ brackets (``[]``), for example::
     [1, 2, 3]
     ['Zaphod', 'Ford', 'Arthur']
 
+Special Character Types
+=======================
+
++----------+--------+------------------+
+| Name     | Size   | Description      |
++==========+========+==================+
+| ``char`` | 1 byte | single-byte type |
++----------+--------+------------------+
+
 .. _type_conversion:
 
 Type Conversion
@@ -748,12 +769,12 @@ Example usages:
 
 ::
 
-    cr> select (2+10)/2::string;
-    +--------------------------------+
-    | CAST(((2 + 10) / 2) AS string) |
-    +--------------------------------+
-    |                              6 |
-    +--------------------------------+
+    cr> select (2+10)/2::text;
+    +------------------------------+
+    | CAST(((2 + 10) / 2) AS text) |
+    +------------------------------+
+    |                            6 |
+    +------------------------------+
     SELECT 1 row in set (... sec)
 
 It is also possible to convert array structures to different data types, e.g.
@@ -798,8 +819,8 @@ Example usages:
     +-----------------------------+
     SELECT 1 row in set (... sec)
 
-Trying to cast a ``string`` to ``integer``, will fail with ``cast`` if
-``string`` is no valid integer but return ``null`` with ``try_cast``:
+Trying to cast a ``text`` to ``integer``, will fail with ``cast`` if
+``text`` is no valid integer but return ``null`` with ``try_cast``:
 
 ::
 
@@ -830,27 +851,34 @@ For example, in a type cast::
 
 See the table below for a full list of aliases:
 
-+----------+------------+
-| Alias    | Crate Type |
-+==========+============+
-| int2     | short      |
-+----------+------------+
-| int      | integer    |
-+----------+------------+
-| int4     | integer    |
-+----------+------------+
-| int8     | long       |
-+----------+------------+
-| smallint | short      |
-+----------+------------+
-| bigint   | long       |
-+----------+------------+
-| name     | string     |
-+----------+------------+
++----------+------------------+
+| Alias    | Crate Type       |
++==========+==================+
+| int2     | smallint         |
++----------+------------------+
+| short    | smallint         |
++----------+------------------+
+| int      | integer          |
++----------+------------------+
+| int4     | integer          |
++----------+------------------+
+| int8     | bigint           |
++----------+------------------+
+| long     | bigint           |
++----------+------------------+
+| string   | text             |
++----------+------------------+
+| name     | text             |
++----------+------------------+
+| byte     | char             |
++----------+------------------+
+| float    | real             |
++----------+------------------+
+| double   | double precision |
++----------+------------------+
 
 
 .. _dateOptionalTime: http://joda-time.sourceforge.net/apidocs/org/joda/time/format/ISODateTimeFormat.html#dateOptionalTimeParser()
-.. _Java types: http://docs.oracle.com/javase/tutorial/java/nutsandbolts/datatypes.html
 .. _WKT: http://en.wikipedia.org/wiki/Well-known_text
 .. _GeoJSON: http://geojson.org/
 .. _GeoJSON geometry objects: https://tools.ietf.org/html/rfc7946#section-3.1

@@ -39,15 +39,15 @@ These functions can be created like so::
 
 ``OR REPLACE`` can be used to replace an existing function::
 
-    cr> CREATE OR REPLACE FUNCTION log10(long)
-    ...  RETURNS double
+    cr> CREATE OR REPLACE FUNCTION log10(bigint)
+    ...  RETURNS double precision
     ...  LANGUAGE JAVASCRIPT
     ...  AS 'function log10(a) { return Math.log(a)/Math.log(10); }';
     CREATE OK, 1 row affected  (... sec)
 
 .. hide:
 
-    cr> _wait_for_function('log10(1::long)')
+    cr> _wait_for_function('log10(1::bigint)')
 
 ::
 
@@ -65,7 +65,7 @@ For example, if you wanted two ``geo_point`` arguments named ``start_point``
 and ``end_point``, you would do it like this::
 
     cr> CREATE OR REPLACE FUNCTION calculate_distance(start_point geo_point, end_point geo_point)
-    ...  RETURNS float
+    ...  RETURNS real
     ...  LANGUAGE JAVASCRIPT
     ...  AS 'function calculate_distance(start_point, end_point){
     ...        return Math.sqrt( Math.pow(end_point[0] - start_point[0], 2), Math.pow(end_point[1] - start_point[1], 2));
@@ -83,8 +83,8 @@ the current session schema is used.
 
 You can explicitly assign a schema like this::
 
-    cr> CREATE OR REPLACE FUNCTION my_schema.log10(long)
-    ...  RETURNS double
+    cr> CREATE OR REPLACE FUNCTION my_schema.log10(bigint)
+    ...  RETURNS double precision
     ...  LANGUAGE JAVASCRIPT
     ...  AS 'function log10(a) { return Math.log(a)/Math.log(10); }';
     CREATE OK, 1 row affected  (... sec)
@@ -123,16 +123,16 @@ with the same name that have a different set of arguments::
 This would overload our ``my_multiply`` function with different argument
 types::
 
-    cr> CREATE FUNCTION my_schema.my_multiply(long, long)
-    ...  RETURNS long
+    cr> CREATE FUNCTION my_schema.my_multiply(bigint, bigint)
+    ...  RETURNS bigint
     ...  LANGUAGE JAVASCRIPT
     ...  AS 'function my_multiply(a, b) { return a * b; }';
     CREATE OK, 1 row affected  (... sec)
 
 This would overload our ``my_multiply`` function with more arguments::
 
-    cr> CREATE FUNCTION my_schema.my_multiply(long, long, long)
-    ...  RETURNS long
+    cr> CREATE FUNCTION my_schema.my_multiply(bigint, bigint, bigint)
+    ...  RETURNS bigint
     ...  LANGUAGE JAVASCRIPT
     ...  AS 'function my_multiply(a, b, c) { return a * b * c; }';
     CREATE OK, 1 row affected  (... sec)
@@ -168,7 +168,7 @@ Determinism
 
 Functions can be dropped like this::
 
-     cr> DROP FUNCTION doc.log10(long);
+     cr> DROP FUNCTION doc.log10(bigint);
      DROP OK, 1 row affected  (... sec)
 
 Adding ``IF EXISTS`` prevents from raising an error if the function doesn't
@@ -184,7 +184,7 @@ Optionally, argument names can be specified within the drop statement::
 
 Optionally, you can provide a schema::
 
-     cr> DROP FUNCTION my_schema.log10(long);
+     cr> DROP FUNCTION my_schema.log10(bigint);
      DROP OK, 1 row affected  (... sec)
 
 Supported Languages
@@ -229,12 +229,12 @@ JavaScript functions can handle all CrateDB data types. However, for some
 return types the function output must correspond to the certain format.
 
 If a function requires ``geo_point`` as a return type, then the JavaScript
-function must return a ``double array`` of size 2, ``WKT`` string or
+function must return a ``double precision`` array of size 2, ``WKT`` string or
 ``GeoJson`` object.
 
 Here is an example of a JavaScript function returning a ``double array``::
 
-    cr> CREATE FUNCTION rotate_point(point geo_point, angle float)
+    cr> CREATE FUNCTION rotate_point(point geo_point, angle real)
     ...  RETURNS geo_point
     ...  LANGUAGE JAVASCRIPT
     ...  AS 'function rotate_point(point, angle) {
@@ -262,7 +262,7 @@ will be cast to ``geo_point``::
 Similarly, if the function specifies the ``geo_shape`` return data type, then
 the JavaScript function should return a ``GeoJson`` object or``WKT`` string::
 
-     cr> CREATE FUNCTION line(start_point array(double), end_point array(double))
+     cr> CREATE FUNCTION line(start_point array(double precision), end_point array(double precision))
      ...  RETURNS object
      ...  LANGUAGE JAVASCRIPT
      ...  AS 'function line(start_point, end_point) {
@@ -284,10 +284,10 @@ performed. In most cases, this is not an issue, since the return type of the
 JavaScript function will be cast to the return type specified in the ``CREATE
 FUNCTION`` statement, although cast might result in a loss of precision.
 
-However, when you try to cast ``DOUBLE`` to ``TIMESTAMP``, it will be
+However, when you try to cast ``DOUBLE PRECISION`` to ``TIMESTAMP``, it will be
 interpreted as UTC seconds and will result in a wrong value::
 
-     cr> CREATE FUNCTION utc(long, long, long)
+     cr> CREATE FUNCTION utc(bigint, bigint, bigint)
      ...  RETURNS TIMESTAMP
      ...  LANGUAGE JAVASCRIPT
      ...  AS 'function utc(year, month, day) {
@@ -297,7 +297,7 @@ interpreted as UTC seconds and will result in a wrong value::
 
 .. hide:
 
-    cr> _wait_for_function('utc(1::long, 1::long, 1::long)')
+    cr> _wait_for_function('utc(1::bigint, 1::bigint, 1::bigint)')
 
 ::
 
@@ -311,13 +311,13 @@ interpreted as UTC seconds and will result in a wrong value::
 
 .. hide:
 
-    cr> DROP FUNCTION utc(long, long, long);
+    cr> DROP FUNCTION utc(bigint, bigint, bigint);
     DROP OK, 1 row affected  (... sec)
 
 To avoid this behavior, the numeric value should be divided by 1000 before it
 is returned::
 
-     cr> CREATE FUNCTION utc(long, long, long)
+     cr> CREATE FUNCTION utc(bigint, bigint, bigint)
      ...  RETURNS TIMESTAMP
      ...  LANGUAGE JAVASCRIPT
      ...  AS 'function utc(year, month, day) {
@@ -327,7 +327,7 @@ is returned::
 
 .. hide:
 
-    cr> _wait_for_function('utc(1::long, 1::long, 1::long)')
+    cr> _wait_for_function('utc(1::bigint, 1::bigint, 1::bigint)')
 
 ::
 
@@ -347,22 +347,22 @@ is returned::
     cr> DROP FUNCTION my_schema.my_multiply(integer, integer);
     DROP OK, 1 row affected  (... sec)
 
-    cr> DROP FUNCTION my_schema.my_multiply(long, long, long);
+    cr> DROP FUNCTION my_schema.my_multiply(bigint, bigint, bigint);
     DROP OK, 1 row affected  (... sec)
 
-    cr> DROP FUNCTION my_schema.my_multiply(long, long);
+    cr> DROP FUNCTION my_schema.my_multiply(bigint, bigint);
     DROP OK, 1 row affected  (... sec)
 
-    cr> DROP FUNCTION rotate_point(point geo_point, angle float);
+    cr> DROP FUNCTION rotate_point(point geo_point, angle real);
     DROP OK, 1 row affected  (... sec)
 
     cr> DROP FUNCTION symmetric_point(point geo_point);
     DROP OK, 1 row affected  (... sec)
 
-    cr> DROP FUNCTION line(start_point array(double), end_point array(double));
+    cr> DROP FUNCTION line(start_point array(double precision), end_point array(double precision));
     DROP OK, 1 row affected  (... sec)
 
-    cr> DROP FUNCTION utc(long, long, long);
+    cr> DROP FUNCTION utc(bigint, bigint, bigint);
     DROP OK, 1 row affected  (... sec)
 
 Working With ``Array`` Methods

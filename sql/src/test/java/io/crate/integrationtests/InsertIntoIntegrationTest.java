@@ -1314,7 +1314,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into dyn_ts (id, ts) values (1, '2015-02-01')");
         // string is not converted to timestamp
         execute("select data_type from information_schema.columns where table_name='dyn_ts' and column_name='ts'");
-        assertThat((String) response.rows()[0][0], is("string"));
+        assertThat(response.rows()[0][0], is("text"));
 
         execute("select _raw from dyn_ts where id = 0");
         assertThat((String) response.rows()[0][0], is("{\"id\":0,\"ts\":\"2015-01-01\"}"));

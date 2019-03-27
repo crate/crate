@@ -45,10 +45,10 @@ Multiple Table Optimization
 .. Hidden: CREATE TABLE::
 
     cr> CREATE TABLE IF NOT EXISTS parted_table (
-    ...   id long,
-    ...   title string,
-    ...   content string,
-    ...   width double,
+    ...   id bigint,
+    ...   title text,
+    ...   content text,
+    ...   width double precision,
     ...   day timestamp
     ... ) CLUSTERED BY (title) INTO 4 SHARDS PARTITIONED BY (day);
     CREATE OK, 1 row affected (... sec)

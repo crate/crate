@@ -16,7 +16,7 @@ Altering Tables
 
 .. hide:
 
-    cr> CREATE TABLE my_table (id LONG);
+    cr> CREATE TABLE my_table (id BIGINT);
     CREATE OK, 1 row affected (... sec)
 
 Updating Parameters
@@ -121,7 +121,7 @@ Adding Columns
 In order to add a column to an existing table use ``ALTER TABLE`` with the
 ``ADD COLUMN`` clause::
 
-    cr> alter table my_table add column new_column_name string;
+    cr> alter table my_table add column new_column_name text;
     ALTER OK, -1 rows affected (... sec)
 
 The inner schema of object columns can also be extended, as shown in the
@@ -134,7 +134,7 @@ First a column of type object is added::
 
 And now a nested column named ``name`` is added to the ``obj_column``::
 
-    cr> alter table my_table add column obj_column['name'] string;
+    cr> alter table my_table add column obj_column['name'] text;
     ALTER OK, -1 rows affected (... sec)
 
 ::
@@ -146,7 +146,7 @@ And now a nested column named ``name`` is added to the ``obj_column``::
     +--------------------+-----------+
     | obj_column         | object    |
     | obj_column['age']  | integer   |
-    | obj_column['name'] | string    |
+    | obj_column['name'] | text      |
     +--------------------+-----------+
     SELECT 3 rows in set (... sec)
 

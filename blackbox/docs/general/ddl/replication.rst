@@ -27,8 +27,8 @@ property.
 Example::
 
     cr> create table my_table10 (
-    ...   first_column int,
-    ...   second_column string
+    ...   first_column integer,
+    ...   second_column text
     ... ) with (number_of_replicas = 0);
     CREATE OK, 1 row affected (... sec)
 

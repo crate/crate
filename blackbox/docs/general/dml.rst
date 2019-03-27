@@ -72,10 +72,10 @@ can be safely omitted. It is *generated* upon insert:
 .. Hidden: create debit_card table::
 
     cr> CREATE TABLE debit_card (
-    ...   owner string,
-    ...   num_part1 int,
-    ...   num_part2 int,
-    ...   check_sum int GENERATED ALWAYS AS ((num_part1 + num_part2) * 42)
+    ...   owner text,
+    ...   num_part1 integer,
+    ...   num_part2 integer,
+    ...   check_sum integer GENERATED ALWAYS AS ((num_part1 + num_part2) * 42)
     ... );
     CREATE OK, 1 row affected (... sec)
 
@@ -106,15 +106,15 @@ This gives the opportunity to restructure the tables data, renaming a field,
 changing a field's data type or convert a normal table into a partitioned one.
 
 Example of changing a field's data type, in this case, changing the
-``position`` data type from integer to short::
+``position`` data type from ``integer`` to ``smallint``::
 
     cr> create table locations2 (
-    ...     id string primary key,
-    ...     name string,
+    ...     id text primary key,
+    ...     name text,
     ...     date timestamp,
-    ...     kind string,
-    ...     position short,
-    ...     description string
+    ...     kind text,
+    ...     position smallint,
+    ...     description text
     ... ) clustered by (id) into 2 shards with (number_of_replicas = 0);
     CREATE OK, 1 row affected (... sec)
 
@@ -137,11 +137,11 @@ Example of creating a new partitioned table out of the ``locations`` table with
 data partitioned by year::
 
     cr> create table locations_parted (
-    ...     id string primary key,
-    ...     name string,
-    ...     year string primary key,
+    ...     id text primary key,
+    ...     name text,
+    ...     year text primary key,
     ...     date timestamp,
-    ...     kind string,
+    ...     kind text,
     ...     position integer
     ... ) clustered by (id) into 2 shards
     ... partitioned by (year) with (number_of_replicas = 0);
@@ -288,7 +288,7 @@ This can also be done when using a query instead of values::
 
     cr> create table uservisits2 (
     ...   id integer primary key,
-    ...   name string,
+    ...   name text,
     ...   visits integer,
     ...   last_visit timestamp
     ... ) clustered by (id) into 2 shards with (number_of_replicas = 0);

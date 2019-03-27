@@ -67,9 +67,9 @@ public class MatchPredicateTest extends CrateUnitTest {
     }
 
     @Test
-    public void testInvalidStringMatchType() throws Exception {
+    public void testInvalidStringMatchType() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("invalid MATCH type 'foo' for type 'string'");
+        expectedException.expectMessage("invalid MATCH type 'foo' for type 'text'");
         MatchPredicate.getMatchType("foo", DataTypes.STRING);
     }
 

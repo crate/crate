@@ -257,7 +257,7 @@ public class AnalyzedColumnDefinition {
                 return analyzer == null && !isIndex ? "keyword" : "text";
 
             default:
-                return dataType.getName();
+                return DataTypes.esMappingNameFrom(dataType.id());
         }
     }
 

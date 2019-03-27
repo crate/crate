@@ -44,6 +44,8 @@ import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import static java.util.Map.entry;
+
 public final class DataTypes {
 
     private static final Logger logger = LogManager.getLogger(DataTypes.class);
@@ -302,9 +304,14 @@ public final class DataTypes {
         .put("int", INTEGER)
         .put("int4", INTEGER)
         .put("int8", LONG)
-        .put("smallint", SHORT)
-        .put("bigint", LONG)
         .put("name", STRING)
+
+        .put("long", LONG)
+        .put("byte", BYTE)
+        .put("short", SHORT)
+        .put("float", FLOAT)
+        .put("double", DOUBLE)
+        .put("string", STRING)
         .build();
 
     public static DataType ofName(String name) {
@@ -333,17 +340,30 @@ public final class DataTypes {
         .put("object", ObjectType.untyped())
         .put("nested", ObjectType.untyped()).build();
 
+    private static final Map<Integer, String> TYPE_IDS_TO_MAPPINGS = Map.ofEntries(
+        entry(TIMESTAMP.id(), "date"),
+        entry(STRING.id(), "text"),
+        entry(BYTE.id(), "byte"),
+        entry(BOOLEAN.id(), "boolean"),
+        entry(IP.id(), "ip"),
+        entry(DOUBLE.id(), "double"),
+        entry(FLOAT.id(), "float"),
+        entry(SHORT.id(), "short"),
+        entry(INTEGER.id(), "integer"),
+        entry(LONG.id(), "long"),
+        entry(ObjectType.ID, "object"),
+        entry(GEO_SHAPE.id(), "geo_shape"),
+        entry(GEO_POINT.id(), "geo_point")
+    );
+
+    @Nullable
+    public static String esMappingNameFrom(int typeId) {
+        return TYPE_IDS_TO_MAPPINGS.get(typeId);
+    }
+
     @Nullable
     public static DataType ofMappingName(String name) {
         return MAPPING_NAMES_TO_TYPES.get(name);
-    }
-
-    public static DataType ofMappingNameSafe(String name) {
-        DataType dataType = ofMappingName(name);
-        if (dataType == null) {
-            throw new IllegalArgumentException("Cannot find data type of mapping name " + name);
-        }
-        return dataType;
     }
 
     public static boolean isPrimitive(DataType type) {

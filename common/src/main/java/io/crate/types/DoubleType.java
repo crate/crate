@@ -47,7 +47,7 @@ public class DoubleType extends DataType<Double> implements FixedWidthType, Stre
 
     @Override
     public String getName() {
-        return "double";
+        return "double precision";
     }
 
     @Override

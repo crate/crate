@@ -13,8 +13,8 @@ a data type is optional. It is inferred by the return type of the supplied
 expression if omitted::
 
     cr> CREATE TABLE computed (
-    ...   dividend double,
-    ...   divisor double,
+    ...   dividend double precision,
+    ...   divisor double precision,
     ...   quotient GENERATED ALWAYS AS (dividend / divisor)
     ... );
     CREATE OK, 1 row affected (... sec)
@@ -84,8 +84,8 @@ They can also be used in the :ref:`partitioned_by_clause` in order to compute
 the value to partition by from existing columns in the table::
 
     cr> CREATE TABLE computed_and_partitioned (
-    ...   huge_cardinality long,
-    ...   big_data string,
+    ...   huge_cardinality bigint,
+    ...   big_data text,
     ...   partition_value GENERATED ALWAYS AS (huge_cardinality % 10)
     ... ) PARTITIONED BY (partition_value);
     CREATE OK, 1 row affected (... sec)

@@ -125,7 +125,7 @@ public class ConditionalFunctionTest extends AbstractScalarFunctionsTest {
     public void testCaseIncompatibleTypes() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Data types of all result expressions of a CASE statement must be equal, " +
-                                        "found: [string, long]");
+                                        "found: [text, bigint]");
         assertEvaluate("case name when 'foo' then 'hello foo' when 'bar' then 1 end",
             "hello foo",
             Literal.of("foo"), Literal.of("foo"));

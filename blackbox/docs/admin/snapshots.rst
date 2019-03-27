@@ -78,8 +78,8 @@ listing them explicitly::
 .. Hidden: create partitioned table
 
     cr> CREATE TABLE parted_table (
-    ...   id int,
-    ...   value string,
+    ...   id integer,
+    ...   value text,
     ...   date timestamp
     ... ) clustered into 1 shards partitioned by (date) with (number_of_replicas=0);
     CREATE OK, 1 row affected (... sec)

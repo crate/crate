@@ -44,7 +44,7 @@ public class LongType extends DataType<Long> implements FixedWidthType, Streamer
 
     @Override
     public String getName() {
-        return "long";
+        return "bigint";
     }
 
     @Override

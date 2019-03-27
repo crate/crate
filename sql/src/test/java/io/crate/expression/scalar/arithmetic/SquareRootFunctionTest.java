@@ -31,7 +31,7 @@ import static io.crate.testing.SymbolMatchers.isFunction;
 public class SquareRootFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
-    public void testSqrt() throws Exception {
+    public void testSqrt() {
         assertEvaluate("sqrt(25)", 5.0d);
         assertEvaluate("sqrt(25.0)", 5.0d);
         assertEvaluate("sqrt(null)", null);
@@ -40,20 +40,20 @@ public class SquareRootFunctionTest extends AbstractScalarFunctionsTest {
     }
 
     @Test
-    public void testSmallerThanZero() throws Exception {
+    public void testSmallerThanZero() {
         expectedException.expectMessage("cannot take square root of a negative number");
         assertEvaluate("sqrt(-25.0)", null);
     }
 
     @Test
-    public void testInvalidType() throws Exception {
+    public void testInvalidType() {
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast 'foo' to type double");
+        expectedException.expectMessage("Cannot cast 'foo' to type double precision");
         assertEvaluate("sqrt('foo')", null);
     }
 
     @Test
-    public void testNormalizeWithRef() throws Exception {
+    public void testNormalizeWithRef() {
         assertNormalize("sqrt(id)", isFunction("sqrt"));
     }
 }

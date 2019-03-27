@@ -5,11 +5,11 @@ Show Create Table
 .. hide:
     cr> create table if not exists my_table (
     ...   first_column integer primary key,
-    ...   second_column string,
+    ...   second_column text,
     ...   third_column timestamp,
     ...   fourth_column object(strict) as (
-    ...     key string,
-    ...     value string
+    ...     key text,
+    ...     value text
     ...   )
     ... ) clustered by (first_column) into 5 shards;
     CREATE OK, 1 row affected (... sec)
@@ -23,11 +23,11 @@ already existing user-created doc tables in the cluster::
     +-----------------------------------------------------+
     | CREATE TABLE IF NOT EXISTS "doc"."my_table" (       |
     |    "first_column" INTEGER,                          |
-    |    "second_column" STRING,                          |
+    |    "second_column" TEXT,                            |
     |    "third_column" TIMESTAMP,                        |
     |    "fourth_column" OBJECT(STRICT) AS (              |
-    |       "key" STRING,                                 |
-    |       "value" STRING                                |
+    |       "key" TEXT,                                   |
+    |       "value" TEXT                                  |
     |    ),                                               |
     |    PRIMARY KEY ("first_column")                     |
     | )                                                   |

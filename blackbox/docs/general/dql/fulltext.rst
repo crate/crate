@@ -38,7 +38,7 @@ perform :ref:`geographical searches <sql_dql_geo_search>` on
 The actual applicability of the MATCH predicate depends on the index's type. In
 fact, the availability of certain ``match_types`` and ``match_parameters``
 depend on the index. This section however, only covers the usage of the MATCH
-predicate on ``fulltext`` indices on string columns. To use MATCH on
+predicate on ``fulltext`` indices on ``text`` columns. To use MATCH on
 :ref:`geo_shape_data_type` indices, see :ref:`sql_dql_geo_search`.
 
 In order to use fulltext searches on a column, a :ref:`fulltext index with an
@@ -91,7 +91,7 @@ Arguments
   A reference to a column or an index.
 
   If the column has an implicit index (e.g. created with something like
-  ``STRING column_a INDEX USING FULLTEXT``) this should be the name of the
+  ``TEXT column_a INDEX USING FULLTEXT``) this should be the name of the
   column.
 
   If the column has an explicit index (e.g. created with something like ``INDEX
@@ -99,7 +99,7 @@ Arguments
   name of the index.
 
   By default every column is indexed but only the raw data is stored, so
-  matching against a ``string`` column without a fulltext index is
+  matching against a ``text`` column without a fulltext index is
   equivalent to using the ``=`` operator. To perform real fulltext
   searches use a :ref:`sql_ddl_index_fulltext`.
 

@@ -1134,8 +1134,8 @@ and the payload stored additionally into the index. For example
 .. rubric:: Parameters
 
 encoding
-    How the payload should be interpreted, possible values are ``float`` for
-    float values, ``int`` for integer values and ``identity`` for keeping the
+    How the payload should be interpreted, possible values are ``real`` for
+    float values, ``integer`` for integer values and ``identity`` for keeping the
     payload as byte array (string).
 
 delimiter

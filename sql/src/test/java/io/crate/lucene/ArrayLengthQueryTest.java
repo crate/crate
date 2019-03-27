@@ -285,7 +285,7 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
                 THREAD_POOL,
                 clusterService,
                 Version.CURRENT,
-                "create table t (xs array(" + type.getName() + "))"
+                "create table t (xs array(\"" + type.getName() + "\"))"
             ).indexValues("xs", values).build()) {
                 System.out.println(type);
                 List<Object> result = tester.runQuery("xs", "array_length(xs, 1) >= 2");

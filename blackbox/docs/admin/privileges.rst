@@ -71,7 +71,7 @@ Hierarchical Inheritance of Privileges
 
     cr> create table if not exists doc.accounting (
     ...   id integer primary key,
-    ...   name string,
+    ...   name text,
     ...   joined timestamp
     ... ) clustered by (id);
     CREATE OK, 1 row affected (... sec)
@@ -172,11 +172,11 @@ Behavior of ``GRANT``, ``DENY`` and ``REVOKE``
 
     cr> create table if not exists doc.books (
     ...   first_column integer primary key,
-    ...   second_column string,
+    ...   second_column text,
     ...   third_column timestamp,
     ...   fourth_column object(strict) as (
-    ...     key string,
-    ...     value string
+    ...     key text,
+    ...     value text
     ...   )
     ... ) clustered by (first_column) into 5 shards;
     CREATE OK, 1 row affected (... sec)

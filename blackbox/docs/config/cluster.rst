@@ -168,9 +168,9 @@ Collecting Stats
   Defines the refresh interval to refresh tables statistics used to produce
   optimal query execution plans.
 
-  This field expects a time value either as a long or double or alternatively
-  as a string literal with a time suffix (``ms``, ``s``, ``m``, ``h``, ``d``,
-  ``w``).
+  This field expects a time value either as a ``bigint`` or
+  ``double precision`` or alternatively as a string literal with a time suffix
+  (``ms``, ``s``, ``m``, ``h``, ``d``, ``w``).
 
   If the value provided is ``0`` then the refresh is disabled.
 
@@ -205,9 +205,9 @@ about its usage.
 
   The delay for first ping after start-up.
 
-  This field expects a time value either as a long or double or alternatively
-  as a string literal with a time suffix (``ms``, ``s``, ``m``, ``h``, ``d``,
-  ``w``).
+  This field expects a time value either as a ``bigint`` or
+  ``double precision`` or alternatively as a string literal with a time suffix
+  (``ms``, ``s``, ``m``, ``h``, ``d``, ``w``).
 
 .. _cluster.udc.interval:
 
@@ -217,9 +217,9 @@ about its usage.
 
   The interval a UDC ping is sent.
 
-  This field expects a time value either as a long or double or alternatively
-  as a string literal with a time suffix (``ms``, ``s``, ``m``, ``h``, ``d``,
-  ``w``).
+ This field expects a time value either as a ``bigint`` or
+  ``double precision`` or alternatively as a string literal with a time suffix
+  (``ms``, ``s``, ``m``, ``h``, ``d``, ``w``).
 
 .. _cluster.udc.url:
 
@@ -272,9 +272,9 @@ nodes of the cluster:
   to finish. The ``force`` setting will define the behaviour when the shutdown
   process runs into this timeout.
 
-  The timeout expects a time value either as a long or double or alternatively
-  as a string literal with a time suffix (``ms``, ``s``, ``m``, ``h``, ``d``,
-  ``w``).
+  The timeout expects a time value either as a ``bigint`` or
+  ``double precision`` or alternatively as a string literal with a time suffix
+  (``ms``, ``s``, ``m``, ``h``, ``d``, ``w``).
 
 .. _cluster.graceful_stop.force:
 

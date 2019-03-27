@@ -146,7 +146,7 @@ public class FuncParamsTest extends CrateUnitTest {
         Field field = new Field(Mockito.mock(AnalyzedRelation.class), path, DataTypes.INTEGER);
         FuncParams params = FuncParams.builder(Param.LONG).build();
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast test to type long");
+        expectedException.expectMessage("Cannot cast test to type bigint");
         params.match(list(field));
     }
 
@@ -162,7 +162,7 @@ public class FuncParamsTest extends CrateUnitTest {
         FuncArg castableArg = new Arg(DataTypes.INTEGER, false);
         FuncParams params = FuncParams.builder(Param.LONG).build();
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast testarg to type long");
+        expectedException.expectMessage("Cannot cast testarg to type bigint");
         params.match(list(castableArg));
     }
 

@@ -152,7 +152,7 @@ public class SemiJoinsTest extends CrateDummyClusterServiceUnitTest {
             "        Collect[.empty_row | ['foo'] | All]\n" +
             "    ]\n" +
             "    FetchOrEval[a, x, i]\n" +
-            "    Collect[doc.t1 | [_fetchid] | (a = ANY(SelectSymbol{string_array}))]\n" +
+            "    Collect[doc.t1 | [_fetchid] | (a = ANY(SelectSymbol{text_array}))]\n" +
             "]\n"));
     }
 

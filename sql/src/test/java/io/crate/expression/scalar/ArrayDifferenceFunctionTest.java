@@ -86,9 +86,9 @@ public class ArrayDifferenceFunctionTest extends AbstractScalarFunctionsTest {
     }
 
     @Test
-    public void testOneArgument() throws Exception {
+    public void testOneArgument() {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("unknown function: array_difference(long_array)");
+        expectedException.expectMessage("unknown function: array_difference(bigint_array)");
         assertNormalize("array_difference([1])", null);
     }
 
