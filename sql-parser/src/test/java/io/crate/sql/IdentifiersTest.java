@@ -31,7 +31,7 @@ import static org.hamcrest.core.Is.is;
 public class IdentifiersTest {
 
     @Test
-    public void testEscape() throws Exception {
+    public void testEscape() {
         assertThat(Identifiers.escape(""), is(""));
         assertThat(Identifiers.escape("\""), is("\"\""));
         assertThat(Identifiers.escape("ABC\""), is("ABC\"\""));
@@ -41,7 +41,7 @@ public class IdentifiersTest {
     }
 
     @Test
-    public void testQuote() throws Exception {
+    public void testQuote() {
         assertThat(Identifiers.quote(""), is("\"\""));
         assertThat(Identifiers.quote("\""), is("\"\"\"\""));
         assertThat(Identifiers.quote("ABC"), is("\"ABC\""));
@@ -49,13 +49,15 @@ public class IdentifiersTest {
     }
 
     @Test
-    public void testQuoteIfNeeded() throws Exception {
-        assertThat(Identifiers.quoteIfNeeded(""), is(""));
+    public void testQuoteIfNeeded() {
+        assertThat(Identifiers.quoteIfNeeded(""), is("\"\""));
         assertThat(Identifiers.quoteIfNeeded("\""), is("\"\"\"\""));
         assertThat(Identifiers.quoteIfNeeded("fhjgadhjgfhs"), is("fhjgadhjgfhs"));
         assertThat(Identifiers.quoteIfNeeded("fhjgadhjgfhsÖ"), is("\"fhjgadhjgfhsÖ\""));
         assertThat(Identifiers.quoteIfNeeded("ABC"), is("\"ABC\""));
         assertThat(Identifiers.quoteIfNeeded("abc\""), is("\"abc\"\"\""));
         assertThat(Identifiers.quoteIfNeeded("select"), is("\"select\"")); // keyword
+        assertThat(Identifiers.quoteIfNeeded("1column"), is("\"1column\""));
+        assertThat(Identifiers.quoteIfNeeded("column name"), is("\"column name\""));
     }
 }

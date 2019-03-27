@@ -71,6 +71,7 @@ public class SymbolPrinterTest extends CrateUnitTest {
             .add("foo", DataTypes.STRING)
             .add("bar", DataTypes.LONG)
             .add("CraZy", DataTypes.IP)
+            .add("1a", DataTypes.INTEGER)
             .add("select", DataTypes.BYTE)
             .add("idx", DataTypes.INTEGER)
             .add("s_arr", new ArrayType(DataTypes.STRING))
@@ -271,10 +272,14 @@ public class SymbolPrinterTest extends CrateUnitTest {
     }
 
     @Test
-    public void testFormatQualified() throws Exception {
+    public void testFormatQualified() {
         Symbol ref = sqlExpressions.asSymbol("formatter.\"CraZy\"");
         assertThat(printer.printQualified(ref), is("doc.formatter.\"CraZy\""));
         assertThat(printer.printUnqualified(ref), is("\"CraZy\""));
+
+        ref = sqlExpressions.asSymbol("formatter.\"1a\"");
+        assertThat(printer.printQualified(ref), is("doc.formatter.\"1a\""));
+        assertThat(printer.printUnqualified(ref), is("\"1a\""));
     }
 
     @Test
