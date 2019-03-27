@@ -180,8 +180,11 @@ public class AnyIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testAnyOperatorWithFieldThatRequiresConversion() throws Exception {
-        execute("create table t (ts timestamp) clustered into 1 shards with (number_of_replicas = 0)");
+    public void testAnyOperatorWithFieldThatRequiresConversion() {
+        execute(
+            "create table t (" +
+            "   ts timestamp with time zone" +
+            ") clustered into 1 shards with (number_of_replicas = 0)");
         ensureYellow();
         execute("insert into t values ('2017-12-31'), ('2016-12-31'), ('2015-12-31')");
         execute("refresh table t");

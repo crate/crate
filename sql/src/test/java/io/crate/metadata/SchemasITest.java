@@ -56,11 +56,11 @@ public class SchemasITest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testDocTable() throws Exception {
+    public void testDocTable() {
         execute("create table t1 (" +
                 "id int primary key, " +
                 "name string, " +
-                "details object(dynamic) as (size byte, created timestamp)" +
+                "details object(dynamic) as (size byte, created timestamp with time zone)" +
                 ") clustered into 10 shards with (number_of_replicas=1)");
         ensureYellow();
 

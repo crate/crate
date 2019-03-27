@@ -219,9 +219,13 @@ public class TableBlocksIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testInsertIntoPartitionedTableWhileTableReadOnly() throws Exception {
-        execute("create table t1 (id integer, name string, date timestamp)" +
-                "partitioned by (date) with (number_of_replicas = 0)");
+    public void testInsertIntoPartitionedTableWhileTableReadOnly() {
+        execute(
+            "create table t1 (" +
+            "   id integer," +
+            "   name string," +
+            "   date timestamp with time zone) " +
+            "partitioned by (date) with (number_of_replicas = 0)");
         ensureYellow();
         execute("alter table t1 set (\"blocks.read_only\" = true)");
 

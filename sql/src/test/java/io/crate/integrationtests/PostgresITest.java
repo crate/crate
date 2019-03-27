@@ -557,7 +557,11 @@ public class PostgresITest extends SQLTransportIntegrationTest {
         try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
             conn.setAutoCommit(true);
             Statement statement = conn.createStatement();
-            assertThat(statement.executeUpdate("create table t (x string, ts timestamp) with (number_of_replicas = 0)"), is(1));
+            assertThat(statement.executeUpdate(
+                "create table t (" +
+                "   x string," +
+                "   ts timestamp with time zone" +
+                ") with (number_of_replicas = 0)"), is(1));
             ensureYellow();
 
             assertThat(statement.executeUpdate("insert into t (x, ts) values ('Marvin', '2016-05-14'), ('Trillian', '2016-06-28')"), is(2));
@@ -717,8 +721,11 @@ public class PostgresITest extends SQLTransportIntegrationTest {
     @Test
     public void testRepeatedFetchDoesNotLeakSysJobsLog() throws Exception {
         try (Connection conn = DriverManager.getConnection(url(RW))) {
-            conn.prepareStatement("create table t (x int, ts timestamp) " +
-                                  "clustered into 1 shards with (number_of_replicas = 0)").execute();
+            conn.prepareStatement(
+                "create table t (" +
+                "   x int, ts timestamp with time zone" +
+                ") clustered into 1 shards " +
+                "with (number_of_replicas = 0)").execute();
             PreparedStatement preparedStatement = conn.prepareStatement("insert into t (x, ts) values (?, ?)");
             for (int i = 0; i < 20; i++) {
                 preparedStatement.setInt(1, i);

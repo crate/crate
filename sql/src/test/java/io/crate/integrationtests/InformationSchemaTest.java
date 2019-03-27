@@ -450,7 +450,9 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertThat(response.rows()[0][0], is("test"));
         assertThat(response.rows()[0][1], is("test_pk"));
 
-        execute("CREATE TABLE test2 (col1a STRING PRIMARY KEY, \"Col2a\" TIMESTAMP NOT NULL)");
+        execute("CREATE TABLE test2 (" +
+            "   col1a STRING PRIMARY KEY," +
+            "   \"Col2a\" TIMESTAMP WITH TIME ZONE NOT NULL)");
         ensureGreen();
         execute("SELECT table_name, constraint_name FROM information_schema.table_constraints WHERE table_schema = ? " +
                 "ORDER BY table_name ASC",
@@ -1034,9 +1036,12 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testPartitionsNestedCol() {
-        execute("create table my_table (id int, metadata object as (date timestamp)) " +
-                "clustered into 5 shards " +
-                "partitioned by (metadata['date'])");
+        execute(
+            "create table my_table (" +
+            "   id int," +
+            "   metadata object as (date timestamp with time zone)" +
+            ") clustered into 5 shards " +
+            "partitioned by (metadata['date'])");
         ensureYellow();
         execute("insert into my_table (id, metadata) values (?, ?), (?, ?)",
             new Object[]{
@@ -1055,7 +1060,12 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testAnyInformationSchema() {
-        execute("create table any1 (id integer, date timestamp, names array(string)) partitioned by (date)");
+        execute(
+            "create table any1 (" +
+            "   id integer," +
+            "   date timestamp with time zone," +
+            "   names array(string)" +
+            ") partitioned by (date)");
         execute("create table any2 (id integer, num long, names array(string)) partitioned by (num)");
         ensureGreen();
         execute("select table_name from information_schema.tables where 'date' = ANY (partitioned_by)");

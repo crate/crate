@@ -40,15 +40,16 @@ public class ShardingUpsertIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testCopyFromWithLimitedBulkSize() throws Exception {
-        execute("create table contributors (" +
-            "id integer," +
-            "day_joined timestamp," +
-            "bio string," +
-            "name string ," +
-            "address object(strict) as (" +
-            "country string," +
-            "city string " +
-            ")" +
+        execute(
+            "create table contributors (" +
+            "   id integer," +
+            "   day_joined timestamp with time zone," +
+            "   bio string," +
+            "   name string ," +
+            "   address object(strict) as (" +
+            "       country string," +
+            "       city string " +
+            "   )" +
             ") clustered into 1 shards with (number_of_replicas=0)");
         ensureYellow();
 

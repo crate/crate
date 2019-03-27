@@ -107,7 +107,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testDeletePartitionAfterPlan() throws Throwable {
-        execute("CREATE TABLE parted_table (id long, text string, day timestamp) " +
+        execute("CREATE TABLE parted_table (id long, text string, day timestamp with time zone) " +
                 "PARTITIONED BY (day)");
         execute("INSERT INTO parted_table (id, text, day) values(1, 'test', '2016-06-07')");
         ensureYellow();
@@ -418,8 +418,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testSqlRequestWithDateFilter() throws Exception {
-        execute("create table test (date timestamp)");
+    public void testSqlRequestWithDateFilter() {
+        execute("create table test (date timestamp with time zone)");
         execute("insert into test (date) values ('2013-10-01'), ('2013-10-02')");
         execute("refresh table test");
         execute("select date from test where date = '2013-10-01'");
@@ -428,8 +428,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testSqlRequestWithDateGtFilter() throws Exception {
-        execute("create table test (date timestamp)");
+    public void testSqlRequestWithDateGtFilter() {
+        execute("create table test (date timestamp with time zone)");
         execute("insert into test (date) values ('2013-10-01'), ('2013-10-02')");
         execute("refresh table test");
         execute(
@@ -1410,9 +1410,18 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testNumericScriptOnAllTypes() throws Exception {
+    public void testNumericScriptOnAllTypes() {
         // this test validates that no exception is thrown
-        execute("create table t (b byte, s short, i integer, l long, f float, d double, t timestamp) with (number_of_replicas=0)");
+        execute(
+            "create table t (" +
+            "   b byte," +
+            "   s short," +
+            "   i integer," +
+            "   l long," +
+            "   f float," +
+            "   d double," +
+            "   t timestamp with time zone" +
+            ") with (number_of_replicas=0)");
         ensureYellow();
         execute("insert into t (b, s, i, l, f, d, t) values (1, 2, 3, 4, 5.7, 6.3, '2014-07-30')");
         refresh();
@@ -1545,7 +1554,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("create table t (" +
                 "id1 long primary key," +
                 "id2 long primary key," +
-                "ts timestamp primary key," +
+                "ts timestamp with time zone primary key," +
                 "n string) " +
                 "clustered by (id2)");
         ensureYellow();

@@ -90,7 +90,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
                                                           "  id integer," +
                                                           "  no_index string index off," +
                                                           "  name string," +
-                                                          "  date timestamp" +
+                                                          "  date timestamp with time zone" +
                                                           ") partitioned by (name)");
         assertThat(analysis.partitionedBy().size(), is(1));
         assertThat(analysis.partitionedBy().get(0), contains("name", "keyword"));
@@ -112,7 +112,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
     public void testPartitionedByMultipleColumns() {
         CreateTableAnalyzedStatement analysis = e.analyze("create table my_table (" +
                                                           "  name string," +
-                                                          "  date timestamp" +
+                                                          "  date timestamp with time zone" +
                                                           ") partitioned by (name, date)");
         assertThat(analysis.partitionedBy().size(), is(2));
         Map<String, Object> properties = analysis.mappingProperties();
@@ -136,7 +136,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
                                                           "  o object as (" +
                                                           "    name string" +
                                                           "  )," +
-                                                          "  date timestamp" +
+                                                          "  date timestamp with time zone" +
                                                           ") partitioned by (date, o['name'])");
         assertThat(analysis.partitionedBy().size(), is(2));
         Map<String, Object> oMapping = (Map<String, Object>) analysis.mappingProperties().get("o");
@@ -156,7 +156,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
                   "  a array(object as (" +
                   "    name string" +
                   "  ))," +
-                  "  date timestamp" +
+                  "  date timestamp with time zone" +
                   ") partitioned by (date, a['name'])");
     }
 
@@ -164,7 +164,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
     public void testPartitionedByArray() {
         e.analyze("create table my_table (" +
                   "  a array(string)," +
-                  "  date timestamp" +
+                  "  date timestamp with time zone" +
                   ") partitioned by (a)");
     }
 
@@ -172,7 +172,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
     public void testPartitionedByInnerArray() {
         e.analyze("create table my_table (" +
                   "  a object as (names array(string))," +
-                  "  date timestamp" +
+                  "  date timestamp with time zone" +
                   ") partitioned by (a['names'])");
     }
 
@@ -180,7 +180,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
     public void testPartitionedByObject() {
         e.analyze("create table my_table (" +
                   "  a object as(name string)," +
-                  "  date timestamp" +
+                  "  date timestamp with time zone" +
                   ") partitioned by (a)");
     }
 
@@ -188,7 +188,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
     public void testPartitionedByInnerObject() {
         e.analyze("create table my_table (" +
                   "  a object as(b object as(name string))," +
-                  "  date timestamp" +
+                  "  date timestamp with time zone" +
                   ") partitioned by (a['b'])");
     }
 
@@ -203,7 +203,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
         e.analyze("create table my_table (" +
                   "  id1 integer," +
                   "  id2 integer," +
-                  "  date timestamp," +
+                  "  date timestamp with time zone," +
                   "  primary key (id1, id2)" +
                   ") partitioned by (id1, date)");
     }
@@ -213,7 +213,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
         CreateTableAnalyzedStatement analysis = e.analyze("create table my_table (" +
                                                           "  id1 integer," +
                                                           "  id2 integer," +
-                                                          "  date timestamp," +
+                                                          "  date timestamp with time zone," +
                                                           "  primary key (id1, id2)" +
                                                           ") partitioned by (id1)");
         assertThat(analysis.partitionedBy().size(), is(1));

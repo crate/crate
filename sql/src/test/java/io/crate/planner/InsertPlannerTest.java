@@ -75,7 +75,7 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
                 "create table parted_pks (" +
                 "   id int," +
                 "   name string," +
-                "   date timestamp," +
+                "   date timestamp with time zone," +
                 "   obj object," +
                 "   primary key (id, date)" +
                 ") partitioned by (date) clustered by (id) ",
@@ -83,7 +83,12 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
                 new PartitionName(new RelationName("doc", "parted_pks"), singletonList("1395961200000")).asIndexName(),
                 new PartitionName(new RelationName("doc", "parted_pks"), singletonList(null)).asIndexName()
             )
-            .addTable("create table users (id long primary key, name string, date timestamp) clustered into 4 shards")
+            .addTable(
+                "create table users (" +
+                "   id long primary key," +
+                "   name string," +
+                "   date timestamp with time zone" +
+                ") clustered into 4 shards")
             .addTable("create table source (id int primary key, name string)")
             .build();
     }

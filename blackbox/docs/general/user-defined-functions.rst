@@ -284,11 +284,12 @@ performed. In most cases, this is not an issue, since the return type of the
 JavaScript function will be cast to the return type specified in the ``CREATE
 FUNCTION`` statement, although cast might result in a loss of precision.
 
-However, when you try to cast ``DOUBLE PRECISION`` to ``TIMESTAMP``, it will be
-interpreted as UTC seconds and will result in a wrong value::
+However, when you try to cast ``DOUBLE PRECISION`` to
+``TIMESTAMP WITH TIME ZONE``, it will be interpreted as UTC seconds and will
+result in a wrong value::
 
      cr> CREATE FUNCTION utc(bigint, bigint, bigint)
-     ...  RETURNS TIMESTAMP
+     ...  RETURNS TIMESTAMP WITH TIME ZONE
      ...  LANGUAGE JAVASCRIPT
      ...  AS 'function utc(year, month, day) {
      ...        return Date.UTC(year, month, day, 0, 0, 0);
@@ -318,7 +319,7 @@ To avoid this behavior, the numeric value should be divided by 1000 before it
 is returned::
 
      cr> CREATE FUNCTION utc(bigint, bigint, bigint)
-     ...  RETURNS TIMESTAMP
+     ...  RETURNS TIMESTAMP WITH TIME ZONE
      ...  LANGUAGE JAVASCRIPT
      ...  AS 'function utc(year, month, day) {
      ...        return Date.UTC(year, month, day, 0, 0, 0)/1000;

@@ -114,12 +114,16 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
                 "   profit as revenue - cost" +
                 ")"
             )
-            .addTable("create table t_pk_part_generated (ts timestamp, p as date_trunc('day', ts), primary key (ts, p))")
+            .addTable(
+                "create table t_pk_part_generated (" +
+                "   ts timestamp with time zone," +
+                "   p as date_trunc('day', ts)," +
+                "   primary key (ts, p))")
             .addPartitionedTable(
                 "create table parted (" +
                 "   id int," +
                 "   name string," +
-                "   date timestamp," +
+                "   date timestamp with time zone," +
                 "   obj object" +
                 ") partitioned by (date) ",
                 new PartitionName(new RelationName("doc", "parted"), singletonList("1395874800000")).asIndexName(),

@@ -54,7 +54,7 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testShowCrateTableSimple() throws Exception {
+    public void testShowCrateTableSimple() {
         String expected = "CREATE TABLE IF NOT EXISTS \"doc\".\"test\" (\n" +
                           "   \"col_bool\" BOOLEAN,\n" +
                           "   \"col_byte\" CHAR,\n" +
@@ -64,7 +64,7 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
                           "   \"col_float\" REAL,\n" +
                           "   \"col_double\" DOUBLE PRECISION,\n" +
                           "   \"col_str\" TEXT,\n" +
-                          "   \"col_ts\" TIMESTAMP,\n" +
+                          "   \"col_ts\" TIMESTAMP WITH TIME ZONE,\n" +
                           "   \"col_geo\" GEO_POINT\n" +
                           ")\n";
         execute("create table test (" +
@@ -76,7 +76,7 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
                 " col_float float," +
                 " col_double double," +
                 " col_str string," +
-                " col_ts timestamp," +
+                " col_ts timestamp with time zone," +
                 " col_geo geo_point" +
                 ")");
         execute("show create table test");
@@ -159,17 +159,17 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testShowCreateTablePartitioned() throws Exception {
+    public void testShowCreateTablePartitioned() {
         execute("create table test (" +
                 " id long," +
-                " date timestamp" +
+                " date timestamp with time zone" +
                 ") " +
                 "clustered into 4 shards " +
                 "partitioned by (\"date\")");
         execute("show create table test");
         assertRow("CREATE TABLE IF NOT EXISTS \"doc\".\"test\" (\n" +
                   "   \"id\" BIGINT,\n" +
-                  "   \"date\" TIMESTAMP\n" +
+                  "   \"date\" TIMESTAMP WITH TIME ZONE\n" +
                   ")\n" +
                   "CLUSTERED INTO 4 SHARDS\n" +
                   "PARTITIONED BY (\"date\")\n" +
@@ -218,20 +218,20 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
                 " col2 string GENERATED ALWAYS AS ts + 1," +
                 " col3 string GENERATED ALWAYS AS (ts + 1)," +
                 " name AS concat(\"user\"['name'], 'foo')," +
-                " ts timestamp," +
+                " ts timestamp with time zone," +
                 " \"user\" object AS (name string)" +
                 ")");
         execute("show create table test_generated_column");
         assertRow("CREATE TABLE IF NOT EXISTS \"doc\".\"test_generated_column\" (\n" +
-                  "   \"day1\" TIMESTAMP GENERATED ALWAYS AS date_trunc('day', \"ts\"),\n" +
-                  "   \"day2\" TIMESTAMP GENERATED ALWAYS AS date_trunc('day', \"ts\") INDEX OFF,\n" +
-                  "   \"day3\" TIMESTAMP GENERATED ALWAYS AS date_trunc('day', \"ts\"),\n" +
-                  "   \"day4\" TIMESTAMP GENERATED ALWAYS AS date_trunc('day', \"ts\"),\n" +
+                  "   \"day1\" TIMESTAMP WITH TIME ZONE GENERATED ALWAYS AS date_trunc('day', \"ts\"),\n" +
+                  "   \"day2\" TIMESTAMP WITH TIME ZONE GENERATED ALWAYS AS date_trunc('day', \"ts\") INDEX OFF,\n" +
+                  "   \"day3\" TIMESTAMP WITH TIME ZONE GENERATED ALWAYS AS date_trunc('day', \"ts\"),\n" +
+                  "   \"day4\" TIMESTAMP WITH TIME ZONE GENERATED ALWAYS AS date_trunc('day', \"ts\"),\n" +
                   "   \"col1\" BIGINT GENERATED ALWAYS AS CAST(\"ts\" AS bigint) + 1,\n" +
                   "   \"col2\" TEXT GENERATED ALWAYS AS CAST((CAST(\"ts\" AS bigint) + 1) AS text),\n" +
                   "   \"col3\" TEXT GENERATED ALWAYS AS CAST((CAST(\"ts\" AS bigint) + 1) AS text),\n" +
                   "   \"name\" TEXT GENERATED ALWAYS AS concat(\"user\"['name'], 'foo'),\n" +
-                  "   \"ts\" TIMESTAMP,\n" +
+                  "   \"ts\" TIMESTAMP WITH TIME ZONE,\n" +
                   "   \"user\" OBJECT(DYNAMIC) AS (\n" +
                   "      \"name\" TEXT\n" +
                   "   )\n" +
@@ -272,7 +272,7 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testShowColumns() throws Exception {
+    public void testShowColumns() {
         execute("create table my_table1 (" +
                 "column11 integer, " +
                 "column12 integer, " +
@@ -283,7 +283,7 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
         );
 
         execute("create table my_s1.my_table1 (" +
-                "col11 timestamp, " +
+                "col11 timestamp with time zone, " +
                 "col12 integer, " +
                 "col13 integer, " +
                 "col22 long, " +
@@ -312,13 +312,13 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("show columns in my_table1 from my_s1 like 'col1%'");
         assertThat(printedTable(response.rows()),
-            is("col11| timestamp\n" +
+            is("col11| timestamp with time zone\n" +
                "col12| integer\n" +
                "col13| integer\n"));
 
         execute("show columns from my_table1 in my_s1 like '%1'");
         assertThat(printedTable(response.rows()),
-            is("col11| timestamp\n" +
+            is("col11| timestamp with time zone\n" +
                "col31| integer\n"));
 
     }

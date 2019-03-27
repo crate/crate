@@ -364,7 +364,7 @@ Date and Time Functions
 ``date_trunc('interval', ['timezone',] timestamp)``
 ---------------------------------------------------
 
-Returns: ``timestamp``
+Returns: ``timestamp with time zone``
 
 Limits a timestamps precision to a given interval.
 

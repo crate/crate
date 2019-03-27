@@ -42,7 +42,7 @@ or collections.
 * `double precision <numeric types_>`_
 * `text`_
 * `ip`_
-* `timestamp`_
+* `timestamp with time zone <date/time types_>`_
 
 .. _sql_ddl_datatypes_geographic:
 
@@ -197,75 +197,95 @@ Example::
     ... values ('localhost', 'not.a.real.ip');
     SQLActionException[ColumnValidationException: Validation failed for ip_addr: Cannot cast 'not.a.real.ip' to type ip]
 
-.. _data-type-timestamp:
+.. _date-time-types:
 
-``timestamp``
-=============
+Date/Time Types
+===============
+
++------------------------------+---------+------------------------------+------------------------------------+
+| Name                         | Size    | Description                  | Range                              |
++==============================+=========+==============================+====================================+
+| ``timestamp with time zone`` | 8 bytes | time and date with time zone | ``292275054BC`` to ``292278993AD`` |
++------------------------------+---------+------------------------------+------------------------------------+
+
+``timestamp with time zone``
+----------------------------
 
 The timestamp type is a special type which maps to a formatted string.
-Internally it maps to the UTC milliseconds since ``1970-01-01T00:00:00Z`` stored
-as ``bigint``. Timestamps are always returned as ``bigint`` values.
+Internally it maps to the UTC milliseconds since ``1970-01-01T00:00:00Z``
+stored as ``bigint``. Timestamps are always returned as ``bigint`` values.
 
-The default format is dateOptionalTime_ and cannot be changed currently.
+The default timestamp format is dateOptionalTime_ and cannot be changed
+currently. Formatted string without timezone offset information will be treated
+as UTC.
+
+::
+
+    cr> create table ts_table (ts_zone timestamp with time zone);
+    CREATE OK, 1 row affected (... sec)
+
+::
+
+    cr> insert into ts_table (ts_zone) values ('1970-01-02T00:00:00');
+    INSERT OK, 1 row affected (... sec)
+
+.. Hidden:
+
+    cr> refresh table ts_table;
+    REFRESH OK, 1 row affected  (... sec)
+
+::
+
+    cr> select * from ts_table;
+    +----------+
+    |  ts_zone |
+    +----------+
+    | 86400000 |
+    +----------+
+    SELECT 1 row in set (... sec)
 
 Formatted date strings containing timezone offset information will be converted
-to UTC.
+to UTC.::
 
-Formatted string without timezone offset information will be treated as UTC.
+    cr> select '1970-01-02T00:00:00+0100'::timestamp with time zone;
+    +--------------------------------------------------------------+
+    | CAST('1970-01-02T00:00:00+0100' AS timestamp with time zone) |
+    +--------------------------------------------------------------+
+    |                                                     82800000 |
+    +--------------------------------------------------------------+
+    SELECT 1 row in set (... sec)
+
 
 Timestamps will also accept a ``bigint`` representing UTC milliseconds since
 the epoch or a ``real`` or ``double precision`` representing UTC seconds since
 the epoch with milliseconds as fractions.
 
+::
+
+    cr> select 1.0::timestamp with time zone;
+    +---------------------------------------+
+    | CAST(1.0 AS timestamp with time zone) |
+    +---------------------------------------+
+    |                                  1000 |
+    +---------------------------------------+
+    SELECT 1 row in set (... sec)
+
 Due to internal date parsing, not the full ``bigint`` range is supported for
 timestamp values, but only dates between year ``292275054BC`` and
 ``292278993AD``, which is slightly smaller.
 
-Examples::
-
-    cr> create table my_table4 (
-    ...   id integer,
-    ...   first_column timestamp
-    ... );
-    CREATE OK, 1 row affected (... sec)
-
-::
-
-    cr> insert into my_table4 (id, first_column)
-    ... values (0, '1970-01-01T00:00:00');
-    INSERT OK, 1 row affected (... sec)
-
-::
-
-    cr> insert into my_table4 (id, first_column)
-    ... values (1, '1970-01-01T00:00:00+0100');
-    INSERT OK, 1 row affected (... sec)
-
-::
-
-    cr> insert into my_table4 (id, first_column) values (2, 0);
-    INSERT OK, 1 row affected (... sec)
-
-::
-
-    cr> insert into my_table4 (id, first_column) values (3, 1.0);
-    INSERT OK, 1 row affected (... sec)
-
-::
-
-    cr> insert into my_table4 (id, first_column) values (3, 'wrong');
-    SQLActionException[ColumnValidationException: Validation failed for first_column: Cannot cast 'wrong' to type timestamp]
 
 .. CAUTION::
 
     When inserting timestamps smaller than ``-999999999999999`` (equals to
     ``-29719-04-05T22:13:20.001Z``) or bigger than ``999999999999999`` (equals to
-    ``33658-09-27T01:46:39.999Z``) rouding issues may occur.
+    ``33658-09-27T01:46:39.999Z``) rounding issues may occur.
 
 .. NOTE::
 
     If a column is dynamically created the type detection won't recognize
-    timestamps. That means columns of type timestamp must always be declared beforehand.
+    timestamps. That means columns of type timestamp must always be declared
+    beforehand.
 
 .. _geo_point_data_type:
 
@@ -467,7 +487,7 @@ Example::
     ...     age integer,
     ...     name text,
     ...     col31 object as (
-    ...       birthday timestamp
+    ...       birthday timestamp with time zone
     ...     )
     ...   )
     ... );
@@ -492,7 +512,7 @@ Example::
     ...   title text,
     ...   author object(strict) as (
     ...     name text,
-    ...     birthday timestamp
+    ...     birthday timestamp with time zone
     ...   )
     ... );
     CREATE OK, 1 row affected (... sec)
@@ -523,7 +543,7 @@ Examples::
     ...   title text,
     ...   author object as (
     ...     name text,
-    ...     birthday timestamp
+    ...     birthday timestamp with time zone
     ...   )
     ... );
     CREATE OK, 1 row affected (... sec)
@@ -539,7 +559,7 @@ which is exactly the same as::
     ...   title text,
     ...   author object(dynamic) as (
     ...     name text,
-    ...     birthday timestamp
+    ...     birthday timestamp with time zone
     ...   )
     ... );
     CREATE OK, 1 row affected (... sec)
@@ -670,7 +690,7 @@ An array is a collection of other data types. These are:
 * ip
 * all numeric types (integer, bigint, smallint, double precision, real)
 * char
-* timestamp
+* timestamp with time zone
 * object
 * geo_point
 

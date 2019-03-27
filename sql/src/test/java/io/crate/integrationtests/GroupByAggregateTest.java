@@ -87,11 +87,11 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testGroupByOnClusteredByColumnPartOfPrimaryKey() throws Exception {
+    public void testGroupByOnClusteredByColumnPartOfPrimaryKey() {
         execute("CREATE TABLE tickets ( " +
                 " pk1 long, " +
                 " pk2 integer, " +
-                " pk3 timestamp," +
+                " pk3 timestamp with time zone," +
                 " value string," +
                 " primary key(pk1, pk2, pk3)) " +
                 "CLUSTERED BY (pk2) INTO 3 SHARDS " +

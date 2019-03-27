@@ -130,10 +130,10 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     @UseJdbc(0) // avoid casting errors: Timestamp instead of Long
-    public void testInsertCoreTypesAsArray() throws Exception {
+    public void testInsertCoreTypesAsArray() {
         execute("create table test (" +
                 "\"boolean\" array(boolean), " +
-                "\"datetime\" array(timestamp), " +
+                "\"datetime\" array(timestamp with time zone), " +
                 "\"double\" array(double), " +
                 "\"float\" array(float), " +
                 "\"integer\" array(integer), " +
@@ -578,7 +578,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table locations2 (" +
                 " id string primary key," +
                 " name string," +
-                " date timestamp," +
+                " date timestamp with time zone," +
                 " kind string," +
                 " position long," +         // <<-- original type is integer, testing implicit cast
                 " description string," +
@@ -937,9 +937,9 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testBulkInsert() throws Exception {
+    public void testBulkInsert() {
         execute("create table giveittome (" +
-                "  date timestamp," +
+                "  date timestamp with time zone," +
                 "  dirty_names array(string)," +
                 "  lashes short primary key" +
                 ") with (number_of_replicas=0)");
@@ -976,9 +976,9 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testInsertWithGeneratedColumn() throws Exception {
+    public void testInsertWithGeneratedColumn() {
         execute("create table test_generated_column (" +
-                " ts timestamp," +
+                " ts timestamp with time zone," +
                 " day as date_trunc('day', ts)," +
                 " \"user\" object as (name string)," +
                 " name as concat(\"user\"['name'], 'bar')" +
@@ -990,13 +990,13 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         });
         refresh();
         execute("select ts, day, name from test_generated_column order by ts");
-        assertThat((Long) response.rows()[0][0], is(1447845060000L));
-        assertThat((Long) response.rows()[0][1], is(1447804800000L));
-        assertThat((String) response.rows()[0][2], is("foobar"));
+        assertThat(response.rows()[0][0], is(1447845060000L));
+        assertThat(response.rows()[0][1], is(1447804800000L));
+        assertThat(response.rows()[0][2], is("foobar"));
 
-        assertThat((Long) response.rows()[1][0], is(1447868460000L));
-        assertThat((Long) response.rows()[1][1], is(1447804800000L));
-        assertThat((String) response.rows()[1][2], is("bar"));
+        assertThat(response.rows()[1][0], is(1447868460000L));
+        assertThat(response.rows()[1][1], is(1447804800000L));
+        assertThat(response.rows()[1][2], is("bar"));
     }
 
     @Test
@@ -1019,10 +1019,10 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testInsertOnDuplicateWithGeneratedColumn() throws Exception {
+    public void testInsertOnDuplicateWithGeneratedColumn() {
         execute("create table test_generated_column (" +
                 " id integer primary key," +
-                " ts timestamp," +
+                " ts timestamp with time zone," +
                 " day as date_trunc('day', ts)" +
                 ") with (number_of_replicas=0)");
         ensureYellow();
@@ -1036,18 +1036,20 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         refresh();
 
         execute("select ts, day from test_generated_column");
-        assertThat((Long) response.rows()[0][0], is(1448289780000L));
-        assertThat((Long) response.rows()[0][1], is(1448236800000L));
+        assertThat(response.rows()[0][0], is(1448289780000L));
+        assertThat(response.rows()[0][1], is(1448236800000L));
     }
 
     @Test
     public void testInsertOnCurrentTimestampGeneratedColumn() {
-        execute("create table t (id int, created timestamp generated always as current_timestamp)");
+        execute("create table t (" +
+            "id int, " +
+            "created timestamp with time zone generated always as current_timestamp)");
         ensureYellow();
         execute("insert into t (id) values(1)");
         execute("refresh table t");
         execute("select id, created from t");
-        assertThat((int) response.rows()[0][0], is(1));
+        assertThat(response.rows()[0][0], is(1));
         assertThat(response.rows()[0][1], notNullValue());
     }
 
@@ -1074,7 +1076,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
     public void testInsertNullSourceForNotNullGeneratedColumn() {
         execute("create table generated_column (" +
                 " id int primary key," +
-                " ts timestamp," +
+                " ts timestamp with time zone," +
                 " gen_col as extract(year from ts) not null" +
                 ") with (number_of_replicas=0)");
         ensureYellow();
@@ -1088,7 +1090,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
     public void testInsertNullTargetForNotNullGeneratedColumn() {
         execute("create table generated_column (" +
                 " id int primary key," +
-                " ts timestamp," +
+                " ts timestamp with time zone," +
                 " gen_col as extract(year from ts) not null" +
                 ") with (number_of_replicas=0)");
         ensureYellow();
@@ -1099,14 +1101,14 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testInsertFromSubQueryWithGeneratedColumns() throws Exception {
+    public void testInsertFromSubQueryWithGeneratedColumns() {
         execute("create table source_table (" +
                 " id integer," +
-                " ts timestamp" +
+                " ts timestamp with time zone" +
                 ") with (number_of_replicas=0)");
         execute("create table target_table (" +
                 " id integer," +
-                " ts timestamp," +
+                " ts timestamp with time zone," +
                 " day as date_trunc('day', ts)" +
                 ") with (number_of_replicas=0)");
         ensureYellow();
@@ -1119,18 +1121,18 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         refresh();
 
         execute("select day from target_table");
-        assertThat((Long) response.rows()[0][0], is(1447804800000L));
+        assertThat(response.rows()[0][0], is(1447804800000L));
     }
 
     @Test
-    public void testInsertIntoPartitionedTableFromSubQueryWithGeneratedColumns() throws Exception {
+    public void testInsertIntoPartitionedTableFromSubQueryWithGeneratedColumns() {
         execute("create table source_table (" +
                 " id integer," +
-                " ts timestamp" +
+                " ts timestamp with time zone" +
                 ") with (number_of_replicas=0)");
         execute("create table target_table (" +
                 " id integer," +
-                " ts timestamp," +
+                " ts timestamp with time zone," +
                 " day as date_trunc('day', ts)" +
                 ") partitioned by (day) with (number_of_replicas=0)");
         ensureYellow();
@@ -1143,19 +1145,19 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         refresh();
 
         execute("select day from target_table");
-        assertThat((Long) response.rows()[0][0], is(1447804800000L));
+        assertThat(response.rows()[0][0], is(1447804800000L));
     }
 
     @Test
-    public void testInsertFromSubQueryInvalidGeneratedColumnValue() throws Exception {
+    public void testInsertFromSubQueryInvalidGeneratedColumnValue() {
         execute("create table source_table (" +
                 " id integer," +
-                " ts timestamp," +
-                " day timestamp" +
+                " ts timestamp with time zone," +
+                " day timestamp with time zone" +
                 ") with (number_of_replicas=0)");
         execute("create table target_table (" +
                 " id integer," +
-                " ts timestamp," +
+                " ts timestamp with time zone," +
                 " day as date_trunc('day', ts)" +
                 ") with (number_of_replicas=0)");
         ensureYellow();
@@ -1259,11 +1261,11 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testInsertFromSubQueryWithNotNullConstraintAndGeneratedColumns() throws Exception {
-        execute("create table source(id int, ts timestamp)");
+    public void testInsertFromSubQueryWithNotNullConstraintAndGeneratedColumns() {
+        execute("create table source(id int, ts timestamp with time zone)");
         execute("create table target (" +
                 " id int primary key," +
-                " ts timestamp," +
+                " ts timestamp with time zone," +
                 " gen_col as extract(year from ts) not null" +
                 ") with (number_of_replicas=0)");
         ensureYellow();
@@ -1384,9 +1386,9 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testInsertIntoFromSystemTable() throws Exception {
+    public void testInsertIntoFromSystemTable() {
         execute("create table shard_stats (" +
-                "   log_date timestamp," +
+                "   log_date timestamp with time zone," +
                 "   shard_id string," +
                 "   num_docs long)" +
                 " clustered into 1 shards with (number_of_replicas=0)");
@@ -1410,7 +1412,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table t (" +
                 "   day as date_trunc('day', obj['ts'])," +
                 "   obj object (strict) as (" +
-                "       ts timestamp" +
+                "       ts timestamp with time zone" +
                 "   )" +
                 ") partitioned by (day) clustered into 1 shards");
         execute("insert into t (obj) (select {ts=1549966541034})");

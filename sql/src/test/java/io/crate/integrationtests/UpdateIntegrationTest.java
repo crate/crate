@@ -296,8 +296,12 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testUpdateWithFunctionWhereArgumentIsInIntegerRangeInsteadOfLong() throws Exception {
-        execute("create table t (ts timestamp, day int) with (number_of_replicas = 0)");
+    public void testUpdateWithFunctionWhereArgumentIsInIntegerRangeInsteadOfLong() {
+        execute(
+            "create table t (" +
+            "   ts timestamp with time zone," +
+            "   day int" +
+            ") with (number_of_replicas = 0)");
         ensureYellow();
 
         execute("insert into t (ts, day) values (0, 1)");
@@ -308,8 +312,12 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testInsertIntoWithOnConflictKeyWithFunctionWhereArgumentIsInIntegerRangeInsteadOfLong() throws Exception {
-        execute("create table t (id int primary key, ts timestamp, day int) with (number_of_replicas = 0)");
+    public void testInsertIntoWithOnConflictKeyWithFunctionWhereArgumentIsInIntegerRangeInsteadOfLong() {
+        execute(
+            "create table t (" +
+            "   id int primary key," +
+            "   ts timestamp with time zone, day int" +
+            ") with (number_of_replicas = 0)");
         ensureYellow();
         execute("insert into t (id, ts, day) values (1, 0, 0)");
         execute("refresh table t");
@@ -755,10 +763,10 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testUpdateWithGeneratedColumn() throws Exception {
+    public void testUpdateWithGeneratedColumn() {
         execute("create table generated_column (" +
                 " id int primary key," +
-                " ts timestamp," +
+                " ts timestamp with time zone," +
                 " day as date_trunc('day', ts)," +
                 " \"user\" object as (name string)," +
                 " name as concat(\"user\"['name'], 'bar')" +
@@ -776,9 +784,9 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testGeneratedColumnWithoutRefsToOtherColumnsComputedOnUpdate() throws Exception {
+    public void testGeneratedColumnWithoutRefsToOtherColumnsComputedOnUpdate() {
         execute("create table generated_column (" +
-                " \"inserted\" TIMESTAMP GENERATED ALWAYS AS current_timestamp(3), " +
+                " \"inserted\" TIMESTAMP WITH TIME ZONE GENERATED ALWAYS AS current_timestamp(3), " +
                 " \"message\" STRING" +
                 ")");
         ensureYellow();
@@ -793,11 +801,11 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testUpdateSetInvalidGeneratedColumnOnly() throws Exception {
+    public void testUpdateSetInvalidGeneratedColumnOnly() {
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("Given value 1745 for generated column gen_col does not match calculation extract(year from ts) = 1970");
         execute("create table computed (" +
-                " ts timestamp," +
+                " ts timestamp with time zone," +
                 " gen_col as extract(year from ts)" +
                 ") with (number_of_replicas=0)");
         ensureYellow();
@@ -811,7 +819,7 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
     public void testUpdateNotNullSourceGeneratedColumn() {
         execute("create table generated_column (" +
                 " id int primary key," +
-                " ts timestamp," +
+                " ts timestamp with time zone," +
                 " gen_col as extract(year from ts) not null" +
                 ") with (number_of_replicas=0)");
         ensureYellow();
@@ -828,7 +836,7 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
     public void testUpdateNotNullTargetGeneratedColumn() {
         execute("create table generated_column (" +
                 " id int primary key," +
-                " ts timestamp," +
+                " ts timestamp with time zone," +
                 " gen_col as extract(year from ts) not null" +
                 ") with (number_of_replicas=0)");
         ensureYellow();

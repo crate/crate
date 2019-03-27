@@ -42,7 +42,7 @@ public class MetaDataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
                       " doubles double," +
                       " ints integer," +
                       " longs long," +
-                      " timestamp timestamp," +
+                      " timestamp timestamp with time zone," +
                       " ip_addr ip," +
                       " arr_simple array(string)," +
                       " arr_geo_point array(geo_point)," +
@@ -70,7 +70,7 @@ public class MetaDataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
                      "   \"doubles\" DOUBLE PRECISION,\n" +
                      "   \"ints\" INTEGER,\n" +
                      "   \"longs\" BIGINT,\n" +
-                     "   \"timestamp\" TIMESTAMP,\n" +
+                     "   \"timestamp\" TIMESTAMP WITH TIME ZONE,\n" +
                      "   \"ip_addr\" IP,\n" +
                      "   \"arr_simple\" ARRAY(TEXT),\n" +
                      "   \"arr_geo_point\" ARRAY(GEO_POINT),\n" +

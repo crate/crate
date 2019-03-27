@@ -39,7 +39,7 @@ public class AlterTableRerouteIntegrationTest extends SQLTransportIntegrationTes
         String tableName = "my_table";
         execute("create table " + tableName + " (" +
             "id int primary key," +
-            "date timestamp" +
+            "date timestamp with time zone" +
             ") clustered into 1 shards " +
             "with (number_of_replicas=0)");
         ensureGreen();

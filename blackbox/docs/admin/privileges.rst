@@ -72,7 +72,7 @@ Hierarchical Inheritance of Privileges
     cr> create table if not exists doc.accounting (
     ...   id integer primary key,
     ...   name text,
-    ...   joined timestamp
+    ...   joined timestamp with time zone
     ... ) clustered by (id);
     CREATE OK, 1 row affected (... sec)
 
@@ -173,7 +173,7 @@ Behavior of ``GRANT``, ``DENY`` and ``REVOKE``
     cr> create table if not exists doc.books (
     ...   first_column integer primary key,
     ...   second_column text,
-    ...   third_column timestamp,
+    ...   third_column timestamp with time zone,
     ...   fourth_column object(strict) as (
     ...     key text,
     ...     value text

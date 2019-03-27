@@ -52,12 +52,16 @@ public class WhereClauseOptimizerTest extends CrateDummyClusterServiceUnitTest{
                       "clustered by (name) ")
             .addTable("create table clustered_by_only (x int) clustered by (x)")
             .addPartitionedTable(
-                "create table parted (id int, date timestamp) " +
-                "partitioned by (date)"
+                "create table parted (" +
+                "   id int," +
+                "   date timestamp with time zone" +
+                ") partitioned by (date)"
             )
             .addPartitionedTable(
-                "create table parted_pk (id int primary key, date timestamp primary key) " +
-                "partitioned by (date)",
+                "create table parted_pk (" +
+                "   id int primary key, " +
+                "   date timestamp with time zone primary key" +
+                ") partitioned by (date)",
                 new PartitionName(new RelationName("doc", "parted_pk"), singletonList("1395874800000")).asIndexName(),
                 new PartitionName(new RelationName("doc", "parted_pk"), singletonList("1395961200000")).asIndexName(),
                 new PartitionName(new RelationName("doc", "parted_pk"), singletonList(null)).asIndexName()

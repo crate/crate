@@ -65,7 +65,7 @@ It can be created using the :ref:`ref-create-table` statement using the
     ...   title text,
     ...   content text,
     ...   width double precision,
-    ...   day timestamp
+    ...   day timestamp with time zone
     ... ) CLUSTERED BY (title) INTO 4 SHARDS PARTITIONED BY (day);
     CREATE OK, 1 row affected (... sec)
 
@@ -81,8 +81,8 @@ suitable partition value from the given values on database-side::
     cr> CREATE TABLE computed_parted_table (
     ...   id bigint,
     ...   data double precision,
-    ...   created_at timestamp,
-    ...   month timestamp GENERATED ALWAYS AS date_trunc('month', created_at)
+    ...   created_at timestamp with time zone,
+    ...   month timestamp with time zone GENERATED ALWAYS AS date_trunc('month', created_at)
     ... ) PARTITIONED BY (month);
     CREATE OK, 1 row affected (... sec)
 
@@ -115,15 +115,15 @@ here)::
     ... FROM information_schema.columns
     ... WHERE table_schema = 'doc' AND table_name = 'parted_table'
     ... ORDER BY table_schema, table_name, column_name;
-    +--------+--------------+-------------+------------------+
-    | schema | table_name   | column_name | data_type        |
-    +--------+--------------+-------------+------------------+
-    | doc    | parted_table | content     | text             |
-    | doc    | parted_table | day         | timestamp        |
-    | doc    | parted_table | id          | bigint           |
-    | doc    | parted_table | title       | text             |
-    | doc    | parted_table | width       | double precision |
-    +--------+--------------+-------------+------------------+
+    +--------+--------------+-------------+--------------------------+
+    | schema | table_name   | column_name | data_type                |
+    +--------+--------------+-------------+--------------------------+
+    | doc    | parted_table | content     | text                     |
+    | doc    | parted_table | day         | timestamp with time zone |
+    | doc    | parted_table | id          | bigint                   |
+    | doc    | parted_table | title       | text                     |
+    | doc    | parted_table | width       | double precision         |
+    +--------+--------------+-------------+--------------------------+
     SELECT 5 rows in set (... sec)
 
 And so on.

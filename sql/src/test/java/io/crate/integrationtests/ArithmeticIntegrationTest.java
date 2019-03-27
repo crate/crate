@@ -329,9 +329,17 @@ public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testArithmeticScalarFunctionsOnAllTypes() throws Exception {
+    public void testArithmeticScalarFunctionsOnAllTypes() {
         // this test validates that no exception is thrown
-        execute("create table t (b byte, s short, i integer, l long, f float, d double, t timestamp) with (number_of_replicas=0)");
+        execute("create table t (" +
+                "   b byte, " +
+                "   s short, " +
+                "   i integer, " +
+                "   l long, " +
+                "   f float, " +
+                "   d double, " +
+                "   t timestamp with time zone" +
+                ") with (number_of_replicas=0)");
         ensureYellow();
         execute("insert into t (b, s, i, l, f, d, t) values (1, 2, 3, 4, 5.7, 6.3, '2014-07-30')");
         refresh();
