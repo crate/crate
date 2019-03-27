@@ -46,3 +46,6 @@ None
 
 Fixes
 =====
+
+- Fix quoting of identifiers that contain leading digits or spaces when
+  printing relation or column names.
