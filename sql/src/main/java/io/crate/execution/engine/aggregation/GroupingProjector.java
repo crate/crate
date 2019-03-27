@@ -58,7 +58,6 @@ public class GroupingProjector implements Projector {
         assert keys.size() == keyInputs.size() : "number of key types must match with number of key inputs";
         ensureAllTypesSupported(keys);
 
-
         AggregationFunction[] functions = new AggregationFunction[aggregations.length];
         Input[][] inputs = new Input[aggregations.length][];
         for (int i = 0; i < aggregations.length; i++) {

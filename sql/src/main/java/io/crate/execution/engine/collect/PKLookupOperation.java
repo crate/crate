@@ -154,7 +154,6 @@ public final class PKLookupOperation {
                                         Collection<? extends Projection> projections,
                                         RowConsumer nodeConsumer,
                                         Function<Doc, Row> resultToRow) {
-        String[] emptyFields = new String[0];
         ArrayList<ShardAndIds> shardAndIdsList = new ArrayList<>(idsByShard.size());
         for (Map.Entry<ShardId, List<PKAndVersion>> idsByShardEntry : idsByShard.entrySet()) {
             ShardId shardId = idsByShardEntry.getKey();
