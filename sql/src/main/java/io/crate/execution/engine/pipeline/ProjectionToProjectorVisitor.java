@@ -107,6 +107,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -648,16 +649,31 @@ public class ProjectionToProjectorVisitor
         InputFactory.Context<CollectExpression<Row, ?>> contextForStandaloneInputs = inputFactory.ctxForInputColumns(context.txnCtx);
         contextForStandaloneInputs.add(windowAgg.standalone());
 
+        List<Symbol> partitions = windowAgg.windowDefinition().partitions();
+        List<CollectExpression<Row, ?>> partitionByExpressions;
+        List<Input<?>> partitionByInputs;
+        if (partitions.size() > 0) {
+            InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns(context.txnCtx);
+            ctx.add(partitions);
+            partitionByExpressions = ctx.expressions();
+            partitionByInputs = ctx.topLevelInputs();
+        } else {
+            partitionByExpressions = Collections.emptyList();
+            partitionByInputs = Collections.emptyList();
+        }
+
         return new WindowProjector(
             windowAgg.windowDefinition(),
             windowFunctions,
             windowFuncArgsExpressions,
-            contextForStandaloneInputs.topLevelInputs(),
+            windowFuncArgsInputs,
             contextForStandaloneInputs.expressions(),
+            contextForStandaloneInputs.topLevelInputs(),
             standaloneInputTypes,
+            partitionByExpressions,
+            partitionByInputs,
             context.ramAccountingContext,
-            windowAgg.orderByIndexes(),
-            windowFuncArgsInputs);
+            windowAgg.orderByIndexes());
     }
 
     @Override

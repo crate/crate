@@ -51,8 +51,6 @@ import static io.crate.planner.operators.LogicalPlanner.extractColumns;
 
 public class WindowAgg extends OneInputPlan {
 
-    private static final int[] EMPTY_ORDER_BY_INDEXES = new int[0];
-
     private final WindowDefinition windowDefinition;
     private final List<WindowFunction> windowFunctions;
     private final List<Symbol> standalone;
@@ -64,9 +62,8 @@ public class WindowAgg extends OneInputPlan {
 
         for (WindowFunction windowFunction : windowFunctions) {
             WindowDefinition windowDefinition = windowFunction.windowDefinition();
-            if (windowDefinition.partitions().size() > 0 ||
-                !windowDefinition.windowFrameDefinition().equals(WindowDefinition.DEFAULT_WINDOW_FRAME)) {
-                throw new UnsupportedFeatureException("Window partitions or custom frame definitions are not supported");
+            if (!windowDefinition.windowFrameDefinition().equals(WindowDefinition.DEFAULT_WINDOW_FRAME)) {
+                throw new UnsupportedFeatureException("Custom frame definitions are not supported");
             }
         }
 
@@ -80,6 +77,7 @@ public class WindowAgg extends OneInputPlan {
                 if (orderBy != null) {
                     columnsUsedInFunctions.addAll(extractColumns(orderBy.orderBySymbols()));
                 }
+                columnsUsedInFunctions.addAll(extractColumns(windowDefinition.partitions()));
                 ArrayList<WindowFunction> functions = groupedFunctions.computeIfAbsent(windowDefinition, w -> new ArrayList<>());
                 functions.add(windowFunction);
             }
@@ -137,7 +135,7 @@ public class WindowAgg extends OneInputPlan {
         sourcePlan = Merge.ensureOnHandler(sourcePlan, plannerContext);
 
         InputColumns.SourceSymbols sourceSymbols = new InputColumns.SourceSymbols(source.outputs());
-        List<Symbol> standaloneWithInputs = InputColumns.create(this.standalone, sourceSymbols);
+        WindowDefinition windowDefinitionWithICs = convertPartitionsAndOrderBysToICs(windowDefinition, sourceSymbols);
 
         LinkedHashMap<WindowFunction, List<Symbol>> functionsWithInputs = new LinkedHashMap<>(windowFunctions.size(), 1f);
         for (WindowFunction windowFunction : windowFunctions) {
@@ -146,27 +144,52 @@ public class WindowAgg extends OneInputPlan {
             functionsWithInputs.put(windowFunctionSymbol, inputs);
         }
 
-        OrderBy orderBy = windowDefinition.orderBy();
-        int[] orderByIndexes = EMPTY_ORDER_BY_INDEXES;
-        if (orderBy != null) {
-            InputColumns.SourceSymbols orderByCtx = new InputColumns.SourceSymbols(source.outputs());
-            List<Symbol> outputs = InputColumns.create(source.outputs(), orderByCtx);
-            List<Symbol> orderByInputColumns = InputColumns.create(orderBy.orderBySymbols(), orderByCtx);
+        OrderBy orderBy = windowDefinitionWithICs.orderBy();
+        List<Symbol> orderByICs = new ArrayList<>();
+        if (!windowDefinition.partitions().isEmpty() || orderBy != null) {
+            List<Boolean> reverseFlags = new ArrayList<>();
+            List<Boolean> nullsFirst = new ArrayList<>();
 
-            orderByIndexes = new int[orderByInputColumns.size()];
-            for (int i = 0; i < orderByInputColumns.size(); i++) {
-                Symbol orderBySymbol = orderByInputColumns.get(i);
-                assert orderBySymbol instanceof InputColumn : "Window ordering should be expressed as ICs at this stage";
-                orderByIndexes[i] = ((InputColumn) orderBySymbol).index();
+            for (Symbol partitionIC : windowDefinitionWithICs.partitions()) {
+                orderByICs.add(partitionIC);
+                reverseFlags.add(false);
+                nullsFirst.add(null);
             }
 
+            if (orderBy != null) {
+                List<Symbol> symbols = orderBy.orderBySymbols();
+                for (int i = 0; i < symbols.size(); i++) {
+                    Symbol symbol = symbols.get(i);
+                    int indexOfOrderByIC = orderByICs.indexOf(symbol);
+                    boolean reverseFlagForSymbol = orderBy.reverseFlags()[i];
+                    Boolean nullFirstForSymbol = orderBy.nullsFirst()[i];
+                    if (indexOfOrderByIC != -1) {
+                        // in case the window is ordered by columns already present in the partition clause we will order
+                        // by the ones expressed in the order by clause as they can be more explicit (including reverse
+                        // flags and null position)
+                        reverseFlags.set(indexOfOrderByIC, reverseFlagForSymbol);
+                        nullsFirst.set(indexOfOrderByIC, nullFirstForSymbol);
+                    } else {
+                        orderByICs.add(symbol);
+                        reverseFlags.add(reverseFlagForSymbol);
+                        nullsFirst.add(nullFirstForSymbol);
+                    }
+                }
+            }
+
+            List<Symbol> outputs = InputColumns.create(source.outputs(), sourceSymbols);
+
+            boolean[] reverseFlagsArray = new boolean[reverseFlags.size()];
+            for (int i = 0; i < reverseFlags.size(); i++) {
+                reverseFlagsArray[i] = reverseFlags.get(i);
+            }
             OrderedTopNProjection topNProjection = new OrderedTopNProjection(
                 Limit.limitAndOffset(limit, offset),
                 0,
                 outputs,
-                orderByInputColumns,
-                orderBy.reverseFlags(),
-                orderBy.nullsFirst()
+                orderByICs,
+                reverseFlagsArray,
+                nullsFirst.toArray(new Boolean[0])
             );
             sourcePlan.addProjection(
                 topNProjection,
@@ -175,8 +198,39 @@ public class WindowAgg extends OneInputPlan {
                 null
             );
         }
-        sourcePlan.addProjection(new WindowAggProjection(windowDefinition, functionsWithInputs, standaloneWithInputs, orderByIndexes));
+
+        int[] orderByIndexes = new int[orderByICs.size()];
+        int index = 0;
+        for (Symbol ic : orderByICs) {
+            assert ic instanceof InputColumn : "Window ordering should be expressed as ICs at this stage";
+            orderByIndexes[index] = ((InputColumn) ic).index();
+            index++;
+
+        }
+        sourcePlan.addProjection(
+            new WindowAggProjection(
+                windowDefinitionWithICs,
+                functionsWithInputs,
+                InputColumns.create(this.standalone, sourceSymbols),
+                orderByIndexes
+            )
+        );
         return sourcePlan;
+    }
+
+    private WindowDefinition convertPartitionsAndOrderBysToICs(WindowDefinition windowDefinition,
+                                                               InputColumns.SourceSymbols sourceSymbols) {
+        List<Symbol> partitionsInputColumns = InputColumns.create(windowDefinition.partitions(), sourceSymbols);
+        OrderBy orderBy = windowDefinition.orderBy();
+        if (orderBy != null) {
+            orderBy = new OrderBy(
+                InputColumns.create(orderBy.orderBySymbols(), sourceSymbols),
+                orderBy.reverseFlags(),
+                orderBy.nullsFirst()
+            );
+        }
+
+        return new WindowDefinition(partitionsInputColumns, orderBy, windowDefinition.windowFrameDefinition());
     }
 
     @Override
