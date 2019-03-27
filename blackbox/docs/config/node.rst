@@ -265,12 +265,12 @@ CPU
   | *Runtime:* ``no``
 
   The number of processors is used to set the size of the thread pools CrateDB
-  is using appropriately. If not set explicitly CrateDB will infer the number
+  is using appropriately. If not set explicitly, CrateDB will infer the number
   from the available processors on the system.
 
   In environments where the CPU amount can be restricted (like Docker) or when
   multiple CrateDB instances are running on the same hardware, the inferred
-  number might be too high. In such a case it is recommended to set the value
+  number might be too high. In such a case, it is recommended to set the value
   explicitly.
 
 Memory

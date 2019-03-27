@@ -1501,10 +1501,10 @@ This check warns you when your license is close to expiration, is already
 expired, or if the cluster contains more nodes than allowed by your license. It
 will yield a ``MEDIUM`` alert when your license is valid for less than 15 days
 and a ``HIGH`` alert when your license is valid for less than a day.
-All other cases, like `already expired` or `max-nodes-violation`, it will result
-in a ``HIGH`` alert.
-We recommend that you request a new license when this check triggers in order to
-avoid the situation where operations are rejected due to an invalid license.
+All other cases, like `already expired` or `max-nodes-violation`, it will
+result in a ``HIGH`` alert. We recommend that you request a new license when
+this check triggers, in order to avoid the situation where operations are
+rejected due to an invalid license.
 
 .. NOTE::
 
