@@ -23,6 +23,7 @@
 package io.crate.analyze;
 
 
+import io.crate.collections.Lists2;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.planner.ExplainLeaf;
@@ -34,6 +35,7 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Function;
 
 import static io.crate.sql.tree.FrameBound.Type.CURRENT_ROW;
 import static io.crate.sql.tree.FrameBound.Type.UNBOUNDED_PRECEDING;
@@ -75,6 +77,18 @@ public class WindowDefinition implements Writeable {
 
     public List<Symbol> partitions() {
         return partitions;
+    }
+
+    public WindowDefinition map(Function<? super Symbol, ? extends Symbol> mapSymbolsFunction) {
+        if (!partitions.isEmpty() || orderBy != null) {
+            return new WindowDefinition(
+                Lists2.map(partitions, mapSymbolsFunction),
+                orderBy != null ? orderBy.copyAndReplace(mapSymbolsFunction) : null,
+                windowFrameDefinition
+            );
+        } else {
+            return this;
+        }
     }
 
     @Nullable

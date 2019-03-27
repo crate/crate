@@ -331,12 +331,16 @@ public final class ExpressionFormatter {
             if (!node.getPartitions().isEmpty()) {
                 sb.append("PARTITION BY ");
                 sb.append(joinExpressions(node.getPartitions()));
+                sb.append(" ");
             }
             if (!node.getOrderBy().isEmpty()) {
                 sb.append(formatOrderBy(node.getOrderBy()));
             }
             if (node.getWindowFrame().isPresent()) {
                 sb.append(process(node.getWindowFrame().get(), context));
+            }
+            if (Character.isWhitespace(sb.charAt(sb.length() - 1))) {
+                sb.setLength(sb.length() - 1);
             }
             sb.append(')');
             return sb.toString();

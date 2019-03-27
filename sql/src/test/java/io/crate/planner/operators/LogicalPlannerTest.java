@@ -81,13 +81,6 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testPartitionedWindowPlansAreNotSupported() {
-        expectedException.expect(UnsupportedFeatureException.class);
-        expectedException.expectMessage("Window partitions or custom frame definitions are not supported");
-        plan("select avg(x) OVER(PARTITION BY a) from t1");
-    }
-
-    @Test
     public void testAggregationOnTableFunction() throws Exception {
         LogicalPlan plan = plan("select max(col1) from unnest([1, 2, 3])");
         assertThat(plan, isPlan("Aggregate[max(col1)]\n" +

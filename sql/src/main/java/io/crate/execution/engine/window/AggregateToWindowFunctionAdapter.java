@@ -76,6 +76,7 @@ public class AggregateToWindowFunctionAdapter implements WindowFunction {
             executeAggregateForFrame(frame, expressions, args);
         } else if (isReiteratingWindow(frame)) {
             accumulatedState = aggregationFunction.newState(ramAccountingContext, indexVersionCreated, bigArrays);
+            seenFrameUpperBound = -1;
             executeAggregateForFrame(frame, expressions, args);
         }
         return resultForCurrentFrame;
@@ -102,6 +103,6 @@ public class AggregateToWindowFunctionAdapter implements WindowFunction {
     }
 
     private boolean isReiteratingWindow(WindowFrameState frame) {
-        return frame.upperBoundExclusive() < seenFrameUpperBound && frame.lowerBound() == 0;
+        return frame.upperBoundExclusive() <= seenFrameUpperBound && frame.lowerBound() == 0;
     }
 }

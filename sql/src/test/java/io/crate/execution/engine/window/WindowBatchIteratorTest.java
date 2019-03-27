@@ -30,6 +30,7 @@ import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.execution.engine.collect.CollectExpression;
+import io.crate.execution.engine.collect.InputCollectExpression;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
@@ -44,6 +45,7 @@ import org.junit.Test;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -167,6 +169,38 @@ public class WindowBatchIteratorTest {
 
         List<Object[]> result = consumer.getResult();
         assertThat(result, contains(new Object[]{null}, new Object[]{null}));
+    }
+
+    @Test
+    public void testWindowBatchIteratorWithPartitions() throws Exception {
+        Supplier<WindowBatchIterator> batchIterator = () -> {
+            InputCollectExpression partitionByCollectExpression = new InputCollectExpression(0);
+            return new WindowBatchIterator(
+                emptyWindow(),
+                Collections.emptyList(),
+                Collections.emptyList(),
+                InMemoryBatchIterator.of(
+                    List.of(
+                        new Row1(-1), new Row1(1), new Row1(1), new Row1(2), new Row1(2),
+                        new Row1(3), new Row1(4), new Row1(5), new Row1(null), new Row1(null)
+                    ),
+                    SENTINEL
+                ),
+                singletonList(rowNumberWindowFunction()),
+                Collections.emptyList(),
+                Collections.singletonList(partitionByCollectExpression),
+                Collections.singletonList(partitionByCollectExpression),
+                singletonList(DataTypes.INTEGER),
+                ramAccountingContext,
+                null,
+                new Input[0]);
+        };
+
+        List<Object[]> expectedResult = List.of(new Object[]{1}, new Object[]{1}, new Object[]{2}, new Object[]{1}, new Object[]{2}, new Object[]{1},
+            new Object[]{1}, new Object[]{1}, new Object[]{1}, new Object[]{2});
+
+        BatchIteratorTester tester = new BatchIteratorTester(() -> batchIterator.get());
+        tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
 
     private static WindowDefinition emptyWindow() {

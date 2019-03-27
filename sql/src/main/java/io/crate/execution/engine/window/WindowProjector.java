@@ -44,16 +44,20 @@ public class WindowProjector implements Projector {
     private final List<DataType> standaloneInputTypes;
     private final RamAccountingContext ramAccountingContext;
     private final Input[][] windowFuncArgsInputs;
+    private final List<CollectExpression<Row, ?>> partitionByExpressions;
+    private final List<Input<?>> partitionByInputs;
 
     public WindowProjector(WindowDefinition windowDefinition,
                            List<WindowFunction> windowFunctions,
                            List<? extends CollectExpression<Row, ?>> windowFuncArgsExpressions,
-                           List<Input<?>> standaloneInputs,
+                           Input[][] windowFuncArgsInputs,
                            List<CollectExpression<Row, ?>> standaloneExpressions,
+                           List<Input<?>> standaloneInputs,
                            List<DataType> standaloneInputTypes,
+                           List<CollectExpression<Row, ?>> partitionByExpressions,
+                           List<Input<?>> partitionByInputs,
                            RamAccountingContext ramAccountingContext,
-                           int[] orderByIndexes,
-                           Input[]... windowFuncArgsInputs) {
+                           int[] orderByIndexes) {
         this.windowDefinition = windowDefinition;
         this.standaloneInputs = standaloneInputs;
         this.standaloneExpressions = standaloneExpressions;
@@ -62,6 +66,8 @@ public class WindowProjector implements Projector {
         this.windowFuncArgsInputs = windowFuncArgsInputs;
         this.orderByIndexes = orderByIndexes;
         this.standaloneInputTypes = standaloneInputTypes;
+        this.partitionByExpressions = partitionByExpressions;
+        this.partitionByInputs = partitionByInputs;
         this.ramAccountingContext = ramAccountingContext;
     }
 
@@ -74,6 +80,8 @@ public class WindowProjector implements Projector {
             batchIterator,
             windowFunctions,
             windowFuncArgsExpressions,
+            partitionByExpressions,
+            partitionByInputs,
             standaloneInputTypes,
             ramAccountingContext,
             orderByIndexes,
