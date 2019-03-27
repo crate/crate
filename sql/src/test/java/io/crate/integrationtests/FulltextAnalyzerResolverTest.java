@@ -310,12 +310,10 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
             "PathHierarchy",
             "char_group",
             "classic",
-            "edgeNGram",
             "edge_ngram",
             "keyword",
             "letter",
             "lowercase",
-            "nGram",
             "ngram",
             "path_hierarchy",
             "pattern",
@@ -336,11 +334,11 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
             is("apostrophe, arabic_normalization, arabic_stem, asciifolding, bengali_normalization, brazilian_stem, " +
                "cjk_bigram, cjk_width, classic, common_grams, czech_stem, decimal_digit, delimited_payload, " +
                "delimited_payload_filter, dictionary_decompounder, dutch_stem, " +
-               "edgeNGram, edge_ngram, elision, fingerprint, flatten_graph, french_stem, german_normalization, " +
+               "edge_ngram, elision, fingerprint, flatten_graph, french_stem, german_normalization, " +
                "german_stem, hindi_normalization, hunspell, " +
                "hyphenation_decompounder, indic_normalization, keep, keep_types, " +
                "keyword_marker, " +
-               "kstem, length, limit, lowercase, min_hash, multiplexer, nGram, ngram, pattern_capture, " +
+               "kstem, length, limit, lowercase, min_hash, multiplexer, ngram, pattern_capture, " +
                "pattern_replace, persian_normalization, porter_stem, remove_duplicates, reverse, " +
                "russian_stem, scandinavian_folding, scandinavian_normalization, serbian_normalization, " +
                "shingle, snowball, sorani_normalization, standard, stemmer, stemmer_override, " +
@@ -367,7 +365,7 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
                 "     \"html_strip\"" +
                 "  )," +
                 "  tokenizer mytok WITH (" +
-                "    type='edgeNGram'," +
+                "    type='edge_ngram'," +
                 "    \"min_gram\" = 2," +
                 "    \"max_gram\" = 5," +
                 "    \"token_chars\" = [ 'letter', 'digit' ]" +
@@ -448,7 +446,7 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
     public void reuseExistingTokenizer() {
         execute("CREATE ANALYZER a9 (" +
                 "  TOKENIZER a9tok WITH (" +
-                "    type='nGram'," +
+                "    type='ngram'," +
                 "    \"token_chars\"=['letter', 'digit']" +
                 "  )" +
                 ")");
