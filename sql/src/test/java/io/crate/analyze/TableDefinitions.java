@@ -78,7 +78,7 @@ public final class TableDefinitions {
          "  tags array(string)," +
          "  bytes byte," +
          "  shorts short," +
-         "  date timestamp," +
+         "  date timestamp with time zone," +
          "  shape geo_shape," +
          "  ints integer," +
          "  floats float," +

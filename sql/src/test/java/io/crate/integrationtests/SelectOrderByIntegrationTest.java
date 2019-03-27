@@ -138,10 +138,14 @@ public class SelectOrderByIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testOrderByScalarOnColumnsWithNullValues() throws Exception {
+    public void testOrderByScalarOnColumnsWithNullValues() {
         execute(
-            "create table t1 (i integer, d double, t timestamp, str string) " +
-            "clustered into 1 shards");
+            "create table t1 (" +
+            "   i integer," +
+            "   d double," +
+            "   t timestamp with time zone," +
+            "   str string" +
+            ") clustered into 1 shards");
         execute("insert into t1 ( i, d, t, str) values " +
                 "(null, null, null, null), " +
                 "(null, 1.1, null, 'a'), " +

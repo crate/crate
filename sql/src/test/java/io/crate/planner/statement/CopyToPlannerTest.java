@@ -59,7 +59,7 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
                 "create table parted (" +
                 "   id int," +
                 "   name string," +
-                "   date timestamp," +
+                "   date timestamp with time zone," +
                 "   obj object" +
                 ") partitioned by (date) ",
                 new PartitionName(new RelationName("doc", "parted"), singletonList("1395874800000")).asIndexName(),
@@ -68,7 +68,7 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
             )
             .addPartitionedTable(
                 "create table parted_generated (" +
-                "   ts timestamp," +
+                "   ts timestamp with time zone," +
                 "   day as date_trunc('day', ts)" +
                 ") partitioned by (day) ",
                 new PartitionName(new RelationName("doc", "parted_generated"), Arrays.asList("1395874800000")).asIndexName(),

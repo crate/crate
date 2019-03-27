@@ -86,7 +86,7 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
             .addPartitionedTable(
                 "create table doc.clustered_parted (" +
                 "   id integer," +
-                "   date timestamp," +
+                "   date timestamp with time zone," +
                 "   city string" +
                 ") clustered by (city) partitioned by (date) ",
                 new PartitionName(new RelationName("doc", "clustered_parted"), singletonList("1395874800000")).asIndexName(),
@@ -95,7 +95,7 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
             .addPartitionedTable(
                 "create table doc.empty_parted (" +
                 "   id integer primary key," +
-                "   date timestamp primary key" +
+                "   date timestamp with time zone primary key" +
                 ") clustered by (id) partitioned by (date)"
             ).build();
     }

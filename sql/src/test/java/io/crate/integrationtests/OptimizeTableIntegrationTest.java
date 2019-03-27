@@ -101,9 +101,13 @@ public class OptimizeTableIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
-    public void testOptimizeEmptyPartitionedTable() throws Exception {
-        execute("create table parted (id integer, name string, date timestamp) " +
-                "partitioned by (date) with (refresh_interval=0)");
+    public void testOptimizeEmptyPartitionedTable() {
+        execute(
+            "create table parted (" +
+            "   id integer," +
+            "   name string," +
+            "   date timestamp with time zone" +
+            ") partitioned by (date) with (refresh_interval=0)");
         ensureYellow();
 
         expectedException.expect(SQLActionException.class);
@@ -112,8 +116,13 @@ public class OptimizeTableIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
-    public void testOptimizePartitionedTableAllPartitions() throws Exception {
-        execute("create table parted (id integer, name string, date timestamp) partitioned by (date)");
+    public void testOptimizePartitionedTableAllPartitions() {
+        execute(
+            "create table parted (" +
+            "   id integer," +
+            "   name string," +
+            "   date timestamp with time zone" +
+            ") partitioned by (date)");
         ensureYellow();
 
         execute("insert into parted (id, name, date) values " +
@@ -139,9 +148,13 @@ public class OptimizeTableIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
-    public void testOptimizePartitionedTableSinglePartitions() throws Exception {
-        execute("create table parted (id integer, name string, date timestamp) partitioned by (date) " +
-                "with (number_of_replicas=0, refresh_interval=-1)");
+    public void testOptimizePartitionedTableSinglePartitions() {
+        execute(
+            "create table parted (" +
+            "   id integer," +
+            "   name string," +
+            "   date timestamp with time zone" +
+            ") partitioned by (date) with (number_of_replicas=0, refresh_interval=-1)");
         ensureYellow();
         execute("insert into parted (id, name, date) values " +
                 "(1, 'Trillian', '1970-01-01')," +
@@ -178,13 +191,15 @@ public class OptimizeTableIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
-    public void testOptimizeMultipleTablesWithPartition() throws Exception {
-        execute("create table t1 (" +
-                "  id integer, " +
-                "  name string, " +
-                "  age integer, " +
-                "  date timestamp) partitioned by (date, age) " +
-                "  with (number_of_replicas=0, refresh_interval=-1)");
+    public void testOptimizeMultipleTablesWithPartition() {
+        execute(
+            "create table t1 (" +
+            "   id integer, " +
+            "   name string, " +
+            "   age integer, " +
+            "   date timestamp with time zone" +
+            ") partitioned by (date, age) " +
+            "with (number_of_replicas=0, refresh_interval=-1)");
         ensureYellow();
 
         execute("insert into t1 (id, name, age, date) values " +

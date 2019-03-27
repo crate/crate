@@ -48,7 +48,7 @@ public class TimestampType extends DataType<Long> implements FixedWidthType, Str
 
     @Override
     public String getName() {
-        return "timestamp";
+        return "timestamp with time zone";
     }
 
     @Override

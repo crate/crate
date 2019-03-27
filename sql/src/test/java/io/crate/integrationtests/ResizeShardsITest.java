@@ -39,8 +39,12 @@ public class ResizeShardsITest extends SQLTransportIntegrationTest {
 
     @Test
     public void testShrinkShardsOfTable() {
-        execute("create table quotes (id integer, quote string, date timestamp) " +
-                "clustered into 3 shards");
+        execute(
+            "create table quotes (" +
+            "   id integer," +
+            "   quote string," +
+            "   date timestamp with time zone" +
+            ") clustered into 3 shards");
         ensureYellow();
 
         execute("insert into quotes (id, quote, date) values (?, ?, ?), (?, ?, ?)",
@@ -69,8 +73,12 @@ public class ResizeShardsITest extends SQLTransportIntegrationTest {
 
     @Test
     public void testShrinkShardsEnsureLeftOverIndicesAreRemoved() {
-        execute("create table quotes (id integer, quote string, date timestamp) " +
-                "clustered into 3 shards");
+        execute(
+            "create table quotes (" +
+            "   id integer," +
+            "   quote string," +
+            "   date timestamp with time zone" +
+            ") clustered into 3 shards");
         ensureYellow();
 
         final String resizeIndex = ".resized." + getFqn("quotes");
@@ -95,7 +103,7 @@ public class ResizeShardsITest extends SQLTransportIntegrationTest {
 
     @Test
     public void testShrinkShardsOfPartition() {
-        execute("create table quotes (id integer, quote string, date timestamp) " +
+        execute("create table quotes (id integer, quote string, date timestamp with time zone) " +
                 "partitioned by(date) clustered into 3 shards");
         ensureYellow();
 

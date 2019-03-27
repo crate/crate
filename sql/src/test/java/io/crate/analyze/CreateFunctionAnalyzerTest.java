@@ -135,9 +135,12 @@ public class CreateFunctionAnalyzerTest extends CrateDummyClusterServiceUnitTest
 
     @Test
     public void testCreateFunctionWithComplexComplexTypes() {
-        AnalyzedStatement analyzedStatement = e.analyze("CREATE FUNCTION" +
-            " bar(array(integer), object, ip, timestamp)" +
-            " RETURNS array(geo_point) LANGUAGE dummy_lang AS 'function() { return 1; }'");
+        AnalyzedStatement analyzedStatement = e.analyze(
+            "CREATE FUNCTION" +
+            "   bar(array(integer)," +
+            "   object, ip," +
+            "   timestamp with time zone" +
+            ") RETURNS array(geo_point) LANGUAGE dummy_lang AS 'function() { return 1; }'");
         assertThat(analyzedStatement, instanceOf(CreateFunctionAnalyzedStatement.class));
 
         CreateFunctionAnalyzedStatement analysis = (CreateFunctionAnalyzedStatement) analyzedStatement;

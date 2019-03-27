@@ -46,7 +46,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
         setUpSimple(2);
     }
 
-    private void setUpSimple(int numShards) throws IOException {
+    private void setUpSimple(int numShards) {
         String stmt = String.format(Locale.ENGLISH, "create table t1 (" +
                                                     " id integer primary key," +
                                                     " string_field string," +
@@ -57,8 +57,8 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
                                                     " long_field long," +
                                                     " float_field float," +
                                                     " double_field double," +
-                                                    " timestamp_field timestamp," +
-                                                    " object_field object as (\"inner\" timestamp)," +
+                                                    " timestamp_field timestamp with time zone," +
+                                                    " object_field object as (\"inner\" timestamp with time zone)," +
                                                     " ip_field ip" +
                                                     ") clustered by (id) into %d shards " +
                                                     "with (number_of_replicas=0, column_policy = 'dynamic')", numShards);
@@ -92,13 +92,13 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
         assertEquals((byte) -128, response.rows()[1][3]);
     }
 
-    public void setUpObjectTable() throws IOException {
+    public void setUpObjectTable() {
         execute("create table test12 (" +
-                " object_field object(dynamic) as (size byte, created timestamp)," +
-                " strict_field object(strict) as (path string, created timestamp)," +
+                " object_field object(dynamic) as (size byte, created timestamp with time zone)," +
+                " strict_field object(strict) as (path string, created timestamp with time zone)," +
                 " no_dynamic_field object(ignored) as (" +
                 "  path string, " +
-                "  dynamic_again object(dynamic) as (field timestamp)" +
+                "  dynamic_again object(dynamic) as (field timestamp with time zone)" +
                 " )" +
                 ") clustered into 2 shards with(number_of_replicas=0)");
         ensureYellow();
@@ -535,9 +535,12 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testInsertTimestamp() throws Exception {
+    public void testInsertTimestamp() {
         // This is a regression test that we allow timestamps that have more than 13 digits.
-        execute("create table ts_table (ts timestamp) clustered into 2 shards with (number_of_replicas=0)");
+        execute(
+            "create table ts_table (" +
+            "   ts timestamp with time zone" +
+            ") clustered into 2 shards with (number_of_replicas=0)");
         ensureYellow();
         // biggest Long that can be converted to Double without losing precision
         // equivalent to 33658-09-27T01:46:39.999Z
@@ -556,8 +559,9 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testInsertTimestampPreferMillis() throws Exception {
-        execute("create table ts_table (ts timestamp) clustered into 2 shards with (number_of_replicas=0)");
+    public void testInsertTimestampPreferMillis() {
+        execute("create table ts_table (ts timestamp with time zone) " +
+                "clustered into 2 shards with (number_of_replicas=0)");
         ensureYellow();
         execute("insert into ts_table (ts) values (?)", new Object[]{ 1000L });
         execute("insert into ts_table (ts) values (?)", new Object[]{ "2016" });

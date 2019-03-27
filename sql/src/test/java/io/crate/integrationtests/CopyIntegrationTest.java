@@ -327,9 +327,9 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
-    public void testCopyFromToPartitionedTableWithNullValue() throws Exception {
+    public void testCopyFromToPartitionedTableWithNullValue() {
         execute("CREATE TABLE times (" +
-                " time timestamp" +
+                "   time timestamp with time zone" +
                 ") partitioned by (time)");
         ensureYellow();
 
@@ -521,14 +521,13 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
-    public void testCopyToWithGeneratedColumn() throws Exception {
-        execute("CREATE TABLE foo (\n" +
-                "day TIMESTAMP GENERATED ALWAYS AS date_trunc('day', timestamp),\n" +
-                "timestamp TIMESTAMP\n" +
-                ")\n" +
-                "PARTITIONED BY (day)");
+    public void testCopyToWithGeneratedColumn() {
+        execute("CREATE TABLE foo (" +
+                "   day TIMESTAMP WITH TIME ZONE GENERATED ALWAYS AS date_trunc('day', timestamp)," +
+                "   timestamp TIMESTAMP WITH TIME ZONE" +
+                ") PARTITIONED BY (day)");
         ensureYellow();
-        execute("insert into foo ( timestamp) values (1454454000377)");
+        execute("insert into foo (timestamp) values (1454454000377)");
         refresh();
         String uriTemplate = Paths.get(folder.getRoot().toURI()).toUri().toString();
         SQLResponse response = execute("copy foo to DIRECTORY ?", new Object[]{uriTemplate});
@@ -686,12 +685,13 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
 
     @Test
     public void testCopyWithGeneratedPartitionColumnThatIsPartOfPrimaryKey() throws Exception {
-        execute("create table t1 (\n" +
-                "  guid string,\n" +
-                "  ts timestamp,\n" +
-                "  g_ts_month timestamp generated always as date_trunc('month', ts),\n" +
-                "  primary key (guid, g_ts_month)\n" +
-                ") partitioned by (g_ts_month)");
+        execute(
+            "create table t1 (" +
+            "   guid string," +
+            "   ts timestamp with time zone," +
+            "   g_ts_month timestamp with time zone generated always as date_trunc('month', ts)," +
+            "   primary key (guid, g_ts_month)" +
+            ") partitioned by (g_ts_month)");
         ensureYellow();
 
         Path path = tmpFileWithLines(Arrays.asList(
@@ -709,7 +709,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     @UseJdbc(0) // copy from returning does not support unbound analysis (prepared statements)
     @Test
     public void testCopyFromReturnSummaryWithFailedRows() throws Exception {
-        execute("create table t1 (id int primary key, ts timestamp)");
+        execute("create table t1 (id int primary key, ts timestamp with time zone)");
 
         Path tmpDir = newTempDir(LifecycleScope.TEST);
         Path target = Files.createDirectories(tmpDir.resolve("target"));
@@ -748,7 +748,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     @UseJdbc(0) // copy from returning does not support unbound analysis (prepared statements)
     @Test
     public void testCopyFromReturnSummaryWithFailedURI() throws Exception {
-        execute("create table t1 (id int primary key, ts timestamp)");
+        execute("create table t1 (id int primary key, ts timestamp with time zone)");
 
         Path tmpDir = newTempDir(LifecycleScope.TEST);
         String tmpDirStr = tmpDir.toUri().toString();

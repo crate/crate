@@ -45,7 +45,7 @@ public class Setup {
         transportExecutor.exec("create table locations (" +
                                " id string primary key," +
                                " name string," +
-                               " date timestamp," +
+                               " date timestamp with time zone," +
                                " kind string," +
                                " position integer," +
                                " description string," +
@@ -136,12 +136,12 @@ public class Setup {
         groupBySetup("integer");
     }
 
-    public void groupBySetup(String numericType) throws Exception {
+    public void groupBySetup(String numericType) {
         transportExecutor.exec(String.format(Locale.ENGLISH, "create table characters (" +
                                                              " race string," +
                                                              " gender string," +
                                                              " age %s," +
-                                                             " birthdate timestamp," +
+                                                             " birthdate timestamp with time zone," +
                                                              " name string," +
                                                              " details object as (job string)," +
                                                              " details_ignored object(ignored)" +
@@ -172,7 +172,7 @@ public class Setup {
         transportExecutor.exec("create table employees (" +
                                " name string, " +
                                " department string," +
-                               " hired timestamp, " +
+                               " hired timestamp with time zone, " +
                                " age short," +
                                " income double, " +
                                " good boolean" +
@@ -249,7 +249,7 @@ public class Setup {
     public void partitionTableSetup() {
         transportExecutor.exec("create table parted (" +
                                "id int primary key," +
-                               "date timestamp primary key," +
+                               "date timestamp with time zone primary key," +
                                "o object(ignored)" +
                                ") partitioned by (date) with (number_of_replicas=0)");
         transportExecutor.ensureGreen();
@@ -296,7 +296,12 @@ public class Setup {
         transportExecutor.exec("refresh table jobs");
 
 
-        transportExecutor.exec("create table job_history (job_id int, from_ts timestamp, to_ts timestamp)");
+        transportExecutor.exec(
+            "create table job_history (" +
+                "job_id int, " +
+                "from_ts timestamp with time zone, " +
+                "to_ts timestamp with time zone)"
+        );
         transportExecutor.ensureYellowOrGreen();
         transportExecutor.execBulk("insert into job_history (job_id, from_ts, to_ts) values (?, ?, ?)",
             new Object[][]{

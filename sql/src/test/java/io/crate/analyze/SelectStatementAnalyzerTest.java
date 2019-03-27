@@ -1630,7 +1630,8 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void testExtractFunctionWithWrongType() {
-        QueriedRelation relation = analyze("select extract(day from name::timestamp) from users");
+        QueriedRelation relation = analyze(
+            "select extract(day from name::timestamp with time zone) from users");
         Symbol symbol = relation.querySpec().outputs().get(0);
         assertThat(symbol, isFunction("extract_DAY_OF_MONTH"));
 

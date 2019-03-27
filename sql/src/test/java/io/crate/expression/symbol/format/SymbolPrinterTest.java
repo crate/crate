@@ -250,7 +250,7 @@ public class SymbolPrinterTest extends CrateUnitTest {
 
     @Test
     public void testCast() {
-        assertPrintIsParseable("CAST (formatter.bar AS timestamp)");
+        assertPrintIsParseable("CAST (formatter.bar AS timestamp with time zone)");
         assertPrintIsParseable("CAST (TRUE AS string)");
         assertPrintIsParseable("CAST (1+2 AS string)");
     }

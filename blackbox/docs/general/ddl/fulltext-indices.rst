@@ -160,7 +160,7 @@ Composite indices can include nested columns within object columns as well::
     ...   title text,
     ...   author object(dynamic) as (
     ...     name text,
-    ...     birthday timestamp
+    ...     birthday timestamp with time zone
     ...   ),
     ...   INDEX author_title_ft using fulltext(title, author['name'])
     ... );

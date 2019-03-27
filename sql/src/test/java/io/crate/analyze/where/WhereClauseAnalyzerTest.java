@@ -76,7 +76,7 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         RelationName docGeneratedCol = new RelationName("doc", "generated_col");
         builder.addPartitionedTable(
             "create table doc.generated_col (" +
-            "   ts timestamp," +
+            "   ts timestamp with time zone ," +
             "   x integer," +
             "   y long," +
             "   day as date_trunc('day', ts)," +
@@ -111,7 +111,7 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             "create table doc.parted (" +
             "   id integer," +
             "   name string," +
-            "   date timestamp," +
+            "   date timestamp with time zone," +
             "   obj object (ignored)" +
             ") partitioned by (date)",
             new PartitionName(docParted, singletonList("1395874800000")).asIndexName(),

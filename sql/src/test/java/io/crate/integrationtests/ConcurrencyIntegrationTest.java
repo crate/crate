@@ -54,7 +54,7 @@ public class ConcurrencyIntegrationTest extends SQLTransportIntegrationTest {
     public void testInsertStatementsDoNotShareState() throws Throwable {
         execute("create table t1 (id int primary key, x long) with (number_of_replicas = 0)");
         execute("create table t2 (id int primary key, x string) with (number_of_replicas = 0)");
-        execute("create table t3 (x timestamp) with (number_of_replicas = 0)");
+        execute("create table t3 (x timestamp with time zone) with (number_of_replicas = 0)");
         execute("create table t4 (y string) with (number_of_replicas = 0)");
 
         final CountDownLatch latch = new CountDownLatch(1000);

@@ -98,7 +98,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table bag (id short primary key, ob array(object))")
             .addPartitionedTable(
                 "create table doc.parted_generated_column (" +
-                "   ts timestamp," +
+                "   ts timestamp with time zone," +
                 "   day as date_trunc('day', ts)" +
                 ") partitioned by (day) "
             )

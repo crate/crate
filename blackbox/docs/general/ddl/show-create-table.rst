@@ -6,7 +6,7 @@ Show Create Table
     cr> create table if not exists my_table (
     ...   first_column integer primary key,
     ...   second_column text,
-    ...   third_column timestamp,
+    ...   third_column timestamp with time zone,
     ...   fourth_column object(strict) as (
     ...     key text,
     ...     value text
@@ -24,7 +24,7 @@ already existing user-created doc tables in the cluster::
     | CREATE TABLE IF NOT EXISTS "doc"."my_table" (       |
     |    "first_column" INTEGER,                          |
     |    "second_column" TEXT,                            |
-    |    "third_column" TIMESTAMP,                        |
+    |    "third_column" TIMESTAMP WITH TIME ZONE,         |
     |    "fourth_column" OBJECT(STRICT) AS (              |
     |       "key" TEXT,                                   |
     |       "value" TEXT                                  |

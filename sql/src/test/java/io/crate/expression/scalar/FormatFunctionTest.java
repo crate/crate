@@ -30,9 +30,11 @@ import static io.crate.testing.SymbolMatchers.isLiteral;
 public class FormatFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
-    @SuppressWarnings("unchecked")
-    public void testNormalizeSymbol() throws Exception {
-        assertNormalize("format('%tY', cast('2014-03-02' as timestamp))", isLiteral("2014"));
+    public void testNormalizeSymbol() {
+        assertNormalize(
+            "format('%tY', cast('2014-03-02' as timestamp with time zone))",
+            isLiteral("2014")
+        );
     }
 
     @Test
