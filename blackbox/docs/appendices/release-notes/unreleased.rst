@@ -141,6 +141,8 @@ Deprecations
 Changes
 =======
 
+- Added support for the ``PARTITION BY`` clause in :ref:`window-functions`.
+
 - Upgraded to Lucene 8.0.0, and as part of this the BM25 scoring has changed.
   The order of the scores remain the same, but the values of the scores differ.
   Fulltext queries including ``_score`` filters may behave slightly different.

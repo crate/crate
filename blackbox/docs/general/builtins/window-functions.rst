@@ -25,43 +25,98 @@ The ``OVER`` clause defines the ``window`` containing the appropriate rows
 which will take part in the ``window function`` computation.
 
 An empty ``OVER`` clause defines a ``window`` containing all the rows in the
-result set.
+result set. 
 
 Example::
 
-   cr> select name, avg(price) OVER() from articles order by name;
-   +------------------------------+--------------------+
-   | name                         | avg(price) OVER () |
-   +------------------------------+--------------------+
-   | Infinite Improbability Drive | 18375.317556142807 |
-   | Kill-o-Zap blaster pistol    | 18375.317556142807 |
-   | Starship Titanic             | 18375.317556142807 |
-   | Towel                        | 18375.317556142807 |
-   +------------------------------+--------------------+
-   SELECT 4 rows in set (... sec)
+   cr> select dept_id, count(*) OVER() from employees order by 1, 2;
+   +---------+------------------+
+   | dept_id | count(*) OVER () |
+   +---------+------------------+
+   |    4001 |               18 |
+   |    4001 |               18 |
+   |    4001 |               18 |
+   |    4002 |               18 |
+   |    4002 |               18 |
+   |    4002 |               18 |
+   |    4002 |               18 |
+   |    4003 |               18 |
+   |    4003 |               18 |
+   |    4003 |               18 |
+   |    4003 |               18 |
+   |    4003 |               18 |
+   |    4004 |               18 |
+   |    4004 |               18 |
+   |    4004 |               18 |
+   |    4006 |               18 |
+   |    4006 |               18 |
+   |    4006 |               18 |
+   +---------+------------------+
+   SELECT 18 rows in set (... sec)
 
+The ``PARTITION BY`` clause groups the rows within a window into
+partitions which are processed separately by the window function, each
+partition in turn becoming a window. If ``PARTITION BY`` is not specified, all
+the rows are considered a single partition.
+
+Example::
+
+   cr> select dept_id, row_number() OVER(PARTITION BY dept_id) from employees order by 1, 2;
+   +---------+------------------------------------------+
+   | dept_id | row_number() OVER (PARTITION BY dept_id) |
+   +---------+------------------------------------------+
+   |    4001 |                                        1 |
+   |    4001 |                                        2 |
+   |    4001 |                                        3 |
+   |    4002 |                                        1 |
+   |    4002 |                                        2 |
+   |    4002 |                                        3 |
+   |    4002 |                                        4 |
+   |    4003 |                                        1 |
+   |    4003 |                                        2 |
+   |    4003 |                                        3 |
+   |    4003 |                                        4 |
+   |    4003 |                                        5 |
+   |    4004 |                                        1 |
+   |    4004 |                                        2 |
+   |    4004 |                                        3 |
+   |    4006 |                                        1 |
+   |    4006 |                                        2 |
+   |    4006 |                                        3 |
+   +---------+------------------------------------------+
+   SELECT 18 rows in set (... sec)
 
 If ``ORDER BY`` is supplied the ``window`` definition consists of a range of
-rows starting with the first row in the result set and ending with the current
-row, plus any subsequent rows that are equal to the current row, which are the
-current row's ``peers``.
-
+rows starting with the first row in the ``partition`` and ending with the
+current row, plus any subsequent rows that are equal to the current row, which
+are the current row's ``peers``.
 
 Example::
 
-   cr> select col1, sum(col1) over (order by col1) from unnest([1, 5, 2, 3, 2, 5, 4]);
-   +------+--------------------------------------+
-   | col1 | sum(col1) OVER (ORDER BY "col1" ASC) |
-   +------+--------------------------------------+
-   |    1 |                                    1 |
-   |    2 |                                    5 |
-   |    2 |                                    5 |
-   |    3 |                                    8 |
-   |    4 |                                   12 |
-   |    5 |                                   22 |
-   |    5 |                                   22 |
-   +------+--------------------------------------+
-   SELECT 7 rows in set (... sec)
+   cr> select dept_id, sex, count(*) OVER(PARTITION BY dept_id ORDER BY sex) from employees order by 1,2,3;
+   +---------+-----+---------------------------------------------------------+
+   | dept_id | sex | count(*) OVER (PARTITION BY dept_id ORDER BY "sex" ASC) |
+   +---------+-----+---------------------------------------------------------+
+   |    4001 | M   |                                                       3 |
+   |    4001 | M   |                                                       3 |
+   |    4001 | M   |                                                       3 |
+   |    4002 | F   |                                                       1 |
+   |    4002 | M   |                                                       4 |
+   |    4002 | M   |                                                       4 |
+   |    4002 | M   |                                                       4 |
+   |    4003 | M   |                                                       5 |
+   |    4003 | M   |                                                       5 |
+   |    4003 | M   |                                                       5 |
+   |    4003 | M   |                                                       5 |
+   |    4003 | M   |                                                       5 |
+   |    4004 | F   |                                                       1 |
+   |    4004 | M   |                                                       3 |
+   |    4004 | M   |                                                       3 |
+   |    4006 | F   |                                                       1 |
+   |    4006 | M   |                                                       3 |
+   |    4006 | M   |                                                       3 |
+   +---------+-----+---------------------------------------------------------+
+   SELECT 18 rows in set (... sec)
 
 .. note::
 
@@ -84,22 +139,9 @@ Synopsis
 ::
 
    OVER (
+      [ PARTITION BY expression [, ...] ]
       [ ORDER BY expression [ ASC | DESC ] [ NULLS { FIRST | LAST } ] [, ...] ]
    )
-
-Example::
-
-   cr> select price, sum(price) OVER(ORDER BY price) from articles;
-   +----------+----------------------------------------+
-   |    price | sum(price) OVER (ORDER BY "price" ASC) |
-   +----------+----------------------------------------+
-   |     1.29 |                                  1.29  |
-   |  3499.99 |                               3501.28  |
-   | 19999.99 |                              23501.27  |
-   | 50000.0  |                              73501.266 |
-   +----------+----------------------------------------+
-   SELECT 4 rows in set (... sec)
-
 
 General-Purpose Window Functions
 ================================
