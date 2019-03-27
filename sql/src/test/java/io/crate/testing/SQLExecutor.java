@@ -345,13 +345,13 @@ public class SQLExecutor {
             addDocTable(T3.T3_INFO);
 
             RelationName multiPartName = new RelationName("doc", "multi_parted");
-            addPartitionedTable("create table doc.multi_parted (" +
-                                " id int," +
-                                " date timestamp," +
-                                " num long," +
-                                " obj object as (name string)" +
-                                ") " +
-                                "partitioned by (date, obj['name'])",
+            addPartitionedTable(
+                    "create table doc.multi_parted (" +
+                    "   id int," +
+                    "   date timestamp with time zone," +
+                    "   num long," +
+                    "   obj object as (name string)" +
+                    ") partitioned by (date, obj['name'])",
                 new PartitionName(multiPartName, Arrays.asList("1395874800000", "0")).toString(),
                 new PartitionName(multiPartName, Arrays.asList("1395961200000", "-100")).toString(),
                 new PartitionName(multiPartName, Arrays.asList(null, "-100")).toString()

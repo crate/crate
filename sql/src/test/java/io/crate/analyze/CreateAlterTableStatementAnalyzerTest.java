@@ -328,10 +328,10 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     public void testCreateTableWithSubscriptInFulltextIndexDefinition() {
         CreateTableAnalyzedStatement analysis = e.analyze(
             "create table my_table1g (" +
-            "title string, " +
-            "author object(dynamic) as ( " +
-            "name string, " +
-            "birthday timestamp " +
+            "   title string, " +
+            "   author object(dynamic) as ( " +
+            "   name string, " +
+            "   birthday timestamp with time zone" +
             "), " +
             "INDEX author_title_ft using fulltext(title, author['name']))");
 
@@ -344,13 +344,14 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
     @Test(expected = ColumnUnknownException.class)
     public void testCreateTableWithInvalidFulltextIndexDefinition() {
-        e.analyze("create table my_table1g (" +
-                "title string, " +
-                "author object(dynamic) as ( " +
-                "name string, " +
-                "birthday timestamp " +
-                "), " +
-                "INDEX author_title_ft using fulltext(title, author['name']['foo']['bla']))");
+        e.analyze(
+            "create table my_table1g (" +
+            "   title string, " +
+            "   author object(dynamic) as ( " +
+            "   name string, " +
+            "   birthday timestamp with time zone" +
+            "), " +
+            "INDEX author_title_ft using fulltext(title, author['name']['foo']['bla']))");
     }
 
     @SuppressWarnings("unchecked")
@@ -912,7 +913,9 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     @Test
     public void testCreateTableWithGeneratedColumn() {
         CreateTableAnalyzedStatement analysis = e.analyze(
-            "create table foo (ts timestamp, day as date_trunc('day', ts))");
+            "create table foo (" +
+            "   ts timestamp with time zone," +
+            "   day as date_trunc('day', ts))");
 
         Map<String, Object> metaMapping = ((Map) analysis.mapping().get("_meta"));
         Map<String, String> generatedColumnsMapping = (Map<String, String>) metaMapping.get("generated_columns");
@@ -930,10 +933,14 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     @Test
     public void testCreateTableGeneratedColumnWithCast() {
         CreateTableAnalyzedStatement analysis = e.analyze(
-            "create table foo (ts timestamp, day timestamp GENERATED ALWAYS as ts + 1)");
+            "create table foo (" +
+            "   ts timestamp with time zone," +
+            "   day timestamp with time zone GENERATED ALWAYS as ts + 1)");
         Map<String, Object> metaMapping = ((Map) analysis.mapping().get("_meta"));
         Map<String, String> generatedColumnsMapping = (Map<String, String>) metaMapping.get("generated_columns");
-        assertThat(generatedColumnsMapping.get("day"), is("cast((cast(ts AS bigint) + 1) AS timestamp)"));
+        assertThat(
+            generatedColumnsMapping.get("day"),
+            is("cast((cast(ts AS bigint) + 1) AS timestamp with time zone)"));
 
         Map<String, Object> mappingProperties = analysis.mappingProperties();
         Map<String, Object> dayMapping = (Map<String, Object>) mappingProperties.get("day");
@@ -944,7 +951,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     @Test
     public void testCreateTableWithCurrentTimestampAsGeneratedColumnIsntNormalized() {
         CreateTableAnalyzedStatement analysis = e.analyze(
-            "create table foo (ts timestamp GENERATED ALWAYS as current_timestamp)");
+            "create table foo (ts timestamp with time zone GENERATED ALWAYS as current_timestamp)");
 
         Map<String, Object> metaMapping = ((Map) analysis.mapping().get("_meta"));
         Map<String, String> generatedColumnsMapping = (Map<String, String>) metaMapping.get("generated_columns");
@@ -977,8 +984,12 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     @Test
     public void testCreateTableGeneratedColumnWithInvalidType() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("generated expression value type 'timestamp' not supported for conversion to 'ip'");
-        e.analyze("create table foo (ts timestamp, day ip GENERATED ALWAYS as date_trunc('day', ts))");
+        expectedException.expectMessage("generated expression value type" +
+            " 'timestamp with time zone' not supported for conversion to 'ip'");
+        e.analyze(
+            "create table foo (" +
+            "   ts timestamp with time zone," +
+            "   day ip GENERATED ALWAYS as date_trunc('day', ts))");
     }
 
     @Test
@@ -992,14 +1003,22 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     public void testCreateTableGeneratedColumnBasedOnGeneratedColumn() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("A generated column cannot be based on a generated column");
-        e.analyze("create table foo (ts timestamp, day as date_trunc('day', ts), date_string as cast(day as string))");
+        e.analyze(
+            "create table foo (" +
+            "   ts timestamp with time zone," +
+            "   day as date_trunc('day', ts)," +
+            "   date_string as cast(day as string))");
     }
 
     @Test
     public void testCreateTableGeneratedColumnBasedOnUnknownColumn() {
         expectedException.expect(ColumnUnknownException.class);
         expectedException.expectMessage("Column unknown_col unknown");
-        e.analyze("create table foo (ts timestamp, day as date_trunc('day', ts), date_string as cast(unknown_col as string))");
+        e.analyze(
+            "create table foo (" +
+            "   ts timestamp with time zone," +
+            "   day as date_trunc('day', ts)," +
+            "   date_string as cast(unknown_col as string))");
     }
 
     @Test

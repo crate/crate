@@ -909,7 +909,7 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
                                                                "   age int," +
                                                                "   name string" +
                                                                ")," +
-                                                               "date timestamp primary key" +
+                                                               "date timestamp with time zone primary key" +
                                                                ") partitioned by (date)");
 
         assertThat(md.columns().size(), is(4));

@@ -111,7 +111,7 @@ Example of changing a field's data type, in this case, changing the
     cr> create table locations2 (
     ...     id text primary key,
     ...     name text,
-    ...     date timestamp,
+    ...     date timestamp with time zone,
     ...     kind text,
     ...     position smallint,
     ...     description text
@@ -140,7 +140,7 @@ data partitioned by year::
     ...     id text primary key,
     ...     name text,
     ...     year text primary key,
-    ...     date timestamp,
+    ...     date timestamp with time zone,
     ...     kind text,
     ...     position integer
     ... ) clustered by (id) into 2 shards
@@ -290,7 +290,7 @@ This can also be done when using a query instead of values::
     ...   id integer primary key,
     ...   name text,
     ...   visits integer,
-    ...   last_visit timestamp
+    ...   last_visit timestamp with time zone
     ... ) clustered by (id) into 2 shards with (number_of_replicas = 0);
     CREATE OK, 1 row affected (... sec)
 

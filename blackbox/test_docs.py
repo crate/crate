@@ -181,7 +181,7 @@ def setUpLocations(test):
         create table locations (
           id string primary key,
           name string,
-          "date" timestamp,
+          "date" timestamp with time zone,
           kind string,
           position integer,
           description string,
@@ -220,7 +220,7 @@ def setUpUserVisits(test):
           id integer primary key,
           name string,
           visits integer,
-          last_visit timestamp
+          last_visit timestamp with time zone
         )
     """.strip())
     uservisits_file = get_abspath("uservisits.json")

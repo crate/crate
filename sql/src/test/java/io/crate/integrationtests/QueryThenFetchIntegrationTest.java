@@ -60,8 +60,11 @@ public class QueryThenFetchIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testTestWithTimestampThatIsInIntegerRange() throws Exception {
-        execute("create table t (ts timestamp) clustered into 1 shards with (number_of_replicas = 0)");
+    public void testTestWithTimestampThatIsInIntegerRange() {
+        execute(
+            "create table t (" +
+            "   ts timestamp with time zone" +
+            ") clustered into 1 shards with (number_of_replicas = 0)");
         ensureYellow();
         execute("insert into t (ts) values (0)");
         execute("insert into t (ts) values (1425980155)");

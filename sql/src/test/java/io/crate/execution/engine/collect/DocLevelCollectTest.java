@@ -109,7 +109,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
         execute(String.format(Locale.ENGLISH, "create table %s (" +
                                               "  id integer," +
                                               "  name string," +
-                                              "  date timestamp" +
+                                              "  date timestamp with time zone" +
                                               ") clustered into 2 shards partitioned by (date) with(number_of_replicas=0)", PARTITIONED_TABLE_NAME));
         ensureGreen();
         execute(String.format(Locale.ENGLISH, "insert into %s (id, name, date) values (?, ?, ?)",

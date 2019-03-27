@@ -82,7 +82,7 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
         execute("CREATE TABLE " + tableName + " (" +
                 "  id long primary key, " +
                 "  name string, " +
-                "  date timestamp " + (partitioned ? "primary key," : ",") +
+                "  date timestamp with time zone " + (partitioned ? "primary key," : ",") +
                 "  ft string index using fulltext with (analyzer='german')" +
                 ") " + (partitioned ? "partitioned by (date) " : "") +
                 "clustered into 1 shards with (number_of_replicas=0)");

@@ -49,7 +49,7 @@ Multiple Table Optimization
     ...   title text,
     ...   content text,
     ...   width double precision,
-    ...   day timestamp
+    ...   day timestamp with time zone
     ... ) CLUSTERED BY (title) INTO 4 SHARDS PARTITIONED BY (day);
     CREATE OK, 1 row affected (... sec)
 

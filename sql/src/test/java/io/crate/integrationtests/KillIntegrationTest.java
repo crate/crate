@@ -67,7 +67,7 @@ public class KillIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table new_employees (" +
                 " name string, " +
                 " department string," +
-                " hired timestamp, " +
+                " hired timestamp with time zone, " +
                 " age short," +
                 " income double, " +
                 " good boolean" +

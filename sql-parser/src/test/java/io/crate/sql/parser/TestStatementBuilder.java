@@ -477,16 +477,16 @@ public class TestStatementBuilder {
             "  fl float," +
             "  do double," +
             "  \"ip_\" ip," +
-            "  ti timestamp," +
+            "  ti timestamp with time zone," +
             "  ob object" +
             ")");
         printStatement("create table \"TABLE\" (o object(dynamic))");
         printStatement("create table \"TABLE\" (o object(strict))");
         printStatement("create table \"TABLE\" (o object(ignored))");
-        printStatement("create table \"TABLE\" (o object(strict) as (inner_col object as (sub_inner_col timestamp, another_inner_col string)))");
+        printStatement("create table \"TABLE\" (o object(strict) as (inner_col object as (sub_inner_col timestamp with time zone, another_inner_col string)))");
 
-        printStatement("create table test (col1 int, col2 timestamp not null)");
-        printStatement("create table test (col1 int primary key not null, col2 timestamp)");
+        printStatement("create table test (col1 int, col2 timestamp with time zone not null)");
+        printStatement("create table test (col1 int primary key not null, col2 timestamp with time zone)");
 
         printStatement("create table t (" +
             "name string index off, " +
@@ -499,15 +499,15 @@ public class TestStatementBuilder {
         printStatement("create table test (col1 string, col2 string," +
             "index col1_col2_ft using fulltext(col1, col2) with (analyzer='custom'))");
 
-        printStatement("create table test (prime long, primes array(long), unique_dates set(timestamp))");
+        printStatement("create table test (prime long, primes array(long), unique_dates set(timestamp with time zone))");
         printStatement("create table test (nested set(set(array(boolean))))");
         printStatement("create table test (object_array array(object(dynamic) as (i integer, s set(string))))");
 
-        printStatement("create table test (col1 int, col2 timestamp) partitioned by (col1)");
-        printStatement("create table test (col1 int, col2 timestamp) partitioned by (col1, col2)");
-        printStatement("create table test (col1 int, col2 timestamp) partitioned by (col1) clustered by (col2)");
-        printStatement("create table test (col1 int, col2 timestamp) clustered by (col2) partitioned by (col1)");
-        printStatement("create table test (col1 int, col2 object as (col3 timestamp)) partitioned by (col2['col3'])");
+        printStatement("create table test (col1 int, col2 timestamp with time zone) partitioned by (col1)");
+        printStatement("create table test (col1 int, col2 timestamp with time zone) partitioned by (col1, col2)");
+        printStatement("create table test (col1 int, col2 timestamp with time zone) partitioned by (col1) clustered by (col2)");
+        printStatement("create table test (col1 int, col2 timestamp with time zone) clustered by (col2) partitioned by (col1)");
+        printStatement("create table test (col1 int, col2 object as (col3 timestamp with time zone)) partitioned by (col2['col3'])");
 
         printStatement("create table test (col1 string storage with (columnstore = false))");
     }
@@ -515,8 +515,8 @@ public class TestStatementBuilder {
     @Test
     public void testCreateTableOptionsMultipleTimesNotAllowed() {
         expectedException.expect(ParsingException.class);
-        expectedException.expectMessage("line 1:68: mismatched input 'partitioned' expecting {<EOF>, ';'}");
-        printStatement("create table test (col1 int, col2 timestamp) partitioned by (col1) partitioned by (col2)");
+        expectedException.expectMessage("line 1:83: mismatched input 'partitioned' expecting {<EOF>, ';'}");
+        printStatement("create table test (col1 int, col2 timestamp with time zone) partitioned by (col1) partitioned by (col2)");
     }
 
     @Test

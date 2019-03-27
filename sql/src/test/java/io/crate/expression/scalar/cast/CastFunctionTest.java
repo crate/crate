@@ -42,7 +42,7 @@ public class CastFunctionTest extends AbstractScalarFunctionsTest {
     }
 
     @Test
-    public void testCasts() throws Exception {
+    public void testCasts() {
         assertEvaluate("cast(10.4 as string)", "10.4");
         assertEvaluate("cast(null as string)", null);
         assertEvaluate("cast(10.4 as long)", 10L);
@@ -52,7 +52,9 @@ public class CastFunctionTest extends AbstractScalarFunctionsTest {
         assertEvaluate("'{\"x\": 10}'::object", object);
 
         assertEvaluate("cast(name as object)", object, Literal.of("{\"x\": 10}"));
-        assertEvaluate("cast(['2017-01-01','2017-12-31'] as array(timestamp))", new Long[] {1483228800000L, 1514678400000L});
+        assertEvaluate(
+            "cast(['2017-01-01','2017-12-31'] as array(timestamp with time zone))",
+            new Long[] {1483228800000L, 1514678400000L});
     }
 
     @Test

@@ -613,9 +613,14 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testAlterShardsOfPartitionedTableAffectsNewPartitions() throws Exception {
-        execute("create table quotes (id integer, quote string, date timestamp) " +
-                "partitioned by(date) clustered into 3 shards with (number_of_replicas='0-all')");
+    public void testAlterShardsOfPartitionedTableAffectsNewPartitions() {
+        execute(
+            "create table quotes (" +
+            "   id integer," +
+            "   quote string," +
+            "   date timestamp with time zone" +
+            ") partitioned by(date) " +
+            "clustered into 3 shards with (number_of_replicas='0-all')");
         ensureYellow();
 
         execute("insert into quotes (id, quote, date) values (?, ?, ?), (?, ?, ?)",
@@ -643,9 +648,13 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testAlterShardsTableCombinedWithOtherSettingsIsInvalid() throws Exception {
-        execute("create table quotes (id integer, quote string, date timestamp) " +
-                "clustered into 3 shards with (number_of_replicas='0-all')");
+    public void testAlterShardsTableCombinedWithOtherSettingsIsInvalid() {
+        execute(
+            "create table quotes (" +
+            "   id integer," +
+            "   quote string," +
+            "   date timestamp with time zone" +
+            ") clustered into 3 shards with (number_of_replicas='0-all')");
 
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("Setting [number_of_shards] cannot be combined with other settings");
@@ -653,9 +662,14 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testAlterShardsPartitionCombinedWithOtherSettingsIsInvalid() throws Exception {
-        execute("create table quotes (id integer, quote string, date timestamp) " +
-                "partitioned by(date) clustered into 3 shards with (number_of_replicas='0-all')");
+    public void testAlterShardsPartitionCombinedWithOtherSettingsIsInvalid() {
+        execute(
+            "create table quotes (" +
+            "   id integer," +
+            "   quote string," +
+            "   date timestamp with time zone" +
+            ") partitioned by(date) " +
+            "clustered into 3 shards with (number_of_replicas='0-all')");
 
         execute("insert into quotes (id, quote, date) values (?, ?, ?), (?, ?, ?)",
             new Object[]{
@@ -707,7 +721,10 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testCreateTableWithGeneratedColumn() throws Exception {
-        execute("create table test (ts timestamp, day as date_trunc('day', ts)) with (number_of_replicas=0)");
+        execute(
+            "create table test (" +
+            "   ts timestamp with time zone," +
+            "   day as date_trunc('day', ts)) with (number_of_replicas=0)");
         ensureYellow();
         String expectedMapping = "{\"default\":" +
                                  "{\"dynamic\":\"strict\"," +

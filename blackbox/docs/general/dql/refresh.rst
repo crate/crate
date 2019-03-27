@@ -44,7 +44,7 @@ Multiple Table Refresh
     ...   title string,
     ...   content string,
     ...   width double,
-    ...   day timestamp
+    ...   day timestamp with time zone
     ... ) CLUSTERED BY (title) INTO 4 SHARDS PARTITIONED BY (day);
     CREATE OK, 1 row affected (... sec)
 

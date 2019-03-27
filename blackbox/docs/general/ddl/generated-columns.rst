@@ -76,7 +76,7 @@ inserted, and subsequently updated every time the row is updated::
 
     cr> CREATE TABLE computed_non_deterministic (
     ...   id LONG,
-    ...   last_modified TIMESTAMP GENERATED ALWAYS AS CURRENT_TIMESTAMP
+    ...   last_modified TIMESTAMP WITH TIME ZONE GENERATED ALWAYS AS CURRENT_TIMESTAMP
     ... )
     CREATE OK, 1 row affected (... sec)
 
