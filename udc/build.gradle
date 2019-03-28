@@ -2,10 +2,13 @@ apply from: "$rootDir/gradle/javaModule.gradle"
 archivesBaseName = 'crate-udc'
 
 dependencies {
-    compile project(':common')
-    testCompile project(':integration-testing')
-    testCompile "io.netty:netty-transport:${versions.netty4}"
-    testCompile "io.netty:netty-codec-http:${versions.netty4}"
+    implementation project(':common')
+    implementation project(':es:es-server')
+    implementation "com.google.guava:guava:${versions.guava}"
+    implementation "com.fasterxml.jackson.core:jackson-core:${versions.jackson}"
+    testImplementation project(':integration-testing')
+    testImplementation "io.netty:netty-transport:${versions.netty4}"
+    testImplementation "io.netty:netty-codec-http:${versions.netty4}"
 }
 
 test {

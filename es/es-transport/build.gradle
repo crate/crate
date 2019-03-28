@@ -1,10 +1,10 @@
 dependencies {
-    compile project(':es:es-server')
-    compile "io.netty:netty-buffer:${versions.netty4}"
-    compile "io.netty:netty-codec:${versions.netty4}"
-    compile "io.netty:netty-codec-http:${versions.netty4}"
-    compile "io.netty:netty-common:${versions.netty4}"
-    compile "io.netty:netty-handler:${versions.netty4}"
-    compile "io.netty:netty-resolver:${versions.netty4}"
-    compile "io.netty:netty-transport:${versions.netty4}"
+    implementation project(':es:es-server')
+    implementation "io.netty:netty-buffer:${versions.netty4}"
+    implementation "io.netty:netty-codec:${versions.netty4}"
+    implementation "io.netty:netty-codec-http:${versions.netty4}"
+    implementation "io.netty:netty-common:${versions.netty4}"
+    implementation "io.netty:netty-handler:${versions.netty4}"
+    implementation "io.netty:netty-resolver:${versions.netty4}"
+    implementation "io.netty:netty-transport:${versions.netty4}"
 }

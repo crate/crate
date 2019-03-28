@@ -10,11 +10,15 @@ configurations {
 dependencies {
     compile project(':shared')
     compile project(':common')
+    implementation project(':http')
+    implementation project(':es:es-server')
+    implementation project(':es:es-transport')
     compile project(':dex')
     compile project(':blob')
     compile project(':sql-parser')
     compile project(':udc')
     compile project(':ssl')
+    implementation "io.netty:netty-codec-http:${versions.netty4}"
     compile "io.netty:netty-transport:${versions.netty4}"
     compile "io.netty:netty-codec:${versions.netty4}"
     compile "io.netty:netty-buffer:${versions.netty4}"

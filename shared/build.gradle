@@ -3,9 +3,8 @@ apply from: "$rootDir/gradle/javaModule.gradle"
 archivesBaseName = 'crate-shared'
 
 dependencies {
-    compile "com.google.code.findbugs:jsr305:${versions.jsr305}"
-
-    testCompile "junit:junit:${versions.junit}"
+    implementation "com.google.code.findbugs:jsr305:${versions.jsr305}"
+    testImplementation "junit:junit:${versions.junit}"
 }
 
 test {

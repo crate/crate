@@ -22,7 +22,6 @@
 
 package io.crate.protocols.http;
 
-import com.google.common.collect.ImmutableMap;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.FullHttpRequest;
@@ -99,27 +98,27 @@ public final class StaticSite {
         return DEFAULT_MIME_TYPES.getOrDefault(extension, "");
     }
 
-    private static final Map<String, String> DEFAULT_MIME_TYPES = new ImmutableMap.Builder<String, String>()
-        .put("txt", "text/plain")
-        .put("css", "text/css")
-        .put("csv", "text/csv")
-        .put("htm", "text/html")
-        .put("html", "text/html")
-        .put("xml", "text/xml")
-        .put("js", "text/javascript") // Technically it should be application/javascript (RFC 4329), but IE8 struggles with that
-        .put("xhtml", "application/xhtml+xml")
-        .put("json", "application/json")
-        .put("pdf", "application/pdf")
-        .put("zip", "application/zip")
-        .put("tar", "application/x-tar")
-        .put("gif", "image/gif")
-        .put("jpeg", "image/jpeg")
-        .put("jpg", "image/jpeg")
-        .put("tiff", "image/tiff")
-        .put("tif", "image/tiff")
-        .put("png", "image/png")
-        .put("svg", "image/svg+xml")
-        .put("ico", "image/vnd.microsoft.icon")
-        .put("mp3", "audio/mpeg")
-        .build();
+    private static final Map<String, String> DEFAULT_MIME_TYPES = Map.ofEntries(
+        Map.entry("txt", "text/plain"),
+        Map.entry("css", "text/css"),
+        Map.entry("csv", "text/csv"),
+        Map.entry("htm", "text/html"),
+        Map.entry("html", "text/html"),
+        Map.entry("xml", "text/xml"),
+        Map.entry("js", "text/javascript"), // Technically it should be application/javascript (RFC 4329), but IE8 struggles with that
+        Map.entry("xhtml", "application/xhtml+xml"),
+        Map.entry("json", "application/json"),
+        Map.entry("pdf", "application/pdf"),
+        Map.entry("zip", "application/zip"),
+        Map.entry("tar", "application/x-tar"),
+        Map.entry("gif", "image/gif"),
+        Map.entry("jpeg", "image/jpeg"),
+        Map.entry("jpg", "image/jpeg"),
+        Map.entry("tiff", "image/tiff"),
+        Map.entry("tif", "image/tiff"),
+        Map.entry("png", "image/png"),
+        Map.entry("svg", "image/svg+xml"),
+        Map.entry("ico", "image/vnd.microsoft.icon"),
+        Map.entry("mp3", "audio/mpeg")
+    );
 }

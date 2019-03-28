@@ -3,10 +3,15 @@ apply from: "$rootDir/gradle/javaModule.gradle"
 archivesBaseName = 'crate-blob'
 
 dependencies {
-    compile project(':common')
-    compile project(':http')
-    compile project(':es:es-transport')
-    testCompile project(':integration-testing')
+    implementation project(':es:es-server')
+    implementation project(':common')
+    implementation project(':http')
+    implementation project(':es:es-transport')
+    implementation "io.netty:netty-codec-http:${versions.netty4}"
+    implementation "com.google.code.findbugs:jsr305:${versions.jsr305}"
+    implementation "com.google.guava:guava:${versions.guava}"
+    testImplementation project(':integration-testing')
+    testImplementation "org.apache.httpcomponents:httpclient:${versions.httpclient}"
 }
 
 test {

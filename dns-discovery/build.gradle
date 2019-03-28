@@ -5,6 +5,8 @@ group = 'io.crate'
 
 dependencies {
     implementation project(':common')
+    implementation project(':es:es-server')
+    implementation "com.google.guava:guava:${versions.guava}"
     implementation "io.netty:netty-resolver-dns:${versions.netty4}"
     testImplementation project(':integration-testing')
 }
