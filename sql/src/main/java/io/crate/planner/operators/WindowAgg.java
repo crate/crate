@@ -71,7 +71,7 @@ public class WindowAgg extends OneInputPlan {
         }
 
         return (tableStats, usedBeforeNextFetch) -> {
-            HashSet<Symbol> allUsedColumns = new HashSet<>(usedBeforeNextFetch);
+            HashSet<Symbol> allUsedColumns = new HashSet<>(extractColumns(usedBeforeNextFetch));
             Set<Symbol> columnsUsedInFunctions = extractColumns(windowFunctions);
             LinkedHashMap<WindowDefinition, ArrayList<WindowFunction>> groupedFunctions = new LinkedHashMap<>();
             for (WindowFunction windowFunction : windowFunctions) {
@@ -141,9 +141,8 @@ public class WindowAgg extends OneInputPlan {
 
         LinkedHashMap<WindowFunction, List<Symbol>> functionsWithInputs = new LinkedHashMap<>(windowFunctions.size(), 1f);
         for (WindowFunction windowFunction : windowFunctions) {
-            WindowFunction windowFunctionSymbol = (WindowFunction) InputColumns.create(windowFunction, sourceSymbols);
             List<Symbol> inputs = InputColumns.create(windowFunction.arguments(), sourceSymbols);
-            functionsWithInputs.put(windowFunctionSymbol, inputs);
+            functionsWithInputs.put(windowFunction, inputs);
         }
 
         OrderBy orderBy = windowDefinition.orderBy();
