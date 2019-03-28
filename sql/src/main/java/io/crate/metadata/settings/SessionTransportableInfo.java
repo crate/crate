@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.action.sql;
+package io.crate.metadata.settings;
 
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
@@ -33,7 +33,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
-public class SessionTransportableInfo implements Writeable {
+public final class SessionTransportableInfo implements Writeable {
 
     private String userName;
     private Map<String, String> sessionSettings;

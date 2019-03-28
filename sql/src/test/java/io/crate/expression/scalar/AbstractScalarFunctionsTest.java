@@ -23,7 +23,7 @@ package io.crate.expression.scalar;
 
 import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
-import io.crate.action.sql.SessionTransportableInfo;
+import io.crate.metadata.settings.SessionTransportableInfo;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.collections.Lists2;

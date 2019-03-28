@@ -22,7 +22,7 @@
 
 package io.crate.execution.jobs.transport;
 
-import io.crate.action.sql.SessionTransportableInfo;
+import io.crate.metadata.settings.SessionTransportableInfo;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 

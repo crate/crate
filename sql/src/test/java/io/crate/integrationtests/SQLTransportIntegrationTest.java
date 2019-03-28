@@ -30,7 +30,7 @@ import io.crate.action.sql.Option;
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
 import io.crate.action.sql.SessionContext;
-import io.crate.action.sql.SessionTransportableInfo;
+import io.crate.metadata.settings.SessionTransportableInfo;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParameterContext;
 import io.crate.auth.user.User;

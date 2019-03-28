@@ -22,7 +22,7 @@
 
 package io.crate.metadata;
 
-import io.crate.action.sql.SessionTransportableInfo;
+import io.crate.metadata.settings.SessionTransportableInfo;
 import org.joda.time.DateTimeUtils;
 
 public interface TransactionContext {

@@ -23,7 +23,7 @@
 package io.crate.execution.engine.collect.collectors;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.crate.action.sql.SessionTransportableInfo;
+import io.crate.metadata.settings.SessionTransportableInfo;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;

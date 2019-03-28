@@ -24,7 +24,7 @@ package io.crate.execution.dml.upsert;
 
 import com.google.common.base.Objects;
 import io.crate.Streamer;
-import io.crate.action.sql.SessionTransportableInfo;
+import io.crate.metadata.settings.SessionTransportableInfo;
 import io.crate.execution.dml.ShardRequest;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;

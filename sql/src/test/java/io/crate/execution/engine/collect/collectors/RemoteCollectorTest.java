@@ -25,7 +25,7 @@ package io.crate.execution.engine.collect.collectors;
 import com.carrotsearch.hppc.IntArrayList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.MoreExecutors;
-import io.crate.action.sql.SessionTransportableInfo;
+import io.crate.metadata.settings.SessionTransportableInfo;
 import io.crate.analyze.WhereClause;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.exceptions.JobKilledException;
