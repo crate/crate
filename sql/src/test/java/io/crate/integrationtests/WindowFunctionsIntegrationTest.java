@@ -144,4 +144,17 @@ public class WindowFunctionsIntegrationTest extends SQLTransportIntegrationTest 
                                                      "c| 4\n" +
                                                      "d| 5\n"));
     }
+
+    @Test
+    public void testOrderByWindowFunctionInQueryOnDocTable() {
+        execute("create table t (x int)");
+        execute("insert into t values (1), (1), (1)");
+        execute("refresh table t");
+
+        execute("select x, row_number() OVER() from t order by 2");
+
+        assertThat(printedTable(response.rows()), is("1| 1\n" +
+                                                     "1| 2\n" +
+                                                     "1| 3\n"));
+    }
 }
