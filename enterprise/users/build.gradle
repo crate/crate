@@ -5,13 +5,13 @@ group = 'io.crate'
 description = 'User Management for CrateDB'
 
 dependencies {
-    compile project(':sql')
-    testCompile project(':integration-testing')
-    testCompile project(':enterprise:ssl-impl')
-    testCompile project(path: ':sql', configuration: 'testOutput')
-    testCompile project(path: ':dex', configuration: 'testOutput')
-    testCompile "org.hamcrest:hamcrest-all:${versions.hamcrest}"
-    testCompile("io.crate:crate-jdbc:${versions.crate_jdbc}") {
+    implementation project(':sql')
+    testImplementation project(':integration-testing')
+    testImplementation project(':enterprise:ssl-impl')
+    testImplementation project(path: ':sql', configuration: 'testOutput')
+    testImplementation project(path: ':dex', configuration: 'testOutput')
+    testImplementation "org.hamcrest:hamcrest-all:${versions.hamcrest}"
+    testImplementation("io.crate:crate-jdbc:${versions.crate_jdbc}") {
         exclude group: 'net.java.dev.jna', module: 'jna'
         exclude group: 'commons-logging', module: 'commons-logging'
         exclude group: 'org.slf4j', module: 'jcl-over-slf4j'
