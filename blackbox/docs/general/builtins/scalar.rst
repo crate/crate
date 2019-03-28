@@ -340,9 +340,9 @@ Examples
 
 Returns: ``text``
 
-Quotes a provided string argument. The string is quoted only when in is need.
-For example, if it contains non-identifier characters, keywords or would be
-case-folded. Embedded quotes are properly doubled.
+Quotes a provided string argument. Quotes are added only if necessary.
+For example, if the string contains non-identifier characters, keywords or
+would be case-folded. Embedded quotes are properly doubled.
 
 The quoted string can be used as an identifier in an SQL statement.
 
