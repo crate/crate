@@ -10,13 +10,13 @@ configurations {
 }
 
 dependencies {
-    compile project(':sql')
+    implementation project(':sql')
 
-    testCompile project(path: ':sql', configuration: 'testOutput')
-    testCompile project(path: ':dex', configuration: 'testOutput')
-    testCompile project(':integration-testing')
-    testCompile "org.hamcrest:hamcrest-all:${versions.hamcrest}"
-    testCompile("io.crate:crate-jdbc:${versions.crate_jdbc}") {
+    testImplementation project(path: ':sql', configuration: 'testOutput')
+    testImplementation project(path: ':dex', configuration: 'testOutput')
+    testImplementation project(':integration-testing')
+    testImplementation "org.hamcrest:hamcrest-all:${versions.hamcrest}"
+    testImplementation("io.crate:crate-jdbc:${versions.crate_jdbc}") {
             exclude group: 'net.java.dev.jna', module: 'jna'
             exclude group: 'commons-logging', module: 'commons-logging'
             exclude group: 'org.slf4j', module: 'jcl-over-slf4j'

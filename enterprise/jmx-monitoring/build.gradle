@@ -5,9 +5,9 @@ group = 'io.crate'
 description = 'CrateDB JMX monitoring plugin'
 
 dependencies {
-    compile project(':dex')
-    compile project(':sql')
+    implementation project(':dex')
+    implementation project(':sql')
 
-    testCompile project(':integration-testing')
-    testCompile project(path: ':sql', configuration: 'testOutput')
+    testImplementation project(':integration-testing')
+    testImplementation project(path: ':sql', configuration: 'testOutput')
 }

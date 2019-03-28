@@ -37,14 +37,14 @@ group = 'io.crate'
 description = 'CrateDB License Management'
 
 dependencies {
-    compile project(':es:es-core')
-    compile project(':common')
-    compile project(':sql')
-    testCompile project(':integration-testing')
-    testCompile project(path: ':sql', configuration: 'testOutput')
-    testCompile project(path: ':dex', configuration: 'testOutput')
-    testCompile "junit:junit:${versions.junit}"
-    testCompile("io.crate:crate-jdbc:${versions.crate_jdbc}") {
+    implementation project(':es:es-core')
+    implementation project(':common')
+    implementation project(':sql')
+    testImplementation project(':integration-testing')
+    testImplementation project(path: ':sql', configuration: 'testOutput')
+    testImplementation project(path: ':dex', configuration: 'testOutput')
+    testImplementation "junit:junit:${versions.junit}"
+    testImplementation("io.crate:crate-jdbc:${versions.crate_jdbc}") {
         exclude group: 'net.java.dev.jna', module: 'jna'
         exclude group: 'commons-logging', module: 'commons-logging'
         exclude group: 'org.slf4j', module: 'jcl-over-slf4j'
