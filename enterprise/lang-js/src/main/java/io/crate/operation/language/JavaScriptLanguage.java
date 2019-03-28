@@ -27,7 +27,7 @@ import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.types.DataType;
 import jdk.nashorn.api.scripting.NashornScriptEngine;
 import jdk.nashorn.api.scripting.NashornScriptEngineFactory;
-import org.elasticsearch.common.inject.Inject;
+import com.google.inject.Inject;
 
 import javax.annotation.Nullable;
 import javax.script.Bindings;

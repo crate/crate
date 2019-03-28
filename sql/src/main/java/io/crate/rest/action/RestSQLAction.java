@@ -26,9 +26,9 @@ import io.crate.action.sql.SQLOperations;
 import io.crate.auth.user.UserManager;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.plugin.PipelineRegistry;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Provider;
-import org.elasticsearch.common.inject.Singleton;
+import com.google.inject.Inject;
+import com.google.inject.Provider;
+import com.google.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 
 @Singleton

@@ -28,8 +28,8 @@ import com.google.common.collect.Sets;
 import io.crate.analyze.GenericPropertiesConverter;
 import io.crate.analyze.ParameterContext;
 import io.crate.sql.tree.GenericProperties;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 

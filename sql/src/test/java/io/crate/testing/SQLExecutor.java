@@ -23,6 +23,7 @@
 package io.crate.testing;
 
 import com.google.common.base.Preconditions;
+import com.google.inject.Guice;
 import io.crate.Constants;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.SessionContext;
@@ -118,7 +119,6 @@ import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.compress.CompressedXContent;
-import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -396,9 +396,7 @@ public class SQLExecutor {
                         mock(TransportDeleteRepositoryAction.class),
                         mock(TransportPutRepositoryAction.class)
                     ),
-                    new ModulesBuilder().add(new RepositorySettingsModule())
-                        .createInjector()
-                        .getInstance(RepositoryParamValidator.class),
+                    Guice.createInjector(new RepositorySettingsModule()).getInstance(RepositoryParamValidator.class),
                     userManager
                 ),
                 new Planner(

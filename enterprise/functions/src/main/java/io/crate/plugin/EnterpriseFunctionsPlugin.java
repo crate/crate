@@ -20,7 +20,7 @@ package io.crate.plugin;
 
 import io.crate.Plugin;
 import io.crate.module.EnterpriseFunctionsModule;
-import org.elasticsearch.common.inject.Module;
+import com.google.inject.Module;
 
 import java.util.Collection;
 import java.util.Collections;

@@ -19,7 +19,7 @@
 package io.crate.operation.language;
 
 import io.crate.plugin.JavaScriptLanguagePlugin;
-import org.elasticsearch.common.inject.Module;
+import com.google.inject.Module;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.Plugin;

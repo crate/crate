@@ -70,9 +70,9 @@ import org.elasticsearch.action.admin.indices.upgrade.post.TransportUpgradeActio
 import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeRequest;
 import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeResponse;
 import org.elasticsearch.action.support.IndicesOptions;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Provider;
-import org.elasticsearch.common.inject.Singleton;
+import com.google.inject.Inject;
+import com.google.inject.Provider;
+import com.google.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 
 import java.security.GeneralSecurityException;

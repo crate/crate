@@ -23,7 +23,7 @@ package io.crate.metadata;
 
 import io.crate.expression.NestableInput;
 import io.crate.expression.reference.ReferenceResolver;
-import org.elasticsearch.common.inject.Inject;
+import com.google.inject.Inject;
 
 import java.util.Map;
 

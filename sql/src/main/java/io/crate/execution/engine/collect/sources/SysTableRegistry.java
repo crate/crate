@@ -29,8 +29,8 @@ import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.sys.SysTableDefinitions;
 import io.crate.metadata.table.TableInfo;
 import io.crate.expression.reference.StaticTableDefinition;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;

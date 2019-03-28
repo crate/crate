@@ -27,7 +27,7 @@ import io.crate.blob.v2.BlobShard;
 import io.crate.common.Hex;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.component.AbstractComponent;
-import org.elasticsearch.common.inject.Inject;
+import com.google.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.IndexShardClosedException;
 import org.elasticsearch.threadpool.ThreadPool;

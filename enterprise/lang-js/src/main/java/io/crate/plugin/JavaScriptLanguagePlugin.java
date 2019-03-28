@@ -20,7 +20,7 @@ package io.crate.plugin;
 
 import io.crate.Plugin;
 import io.crate.module.JavaScriptLanguageModule;
-import org.elasticsearch.common.inject.Module;
+import com.google.inject.Module;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 

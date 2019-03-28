@@ -48,7 +48,7 @@ import io.crate.sql.tree.QualifiedName;
 import io.crate.testing.SqlExpressions;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
-import org.elasticsearch.common.inject.AbstractModule;
+import com.google.inject.AbstractModule;
 import org.hamcrest.Matcher;
 import org.junit.Before;
 import org.junit.Rule;

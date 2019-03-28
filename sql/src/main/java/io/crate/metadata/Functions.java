@@ -29,7 +29,7 @@ import io.crate.expression.symbol.FuncArg;
 import io.crate.metadata.functions.params.FuncParams;
 import io.crate.types.DataType;
 import org.elasticsearch.common.collect.Tuple;
-import org.elasticsearch.common.inject.Inject;
+import com.google.inject.Inject;
 
 import javax.annotation.Nullable;
 import java.util.Collection;

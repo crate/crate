@@ -24,8 +24,8 @@ package io.crate.expression.reference.sys.check;
 import io.crate.expression.reference.sys.check.cluster.MinMasterNodesSysCheck;
 import io.crate.expression.reference.sys.check.cluster.NumberOfPartitionsSysCheck;
 import io.crate.expression.reference.sys.check.cluster.TablesNeedUpgradeSysCheck;
-import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.inject.multibindings.Multibinder;
+import com.google.inject.AbstractModule;
+import com.google.inject.multibindings.Multibinder;
 
 public class SysChecksModule extends AbstractModule {
 

@@ -24,7 +24,7 @@ package io.crate.execution.engine.collect.count;
 import com.carrotsearch.hppc.IntIndexedContainer;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.TransactionContext;
-import org.elasticsearch.common.inject.ImplementedBy;
+import com.google.inject.ImplementedBy;
 import org.elasticsearch.index.Index;
 
 import java.io.IOException;

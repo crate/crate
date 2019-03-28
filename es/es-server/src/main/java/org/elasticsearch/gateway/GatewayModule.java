@@ -19,7 +19,7 @@
 
 package org.elasticsearch.gateway;
 
-import org.elasticsearch.common.inject.AbstractModule;
+import com.google.inject.AbstractModule;
 
 public class GatewayModule extends AbstractModule {
 

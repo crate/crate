@@ -21,7 +21,7 @@ package io.crate.plugin;
 import com.google.common.collect.ImmutableList;
 import io.crate.Plugin;
 import io.crate.module.CrateMonitoringModule;
-import org.elasticsearch.common.inject.Module;
+import com.google.inject.Module;
 
 import java.util.Collection;
 

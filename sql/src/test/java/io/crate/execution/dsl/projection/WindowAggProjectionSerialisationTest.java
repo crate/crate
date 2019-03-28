@@ -22,6 +22,7 @@
 
 package io.crate.execution.dsl.projection;
 
+import com.google.inject.Guice;
 import io.crate.analyze.WindowDefinition;
 import io.crate.execution.engine.aggregation.impl.AggregationImplModule;
 import io.crate.execution.engine.aggregation.impl.SumAggregation;
@@ -33,7 +34,6 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
@@ -84,11 +84,8 @@ public class WindowAggProjectionSerialisationTest {
     }
 
     private FunctionImplementation getSumFunction() {
-        Functions functions = new ModulesBuilder()
-            .add(new AggregationImplModule())
-            .add(new OperatorModule()).createInjector().getInstance(Functions.class);
-
+        Functions functions = Guice.createInjector(List.of(new AggregationImplModule(), new OperatorModule()))
+            .getInstance(Functions.class);
         return functions.getQualified(new FunctionIdent(SumAggregation.NAME, Arrays.asList(DataTypes.FLOAT)));
     }
-
 }

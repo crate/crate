@@ -23,8 +23,8 @@
 package io.crate.expression.reference.sys.check.node;
 
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.node.NodeService;
 

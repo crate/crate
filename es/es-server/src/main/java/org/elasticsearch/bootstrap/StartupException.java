@@ -19,8 +19,8 @@
 
 package org.elasticsearch.bootstrap;
 
-import org.elasticsearch.common.inject.CreationException;
-import org.elasticsearch.common.inject.spi.Message;
+import com.google.inject.CreationException;
+import com.google.inject.spi.Message;
 
 import java.io.PrintStream;
 import java.io.PrintWriter;

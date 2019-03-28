@@ -22,6 +22,7 @@
 
 package io.crate.execution.engine.aggregation;
 
+import com.google.inject.Guice;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.BatchIterator;
 import io.crate.data.BatchIterators;
@@ -41,7 +42,6 @@ import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
-import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.util.BigArrays;
 import org.junit.Test;
 
@@ -60,8 +60,7 @@ public class GroupBySingleNumberCollectorTest extends CrateUnitTest {
 
     @Test
     public void testIterateOverResultTwice() throws Exception {
-        Functions functions = new ModulesBuilder().add(new AggregationImplModule())
-            .createInjector().getInstance(Functions.class);
+        Functions functions = Guice.createInjector(new AggregationImplModule()).getInstance(Functions.class);
         AggregationFunction sumAgg = (AggregationFunction) functions.getQualified(
             new FunctionIdent(SumAggregation.NAME, Arrays.asList(DataTypes.INTEGER)));
         InputCollectExpression keyInput = new InputCollectExpression(0);

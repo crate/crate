@@ -22,7 +22,7 @@
 package org.elasticsearch.action.bulk;
 
 import org.elasticsearch.action.admin.indices.create.TransportCreatePartitionsAction;
-import org.elasticsearch.common.inject.AbstractModule;
+import com.google.inject.AbstractModule;
 
 public class BulkModule extends AbstractModule {
     @Override

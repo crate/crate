@@ -23,7 +23,7 @@ package io.crate.expression.reference.sys.cluster;
 
 import io.crate.expression.NestableInput;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
+import com.google.inject.Inject;
 
 public class ClusterMasterNodeExpression implements NestableInput<String> {
 

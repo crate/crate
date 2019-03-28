@@ -22,7 +22,7 @@
 package io.crate.blob.v2;
 
 import io.crate.blob.BlobTransferTarget;
-import org.elasticsearch.common.inject.AbstractModule;
+import com.google.inject.AbstractModule;
 import org.elasticsearch.indices.recovery.BlobRecoveryTarget;
 
 

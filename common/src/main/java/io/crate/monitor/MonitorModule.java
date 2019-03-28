@@ -22,7 +22,7 @@
 
 package io.crate.monitor;
 
-import org.elasticsearch.common.inject.AbstractModule;
+import com.google.inject.AbstractModule;
 
 public class MonitorModule extends AbstractModule {
 

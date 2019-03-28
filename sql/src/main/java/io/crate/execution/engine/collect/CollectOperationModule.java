@@ -26,7 +26,7 @@ import io.crate.execution.engine.collect.sources.ShardCollectSource;
 import io.crate.execution.engine.collect.sources.SystemCollectSource;
 import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.execution.engine.collect.stats.JobsLogs;
-import org.elasticsearch.common.inject.AbstractModule;
+import com.google.inject.AbstractModule;
 
 public class CollectOperationModule extends AbstractModule {
 

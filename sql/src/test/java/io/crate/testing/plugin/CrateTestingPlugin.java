@@ -26,9 +26,9 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.testing.SleepScalarFunction;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.inject.Module;
-import org.elasticsearch.common.inject.multibindings.MapBinder;
+import com.google.inject.AbstractModule;
+import com.google.inject.Module;
+import com.google.inject.multibindings.MapBinder;
 import org.elasticsearch.plugins.Plugin;
 
 import java.util.Collection;

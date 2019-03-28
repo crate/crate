@@ -25,8 +25,8 @@ import io.crate.metadata.ClusterReferenceResolver;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.expression.NestableInput;
 import io.crate.metadata.sys.SysClusterTableInfo;
-import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.inject.multibindings.MapBinder;
+import com.google.inject.AbstractModule;
+import com.google.inject.multibindings.MapBinder;
 
 public class SysClusterExpressionModule extends AbstractModule {
 

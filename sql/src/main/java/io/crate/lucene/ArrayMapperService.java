@@ -23,8 +23,8 @@
 package io.crate.lucene;
 
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.mapper.BuilderFactory;
 import org.elasticsearch.indices.IndicesService;

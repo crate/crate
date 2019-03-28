@@ -22,6 +22,8 @@
 
 package io.crate.data.join;
 
+import com.google.inject.Guice;
+import com.google.inject.Stage;
 import io.crate.analyze.WindowDefinition;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.breaker.RowAccounting;
@@ -46,7 +48,6 @@ import io.crate.testing.RowGenerator;
 import io.crate.types.DataTypes;
 import io.crate.window.NthValueFunctions;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
-import org.elasticsearch.common.inject.ModulesBuilder;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Mode;
@@ -91,8 +92,8 @@ public class RowsBatchIteratorBenchmark {
 
     @Setup
     public void setup() {
-        Functions functions = new ModulesBuilder().add(new EnterpriseFunctionsModule())
-            .createInjector().getInstance(Functions.class);
+        Functions functions = Guice.createInjector(Stage.PRODUCTION, new EnterpriseFunctionsModule())
+            .getInstance(Functions.class);
         lastValueIntFunction = (WindowFunction) functions.getQualified(
             new FunctionIdent(NthValueFunctions.LAST_VALUE_NAME, Collections.singletonList(DataTypes.INTEGER)));
     }

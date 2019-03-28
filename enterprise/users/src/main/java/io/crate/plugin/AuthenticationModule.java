@@ -22,7 +22,7 @@ import io.crate.auth.AlwaysOKAuthentication;
 import io.crate.auth.AuthSettings;
 import io.crate.auth.Authentication;
 import io.crate.auth.HostBasedAuthentication;
-import org.elasticsearch.common.inject.AbstractModule;
+import com.google.inject.AbstractModule;
 import org.elasticsearch.common.settings.Settings;
 
 public class AuthenticationModule extends AbstractModule {

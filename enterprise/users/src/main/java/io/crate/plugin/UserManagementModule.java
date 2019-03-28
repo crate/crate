@@ -25,7 +25,7 @@ import io.crate.auth.user.TransportPrivilegesAction;
 import io.crate.auth.user.UserLookup;
 import io.crate.auth.user.UserManager;
 import io.crate.auth.user.UserManagerService;
-import org.elasticsearch.common.inject.AbstractModule;
+import com.google.inject.AbstractModule;
 
 public class UserManagementModule extends AbstractModule {
 

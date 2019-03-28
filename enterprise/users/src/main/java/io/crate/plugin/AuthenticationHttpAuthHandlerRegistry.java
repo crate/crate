@@ -20,8 +20,8 @@ package io.crate.plugin;
 
 import io.crate.auth.Authentication;
 import io.crate.protocols.http.HttpAuthUpstreamHandler;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 
 /**

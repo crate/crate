@@ -21,7 +21,7 @@ package org.elasticsearch.indices;
 
 import org.elasticsearch.action.resync.TransportResyncReplicationAction;
 import org.elasticsearch.common.geo.ShapesAvailability;
-import org.elasticsearch.common.inject.AbstractModule;
+import com.google.inject.AbstractModule;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry.Entry;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;

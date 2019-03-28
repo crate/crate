@@ -21,8 +21,8 @@ package org.elasticsearch.common.settings;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.inject.Binder;
-import org.elasticsearch.common.inject.Module;
+import com.google.inject.Binder;
+import com.google.inject.Module;
 
 import java.util.Arrays;
 import java.util.Collections;

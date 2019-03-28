@@ -23,6 +23,8 @@ package io.crate.testing;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Ordering;
+import com.google.inject.Guice;
+import com.google.inject.Stage;
 import io.crate.analyze.where.DocKeys;
 import io.crate.collections.Lists2;
 import io.crate.common.collections.Sorted;
@@ -46,7 +48,6 @@ import io.crate.metadata.Schemas;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
-import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
@@ -166,13 +167,14 @@ public class TestingHelpers {
     }
 
     public static Functions getFunctions() {
-        return new ModulesBuilder()
-            .add(new AggregationImplModule())
-            .add(new PredicateModule())
-            .add(new TableFunctionModule())
-            .add(new ScalarFunctionModule())
-            .add(new WindowFunctionModule())
-            .add(new OperatorModule()).createInjector().getInstance(Functions.class);
+        return Guice.createInjector(Stage.DEVELOPMENT, List.of(
+            new AggregationImplModule(),
+            new PredicateModule(),
+            new TableFunctionModule(),
+            new ScalarFunctionModule(),
+            new WindowFunctionModule(),
+            new OperatorModule()
+        )).getInstance(Functions.class);
     }
 
     public static Reference createReference(String columnName, DataType dataType) {

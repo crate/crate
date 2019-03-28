@@ -22,6 +22,11 @@
 
 package io.crate.testing;
 
+import com.google.inject.AbstractModule;
+import com.google.inject.Guice;
+import com.google.inject.Injector;
+import com.google.inject.Module;
+import com.google.inject.Stage;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.ParamTypeHints;
@@ -48,12 +53,11 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.RowGranularity;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.QualifiedName;
-import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.inject.Injector;
-import org.elasticsearch.common.inject.ModulesBuilder;
 
 import javax.annotation.Nullable;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 public class SqlExpressions {
@@ -79,19 +83,18 @@ public class SqlExpressions {
                           @Nullable Object[] parameters,
                           User user,
                           AbstractModule... additionalModules) {
-        ModulesBuilder modulesBuilder = new ModulesBuilder()
-            .add(new OperatorModule())
-            .add(new AggregationImplModule())
-            .add(new ScalarFunctionModule())
-            .add(new WindowFunctionModule())
-            .add(new TableFunctionModule())
-            .add(new PredicateModule());
+        List<Module> modules = Arrays.asList(
+            new OperatorModule(),
+            new AggregationImplModule(),
+            new ScalarFunctionModule(),
+            new WindowFunctionModule(),
+            new TableFunctionModule(),
+            new PredicateModule()
+        );
         if (additionalModules != null) {
-            for (AbstractModule module : additionalModules) {
-                modulesBuilder.add(module);
-            }
+            modules.addAll(Arrays.asList(additionalModules));
         }
-        injector = modulesBuilder.createInjector();
+        injector = Guice.createInjector(Stage.DEVELOPMENT, modules);
         functions = injector.getInstance(Functions.class);
         coordinatorTxnCtx = new CoordinatorTxnCtx(new SessionContext(0, Option.NONE, user, s -> {}, e -> {}));
         expressionAnalyzer = new ExpressionAnalyzer(

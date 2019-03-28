@@ -24,8 +24,8 @@ package io.crate.metadata;
 import io.crate.metadata.cluster.DDLClusterStateService;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
-import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.inject.multibindings.MapBinder;
+import com.google.inject.AbstractModule;
+import com.google.inject.multibindings.MapBinder;
 
 public class MetaDataModule extends AbstractModule {
 

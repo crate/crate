@@ -26,6 +26,7 @@ dependencies {
         exclude group: 'org.elasticsearch', module: 'elasticsearch-core'
     }
     compile "com.carrotsearch:hppc:${versions.carrotsearch_hppc}"
+    compile "com.google.inject:guice:${versions.guice}:no_aop"
 
     // time handling
     compile "joda-time:joda-time:${versions.jodatime}"

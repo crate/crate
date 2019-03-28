@@ -19,7 +19,7 @@
 package io.crate.module;
 
 import io.crate.plugin.CrateMonitor;
-import org.elasticsearch.common.inject.AbstractModule;
+import com.google.inject.AbstractModule;
 
 public class CrateMonitoringModule extends AbstractModule {
 

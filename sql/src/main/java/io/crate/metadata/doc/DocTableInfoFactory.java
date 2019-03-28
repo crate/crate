@@ -24,7 +24,7 @@ package io.crate.metadata.doc;
 
 import io.crate.metadata.RelationName;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.common.inject.ImplementedBy;
+import com.google.inject.ImplementedBy;
 
 @ImplementedBy(InternalDocTableInfoFactory.class)
 public interface DocTableInfoFactory {

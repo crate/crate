@@ -27,7 +27,7 @@ import io.crate.execution.engine.collect.sources.InformationSchemaIterables;
 import io.crate.expression.reference.StaticTableDefinition;
 import io.crate.metadata.RelationName;
 import io.crate.protocols.postgres.types.PGTypes;
-import org.elasticsearch.common.inject.Inject;
+import com.google.inject.Inject;
 
 import java.util.Collections;
 import java.util.HashMap;

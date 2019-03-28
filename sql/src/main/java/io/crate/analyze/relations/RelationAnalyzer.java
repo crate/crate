@@ -91,8 +91,8 @@ import io.crate.sql.tree.TableSubquery;
 import io.crate.sql.tree.Union;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.collect.Tuple;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;

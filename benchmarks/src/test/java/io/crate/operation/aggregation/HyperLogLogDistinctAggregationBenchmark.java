@@ -22,6 +22,8 @@
 
 package io.crate.operation.aggregation;
 
+import com.google.inject.Guice;
+import com.google.inject.Stage;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.Input;
 import io.crate.data.Row;
@@ -36,7 +38,6 @@ import io.crate.module.EnterpriseFunctionsModule;
 import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
-import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.search.aggregations.metrics.cardinality.HyperLogLogPlusPlus;
 import org.openjdk.jmh.annotations.Benchmark;
@@ -73,9 +74,8 @@ public class HyperLogLogDistinctAggregationBenchmark {
     public void setUp() throws Exception {
         hyperLogLogPlusPlus = new HyperLogLogPlusPlus(HyperLogLogPlusPlus.DEFAULT_PRECISION, BigArrays.NON_RECYCLING_INSTANCE, 1);
         InputCollectExpression inExpr0 = new InputCollectExpression(0);
-        Functions functions = new ModulesBuilder()
-            .add(new EnterpriseFunctionsModule())
-            .createInjector().getInstance(Functions.class);
+        Functions functions = Guice.createInjector(Stage.PRODUCTION, new EnterpriseFunctionsModule())
+            .getInstance(Functions.class);
         HyperLogLogDistinctAggregation hllAggregation = ((HyperLogLogDistinctAggregation) functions.getQualified(
             new FunctionIdent(HyperLogLogDistinctAggregation.NAME, Collections.singletonList(DataTypes.STRING))));
         collector = new AggregateCollector(

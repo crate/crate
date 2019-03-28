@@ -22,7 +22,7 @@
 
 package io.crate.execution.jobs;
 
-import org.elasticsearch.common.inject.AbstractModule;
+import com.google.inject.AbstractModule;
 
 public class JobModule extends AbstractModule {
 

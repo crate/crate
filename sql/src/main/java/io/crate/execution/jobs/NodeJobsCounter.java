@@ -22,7 +22,7 @@
 
 package io.crate.execution.jobs;
 
-import org.elasticsearch.common.inject.Singleton;
+import com.google.inject.Singleton;
 
 import javax.annotation.Nullable;
 import java.util.Map;

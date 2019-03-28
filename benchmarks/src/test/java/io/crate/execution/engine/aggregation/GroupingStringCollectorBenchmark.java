@@ -22,6 +22,8 @@
 
 package io.crate.execution.engine.aggregation;
 
+import com.google.inject.Guice;
+import com.google.inject.Stage;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.BatchIterator;
 import io.crate.data.BatchIterators;
@@ -40,7 +42,6 @@ import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
-import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.util.BigArrays;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -74,8 +75,8 @@ public class GroupingStringCollectorBenchmark {
 
     @Setup
     public void createGroupingCollector() {
-        Functions functions = new ModulesBuilder().add(new AggregationImplModule())
-            .createInjector().getInstance(Functions.class);
+        Functions functions = Guice.createInjector(Stage.PRODUCTION, new AggregationImplModule())
+            .getInstance(Functions.class);
 
         groupByMinCollector = createGroupByMinBytesRefCollector(functions);
 

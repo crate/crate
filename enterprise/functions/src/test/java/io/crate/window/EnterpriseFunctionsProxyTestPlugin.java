@@ -23,7 +23,7 @@
 package io.crate.window;
 
 import io.crate.plugin.EnterpriseFunctionsPlugin;
-import org.elasticsearch.common.inject.Module;
+import com.google.inject.Module;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.plugins.Plugin;
 

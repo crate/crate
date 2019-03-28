@@ -22,13 +22,13 @@
 
 package io.crate.analyze;
 
+import com.google.inject.Guice;
 import io.crate.analyze.repositories.RepositoryParamValidator;
 import io.crate.analyze.repositories.RepositorySettingsModule;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.GenericProperty;
 import io.crate.sql.tree.StringLiteral;
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
 import org.junit.Test;
@@ -41,8 +41,7 @@ public class RepositoryParamValidatorTest extends CrateUnitTest {
 
     @Before
     public void initValidator() throws Exception {
-        validator = new ModulesBuilder()
-            .add(new RepositorySettingsModule()).createInjector().getInstance(RepositoryParamValidator.class);
+        validator = Guice.createInjector(new RepositorySettingsModule()).getInstance(RepositoryParamValidator.class);
     }
 
     @Test

@@ -23,8 +23,8 @@ import io.crate.license.LicenseData;
 import io.crate.license.LicenseExpiryNotification;
 import io.crate.license.LicenseService;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 
 import java.time.Duration;
 import java.util.Locale;

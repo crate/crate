@@ -27,7 +27,7 @@ import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.view.ViewInfo;
 import org.elasticsearch.cluster.ClusterChangedEvent;
-import org.elasticsearch.common.inject.Inject;
+import com.google.inject.Inject;
 
 import javax.annotation.Nullable;
 import java.util.Collections;

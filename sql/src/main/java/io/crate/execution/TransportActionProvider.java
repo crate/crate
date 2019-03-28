@@ -37,8 +37,8 @@ import org.elasticsearch.action.admin.cluster.snapshots.get.TransportGetSnapshot
 import org.elasticsearch.action.admin.cluster.snapshots.restore.TransportRestoreSnapshotAction;
 import org.elasticsearch.action.admin.indices.create.TransportCreatePartitionsAction;
 import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Provider;
+import com.google.inject.Inject;
+import com.google.inject.Provider;
 
 public class TransportActionProvider {
 

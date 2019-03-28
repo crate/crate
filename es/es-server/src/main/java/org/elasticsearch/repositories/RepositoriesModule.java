@@ -19,8 +19,8 @@
 
 package org.elasticsearch.repositories;
 
-import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.inject.multibindings.MapBinder;
+import com.google.inject.AbstractModule;
+import com.google.inject.multibindings.MapBinder;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.plugins.RepositoryPlugin;

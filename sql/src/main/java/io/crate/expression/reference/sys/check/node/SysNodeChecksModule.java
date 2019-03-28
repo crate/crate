@@ -22,8 +22,8 @@
 
 package io.crate.expression.reference.sys.check.node;
 
-import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.inject.multibindings.MapBinder;
+import com.google.inject.AbstractModule;
+import com.google.inject.multibindings.MapBinder;
 
 public class SysNodeChecksModule extends AbstractModule {
 

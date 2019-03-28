@@ -20,8 +20,8 @@ package io.crate.license;
 
 import io.crate.expression.reference.sys.check.SysCheck;
 import io.crate.expression.reference.sys.check.cluster.LicenseCheck;
-import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.inject.multibindings.Multibinder;
+import com.google.inject.AbstractModule;
+import com.google.inject.multibindings.Multibinder;
 
 public class LicenseModule extends AbstractModule {
 

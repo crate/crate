@@ -22,8 +22,8 @@
 
 package io.crate.execution.engine.collect.files;
 
-import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.inject.multibindings.MapBinder;
+import com.google.inject.AbstractModule;
+import com.google.inject.multibindings.MapBinder;
 
 public class FileCollectModule extends AbstractModule {
 

@@ -33,8 +33,8 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import org.elasticsearch.discovery.zen.ElectMasterService;
 
 @Singleton

@@ -45,7 +45,7 @@ import io.crate.execution.jobs.transport.TransportJobAction;
 import io.crate.expression.udf.TransportCreateUserDefinedFunctionAction;
 import io.crate.expression.udf.TransportDropUserDefinedFunctionAction;
 import io.crate.lucene.LuceneQueryBuilder;
-import org.elasticsearch.common.inject.AbstractModule;
+import com.google.inject.AbstractModule;
 
 public class TransportExecutorModule extends AbstractModule {
 

@@ -24,7 +24,7 @@ package io.crate.metadata.view;
 
 import io.crate.metadata.RelationName;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.common.inject.ImplementedBy;
+import com.google.inject.ImplementedBy;
 
 @ImplementedBy(InternalViewInfoFactory.class)
 public interface ViewInfoFactory {

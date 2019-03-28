@@ -21,7 +21,7 @@
 
 package io.crate.breaker;
 
-import org.elasticsearch.common.inject.AbstractModule;
+import com.google.inject.AbstractModule;
 
 public class CircuitBreakerModule extends AbstractModule {
 

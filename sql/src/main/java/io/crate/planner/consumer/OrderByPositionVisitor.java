@@ -25,7 +25,7 @@ import com.carrotsearch.hppc.IntArrayList;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
-import org.elasticsearch.common.inject.Singleton;
+import com.google.inject.Singleton;
 
 import javax.annotation.Nullable;
 import java.util.Collection;

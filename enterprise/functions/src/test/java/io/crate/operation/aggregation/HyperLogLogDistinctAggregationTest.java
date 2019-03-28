@@ -19,6 +19,7 @@
 package io.crate.operation.aggregation;
 
 import com.google.common.collect.ImmutableList;
+import com.google.inject.Guice;
 import io.crate.Streamer;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
@@ -27,7 +28,6 @@ import io.crate.module.EnterpriseFunctionsModule;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.IntegerType;
-import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.util.BigArrays;
@@ -45,9 +45,7 @@ public class HyperLogLogDistinctAggregationTest extends AggregationTest {
 
     @Before
     public void prepareFunctions() throws Exception {
-        functions = new ModulesBuilder()
-            .add(new EnterpriseFunctionsModule())
-            .createInjector().getInstance(Functions.class);
+        functions = Guice.createInjector(new EnterpriseFunctionsModule()).getInstance(Functions.class);
     }
 
     private Object[][] executeAggregation(DataType dataType, Object[][] data) throws Exception {

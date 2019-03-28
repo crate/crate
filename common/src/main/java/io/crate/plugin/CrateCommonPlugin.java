@@ -25,7 +25,7 @@ package io.crate.plugin;
 import io.crate.metadata.CustomMetaDataUpgraderLoader;
 import io.crate.module.CrateCommonModule;
 import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.common.inject.Module;
+import com.google.inject.Module;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexModule;
 import org.elasticsearch.plugins.Plugin;

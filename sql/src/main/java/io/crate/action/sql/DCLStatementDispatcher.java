@@ -28,9 +28,9 @@ import io.crate.analyze.PrivilegesAnalyzedStatement;
 import io.crate.auth.user.UserManager;
 import io.crate.concurrent.CompletableFutures;
 import io.crate.data.Row;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Provider;
-import org.elasticsearch.common.inject.Singleton;
+import com.google.inject.Inject;
+import com.google.inject.Provider;
+import com.google.inject.Singleton;
 
 import java.util.Locale;
 import java.util.concurrent.CompletableFuture;

@@ -28,8 +28,8 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.sys.SysNodeChecksTableInfo;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.LifecycleListener;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import org.elasticsearch.discovery.Discovery;
 
 import java.util.HashMap;

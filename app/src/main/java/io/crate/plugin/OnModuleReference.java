@@ -22,7 +22,7 @@
 
 package io.crate.plugin;
 
-import org.elasticsearch.common.inject.Module;
+import com.google.inject.Module;
 
 import java.lang.reflect.Method;
 

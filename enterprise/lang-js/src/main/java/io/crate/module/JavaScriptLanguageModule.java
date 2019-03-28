@@ -19,7 +19,7 @@
 package io.crate.module;
 
 import io.crate.operation.language.JavaScriptLanguage;
-import org.elasticsearch.common.inject.AbstractModule;
+import com.google.inject.AbstractModule;
 import org.elasticsearch.common.settings.Setting;
 
 public class JavaScriptLanguageModule extends AbstractModule {

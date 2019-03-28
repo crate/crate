@@ -22,7 +22,7 @@
 
 package io.crate.monitor;
 
-import org.elasticsearch.common.inject.Inject;
+import com.google.inject.Inject;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.SingleObjectCache;
 import org.elasticsearch.monitor.os.OsProbe;

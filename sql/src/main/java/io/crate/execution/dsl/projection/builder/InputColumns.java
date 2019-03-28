@@ -38,7 +38,7 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.Reference;
 import io.crate.types.DataType;
-import org.elasticsearch.common.inject.Singleton;
+import com.google.inject.Singleton;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
