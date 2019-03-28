@@ -30,9 +30,9 @@ dependencies {
         exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
         exclude group: 'org.apache.httpcomponents', module: 'httpclient'
     }
-    testCompile project(':integration-testing')
-    testCompile project(':http')
-    testCompile('com.microsoft.azure:azure-mgmt-utility:0.9.8') {
+    testImplementation project(':integration-testing')
+    testImplementation project(':http')
+    testImplementation('com.microsoft.azure:azure-mgmt-utility:0.9.8') {
         exclude group: 'stax', module: 'stax-api'
         exclude group: 'javax.mail', module: 'mail'
         exclude group: 'org.slf4j', module: 'slf4j-api'
