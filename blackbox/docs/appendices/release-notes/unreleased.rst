@@ -47,5 +47,8 @@ None
 Fixes
 =====
 
+- Fixed an issue that would cause a ``ClassCastException`` for queries ordered
+  by a window function.
+
 - Fix quoting of identifiers that contain leading digits or spaces when
   printing relation or column names.

@@ -80,4 +80,17 @@ public class WindowFunctionsIntegrationTest extends SQLTransportIntegrationTest 
                                                      "2| 1.5| 4\n" +
                                                      "NULL| 1.5| 5\n"));
     }
+
+    @Test
+    public void testOrderByWindowFunctionInQueryOnDocTable() {
+        execute("create table t (x int)");
+        execute("insert into t values (1), (1), (1)");
+        execute("refresh table t");
+
+        execute("select x, avg(x) OVER() from t order by 2");
+
+        assertThat(printedTable(response.rows()), is("1| 1.0\n" +
+                                                     "1| 1.0\n" +
+                                                     "1| 1.0\n"));
+    }
 }
