@@ -28,12 +28,14 @@ import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Spliterator;
 import java.util.function.Consumer;
 
 /**
- * As writing fully qualified table names is usually tedious. This class models a list of schemas the system will use in
- * order to determine which table is meant by the user.
+ * Writing fully qualified table names is usually tedious.
+ * This class models a list of schemas the system will use
+ * in order to determine which table is meant by the user.
  */
 public final class SearchPath implements Iterable<String> {
 
@@ -42,7 +44,7 @@ public final class SearchPath implements Iterable<String> {
     private final List<String> searchPath;
 
     public static SearchPath createSearchPathFrom(String... schemas) {
-        if (schemas == null || schemas.length == 0) {
+        if (schemas == null || schemas.length == 0 || (schemas.length == 1 && schemas[0] == null)) {
             return new SearchPath();
         } else {
             return new SearchPath(ImmutableList.copyOf(schemas));
@@ -92,5 +94,23 @@ public final class SearchPath implements Iterable<String> {
     @Override
     public Spliterator<String> spliterator() {
         return searchPath.spliterator();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        SearchPath that = (SearchPath) o;
+        return pgCatalogIsSetExplicitly == that.pgCatalogIsSetExplicitly &&
+               Objects.equals(searchPath, that.searchPath);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(pgCatalogIsSetExplicitly, searchPath);
     }
 }

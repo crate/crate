@@ -23,9 +23,13 @@
 package io.crate.metadata;
 
 import io.crate.action.sql.SessionContext;
+import io.crate.action.sql.SessionTransportableInfo;
+import io.crate.metadata.settings.session.SessionSettingRegistry;
 import org.joda.time.DateTimeUtils;
 
+import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * TransactionContext is a context that is used to keep state which is valid during a transaction.
@@ -73,7 +77,22 @@ public final class CoordinatorTxnCtx implements TransactionContext {
         return sessionContext.searchPath();
     }
 
+    @Override
+    public SessionTransportableInfo sessionTransportableInfo() {
+        return new SessionTransportableInfo(userName(), sessionSettings());
+    }
+
     public SessionContext sessionContext() {
         return sessionContext;
+    }
+
+    private Map<String, String> sessionSettings() {
+        // todo: add logic which session settings to include - for now include all
+        return SessionSettingRegistry.SETTINGS.entrySet()
+            .stream()
+            .collect(Collectors.toMap(
+                Map.Entry::getKey,
+                v -> v.getValue().getValue(sessionContext)
+            ));
     }
 }

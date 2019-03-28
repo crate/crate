@@ -23,6 +23,7 @@
 package io.crate.execution.dml.upsert;
 
 import io.crate.Constants;
+import io.crate.action.sql.SessionTransportableInfo;
 import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.execution.ddl.SchemaUpdateClient;
 import io.crate.execution.dml.ShardResponse;
@@ -36,6 +37,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.metadata.table.Operation;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.DataTypes;
@@ -69,6 +71,7 @@ import org.junit.Test;
 import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -91,6 +94,10 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
     private final static String PARTITION_INDEX = new PartitionName(TABLE_IDENT, Arrays.asList("1395874800000")).asIndexName();
     private final static Reference ID_REF = new Reference(
         new ReferenceIdent(TABLE_IDENT, "id"), RowGranularity.DOC, DataTypes.SHORT, null);
+
+    private final static SessionTransportableInfo DUMMY_SESSION_INFO = new SessionTransportableInfo(
+        "dummyUser",
+        Map.of(SessionSettingRegistry.SEARCH_PATH_KEY, "dummySchema"));
 
     private String charactersIndexUUID;
     private String partitionIndexUUID;
@@ -176,8 +183,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
     public void testExceptionWhileProcessingItemsNotContinueOnError() throws Exception {
         ShardId shardId = new ShardId(TABLE_IDENT.indexNameOrAlias(), charactersIndexUUID, 0);
         ShardUpsertRequest request = new ShardUpsertRequest.Builder(
-            "dummyUser",
-            "dummySchema",
+            DUMMY_SESSION_INFO,
             TimeValue.timeValueSeconds(30),
             DuplicateKeyAction.UPDATE_OR_FAIL,
             false,
@@ -198,8 +204,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
     public void testExceptionWhileProcessingItemsContinueOnError() throws Exception {
         ShardId shardId = new ShardId(TABLE_IDENT.indexNameOrAlias(), charactersIndexUUID, 0);
         ShardUpsertRequest request = new ShardUpsertRequest.Builder(
-            "dummyUser",
-            "dummySchema",
+            DUMMY_SESSION_INFO,
             TimeValue.timeValueSeconds(30),
             DuplicateKeyAction.UPDATE_OR_FAIL,
             true,
@@ -240,8 +245,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
     public void testKilledSetWhileProcessingItemsDoesNotThrowException() throws Exception {
         ShardId shardId = new ShardId(TABLE_IDENT.indexNameOrAlias(), charactersIndexUUID, 0);
         ShardUpsertRequest request = new ShardUpsertRequest.Builder(
-            "dummyUser",
-            "dummySchema",
+            DUMMY_SESSION_INFO,
             TimeValue.timeValueSeconds(30),
             DuplicateKeyAction.UPDATE_OR_FAIL,
             false,
@@ -262,8 +266,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
     public void testItemsWithoutSourceAreSkippedOnReplicaOperation() throws Exception {
         ShardId shardId = new ShardId(TABLE_IDENT.indexNameOrAlias(), charactersIndexUUID, 0);
         ShardUpsertRequest request = new ShardUpsertRequest.Builder(
-            "dummyUser",
-            "dummySchema",
+            DUMMY_SESSION_INFO,
             TimeValue.timeValueSeconds(30),
             DuplicateKeyAction.UPDATE_OR_FAIL,
             false,

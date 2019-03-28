@@ -33,7 +33,7 @@ import static io.crate.metadata.SearchPath.createSearchPathFrom;
 
 public class SessionSettingRegistry {
 
-    private static final String SEARCH_PATH_KEY = "search_path";
+    public static final String SEARCH_PATH_KEY = "search_path";
     static final String SEMI_JOIN_KEY = "enable_semijoin";
     public static final String HASH_JOIN_KEY = "enable_hashjoin";
 

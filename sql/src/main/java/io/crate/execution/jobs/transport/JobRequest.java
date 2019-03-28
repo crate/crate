@@ -22,6 +22,7 @@
 
 package io.crate.execution.jobs.transport;
 
+import io.crate.action.sql.SessionTransportableInfo;
 import io.crate.execution.dsl.phases.NodeOperation;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -35,8 +36,7 @@ import java.util.UUID;
 public class JobRequest extends TransportRequest {
 
     private UUID jobId;
-    private String userName;
-    private String currentSchema;
+    private SessionTransportableInfo sessionInfo;
     private String coordinatorNodeId;
     private Collection<? extends NodeOperation> nodeOperations;
     private boolean enableProfiling;
@@ -45,15 +45,13 @@ public class JobRequest extends TransportRequest {
     }
 
     public JobRequest(UUID jobId,
-                      String userName,
-                      String currentSchema,
+                      SessionTransportableInfo sessionInfo,
                       String coordinatorNodeId,
                       Collection<? extends NodeOperation> nodeOperations,
                       boolean enableProfiling) {
         this.jobId = jobId;
-        this.userName = userName;
-        this.currentSchema = currentSchema;
         this.coordinatorNodeId = coordinatorNodeId;
+        this.sessionInfo = sessionInfo;
         this.nodeOperations = nodeOperations;
         this.enableProfiling = enableProfiling;
     }
@@ -74,12 +72,8 @@ public class JobRequest extends TransportRequest {
         return enableProfiling;
     }
 
-    public String userName() {
-        return userName;
-    }
-
-    public String currentSchema() {
-        return currentSchema;
+    public SessionTransportableInfo sessionTransportableInfo() {
+        return sessionInfo;
     }
 
     @Override
@@ -97,8 +91,7 @@ public class JobRequest extends TransportRequest {
         this.nodeOperations = nodeOperations;
         enableProfiling = in.readBoolean();
 
-        userName = in.readString();
-        currentSchema = in.readString();
+        sessionInfo = SessionTransportableInfo.fromStream(in);
     }
 
     @Override
@@ -115,7 +108,7 @@ public class JobRequest extends TransportRequest {
         }
 
         out.writeBoolean(enableProfiling);
-        out.writeString(userName);
-        out.writeString(currentSchema);
+
+        sessionInfo.writeTo(out);
     }
 }

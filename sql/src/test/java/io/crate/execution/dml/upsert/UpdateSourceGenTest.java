@@ -22,15 +22,16 @@
 
 package io.crate.execution.dml.upsert;
 
+import io.crate.action.sql.SessionTransportableInfo;
 import io.crate.analyze.AnalyzedUpdateStatement;
 import io.crate.expression.reference.Doc;
 import io.crate.expression.symbol.Assignments;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.SearchPath;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.elasticsearch.common.Strings;
@@ -47,6 +48,10 @@ import static java.util.Collections.singletonMap;
 import static org.hamcrest.Matchers.is;
 
 public class UpdateSourceGenTest extends CrateDummyClusterServiceUnitTest {
+
+    private static SessionTransportableInfo DUMMY_SESSION_INFO = new SessionTransportableInfo(
+        "dummyUser",
+        Map.of(SessionSettingRegistry.SEARCH_PATH_KEY, "dummySchema"));
 
     private TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
 
@@ -163,7 +168,7 @@ public class UpdateSourceGenTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo table = (DocTableInfo) update.table().tableInfo();
         UpdateSourceGen sourceGen = new UpdateSourceGen(
             e.functions(),
-            TransactionContext.of("dummyUser", SearchPath.createSearchPathFrom("dummySchema")),
+            TransactionContext.of(DUMMY_SESSION_INFO),
             table,
             assignments.targetNames()
         );

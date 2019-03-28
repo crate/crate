@@ -36,6 +36,7 @@ import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.carrotsearch.hppc.procedures.ObjectProcedure;
 import com.google.common.base.MoreObjects;
 import io.crate.Streamer;
+import io.crate.action.sql.SessionTransportableInfo;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.breaker.RowAccountingWithEstimators;
@@ -83,7 +84,6 @@ import io.crate.expression.RowFilter;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Routing;
-import io.crate.metadata.SearchPath;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.node.StreamerVisitor;
@@ -171,15 +171,13 @@ public class JobSetup extends AbstractComponent {
         );
     }
 
-    public List<CompletableFuture<StreamBucket>> prepareOnRemote(String userName,
-                                                                 String currentSchema,
+    public List<CompletableFuture<StreamBucket>> prepareOnRemote(SessionTransportableInfo sessionInfo,
                                                                  Collection<? extends NodeOperation> nodeOperations,
                                                                  RootTask.Builder contextBuilder,
                                                                  SharedShardContexts sharedShardContexts) {
         Context context = new Context(
             clusterService.localNode().getId(),
-            userName,
-            currentSchema,
+            sessionInfo,
             contextBuilder,
             logger,
             distributingConsumerFactory,
@@ -196,16 +194,14 @@ public class JobSetup extends AbstractComponent {
         return context.directResponseFutures;
     }
 
-    public List<CompletableFuture<StreamBucket>> prepareOnHandler(String userName,
-                                                                  String currentSchema,
+    public List<CompletableFuture<StreamBucket>> prepareOnHandler(SessionTransportableInfo sessionInfo,
                                                                   Collection<? extends NodeOperation> nodeOperations,
                                                                   RootTask.Builder taskBuilder,
                                                                   List<Tuple<ExecutionPhase, RowConsumer>> handlerPhases,
                                                                   SharedShardContexts sharedShardContexts) {
         Context context = new Context(
             clusterService.localNode().getId(),
-            userName,
-            currentSchema,
+            sessionInfo,
             taskBuilder,
             logger,
             distributingConsumerFactory,
@@ -439,8 +435,7 @@ public class JobSetup extends AbstractComponent {
         private TransactionContext transactionContext;
 
         Context(String localNodeId,
-                String userName,
-                String currentSchema,
+                SessionTransportableInfo sessionInfo,
                 RootTask.Builder taskBuilder,
                 Logger logger,
                 DistributingConsumerFactory distributingConsumerFactory,
@@ -451,7 +446,7 @@ public class JobSetup extends AbstractComponent {
             this.opCtx = new NodeOperationCtx(localNodeId, nodeOperations);
             this.distributingConsumerFactory = distributingConsumerFactory;
             this.sharedShardContexts = sharedShardContexts;
-            this.transactionContext = TransactionContext.of(userName, SearchPath.createSearchPathFrom(currentSchema));
+            this.transactionContext = TransactionContext.of(sessionInfo);
         }
 
         public UUID jobId() {
@@ -504,7 +499,7 @@ public class JobSetup extends AbstractComponent {
 
         /**
          * The rowReceiver for handlerPhases got passed into
-         * {@link #prepareOnHandler(String, String, Collection, RootTask.Builder, List, SharedShardContexts)}
+         * {@link #prepareOnHandler(SessionTransportableInfo, Collection, RootTask.Builder, List, SharedShardContexts)}
          * and is registered there.
          * <p>
          * Retrieve it

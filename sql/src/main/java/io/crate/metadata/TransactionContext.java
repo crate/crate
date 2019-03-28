@@ -22,12 +22,13 @@
 
 package io.crate.metadata;
 
+import io.crate.action.sql.SessionTransportableInfo;
 import org.joda.time.DateTimeUtils;
 
 public interface TransactionContext {
 
-    static TransactionContext of(String userName, SearchPath searchPath) {
-        return new StaticTransactionContext(userName, searchPath);
+    static TransactionContext of(SessionTransportableInfo sessionInfo) {
+        return new StaticTransactionContext(sessionInfo);
     }
 
     long currentTimeMillis();
@@ -38,15 +39,15 @@ public interface TransactionContext {
 
     SearchPath searchPath();
 
+    SessionTransportableInfo sessionTransportableInfo();
+
     class StaticTransactionContext implements TransactionContext {
 
-        private final String userName;
-        private final SearchPath searchPath;
+        private final SessionTransportableInfo sessionInfo;
         private Long currentTimeMillis;
 
-        StaticTransactionContext(String userName, SearchPath searchPath) {
-            this.userName = userName;
-            this.searchPath = searchPath;
+        StaticTransactionContext(SessionTransportableInfo sessionInfo) {
+            this.sessionInfo = sessionInfo;
         }
 
         @Override
@@ -59,17 +60,22 @@ public interface TransactionContext {
 
         @Override
         public String userName() {
-            return userName;
+            return sessionInfo.userName();
         }
 
         @Override
         public String currentSchema() {
-            return searchPath.currentSchema();
+            return sessionInfo.currentSchema();
         }
 
         @Override
         public SearchPath searchPath() {
-            return searchPath;
+            return sessionInfo.searchPath();
+        }
+
+        @Override
+        public SessionTransportableInfo sessionTransportableInfo() {
+            return sessionInfo;
         }
     }
 }

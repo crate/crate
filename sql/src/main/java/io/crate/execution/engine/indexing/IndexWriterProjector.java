@@ -101,8 +101,7 @@ public class IndexWriterProjector implements Projector {
         RowShardResolver rowShardResolver = new RowShardResolver(
             txnCtx, functions, primaryKeyIdents, primaryKeySymbols, clusteredByColumn, routingSymbol);
         ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
-            txnCtx.userName(),
-            txnCtx.currentSchema(),
+            txnCtx.sessionTransportableInfo(),
             ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings),
             overwriteDuplicates ? DuplicateKeyAction.OVERWRITE : DuplicateKeyAction.UPDATE_OR_FAIL,
             true,
