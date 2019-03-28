@@ -41,6 +41,8 @@ Unreleased Changes
 Breaking Changes
 ================
 
+- Renamed column `information_schema.table_partitions.schema_name` to `table_schema`
+
 - Renamed CrateDB data types to the corresponding PostgreSQL data types.
 
    +--------------+----------------------+

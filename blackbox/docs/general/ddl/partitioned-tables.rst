@@ -37,7 +37,7 @@ can be deleted and no expensive query is involved.
    Keep in mind that the values of the columns used for partitioning are
    internally base32 encoded into the partition name (which is a separate
    table). So for every partition, the partition table name includes:
-   ``(optional)schema_name + table_name + base32 encoded partition column
+   ``(optional)table_schema + table_name + base32 encoded partition column
    value(s) + an internal overhead of 14 bytes``
 
    Altogether this must not exceed the 255 bytes length limitation. See
@@ -133,7 +133,7 @@ the ``information_schema.table_partitions`` table::
 
     cr> SELECT count(*) as partition_count
     ... FROM information_schema.table_partitions
-    ... WHERE schema_name = 'doc' AND table_name = 'parted_table';
+    ... WHERE table_schema = 'doc' AND table_name = 'parted_table';
     +-----------------+
     | partition_count |
     +-----------------+
@@ -156,7 +156,7 @@ Insert
 
     cr> SELECT partition_ident, "values", number_of_shards
     ... FROM information_schema.table_partitions
-    ... WHERE schema_name = 'doc' AND table_name = 'parted_table'
+    ... WHERE table_schema = 'doc' AND table_name = 'parted_table'
     ... ORDER BY partition_ident;
     +--------------------------+------------------------+------------------+
     | partition_ident          | values                 | number_of_shards |
@@ -181,7 +181,7 @@ additional partition is created::
 
     cr> SELECT partition_ident, "values", number_of_shards
     ... FROM information_schema.table_partitions
-    ... WHERE schema_name = 'doc' AND table_name = 'parted_table'
+    ... WHERE table_schema = 'doc' AND table_name = 'parted_table'
     ... ORDER BY partition_ident;
     +--------------------------+------------------------+------------------+
     | partition_ident          | values                 | number_of_shards |
@@ -244,7 +244,7 @@ faster::
 
     cr> SELECT count(*) as partition_count
     ... FROM information_schema.table_partitions
-    ... WHERE schema_name = 'doc' AND table_name = 'parted_table';
+    ... WHERE table_schema = 'doc' AND table_name = 'parted_table';
     +-----------------+
     | partition_count |
     +-----------------+
@@ -417,7 +417,7 @@ table.
 
     cr> SELECT partition_ident, "values", number_of_shards
     ... FROM information_schema.table_partitions
-    ... WHERE schema_name = 'doc' AND table_name = 'parted_table'
+    ... WHERE table_schema = 'doc' AND table_name = 'parted_table'
     ... ORDER BY partition_ident;
     +--------------------------+------------------------+------------------+
     | partition_ident          | values                 | number_of_shards |
@@ -447,7 +447,7 @@ thus a specific partition needs to be specified
 
     cr> SELECT partition_ident, "values", number_of_shards
     ... FROM information_schema.table_partitions
-    ... WHERE schema_name = 'doc' AND table_name = 'parted_table'
+    ... WHERE table_schema = 'doc' AND table_name = 'parted_table'
     ... ORDER BY partition_ident;
     +--------------------------+------------------------+------------------+
     | partition_ident          | values                 | number_of_shards |

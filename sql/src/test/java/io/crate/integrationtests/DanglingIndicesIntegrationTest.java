@@ -66,7 +66,7 @@ public class DanglingIndicesIntegrationTest extends SQLTransportIntegrationTest 
         execute("select * from information_schema.tables where table_schema = 'blob'");
         assertThat(response.rowCount(), is(1L));
 
-        execute("select schema_name, table_name, values from information_schema.table_partitions " +
+        execute("select table_schema, table_name, values from information_schema.table_partitions " +
                 "where table_name = 't2'");
         assertThat(response.rowCount(), is(2L));
     }

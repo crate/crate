@@ -821,8 +821,8 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
         refresh();
 
-        execute("select table_name, schema_name, partition_ident, values, number_of_shards, number_of_replicas " +
-                "from information_schema.table_partitions where schema_name='custom' and table_name='source' order by partition_ident");
+        execute("select table_name, table_schema, partition_ident, values, number_of_shards, number_of_replicas " +
+                "from information_schema.table_partitions where table_schema='custom' and table_name='source' order by partition_ident");
         String[] rows = printedTable(response.rows()).split("\n");
         assertThat(rows[0], is("source| custom| 043k4pbidhkms| {city=Berlin}| 5| 0"));
         assertThat(rows[1], is("source| custom| 0444opb9e1t6ipo| {city=Leipzig}| 5| 0"));
@@ -839,8 +839,8 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
             "Leipzig| Dings| 14713\n" +
             "Musterhausen| Foo| 10243\n"));
 
-        execute("select table_name, schema_name, partition_ident, values, number_of_shards, number_of_replicas " +
-                "from information_schema.table_partitions where schema_name='custom' and table_name='destination' order by partition_ident");
+        execute("select table_name, table_schema, partition_ident, values, number_of_shards, number_of_replicas " +
+                "from information_schema.table_partitions where table_schema='custom' and table_name='destination' order by partition_ident");
         rows = printedTable(response.rows()).split("\n");
         assertThat(rows[0], is("destination| custom| 04332c1i6gpg| {zipcode=10243}| 5| 0"));
         assertThat(rows[1], is("destination| custom| 04332d1n64pg| {zipcode=14713}| 5| 0"));
