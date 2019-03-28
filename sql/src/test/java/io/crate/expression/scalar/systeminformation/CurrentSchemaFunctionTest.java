@@ -25,10 +25,9 @@ package io.crate.expression.scalar.systeminformation;
 import io.crate.expression.scalar.AbstractScalarFunctionsTest;
 import io.crate.expression.symbol.Function;
 import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.SearchPath;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.TransactionContext;
 import io.crate.testing.SqlExpressions;
 import org.hamcrest.Matchers;
 import org.junit.Test;
@@ -59,7 +58,7 @@ public class CurrentSchemaFunctionTest extends AbstractScalarFunctionsTest {
         FunctionIdent ident = function.info().ident();
         Scalar impl = (Scalar) functions.getQualified(ident);
         assertThat(
-            impl.evaluate(TransactionContext.of("dummyUser", SearchPath.createSearchPathFrom("dummySchema"))),
+            impl.evaluate(TransactionContext.of(DUMMY_SESSION_INFO)),
             Matchers.is("dummySchema"));
     }
 }

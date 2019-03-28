@@ -42,9 +42,9 @@ import io.crate.expression.reference.ReferenceResolver;
 import io.crate.expression.reference.StaticTableDefinition;
 import io.crate.expression.reference.sys.SysRowUpdater;
 import io.crate.expression.reference.sys.check.node.SysNodeChecks;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.information.InformationSchemaTableDefinitions;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
@@ -128,7 +128,7 @@ public class SystemCollectSource implements CollectSource {
         String table = Iterables.getOnlyElement(locations.get(clusterService.localNode().getId()).keySet());
         RelationName relationName = RelationName.fromIndexName(table);
         StaticTableDefinition<?> tableDefinition = tableDefinition(relationName);
-        User user = requireNonNull(userLookup.findUser(txnCtx.userName()), "User who invoked a statement must exist");
+        User user = requireNonNull(userLookup.findUser(txnCtx.sessionSettings().userName()), "User who invoked a statement must exist");
 
         return CollectingBatchIterator.newInstance(
             () -> {},

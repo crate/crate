@@ -201,8 +201,7 @@ public final class JobLauncher {
         RootTask.Builder builder = tasksService.newBuilder(jobId, localNodeId, operationByServer.keySet());
         SharedShardContexts sharedShardContexts = maybeInstrumentProfiler(builder);
         List<CompletableFuture<StreamBucket>> directResponseFutures = jobSetup.prepareOnHandler(
-            txnCtx.userName(),
-            txnCtx.currentSchema(),
+            txnCtx.sessionSettings(),
             localNodeOperations,
             builder,
             handlerPhaseAndReceiver,
@@ -308,7 +307,11 @@ public final class JobLauncher {
         for (Map.Entry<String, Collection<NodeOperation>> entry : operationByServer.entrySet()) {
             String serverNodeId = entry.getKey();
             JobRequest request = new JobRequest(
-                jobId, txnCtx.userName(), txnCtx.currentSchema(), localNodeId, entry.getValue(), enableProfiling);
+                jobId,
+                txnCtx.sessionSettings(),
+                localNodeId,
+                entry.getValue(),
+                enableProfiling);
             if (hasDirectResponse) {
                 transportJobAction.execute(serverNodeId, request,
                     BucketForwarder.asActionListener(pageBucketReceivers, bucketIdx, initializationTracker));
