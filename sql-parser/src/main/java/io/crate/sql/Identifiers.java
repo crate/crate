@@ -37,7 +37,7 @@ import java.util.stream.Collectors;
 
 public class Identifiers {
 
-    private static final Pattern IDENTIFIER = Pattern.compile("(^[a-z_]+[0-9_]*)");
+    private static final Pattern IDENTIFIER = Pattern.compile("(^[a-z_]+[a-z0-9_]*)");
     private static final Pattern ESCAPE_REPLACE_RE = Pattern.compile("\"", Pattern.LITERAL);
     private static final String ESCAPE_REPLACEMENT = Matcher.quoteReplacement("\"\"");
 

@@ -59,5 +59,9 @@ public class IdentifiersTest {
         assertThat(Identifiers.quoteIfNeeded("select"), is("\"select\"")); // keyword
         assertThat(Identifiers.quoteIfNeeded("1column"), is("\"1column\""));
         assertThat(Identifiers.quoteIfNeeded("column name"), is("\"column name\""));
+        assertThat(Identifiers.quoteIfNeeded("col1a"), is("col1a"));
+        assertThat(Identifiers.quoteIfNeeded("_col"), is("_col"));
+        assertThat(Identifiers.quoteIfNeeded("col_1"), is("col_1"));
+        assertThat(Identifiers.quoteIfNeeded("col['a']"), is("\"col['a']\""));
     }
 }
