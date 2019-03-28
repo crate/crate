@@ -8,14 +8,14 @@ configurations {
 }
 
 dependencies {
-    compile "com.google.code.findbugs:jsr305:${versions.jsr305}"
-    compile "com.google.guava:guava:${versions.guava}"
-    compile "org.apache.lucene:lucene-core:${versions.lucene}"
-    compile "com.carrotsearch:hppc:${versions.carrotsearch_hppc}"
-    compile project(':shared')
+    implementation "com.google.code.findbugs:jsr305:${versions.jsr305}"
+    implementation "com.google.guava:guava:${versions.guava}"
+    implementation "org.apache.lucene:lucene-core:${versions.lucene}"
+    implementation "com.carrotsearch:hppc:${versions.carrotsearch_hppc}"
+    implementation project(':shared')
 
-    testCompile "junit:junit:${versions.junit}"
-    testCompile "com.carrotsearch.randomizedtesting:randomizedtesting-runner:${versions.randomizedrunner}"
+    testImplementation "junit:junit:${versions.junit}"
+    testImplementation "com.carrotsearch.randomizedtesting:randomizedtesting-runner:${versions.randomizedrunner}"
 }
 
 task jarTest (type: Jar) {
