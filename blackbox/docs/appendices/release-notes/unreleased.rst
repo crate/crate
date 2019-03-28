@@ -51,4 +51,5 @@ None
 Fixes
 =====
 
-None
+- Fixed an issue that would cause a ``ClassCastException`` for queries ordered
+  by a window function.
