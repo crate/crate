@@ -1,6 +1,8 @@
 package io.crate.execution.engine.reader;
 
 import com.google.common.collect.ImmutableMap;
+import io.crate.metadata.SearchPath;
+import io.crate.metadata.settings.SessionSettings;
 import io.crate.data.BatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Row;
@@ -11,7 +13,6 @@ import io.crate.expression.InputFactory;
 import io.crate.expression.reference.file.FileLineReferenceResolver;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
-import io.crate.metadata.SearchPath;
 import io.crate.metadata.TransactionContext;
 import io.crate.types.DataTypes;
 import org.openjdk.jmh.annotations.Benchmark;
@@ -31,6 +32,7 @@ import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import static io.crate.execution.dsl.phases.FileUriCollectPhase.InputFormat.JSON;
@@ -43,7 +45,9 @@ public class JsonReaderBenchmark {
 
     private String fileUri;
     private InputFactory inputFactory;
-    private TransactionContext txnCtx = TransactionContext.of("dummyUser", SearchPath.createSearchPathFrom("dummySchema"));
+    private TransactionContext txnCtx = TransactionContext.of(
+        new SessionSettings("dummyUser",
+                            SearchPath.createSearchPathFrom("dummySchema")));
     File tempFile;
 
     @Setup

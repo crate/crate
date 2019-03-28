@@ -22,20 +22,25 @@
 
 package io.crate.metadata;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Writeable;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Spliterator;
 import java.util.function.Consumer;
 
 /**
- * As writing fully qualified table names is usually tedious. This class models a list of schemas the system will use in
- * order to determine which table is meant by the user.
+ * Writing fully qualified table names is usually tedious.
+ * This class models a list of schemas the system will use
+ * in order to determine which table is meant by the user.
  */
-public final class SearchPath implements Iterable<String> {
+public final class SearchPath implements Iterable<String>, Writeable {
 
     private static final SearchPath PG_CATALOG_AND_DOC_PATH = new SearchPath();
     private final boolean pgCatalogIsSetExplicitly;
@@ -45,8 +50,14 @@ public final class SearchPath implements Iterable<String> {
         if (schemas == null || schemas.length == 0) {
             return new SearchPath();
         } else {
-            return new SearchPath(ImmutableList.copyOf(schemas));
+            return new SearchPath(List.of(schemas));
         }
+    }
+
+    public static SearchPath createSearchPathFrom(StreamInput in) throws IOException {
+        final boolean pgCatalogIsSetExplicitly = in.readBoolean();
+        final List<String> searchPath = in.readList(StreamInput::readString);
+        return new SearchPath(pgCatalogIsSetExplicitly, searchPath);
     }
 
     public static SearchPath pathWithPGCatalogAndDoc() {
@@ -54,20 +65,25 @@ public final class SearchPath implements Iterable<String> {
     }
 
     private SearchPath() {
-        pgCatalogIsSetExplicitly = false;
-        searchPath = ImmutableList.of(PgCatalogSchemaInfo.NAME, Schemas.DOC_SCHEMA_NAME);
+        this.pgCatalogIsSetExplicitly = false;
+        this.searchPath = List.of(PgCatalogSchemaInfo.NAME, Schemas.DOC_SCHEMA_NAME);
     }
 
-    private SearchPath(ImmutableList<String> schemas) {
+    private SearchPath(boolean pgCatalogIsSetExplicitly, List<String> searchPath) {
+        this.pgCatalogIsSetExplicitly = pgCatalogIsSetExplicitly;
+        this.searchPath = searchPath;
+    }
+
+    private SearchPath(List<String> schemas) {
         assert schemas.size() > 0 : "Expecting at least one schema in the search path";
-        pgCatalogIsSetExplicitly = schemas.contains(PgCatalogSchemaInfo.NAME);
+        this.pgCatalogIsSetExplicitly = schemas.contains(PgCatalogSchemaInfo.NAME);
         if (pgCatalogIsSetExplicitly) {
             this.searchPath = schemas;
         } else {
             ArrayList<String> completeSearchPath = new ArrayList<>(1 + schemas.size());
             completeSearchPath.add(PgCatalogSchemaInfo.NAME);
             completeSearchPath.addAll(schemas);
-            this.searchPath = ImmutableList.copyOf(completeSearchPath);
+            this.searchPath = List.copyOf(completeSearchPath);
         }
     }
 
@@ -92,5 +108,29 @@ public final class SearchPath implements Iterable<String> {
     @Override
     public Spliterator<String> spliterator() {
         return searchPath.spliterator();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        SearchPath that = (SearchPath) o;
+        return pgCatalogIsSetExplicitly == that.pgCatalogIsSetExplicitly &&
+               Objects.equals(searchPath, that.searchPath);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(pgCatalogIsSetExplicitly, searchPath);
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        out.writeBoolean(pgCatalogIsSetExplicitly);
+        out.writeStringList(searchPath);
     }
 }

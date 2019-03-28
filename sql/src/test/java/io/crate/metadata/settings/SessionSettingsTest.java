@@ -20,41 +20,30 @@
  * agreement.
  */
 
-package io.crate.metadata;
+package io.crate.metadata.settings;
 
-import io.crate.metadata.settings.SessionSettings;
-import org.joda.time.DateTimeUtils;
 
-public interface TransactionContext {
+import io.crate.metadata.SearchPath;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.junit.Test;
 
-    static TransactionContext of(SessionSettings sessionSettings) {
-        return new StaticTransactionContext(sessionSettings);
-    }
+import java.io.IOException;
 
-    long currentTimeMillis();
+import static org.junit.Assert.assertEquals;
 
-    SessionSettings sessionSettings();
+public class SessionSettingsTest {
 
-    class StaticTransactionContext implements TransactionContext {
+    @Test
+    public void testSessionSettingsStreaming() throws IOException {
+        SessionSettings s1 = new SessionSettings("user",
+                                                SearchPath.createSearchPathFrom("crate"),
+                                                true,
+                                                true
+                                                );
+        BytesStreamOutput out = new BytesStreamOutput();
+        s1.writeTo(out);
 
-        private final SessionSettings sessionSettings;
-        private Long currentTimeMillis;
-
-        StaticTransactionContext(SessionSettings sessionSettings) {
-            this.sessionSettings = sessionSettings;
-        }
-
-        @Override
-        public long currentTimeMillis() {
-            if (currentTimeMillis == null) {
-                currentTimeMillis = DateTimeUtils.currentTimeMillis();
-            }
-            return currentTimeMillis;
-        }
-
-        @Override
-        public SessionSettings sessionSettings() {
-            return sessionSettings;
-        }
+        SessionSettings s2 = new SessionSettings(out.bytes().streamInput());
+        assertEquals(s1, s2);
     }
 }

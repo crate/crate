@@ -26,8 +26,8 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.format.FunctionFormatSpec;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.TransactionContext;
 import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
@@ -58,7 +58,7 @@ public class UserFunction extends Scalar<String, Object> implements FunctionForm
     @Override
     public String evaluate(TransactionContext txnCtx, Input<Object>... args) {
         assert args.length == 0 : "number of args must be 0";
-        return txnCtx.userName();
+        return txnCtx.sessionSettings().userName();
     }
 
     @Override
@@ -66,7 +66,7 @@ public class UserFunction extends Scalar<String, Object> implements FunctionForm
         if (txnCtx == null) {
             return Literal.NULL;
         }
-        return Literal.of(txnCtx.userName());
+        return Literal.of(txnCtx.sessionSettings().userName());
     }
 
     @Override

@@ -24,8 +24,8 @@ package io.crate.expression.scalar.arithmetic;
 import io.crate.data.Input;
 import io.crate.expression.scalar.AbstractScalarFunctionsTest;
 import io.crate.expression.symbol.Function;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.SearchPath;
+import io.crate.metadata.TransactionContext;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -41,7 +41,7 @@ import static org.hamcrest.Matchers.sameInstance;
 public class RandomFunctionTest extends AbstractScalarFunctionsTest {
 
     private RandomFunction random;
-    private TransactionContext txnCtx = TransactionContext.of("dummyUser", SearchPath.createSearchPathFrom("dummySchema"));
+    private TransactionContext txnCtx = TransactionContext.of(DUMMY_SESSION_INFO);
 
     @Before
     public void prepareRandom() {

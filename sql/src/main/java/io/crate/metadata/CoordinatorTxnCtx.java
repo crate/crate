@@ -23,6 +23,7 @@
 package io.crate.metadata;
 
 import io.crate.action.sql.SessionContext;
+import io.crate.metadata.settings.SessionSettings;
 import org.joda.time.DateTimeUtils;
 
 import java.util.Objects;
@@ -59,18 +60,11 @@ public final class CoordinatorTxnCtx implements TransactionContext {
     }
 
     @Override
-    public String userName() {
-        return sessionContext.user().name();
-    }
-
-    @Override
-    public String currentSchema() {
-        return sessionContext.searchPath().currentSchema();
-    }
-
-    @Override
-    public SearchPath searchPath() {
-        return sessionContext.searchPath();
+    public SessionSettings sessionSettings() {
+        return new SessionSettings(sessionContext.user().name(),
+                                   sessionContext.searchPath(),
+                                   sessionContext.getSemiJoinsRewriteEnabled(),
+                                   sessionContext.isHashJoinEnabled());
     }
 
     public SessionContext sessionContext() {

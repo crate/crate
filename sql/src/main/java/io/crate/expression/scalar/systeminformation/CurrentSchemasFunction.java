@@ -68,7 +68,7 @@ public class CurrentSchemasFunction extends Scalar<String[], Object> implements 
         }
 
         ArrayList<String> schemas = new ArrayList<>();
-        for (String schema : txnCtx.searchPath()) {
+        for (String schema : txnCtx.sessionSettings().searchPath()) {
             if (includeImplicitSchemas == false && schema.equals(PgCatalogSchemaInfo.NAME)) {
                 continue;
             }

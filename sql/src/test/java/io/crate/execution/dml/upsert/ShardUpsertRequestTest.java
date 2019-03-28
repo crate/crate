@@ -22,6 +22,8 @@
 
 package io.crate.execution.dml.upsert;
 
+import io.crate.metadata.SearchPath;
+import io.crate.metadata.settings.SessionSettings;
 import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
@@ -39,6 +41,7 @@ import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.shard.ShardId;
 import org.junit.Test;
 
+import java.util.Map;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.equalTo;
@@ -59,8 +62,7 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
         UUID jobId = UUID.randomUUID();
         Reference[] missingAssignmentColumns = new Reference[]{ID_REF, NAME_REF};
         ShardUpsertRequest request = new ShardUpsertRequest.Builder(
-            "dummyUser",
-            "dummySchema",
+            new SessionSettings("dummyUser", SearchPath.createSearchPathFrom("dummySchema")),
             TimeValue.timeValueSeconds(30),
             DuplicateKeyAction.UPDATE_OR_FAIL,
             false,

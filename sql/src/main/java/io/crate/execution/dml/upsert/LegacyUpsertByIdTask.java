@@ -110,8 +110,7 @@ public class LegacyUpsertByIdTask {
         this.isPartitioned = upsertById.isPartitioned();
 
         reqBuilder = new ShardUpsertRequest.Builder(
-            txnCtx.userName(),
-            txnCtx.currentSchema(),
+            txnCtx.sessionSettings(),
             ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings),
             upsertById.isIgnoreDuplicateKeys() ? DuplicateKeyAction.IGNORE : DuplicateKeyAction.UPDATE_OR_FAIL,
             upsertById.numBulkResponses() > 0 || items.size() > 1,

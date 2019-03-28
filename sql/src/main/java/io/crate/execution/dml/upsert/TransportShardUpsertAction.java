@@ -38,7 +38,6 @@ import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.SearchPath;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
@@ -119,7 +118,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             ? GeneratedColumns.Validation.VALUE_MATCH
             : GeneratedColumns.Validation.NONE;
 
-        TransactionContext txnCtx = TransactionContext.of(request.userName(), SearchPath.createSearchPathFrom(request.currentSchema()));
+        TransactionContext txnCtx = TransactionContext.of(request.sessionSettings());
         InsertSourceGen insertSourceGen = insertColumns == null
             ? null
             : InsertSourceGen.of(txnCtx, functions, tableInfo, indexName, valueValidation, Arrays.asList(insertColumns));

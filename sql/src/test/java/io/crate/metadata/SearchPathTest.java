@@ -23,12 +23,15 @@
 package io.crate.metadata;
 
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.util.Iterator;
 
 import static io.crate.metadata.SearchPath.pathWithPGCatalogAndDoc;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
 public class SearchPathTest {
@@ -68,5 +71,25 @@ public class SearchPathTest {
     public void testPgCatalogISCurrentSchemaIfSetFirstInPath() {
         SearchPath searchPath = SearchPath.createSearchPathFrom(PgCatalogSchemaInfo.NAME, "secondSchema");
         assertThat(searchPath.currentSchema(), is(PgCatalogSchemaInfo.NAME));
+    }
+
+    @Test
+    public void testSearchPathStreaming() throws IOException {
+        SearchPath s1 = SearchPath.createSearchPathFrom(PgCatalogSchemaInfo.NAME, "secondSchema");
+        BytesStreamOutput out = new BytesStreamOutput();
+        s1.writeTo(out);
+
+        SearchPath s2 = SearchPath.createSearchPathFrom(out.bytes().streamInput());
+        assertEquals(s1, s2);
+    }
+
+    @Test
+    public void testSearchPathPgCatalogNotExplicitlySetStreaming() throws IOException {
+        SearchPath s1 = SearchPath.createSearchPathFrom("firstSchema");
+        BytesStreamOutput out = new BytesStreamOutput();
+        s1.writeTo(out);
+
+        SearchPath s2 = SearchPath.createSearchPathFrom(out.bytes().streamInput());
+        assertEquals(s1, s2);
     }
 }

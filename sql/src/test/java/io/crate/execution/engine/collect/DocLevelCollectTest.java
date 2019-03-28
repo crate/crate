@@ -244,8 +244,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
             "remoteNode");
 
         List<CompletableFuture<StreamBucket>> results = jobSetup.prepareOnRemote(
-            "dummyUser",
-            "dummySchema",
+            DUMMY_SESSION_INFO,
             ImmutableList.of(nodeOperation),
             builder,
             sharedShardContexts

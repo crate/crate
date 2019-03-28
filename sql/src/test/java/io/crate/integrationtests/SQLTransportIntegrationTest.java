@@ -30,6 +30,7 @@ import io.crate.action.sql.Option;
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
 import io.crate.action.sql.SessionContext;
+import io.crate.metadata.settings.SessionSettings;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParameterContext;
 import io.crate.auth.user.User;
@@ -45,6 +46,7 @@ import io.crate.execution.jobs.TasksService;
 import io.crate.execution.jobs.kill.KillableCallable;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
@@ -52,7 +54,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.SearchPath;
-import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
@@ -142,6 +144,10 @@ import static org.hamcrest.Matchers.notNullValue;
 public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
 
     private static final int ORIGINAL_PAGE_SIZE = Paging.PAGE_SIZE;
+
+    protected static SessionSettings DUMMY_SESSION_INFO = new SessionSettings(
+        "dummyUser",
+        SearchPath.createSearchPathFrom("dummySchema"));
 
     @Rule
     public Timeout globalTimeout = new Timeout(5, TimeUnit.MINUTES);
