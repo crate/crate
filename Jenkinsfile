@@ -139,6 +139,7 @@ pipeline {
           steps {
             sh 'git clean -xdff'
             checkout scm
+            sh 'git submodule update --init'
             sh 'timeout 20m ./gradlew --no-daemon :app:jar :app:sourceJar :app:javadocJar'
           }
         }
