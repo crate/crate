@@ -60,7 +60,8 @@ class CommunityLicenseITest(unittest.TestCase):
                 port=http_port,
                 transport_port=transport_port_range,
                 settings=CRATE_SETTINGS,
-                env={'JAVA_HOME': os.environ.get('JAVA_HOME', '')},
+                env={'JAVA_HOME': os.environ.get('JAVA_HOME', ''),
+                     'CRATE_HEAP_SIZE': '256M'},
                 cluster_name=cls.__class__.__name__)
             layer.start()
             cls.HTTP_PORTS.append(http_port)
