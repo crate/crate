@@ -102,6 +102,7 @@ public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<Spli
         }
         for (WindowFunction windowFunction : context.windowFunctions) {
             toCollect.addAll(extractColumns(windowFunction.arguments()));
+            INSTANCE.process(windowFunction.windowDefinition().partitions(), context);
             OrderBy windowOrderBy = windowFunction.windowDefinition().orderBy();
             if (windowOrderBy != null) {
                 INSTANCE.process(windowOrderBy.orderBySymbols(), context);

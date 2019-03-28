@@ -23,9 +23,6 @@
 package io.crate.expression.symbol;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.analyze.OrderBy;
-import io.crate.analyze.WindowDefinition;
-import io.crate.collections.Lists2;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -109,16 +106,11 @@ public abstract class FunctionCopyVisitor<C> extends SymbolVisitor<C, Symbol> {
     @Override
     public Symbol visitWindowFunction(WindowFunction windowFunction, C context) {
         Function processedFunction = processAndMaybeCopy(windowFunction, context);
-        WindowDefinition windowDefinition = windowFunction.windowDefinition();
-        OrderBy windowOrderBy = windowDefinition.orderBy();
-        if (windowOrderBy != null) {
-            windowDefinition = new WindowDefinition(
-                Lists2.map(windowDefinition.partitions(), s -> process(s, context)),
-                windowOrderBy.copyAndReplace(s -> process(s, context)),
-                windowDefinition.windowFrameDefinition()
-            );
-        }
-        return new WindowFunction(processedFunction.info(), processedFunction.arguments(), windowDefinition);
+        return new WindowFunction(
+            processedFunction.info(),
+            processedFunction.arguments(),
+            windowFunction.windowDefinition().map(s -> process(s, context))
+        );
     }
 
     @Override

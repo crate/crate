@@ -37,10 +37,12 @@ import io.crate.execution.engine.join.RamAccountingBatchIterator;
 import io.crate.types.DataType;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.BiPredicate;
+import java.util.function.Function;
 
 /**
  * BatchIterator that computes an aggregate or window function against a window over the source batch iterator.
@@ -71,6 +73,8 @@ import java.util.function.BiPredicate;
  */
 public class WindowBatchIterator extends MappedForwardingBatchIterator<Row, Row> {
 
+    private static final Object NO_PARTITIONS_MARKER = new Object();
+
     private final BatchIterator<Row> source;
     private final List<WindowFunction> functions;
     private final Object[] outgoingCells;
@@ -78,10 +82,15 @@ public class WindowBatchIterator extends MappedForwardingBatchIterator<Row, Row>
     private final LinkedList<Object[]> outstandingResults;
     private final List<CollectExpression<Row, ?>> standaloneExpressions;
     private final BiPredicate<Object[], Object[]> arePeerCellsPredicate;
+    private final Function<List<Input<?>>, Object> computePartitionKeyFunction;
     private final List<? extends CollectExpression<Row, ?>> windowFuncArgsExpressions;
     private final Input[][] windowFuncArgsInputs;
+    private final List<CollectExpression<Row, ?>> partitionByExpressions;
+    private final List<Input<?>> partitionByInputs;
 
     private Row currentWindowRow;
+    private Object previousPartitionKey = NO_PARTITIONS_MARKER;
+    private Object currentPartitionKey = NO_PARTITIONS_MARKER;
     /**
      * Represents the "window row", the row for which we are computing the window, and once that's complete, execute the
      * window function for.
@@ -89,6 +98,7 @@ public class WindowBatchIterator extends MappedForwardingBatchIterator<Row, Row>
     private Object[] currentRowCells = null;
 
     private int sourceRowsConsumed;
+    private int emittedRows;
     private int windowRowPosition;
     private final List<Object[]> windowForCurrentRow = new ArrayList<>();
     /**
@@ -102,18 +112,35 @@ public class WindowBatchIterator extends MappedForwardingBatchIterator<Row, Row>
 
     @VisibleForTesting
     public WindowBatchIterator(WindowDefinition windowDefinition,
+                               List<Input<?>> standaloneInputs,
+                               List<CollectExpression<Row, ?>> standaloneExpressions,
+                               BatchIterator<Row> source,
+                               List<WindowFunction> functions,
+                               List<? extends CollectExpression<Row, ?>> windowFuncArgsExpressions,
+                               List<DataType> standaloneInputTypes,
+                               RamAccountingContext ramAccountingContext,
+                               int[] orderByIndexes,
+                               Input[]... windowFuncArgsInputs) {
+        this(windowDefinition, standaloneInputs, standaloneExpressions, source, functions, windowFuncArgsExpressions,
+            Collections.emptyList(), Collections.emptyList(), standaloneInputTypes, ramAccountingContext, orderByIndexes,
+            windowFuncArgsInputs);
+    }
+
+    WindowBatchIterator(WindowDefinition windowDefinition,
                         List<Input<?>> standaloneInputs,
                         List<CollectExpression<Row, ?>> standaloneExpressions,
                         BatchIterator<Row> source,
                         List<WindowFunction> functions,
                         List<? extends CollectExpression<Row, ?>> windowFuncArgsExpressions,
+                        List<CollectExpression<Row, ?>> partitionByExpressions,
+                        List<Input<?>> partitionByInputs,
                         List<DataType> standaloneInputTypes,
                         RamAccountingContext ramAccountingContext,
                         int[] orderByIndexes,
                         Input[]... windowFuncArgsInputs) {
-        assert windowDefinition.partitions().size() == 0 : "Window partitions are not supported.";
         assert windowDefinition.windowFrameDefinition().equals(WindowDefinition.DEFAULT_WINDOW_FRAME) : "Custom window frame definitions are not supported";
-        assert windowDefinition.orderBy() == null || orderByIndexes.length > 0 : "Window is ordered but the IC indexes are not specified";
+        assert windowDefinition.orderBy() == null ||
+               orderByIndexes.length > 0 : "Window is ordered but the IC indexes are not specified";
 
         this.order = windowDefinition.orderBy();
 
@@ -127,6 +154,8 @@ public class WindowBatchIterator extends MappedForwardingBatchIterator<Row, Row>
         RowAccountingWithEstimators rowAccounting =
             new RowAccountingWithEstimators(standaloneInputTypes, ramAccountingContext, extraRowOverhead);
         this.source = new RamAccountingBatchIterator<>(source, rowAccounting);
+        this.partitionByExpressions = partitionByExpressions;
+        this.partitionByInputs = partitionByInputs;
         this.standaloneExpressions = standaloneExpressions;
         this.windowFunctionsCount = functions.size();
         this.outgoingCells = new Object[windowFunctionsCount + standaloneInputs.size()];
@@ -135,6 +164,20 @@ public class WindowBatchIterator extends MappedForwardingBatchIterator<Row, Row>
         this.functions = functions;
         this.windowFuncArgsExpressions = windowFuncArgsExpressions;
         this.windowFuncArgsInputs = windowFuncArgsInputs;
+
+        if (partitionByInputs.isEmpty()) {
+            computePartitionKeyFunction = inputs -> NO_PARTITIONS_MARKER;
+        } else if (partitionByInputs.size() == 1) {
+            computePartitionKeyFunction = inputs -> inputs.get(0).value();
+        } else {
+            computePartitionKeyFunction = inputs -> {
+                List<Object> key = new ArrayList<>(inputs.size());
+                for (Input<?> keyInput : inputs) {
+                    key.add(keyInput.value());
+                }
+                return key;
+            };
+        }
 
         arePeerCellsPredicate = (prevRowCells, currentRowCells) -> {
             for (int i = 0; i < orderByIndexes.length; i++) {
@@ -170,16 +213,19 @@ public class WindowBatchIterator extends MappedForwardingBatchIterator<Row, Row>
     public void moveToStart() {
         super.moveToStart();
         sourceRowsConsumed = 0;
+        emittedRows = 0;
         windowRowPosition = 0;
         windowForCurrentRow.clear();
         newRowsInCurrentFrameStartIdx = -1;
         currentRowCells = null;
         currentWindowRow = null;
+        previousPartitionKey = NO_PARTITIONS_MARKER;
+        currentPartitionKey = NO_PARTITIONS_MARKER;
     }
 
     @Override
     public boolean moveNext() {
-        if (foundCurrentRowsLastPeer && windowRowPosition < sourceRowsConsumed - 1) {
+        if (foundCurrentRowsLastPeer && emittedRows < sourceRowsConsumed - 1) {
             // emit the result of the window function as we computed the result and not yet emitted it for every row
             // in the window
             windowRowPosition++;
@@ -190,12 +236,33 @@ public class WindowBatchIterator extends MappedForwardingBatchIterator<Row, Row>
         while (source.moveNext()) {
             sourceRowsConsumed++;
             Row currentSourceRow = source.currentElement();
+            for (CollectExpression<Row, ?> partitionByExpression : partitionByExpressions) {
+                partitionByExpression.setNextRow(currentSourceRow);
+            }
+            currentPartitionKey = computePartitionKeyFunction.apply(partitionByInputs);
+
             Object[] sourceRowCells = currentSourceRow.materialize();
             computeAndFillStandaloneOutgoingCellsFor(currentSourceRow);
             if (sourceRowsConsumed == 1) {
                 // first row in the source is the "current window row" we start with
+                previousPartitionKey = currentPartitionKey;
                 currentRowCells = sourceRowCells;
                 newRowsInCurrentFrameStartIdx = 0;
+            }
+
+            if (!Objects.equals(previousPartitionKey, currentPartitionKey)) {
+                foundCurrentRowsLastPeer = false;
+                executeWindowFunctions();
+                currentRowCells = sourceRowCells;
+                windowForCurrentRow.clear();
+                // the "current row" that detected the partition change will be part of the new partition which will
+                // be processed as a new window
+                windowForCurrentRow.add(currentRowCells);
+                newRowsInCurrentFrameStartIdx = 0;
+                previousPartitionKey = currentPartitionKey;
+                windowRowPosition = 0;
+                computeCurrentElement();
+                return true;
             }
 
             if (arePeers(currentRowCells, sourceRowCells)) {
@@ -223,7 +290,7 @@ public class WindowBatchIterator extends MappedForwardingBatchIterator<Row, Row>
                 executeWindowFunctions();
             }
 
-            if (windowRowPosition < sourceRowsConsumed) {
+            if (emittedRows < sourceRowsConsumed) {
                 // we still need to emit rows
                 windowRowPosition++;
                 computeCurrentElement();
@@ -242,6 +309,7 @@ public class WindowBatchIterator extends MappedForwardingBatchIterator<Row, Row>
             Object[] inputRowCells = standaloneOutgoingCells.removeFirst();
             System.arraycopy(inputRowCells, 0, outgoingCells, windowFunctionsCount, inputRowCells.length);
         }
+        emittedRows++;
         currentWindowRow = new RowN(outgoingCells);
     }
 
@@ -271,7 +339,8 @@ public class WindowBatchIterator extends MappedForwardingBatchIterator<Row, Row>
         for (int i = 0; i < rowCountInCurrentFrame; i++) {
             for (int funcIdx = 0; funcIdx < functions.size(); funcIdx++) {
                 WindowFunction function = functions.get(funcIdx);
-                Object result = function.execute(windowRowPosition + i, currentFrame, windowFuncArgsExpressions, windowFuncArgsInputs[funcIdx]);
+                Object result = function.execute(
+                    windowRowPosition + i, currentFrame, windowFuncArgsExpressions, windowFuncArgsInputs[funcIdx]);
                 newRowsInCurrentFrameCells[i][funcIdx] = result;
             }
         }
