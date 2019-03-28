@@ -35,17 +35,13 @@ public class ClusterStateResponse extends ActionResponse {
 
     private ClusterName clusterName;
     private ClusterState clusterState;
-    // the total compressed size of the full cluster state, not just
-    // the parts included in this response
-    private ByteSizeValue totalCompressedSize;
 
     public ClusterStateResponse() {
     }
 
-    public ClusterStateResponse(ClusterName clusterName, ClusterState clusterState, long sizeInBytes) {
+    public ClusterStateResponse(ClusterName clusterName, ClusterState clusterState) {
         this.clusterName = clusterName;
         this.clusterState = clusterState;
-        this.totalCompressedSize = new ByteSizeValue(sizeInBytes);
     }
 
     /**
@@ -63,22 +59,11 @@ public class ClusterStateResponse extends ActionResponse {
         return this.clusterName;
     }
 
-    /**
-     * The total compressed size of the full cluster state, not just the parts
-     * returned by {@link #getState()}.  The total compressed size is the size
-     * of the cluster state as it would be transmitted over the network during
-     * intra-node communication.
-     */
-    public ByteSizeValue getTotalCompressedSize() {
-        return totalCompressedSize;
-    }
-
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
         clusterName = new ClusterName(in);
         clusterState = ClusterState.readFrom(in, null);
-        totalCompressedSize = new ByteSizeValue(in);
     }
 
     @Override
@@ -86,6 +71,5 @@ public class ClusterStateResponse extends ActionResponse {
         super.writeTo(out);
         clusterName.writeTo(out);
         clusterState.writeTo(out);
-        totalCompressedSize.writeTo(out);
     }
 }
