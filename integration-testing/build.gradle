@@ -1,12 +1,15 @@
 apply from: "$rootDir/gradle/javaModule.gradle"
+apply plugin: 'java-library'
 
 archivesBaseName = 'crate-testing'
 
 dependencies {
-    compile "org.codehaus.jackson:jackson-mapper-asl:${versions.jacksonasl}"
-    compile "org.apache.commons:commons-lang3:${versions.commonslang3}"
+    api project(':es:es-testing')
+    api "org.codehaus.jackson:jackson-mapper-asl:${versions.jacksonasl}"
+    api "org.apache.commons:commons-lang3:${versions.commonslang3}"
 
-    compile project(':es:es-testing')
+    implementation project(':es:es-server')
+    implementation "com.google.guava:guava:${versions.guava}"
 }
 
 test {

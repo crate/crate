@@ -3,9 +3,14 @@ apply from: "$rootDir/gradle/javaModule.gradle"
 archivesBaseName = 'crate-http-transport'
 
 dependencies {
-    compile project(':es:es-transport')
-    compile project(':common')
-    testCompile project(':integration-testing')
+    implementation project(':es:es-server')
+    implementation project(':es:es-transport')
+    implementation project(':common')
+    implementation "io.netty:netty-buffer:${versions.netty4}"
+    implementation "io.netty:netty-codec-http:${versions.netty4}"
+    implementation "com.google.code.findbugs:jsr305:${versions.jsr305}"
+    testImplementation project(':integration-testing')
+    testImplementation "org.apache.httpcomponents:httpclient:${versions.httpclient}"
 }
 
 test {

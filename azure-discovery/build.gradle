@@ -20,6 +20,7 @@ task writePropertiesFile {
 jar.dependsOn('writePropertiesFile')
 
 dependencies {
+    implementation project(':es:es-server')
     compileOnly project(':common')
     compileOnly('com.microsoft.azure:azure-mgmt-utility:0.9.8') {
         exclude group: 'stax', module: 'stax-api'
