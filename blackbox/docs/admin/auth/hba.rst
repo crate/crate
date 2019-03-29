@@ -24,7 +24,7 @@ See: :ref:`applying-cluster-settings`.
    HBA and Enterprise features are enabled.
 
    Host Based Authentication is an
-   :ref:`enterprise feature <enterprise_features>`.
+   :ref:`enterprise feature <enterprise-features>`.
 
 .. TIP::
 

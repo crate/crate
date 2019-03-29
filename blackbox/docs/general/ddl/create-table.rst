@@ -81,7 +81,7 @@ The following schema names are reserved and may not be used:
    In the standard edition of CrateDB, there is no notion of access control and
    everybody can see and manipulate tables in every schema.
 
-   In the :ref:`Enterprise Edition <enterprise_features>` of CrateDB, you can
+   In the :ref:`Enterprise Edition <enterprise-features>` of CrateDB, you can
    use :ref:`privileges <administration-privileges>` to control access to
    schemas.
 

@@ -497,7 +497,7 @@ do.
 .. note::
 
    The ``hyperloglog_distinct`` aggregate function is an :ref:`enterprise
-   feature <enterprise_features>`.
+   feature <enterprise-features>`.
 
 The ``hyperloglog_distinct`` aggregate function calculates an approximate count
 of distinct non-null values using the `HyperLogLog++`_ algorithm.
