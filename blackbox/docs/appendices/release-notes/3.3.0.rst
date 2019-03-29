@@ -129,9 +129,6 @@ Database Administration
 - Added ``ALTER CLUSTER DECOMMISSION <nodeId | nodeName>`` statement that
   triggers the existing node decommission functionality.
 
-- Added ``ALTER CLUSTER DECOMMISSION <nodeId | nodeName>`` statement that
-  triggers the existing node decommission functionality.
-
 - Changed the trial license introduced in 3.2 to no longer have an expiration
   date, but instead be limited to three nodes. See :ref:`enterprise_features`.
 
