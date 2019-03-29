@@ -31,6 +31,7 @@ import io.crate.execution.dsl.projection.OrderedTopNProjection;
 import io.crate.execution.dsl.projection.WindowAggProjection;
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
+import io.crate.execution.engine.pipeline.TopN;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.WindowFunction;
@@ -71,7 +72,7 @@ public class WindowAgg extends OneInputPlan {
         }
 
         return (tableStats, usedBeforeNextFetch) -> {
-            HashSet<Symbol> allUsedColumns = new HashSet<>(usedBeforeNextFetch);
+            HashSet<Symbol> allUsedColumns = new HashSet<>(extractColumns(usedBeforeNextFetch));
             Set<Symbol> columnsUsedInFunctions = extractColumns(windowFunctions);
             LinkedHashMap<WindowDefinition, ArrayList<WindowFunction>> groupedFunctions = new LinkedHashMap<>();
             for (WindowFunction windowFunction : windowFunctions) {
@@ -126,9 +127,9 @@ public class WindowAgg extends OneInputPlan {
         ExecutionPlan sourcePlan = source.build(
             plannerContext,
             projectionBuilder,
-            limit,
-            offset,
-            order,
+            TopN.NO_LIMIT,
+            0,
+            null,
             pageSizeHint,
             params,
             subQueryResults
@@ -141,9 +142,8 @@ public class WindowAgg extends OneInputPlan {
 
         LinkedHashMap<WindowFunction, List<Symbol>> functionsWithInputs = new LinkedHashMap<>(windowFunctions.size(), 1f);
         for (WindowFunction windowFunction : windowFunctions) {
-            WindowFunction windowFunctionSymbol = (WindowFunction) InputColumns.create(windowFunction, sourceSymbols);
             List<Symbol> inputs = InputColumns.create(windowFunction.arguments(), sourceSymbols);
-            functionsWithInputs.put(windowFunctionSymbol, inputs);
+            functionsWithInputs.put(windowFunction, inputs);
         }
 
         OrderBy orderBy = windowDefinition.orderBy();
@@ -161,19 +161,14 @@ public class WindowAgg extends OneInputPlan {
             }
 
             OrderedTopNProjection topNProjection = new OrderedTopNProjection(
-                Limit.limitAndOffset(limit, offset),
+                TopN.NO_LIMIT,
                 0,
                 outputs,
                 orderByInputColumns,
                 orderBy.reverseFlags(),
                 orderBy.nullsFirst()
             );
-            sourcePlan.addProjection(
-                topNProjection,
-                limit,
-                offset,
-                null
-            );
+            sourcePlan.addProjection(topNProjection);
         }
         sourcePlan.addProjection(new WindowAggProjection(windowDefinition, functionsWithInputs, standaloneWithInputs, orderByIndexes));
         return sourcePlan;
