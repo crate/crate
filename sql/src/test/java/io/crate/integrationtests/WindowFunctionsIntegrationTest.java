@@ -121,4 +121,23 @@ public class WindowFunctionsIntegrationTest extends SQLTransportIntegrationTest 
                                                      "1| 2\n" +
                                                      "1| 3\n"));
     }
+
+    @Test
+    public void testLimitAndOffsetIsAppliedCorrectlyWith2DifferentWindowDefinitions() {
+        execute("SELECT\n" +
+                "    col2,\n" +
+                "    avg(col1) OVER (ORDER BY col1),\n" +
+                "    avg(col2) OVER ()\n" +
+                "FROM\n" +
+                "    unnest([1, 2, 3, 4, 5, 6, 7],[10, 20, 30, 40, 50, 60, 70])\n" +
+                "ORDER BY\n" +
+                "    col2\n" +
+                "LIMIT 3 offset 2\n");
+        assertThat(
+            printedTable(response.rows()),
+            is("30| 2.0| 40.0\n" +
+               "40| 2.5| 40.0\n" +
+               "50| 3.0| 40.0\n")
+        );
+    }
 }
