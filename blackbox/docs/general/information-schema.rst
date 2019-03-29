@@ -556,7 +556,7 @@ The following example shows a table where the column 'content' of table
 partitions. The partitions are introduced when data is inserted where 'content'
 is 'content_a', and 'content_b'.::
 
-    cr> select table_name, schema_name as schema, partition_ident, "values"
+    cr> select table_name, table_schema as schema, partition_ident, "values"
     ... from information_schema.table_partitions
     ... order by table_name, partition_ident;
     +---------------------+--------+--------------------+--------------------------+

@@ -734,7 +734,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         this.setup.partitionTableSetup();
         String defaultSchema = sqlExecutor.getCurrentSchema();
         SQLResponse response = execute("select partition_ident from information_schema.table_partitions " +
-                                       "where table_name='parted' and schema_name = ? " +
+                                       "where table_name='parted' and table_schema = ? " +
                                        "order by partition_ident", new Object[]{defaultSchema});
         assertThat(response.rowCount(), is(2L));
         assertThat((String) response.rows()[0][0], is(new PartitionName(
@@ -746,7 +746,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         refresh();
         // Test that no partitions were deleted
         SQLResponse newResponse = execute("select partition_ident from information_schema.table_partitions " +
-                                          "where table_name='parted' and schema_name = ? " +
+                                          "where table_name='parted' and table_schema = ? " +
                                           "order by partition_ident", new Object[]{defaultSchema});
         assertThat(newResponse.rows(), is(response.rows()));
     }
@@ -756,7 +756,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         this.setup.partitionTableSetup();
         String defaultSchema = sqlExecutor.getCurrentSchema();
         SQLResponse response = execute("select partition_ident from information_schema.table_partitions " +
-                                       "where table_name='parted' and schema_name = ? " +
+                                       "where table_name='parted' and table_schema = ? " +
                                        "order by partition_ident", new Object[]{sqlExecutor.getCurrentSchema()});
         assertThat(response.rowCount(), is(2L));
         assertThat((String) response.rows()[0][0], is(new PartitionName(
@@ -768,7 +768,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         refresh();
         // Test that no partitions were deleted
         SQLResponse newResponse = execute("select partition_ident from information_schema.table_partitions " +
-                                          "where table_name='parted' and schema_name = ? " +
+                                          "where table_name='parted' and table_schema = ? " +
                                           "order by partition_ident", new Object[]{defaultSchema});
         assertThat(newResponse.rows(), is(response.rows()));
     }
@@ -791,7 +791,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         refresh();
 
         SQLResponse response = execute("select partition_ident from information_schema.table_partitions " +
-                                       "where table_name='quotes' and schema_name = ? " +
+                                       "where table_name='quotes' and table_schema = ? " +
                                        "order by partition_ident", new Object[]{defaultSchema});
         assertThat(response.rowCount(), is(3L));
         assertThat((String) response.rows()[0][0], is(new PartitionName(
@@ -809,7 +809,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
 
         // Test that no partitions were deleted
         SQLResponse newResponse = execute("select partition_ident from information_schema.table_partitions " +
-                                          "where table_name='quotes' and schema_name = ? " +
+                                          "where table_name='quotes' and table_schema = ? " +
                                           "order by partition_ident", new Object[]{defaultSchema});
         assertThat(newResponse.rows(), is(response.rows()));
     }

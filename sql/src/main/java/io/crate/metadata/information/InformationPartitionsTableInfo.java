@@ -52,8 +52,7 @@ public class InformationPartitionsTableInfo extends InformationTableInfo {
     public static final RelationName IDENT = new RelationName(InformationSchemaInfo.NAME, NAME);
 
     public static class Columns {
-        // TODO: change column name to table_schema so it is equivalent to the information_schema.tables column
-        static final ColumnIdent TABLE_SCHEMA = new ColumnIdent("schema_name");
+        static final ColumnIdent TABLE_SCHEMA = new ColumnIdent("table_schema");
         static final ColumnIdent VALUES = new ColumnIdent("values");
         static final ColumnIdent PARTITION_IDENT = new ColumnIdent("partition_ident");
     }
