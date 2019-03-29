@@ -128,18 +128,6 @@ Deprecations
 
 - Marked LowerCase tokenizer as deprecated.
 
-- The query frequency and average duration :ref:`query_stats_mbean` metrics
-  have been deprecated in favour of the new total count and sum of durations
-  metrics.
-
-- Marked the ``cluster.graceful_stop.reallocate`` setting as deprecated.
-  This setting was already being ignored, setting the value to `false` has
-  no effect.
-
-- Marked ``CREATE INGEST RULE`` and ``DROP INGEST RULE`` as deprecated.
-  Given that the only implementation (MQTT) was deprecated and will be removed,
-  the framework itself will also be removed.
-
 Changes
 =======
 
@@ -168,63 +156,10 @@ Changes
   Examples: ``select a['b'] from (select a from t1)`` or ``select a['b'] from
   my_view`` where ``my_view`` is defined as ``select a from t1``.
 
-- Changed the trial license introduced in 3.2 to no longer have an expiration
-  date, but instead be limited to 3 nodes. See :ref:`enterprise_features`.
-
-- The :ref:`usage_data_collector` now includes information about the available
-  number of processors.
-
 - Added support for :ref:`sql_escape_string_literals`.
-
-- Expose the sum of durations, total, and failed count metrics under the
-  :ref:`query_stats_mbean` for ``QUERY``, ``INSERT``, ``UPDATE``, ``DELETE``,
-  ``MANAGEMENT``, ``DDL`` and ``COPY`` statement types.
-
-- Expose the sum of statement durations, total, and failed count classified by
-  statement type under the sum_of_durations, total_count and failed_count
-  columns, respectively, in the :ref:`sys-jobs-metrics` table.
-
-- Added a node check that checks the JVM version under which CrateDB is
-  running. We recommend users to upgrade to JVM 11 as support for older
-  versions will be dropped in the future.
-
-- Added ``ALTER CLUSTER DECOMMISSION <nodeId | nodeName>`` statement that
-  triggers the existing node decommission functionality.
-
-- Added ``pg_type`` columns: ``typlen``, ``typarray``, ``typnotnull``
-  and ``typnamespace`` for improved postgresql compatibility.
-
-- Added ``current_schemas(boolean)`` scalar function which will return the
-  names of schemas in the ``search_path``.
-
-- Added support for the ``first_value``, ``last_value`` and ``nth_value``
-  window functions as enterprise features.
-
-- Implemented the ``DROP ANALYZER`` statement to support removal of custom
-  analyzer definitions from the cluster.
-
-- Output the custom analyzer/tokenizer/token_filter/char_filter definition inside
-  the ``information_schema.routines.routine_definition`` column.
-
-- Added a ``pg_description`` table to the ``pg_catalog`` schema for improved
-  postgresql compatibility.
-
-- Added support for window function ``row_number()``.
-
-- Added support to use any expression in the operand of a ``CASE`` clause.
-
-- Buffer the file output of ``COPY TO`` operations to improve performance by not
-  writing to disk on every row.
 
 Fixes
 =====
 
 - Fixed an issue that would cause a ``ClassCastException`` for queries ordered
   by a window function.
-
-- Fix quoting of identifiers that contain leading digits or spaces when
-  printing relation or column names.
-
-- Fixed function resolution for postgresql functions ``pg_backend_pid``,
-  ``pg_get_expr`` and ``current_database`` when the schema prefix
-  ``pg_catalog`` is included.
