@@ -36,7 +36,7 @@ import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.carrotsearch.hppc.procedures.ObjectProcedure;
 import com.google.common.base.MoreObjects;
 import io.crate.Streamer;
-import io.crate.metadata.settings.SessionTransportableInfo;
+import io.crate.metadata.settings.SessionSettings;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.breaker.RowAccountingWithEstimators;
@@ -171,7 +171,7 @@ public class JobSetup extends AbstractComponent {
         );
     }
 
-    public List<CompletableFuture<StreamBucket>> prepareOnRemote(SessionTransportableInfo sessionInfo,
+    public List<CompletableFuture<StreamBucket>> prepareOnRemote(SessionSettings sessionInfo,
                                                                  Collection<? extends NodeOperation> nodeOperations,
                                                                  RootTask.Builder contextBuilder,
                                                                  SharedShardContexts sharedShardContexts) {
@@ -194,7 +194,7 @@ public class JobSetup extends AbstractComponent {
         return context.directResponseFutures;
     }
 
-    public List<CompletableFuture<StreamBucket>> prepareOnHandler(SessionTransportableInfo sessionInfo,
+    public List<CompletableFuture<StreamBucket>> prepareOnHandler(SessionSettings sessionInfo,
                                                                   Collection<? extends NodeOperation> nodeOperations,
                                                                   RootTask.Builder taskBuilder,
                                                                   List<Tuple<ExecutionPhase, RowConsumer>> handlerPhases,
@@ -435,7 +435,7 @@ public class JobSetup extends AbstractComponent {
         private TransactionContext transactionContext;
 
         Context(String localNodeId,
-                SessionTransportableInfo sessionInfo,
+                SessionSettings sessionInfo,
                 RootTask.Builder taskBuilder,
                 Logger logger,
                 DistributingConsumerFactory distributingConsumerFactory,
@@ -499,7 +499,7 @@ public class JobSetup extends AbstractComponent {
 
         /**
          * The rowReceiver for handlerPhases got passed into
-         * {@link #prepareOnHandler(SessionTransportableInfo, Collection, RootTask.Builder, List, SharedShardContexts)}
+         * {@link #prepareOnHandler(SessionSettings, Collection, RootTask.Builder, List, SharedShardContexts)}
          * and is registered there.
          * <p>
          * Retrieve it

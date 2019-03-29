@@ -23,7 +23,7 @@
 package io.crate.execution.engine.collect.collectors;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.crate.metadata.settings.SessionTransportableInfo;
+import io.crate.metadata.settings.SessionSettings;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
@@ -56,7 +56,7 @@ public class RemoteCollector {
     private static final int RECEIVER_PHASE_ID = 1;
 
     private final UUID jobId;
-    private final SessionTransportableInfo sessionInfo;
+    private final SessionSettings sessionInfo;
     private final String localNode;
     private final String remoteNode;
     private final Executor executor;
@@ -74,7 +74,7 @@ public class RemoteCollector {
     private boolean collectorKilled = false;
 
     public RemoteCollector(UUID jobId,
-                           SessionTransportableInfo sessionInfo,
+                           SessionSettings sessionInfo,
                            String localNode,
                            String remoteNode,
                            TransportJobAction transportJobAction,

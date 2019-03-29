@@ -24,7 +24,7 @@ package io.crate.execution.dml.upsert;
 
 import com.google.common.base.Objects;
 import io.crate.Streamer;
-import io.crate.metadata.settings.SessionTransportableInfo;
+import io.crate.metadata.settings.SessionSettings;
 import io.crate.execution.dml.ShardRequest;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
@@ -53,7 +53,7 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
     private boolean continueOnError;
     private boolean validateConstraints = true;
     private boolean isRetry;
-    private SessionTransportableInfo sessionInfo;
+    private SessionSettings sessionInfo;
 
     /**
      * List of column names used on update
@@ -76,7 +76,7 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
     ShardUpsertRequest() {
     }
 
-    private ShardUpsertRequest(SessionTransportableInfo sessionInfo,
+    private ShardUpsertRequest(SessionSettings sessionInfo,
                                ShardId shardId,
                                @Nullable String[] updateColumns,
                                @Nullable Reference[] insertColumns,
@@ -95,7 +95,7 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
         }
     }
 
-    public SessionTransportableInfo sessionTransportableInfo() {
+    public SessionSettings sessionTransportableInfo() {
         return sessionInfo;
     }
 
@@ -170,7 +170,7 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
         duplicateKeyAction = DuplicateKeyAction.values()[in.readVInt()];
         validateConstraints = in.readBoolean();
 
-        sessionInfo = SessionTransportableInfo.fromStream(in);
+        sessionInfo = new SessionSettings(in);
 
         int numItems = in.readVInt();
         readItems(in, numItems);
@@ -342,7 +342,7 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
 
     public static class Builder {
 
-        private final SessionTransportableInfo sessionInfo;
+        private final SessionSettings sessionInfo;
         private final TimeValue timeout;
         private final DuplicateKeyAction duplicateKeyAction;
         private final boolean continueOnError;
@@ -353,7 +353,7 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
         private final UUID jobId;
         private boolean validateGeneratedColumns;
 
-        public Builder(SessionTransportableInfo sessionInfo,
+        public Builder(SessionSettings sessionInfo,
                        TimeValue timeout,
                        DuplicateKeyAction duplicateKeyAction,
                        boolean continueOnError,

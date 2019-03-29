@@ -1,7 +1,7 @@
 package io.crate.execution.engine.reader;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.metadata.settings.SessionTransportableInfo;
+import io.crate.metadata.settings.SessionSettings;
 import io.crate.data.BatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Row;
@@ -45,7 +45,7 @@ public class CsvReaderBenchmark {
     private String fileUri;
     private InputFactory inputFactory;
     private TransactionContext txnCtx = TransactionContext.of(
-        new SessionTransportableInfo("dummyUser", Map.of()));
+        new SessionSettings("dummyUser", Map.of()));
     File tempFile;
 
     @Setup

@@ -43,7 +43,8 @@ public class SessionSettingRegistry {
                     objects -> {}, // everything allowed, empty list (resulting by ``SET .. TO DEFAULT`` results in defaults
                     objects -> createSearchPathFrom(objectsToStringArray(objects)),
                     SessionContext::setSearchPath,
-                    s -> iterableToString(s.searchPath())
+                    s -> iterableToString(s.searchPath()),
+                    SessionContext::searchPath
                 ))
             .put(SEMI_JOIN_KEY,
                 new SessionSetting<>(
@@ -54,7 +55,8 @@ public class SessionSettingRegistry {
                     },
                     objects -> DataTypes.BOOLEAN.value(objects[0]),
                     SessionContext::setSemiJoinsRewriteEnabled,
-                    s -> Boolean.toString(s.getSemiJoinsRewriteEnabled())
+                    s -> Boolean.toString(s.getSemiJoinsRewriteEnabled()),
+                    SessionContext::getSemiJoinsRewriteEnabled
                 ))
             .put(HASH_JOIN_KEY,
                 new SessionSetting<>(
@@ -65,7 +67,8 @@ public class SessionSettingRegistry {
                     },
                     objects -> DataTypes.BOOLEAN.value(objects[0]),
                     SessionContext::setHashJoinEnabled,
-                    s -> Boolean.toString(s.isHashJoinEnabled())
+                    s -> Boolean.toString(s.isHashJoinEnabled()),
+                    SessionContext::isHashJoinEnabled
                 ))
             .build();
 

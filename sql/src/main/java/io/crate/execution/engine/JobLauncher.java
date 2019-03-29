@@ -201,7 +201,7 @@ public final class JobLauncher {
         RootTask.Builder builder = tasksService.newBuilder(jobId, localNodeId, operationByServer.keySet());
         SharedShardContexts sharedShardContexts = maybeInstrumentProfiler(builder);
         List<CompletableFuture<StreamBucket>> directResponseFutures = jobSetup.prepareOnHandler(
-            txnCtx.sessionTransportableInfo(),
+            txnCtx.sessionSettings(),
             localNodeOperations,
             builder,
             handlerPhaseAndReceiver,
@@ -308,7 +308,7 @@ public final class JobLauncher {
             String serverNodeId = entry.getKey();
             JobRequest request = new JobRequest(
                 jobId,
-                txnCtx.sessionTransportableInfo(),
+                txnCtx.sessionSettings(),
                 localNodeId,
                 entry.getValue(),
                 enableProfiling);

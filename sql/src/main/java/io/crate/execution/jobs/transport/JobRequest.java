@@ -22,7 +22,7 @@
 
 package io.crate.execution.jobs.transport;
 
-import io.crate.metadata.settings.SessionTransportableInfo;
+import io.crate.metadata.settings.SessionSettings;
 import io.crate.execution.dsl.phases.NodeOperation;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -36,7 +36,7 @@ import java.util.UUID;
 public class JobRequest extends TransportRequest {
 
     private UUID jobId;
-    private SessionTransportableInfo sessionInfo;
+    private SessionSettings sessionSettings;
     private String coordinatorNodeId;
     private Collection<? extends NodeOperation> nodeOperations;
     private boolean enableProfiling;
@@ -45,13 +45,13 @@ public class JobRequest extends TransportRequest {
     }
 
     public JobRequest(UUID jobId,
-                      SessionTransportableInfo sessionInfo,
+                      SessionSettings sessionSettings,
                       String coordinatorNodeId,
                       Collection<? extends NodeOperation> nodeOperations,
                       boolean enableProfiling) {
         this.jobId = jobId;
         this.coordinatorNodeId = coordinatorNodeId;
-        this.sessionInfo = sessionInfo;
+        this.sessionSettings = sessionSettings;
         this.nodeOperations = nodeOperations;
         this.enableProfiling = enableProfiling;
     }
@@ -72,8 +72,8 @@ public class JobRequest extends TransportRequest {
         return enableProfiling;
     }
 
-    public SessionTransportableInfo sessionTransportableInfo() {
-        return sessionInfo;
+    public SessionSettings sessionSettings() {
+        return sessionSettings;
     }
 
     @Override
@@ -91,7 +91,7 @@ public class JobRequest extends TransportRequest {
         this.nodeOperations = nodeOperations;
         enableProfiling = in.readBoolean();
 
-        sessionInfo = SessionTransportableInfo.fromStream(in);
+        sessionSettings = new SessionSettings(in);
     }
 
     @Override
@@ -109,6 +109,6 @@ public class JobRequest extends TransportRequest {
 
         out.writeBoolean(enableProfiling);
 
-        sessionInfo.writeTo(out);
+        sessionSettings.writeTo(out);
     }
 }

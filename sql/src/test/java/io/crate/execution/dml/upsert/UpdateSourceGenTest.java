@@ -22,7 +22,7 @@
 
 package io.crate.execution.dml.upsert;
 
-import io.crate.metadata.settings.SessionTransportableInfo;
+import io.crate.metadata.settings.SessionSettings;
 import io.crate.analyze.AnalyzedUpdateStatement;
 import io.crate.expression.reference.Doc;
 import io.crate.expression.symbol.Assignments;
@@ -49,7 +49,7 @@ import static org.hamcrest.Matchers.is;
 
 public class UpdateSourceGenTest extends CrateDummyClusterServiceUnitTest {
 
-    private static SessionTransportableInfo DUMMY_SESSION_INFO = new SessionTransportableInfo(
+    private static SessionSettings DUMMY_SESSION_INFO = new SessionSettings(
         "dummyUser",
         Map.of(SessionSettingRegistry.SEARCH_PATH_KEY, "dummySchema"));
 

@@ -25,7 +25,7 @@ package io.crate.execution.engine.collect.collectors;
 import com.carrotsearch.hppc.IntArrayList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.MoreExecutors;
-import io.crate.metadata.settings.SessionTransportableInfo;
+import io.crate.metadata.settings.SessionSettings;
 import io.crate.analyze.WhereClause;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.exceptions.JobKilledException;
@@ -111,7 +111,7 @@ public class RemoteCollectorTest extends CrateDummyClusterServiceUnitTest {
         consumer = new TestingRowConsumer();
         remoteCollector = new RemoteCollector(
             jobId,
-            new SessionTransportableInfo("dummyUser", Map.of()),
+            new SessionSettings("dummyUser", Map.of()),
             "localNode",
             "remoteNode",
             transportJobAction,

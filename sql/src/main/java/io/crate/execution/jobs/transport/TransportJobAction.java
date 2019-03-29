@@ -88,7 +88,7 @@ public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
         SharedShardContexts sharedShardContexts = maybeInstrumentProfiler(request.enableProfiling(), contextBuilder);
 
         List<CompletableFuture<StreamBucket>> directResponseFutures = jobSetup.prepareOnRemote(
-            request.sessionTransportableInfo(),
+            request.sessionSettings(),
             request.nodeOperations(),
             contextBuilder,
             sharedShardContexts

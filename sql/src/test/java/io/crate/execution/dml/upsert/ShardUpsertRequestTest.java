@@ -22,7 +22,7 @@
 
 package io.crate.execution.dml.upsert;
 
-import io.crate.metadata.settings.SessionTransportableInfo;
+import io.crate.metadata.settings.SessionSettings;
 import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
@@ -61,7 +61,7 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
         UUID jobId = UUID.randomUUID();
         Reference[] missingAssignmentColumns = new Reference[]{ID_REF, NAME_REF};
         ShardUpsertRequest request = new ShardUpsertRequest.Builder(
-            new SessionTransportableInfo("dummyUser", Map.of()),
+            new SessionSettings("dummyUser", Map.of()),
             TimeValue.timeValueSeconds(30),
             DuplicateKeyAction.UPDATE_OR_FAIL,
             false,

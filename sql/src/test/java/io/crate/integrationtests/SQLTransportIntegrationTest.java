@@ -30,7 +30,7 @@ import io.crate.action.sql.Option;
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
 import io.crate.action.sql.SessionContext;
-import io.crate.metadata.settings.SessionTransportableInfo;
+import io.crate.metadata.settings.SessionSettings;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParameterContext;
 import io.crate.auth.user.User;
@@ -145,7 +145,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
 
     private static final int ORIGINAL_PAGE_SIZE = Paging.PAGE_SIZE;
 
-    protected static SessionTransportableInfo DUMMY_SESSION_INFO = new SessionTransportableInfo(
+    protected static SessionSettings DUMMY_SESSION_INFO = new SessionSettings(
         "dummyUser",
         Map.of(SessionSettingRegistry.SEARCH_PATH_KEY, "dummySchema"));
 

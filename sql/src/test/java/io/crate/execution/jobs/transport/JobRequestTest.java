@@ -22,7 +22,7 @@
 
 package io.crate.execution.jobs.transport;
 
-import io.crate.metadata.settings.SessionTransportableInfo;
+import io.crate.metadata.settings.SessionSettings;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
@@ -38,7 +38,7 @@ public class JobRequestTest {
     @Test
     public void testJobRequestStreaming() throws Exception {
         JobRequest r1 = new JobRequest(UUID.randomUUID(),
-                                       new SessionTransportableInfo("dummyUser", Map.of()),
+                                       new SessionSettings("dummyUser", Map.of()),
                                        "n1",
                                        Collections.emptyList(),
                                        true);
@@ -51,7 +51,7 @@ public class JobRequestTest {
 
         assertThat(r1.coordinatorNodeId(), is(r2.coordinatorNodeId()));
         assertThat(r1.jobId(), is(r2.jobId()));
-        assertThat(r1.sessionTransportableInfo(), is(r2.sessionTransportableInfo()));
+        assertThat(r1.sessionSettings(), is(r2.sessionSettings()));
         assertThat(r1.nodeOperations().isEmpty(), is(true));
         assertThat(r1.enableProfiling(), is(r2.enableProfiling()));
     }

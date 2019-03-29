@@ -33,28 +33,34 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
-public final class SessionTransportableInfo implements Writeable {
+public final class SessionSettings implements Writeable {
 
-    private String userName;
-    private Map<String, String> sessionSettings;
+    private final String userName;
+    private final Map<String, String> sessionSettings;
+
     private SearchPath searchPath;
 
 
-    public static SessionTransportableInfo fromStream(StreamInput in) throws IOException {
-        final String userName = in.readString();
+    public SessionSettings(StreamInput in) throws IOException {
+        this.userName = in.readString();
 
         final int numOfSettings = in.readVInt();
         Map<String, String> sessionSettings = new HashMap<>();
         for (int i = 0; i < numOfSettings; i++) {
             sessionSettings.put(in.readString(), in.readString());
         }
-        return new SessionTransportableInfo(userName, sessionSettings);
+        this.sessionSettings = sessionSettings;
+        initSettings();
     }
 
-    public SessionTransportableInfo(String userName,
-                                    Map<String, String> sessionSettings) {
+    public SessionSettings(String userName,
+                           Map<String, String> sessionSettings) {
         this.userName = userName;
         this.sessionSettings = sessionSettings;
+        initSettings();
+    }
+
+    private void initSettings() {
         this.searchPath = SearchPath.createSearchPathFrom(
             sessionSettings.get(SessionSettingRegistry.SEARCH_PATH_KEY));
     }
@@ -66,7 +72,6 @@ public final class SessionTransportableInfo implements Writeable {
     public String currentSchema() {
         return searchPath.currentSchema();
     }
-
 
     public SearchPath searchPath() {
         return searchPath;
@@ -95,7 +100,7 @@ public final class SessionTransportableInfo implements Writeable {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        SessionTransportableInfo that = (SessionTransportableInfo) o;
+        SessionSettings that = (SessionSettings) o;
         return Objects.equals(userName, that.userName) &&
                Objects.equals(searchPath, that.searchPath) &&
                Objects.equals(sessionSettings, that.sessionSettings);

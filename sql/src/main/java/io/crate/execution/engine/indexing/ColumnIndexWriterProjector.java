@@ -95,7 +95,7 @@ public class ColumnIndexWriterProjector implements Projector {
             assignments = convert.sources();
         }
         ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
-            txnCtx.sessionTransportableInfo(),
+            txnCtx.sessionSettings(),
             ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings),
             ignoreDuplicateKeys ? DuplicateKeyAction.IGNORE : DuplicateKeyAction.UPDATE_OR_FAIL,
             true, // continueOnErrors

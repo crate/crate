@@ -23,7 +23,7 @@
 package io.crate.metadata;
 
 import io.crate.action.sql.SessionContext;
-import io.crate.metadata.settings.SessionTransportableInfo;
+import io.crate.metadata.settings.SessionSettings;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import org.joda.time.DateTimeUtils;
 
@@ -78,15 +78,15 @@ public final class CoordinatorTxnCtx implements TransactionContext {
     }
 
     @Override
-    public SessionTransportableInfo sessionTransportableInfo() {
-        return new SessionTransportableInfo(userName(), sessionSettings());
+    public SessionSettings sessionSettings() {
+        return new SessionSettings(userName(), createSessionSettings());
     }
 
     public SessionContext sessionContext() {
         return sessionContext;
     }
 
-    private Map<String, String> sessionSettings() {
+    private Map<String, String> createSessionSettings() {
         // todo: add logic for which session settings to include - for now include all
         return SessionSettingRegistry.SETTINGS.entrySet()
             .stream()

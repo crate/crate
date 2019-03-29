@@ -23,7 +23,7 @@
 package io.crate.execution.dml.upsert;
 
 import io.crate.Constants;
-import io.crate.metadata.settings.SessionTransportableInfo;
+import io.crate.metadata.settings.SessionSettings;
 import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.execution.ddl.SchemaUpdateClient;
 import io.crate.execution.dml.ShardResponse;
@@ -95,7 +95,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
     private final static Reference ID_REF = new Reference(
         new ReferenceIdent(TABLE_IDENT, "id"), RowGranularity.DOC, DataTypes.SHORT, null);
 
-    private final static SessionTransportableInfo DUMMY_SESSION_INFO = new SessionTransportableInfo(
+    private final static SessionSettings DUMMY_SESSION_INFO = new SessionSettings(
         "dummyUser",
         Map.of(SessionSettingRegistry.SEARCH_PATH_KEY, "dummySchema"));
 

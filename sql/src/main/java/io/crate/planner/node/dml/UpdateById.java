@@ -99,7 +99,7 @@ public final class UpdateById implements Plan {
         ClusterService clusterService = dependencies.clusterService();
         CoordinatorTxnCtx txnCtx = plannerContext.transactionContext();
         ShardUpsertRequest.Builder requestBuilder = new ShardUpsertRequest.Builder(
-            txnCtx.sessionTransportableInfo(),
+            txnCtx.sessionSettings(),
             ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.setting().get(clusterService.state().metaData().settings()),
             ShardUpsertRequest.DuplicateKeyAction.UPDATE_OR_FAIL,
             true,

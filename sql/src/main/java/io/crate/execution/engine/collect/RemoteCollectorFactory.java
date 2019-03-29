@@ -148,7 +148,7 @@ public class RemoteCollectorFactory {
         String localNode = clusterService.localNode().getId();
         return remoteNode -> new RemoteCollector(
             jobId,
-            collectTask.txnCtx().sessionTransportableInfo(),
+            collectTask.txnCtx().sessionSettings(),
             localNode,
             remoteNode,
             transportActionProvider.transportJobInitAction(),

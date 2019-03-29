@@ -479,7 +479,7 @@ public class ProjectionToProjectorVisitor
     public Projector visitUpdateProjection(final UpdateProjection projection, Context context) {
         checkShardLevel("Update projection can only be executed on a shard");
         ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
-            context.txnCtx.sessionTransportableInfo(),
+            context.txnCtx.sessionSettings(),
             ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings),
             ShardUpsertRequest.DuplicateKeyAction.UPDATE_OR_FAIL,
             false,

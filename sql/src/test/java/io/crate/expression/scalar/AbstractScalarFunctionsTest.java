@@ -23,7 +23,7 @@ package io.crate.expression.scalar;
 
 import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
-import io.crate.metadata.settings.SessionTransportableInfo;
+import io.crate.metadata.settings.SessionSettings;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.collections.Lists2;
@@ -78,7 +78,7 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
     private TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
     private InputFactory inputFactory;
 
-    protected static SessionTransportableInfo DUMMY_SESSION_INFO = new SessionTransportableInfo(
+    protected static SessionSettings DUMMY_SESSION_INFO = new SessionSettings(
         "dummyUser",
         Map.of(SessionSettingRegistry.SEARCH_PATH_KEY, "dummySchema"));
 

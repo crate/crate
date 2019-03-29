@@ -38,15 +38,18 @@ public class SessionSetting<T> {
     private final Function<Object[], T> converter;
     private final BiConsumer<SessionContext, T> setter;
     private final Function<SessionContext, String> getter;
+    private final Function<SessionContext, T> rawValueGetter;
 
     SessionSetting(Consumer<Object[]> validator,
                    Function<Object[], T> converter,
                    BiConsumer<SessionContext, T> setter,
-                   Function<SessionContext, String> getter) {
+                   Function<SessionContext, String> getter,
+                   Function<SessionContext, T> rawValueGetter) {
         this.validator = validator;
         this.converter = converter;
         this.setter = setter;
         this.getter = getter;
+        this.rawValueGetter = rawValueGetter;
     }
 
     public void apply(Row parameters, List<Expression> expressions, SessionContext sessionContext) {
@@ -62,5 +65,9 @@ public class SessionSetting<T> {
 
     public String getValue(SessionContext sessionContext) {
         return getter.apply(sessionContext);
+    }
+
+    public T getRawValue(SessionContext sessionContext) {
+        return rawValueGetter.apply(sessionContext);
     }
 }
