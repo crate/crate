@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import com.google.common.primitives.Booleans;
 import io.crate.collections.Lists2;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
@@ -32,6 +33,7 @@ import org.elasticsearch.common.io.stream.Writeable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
@@ -39,9 +41,23 @@ import java.util.function.Function;
 
 public class OrderBy implements Writeable {
 
-    private List<Symbol> orderBySymbols;
-    private boolean[] reverseFlags;
-    private Boolean[] nullsFirst;
+    private static final boolean REVERSE_FLAG_DEFAULT_ASC = false;
+    private static final Boolean NULLS_FIRST_DEFAULT_UNDEFINED = null;
+
+    private final List<Symbol> orderBySymbols;
+    private final boolean[] reverseFlags;
+    private final Boolean[] nullsFirst;
+
+    /**
+     * Create a OrderBy with reverseFlags and nullsFirst defaults
+     */
+    public OrderBy(List<Symbol> orderBySymbols) {
+        this.orderBySymbols = orderBySymbols;
+        this.reverseFlags = new boolean[orderBySymbols.size()];
+        this.nullsFirst = new Boolean[orderBySymbols.size()];
+        Arrays.fill(reverseFlags, REVERSE_FLAG_DEFAULT_ASC);
+        Arrays.fill(nullsFirst, NULLS_FIRST_DEFAULT_UNDEFINED);
+    }
 
     public OrderBy(List<Symbol> orderBySymbols, boolean[] reverseFlags, Boolean[] nullsFirst) {
         assert !orderBySymbols.isEmpty() : "orderBySymbols must not be empty";
@@ -51,6 +67,53 @@ public class OrderBy implements Writeable {
         this.orderBySymbols = orderBySymbols;
         this.reverseFlags = reverseFlags;
         this.nullsFirst = nullsFirst;
+    }
+
+    /**
+     * Creates a new OrderBy with the other symbols prepended (or returns this if symbols are empty).
+     * Symbols are de-duplicated to some degree, e.g.
+     *
+     * <pre>
+     *     ORDER BY x y `prependUnique` x z will result in x z y; without duplicating x
+     * </pre>
+     *
+     * The defaults for reverseFlags and nullsFirst are used (asc, undefined)
+     */
+    public OrderBy prependUnique(Collection<? extends Symbol> symbols) {
+        if (symbols.isEmpty()) {
+            return this;
+        }
+        int newEstimatedSize = orderBySymbols.size() + symbols.size();
+        ArrayList<Symbol> newOrderBySymbols = new ArrayList<>(newEstimatedSize);
+        ArrayList<Boolean> newReverseFlags = new ArrayList<>(newEstimatedSize);
+        ArrayList<Boolean> newNullsFirst = new ArrayList<>(newEstimatedSize);
+        var orderBySymbols = this.orderBySymbols.listIterator();
+        var xsToPrepend = symbols.iterator();
+        var nextOrderBy = orderBySymbols.hasNext() ? orderBySymbols.next() : null;
+        while (xsToPrepend.hasNext()) {
+            Symbol toPrepend = xsToPrepend.next();
+            if (toPrepend.equals(nextOrderBy)) {
+                newOrderBySymbols.add(nextOrderBy);
+                newReverseFlags.add(reverseFlags[orderBySymbols.previousIndex()]);
+                newNullsFirst.add(nullsFirst[orderBySymbols.previousIndex()]);
+                nextOrderBy = orderBySymbols.hasNext() ? orderBySymbols.next() : null;
+            } else {
+                newOrderBySymbols.add(toPrepend);
+                newReverseFlags.add(REVERSE_FLAG_DEFAULT_ASC);
+                newNullsFirst.add(NULLS_FIRST_DEFAULT_UNDEFINED);
+            }
+        }
+        if (nextOrderBy != null) {
+            newOrderBySymbols.add(nextOrderBy);
+            newReverseFlags.add(reverseFlags[orderBySymbols.previousIndex()]);
+            newNullsFirst.add(nullsFirst[orderBySymbols.previousIndex()]);
+        }
+        while (orderBySymbols.hasNext()) {
+            newOrderBySymbols.add(orderBySymbols.next());
+            newReverseFlags.add(reverseFlags[orderBySymbols.previousIndex()]);
+            newNullsFirst.add(nullsFirst[orderBySymbols.previousIndex()]);
+        }
+        return new OrderBy(newOrderBySymbols, Booleans.toArray(newReverseFlags), newNullsFirst.toArray(new Boolean[0]));
     }
 
     public List<Symbol> orderBySymbols() {
