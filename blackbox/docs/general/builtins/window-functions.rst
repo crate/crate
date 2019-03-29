@@ -171,7 +171,7 @@ Example::
 .. note::
 
    The ``first_value`` window function is an :ref:`enterprise
-   feature <enterprise_features>`.
+   feature <enterprise-features>`.
 
 Returns the argument value evaluated at the first row within the window.
 
@@ -198,7 +198,7 @@ Example::
 .. note::
 
    The ``last_value`` window function is an :ref:`enterprise
-   feature <enterprise_features>`.
+   feature <enterprise-features>`.
 
 Returns the argument value evaluated at the last row within the window.
 
@@ -225,7 +225,7 @@ Example::
 .. note::
 
    The ``nth_value`` window function is an :ref:`enterprise
-   feature <enterprise_features>`.
+   feature <enterprise-features>`.
 
 Returns the argument value evaluated at row that is the nth row within the
 window. Null is returned if the nth row doesn't exist in the window.

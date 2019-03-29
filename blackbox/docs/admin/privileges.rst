@@ -18,7 +18,7 @@ Any statements which are not allowed with those privileges, such as ``GRANT``,
 
 .. NOTE::
 
-   Privileges are an :ref:`enterprise feature <enterprise_features>`.
+   Privileges are an :ref:`enterprise feature <enterprise-features>`.
 
    When the CrateDB Enterprise Edition is disabled, there will be no user
    privilege checks, and every statement will be executed without the
