@@ -147,15 +147,15 @@ public class WindowFunctionsIntegrationTest extends SQLTransportIntegrationTest 
 
     @Test
     public void testOrderByWindowFunctionInQueryOnDocTable() {
-        execute("create table t (x int)");
-        execute("insert into t values (1), (1), (1)");
+        execute("create table t (x int, y int)");
+        execute("insert into t values (1, 2), (1, 2), (2, 3)");
         execute("refresh table t");
 
-        execute("select x, row_number() OVER() from t order by 2");
+        execute("select x, sum(y) OVER (partition by x) from t order by 2");
 
-        assertThat(printedTable(response.rows()), is("1| 1\n" +
-                                                     "1| 2\n" +
-                                                     "1| 3\n"));
+        assertThat(printedTable(response.rows()), is("2| 3\n" +
+                                                     "1| 4\n" +
+                                                     "1| 4\n"));
     }
 
     @Test

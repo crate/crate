@@ -38,9 +38,11 @@ import io.crate.execution.dsl.projection.FetchProjection;
 import io.crate.execution.dsl.projection.FilterProjection;
 import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.execution.dsl.projection.MergeCountProjection;
+import io.crate.execution.dsl.projection.OrderedTopNProjection;
 import io.crate.execution.dsl.projection.ProjectSetProjection;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.TopNProjection;
+import io.crate.execution.dsl.projection.WindowAggProjection;
 import io.crate.execution.engine.NodeOperationTreeGenerator;
 import io.crate.execution.engine.aggregation.impl.CountAggregation;
 import io.crate.expression.symbol.AggregateMode;
@@ -818,5 +820,20 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testUnnestCannotReturnMultipleColumnsIfUsedInSelectList() {
         expectedException.expectMessage("Table function used in select list must not return multiple columns");
         e.logicalPlan("select unnest([1, 2], [3, 4])");
+    }
+
+    @Test
+    public void testWindowFunctionsWithPartitionByAreExecutedDistributed() {
+        Merge localMerge = e.plan("select sum(ints) OVER (partition by awesome) from users");
+        Merge distMerge = (Merge) localMerge.subPlan();
+        assertThat(distMerge.nodeIds().size(), is(2));
+        assertThat(distMerge.mergePhase().projections(), contains(
+             // We order by the PARTITION BY column so that the batchIterator can rely on seeing all rows of a partition
+             // before a new partition starts
+            instanceOf(OrderedTopNProjection.class),
+            instanceOf(WindowAggProjection.class)
+        ));
+        Collect collect = (Collect) distMerge.subPlan();
+        assertThat(collect.nodeIds().size(), is(2));
     }
 }
