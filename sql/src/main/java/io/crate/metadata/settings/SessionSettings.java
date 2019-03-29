@@ -50,19 +50,21 @@ public final class SessionSettings implements Writeable {
             sessionSettings.put(in.readString(), in.readString());
         }
         this.sessionSettings = sessionSettings;
-        initSettings();
+        setSettings();
     }
 
     public SessionSettings(String userName,
                            Map<String, String> sessionSettings) {
         this.userName = userName;
         this.sessionSettings = sessionSettings;
-        initSettings();
+        setSettings();
     }
 
-    private void initSettings() {
-        this.searchPath = SearchPath.createSearchPathFrom(
-            sessionSettings.get(SessionSettingRegistry.SEARCH_PATH_KEY));
+    private void setSettings() {
+        final String serialisedSearchPath = sessionSettings.get(SessionSettingRegistry.SEARCH_PATH_KEY);
+        this.searchPath = (serialisedSearchPath != null)
+            ? SearchPath.createSearchPathFrom(serialisedSearchPath.split(","))
+            : SearchPath.createSearchPathFrom((String) null);
     }
 
     public String userName() {
