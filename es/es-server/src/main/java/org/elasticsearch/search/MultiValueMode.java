@@ -30,9 +30,6 @@ import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.util.BitSet;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.BytesRefBuilder;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.index.fielddata.AbstractBinaryDocValues;
 import org.elasticsearch.index.fielddata.AbstractNumericDocValues;
 import org.elasticsearch.index.fielddata.AbstractSortedDocValues;
@@ -47,7 +44,7 @@ import java.util.Locale;
 /**
  * Defines what values to pick in the case a document contains multiple values for a particular field.
  */
-public enum MultiValueMode implements Writeable {
+public enum MultiValueMode {
     /**
      * Pick the sum of all the values.
      */
@@ -885,14 +882,5 @@ public enum MultiValueMode implements Writeable {
 
     protected int pick(SortedDocValues values, DocIdSetIterator docItr, int startDoc, int endDoc, int maxChildren) throws IOException {
         throw new IllegalArgumentException("Unsupported sort mode: " + this);
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        out.writeEnum(this);
-    }
-
-    public static MultiValueMode readMultiValueModeFrom(StreamInput in) throws IOException {
-        return in.readEnum(MultiValueMode.class);
     }
 }

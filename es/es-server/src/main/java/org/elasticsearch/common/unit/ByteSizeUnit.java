@@ -19,12 +19,6 @@
 
 package org.elasticsearch.common.unit;
 
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
-
-import java.io.IOException;
-
 /**
  * A {@code SizeUnit} represents size at a given unit of
  * granularity and provides utility methods to convert across units.
@@ -32,7 +26,7 @@ import java.io.IOException;
  * helps organize and use size representations that may be maintained
  * separately across various contexts.
  */
-public enum ByteSizeUnit implements Writeable {
+public enum ByteSizeUnit {
     BYTES {
         @Override
         public long toBytes(long size) {
@@ -289,16 +283,4 @@ public enum ByteSizeUnit implements Writeable {
     public abstract long toPB(long size);
 
     public abstract String getSuffix();
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        out.writeVInt(this.ordinal());
-    }
-
-    /**
-     * Reads a {@link ByteSizeUnit} from a given {@link StreamInput}
-     */
-    public static ByteSizeUnit readFrom(StreamInput in) throws IOException {
-        return ByteSizeUnit.fromId(in.readVInt());
-    }
 }

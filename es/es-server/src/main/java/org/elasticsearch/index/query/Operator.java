@@ -27,7 +27,7 @@ import org.elasticsearch.common.util.CollectionUtils;
 import java.io.IOException;
 import java.util.Locale;
 
-public enum Operator implements Writeable {
+public enum Operator {
     OR, AND;
 
     public BooleanClause.Occur toBooleanClauseOccur() {
@@ -39,15 +39,6 @@ public enum Operator implements Writeable {
             default:
                 throw Operator.newOperatorException(this.toString());
         }
-    }
-
-    public static Operator readFromStream(StreamInput in) throws IOException {
-        return in.readEnum(Operator.class);
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        out.writeEnum(this);
     }
 
     public static Operator fromString(String op) {

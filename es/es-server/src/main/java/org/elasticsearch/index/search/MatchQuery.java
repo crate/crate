@@ -46,10 +46,6 @@ import org.apache.lucene.search.spans.SpanTermQuery;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.QueryBuilder;
 import org.apache.lucene.util.graph.GraphTokenStreamFiniteStrings;
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.logging.DeprecationLogger;
 import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.common.lucene.search.MultiPhrasePrefixQuery;
@@ -72,7 +68,7 @@ public class MatchQuery {
     private static final DeprecationLogger DEPRECATION_LOGGER = new DeprecationLogger(LogManager.getLogger(MappedFieldType.class));
     public static final float DEFAULT_BOOST = 1.0f;
 
-    public enum Type implements Writeable {
+    public enum Type {
         /**
          * The text is analyzed and terms are added to a boolean query.
          */
@@ -91,24 +87,9 @@ public class MatchQuery {
         Type(int ordinal) {
             this.ordinal = ordinal;
         }
-
-        public static Type readFromStream(StreamInput in) throws IOException {
-            int ord = in.readVInt();
-            for (Type type : Type.values()) {
-                if (type.ordinal == ord) {
-                    return type;
-                }
-            }
-            throw new ElasticsearchException("unknown serialized type [" + ord + "]");
-        }
-
-        @Override
-        public void writeTo(StreamOutput out) throws IOException {
-            out.writeVInt(this.ordinal);
-        }
     }
 
-    public enum ZeroTermsQuery implements Writeable {
+    public enum ZeroTermsQuery {
         NONE(0),
         ALL(1),
         // this is used internally to make sure that query_string and simple_query_string
@@ -119,21 +100,6 @@ public class MatchQuery {
 
         ZeroTermsQuery(int ordinal) {
             this.ordinal = ordinal;
-        }
-
-        public static ZeroTermsQuery readFromStream(StreamInput in) throws IOException {
-            int ord = in.readVInt();
-            for (ZeroTermsQuery zeroTermsQuery : ZeroTermsQuery.values()) {
-                if (zeroTermsQuery.ordinal == ord) {
-                    return zeroTermsQuery;
-                }
-            }
-            throw new ElasticsearchException("unknown serialized type [" + ord + "]");
-        }
-
-        @Override
-        public void writeTo(StreamOutput out) throws IOException {
-            out.writeVInt(this.ordinal);
         }
     }
 

@@ -18,13 +18,7 @@
  */
 package org.elasticsearch.common.geo;
 
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
-
-import java.io.IOException;
-
-public enum SpatialStrategy implements Writeable {
+public enum SpatialStrategy {
 
     TERM("term"),
     RECURSIVE("recursive");
@@ -37,15 +31,6 @@ public enum SpatialStrategy implements Writeable {
 
     public String getStrategyName() {
         return strategyName;
-    }
-
-    public static SpatialStrategy readFromStream(StreamInput in) throws IOException {
-        return in.readEnum(SpatialStrategy.class);
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        out.writeEnum(this);
     }
 
     public static SpatialStrategy fromString(String strategyName) {

@@ -19,24 +19,21 @@
 
 package org.elasticsearch.common.geo.builders;
 
-import org.locationtech.jts.geom.Coordinate;
-import org.locationtech.jts.geom.Geometry;
-import org.locationtech.jts.geom.GeometryFactory;
-
-import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Assertions;
-import org.elasticsearch.Version;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.geo.GeoShapeType;
-import org.elasticsearch.common.geo.parsers.ShapeParser;
 import org.elasticsearch.common.geo.parsers.GeoWKTParser;
-import org.elasticsearch.common.io.stream.NamedWriteable;
+import org.elasticsearch.common.geo.parsers.ShapeParser;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.ToXContentObject;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
 import org.locationtech.spatial4j.exception.InvalidShapeException;
 import org.locationtech.spatial4j.shape.Shape;
@@ -54,7 +51,7 @@ import java.util.Objects;
 /**
  * Basic class for building GeoJSON shapes like Polygons, Linestrings, etc
  */
-public abstract class ShapeBuilder<T extends Shape, E extends ShapeBuilder<T,E>> implements NamedWriteable, ToXContentObject {
+public abstract class ShapeBuilder<T extends Shape, E extends ShapeBuilder<T,E>> implements ToXContentObject {
 
     protected static final Logger LOGGER = LogManager.getLogger(ShapeBuilder.class);
 
@@ -116,14 +113,6 @@ public abstract class ShapeBuilder<T extends Shape, E extends ShapeBuilder<T,E>>
         double y = in.readDouble();
         Double z = in.readOptionalDouble();
         return z == null ? new Coordinate(x, y) : new Coordinate(x, y, z);
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        out.writeVInt(coordinates.size());
-        for (Coordinate point : coordinates) {
-            writeCoordinateTo(point, out);
-        }
     }
 
     protected static void writeCoordinateTo(Coordinate coordinate, StreamOutput out) throws IOException {
@@ -488,11 +477,6 @@ public abstract class ShapeBuilder<T extends Shape, E extends ShapeBuilder<T,E>>
     @Override
     public int hashCode() {
         return Objects.hash(coordinates);
-    }
-
-    @Override
-    public String getWriteableName() {
-        return type().shapeName();
     }
 
     @Override

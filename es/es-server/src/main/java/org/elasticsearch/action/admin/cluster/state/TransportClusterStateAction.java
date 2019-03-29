@@ -20,7 +20,6 @@
 package org.elasticsearch.action.admin.cluster.state;
 
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
-import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.TransportMasterNodeReadAction;
 import org.elasticsearch.cluster.ClusterState;
@@ -37,8 +36,6 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import java.io.IOException;
-
-import static org.elasticsearch.discovery.zen.PublishClusterStateAction.serializeFullClusterState;
 
 public class TransportClusterStateAction extends TransportMasterNodeReadAction<ClusterStateRequest, ClusterStateResponse> {
 
@@ -130,8 +127,7 @@ public class TransportClusterStateAction extends TransportMasterNodeReadAction<C
                 }
             }
         }
-        listener.onResponse(new ClusterStateResponse(currentState.getClusterName(), builder.build(),
-                                                        serializeFullClusterState(currentState, Version.CURRENT).length()));
+        listener.onResponse(new ClusterStateResponse(currentState.getClusterName(), builder.build()));
     }
 
 

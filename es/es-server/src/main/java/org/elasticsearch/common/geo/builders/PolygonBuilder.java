@@ -19,19 +19,17 @@
 
 package org.elasticsearch.common.geo.builders;
 
+import org.elasticsearch.common.collect.Tuple;
+import org.elasticsearch.common.geo.GeoShapeType;
+import org.elasticsearch.common.geo.parsers.ShapeParser;
+import org.elasticsearch.common.util.set.Sets;
+import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.LinearRing;
 import org.locationtech.jts.geom.MultiPolygon;
 import org.locationtech.jts.geom.Polygon;
-import org.elasticsearch.common.collect.Tuple;
-import org.elasticsearch.common.geo.GeoShapeType;
-import org.elasticsearch.common.geo.parsers.ShapeParser;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.util.set.Sets;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.locationtech.spatial4j.exception.InvalidShapeException;
 import org.locationtech.spatial4j.shape.jts.JtsGeometry;
 
@@ -86,28 +84,6 @@ public class PolygonBuilder extends ShapeBuilder<JtsGeometry, PolygonBuilder> {
 
     public PolygonBuilder(CoordinatesBuilder coordinates) {
         this(coordinates, Orientation.RIGHT);
-    }
-
-    /**
-     * Read from a stream.
-     */
-    public PolygonBuilder(StreamInput in) throws IOException {
-        shell = new LineStringBuilder(in);
-        orientation = Orientation.readFrom(in);
-        int holes = in.readVInt();
-        for (int i = 0; i < holes; i++) {
-            hole(new LineStringBuilder(in));
-        }
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        shell.writeTo(out);
-        orientation.writeTo(out);
-        out.writeVInt(holes.size());
-        for (LineStringBuilder hole : holes) {
-            hole.writeTo(out);
-        }
     }
 
     public Orientation orientation() {

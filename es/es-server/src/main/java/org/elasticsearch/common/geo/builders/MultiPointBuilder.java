@@ -19,13 +19,11 @@
 
 package org.elasticsearch.common.geo.builders;
 
-import org.locationtech.jts.geom.Coordinate;
-
 import org.elasticsearch.common.geo.GeoShapeType;
 import org.elasticsearch.common.geo.XShapeCollection;
 import org.elasticsearch.common.geo.parsers.ShapeParser;
-import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.spatial4j.shape.Point;
 
 import java.io.IOException;
@@ -42,13 +40,6 @@ public class MultiPointBuilder extends ShapeBuilder<XShapeCollection<Point>, Mul
      */
     public MultiPointBuilder(List<Coordinate> coordinates) {
         super(coordinates);
-    }
-
-    /**
-     * Read from a stream.
-     */
-    public MultiPointBuilder(StreamInput in) throws IOException {
-        super(in);
     }
 
     @Override

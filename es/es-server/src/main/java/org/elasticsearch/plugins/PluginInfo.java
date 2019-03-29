@@ -22,9 +22,6 @@ package org.elasticsearch.plugins;
 import org.elasticsearch.Version;
 import org.elasticsearch.bootstrap.JarHell;
 import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.xcontent.ToXContentObject;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 
@@ -44,10 +41,9 @@ import java.util.stream.Collectors;
 /**
  * An in-memory representation of the plugin descriptor.
  */
-public class PluginInfo implements Writeable, ToXContentObject {
+public class PluginInfo implements ToXContentObject {
 
     public static final String ES_PLUGIN_PROPERTIES = "plugin-descriptor.properties";
-    public static final String ES_PLUGIN_POLICY = "plugin-security.policy";
 
     private final String name;
     private final String description;
@@ -80,35 +76,6 @@ public class PluginInfo implements Writeable, ToXContentObject {
         this.classname = classname;
         this.extendedPlugins = Collections.unmodifiableList(extendedPlugins);
         this.hasNativeController = hasNativeController;
-    }
-
-    /**
-     * Construct plugin info from a stream.
-     *
-     * @param in the stream
-     * @throws IOException if an I/O exception occurred reading the plugin info from the stream
-     */
-    public PluginInfo(final StreamInput in) throws IOException {
-        this.name = in.readString();
-        this.description = in.readString();
-        this.version = in.readString();
-        elasticsearchVersion = Version.readVersion(in);
-        javaVersion = in.readString();
-        this.classname = in.readString();
-        extendedPlugins = in.readList(StreamInput::readString);
-        hasNativeController = in.readBoolean();
-    }
-
-    @Override
-    public void writeTo(final StreamOutput out) throws IOException {
-        out.writeString(name);
-        out.writeString(description);
-        out.writeString(version);
-        Version.writeVersion(elasticsearchVersion, out);
-        out.writeString(javaVersion);
-        out.writeString(classname);
-        out.writeStringList(extendedPlugins);
-        out.writeBoolean(hasNativeController);
     }
 
     /**

@@ -84,13 +84,6 @@ public interface CircuitBreaker {
     }
 
     /**
-     * Trip the circuit breaker
-     * @param fieldName name of the field responsible for tripping the breaker
-     * @param bytesNeeded bytes asked for but unable to be allocated
-     */
-    void circuitBreak(String fieldName, long bytesNeeded);
-
-    /**
      * add bytes to the breaker and maybe trip
      * @param bytes number of bytes to add
      * @param label string label describing the bytes being added
