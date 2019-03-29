@@ -27,7 +27,9 @@ import io.crate.analyze.WindowDefinition;
 import io.crate.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.projection.OrderedTopNProjection;
+import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.WindowAggProjection;
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
@@ -38,6 +40,10 @@ import io.crate.planner.ExecutionPlan;
 import io.crate.planner.ExplainLeaf;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
+import io.crate.planner.PositionalOrderBy;
+import io.crate.planner.ResultDescription;
+import io.crate.planner.distribution.DistributionInfo;
+import io.crate.planner.distribution.DistributionType;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -46,7 +52,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
+import static io.crate.execution.dsl.phases.ExecutionPhases.executesOnHandler;
 import static io.crate.planner.operators.LogicalPlanner.extractColumns;
 
 public class WindowAgg extends OneInputPlan {
@@ -121,25 +129,13 @@ public class WindowAgg extends OneInputPlan {
                                @Nullable Integer pageSizeHint,
                                Row params,
                                SubQueryResults subQueryResults) {
-        ExecutionPlan sourcePlan = source.build(
-            plannerContext,
-            projectionBuilder,
-            TopN.NO_LIMIT,
-            0,
-            null,
-            pageSizeHint,
-            params,
-            subQueryResults
-        );
-
-        sourcePlan = Merge.ensureOnHandler(sourcePlan, plannerContext);
-
         InputColumns.SourceSymbols sourceSymbols = new InputColumns.SourceSymbols(source.outputs());
         LinkedHashMap<WindowFunction, List<Symbol>> functionsWithInputs = new LinkedHashMap<>(windowFunctions.size(), 1f);
         for (WindowFunction windowFunction : windowFunctions) {
             List<Symbol> inputs = InputColumns.create(windowFunction.arguments(), sourceSymbols);
             functionsWithInputs.put(windowFunction, inputs);
         }
+        List<Projection> projections = new ArrayList<>();
         OrderBy orderByInclPartitionBy = createOrderByInclPartitionBy(windowDefinition);
         int[] orderByIndices;
         if (orderByInclPartitionBy == null) {
@@ -147,13 +143,13 @@ public class WindowAgg extends OneInputPlan {
         } else {
             OrderedTopNProjection topNProjection = new OrderedTopNProjection(
                 TopN.NO_LIMIT,
-                0,
+                TopN.NO_OFFSET,
                 InputColumns.create(source.outputs(), sourceSymbols),
                 InputColumns.create(orderByInclPartitionBy.orderBySymbols(), sourceSymbols),
                 orderByInclPartitionBy.reverseFlags(),
                 orderByInclPartitionBy.nullsFirst()
             );
-            sourcePlan.addProjection(topNProjection, limit, offset, null);
+            projections.add(topNProjection);
             orderByIndices = new int[orderByInclPartitionBy.orderBySymbols().size()];
             for (int i = 0; i < orderByInclPartitionBy.orderBySymbols().size(); i++) {
                 Symbol orderBy = orderByInclPartitionBy.orderBySymbols().get(i);
@@ -162,14 +158,60 @@ public class WindowAgg extends OneInputPlan {
                 orderByIndices[i] = idx;
             }
         }
-        sourcePlan.addProjection(
-            new WindowAggProjection(
-                windowDefinition.map(s -> InputColumns.create(s, sourceSymbols)),
-                functionsWithInputs,
-                InputColumns.create(this.standalone, sourceSymbols),
-                orderByIndices
-            )
+        WindowAggProjection windowAggProjection = new WindowAggProjection(
+            windowDefinition.map(s -> InputColumns.create(s, sourceSymbols)),
+            functionsWithInputs,
+            InputColumns.create(this.standalone, sourceSymbols),
+            orderByIndices
         );
+        projections.add(windowAggProjection);
+        ExecutionPlan sourcePlan = source.build(
+            plannerContext,
+            projectionBuilder,
+            TopN.NO_LIMIT,
+            TopN.NO_OFFSET,
+            null,
+            pageSizeHint,
+            params,
+            subQueryResults
+        );
+        ResultDescription resultDescription = sourcePlan.resultDescription();
+        boolean executesOnHandler = executesOnHandler(plannerContext.handlerNode(), resultDescription.nodeIds());
+        boolean nonDistExecution = windowDefinition.partitions().isEmpty()
+                                   || resultDescription.hasRemainingLimitOrOffset()
+                                   || executesOnHandler;
+        if (nonDistExecution) {
+            sourcePlan = Merge.ensureOnHandler(sourcePlan, plannerContext);
+            for (Projection projection : projections) {
+                sourcePlan.addProjection(projection);
+            }
+        } else {
+            sourcePlan.setDistributionInfo(new DistributionInfo(
+                DistributionType.MODULO,
+                source.outputs().indexOf(windowDefinition.partitions().iterator().next()))
+            );
+            MergePhase distWindowAgg = new MergePhase(
+                UUID.randomUUID(),
+                plannerContext.nextExecutionPhaseId(),
+                "distWindowAgg",
+                resultDescription.nodeIds().size(),
+                resultDescription.numOutputs(),
+                resultDescription.nodeIds(),
+                resultDescription.streamOutputs(),
+                projections,
+                DistributionInfo.DEFAULT_BROADCAST,
+                null
+            );
+            return new Merge(
+                sourcePlan,
+                distWindowAgg,
+                TopN.NO_LIMIT,
+                TopN.NO_OFFSET,
+                windowAggProjection.outputs().size(),
+                resultDescription.maxRowsPerNode(),
+                PositionalOrderBy.of(orderByInclPartitionBy, source.outputs())
+            );
+        }
         return sourcePlan;
     }
 
