@@ -31,6 +31,7 @@ import io.crate.execution.dsl.projection.OrderedTopNProjection;
 import io.crate.execution.dsl.projection.WindowAggProjection;
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
+import io.crate.execution.engine.pipeline.TopN;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.WindowFunction;
@@ -124,9 +125,9 @@ public class WindowAgg extends OneInputPlan {
         ExecutionPlan sourcePlan = source.build(
             plannerContext,
             projectionBuilder,
-            limit,
-            offset,
-            order,
+            TopN.NO_LIMIT,
+            0,
+            null,
             pageSizeHint,
             params,
             subQueryResults
@@ -183,19 +184,14 @@ public class WindowAgg extends OneInputPlan {
                 reverseFlagsArray[i] = reverseFlags.get(i);
             }
             OrderedTopNProjection topNProjection = new OrderedTopNProjection(
-                Limit.limitAndOffset(limit, offset),
+                TopN.NO_LIMIT,
                 0,
                 outputs,
                 orderByICs,
                 reverseFlagsArray,
                 nullsFirst.toArray(new Boolean[0])
             );
-            sourcePlan.addProjection(
-                topNProjection,
-                limit,
-                offset,
-                null
-            );
+            sourcePlan.addProjection(topNProjection);
         }
 
         int[] orderByIndexes = new int[orderByICs.size()];
