@@ -20,7 +20,6 @@
 package org.elasticsearch.index;
 
 import org.apache.logging.log4j.message.ParameterizedMessage;
-import org.apache.lucene.search.Sort;
 import org.apache.lucene.store.AlreadyClosedException;
 import org.apache.lucene.util.Accountable;
 import org.elasticsearch.Assertions;
@@ -85,7 +84,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.function.LongSupplier;
-import java.util.function.Supplier;
 
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.unmodifiableMap;
@@ -122,7 +120,6 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
     private final ThreadPool threadPool;
     private final BigArrays bigArrays;
     private final CircuitBreakerService circuitBreakerService;
-    private Supplier<Sort> indexSortSupplier;
 
     public IndexService(
             IndexSettings indexSettings,
@@ -152,16 +149,6 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
             // we parse all percolator queries as they would be parsed on shard 0
             () -> newQueryShardContext(System::currentTimeMillis));
         this.indexFieldData = new IndexFieldDataService(indexSettings, indicesFieldDataCache, circuitBreakerService, mapperService);
-        if (indexSettings.getIndexSortConfig().hasIndexSort()) {
-            // we delay the actual creation of the sort order for this index because the mapping has not been merged yet.
-            // The sort order is validated right after the merge of the mapping later in the process.
-            this.indexSortSupplier = () -> indexSettings.getIndexSortConfig().buildIndexSort(
-                mapperService::fullName,
-                indexFieldData::getForField
-            );
-        } else {
-            this.indexSortSupplier = () -> null;
-        }
         this.shardStoreDeleter = shardStoreDeleter;
         this.bigArrays = bigArrays;
         this.threadPool = threadPool;
@@ -238,10 +225,6 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
 
     public NamedXContentRegistry xContentRegistry() {
         return xContentRegistry;
-    }
-
-    public Supplier<Sort> getIndexSortSupplier() {
-        return indexSortSupplier;
     }
 
     public synchronized void close(final String reason, boolean delete) throws IOException {
@@ -360,7 +343,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
             DirectoryService directoryService = indexStore.newDirectoryService(path);
             store = new Store(shardId, this.indexSettings, directoryService.newDirectory(), lock,
                     new StoreCloseListener(shardId, () -> eventListener.onStoreClosed(shardId)));
-            indexShard = new IndexShard(routing, this.indexSettings, path, store, indexSortSupplier,
+            indexShard = new IndexShard(routing, this.indexSettings, path, store,
                 indexCache, mapperService, engineFactory,
                 eventListener, searcherWrapper, threadPool, bigArrays, engineWarmer,
                 indexingOperationListeners, () -> globalCheckpointSyncer.accept(shardId),
