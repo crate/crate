@@ -22,7 +22,6 @@
 
 package io.crate.planner.node.management;
 
-import io.crate.action.sql.SessionContext;
 import io.crate.analyze.ShowSessionParameterAnalyzedStatement;
 import io.crate.data.BatchIterator;
 import io.crate.data.InMemoryBatchIterator;
@@ -30,6 +29,7 @@ import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
 import io.crate.data.RowN;
+import io.crate.metadata.settings.SessionSettings;
 import io.crate.metadata.settings.session.SessionSetting;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
@@ -61,28 +61,28 @@ public class ShowSessionParameterPlan implements Plan {
                               RowConsumer consumer,
                               Row params,
                               SubQueryResults subQueryResults) {
-        SessionContext sessionContext = plannerContext.transactionContext().sessionContext();
+        SessionSettings sessionSettings = plannerContext.transactionContext().sessionSettings();
         BatchIterator<Row> batchIterator;
         if (statement.showAll()) {
-            batchIterator = iteratorForAllParameters(sessionContext);
+            batchIterator = iteratorForAllParameters(sessionSettings);
         } else {
-            batchIterator = iteratorForSingleParameter(statement.parameterName(), sessionContext);
+            batchIterator = iteratorForSingleParameter(statement.parameterName(), sessionSettings);
         }
         consumer.accept(batchIterator, null);
     }
 
-    private BatchIterator<Row> iteratorForSingleParameter(String parameterName, SessionContext sessionContext) {
+    private BatchIterator<Row> iteratorForSingleParameter(String parameterName, SessionSettings sessionSettings) {
         SessionSetting sessionSetting = SETTINGS.get(parameterName);
-        String parameterValue = sessionSetting.getValue(sessionContext);
+        String parameterValue = sessionSetting.getValue(sessionSettings);
         return InMemoryBatchIterator.of(new Row1(parameterValue), SENTINEL);
     }
 
-    private BatchIterator<Row> iteratorForAllParameters(SessionContext sessionContext) {
+    private BatchIterator<Row> iteratorForAllParameters(SessionSettings sessionSettings) {
         ArrayList<Row> rows = new ArrayList<>(SETTINGS.size());
         for (Map.Entry<String, SessionSetting<?>> entry : SETTINGS.entrySet()) {
             Object[] values = new Object[2];
             values[0] = entry.getKey();
-            values[1] = entry.getValue().getValue(sessionContext);
+            values[1] = entry.getValue().getValue(sessionSettings);
             rows.add(new RowN(values));
         }
         return InMemoryBatchIterator.of(rows, SENTINEL);
