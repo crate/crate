@@ -453,14 +453,6 @@ public class MetaDataCreateIndexService extends AbstractComponent {
                     throw e;
                 }
 
-                if (request.recoverFrom() == null) {
-                    // now that the mapping is merged we can validate the index sort.
-                    // we cannot validate for index shrinking since the mapping is empty
-                    // at this point. The validation will take place later in the process
-                    // (when all shards are copied in a single place).
-                    indexService.getIndexSortSupplier().get();
-                }
-
                 // now, update the mappings with the actual source
                 Map<String, MappingMetaData> mappingsMetaData = new HashMap<>();
                 for (DocumentMapper mapper : mapperService.docMappers(true)) {

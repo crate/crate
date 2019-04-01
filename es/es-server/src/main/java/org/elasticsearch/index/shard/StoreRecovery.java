@@ -25,13 +25,11 @@ import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.NoMergePolicy;
 import org.apache.lucene.index.SegmentInfos;
-import org.apache.lucene.search.Sort;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FilterDirectory;
 import org.apache.lucene.store.IOContext;
 import org.apache.lucene.store.IndexInput;
 import org.elasticsearch.ExceptionsHelper;
-import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.cluster.routing.RecoverySource;
@@ -119,7 +117,6 @@ final class StoreRecovery {
             }
             indexShard.mapperService().merge(sourceMetaData, MapperService.MergeReason.MAPPING_RECOVERY, true);
             // now that the mapping is merged we can validate the index sort configuration.
-            Sort indexSort = indexShard.getIndexSort();
             final boolean isSplit = sourceMetaData.getNumberOfShards() < indexShard.indexSettings().getNumberOfShards();
             return executeRecovery(indexShard, () -> {
                 logger.debug("starting recovery from local shards {}", shards);
@@ -128,8 +125,8 @@ final class StoreRecovery {
                     final Directory[] sources = shards.stream().map(LocalShardSnapshot::getSnapshotDirectory).toArray(Directory[]::new);
                     final long maxSeqNo = shards.stream().mapToLong(LocalShardSnapshot::maxSeqNo).max().getAsLong();
                     final long maxUnsafeAutoIdTimestamp =
-                        shards.stream().mapToLong(LocalShardSnapshot::maxUnsafeAutoIdTimestamp).max().getAsLong();
-                    addIndices(indexShard.recoveryState().getIndex(), directory, indexSort, sources, maxSeqNo, maxUnsafeAutoIdTimestamp,
+                            shards.stream().mapToLong(LocalShardSnapshot::maxUnsafeAutoIdTimestamp).max().getAsLong();
+                    addIndices(indexShard.recoveryState().getIndex(), directory, sources, maxSeqNo, maxUnsafeAutoIdTimestamp,
                         indexShard.indexSettings().getIndexMetaData(), indexShard.shardId().id(), isSplit);
                     internalRecoverFromStore(indexShard);
                     // just trigger a merge to do housekeeping on the
@@ -145,13 +142,14 @@ final class StoreRecovery {
     }
 
     void addIndices(final RecoveryState.Index indexRecoveryStats,
-                    final Directory target, final Sort indexSort,
+                    final Directory target,
                     final Directory[] sources,
                     final long maxSeqNo,
                     final long maxUnsafeAutoIdTimestamp,
                     IndexMetaData indexMetaData,
                     int shardId,
                     boolean split) throws IOException {
+
         // clean target directory (if previous recovery attempt failed) and create a fresh segment file with the proper lucene version
         Lucene.cleanLuceneIndex(target);
         assert sources.length > 0;
@@ -168,9 +166,6 @@ final class StoreRecovery {
             // we also don't specify a codec here and merges should use the engines for this index
             .setMergePolicy(NoMergePolicy.INSTANCE)
             .setOpenMode(IndexWriterConfig.OpenMode.APPEND);
-        if (indexSort != null) {
-            iwc.setIndexSort(indexSort);
-        }
 
         try (IndexWriter writer = new IndexWriter(new StatsDirectoryWrapper(hardLinkOrCopyTarget, indexRecoveryStats), iwc)) {
             writer.addIndexes(sources);
