@@ -18,7 +18,7 @@ Any statements which are not allowed with those privileges, such as ``GRANT``,
 
 .. NOTE::
 
-   Privileges are an :ref:`enterprise feature <enterprise_features>`.
+   Privileges are an :ref:`enterprise feature <enterprise-features>`.
 
    When the CrateDB Enterprise Edition is disabled, there will be no user
    privilege checks, and every statement will be executed without the
@@ -150,6 +150,12 @@ For more information regarding views, please see the
 
 Behavior of ``GRANT``, ``DENY`` and ``REVOKE``
 ==============================================
+
+.. NOTE::
+
+    You can only grant, deny, or revoke privileges for an existing user. You
+    must :ref:`create a user <administration_user_management>` and then
+    configure privileges.
 
 .. CAUTION::
 

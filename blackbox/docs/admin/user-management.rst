@@ -7,7 +7,7 @@ User Management
 .. NOTE::
 
    User management is an
-   :ref:`enterprise feature <enterprise_features>`.
+   :ref:`enterprise feature <enterprise-features>`.
 
 
 .. rubric:: Table of Contents
@@ -46,7 +46,21 @@ To create a new user for the CrateDB database cluster use the
     cr> CREATE USER user_a;
     CREATE OK, 1 row affected (... sec)
 
-The newly created user does not have any special :ref:`administration-privileges`.
+.. TIP::
+
+    Newly created users do not have any privileges. After creating a user, you
+    should :ref:`configure user privileges <administration-privileges>`.
+
+    For example, to grant all privileges to the ``user_a`` user, run::
+
+        cr> GRANT ALL PRIVILEGES TO user_a;
+        GRANT OK, 3 rows affected (... sec)
+
+.. hide:
+
+    cr> REVOKE ALL PRIVILEGES FROM user_a;
+    REVOKE OK, 3 rows affected (... sec)
+
 It can be used to connect to the database cluster using available authentication
 methods. You can specify the user's password in the ``WITH`` clause of the
 ``CREATE`` statement. This is required if you want to use the

@@ -9,7 +9,7 @@ There are multiple ways to authenticate against CrateDB.
 .. NOTE::
 
    Authentication methods are an :ref:`enterprise feature
-   <enterprise_features>`.
+   <enterprise-features>`.
 
 .. rubric:: Table of Contents
 

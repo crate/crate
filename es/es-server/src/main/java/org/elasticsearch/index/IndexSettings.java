@@ -208,7 +208,6 @@ public final class IndexSettings {
     private volatile ByteSizeValue generationThresholdSize;
     private final MergeSchedulerConfig mergeSchedulerConfig;
     private final MergePolicyConfig mergePolicyConfig;
-    private final IndexSortConfig indexSortConfig;
     private final IndexScopedSettings scopedSettings;
     private long gcDeletesInMillis = DEFAULT_GC_DELETES.millis();
     private final boolean softDeleteEnabled;
@@ -292,7 +291,6 @@ public final class IndexSettings {
         maxShingleDiff = scopedSettings.get(MAX_SHINGLE_DIFF_SETTING);
         maxRefreshListeners = scopedSettings.get(MAX_REFRESH_LISTENERS_PER_SHARD);
         this.mergePolicyConfig = new MergePolicyConfig(logger, this);
-        this.indexSortConfig = new IndexSortConfig(this);
         singleType = INDEX_MAPPING_SINGLE_TYPE_SETTING.get(indexMetaData.getSettings()); // get this from metadata - it's not registered
         if (singleType == false) {
             throw new AssertionError(index.toString()  + "multiple types are only allowed on pre 6.x indices but version is: ["
@@ -574,13 +572,6 @@ public final class IndexSettings {
 
     private void setMaxRefreshListeners(int maxRefreshListeners) {
         this.maxRefreshListeners = maxRefreshListeners;
-    }
-
-    /**
-     * Returns the index sort config that should be used for this index.
-     */
-    public IndexSortConfig getIndexSortConfig() {
-        return indexSortConfig;
     }
 
     public IndexScopedSettings getScopedSettings() { return scopedSettings;}

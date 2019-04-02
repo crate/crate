@@ -28,6 +28,7 @@ import io.crate.metadata.IndexMappings;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedSchema;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.collect.MapBuilder;
@@ -130,7 +131,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertEquals(1L, response.rowCount());
 
         execute("select * from information_schema.routines");
-        assertEquals(129L, response.rowCount());
+        assertEquals(125L, response.rowCount());
     }
 
     @Test
@@ -526,7 +527,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
             tokenizerNames[i] = (String) response.rows()[i][0];
         }
         assertEquals(
-            "PathHierarchy, char_group, classic, edgeNGram, edge_ngram",
+            "PathHierarchy, char_group, classic, edge_ngram, keyword",
             Joiner.on(", ").join(tokenizerNames)
         );
     }
