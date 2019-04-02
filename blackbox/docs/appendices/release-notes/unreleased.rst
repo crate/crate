@@ -131,6 +131,9 @@ Deprecations
 Changes
 =======
 
+- Added :ref:`current_setting <scalar_current_setting>` system information
+  scalar function that yields the current value of the setting.
+
 - Added support for the ``PARTITION BY`` clause in :ref:`window-functions`.
 
 - Upgraded to Lucene 8.0.0, and as part of this the BM25 scoring has changed.

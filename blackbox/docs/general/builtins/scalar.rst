@@ -1931,7 +1931,7 @@ Example::
 .. NOTE::
 
    ``CURRENT_USER`` is an
-   :ref:`enterprise feature <enterprise_features>`.
+   :ref:`enterprise feature <enterprise-features>`.
 
 The ``CURRENT_USER`` system information function returns the name of the
 current connected user or ``crate`` if the user management module is disabled.
@@ -1960,7 +1960,7 @@ Example::
 .. NOTE::
 
    ``USER`` is an
-   :ref:`enterprise feature <enterprise_features>`.
+   :ref:`enterprise feature <enterprise-features>`.
 
 Equivalent to `CURRENT_USER`_.
 
@@ -1988,7 +1988,7 @@ Example::
 .. NOTE::
 
    ``SESSION_USER`` is an
-   :ref:`enterprise feature <enterprise_features>`.
+   :ref:`enterprise feature <enterprise-features>`.
 
 The ``SESSION_USER`` system information function returns the name of the
 current connected user or ``crate`` if the user management module is disabled.
@@ -2060,6 +2060,48 @@ which in CrateDB will always be ``crate``::
     +--------------------+
     SELECT 1 row in set (... sec)
 
+.. _scalar_current_setting:
+
+``current_setting(text [,boolean])``
+--------------------------------------
+
+The ``current_setting`` function returns the current value of a setting.
+
+Returns: ``text``
+
+Synopsis::
+
+    current_setting(setting_name [, missing_ok])
+
+If no setting exists for ``setting_name``, current_setting throws an error,
+unless ``missing_ok`` argument is provided and is true.
+
+
+Examples::
+
+
+    cr> select current_setting('enable_semijoin');
+    +------------------------------------+
+    | current_setting('enable_semijoin') |
+    +------------------------------------+
+    | false                              |
+    +------------------------------------+
+    SELECT 1 row in set (... sec)
+
+::
+
+    cr> select current_setting('foo');
+    SQLActionException[SQLParseException: Unrecognised Setting: foo]
+
+::
+
+    cr> select current_setting('foo', true);
+    +------------------------------+
+    | current_setting('foo', true) |
+    +------------------------------+
+    |                         NULL |
+    +------------------------------+
+    SELECT 1 row in set (... sec)
 
 Special Functions
 =================

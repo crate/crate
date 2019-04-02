@@ -1148,7 +1148,7 @@ that is performing the query::
 
 .. NOTE::
 
-    If the :ref:`enterprise edition <enterprise_features>` is disabled or the
+    If the :ref:`enterprise edition <enterprise-features>` is disabled or the
     user management module is not available, the ``username`` is represented as
     ``crate``.
 
