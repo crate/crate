@@ -156,7 +156,6 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
     private final TranslogConfig translogConfig;
     private final IndexEventListener indexEventListener;
     private final QueryCachingPolicy cachingPolicy;
-    private final Supplier<Sort> indexSortSupplier;
     // Package visible for testing
     final CircuitBreakerService circuitBreakerService;
 
@@ -216,7 +215,6 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
             IndexSettings indexSettings,
             ShardPath path,
             Store store,
-            Supplier<Sort> indexSortSupplier,
             IndexCache indexCache,
             MapperService mapperService,
             @Nullable EngineFactory engineFactory,
@@ -237,7 +235,6 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         Objects.requireNonNull(store, "Store must be provided to the index shard");
         this.engineFactory = Objects.requireNonNull(engineFactory);
         this.store = store;
-        this.indexSortSupplier = indexSortSupplier;
         this.indexEventListener = indexEventListener;
         this.threadPool = threadPool;
         this.mapperService = mapperService;
@@ -293,13 +290,6 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
 
     public Store store() {
         return this.store;
-    }
-
-    /**
-     * Return the sort order of this index, or null if the index has no sort.
-     */
-    public Sort getIndexSort() {
-        return indexSortSupplier.get();
     }
 
     public ShardBitsetFilterCache shardBitsetFilterCache() {
@@ -2115,7 +2105,6 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
     }
 
     private EngineConfig newEngineConfig() {
-        Sort indexSort = indexSortSupplier.get();
         return new EngineConfig(shardId, shardRouting.allocationId().getId(),
             threadPool, indexSettings, warmer, store, indexSettings.getMergePolicy(),
             mapperService.indexAnalyzer(), codecService, shardEventListener,
@@ -2123,7 +2112,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
             IndexingMemoryController.SHARD_INACTIVE_TIME_SETTING.get(indexSettings.getSettings()),
             Collections.singletonList(refreshListeners),
             Collections.singletonList(new RefreshMetricUpdater(refreshMetric)),
-            indexSort, circuitBreakerService, replicationTracker, () -> operationPrimaryTerm, tombstoneDocSupplier());
+             circuitBreakerService, replicationTracker, () -> operationPrimaryTerm, tombstoneDocSupplier());
     }
 
     /**
