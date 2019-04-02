@@ -31,7 +31,7 @@ massive amounts of machine data in real-time.
    admin/index
    sql/index
    interfaces/index
-   editions/index
+   editions
    appendices/index
 
 .. _CrateDB Guide: https://crate.io/docs/crate/guide/en/latest/

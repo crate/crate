@@ -212,18 +212,18 @@ public abstract class EngineTestCase extends ESTestCase {
             config.getWarmer(), config.getStore(), config.getMergePolicy(), config.getAnalyzer(),
             new CodecService(null, logger), config.getEventListener(), config.getQueryCache(), config.getQueryCachingPolicy(),
             config.getTranslogConfig(), config.getFlushMergesAfter(),
-            config.getExternalRefreshListener(), Collections.emptyList(), config.getIndexSort(),
+            config.getExternalRefreshListener(), Collections.emptyList(),
             config.getCircuitBreakerService(), globalCheckpointSupplier, config.getPrimaryTermSupplier(), tombstoneDocSupplier());
     }
 
     public EngineConfig copy(EngineConfig config, Analyzer analyzer) {
         return new EngineConfig(config.getShardId(), config.getAllocationId(), config.getThreadPool(), config.getIndexSettings(),
-                config.getWarmer(), config.getStore(), config.getMergePolicy(), analyzer,
-                new CodecService(null, logger), config.getEventListener(), config.getQueryCache(), config.getQueryCachingPolicy(),
-                config.getTranslogConfig(), config.getFlushMergesAfter(),
-                config.getExternalRefreshListener(), Collections.emptyList(), config.getIndexSort(),
-                config.getCircuitBreakerService(), config.getGlobalCheckpointSupplier(), config.getPrimaryTermSupplier(),
-                config.getTombstoneDocSupplier());
+            config.getWarmer(), config.getStore(), config.getMergePolicy(), analyzer,
+            new CodecService(null, logger), config.getEventListener(), config.getQueryCache(), config.getQueryCachingPolicy(),
+            config.getTranslogConfig(), config.getFlushMergesAfter(),
+            config.getExternalRefreshListener(), Collections.emptyList(),
+            config.getCircuitBreakerService(), config.getGlobalCheckpointSupplier(), config.getPrimaryTermSupplier(),
+            config.getTombstoneDocSupplier());
     }
 
     public EngineConfig copy(EngineConfig config, MergePolicy mergePolicy) {
@@ -231,7 +231,7 @@ public abstract class EngineTestCase extends ESTestCase {
             config.getWarmer(), config.getStore(), mergePolicy, config.getAnalyzer(),
             new CodecService(null, logger), config.getEventListener(), config.getQueryCache(), config.getQueryCachingPolicy(),
             config.getTranslogConfig(), config.getFlushMergesAfter(),
-            config.getExternalRefreshListener(), Collections.emptyList(), config.getIndexSort(),
+            config.getExternalRefreshListener(), Collections.emptyList(),
             config.getCircuitBreakerService(), config.getGlobalCheckpointSupplier(), config.getPrimaryTermSupplier(),
             config.getTombstoneDocSupplier());
     }
@@ -249,8 +249,8 @@ public abstract class EngineTestCase extends ESTestCase {
             assertConsistentHistoryBetweenTranslogAndLuceneIndex(replicaEngine, createMapperService("test"));
         }
         IOUtils.close(
-                replicaEngine, storeReplica,
-                engine, store);
+            replicaEngine, storeReplica,
+            engine, store);
         terminate(threadPool);
     }
 
@@ -280,12 +280,13 @@ public abstract class EngineTestCase extends ESTestCase {
     }
 
     protected static ParsedDocument testParsedDocument(
-            String id, String routing, ParseContext.Document document, BytesReference source, Mapping mappingUpdate) {
+        String id, String routing, ParseContext.Document document, BytesReference source, Mapping mappingUpdate) {
         return testParsedDocument(id, routing, document, source, mappingUpdate, false);
     }
+
     protected static ParsedDocument testParsedDocument(
-            String id, String routing, ParseContext.Document document, BytesReference source, Mapping mappingUpdate,
-            boolean recoverySource) {
+        String id, String routing, ParseContext.Document document, BytesReference source, Mapping mappingUpdate,
+        boolean recoverySource) {
         Field uidField = new Field("_id", Uid.encodeId(id), IdFieldMapper.Defaults.FIELD_TYPE);
         Field versionField = new NumericDocValuesField("_version", 0);
         SeqNoFieldMapper.SequenceIDFields seqID = SeqNoFieldMapper.SequenceIDFields.emptySeqID();
@@ -307,7 +308,7 @@ public abstract class EngineTestCase extends ESTestCase {
     /**
      * Creates a tombstone document that only includes uid, seq#, term and version fields.
      */
-    public static EngineConfig.TombstoneDocSupplier tombstoneDocSupplier(){
+    public static EngineConfig.TombstoneDocSupplier tombstoneDocSupplier() {
         return new EngineConfig.TombstoneDocSupplier() {
             @Override
             public ParsedDocument newDeleteTombstoneDoc(String type, String id) {
@@ -382,23 +383,23 @@ public abstract class EngineTestCase extends ESTestCase {
     }
 
     protected InternalEngine createEngine(
-            Store store,
-            Path translogPath,
-            BiFunction<Long, Long, LocalCheckpointTracker> localCheckpointTrackerSupplier) throws IOException {
+        Store store,
+        Path translogPath,
+        BiFunction<Long, Long, LocalCheckpointTracker> localCheckpointTrackerSupplier) throws IOException {
         return createEngine(defaultSettings, store, translogPath, newMergePolicy(), null, localCheckpointTrackerSupplier, null);
     }
 
     protected InternalEngine createEngine(
-            Store store,
-            Path translogPath,
-            BiFunction<Long, Long, LocalCheckpointTracker> localCheckpointTrackerSupplier,
-            ToLongBiFunction<Engine, Engine.Operation> seqNoForOperation) throws IOException {
+        Store store,
+        Path translogPath,
+        BiFunction<Long, Long, LocalCheckpointTracker> localCheckpointTrackerSupplier,
+        ToLongBiFunction<Engine, Engine.Operation> seqNoForOperation) throws IOException {
         return createEngine(
-                defaultSettings, store, translogPath, newMergePolicy(), null, localCheckpointTrackerSupplier, null, seqNoForOperation);
+            defaultSettings, store, translogPath, newMergePolicy(), null, localCheckpointTrackerSupplier, null, seqNoForOperation);
     }
 
     protected InternalEngine createEngine(
-            IndexSettings indexSettings, Store store, Path translogPath, MergePolicy mergePolicy) throws IOException {
+        IndexSettings indexSettings, Store store, Path translogPath, MergePolicy mergePolicy) throws IOException {
         return createEngine(indexSettings, store, translogPath, mergePolicy, null);
 
     }
@@ -409,49 +410,49 @@ public abstract class EngineTestCase extends ESTestCase {
     }
 
     protected InternalEngine createEngine(
-            IndexSettings indexSettings,
-            Store store,
-            Path translogPath,
-            MergePolicy mergePolicy,
-            @Nullable IndexWriterFactory indexWriterFactory,
-            @Nullable BiFunction<Long, Long, LocalCheckpointTracker> localCheckpointTrackerSupplier,
-            @Nullable LongSupplier globalCheckpointSupplier) throws IOException {
+        IndexSettings indexSettings,
+        Store store,
+        Path translogPath,
+        MergePolicy mergePolicy,
+        @Nullable IndexWriterFactory indexWriterFactory,
+        @Nullable BiFunction<Long, Long, LocalCheckpointTracker> localCheckpointTrackerSupplier,
+        @Nullable LongSupplier globalCheckpointSupplier) throws IOException {
         return createEngine(
-                indexSettings, store, translogPath, mergePolicy, indexWriterFactory, localCheckpointTrackerSupplier, null, null,
-                globalCheckpointSupplier);
+            indexSettings, store, translogPath, mergePolicy, indexWriterFactory, localCheckpointTrackerSupplier, null, null,
+            globalCheckpointSupplier);
     }
 
     protected InternalEngine createEngine(
-            IndexSettings indexSettings,
-            Store store,
-            Path translogPath,
-            MergePolicy mergePolicy,
-            @Nullable IndexWriterFactory indexWriterFactory,
-            @Nullable BiFunction<Long, Long, LocalCheckpointTracker> localCheckpointTrackerSupplier,
-            @Nullable LongSupplier globalCheckpointSupplier,
-            @Nullable ToLongBiFunction<Engine, Engine.Operation> seqNoForOperation) throws IOException {
+        IndexSettings indexSettings,
+        Store store,
+        Path translogPath,
+        MergePolicy mergePolicy,
+        @Nullable IndexWriterFactory indexWriterFactory,
+        @Nullable BiFunction<Long, Long, LocalCheckpointTracker> localCheckpointTrackerSupplier,
+        @Nullable LongSupplier globalCheckpointSupplier,
+        @Nullable ToLongBiFunction<Engine, Engine.Operation> seqNoForOperation) throws IOException {
         return createEngine(
-                indexSettings,
-                store,
-                translogPath,
-                mergePolicy,
-                indexWriterFactory,
-                localCheckpointTrackerSupplier,
-                seqNoForOperation,
-                null,
-                globalCheckpointSupplier);
+            indexSettings,
+            store,
+            translogPath,
+            mergePolicy,
+            indexWriterFactory,
+            localCheckpointTrackerSupplier,
+            seqNoForOperation,
+            null,
+            globalCheckpointSupplier);
     }
 
     protected InternalEngine createEngine(
-            IndexSettings indexSettings,
-            Store store,
-            Path translogPath,
-            MergePolicy mergePolicy,
-            @Nullable IndexWriterFactory indexWriterFactory,
-            @Nullable BiFunction<Long, Long, LocalCheckpointTracker> localCheckpointTrackerSupplier,
-            @Nullable ToLongBiFunction<Engine, Engine.Operation> seqNoForOperation,
-            @Nullable Sort indexSort,
-            @Nullable LongSupplier globalCheckpointSupplier) throws IOException {
+        IndexSettings indexSettings,
+        Store store,
+        Path translogPath,
+        MergePolicy mergePolicy,
+        @Nullable IndexWriterFactory indexWriterFactory,
+        @Nullable BiFunction<Long, Long, LocalCheckpointTracker> localCheckpointTrackerSupplier,
+        @Nullable ToLongBiFunction<Engine, Engine.Operation> seqNoForOperation,
+        @Nullable Sort indexSort,
+        @Nullable LongSupplier globalCheckpointSupplier) throws IOException {
         EngineConfig config = config(indexSettings, store, translogPath, mergePolicy, null, indexSort, globalCheckpointSupplier);
         return createEngine(indexWriterFactory, localCheckpointTrackerSupplier, seqNoForOperation, config);
     }
@@ -495,24 +496,24 @@ public abstract class EngineTestCase extends ESTestCase {
     }
 
     public static InternalEngine createInternalEngine(
-            @Nullable final IndexWriterFactory indexWriterFactory,
-            @Nullable final BiFunction<Long, Long, LocalCheckpointTracker> localCheckpointTrackerSupplier,
-            @Nullable final ToLongBiFunction<Engine, Engine.Operation> seqNoForOperation,
-            final EngineConfig config) {
+        @Nullable final IndexWriterFactory indexWriterFactory,
+        @Nullable final BiFunction<Long, Long, LocalCheckpointTracker> localCheckpointTrackerSupplier,
+        @Nullable final ToLongBiFunction<Engine, Engine.Operation> seqNoForOperation,
+        final EngineConfig config) {
         if (localCheckpointTrackerSupplier == null) {
             return new InternalTestEngine(config) {
                 @Override
                 IndexWriter createWriter(Directory directory, IndexWriterConfig iwc) throws IOException {
                     return (indexWriterFactory != null) ?
-                            indexWriterFactory.createWriter(directory, iwc) :
-                            super.createWriter(directory, iwc);
+                        indexWriterFactory.createWriter(directory, iwc) :
+                        super.createWriter(directory, iwc);
                 }
 
                 @Override
                 protected long doGenerateSeqNoForOperation(final Operation operation) {
                     return seqNoForOperation != null
-                            ? seqNoForOperation.applyAsLong(this, operation)
-                            : super.doGenerateSeqNoForOperation(operation);
+                        ? seqNoForOperation.applyAsLong(this, operation)
+                        : super.doGenerateSeqNoForOperation(operation);
                 }
             };
         } else {
@@ -520,15 +521,15 @@ public abstract class EngineTestCase extends ESTestCase {
                 @Override
                 IndexWriter createWriter(Directory directory, IndexWriterConfig iwc) throws IOException {
                     return (indexWriterFactory != null) ?
-                            indexWriterFactory.createWriter(directory, iwc) :
-                            super.createWriter(directory, iwc);
+                        indexWriterFactory.createWriter(directory, iwc) :
+                        super.createWriter(directory, iwc);
                 }
 
                 @Override
                 protected long doGenerateSeqNoForOperation(final Operation operation) {
                     return seqNoForOperation != null
-                            ? seqNoForOperation.applyAsLong(this, operation)
-                            : super.doGenerateSeqNoForOperation(operation);
+                        ? seqNoForOperation.applyAsLong(this, operation)
+                        : super.doGenerateSeqNoForOperation(operation);
                 }
             };
         }
@@ -549,7 +550,7 @@ public abstract class EngineTestCase extends ESTestCase {
                                ReferenceManager.RefreshListener externalRefreshListener,
                                ReferenceManager.RefreshListener internalRefreshListener,
                                Sort indexSort, LongSupplier globalCheckpointSupplier) {
-            IndexWriterConfig iwc = newIndexWriterConfig();
+        IndexWriterConfig iwc = newIndexWriterConfig();
         TranslogConfig translogConfig = new TranslogConfig(shardId, translogPath, indexSettings, BigArrays.NON_RECYCLING_INSTANCE);
         Engine.EventListener listener = new Engine.EventListener() {
             @Override
@@ -561,14 +562,16 @@ public abstract class EngineTestCase extends ESTestCase {
             externalRefreshListener == null ? emptyList() : Collections.singletonList(externalRefreshListener);
         final List<ReferenceManager.RefreshListener> intRefreshListenerList =
             internalRefreshListener == null ? emptyList() : Collections.singletonList(internalRefreshListener);
+
+        if (globalCheckpointSupplier == null) {
+            globalCheckpointSupplier = new ReplicationTracker(shardId, allocationId.getId(), indexSettings, SequenceNumbers.NO_OPS_PERFORMED, update -> {
+            });
+        }
         EngineConfig config = new EngineConfig(shardId, allocationId.getId(), threadPool, indexSettings, null, store,
-                mergePolicy, iwc.getAnalyzer(), new CodecService(null, logger), listener,
-                IndexSearcher.getDefaultQueryCache(), IndexSearcher.getDefaultQueryCachingPolicy(), translogConfig,
-                TimeValue.timeValueMinutes(5), extRefreshListenerList, intRefreshListenerList, indexSort,
-                new NoneCircuitBreakerService(),
-                globalCheckpointSupplier == null ?
-                    new ReplicationTracker(shardId, allocationId.getId(), indexSettings, SequenceNumbers.NO_OPS_PERFORMED, update -> {}) :
-                    globalCheckpointSupplier, primaryTerm::get, tombstoneDocSupplier());
+            mergePolicy, iwc.getAnalyzer(), new CodecService(null, logger), listener,
+            IndexSearcher.getDefaultQueryCache(), IndexSearcher.getDefaultQueryCachingPolicy(), translogConfig,
+            TimeValue.timeValueMinutes(5), extRefreshListenerList, intRefreshListenerList, new NoneCircuitBreakerService(),
+            globalCheckpointSupplier, primaryTerm::get, tombstoneDocSupplier());
         return config;
     }
 
@@ -605,13 +608,13 @@ public abstract class EngineTestCase extends ESTestCase {
     }
 
     public static List<Engine.Operation> generateSingleDocHistory(
-            final boolean forReplica,
-            final VersionType versionType,
-            final boolean partialOldPrimary,
-            final long primaryTerm,
-            final int minOpCount,
-            final int maxOpCount,
-            final String docId) {
+        final boolean forReplica,
+        final VersionType versionType,
+        final boolean partialOldPrimary,
+        final long primaryTerm,
+        final int minOpCount,
+        final int maxOpCount,
+        final String docId) {
         final int numOfOps = randomIntBetween(minOpCount, maxOpCount);
         final List<Engine.Operation> ops = new ArrayList<>();
         final Term id = newUid(docId);
@@ -643,9 +646,11 @@ public abstract class EngineTestCase extends ESTestCase {
                     throw new UnsupportedOperationException("unknown version type: " + versionType);
             }
             if (randomBoolean()) {
-                op = new Engine.Index(id, testParsedDocument(docId, null, testDocumentWithTextField(valuePrefix + i), SOURCE, null),
+                op = new Engine.Index(id, testParsedDocument(docId, null, testDocumentWithTextField(
+                    valuePrefix + i), SOURCE, null),
                     forReplica && i >= startWithSeqNo ? i * 2 : SequenceNumbers.UNASSIGNED_SEQ_NO,
-                    forReplica && i >= startWithSeqNo && incrementTermWhenIntroducingSeqNo ? primaryTerm + 1 : primaryTerm,
+                    forReplica && i >= startWithSeqNo && incrementTermWhenIntroducingSeqNo ?
+                        primaryTerm + 1 : primaryTerm,
                     version,
                     forReplica ? versionType.versionTypeForReplicationAndRecovery() : versionType,
                     forReplica ? REPLICA : PRIMARY,
@@ -654,7 +659,8 @@ public abstract class EngineTestCase extends ESTestCase {
             } else {
                 op = new Engine.Delete("test", docId, id,
                     forReplica && i >= startWithSeqNo ? i * 2 : SequenceNumbers.UNASSIGNED_SEQ_NO,
-                    forReplica && i >= startWithSeqNo && incrementTermWhenIntroducingSeqNo ? primaryTerm + 1 : primaryTerm,
+                    forReplica && i >= startWithSeqNo && incrementTermWhenIntroducingSeqNo ?
+                        primaryTerm + 1 : primaryTerm,
                     version,
                     forReplica ? versionType.versionTypeForReplicationAndRecovery() : versionType,
                     forReplica ? REPLICA : PRIMARY,
@@ -666,10 +672,10 @@ public abstract class EngineTestCase extends ESTestCase {
     }
 
     public static void assertOpsOnReplica(
-            final List<Engine.Operation> ops,
-            final InternalEngine replicaEngine,
-            boolean shuffleOps,
-            final Logger logger) throws IOException {
+        final List<Engine.Operation> ops,
+        final InternalEngine replicaEngine,
+        boolean shuffleOps,
+        final Logger logger) throws IOException {
         final Engine.Operation lastOp = ops.get(ops.size() - 1);
         final String lastFieldValue;
         if (lastOp instanceof Engine.Index) {
@@ -691,7 +697,7 @@ public abstract class EngineTestCase extends ESTestCase {
         boolean firstOp = true;
         for (Engine.Operation op : ops) {
             logger.info("performing [{}], v [{}], seq# [{}], term [{}]",
-                    op.operationType().name().charAt(0), op.version(), op.seqNo(), op.primaryTerm());
+                op.operationType().name().charAt(0), op.version(), op.seqNo(), op.primaryTerm());
             if (op instanceof Engine.Index) {
                 Engine.IndexResult result = replicaEngine.index((Engine.Index) op);
                 // replicas don't really care to about creation status of documents
@@ -752,7 +758,7 @@ public abstract class EngineTestCase extends ESTestCase {
                         final Engine.Operation op = ops.get(docOffset);
                         if (op instanceof Engine.Index) {
                             engine.index((Engine.Index) op);
-                        } else if (op instanceof Engine.Delete){
+                        } else if (op instanceof Engine.Delete) {
                             engine.delete((Engine.Delete) op);
                         } else {
                             engine.noOp((Engine.NoOp) op);
@@ -798,7 +804,8 @@ public abstract class EngineTestCase extends ESTestCase {
                         final long primaryTerm = primaryTermDocValues.longValue();
                         Document uuid = reader.document(i, Collections.singleton(IdFieldMapper.NAME));
                         BytesRef binaryID = uuid.getBinaryValue(IdFieldMapper.NAME);
-                        String id = Uid.decodeId(Arrays.copyOfRange(binaryID.bytes, binaryID.offset, binaryID.offset + binaryID.length));
+                        String id = Uid.decodeId(Arrays.copyOfRange(binaryID.bytes, binaryID.offset,
+                            binaryID.offset + binaryID.length));
                         if (seqNoDocValues.advanceExact(i) == false) {
                             throw new AssertionError("seqNoDocValues not found for doc[" + i + "] id[" + id + "]");
                         }
@@ -819,10 +826,10 @@ public abstract class EngineTestCase extends ESTestCase {
      */
     public static List<Translog.Operation> readAllOperationsInLucene(Engine engine, MapperService mapper) throws IOException {
         final List<Translog.Operation> operations = new ArrayList<>();
-        long maxSeqNo = Math.max(0, ((InternalEngine)engine).getLocalCheckpointTracker().getMaxSeqNo());
+        long maxSeqNo = Math.max(0, ((InternalEngine) engine).getLocalCheckpointTracker().getMaxSeqNo());
         try (Translog.Snapshot snapshot = engine.newChangesSnapshot("test", mapper, 0, maxSeqNo, false)) {
             Translog.Operation op;
-            while ((op = snapshot.next()) != null){
+            while ((op = snapshot.next()) != null) {
                 operations.add(op);
             }
         }
@@ -833,7 +840,7 @@ public abstract class EngineTestCase extends ESTestCase {
      * Asserts the provided engine has a consistent document history between translog and Lucene index.
      */
     public static void assertConsistentHistoryBetweenTranslogAndLuceneIndex(Engine engine, MapperService mapper) throws IOException {
-        if (mapper.types().isEmpty()  || engine.config().getIndexSettings().isSoftDeleteEnabled() == false
+        if (mapper.types().isEmpty() || engine.config().getIndexSettings().isSoftDeleteEnabled() == false
             || (engine instanceof InternalEngine) == false) {
             return;
         }
@@ -854,15 +861,18 @@ public abstract class EngineTestCase extends ESTestCase {
         final long retainedOps = engine.config().getIndexSettings().getSoftDeleteRetentionOperations();
         final long seqNoForRecovery;
         try (Engine.IndexCommitRef safeCommit = engine.acquireSafeIndexCommit()) {
-            seqNoForRecovery = Long.parseLong(safeCommit.getIndexCommit().getUserData().get(SequenceNumbers.LOCAL_CHECKPOINT_KEY)) + 1;
+            seqNoForRecovery =
+                Long.parseLong(safeCommit.getIndexCommit().getUserData().get(SequenceNumbers.LOCAL_CHECKPOINT_KEY)) + 1;
         }
         final long minSeqNoToRetain = Math.min(seqNoForRecovery, globalCheckpoint + 1 - retainedOps);
         for (Translog.Operation translogOp : translogOps.values()) {
             final Translog.Operation luceneOp = luceneOps.get(translogOp.seqNo());
             if (luceneOp == null) {
                 if (minSeqNoToRetain <= translogOp.seqNo() && translogOp.seqNo() <= maxSeqNo) {
-                    fail("Operation not found seq# [" + translogOp.seqNo() + "], global checkpoint [" + globalCheckpoint + "], " +
-                        "retention policy [" + retainedOps + "], maxSeqNo [" + maxSeqNo + "], translog op [" + translogOp + "]");
+                    fail("Operation not found seq# [" + translogOp.seqNo() + "], global checkpoint [" +
+                         globalCheckpoint + "], " +
+                         "retention policy [" + retainedOps + "], maxSeqNo [" + maxSeqNo + "], translog op [" +
+                         translogOp + "]");
                 } else {
                     continue;
                 }

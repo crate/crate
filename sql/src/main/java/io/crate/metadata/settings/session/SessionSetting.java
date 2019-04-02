@@ -25,6 +25,7 @@ package io.crate.metadata.settings.session;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.expressions.ExpressionToObjectVisitor;
 import io.crate.data.Row;
+import io.crate.metadata.settings.SessionSettings;
 import io.crate.sql.tree.Expression;
 
 import java.util.List;
@@ -37,12 +38,12 @@ public class SessionSetting<T> {
     private final Consumer<Object[]> validator;
     private final Function<Object[], T> converter;
     private final BiConsumer<SessionContext, T> setter;
-    private final Function<SessionContext, String> getter;
+    private final Function<SessionSettings, String> getter;
 
     SessionSetting(Consumer<Object[]> validator,
                    Function<Object[], T> converter,
                    BiConsumer<SessionContext, T> setter,
-                   Function<SessionContext, String> getter) {
+                   Function<SessionSettings, String> getter) {
         this.validator = validator;
         this.converter = converter;
         this.setter = setter;
@@ -60,7 +61,7 @@ public class SessionSetting<T> {
         setter.accept(sessionContext, converted);
     }
 
-    public String getValue(SessionContext sessionContext) {
-        return getter.apply(sessionContext);
+    public String getValue(SessionSettings sessionSettings) {
+        return getter.apply(sessionSettings);
     }
 }

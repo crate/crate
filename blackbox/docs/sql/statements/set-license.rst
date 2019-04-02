@@ -34,7 +34,7 @@ CrateDB to operate in `Enterprise Edition`_  until the license expiry date.
     When the existing licence expires, the cluster will run in a *degraded mode*,
     allowing only read only system information operations and the
     ``SET LICENSE`` statement. Switching to the `Community Edition`_
-    is an alternative. For more details on that see :ref:`enterprise_features`.
+    is an alternative. For more details on that see :ref:`enterprise-features`.
 
 
 Parameters

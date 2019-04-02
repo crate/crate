@@ -7,7 +7,7 @@ User Management
 .. NOTE::
 
    User management is an
-   :ref:`enterprise feature <enterprise_features>`.
+   :ref:`enterprise feature <enterprise-features>`.
 
 
 .. rubric:: Table of Contents

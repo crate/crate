@@ -202,7 +202,7 @@ The UDF language ``javascript`` supports the `ECMAScript 5.1`_ standard.
 .. NOTE::
 
    The JavaScript language is an :ref:`enterprise feature
-   <enterprise_features>`.
+   <enterprise-features>`.
 
 CrateDB uses the Java built-in JavaScript engine Nashorn_ to interpret and
 execute functions written in JavaScript. The engine is initialized using the

@@ -32,7 +32,6 @@ import io.crate.execution.dsl.projection.WindowAggProjection;
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.pipeline.TopN;
-import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.WindowFunction;
 import io.crate.planner.ExecutionPlan;
@@ -136,96 +135,57 @@ public class WindowAgg extends OneInputPlan {
         sourcePlan = Merge.ensureOnHandler(sourcePlan, plannerContext);
 
         InputColumns.SourceSymbols sourceSymbols = new InputColumns.SourceSymbols(source.outputs());
-        WindowDefinition windowDefinitionWithICs = convertPartitionsAndOrderBysToICs(windowDefinition, sourceSymbols);
-
         LinkedHashMap<WindowFunction, List<Symbol>> functionsWithInputs = new LinkedHashMap<>(windowFunctions.size(), 1f);
         for (WindowFunction windowFunction : windowFunctions) {
             List<Symbol> inputs = InputColumns.create(windowFunction.arguments(), sourceSymbols);
             functionsWithInputs.put(windowFunction, inputs);
         }
-
-        OrderBy orderBy = windowDefinitionWithICs.orderBy();
-        List<Symbol> orderByICs = new ArrayList<>();
-        if (!windowDefinition.partitions().isEmpty() || orderBy != null) {
-            List<Boolean> reverseFlags = new ArrayList<>();
-            List<Boolean> nullsFirst = new ArrayList<>();
-
-            for (Symbol partitionIC : windowDefinitionWithICs.partitions()) {
-                orderByICs.add(partitionIC);
-                reverseFlags.add(false);
-                nullsFirst.add(null);
-            }
-
-            if (orderBy != null) {
-                List<Symbol> symbols = orderBy.orderBySymbols();
-                for (int i = 0; i < symbols.size(); i++) {
-                    Symbol symbol = symbols.get(i);
-                    int indexOfOrderByIC = orderByICs.indexOf(symbol);
-                    boolean reverseFlagForSymbol = orderBy.reverseFlags()[i];
-                    Boolean nullFirstForSymbol = orderBy.nullsFirst()[i];
-                    if (indexOfOrderByIC != -1) {
-                        // in case the window is ordered by columns already present in the partition clause we will order
-                        // by the ones expressed in the order by clause as they can be more explicit (including reverse
-                        // flags and null position)
-                        reverseFlags.set(indexOfOrderByIC, reverseFlagForSymbol);
-                        nullsFirst.set(indexOfOrderByIC, nullFirstForSymbol);
-                    } else {
-                        orderByICs.add(symbol);
-                        reverseFlags.add(reverseFlagForSymbol);
-                        nullsFirst.add(nullFirstForSymbol);
-                    }
-                }
-            }
-
-            List<Symbol> outputs = InputColumns.create(source.outputs(), sourceSymbols);
-
-            boolean[] reverseFlagsArray = new boolean[reverseFlags.size()];
-            for (int i = 0; i < reverseFlags.size(); i++) {
-                reverseFlagsArray[i] = reverseFlags.get(i);
-            }
+        OrderBy orderByInclPartitionBy = createOrderByInclPartitionBy(windowDefinition);
+        int[] orderByIndices;
+        if (orderByInclPartitionBy == null) {
+            orderByIndices = new int[0];
+        } else {
             OrderedTopNProjection topNProjection = new OrderedTopNProjection(
                 TopN.NO_LIMIT,
                 0,
-                outputs,
-                orderByICs,
-                reverseFlagsArray,
-                nullsFirst.toArray(new Boolean[0])
+                InputColumns.create(source.outputs(), sourceSymbols),
+                InputColumns.create(orderByInclPartitionBy.orderBySymbols(), sourceSymbols),
+                orderByInclPartitionBy.reverseFlags(),
+                orderByInclPartitionBy.nullsFirst()
             );
-            sourcePlan.addProjection(topNProjection);
-        }
-
-        int[] orderByIndexes = new int[orderByICs.size()];
-        int index = 0;
-        for (Symbol ic : orderByICs) {
-            assert ic instanceof InputColumn : "Window ordering should be expressed as ICs at this stage";
-            orderByIndexes[index] = ((InputColumn) ic).index();
-            index++;
-
+            sourcePlan.addProjection(topNProjection, limit, offset, null);
+            orderByIndices = new int[orderByInclPartitionBy.orderBySymbols().size()];
+            for (int i = 0; i < orderByInclPartitionBy.orderBySymbols().size(); i++) {
+                Symbol orderBy = orderByInclPartitionBy.orderBySymbols().get(i);
+                int idx = source.outputs().indexOf(orderBy);
+                assert idx >= 0 : "Symbol in order by must appear in the outputs";
+                orderByIndices[i] = idx;
+            }
         }
         sourcePlan.addProjection(
             new WindowAggProjection(
-                windowDefinitionWithICs,
+                windowDefinition.map(s -> InputColumns.create(s, sourceSymbols)),
                 functionsWithInputs,
                 InputColumns.create(this.standalone, sourceSymbols),
-                orderByIndexes
+                orderByIndices
             )
         );
         return sourcePlan;
     }
 
-    private WindowDefinition convertPartitionsAndOrderBysToICs(WindowDefinition windowDefinition,
-                                                               InputColumns.SourceSymbols sourceSymbols) {
-        List<Symbol> partitionsInputColumns = InputColumns.create(windowDefinition.partitions(), sourceSymbols);
-        OrderBy orderBy = windowDefinition.orderBy();
-        if (orderBy != null) {
-            orderBy = new OrderBy(
-                InputColumns.create(orderBy.orderBySymbols(), sourceSymbols),
-                orderBy.reverseFlags(),
-                orderBy.nullsFirst()
-            );
+    @Nullable
+    static OrderBy createOrderByInclPartitionBy(WindowDefinition windowDefinition) {
+        var orderBy = windowDefinition.orderBy();
+        var partitions = windowDefinition.partitions();
+        if (orderBy == null) {
+            if (partitions.isEmpty()) {
+                return null;
+            } else {
+                return new OrderBy(partitions);
+            }
+        } else {
+            return orderBy.prependUnique(partitions);
         }
-
-        return new WindowDefinition(partitionsInputColumns, orderBy, windowDefinition.windowFrameDefinition());
     }
 
     @Override

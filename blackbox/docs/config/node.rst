@@ -338,7 +338,7 @@ Authentication
 
 .. NOTE::
 
-    Authentication is an :ref:`enterprise feature <enterprise_features>`.
+    Authentication is an :ref:`enterprise feature <enterprise-features>`.
 
 .. _host_based_auth:
 
@@ -465,7 +465,7 @@ Layer Security (TLS).
 
 .. NOTE::
 
-    SSL is an :ref:`enterprise feature <enterprise_features>`.
+    SSL is an :ref:`enterprise feature <enterprise-features>`.
 
 **ssl.http.enabled**
   | *Runtime:*  ``no``
@@ -649,7 +649,7 @@ Javascript Language
 
   .. NOTE::
 
-      This is an :ref:`enterprise feature <enterprise_features>`.
+      This is an :ref:`enterprise feature <enterprise-features>`.
 
 .. _conf-node-attributes:
 

@@ -33,9 +33,9 @@ import static io.crate.metadata.SearchPath.createSearchPathFrom;
 
 public class SessionSettingRegistry {
 
-    static final String SEARCH_PATH_KEY = "search_path";
+    private static final String SEARCH_PATH_KEY = "search_path";
     static final String SEMI_JOIN_KEY = "enable_semijoin";
-    public static final String HASH_JOIN_KEY = "enable_hashjoin";
+    static final String HASH_JOIN_KEY = "enable_hashjoin";
 
     public static final Map<String, SessionSetting<?>> SETTINGS = ImmutableMap.<String, SessionSetting<?>>builder()
             .put(SEARCH_PATH_KEY,
@@ -54,7 +54,7 @@ public class SessionSettingRegistry {
                     },
                     objects -> DataTypes.BOOLEAN.value(objects[0]),
                     SessionContext::setSemiJoinsRewriteEnabled,
-                    s -> Boolean.toString(s.getSemiJoinsRewriteEnabled())
+                    s -> Boolean.toString(s.semiJoinsRewriteEnabled())
                 ))
             .put(HASH_JOIN_KEY,
                 new SessionSetting<>(
@@ -65,7 +65,7 @@ public class SessionSettingRegistry {
                     },
                     objects -> DataTypes.BOOLEAN.value(objects[0]),
                     SessionContext::setHashJoinEnabled,
-                    s -> Boolean.toString(s.isHashJoinEnabled())
+                    s -> Boolean.toString(s.hashJoinsEnabled())
                 ))
             .build();
 
