@@ -38,6 +38,7 @@ import static io.crate.sql.tree.QueryUtil.table;
 import static java.lang.String.format;
 import static java.util.Collections.nCopies;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.startsWith;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.assertEquals;
@@ -171,14 +172,14 @@ public class TestSqlParser {
     @Test
     public void testEmptyExpression() {
         expectedException.expect(ParsingException.class);
-        expectedException.expectMessage("line 1:1: no viable alternative at input '<EOF>'");
+        expectedException.expectMessage("line 1:1: mismatched input '<EOF>'");
         SqlParser.createExpression("");
     }
 
     @Test
     public void testEmptyStatement() {
         expectedException.expect(ParsingException.class);
-        expectedException.expectMessage("line 1:1: no viable alternative at input '<EOF>'");
+        expectedException.expectMessage("line 1:1: mismatched input '<EOF>'");
         SqlParser.createStatement("");
     }
 
@@ -276,28 +277,28 @@ public class TestSqlParser {
     @Test
     public void testParseErrorReverseOrderByLimit() {
         expectedException.expect(ParsingException.class);
-        expectedException.expectMessage("line 1:31: mismatched input 'order' expecting <EOF>");
+        expectedException.expectMessage("line 1:31: mismatched input 'order' expecting {<EOF>, ';'}");
         SqlParser.createStatement("select fuu from dual limit 10 order by fuu");
     }
 
     @Test
     public void testParseErrorReverseOrderByLimitOffset() {
         expectedException.expect(ParsingException.class);
-        expectedException.expectMessage("line 1:41: mismatched input 'order' expecting <EOF>");
+        expectedException.expectMessage("line 1:41: mismatched input 'order' expecting {<EOF>, ';'}");
         SqlParser.createStatement("select fuu from dual limit 10 offset 20 order by fuu");
     }
 
     @Test
     public void testParseErrorReverseOrderByOffset() {
         expectedException.expect(ParsingException.class);
-        expectedException.expectMessage("line 1:32: mismatched input 'order' expecting <EOF>");
+        expectedException.expectMessage("line 1:32: mismatched input 'order' expecting {<EOF>, ';'}");
         SqlParser.createStatement("select fuu from dual offset 20 order by fuu");
     }
 
     @Test
     public void testParseErrorReverseLimitOffset() {
         expectedException.expect(ParsingException.class);
-        expectedException.expectMessage("line 1:32: mismatched input 'limit' expecting <EOF>");
+        expectedException.expectMessage("line 1:32: mismatched input 'limit' expecting {<EOF>, ';'}");
         SqlParser.createStatement("select fuu from dual offset 20 limit 10");
     }
 
