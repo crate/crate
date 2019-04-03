@@ -56,9 +56,9 @@ import org.apache.lucene.search.Sort;
 import org.apache.lucene.search.SortField;
 import org.apache.lucene.search.SortedNumericSortField;
 import org.apache.lucene.search.TopFieldDocs;
+import org.apache.lucene.store.ByteBuffersDirectory;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
-import org.apache.lucene.store.RAMDirectory;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.lucene.search.Queries;
@@ -277,7 +277,7 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
 
     @Test
     public void testSearchMoreAppliesMinScoreFilter() throws Exception {
-        IndexWriter w = new IndexWriter(new RAMDirectory(), new IndexWriterConfig(new KeywordAnalyzer()));
+        IndexWriter w = new IndexWriter(new ByteBuffersDirectory(), new IndexWriterConfig(new KeywordAnalyzer()));
         KeywordFieldMapper.KeywordFieldType fieldType = new KeywordFieldMapper.KeywordFieldType();
         fieldType.setName("x");
         fieldType.freeze();
@@ -319,7 +319,7 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
 
     @Test
     public void testSearchNoScores() throws Exception {
-        IndexWriter w = new IndexWriter(new RAMDirectory(), new IndexWriterConfig(new KeywordAnalyzer()));
+        IndexWriter w = new IndexWriter(new ByteBuffersDirectory(), new IndexWriterConfig(new KeywordAnalyzer()));
         KeywordFieldMapper.KeywordFieldType fieldType = new KeywordFieldMapper.KeywordFieldType();
         fieldType.setName("x");
         fieldType.freeze();
@@ -346,7 +346,7 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
 
     @Test
     public void testSearchWithScores() throws Exception {
-        IndexWriter w = new IndexWriter(new RAMDirectory(), new IndexWriterConfig(new KeywordAnalyzer()));
+        IndexWriter w = new IndexWriter(new ByteBuffersDirectory(), new IndexWriterConfig(new KeywordAnalyzer()));
         KeywordFieldMapper.KeywordFieldType fieldType = new KeywordFieldMapper.KeywordFieldType();
         fieldType.setName("x");
         fieldType.freeze();

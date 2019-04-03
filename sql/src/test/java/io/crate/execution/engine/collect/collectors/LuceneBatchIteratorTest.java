@@ -35,7 +35,7 @@ import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
-import org.apache.lucene.store.RAMDirectory;
+import org.apache.lucene.store.ByteBuffersDirectory;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.junit.Before;
 import org.junit.Test;
@@ -52,7 +52,7 @@ public class LuceneBatchIteratorTest extends CrateUnitTest {
 
     @Before
     public void prepareSearcher() throws Exception {
-        IndexWriter iw = new IndexWriter(new RAMDirectory(), new IndexWriterConfig(new StandardAnalyzer()));
+        IndexWriter iw = new IndexWriter(new ByteBuffersDirectory(), new IndexWriterConfig(new StandardAnalyzer()));
         String columnName = "x";
         expectedResult = new ArrayList<>(20);
         for (long i = 0; i < 20; i++) {
