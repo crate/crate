@@ -53,8 +53,7 @@ import static io.crate.planner.operators.LogicalPlanner.extractColumns;
 public class WindowAgg extends OneInputPlan {
 
     private static final int[] EMPTY_ORDER_BY_INDEXES = new int[0];
-
-    private final WindowDefinition windowDefinition;
+    final WindowDefinition windowDefinition;
     private final List<WindowFunction> windowFunctions;
     private final List<Symbol> standalone;
 
