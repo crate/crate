@@ -26,25 +26,49 @@ import io.crate.analyze.OrderBy;
 import io.crate.analyze.WindowDefinition;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.WindowFunction;
+import io.crate.planner.TableStats;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
+import static io.crate.planner.operators.LogicalPlannerTest.isPlan;
 import static io.crate.testing.SymbolMatchers.isField;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.notNullValue;
 
-public class WindowAggTest {
+public class WindowAggTest extends CrateDummyClusterServiceUnitTest {
 
     private SqlExpressions expressions;
+    private SQLExecutor e;
 
     @Before
-    public void setUp() {
+    public void init() throws Exception {
         expressions = new SqlExpressions(T3.SOURCES);
+        e = SQLExecutor.builder(clusterService)
+            .addTable("create table t1 (x int, y int)")
+            .build();
+    }
+
+    private LogicalPlan plan(String statement) {
+        return LogicalPlannerTest.plan(statement, e, clusterService, new TableStats());
+    }
+
+
+    @Test
+    public void testTwoWindowFunctionsWithDifferentWindowDefinitionResultsInTwoOperators() {
+        LogicalPlan plan = plan("select avg(x) over (partition by x), avg(x) over (partition by y) from t1");
+        var expectedPlan =
+            "FetchOrEval[avg(x), avg(x)]\n" +
+            "WindowAgg[avg(x) | PARTITION BY y]\n" +
+            "WindowAgg[avg(x) | PARTITION BY x]\n" +
+            "Collect[doc.t1 | [x, y] | All]\n";
+        assertThat(plan, isPlan(e.functions(), expectedPlan));
     }
 
     @Test
