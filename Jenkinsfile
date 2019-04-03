@@ -95,17 +95,6 @@ pipeline {
             sh 'timeout 20m ./gradlew --no-daemon itest'
           }
         }
-        stage('test jar jdk11') {
-          agent { label 'medium' }
-          tools {
-            jdk 'jdk11'
-          }
-          steps {
-            sh 'git clean -xdff'
-            checkout scm
-            sh 'timeout 20m ./gradlew --no-daemon :app:jar :app:sourceJar :app:javadocJar'
-          }
-        }
         stage('blackbox tests') {
           agent { label 'large' }
           tools {

@@ -35,6 +35,10 @@ moment, there is only one such setting.
 
         SHOW search_path;
 
+   Besides using ``SHOW``, it is also possible to use the :ref:`current_setting
+   <scalar_current_setting>` scalar function to retrieve the value of a session
+   setting.
+
   .. NOTE::
 
      This setting mirrors the PostgreSQL `search_path`_ setting.
