@@ -29,6 +29,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Objects;
 
 import static io.crate.metadata.FunctionInfo.Type.AGGREGATE;
 import static io.crate.metadata.FunctionInfo.Type.WINDOW;
@@ -72,5 +73,25 @@ public class WindowFunction extends Function {
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
         windowDefinition.writeTo(out);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        if (!super.equals(o)) {
+            return false;
+        }
+        WindowFunction that = (WindowFunction) o;
+        return windowDefinition.equals(that.windowDefinition);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), windowDefinition);
     }
 }
