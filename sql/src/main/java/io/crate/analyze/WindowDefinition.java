@@ -60,7 +60,7 @@ public class WindowDefinition implements Writeable {
     public WindowDefinition(StreamInput in) throws IOException {
         partitions = Symbols.listFromStream(in);
         orderBy = in.readOptionalWriteable(OrderBy::new);
-        windowFrameDefinition = in.readOptionalWriteable(WindowFrameDefinition::new);
+        windowFrameDefinition = new WindowFrameDefinition(in);
     }
 
     public WindowDefinition(List<Symbol> partitions,
@@ -68,11 +68,7 @@ public class WindowDefinition implements Writeable {
                             @Nullable WindowFrameDefinition windowFrameDefinition) {
         this.partitions = partitions;
         this.orderBy = orderBy;
-        if (windowFrameDefinition != null) {
-            this.windowFrameDefinition = windowFrameDefinition;
-        } else {
-            this.windowFrameDefinition = DEFAULT_WINDOW_FRAME;
-        }
+        this.windowFrameDefinition = windowFrameDefinition == null ? DEFAULT_WINDOW_FRAME : windowFrameDefinition;
     }
 
     public List<Symbol> partitions() {
@@ -107,7 +103,7 @@ public class WindowDefinition implements Writeable {
             Symbols.toStream(partition, out);
         }
         out.writeOptionalWriteable(orderBy);
-        out.writeOptionalWriteable(windowFrameDefinition);
+        windowFrameDefinition.writeTo(out);
     }
 
     @Override
@@ -146,12 +142,8 @@ public class WindowDefinition implements Writeable {
             sb.append(" ");
             sb.append(orderBy.toString());
         }
-
-        if (windowFrameDefinition != null) {
-            sb.append(" ");
-            sb.append(windowFrameDefinition.toString());
-        }
-
+        sb.append(" ");
+        sb.append(windowFrameDefinition.toString());
         sb.append("}");
         return sb.toString();
     }
