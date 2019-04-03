@@ -51,7 +51,7 @@ import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.Sort;
 import org.apache.lucene.search.SortField;
 import org.apache.lucene.search.SortedNumericSortField;
-import org.apache.lucene.store.RAMDirectory;
+import org.apache.lucene.store.ByteBuffersDirectory;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
@@ -90,7 +90,7 @@ public class OrderedLuceneBatchIteratorBenchmark {
     @Setup
     public void createLuceneBatchIterator() throws Exception {
         IndexWriter iw = new IndexWriter(
-            new RAMDirectory(), new IndexWriterConfig(new StandardAnalyzer())
+            new ByteBuffersDirectory(), new IndexWriterConfig(new StandardAnalyzer())
         );
         dummyShardId = new ShardId("dummy", UUIDs.randomBase64UUID(), 1);
         columnName = "x";
