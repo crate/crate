@@ -526,6 +526,15 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                 WindowAgg windowAgg = (WindowAgg) plan;
                 startLine("WindowAgg[");
                 addSymbolsList(windowAgg.windowFunctions());
+                if (!windowAgg.windowDefinition.partitions().isEmpty()) {
+                    sb.append(" | PARTITION BY ");
+                    addSymbolsList(windowAgg.windowDefinition.partitions());
+                }
+                OrderBy orderBy = windowAgg.windowDefinition.orderBy();
+                if (orderBy != null) {
+                    sb.append(" | ORDER BY ");
+                    OrderBy.explainRepresentation(sb, orderBy.orderBySymbols(), orderBy.reverseFlags(), orderBy.nullsFirst());
+                }
                 sb.append("]\n");
                 plan = windowAgg.source;
             }
