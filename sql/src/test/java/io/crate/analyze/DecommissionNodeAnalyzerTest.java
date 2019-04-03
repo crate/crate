@@ -56,8 +56,8 @@ public class DecommissionNodeAnalyzerTest extends CrateDummyClusterServiceUnitTe
     }
 
     @Test
-    public void testDecommissionNodeFailsIfNodeIsMissing() throws Exception {
-        expectedException.expectMessage("no viable alternative at input '<EOF>'");
-        AnalyzedDecommissionNodeStatement statement = e.analyze("alter cluster decommission");
+    public void testDecommissionNodeFailsIfNodeIsMissing() {
+        expectedException.expectMessage("mismatched input '<EOF>'");
+        e.analyze("alter cluster decommission");
     }
 }

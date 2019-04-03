@@ -28,8 +28,8 @@ import io.crate.sql.parser.antlr.v4.SqlBaseParser;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.Node;
 import io.crate.sql.tree.Statement;
-import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.BaseErrorListener;
+import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonToken;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.ParserRuleContext;
@@ -39,6 +39,7 @@ import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.atn.PredictionMode;
 import org.antlr.v4.runtime.misc.Pair;
 import org.antlr.v4.runtime.misc.ParseCancellationException;
+import org.antlr.v4.runtime.tree.TerminalNodeImpl;
 
 import java.util.EnumSet;
 import java.util.function.Function;
@@ -85,7 +86,7 @@ public class SqlParser {
 
     private Node invokeParser(String name, String sql, Function<SqlBaseParser, ParserRuleContext> parseFunction) {
         try {
-            SqlBaseLexer lexer = new SqlBaseLexer(new CaseInsensitiveStream(new ANTLRInputStream(sql)));
+            SqlBaseLexer lexer = new SqlBaseLexer(new CaseInsensitiveStream(CharStreams.fromString(sql, name)));
             CommonTokenStream tokenStream = new CommonTokenStream(lexer);
             SqlBaseParser parser = new SqlBaseParser(tokenStream);
 
@@ -104,7 +105,7 @@ public class SqlParser {
                 tree = parseFunction.apply(parser);
             } catch (ParseCancellationException ex) {
                 // if we fail, parse with LL mode
-                tokenStream.reset(); // rewind input stream
+                tokenStream.seek(0); // rewind input stream
                 parser.reset();
 
                 parser.getInterpreter().setPredictionMode(PredictionMode.LL);
@@ -167,12 +168,15 @@ public class SqlParser {
             context.getParent().removeLastChild();
 
             Token token = (Token) context.getChild(0).getPayload();
-            context.getParent().addChild(new CommonToken(
-                new Pair<>(token.getTokenSource(), token.getInputStream()),
-                SqlBaseLexer.IDENTIFIER,
-                token.getChannel(),
-                token.getStartIndex(),
-                token.getStopIndex()));
+            context.getParent().addChild(new TerminalNodeImpl(
+                new CommonToken(
+                    new Pair<>(token.getTokenSource(), token.getInputStream()),
+                    SqlBaseLexer.IDENTIFIER,
+                    token.getChannel(),
+                    token.getStartIndex(),
+                    token.getStopIndex())
+                )
+            );
         }
     }
 }
