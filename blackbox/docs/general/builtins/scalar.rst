@@ -2063,9 +2063,10 @@ which in CrateDB will always be ``crate``::
 .. _scalar_current_setting:
 
 ``current_setting(text [,boolean])``
---------------------------------------
+------------------------------------
 
-The ``current_setting`` function returns the current value of a setting.
+The ``current_setting`` function returns the current value of a :ref:`session
+setting <conf-session>`
 
 Returns: ``text``
 
@@ -2080,12 +2081,12 @@ unless ``missing_ok`` argument is provided and is true.
 Examples::
 
 
-    cr> select current_setting('enable_semijoin');
-    +------------------------------------+
-    | current_setting('enable_semijoin') |
-    +------------------------------------+
-    | false                              |
-    +------------------------------------+
+    cr> select current_setting('search_path');
+    +--------------------------------+
+    | current_setting('search_path') |
+    +--------------------------------+
+    | pg_catalog, doc                |
+    +--------------------------------+
     SELECT 1 row in set (... sec)
 
 ::
