@@ -201,6 +201,8 @@ Example with ``within`` scalar function::
     +--------------+---------+
     SELECT 2 rows in set (... sec)
 
+.. _available-join-algo:
+
 Available Join Algorithms
 -------------------------
 
@@ -237,8 +239,8 @@ the `join condition` obeys the following rules:
     relation
 
 The `Hash Join`_ algorithm is faster but has a bigger memory footprint. As such
-it can explicitly be disabled on demand when memory is scarce using the session
-setting ``enable_hashjoin``::
+it can explicitly be disabled on demand when memory is scarce using the
+session setting :ref:`enable_hashjoin <conf-session-enable-hashjoin>`::
 
   SET enable_hashjoin=false
 
