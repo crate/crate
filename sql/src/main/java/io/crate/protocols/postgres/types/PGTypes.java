@@ -99,6 +99,9 @@ public class PGTypes {
         PG_TYPES_TO_CRATE_TYPE.put(TEXT_OID, DataTypes.STRING);
         PG_TYPES_TO_CRATE_TYPE.put(TEXT_ARRAY_OID, new ArrayType(DataTypes.STRING));
         TYPES = new HashSet<>(CRATE_TO_PG_TYPES.values()); // some pgTypes are used multiple times, de-dup them
+        // the below is added manually as currently we do not want to expose this type to crateDB
+        // we merely need this type information in 'pg_types' static table for postgres compatibility
+        TYPES.add(VarCharType.NameType.INSTANCE);
     }
 
     public static Iterable<PGType> pgTypes() {
