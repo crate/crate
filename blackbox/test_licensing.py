@@ -24,18 +24,14 @@ import os
 import time
 import random
 import unittest
-from crate.testing.layer import CrateLayer
+from cr8.run_crate import CrateNode
 from testutils.paths import crate_path
-from testutils.ports import bind_port, bind_range
+from testutils.ports import bind_range
 from crate.client import connect
 
-CRATE_CE = True if os.environ.get('CRATE_CE') is "1" else False
+CRATE_CE = os.environ.get('CRATE_CE') == "1"
 
 TRIAL_MAX_NODES = 3
-
-CRATE_SETTINGS = {
-    'psql.port': 0
-}
 
 
 class CommunityLicenseITest(unittest.TestCase):
@@ -51,28 +47,31 @@ class CommunityLicenseITest(unittest.TestCase):
         # auto-discovery with unicast on the same host only works if all nodes are configured with the same port range
         transport_port_range = bind_range(range_size=cls.NUM_SERVERS)
         for i in range(cls.NUM_SERVERS):
-            http_port = bind_port()
-            layer = CrateLayer(
-                cls.node_name(i),
-                crate_path(),
-                host='localhost',
-                port=http_port,
-                transport_port=transport_port_range,
-                settings=CRATE_SETTINGS,
-                env={'JAVA_HOME': os.environ.get('JAVA_HOME', ''),
-                     'CRATE_HEAP_SIZE': '256M'},
-                cluster_name=cls.__class__.__name__)
+            layer = CrateNode(
+                crate_dir=crate_path(),
+                version=(4, 0, 0),
+                settings={
+                    'cluster.name': cls.__class__.__name__,
+                    'node.name': cls.node_name(i),
+                    'psql.port': 0,
+                    'transport.tcp.port': transport_port_range,
+                },
+                env={
+                    'JAVA_HOME': os.environ.get('JAVA_HOME', ''),
+                    'CRATE_HEAP_SIZE': '256M'
+                }
+            )
             layer.start()
-            cls.HTTP_PORTS.append(http_port)
+            cls.HTTP_PORTS.append(layer.addresses.http.port)
             cls.CRATES.append(layer)
 
         dsn = cls.random_dns()
         num_nodes = 0
 
         # wait until all nodes joined the cluster
-        while num_nodes < len(cls.CRATES):
-            with connect(dsn) as conn:
-                c = conn.cursor()
+        with connect(dsn) as conn:
+            c = conn.cursor()
+            while num_nodes < len(cls.CRATES):
                 c.execute("select * from sys.nodes")
                 num_nodes = len(c.fetchall())
                 time.sleep(5)
@@ -107,5 +106,4 @@ class CommunityLicenseITest(unittest.TestCase):
             c = conn.cursor()
             c.execute("create table t1 (id int)")
             self.assertEqual(1, c.rowcount)
-
 

@@ -25,7 +25,7 @@ import time
 import random
 import string
 import threading
-from crate.testing.layer import CrateLayer
+from cr8.run_crate import CrateNode
 from crate.client.http import Client
 from crate.client.exceptions import ProgrammingError, ConnectionError
 from testutils.paths import crate_path
@@ -92,7 +92,7 @@ def wait_for_cluster_size(client, expected_size, timeout_in_s=20):
     return True
 
 
-class GracefulStopCrateLayer(CrateLayer):
+class GracefulStopCrateLayer(CrateNode):
 
     MAX_RETRIES = 3
 
@@ -131,21 +131,17 @@ class GracefulStopTest(unittest.TestCase):
         transport_port_range = bind_range(range_size=self.num_servers)
         for i in range(self.num_servers):
             layer = GracefulStopCrateLayer(
-                self.node_name(i),
-                crate_path(),
-                host='localhost',
-                port=bind_port(),
-                transport_port=transport_port_range,
+                crate_dir=crate_path(),
                 settings={
-                    # The disk.watermark settings can be removed once crate-python > 0.21.1 has been released
-                    "cluster.routing.allocation.disk.watermark.low": "100k",
-                    "cluster.routing.allocation.disk.watermark.high": "10k",
-                    "cluster.routing.allocation.disk.watermark.flood_stage": "1k",
+                    'cluster.name': self.__class__.__name__,
+                    'node.name': self.node_name(i),
+                    'transport.tcp.port': transport_port_range,
                 },
                 env=os.environ.copy(),
-                cluster_name=self.__class__.__name__)
+                version=(4, 0, 0)
+            )
             layer.start()
-            self.clients.append(Client(layer.crate_servers))
+            self.clients.append(Client(layer.http_url))
             self.crates.append(layer)
             self.node_names.append(self.node_name(i))
 

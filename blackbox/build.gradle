@@ -24,7 +24,6 @@ task unpackDistTar(dependsOn: [project(':app').installDist, deleteCrateDist]) {
             }
             into crateDist
         }
-        lessLogging()
         ignoreDiskThreshold()
     }
     outputs.dir crateDist
@@ -38,15 +37,9 @@ task unpackCommunityEditionDistTar(dependsOn: [project(':app').installCommunityE
             }
             into crateDist
         }
-        lessLogging()
         ignoreDiskThreshold()
     }
     outputs.dir crateDist
-}
-
-def lessLogging() {
-    def file = new File("$projectDir/tmp/crate/config/log4j2.properties")
-    file.write(file.text.replaceAll('rootLogger.level = info', 'rootLogger.level: warn'))
 }
 
 def ignoreDiskThreshold() {
