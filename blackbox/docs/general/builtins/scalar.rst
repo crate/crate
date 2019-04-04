@@ -2066,7 +2066,7 @@ which in CrateDB will always be ``crate``::
 ------------------------------------
 
 The ``current_setting`` function returns the current value of a :ref:`session
-setting <conf-session>`
+setting <conf-session>`.
 
 Returns: ``text``
 
