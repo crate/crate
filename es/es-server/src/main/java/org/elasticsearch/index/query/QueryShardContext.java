@@ -137,13 +137,6 @@ public class QueryShardContext extends QueryRewriteContext {
         return super.nowInMillis();
     }
 
-    /**
-     * Returns the index settings for this context. This might return null if the
-     * context has not index scope.
-     */
-    public IndexSettings getIndexSettings() {
-        return indexSettings;
-    }
 
     /**
      * Return the MapperService.
