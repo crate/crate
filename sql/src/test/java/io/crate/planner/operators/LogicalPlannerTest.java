@@ -25,7 +25,6 @@ package io.crate.planner.operators;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueryClause;
 import io.crate.analyze.relations.QueriedRelation;
-import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
@@ -519,6 +518,15 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                 WindowAgg windowAgg = (WindowAgg) plan;
                 startLine("WindowAgg[");
                 addSymbolsList(windowAgg.windowFunctions());
+                if (!windowAgg.windowDefinition.partitions().isEmpty()) {
+                    sb.append(" | PARTITION BY ");
+                    addSymbolsList(windowAgg.windowDefinition.partitions());
+                }
+                OrderBy orderBy = windowAgg.windowDefinition.orderBy();
+                if (orderBy != null) {
+                    sb.append(" | ORDER BY ");
+                    OrderBy.explainRepresentation(sb, orderBy.orderBySymbols(), orderBy.reverseFlags(), orderBy.nullsFirst());
+                }
                 sb.append("]\n");
                 plan = windowAgg.source;
             }
