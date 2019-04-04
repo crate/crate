@@ -315,7 +315,7 @@ public class TestStatementBuilder {
     @Test
     public void testDeallocateWithoutParamThrowsParsingException() {
         expectedException.expect(ParsingException.class);
-        expectedException.expectMessage("line 1:11: no viable alternative at input '<EOF>'");
+        expectedException.expectMessage("line 1:11: mismatched input '<EOF>'");
         printStatement("deallocate");
     }
 
@@ -402,7 +402,7 @@ public class TestStatementBuilder {
     @Test
     public void testSetLicenseMultipleInputThrowsParsingException() {
         expectedException.expect(ParsingException.class);
-        expectedException.expectMessage(containsString("extraneous input ''LICENSE_KEY2'' expecting <EOF>"));
+        expectedException.expectMessage(containsString("line 1:27: extraneous input ''LICENSE_KEY2'' expecting {<EOF>, ';'}"));
         printStatement("set license 'LICENSE_KEY' 'LICENSE_KEY2'");
     }
 
@@ -515,7 +515,7 @@ public class TestStatementBuilder {
     @Test
     public void testCreateTableOptionsMultipleTimesNotAllowed() {
         expectedException.expect(ParsingException.class);
-        expectedException.expectMessage("mismatched input 'partitioned' expecting <EOF>");
+        expectedException.expectMessage("line 1:68: mismatched input 'partitioned' expecting {<EOF>, ';'}");
         printStatement("create table test (col1 int, col2 timestamp) partitioned by (col1) partitioned by (col2)");
     }
 

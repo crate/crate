@@ -27,7 +27,7 @@ import io.crate.metadata.RelationName;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
-import org.apache.lucene.store.RAMDirectory;
+import org.apache.lucene.store.ByteBuffersDirectory;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterModule;
 import org.elasticsearch.cluster.ClusterState;
@@ -166,7 +166,7 @@ public final class IndexEnv implements AutoCloseable {
         );
         indexFieldDataService = indexService.fieldData();
         IndexWriterConfig conf = new IndexWriterConfig(new StandardAnalyzer());
-        writer = new IndexWriter(new RAMDirectory(), conf);
+        writer = new IndexWriter(new ByteBuffersDirectory(), conf);
         queryShardContext.set(new QueryShardContext(
             idxSettings,
             indexFieldDataService::getForField,

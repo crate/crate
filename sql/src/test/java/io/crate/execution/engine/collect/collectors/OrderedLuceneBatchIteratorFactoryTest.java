@@ -52,8 +52,7 @@ import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.Sort;
 import org.apache.lucene.search.SortField;
 import org.apache.lucene.search.SortedNumericSortField;
-import org.apache.lucene.store.RAMDirectory;
-import org.elasticsearch.common.Nullable;
+import org.apache.lucene.store.ByteBuffersDirectory;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
@@ -90,8 +89,8 @@ public class OrderedLuceneBatchIteratorFactoryTest extends CrateUnitTest {
 
     @Before
     public void prepareSearchers() throws Exception {
-        IndexWriter iw1 = new IndexWriter(new RAMDirectory(), new IndexWriterConfig(new StandardAnalyzer()));
-        IndexWriter iw2 = new IndexWriter(new RAMDirectory(), new IndexWriterConfig(new StandardAnalyzer()));
+        IndexWriter iw1 = new IndexWriter(new ByteBuffersDirectory(), new IndexWriterConfig(new StandardAnalyzer()));
+        IndexWriter iw2 = new IndexWriter(new ByteBuffersDirectory(), new IndexWriterConfig(new StandardAnalyzer()));
 
         expectedResult = LongStream.range(0, 20)
             .mapToObj(i -> new Object[]{i})

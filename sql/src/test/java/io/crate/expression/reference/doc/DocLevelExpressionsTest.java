@@ -22,23 +22,15 @@
 package io.crate.expression.reference.doc;
 
 import io.crate.expression.reference.doc.lucene.CollectorContext;
-import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.IndexEnv;
 import io.crate.testing.SQLExecutor;
-import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexWriter;
-import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.LogByteSizeMergePolicy;
-import org.apache.lucene.store.RAMDirectory;
 import org.elasticsearch.Version;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.fielddata.IndexFieldDataService;
-import org.elasticsearch.test.ESSingleNodeTestCase;
 import org.junit.After;
 import org.junit.Before;
 

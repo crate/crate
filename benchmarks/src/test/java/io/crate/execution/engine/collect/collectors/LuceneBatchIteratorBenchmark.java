@@ -33,7 +33,7 @@ import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
-import org.apache.lucene.store.RAMDirectory;
+import org.apache.lucene.store.ByteBuffersDirectory;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -60,7 +60,7 @@ public class LuceneBatchIteratorBenchmark {
 
     @Setup
     public void createLuceneBatchIterator() throws Exception {
-        IndexWriter iw = new IndexWriter(new RAMDirectory(), new IndexWriterConfig(new StandardAnalyzer()));
+        IndexWriter iw = new IndexWriter(new ByteBuffersDirectory(), new IndexWriterConfig(new StandardAnalyzer()));
         String columnName = "x";
         for (int i = 0; i < 10_000_000; i++) {
             Document doc = new Document();

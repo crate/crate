@@ -53,7 +53,7 @@ allprojects {
             force "com.fasterxml.jackson.core:jackson-databind:${versions.jackson}"
             force "joda-time:joda-time:${versions.jodatime}"
             force "org.hamcrest:hamcrest-all:${versions.hamcrest}"
-            force "org.antlr:antlr-runtime:${versions.antlr}"
+            force "org.antlr:antlr4-runtime:${versions.antlr}"
             force "commons-cli:commons-cli:${versions.commonscli}"
             force "org.apache.commons:commons-math3:${versions.commonsmath}"
             force "org.apache.commons:commons-lang3:${versions.commonslang3}"
