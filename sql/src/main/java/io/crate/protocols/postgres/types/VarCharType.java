@@ -29,19 +29,28 @@ import java.nio.charset.StandardCharsets;
 
 class VarCharType extends PGType {
 
-    public static final PGType INSTANCE = new VarCharType();
     static final int OID = 1043;
-
+    private static final int ARRAY_OID = 1015;
     private static final int TYPE_LEN = -1;
     private static final int TYPE_MOD = -1;
 
-    private VarCharType() {
+    public static final PGType INSTANCE = new VarCharType(ARRAY_OID);
+
+    private final int typArray;
+
+    private VarCharType(int typArray) {
         super(OID, TYPE_LEN, TYPE_MOD, "varchar");
+        this.typArray = typArray;
+    }
+
+    private VarCharType(int oid, int typArray, int maxLength, String aliasName) {
+        super(oid, maxLength, TYPE_MOD, aliasName);
+        this.typArray = typArray;
     }
 
     @Override
     public int typArray() {
-        return PGArray.VARCHAR_ARRAY.oid();
+        return typArray;
     }
 
     @Override
@@ -74,5 +83,13 @@ class VarCharType extends PGType {
     @Override
     Object decodeUTF8Text(byte[] bytes) {
         return new String(bytes, StandardCharsets.UTF_8);
+    }
+
+    static class NameType {
+        static final int OID = 19;
+        private static final int ARRAY_OID = -1;
+        private static final int TYPE_LEN = 64;
+
+        static final PGType INSTANCE = new VarCharType(OID, ARRAY_OID, TYPE_LEN, "name");
     }
 }

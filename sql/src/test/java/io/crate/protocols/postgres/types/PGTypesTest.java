@@ -138,15 +138,23 @@ public class PGTypesTest extends CrateUnitTest {
             new Entry(new SetType(DataTypes.STRING), new Object[]{"test"}),
             new Entry(new SetType(DataTypes.INTEGER), new Integer[]{10, null, 20})
         )) {
-
             PGType pgType = PGTypes.get(entry.type);
-
-            Object streamedValue = writeAndReadBinary(entry, pgType);
-            assertThat(streamedValue, is(entry.value));
-
-            streamedValue = writeAndReadAsText(entry, pgType);
-            assertThat(streamedValue, is(entry.value));
+            assertEntryOfPgType(entry, pgType);
         }
+    }
+
+    @Test
+    public void testReadWriteVarCharType() {
+        assertEntryOfPgType(new Entry(DataTypes.STRING, "test"),
+                            VarCharType.INSTANCE);
+    }
+
+    private void assertEntryOfPgType(Entry entry, PGType pgType) {
+        Object streamedValue = writeAndReadBinary(entry, pgType);
+        assertThat(streamedValue, is(entry.value));
+
+        streamedValue = writeAndReadAsText(entry, pgType);
+        assertThat(streamedValue, is(entry.value));
     }
 
     private Object writeAndReadBinary(Entry entry, PGType pgType) {

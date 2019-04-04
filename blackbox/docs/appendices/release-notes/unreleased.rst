@@ -132,6 +132,10 @@ Deprecations
 Changes
 =======
 
+- Added information for the internal PostgreSQL data type: ``name`` in
+  :ref:`pg_catalog.pg_type <postgres_pg_type>` for improved PostgreSQL
+  compatibility.
+
 - Added the `pg_catalog.pg_settings <pgsql_pg_settings>`_ table.
 
 - Removed deprecated ``nGram``, ``edgeNGram`` token filter and ``htmlStrip``

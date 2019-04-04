@@ -144,6 +144,8 @@ following tables:
  - `pg_description`_
 
 
+.. _postgres_pg_type:
+
 ``pg_type``
 ...........
 
@@ -159,6 +161,7 @@ CrateDB::
     +------+--------------+----------+---------+--------+
     |   16 | bool         |     1000 |       0 |      1 |
     |   18 | char         |     1002 |       0 |      1 |
+    |   19 | name         |       -1 |       0 |     64 |
     |   20 | int8         |     1016 |       0 |      8 |
     |   21 | int2         |     1005 |       0 |      2 |
     |   23 | int4         |     1007 |       0 |      4 |
@@ -178,7 +181,7 @@ CrateDB::
     | 1184 | timestamptz  |     1185 |       0 |      8 |
     | 1185 | _timestamptz |        0 |    1184 |     -1 |
     +------+--------------+----------+---------+--------+
-    SELECT 20 rows in set (... sec)
+    SELECT 21 rows in set (... sec)
 
 .. NOTE::
 
