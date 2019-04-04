@@ -23,13 +23,10 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.unit.ByteSizeValue;
-import org.elasticsearch.common.xcontent.ToXContentFragment;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 
 import java.io.IOException;
 import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
-import java.lang.management.ManagementPermission;
 import java.lang.management.MemoryMXBean;
 import java.lang.management.MemoryPoolMXBean;
 import java.lang.management.PlatformManagedObject;
@@ -39,7 +36,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-public class JvmInfo implements Writeable, ToXContentFragment {
+public class JvmInfo implements Writeable {
 
     private static JvmInfo INSTANCE;
 
@@ -49,17 +46,8 @@ public class JvmInfo implements Writeable, ToXContentFragment {
 
         long heapInit = memoryMXBean.getHeapMemoryUsage().getInit() < 0 ? 0 : memoryMXBean.getHeapMemoryUsage().getInit();
         long heapMax = memoryMXBean.getHeapMemoryUsage().getMax() < 0 ? 0 : memoryMXBean.getHeapMemoryUsage().getMax();
-        long nonHeapInit = memoryMXBean.getNonHeapMemoryUsage().getInit() < 0 ? 0 : memoryMXBean.getNonHeapMemoryUsage().getInit();
-        long nonHeapMax = memoryMXBean.getNonHeapMemoryUsage().getMax() < 0 ? 0 : memoryMXBean.getNonHeapMemoryUsage().getMax();
-        long directMemoryMax = 0;
-        try {
-            Class<?> vmClass = Class.forName("sun.misc.VM");
-            directMemoryMax = (Long) vmClass.getMethod("maxDirectMemory").invoke(null);
-        } catch (Exception t) {
-            // ignore
-        }
         String[] inputArguments = runtimeMXBean.getInputArguments().toArray(new String[runtimeMXBean.getInputArguments().size()]);
-        Mem mem = new Mem(heapInit, heapMax, nonHeapInit, nonHeapMax, directMemoryMax);
+        Mem mem = new Mem(heapInit, heapMax);
 
         String bootClassPath;
         try {
@@ -157,11 +145,6 @@ public class JvmInfo implements Writeable, ToXContentFragment {
     }
 
     public static JvmInfo jvmInfo() {
-        SecurityManager sm = System.getSecurityManager();
-        if (sm != null) {
-            sm.checkPermission(new ManagementPermission("monitor"));
-            sm.checkPropertyAccess("*");
-        }
         return INSTANCE;
     }
 
@@ -271,97 +254,12 @@ public class JvmInfo implements Writeable, ToXContentFragment {
         return this.pid;
     }
 
-    /**
-     * The process id.
-     */
-    public long getPid() {
-        return pid;
-    }
-
     public String version() {
         return this.version;
     }
 
-    public String getVersion() {
-        return this.version;
-    }
-
-    public int versionAsInteger() {
-        try {
-            int i = 0;
-            StringBuilder sVersion = new StringBuilder();
-            for (; i < version.length(); i++) {
-                if (!Character.isDigit(version.charAt(i)) && version.charAt(i) != '.') {
-                    break;
-                }
-                if (version.charAt(i) != '.') {
-                    sVersion.append(version.charAt(i));
-                }
-            }
-            if (i == 0) {
-                return -1;
-            }
-            return Integer.parseInt(sVersion.toString());
-        } catch (Exception e) {
-            return -1;
-        }
-    }
-
-    public int versionUpdatePack() {
-        try {
-            int i = 0;
-            StringBuilder sVersion = new StringBuilder();
-            for (; i < version.length(); i++) {
-                if (!Character.isDigit(version.charAt(i)) && version.charAt(i) != '.') {
-                    break;
-                }
-                if (version.charAt(i) != '.') {
-                    sVersion.append(version.charAt(i));
-                }
-            }
-            if (i == 0) {
-                return -1;
-            }
-            Integer.parseInt(sVersion.toString());
-            int from;
-            if (version.charAt(i) == '_') {
-                // 1.7.0_4
-                from = ++i;
-            } else if (version.charAt(i) == '-' && version.charAt(i + 1) == 'u') {
-                // 1.7.0-u2-b21
-                i = i + 2;
-                from = i;
-            } else {
-                return -1;
-            }
-            for (; i < version.length(); i++) {
-                if (!Character.isDigit(version.charAt(i)) && version.charAt(i) != '.') {
-                    break;
-                }
-            }
-            if (from == i) {
-                return -1;
-            }
-            return Integer.parseInt(version.substring(from, i));
-        } catch (Exception e) {
-            return -1;
-        }
-    }
-
     public String getVmName() {
         return this.vmName;
-    }
-
-    public String getVmVersion() {
-        return this.vmVersion;
-    }
-
-    public String getVmVendor() {
-        return this.vmVendor;
-    }
-
-    public long getStartTime() {
-        return this.startTime;
     }
 
     public Mem getMem() {
@@ -370,18 +268,6 @@ public class JvmInfo implements Writeable, ToXContentFragment {
 
     public String[] getInputArguments() {
         return this.inputArguments;
-    }
-
-    public String getBootClassPath() {
-        return this.bootClassPath;
-    }
-
-    public String getClassPath() {
-        return this.classPath;
-    }
-
-    public Map<String, String> getSystemProperties() {
-        return this.systemProperties;
     }
 
     public long getConfiguredInitialHeapSize() {
@@ -420,101 +306,25 @@ public class JvmInfo implements Writeable, ToXContentFragment {
         return this.useSerialGC;
     }
 
-    public String[] getGcCollectors() {
-        return gcCollectors;
-    }
-
-    public String[] getMemoryPools() {
-        return memoryPools;
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject(Fields.JVM);
-        builder.field(Fields.PID, pid);
-        builder.field(Fields.VERSION, version);
-        builder.field(Fields.VM_NAME, vmName);
-        builder.field(Fields.VM_VERSION, vmVersion);
-        builder.field(Fields.VM_VENDOR, vmVendor);
-        builder.timeField(Fields.START_TIME_IN_MILLIS, Fields.START_TIME, startTime);
-
-        builder.startObject(Fields.MEM);
-        builder.humanReadableField(Fields.HEAP_INIT_IN_BYTES, Fields.HEAP_INIT, new ByteSizeValue(mem.heapInit));
-        builder.humanReadableField(Fields.HEAP_MAX_IN_BYTES, Fields.HEAP_MAX, new ByteSizeValue(mem.heapMax));
-        builder.humanReadableField(Fields.NON_HEAP_INIT_IN_BYTES, Fields.NON_HEAP_INIT, new ByteSizeValue(mem.nonHeapInit));
-        builder.humanReadableField(Fields.NON_HEAP_MAX_IN_BYTES, Fields.NON_HEAP_MAX, new ByteSizeValue(mem.nonHeapMax));
-        builder.humanReadableField(Fields.DIRECT_MAX_IN_BYTES, Fields.DIRECT_MAX, new ByteSizeValue(mem.directMemoryMax));
-        builder.endObject();
-
-        builder.array(Fields.GC_COLLECTORS, gcCollectors);
-        builder.array(Fields.MEMORY_POOLS, memoryPools);
-
-        builder.field(Fields.USING_COMPRESSED_OOPS, useCompressedOops);
-
-        builder.field(Fields.INPUT_ARGUMENTS, inputArguments);
-
-        builder.endObject();
-        return builder;
-    }
-
-    static final class Fields {
-        static final String JVM = "jvm";
-        static final String PID = "pid";
-        static final String VERSION = "version";
-        static final String VM_NAME = "vm_name";
-        static final String VM_VERSION = "vm_version";
-        static final String VM_VENDOR = "vm_vendor";
-        static final String START_TIME = "start_time";
-        static final String START_TIME_IN_MILLIS = "start_time_in_millis";
-
-        static final String MEM = "mem";
-        static final String HEAP_INIT = "heap_init";
-        static final String HEAP_INIT_IN_BYTES = "heap_init_in_bytes";
-        static final String HEAP_MAX = "heap_max";
-        static final String HEAP_MAX_IN_BYTES = "heap_max_in_bytes";
-        static final String NON_HEAP_INIT = "non_heap_init";
-        static final String NON_HEAP_INIT_IN_BYTES = "non_heap_init_in_bytes";
-        static final String NON_HEAP_MAX = "non_heap_max";
-        static final String NON_HEAP_MAX_IN_BYTES = "non_heap_max_in_bytes";
-        static final String DIRECT_MAX = "direct_max";
-        static final String DIRECT_MAX_IN_BYTES = "direct_max_in_bytes";
-        static final String GC_COLLECTORS = "gc_collectors";
-        static final String MEMORY_POOLS = "memory_pools";
-        static final String USING_COMPRESSED_OOPS = "using_compressed_ordinary_object_pointers";
-        static final String INPUT_ARGUMENTS = "input_arguments";
-    }
-
     public static class Mem implements Writeable {
 
         private final long heapInit;
         private final long heapMax;
-        private final long nonHeapInit;
-        private final long nonHeapMax;
-        private final long directMemoryMax;
 
-        public Mem(long heapInit, long heapMax, long nonHeapInit, long nonHeapMax, long directMemoryMax) {
+        Mem(long heapInit, long heapMax) {
             this.heapInit = heapInit;
             this.heapMax = heapMax;
-            this.nonHeapInit = nonHeapInit;
-            this.nonHeapMax = nonHeapMax;
-            this.directMemoryMax = directMemoryMax;
         }
 
-        public Mem(StreamInput in) throws IOException {
+        Mem(StreamInput in) throws IOException {
             this.heapInit = in.readVLong();
             this.heapMax = in.readVLong();
-            this.nonHeapInit = in.readVLong();
-            this.nonHeapMax = in.readVLong();
-            this.directMemoryMax = in.readVLong();
         }
 
         @Override
         public void writeTo(StreamOutput out) throws IOException {
             out.writeVLong(heapInit);
             out.writeVLong(heapMax);
-            out.writeVLong(nonHeapInit);
-            out.writeVLong(nonHeapMax);
-            out.writeVLong(directMemoryMax);
         }
 
         public ByteSizeValue getHeapInit() {
@@ -523,18 +333,6 @@ public class JvmInfo implements Writeable, ToXContentFragment {
 
         public ByteSizeValue getHeapMax() {
             return new ByteSizeValue(heapMax);
-        }
-
-        public ByteSizeValue getNonHeapInit() {
-            return new ByteSizeValue(nonHeapInit);
-        }
-
-        public ByteSizeValue getNonHeapMax() {
-            return new ByteSizeValue(nonHeapMax);
-        }
-
-        public ByteSizeValue getDirectMemoryMax() {
-            return new ByteSizeValue(directMemoryMax);
         }
     }
 }
