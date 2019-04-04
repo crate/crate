@@ -47,11 +47,11 @@ Basic information about the CrateDB cluster can be retrieved from the
 The result has at most 1 row::
 
   cr> select name from sys.cluster;
-  +--------------+
-  | name         |
-  +--------------+
-  | Testing...   |
-  +--------------+
+  +-----------------+
+  | name            |
+  +-----------------+
+  | Testing-CrateDB |
+  +-----------------+
   SELECT 1 row in set (... sec)
 
 .. _sys-cluster-license:

@@ -21,41 +21,33 @@
 
 import doctest
 import zc.customdoctests
-from crate.testing.layer import CrateLayer
+from cr8.run_crate import CrateNode
 import os
 import time
 import shutil
 import json
 import re
-import sys
 import random
 import tempfile
-import logging
 import subprocess
 import unittest
 from functools import partial
 from testutils.paths import crate_path, project_path
-from testutils.ports import bind_port
 from crate.crash.command import CrateShell
 from crate.crash.printer import PrintWrapper, ColorPrinter
 from crate.client import connect
 
 
-CRATE_HTTP_PORT = bind_port()
-CRATE_DSN = 'localhost:' + str(CRATE_HTTP_PORT)
+CRATE_CE = True if os.environ.get('CRATE_CE') == "1" else False
 
-log = logging.getLogger('crate.testing.layer')
-ch = logging.StreamHandler()
-ch.setLevel(logging.ERROR)
-log.addHandler(ch)
-
-
-CRATE_CE = True if os.environ.get('CRATE_CE') is "1" else False
-
-CRATE_SETTINGS = {'psql.port': 0}
+CRATE_SETTINGS = {
+    'psql.port': 0,
+    'transport.tcp.port': 0,
+    'node.name': 'crate',
+    'cluster.name': 'Testing-CrateDB'
+}
 if not CRATE_CE:
     CRATE_SETTINGS['lang.js.enabled'] = 'true'
-
 
 
 class CrateTestShell(CrateShell):
@@ -75,18 +67,82 @@ class CrateTestShell(CrateShell):
 cmd = CrateTestShell()
 
 
+def pretty_print(s):
+    try:
+        d = json.loads(s)
+        print(json.dumps(d, indent=2))
+    except json.decoder.JSONDecodeError:
+        print(s)
+
+
+class ConnectingCrateLayer(CrateNode):
+
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault('settings', {})
+        self.repo_path = kwargs['settings']['path.repo'] = tempfile.mkdtemp()
+        super().__init__(*args, **kwargs)
+
+    def start(self):
+        super().start()
+        cmd._connect(self.http_url)
+
+    def stop(self):
+        print('')
+        print('ConnectingCrateLayer.stop()')
+        shutil.rmtree(self.repo_path, ignore_errors=True)
+        super().stop()
+
+
+crate = ConnectingCrateLayer(
+    crate_dir=crate_path(),
+    env={'JAVA_HOME': os.environ.get('JAVA_HOME', '')},
+    settings=CRATE_SETTINGS,
+    version=(4, 0, 0)
+)
+
+
+def crash_transform(s):
+    # The examples in the docs show the real port '4200' to a reader.
+    # Our test suite requires the port to be '44200' to avoid conflicts.
+    # Therefore, we need to replace the ports before a test is being run.
+    if s.startswith('_'):
+        return s[1:]
+    if hasattr(crate, 'addresses'):
+        s = s.replace(':4200', ':{0}'.format(crate.addresses.http.port))
+    return u'cmd.stmt({0})'.format(repr(s.strip().rstrip(';')))
+
+
+def bash_transform(s):
+    # The examples in the docs show the real port '4200' to a reader.
+    # Our test suite requires the port to be '44200' to avoid conflicts.
+    # Therefore, we need to replace the ports before a test is being run.
+    if hasattr(crate, 'addresses'):
+        s = s.replace(':4200', ':{0}'.format(crate.addresses.http.port))
+    if s.startswith("crash"):
+        s = re.search(r"crash\s+-c\s+\"(.*?)\"", s).group(1)
+        return u'cmd.stmt({0})'.format(repr(s.strip().rstrip(';')))
+    return (r'pretty_print(sh("""%s""").stdout.decode("utf-8"))' % s) + '\n'
+
+
+bash_parser = zc.customdoctests.DocTestParser(
+    ps1=r'sh\$', comment_prefix='#', transform=bash_transform)
+
+crash_parser = zc.customdoctests.DocTestParser(
+    ps1='cr>', comment_prefix='#', transform=crash_transform)
+
+
 def _execute_sql(stmt):
     """
     Invoke a single SQL statement and automatically close the HTTP connection
     when done.
     """
-    with connect(CRATE_DSN) as conn:
+    with connect(crate.http_url) as conn:
         c = conn.cursor()
         c.execute(stmt)
 
 
 def wait_for_schema_update(schema, table, column):
-    with connect(CRATE_DSN) as conn:
+    with connect(crate.http_url) as conn:
         c = conn.cursor()
         count = 0
         while count == 0:
@@ -100,7 +156,7 @@ def wait_for_schema_update(schema, table, column):
 
 
 def wait_for_function(signature):
-    with connect(CRATE_DSN) as conn:
+    with connect(crate.http_url) as conn:
         c = conn.cursor()
         wait = 0.0
 
@@ -117,58 +173,6 @@ def wait_for_function(signature):
                 break
 
 
-def bash_transform(s):
-    # The examples in the docs show the real port '4200' to a reader.
-    # Our test suite requires the port to be '44200' to avoid conflicts.
-    # Therefore, we need to replace the ports before a test is being run.
-    s = s.replace(':4200/', ':{0}/'.format(CRATE_HTTP_PORT))
-    if s.startswith("crash"):
-        s = re.search(r"crash\s+-c\s+\"(.*?)\"", s).group(1)
-        return u'cmd.stmt({0})'.format(repr(s.strip().rstrip(';')))
-    return (r'pretty_print(sh("""%s""").stdout.decode("utf-8"))' % s) + '\n'
-
-
-def pretty_print(s):
-    try:
-        d = json.loads(s)
-        print(json.dumps(d, indent=2))
-    except json.decoder.JSONDecodeError:
-        print(s)
-
-
-def crash_transform(s):
-    # The examples in the docs show the real port '4200' to a reader.
-    # Our test suite requires the port to be '44200' to avoid conflicts.
-    # Therefore, we need to replace the ports before a test is being run.
-    if s.startswith('_'):
-        return s[1:]
-    s = s.replace(':4200', ':{0}'.format(CRATE_HTTP_PORT))
-    return u'cmd.stmt({0})'.format(repr(s.strip().rstrip(';')))
-
-
-bash_parser = zc.customdoctests.DocTestParser(
-    ps1=r'sh\$', comment_prefix='#', transform=bash_transform)
-
-crash_parser = zc.customdoctests.DocTestParser(
-    ps1='cr>', comment_prefix='#', transform=crash_transform)
-
-
-class ConnectingCrateLayer(CrateLayer):
-
-    def __init__(self, *args, **kwargs):
-        kwargs.setdefault('settings', {})
-        self.repo_path = kwargs['settings']['path.repo'] = tempfile.mkdtemp()
-        super(ConnectingCrateLayer, self).__init__(*args, **kwargs)
-
-    def start(self):
-        super(ConnectingCrateLayer, self).start()
-        cmd._connect(self.crate_servers[0])
-
-    def tearDown(self):
-        print('')
-        print('ConnectingCrateLayer.tearDown()')
-        shutil.rmtree(self.repo_path, ignore_errors=True)
-        super(ConnectingCrateLayer, self).tearDown()
 
 
 def setUpLocations(test):
@@ -377,7 +381,7 @@ def setUp(test):
 
 def tearDown(test):
     # drop leftover tables after each test
-    with connect(CRATE_DSN) as conn:
+    with connect(crate.http_url) as conn:
         c = conn.cursor()
         c.execute("""
             SELECT table_schema, table_name
@@ -412,25 +416,14 @@ def get_abspath(name):
     )
 
 
-crate_layer = ConnectingCrateLayer(
-    'crate',
-    host='localhost',
-    crate_home=crate_path(),
-    port=CRATE_HTTP_PORT,
-    transport_port=0,
-    env={'JAVA_HOME': os.environ.get('JAVA_HOME', '')},
-    settings=CRATE_SETTINGS
-)
-
-
 class DocTests(unittest.TestSuite):
 
     def run(self, result, debug=False):
-        crate_layer.start()
+        crate.start()
         try:
             super().run(result, debug)
         finally:
-            crate_layer.stop()
+            crate.stop()
             cmd.close()
 
 
