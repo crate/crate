@@ -104,6 +104,7 @@ public class PgAttributeTable extends StaticTableInfo {
 
     PgAttributeTable() {
         super(IDENT, new ColumnRegistrar(IDENT, RowGranularity.DOC)
+<<<<<<< HEAD
                 .register(Columns.ATTRELID.name(), DataTypes.INTEGER, null)
                 .register(Columns.ATTNAME.name(), DataTypes.STRING, null)
                 .register(Columns.ATTTYPID.name(), DataTypes.INTEGER, null)
@@ -126,6 +127,30 @@ public class PgAttributeTable extends StaticTableInfo {
                 .register(Columns.ATTACL.name(), DataTypes.OBJECT_ARRAY, null)
                 .register(Columns.ATTOPTIONS.name(), DataTypes.STRING_ARRAY, null)
                 .register(Columns.ATTFDWOPTIONS.name(), DataTypes.STRING_ARRAY, null),
+=======
+                .register(Columns.ATTRELID.name(), DataTypes.INTEGER)
+                .register(Columns.ATTNAME.name(), DataTypes.STRING)
+                .register(Columns.ATTTYPID.name(), DataTypes.INTEGER)
+                .register(Columns.ATTSTATTARGET.name(), DataTypes.INTEGER)
+                .register(Columns.ATTLEN.name(), DataTypes.SHORT)
+                .register(Columns.ATTNUM.name(), DataTypes.INTEGER)
+                .register(Columns.ATTNDIMS.name(), DataTypes.INTEGER)
+                .register(Columns.ATTCACHEOFF.name(), DataTypes.INTEGER)
+                .register(Columns.ATTTYPMOD.name(), DataTypes.INTEGER)
+                .register(Columns.ATTBYVAL.name(), DataTypes.BOOLEAN)
+                .register(Columns.ATTSTORAGE.name(), DataTypes.STRING)
+                .register(Columns.ATTALIGN.name(), DataTypes.STRING)
+                .register(Columns.ATTNOTNULL.name(), DataTypes.BOOLEAN)
+                .register(Columns.ATTHASDEF.name(), DataTypes.BOOLEAN)
+                .register(Columns.ATTIDENTITY.name(), DataTypes.STRING)
+                .register(Columns.ATTISDROPPED.name(), DataTypes.BOOLEAN)
+                .register(Columns.ATTISLOCAL.name(), DataTypes.BOOLEAN)
+                .register(Columns.ATTINHCOUNT.name(), DataTypes.INTEGER)
+                .register(Columns.ATTCOLLATION.name(), DataTypes.INTEGER)
+                .register(Columns.ATTACL.name(), new ArrayType(ObjectType.untyped()))
+                .register(Columns.ATTOPTIONS.name(), DataTypes.STRING_ARRAY)
+                .register(Columns.ATTFDWOPTIONS.name(), DataTypes.STRING_ARRAY),
+>>>>>>> a1b08bce4a... Fix a class cast exception when accessing 'pgtype.typlen' over wire protocol
             Collections.emptyList());
     }
 
