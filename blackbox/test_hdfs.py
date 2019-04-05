@@ -151,7 +151,10 @@ crate = HdfsCrateLayer(
         'psql.port': 0,
         'transport.tcp.port': 0
     },
-    env=os.environ.copy(),
+    env={
+        'CRATE_HEAP_SIZE': '256M',
+        **os.environ.copy()
+    },
     version=(4, 0, 0)
 )
 hadoop = HadoopLayer()
