@@ -110,7 +110,7 @@ public class PgAttributeTable extends StaticTableInfo {
                 .register(Columns.ATTNAME.name(), DataTypes.STRING)
                 .register(Columns.ATTTYPID.name(), DataTypes.INTEGER)
                 .register(Columns.ATTSTATTARGET.name(), DataTypes.INTEGER)
-                .register(Columns.ATTLEN.name(), DataTypes.INTEGER)
+                .register(Columns.ATTLEN.name(), DataTypes.SHORT)
                 .register(Columns.ATTNUM.name(), DataTypes.INTEGER)
                 .register(Columns.ATTNDIMS.name(), DataTypes.INTEGER)
                 .register(Columns.ATTCACHEOFF.name(), DataTypes.INTEGER)
