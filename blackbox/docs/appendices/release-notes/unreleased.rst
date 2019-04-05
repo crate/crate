@@ -51,6 +51,15 @@ None
 Fixes
 =====
 
+<<<<<<< HEAD
+=======
+- Fixed a ``ClassCastException`` which could occur when selecting
+  ``pg_catalog.pg_type.typlen``.
+
+- Fixed an issue that would cause the window functions to yield incorrect
+  results if executed against partitioned windows (ordered or unordered).
+
+>>>>>>> 1a64bd31c2... This fixes a few bugs on processing window functions over partitioned windows.
 - Fixed an issue that could cause window functions to compute incorrect results
   if multiple window functions with different window definitions were used.
 

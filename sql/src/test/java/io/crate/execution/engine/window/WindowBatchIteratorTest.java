@@ -30,7 +30,14 @@ import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.Row1;
+import io.crate.data.RowN;
 import io.crate.execution.engine.collect.CollectExpression;
+<<<<<<< HEAD
+=======
+import io.crate.execution.engine.collect.InputCollectExpression;
+import io.crate.expression.FunctionExpression;
+import io.crate.expression.symbol.InputColumn;
+>>>>>>> 1a64bd31c2... This fixes a few bugs on processing window functions over partitioned windows.
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
@@ -107,7 +114,7 @@ public class WindowBatchIteratorTest {
     }
 
     @Test
-    public void testFrameBounds() throws Exception {
+    public void testFrameBoundsEmptyWindow() throws Exception {
         TestingRowConsumer consumer = new TestingRowConsumer();
         consumer.accept(new WindowBatchIterator(
             emptyWindow(),
@@ -125,6 +132,89 @@ public class WindowBatchIteratorTest {
         List<Object[]> result = consumer.getResult();
 
         IntStream.range(0, 10).forEach(i -> assertThat(result.get(i), is(expectedBounds)));
+    }
+
+    @Test
+    public void testFrameBoundsForPartitionedWindow() throws Exception {
+        InputCollectExpression partitionKey = new InputCollectExpression(0);
+        TestingRowConsumer consumer = new TestingRowConsumer();
+        consumer.accept(new WindowBatchIterator(
+            new WindowDefinition(List.of(new InputColumn(0)), null, null),
+            Collections.emptyList(),
+            Collections.emptyList(),
+            InMemoryBatchIterator.of(
+                List.of(
+                    new Row1(-1), new Row1(1), new Row1(1), new Row1(2), new Row1(2),
+                    new Row1(3), new Row1(4), new Row1(5), new Row1(null), new Row1(null)
+                ),
+                SENTINEL
+            ),
+            List.of(frameBoundsWindowFunction()),
+            List.of(),
+            List.of(partitionKey),
+            List.of(partitionKey),
+            List.of(DataTypes.INTEGER),
+            ramAccountingContext,
+            null,
+            new Input[0]), null);
+
+        Object[] expectedBounds = {
+            tuple(0, 1), // partition: -1
+            tuple(0, 2), tuple(0, 2), // partition: 1, 1
+            tuple(0, 2), tuple(0, 2), // partition: 2, 2
+            tuple(0, 1), // partition: 3
+            tuple(0, 1), // partition: 4
+            tuple(0, 1), // partition: 5
+            tuple(0, 2), tuple(0, 2) // partition: null, null
+        };
+        List<Object[]> result = consumer.getResult();
+
+        IntStream.range(0, 10).forEach(i -> assertThat(result.get(i)[0], is(expectedBounds[i])));
+    }
+
+    @Test
+    public void testFrameBoundsForPartitionedOrderedWindow() throws Exception {
+        // window: partition by IC0, order by IC1
+
+        InputCollectExpression partitionKey = new InputCollectExpression(0);
+        TestingRowConsumer consumer = new TestingRowConsumer();
+        consumer.accept(new WindowBatchIterator(
+            new WindowDefinition(List.of(new InputColumn(0)), new OrderBy(List.of(new InputColumn(1))), null),
+            Collections.emptyList(),
+            Collections.emptyList(),
+            InMemoryBatchIterator.of(
+                List.of(
+                    new RowN(new Object[]{-1, -1}),
+                    new RowN(new Object[]{1, 0}), new RowN(new Object[]{1, 1}),
+                    new RowN(new Object[]{2, 2}), new RowN(new Object[]{2, -1}),
+                    new RowN(new Object[]{3, 3}),
+                    new RowN(new Object[]{4, 4}),
+                    new RowN(new Object[]{5, 5}),
+                    new RowN(new Object[]{null, null}), new RowN(new Object[]{null, null})
+                ),
+                SENTINEL
+            ),
+            List.of(frameBoundsWindowFunction()),
+            List.of(),
+            List.of(partitionKey),
+            List.of(partitionKey),
+            List.of(DataTypes.INTEGER, DataTypes.INTEGER),
+            ramAccountingContext,
+            new int[]{1},
+            new Input[0]), null);
+
+        Object[] expectedBounds = {
+            tuple(0, 1), // partition: -1 -1
+            tuple(0, 1), tuple(0, 2), // partition: 1 0, 1 1 (rows are not peers)
+            tuple(0, 1), tuple(0, 2), // partition: 2 2, 2 -1 (rows are not peers)
+            tuple(0, 1), // partition: 3 3
+            tuple(0, 1), // partition: 4 4
+            tuple(0, 1), // partition: 5 5
+            tuple(0, 2), tuple(0, 2) // partition: null null, null null (rows are peers)
+        };
+        List<Object[]> result = consumer.getResult();
+
+        IntStream.range(0, 10).forEach(i -> assertThat(result.get(i)[0], is(expectedBounds[i])));
     }
 
     @Test
@@ -170,6 +260,41 @@ public class WindowBatchIteratorTest {
         assertThat(result, contains(new Object[]{null}, new Object[]{null}));
     }
 
+<<<<<<< HEAD
+=======
+    @Test
+    public void testWindowBatchIteratorWithPartitions() throws Exception {
+        Supplier<WindowBatchIterator> batchIterator = () -> {
+            InputCollectExpression partitionByCollectExpression = new InputCollectExpression(0);
+            return new WindowBatchIterator(
+                new WindowDefinition(List.of(new InputColumn(0)), null, null),
+                Collections.emptyList(),
+                Collections.emptyList(),
+                InMemoryBatchIterator.of(
+                    List.of(
+                        new Row1(-1), new Row1(1), new Row1(1), new Row1(2), new Row1(2),
+                        new Row1(3), new Row1(4), new Row1(5), new Row1(null), new Row1(null)
+                    ),
+                    SENTINEL
+                ),
+                singletonList(rowNumberWindowFunction()),
+                Collections.emptyList(),
+                Collections.singletonList(partitionByCollectExpression),
+                Collections.singletonList(partitionByCollectExpression),
+                singletonList(DataTypes.INTEGER),
+                ramAccountingContext,
+                null,
+                new Input[0]);
+        };
+
+        List<Object[]> expectedResult = List.of(new Object[]{1}, new Object[]{1}, new Object[]{2}, new Object[]{1}, new Object[]{2}, new Object[]{1},
+            new Object[]{1}, new Object[]{1}, new Object[]{1}, new Object[]{2});
+
+        BatchIteratorTester tester = new BatchIteratorTester(() -> batchIterator.get());
+        tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
+    }
+
+>>>>>>> 1a64bd31c2... This fixes a few bugs on processing window functions over partitioned windows.
     private static WindowDefinition emptyWindow() {
         return new WindowDefinition(Collections.emptyList(), null, null);
     }

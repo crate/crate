@@ -163,4 +163,36 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
             new Object[] {2, 3}
         );
     }
+
+    @Test
+    public void testRowNthValueOverPartitionedWindow() {
+        Object[] expected = new Object[]{2, 2, 2, 4, 4, 4, null};
+        assertEvaluate("nth_value(x, 2) over(partition by x>2)",
+                       contains(expected),
+                       Collections.singletonMap(new ColumnIdent("x"), 0),
+                       null,
+                       new Object[]{1, 1},
+                       new Object[]{2, 2},
+                       new Object[]{2, 2},
+                       new Object[]{3, 3},
+                       new Object[]{4, 4},
+                       new Object[]{5, 5},
+                       new Object[]{null, null});
+    }
+
+    @Test
+    public void testNthValueOverPartitionedOrderedWindow() {
+        Object[] expected = new Object[]{null, 2, 2, null, 4, 4, null};
+        assertEvaluate("nth_value(x, 2) over(partition by x>2 order by x)",
+                       contains(expected),
+                       Collections.singletonMap(new ColumnIdent("x"), 0),
+                       new int[]{0},
+                       new Object[]{1, 1},
+                       new Object[]{2, 2},
+                       new Object[]{2, 2},
+                       new Object[]{3, 3},
+                       new Object[]{4, 4},
+                       new Object[]{5, 5},
+                       new Object[]{null, null});
+    }
 }

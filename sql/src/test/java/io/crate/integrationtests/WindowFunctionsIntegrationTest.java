@@ -74,6 +74,64 @@ public class WindowFunctionsIntegrationTest extends SQLTransportIntegrationTest 
     }
 
     @Test
+<<<<<<< HEAD
+=======
+    public void testPartitionedWindow() {
+        execute("select col1, col2, sum(col1) over(partition by col1) FROM " +
+                "unnest([1, 2, 1, 1, 1, 4], [6, 6, 9, 6, 7, 8]) order by 1, 2, 3");
+        assertThat(printedTable(response.rows()), is("1| 6| 4\n" +
+                                                     "1| 6| 4\n" +
+                                                     "1| 7| 4\n" +
+                                                     "1| 9| 4\n" +
+                                                     "2| 6| 2\n" +
+                                                     "4| 8| 4\n"));
+    }
+
+    @Test
+    public void testPartitionedWindowResultSetUnordered() {
+        execute("select col1, sum(col1) over(partition by col1>2 order by col1) from unnest([1, 2, 2, 3, 4, 5])");
+        assertThat(printedTable(response.rows()), is("1| 1\n" +
+                                                     "2| 5\n" +
+                                                     "2| 5\n" +
+                                                     "3| 3\n" +
+                                                     "4| 7\n" +
+                                                     "5| 12\n"));
+
+        execute("select col1, col2, sum(col1) over(partition by col1 order by col2) FROM unnest([1, 2, 1, 1, 1, 4], [6, 6, 9, 6, 7, 8])");
+        assertThat(printedTable(response.rows()), is("1| 6| 2\n" +
+                                                     "1| 6| 2\n" +
+                                                     "1| 7| 3\n" +
+                                                     "1| 9| 4\n" +
+                                                     "2| 6| 2\n" +
+                                                     "4| 8| 4\n"));
+    }
+
+    @Test
+    public void testPartitionByMultipleColumns() {
+        execute("select col1, col2, row_number() over(partition by col1, col2) FROM " +
+                "unnest([1, 2, 1, 1, 1, 4], [6, 6, 9, 6, 7, 8]) order by 1, 2, 3");
+        assertThat(printedTable(response.rows()), is("1| 6| 1\n" +
+                                                     "1| 6| 2\n" +
+                                                     "1| 7| 1\n" +
+                                                     "1| 9| 1\n" +
+                                                     "2| 6| 1\n" +
+                                                     "4| 8| 1\n"));
+    }
+
+    @Test
+    public void testPartitionedOrderedWindow() {
+        execute("select col1, col2, sum(col1) over(partition by col1 order by col2) FROM " +
+                "unnest([1, 2, 1, 1, 1, 4], [6, 6, 9, 6, 7, 8]) order by 1, 2, 3");
+        assertThat(printedTable(response.rows()), is("1| 6| 2\n" +
+                                                     "1| 6| 2\n" +
+                                                     "1| 7| 3\n" +
+                                                     "1| 9| 4\n" +
+                                                     "2| 6| 2\n" +
+                                                     "4| 8| 4\n"));
+    }
+
+    @Test
+>>>>>>> 1a64bd31c2... This fixes a few bugs on processing window functions over partitioned windows.
     public void testSelectStandaloneColumnsAndWindowFunction() {
         execute("select col1, avg(col1) OVER(), col2 from unnest([1, 2, null], [3, 4, 5])");
         assertThat(printedTable(response.rows()), is("1| 1.5| 3\n" +

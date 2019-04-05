@@ -71,11 +71,14 @@ public class AggregateToWindowFunctionAdapter implements WindowFunction {
     }
 
     @Override
-    public Object execute(int rowIdx, WindowFrameState frame, List<? extends CollectExpression<Row, ?>> expressions, Input... args) {
-        if (isNewFrame(seenFrameUpperBound, frame)) {
-            executeAggregateForFrame(frame, expressions, args);
-        } else if (isReiteratingWindow(frame)) {
+    public Object execute(int rowIdx,
+                          WindowFrameState frame,
+                          List<? extends CollectExpression<Row, ?>> expressions,
+                          Input... args) {
+        if (rowIdx == 0) {
             accumulatedState = aggregationFunction.newState(ramAccountingContext, indexVersionCreated, bigArrays);
+            executeAggregateForFrame(frame, expressions, args);
+        } else if (frame.upperBoundExclusive() > seenFrameUpperBound) {
             executeAggregateForFrame(frame, expressions, args);
         }
         return resultForCurrentFrame;
@@ -87,7 +90,7 @@ public class AggregateToWindowFunctionAdapter implements WindowFunction {
          * We want to accumulate the rows we haven't processed yet (the difference between the rows in the current frame to the rows in the previous frame, if any).
          */
         int unseenRowsInCurrentFrameStart = seenFrameUpperBound > 0 ? seenFrameUpperBound : 0;
-        for (int i = unseenRowsInCurrentFrameStart; i < frame.size(); i++) {
+        for (int i = unseenRowsInCurrentFrameStart; i < frame.upperBoundExclusive(); i++) {
             Object[] cells = frame.getRowAtIndexOrNull(i);
             assert cells != null : "Requested row for invalid index in the current frame";
             RowN row = new RowN(cells);
@@ -100,8 +103,11 @@ public class AggregateToWindowFunctionAdapter implements WindowFunction {
         resultForCurrentFrame = aggregationFunction.terminatePartial(ramAccountingContext, accumulatedState);
         seenFrameUpperBound = frame.upperBoundExclusive();
     }
+<<<<<<< HEAD
 
     private boolean isReiteratingWindow(WindowFrameState frame) {
         return frame.upperBoundExclusive() < seenFrameUpperBound && frame.lowerBound() == 0;
     }
+=======
+>>>>>>> 1a64bd31c2... This fixes a few bugs on processing window functions over partitioned windows.
 }
