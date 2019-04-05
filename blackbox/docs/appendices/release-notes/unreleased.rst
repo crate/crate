@@ -169,6 +169,9 @@ Changes
 Fixes
 =====
 
+- Fixed a ``ClassCastException`` which could occur when selecting
+  ``pg_catalog.pg_type.typlen``.
+
 - Fixed an issue that could cause window functions to compute incorrect results
   if multiple window functions with different window definitions were used.
 
