@@ -135,7 +135,7 @@ public class SystemCollectSource implements CollectSource {
             // kill no-op: Can't interrupt remote retrieval;
             // If data is already local, then `CollectingBatchIterator` takes care of kill handling.
             t -> {},
-            () -> tableDefinition.retrieveRecords(user)
+            () -> tableDefinition.retrieveRecords(txnCtx, user)
                 .thenApply(records ->
                         recordsToRows(
                             collectPhase,

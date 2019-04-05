@@ -132,6 +132,8 @@ Deprecations
 Changes
 =======
 
+- Added the `pg_catalog.pg_settings <pgsql_pg_settings>`_ table.
+
 - Removed deprecated ``nGram``, ``edgeNGram`` token filter and ``htmlStrip``
   char filter, they are superseded by ``ngram``, ``edge_ngram`` and
   ``html_strip``.

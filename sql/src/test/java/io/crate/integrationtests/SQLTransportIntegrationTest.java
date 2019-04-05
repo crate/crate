@@ -54,7 +54,6 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.SearchPath;
-import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
