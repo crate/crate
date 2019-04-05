@@ -26,6 +26,8 @@ import io.crate.analyze.user.Privilege;
 import io.crate.execution.engine.collect.sources.InformationSchemaIterables;
 import io.crate.expression.reference.StaticTableDefinition;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.settings.session.NamedSessionSetting;
+import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.protocols.postgres.types.PGTypes;
 import org.elasticsearch.common.inject.Inject;
 
@@ -43,7 +45,7 @@ public class PgCatalogTableDefinitions {
 
     @Inject
     public PgCatalogTableDefinitions(InformationSchemaIterables informationSchemaIterables) {
-        tableDefinitions = new HashMap<>(7);
+        tableDefinitions = new HashMap<>(8);
 
         tableDefinitions.put(PgTypeTable.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(PGTypes.pgTypes()),
@@ -84,10 +86,20 @@ public class PgCatalogTableDefinitions {
             (user, t) -> user.hasAnyPrivilege(Privilege.Clazz.TABLE, t.relationName().fqn()),
             PgConstraintTable.expressions()
         ));
-
         tableDefinitions.put(PgDescriptionTable.NAME, new StaticTableDefinition<>(
             () -> completedFuture(emptyList()),
             PgDescriptionTable.expressions())
+        );
+
+        Iterable<NamedSessionSetting> sessionSettings =
+            () -> SessionSettingRegistry.SETTINGS.entrySet().stream()
+                .map(s -> new NamedSessionSetting(s.getKey(), s.getValue()))
+                .iterator();
+        tableDefinitions.put(PgSettingsTable.IDENT, new StaticTableDefinition<>(
+            () -> sessionSettings,
+            PgSettingsTable.expressions(),
+            (txnCtx, settingInfo) -> settingInfo.resolveValue(txnCtx)
+            )
         );
     }
 

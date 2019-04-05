@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 public class SessionSetting<T> {
 
@@ -39,15 +40,25 @@ public class SessionSetting<T> {
     private final Function<Object[], T> converter;
     private final BiConsumer<SessionContext, T> setter;
     private final Function<SessionSettings, String> getter;
+    private final Supplier<String> defaultValue;
+
+    private final String description;
+    private final String type;
 
     SessionSetting(Consumer<Object[]> validator,
                    Function<Object[], T> converter,
                    BiConsumer<SessionContext, T> setter,
-                   Function<SessionSettings, String> getter) {
+                   Function<SessionSettings, String> getter,
+                   Supplier<String> defaultValue,
+                   String description,
+                   String type) {
         this.validator = validator;
         this.converter = converter;
         this.setter = setter;
         this.getter = getter;
+        this.defaultValue = defaultValue;
+        this.description = description;
+        this.type = type;
     }
 
     public void apply(Row parameters, List<Expression> expressions, SessionContext sessionContext) {
@@ -63,5 +74,17 @@ public class SessionSetting<T> {
 
     public String getValue(SessionSettings sessionSettings) {
         return getter.apply(sessionSettings);
+    }
+
+    public String defaultValue() {
+        return defaultValue.get();
+    }
+
+    public String description() {
+        return description;
+    }
+
+    public String type() {
+        return type;
     }
 }

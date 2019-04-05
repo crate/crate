@@ -24,6 +24,7 @@ package io.crate.metadata.settings.session;
 
 import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
+import io.crate.metadata.SearchPath;
 import io.crate.types.DataTypes;
 
 import java.util.Iterator;
@@ -43,8 +44,10 @@ public class SessionSettingRegistry {
                     objects -> {}, // everything allowed, empty list (resulting by ``SET .. TO DEFAULT`` results in defaults
                     objects -> createSearchPathFrom(objectsToStringArray(objects)),
                     SessionContext::setSearchPath,
-                    s -> iterableToString(s.searchPath())
-                ))
+                    s -> iterableToString(s.searchPath()),
+                    () -> iterableToString(SearchPath.pathWithPGCatalogAndDoc()),
+                    "Sets the schema search order.",
+                    DataTypes.STRING.getName()))
             .put(SEMI_JOIN_KEY,
                 new SessionSetting<>(
                     objects -> {
@@ -54,8 +57,10 @@ public class SessionSettingRegistry {
                     },
                     objects -> DataTypes.BOOLEAN.value(objects[0]),
                     SessionContext::setSemiJoinsRewriteEnabled,
-                    s -> Boolean.toString(s.semiJoinsRewriteEnabled())
-                ))
+                    s -> Boolean.toString(s.semiJoinsRewriteEnabled()),
+                    () -> String.valueOf(false),
+                    "Consider rewriting a SemiJoin query into a conventional join query.",
+                    DataTypes.BOOLEAN.getName()))
             .put(HASH_JOIN_KEY,
                 new SessionSetting<>(
                     objects -> {
@@ -65,8 +70,10 @@ public class SessionSettingRegistry {
                     },
                     objects -> DataTypes.BOOLEAN.value(objects[0]),
                     SessionContext::setHashJoinEnabled,
-                    s -> Boolean.toString(s.hashJoinsEnabled())
-                ))
+                    s -> Boolean.toString(s.hashJoinsEnabled()),
+                    () -> String.valueOf(true),
+                    "Considers using the Hash Join instead of the Nested Loop Join implementation.",
+                    DataTypes.BOOLEAN.getName()))
             .build();
 
     private static String[] objectsToStringArray(Object[] objects) {
