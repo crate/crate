@@ -296,8 +296,6 @@ public class MetaDataCreateIndexService extends AbstractComponent {
                 List<IndexTemplateMetaData> templates =
                         MetaDataIndexTemplateService.findTemplates(currentState.metaData(), request.index());
 
-                Map<String, Map<String, String>> customs = new HashMap<>();
-
                 // add the request mapping
                 Map<String, Map<String, Object>> mappings = new HashMap<>();
 
@@ -479,10 +477,6 @@ public class MetaDataCreateIndexService extends AbstractComponent {
                     AliasMetaData aliasMetaData = AliasMetaData.builder(alias.name()).filter(alias.filter())
                         .indexRouting(alias.indexRouting()).searchRouting(alias.searchRouting()).writeIndex(alias.writeIndex()).build();
                     indexMetaDataBuilder.putAlias(aliasMetaData);
-                }
-
-                for (Map.Entry<String, Map<String, String>> customEntry : customs.entrySet()) {
-                    indexMetaDataBuilder.putCustom(customEntry.getKey(), customEntry.getValue());
                 }
 
                 indexMetaDataBuilder.state(request.state());
