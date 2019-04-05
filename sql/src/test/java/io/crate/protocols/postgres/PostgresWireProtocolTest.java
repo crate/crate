@@ -241,7 +241,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
                 assertThat(response.readInt(), is(0));
                 assertThat(response.readShort(), is((short) 0));
                 assertThat(response.readInt(), is(PGTypes.get(DataTypes.BOOLEAN).oid()));
-                assertThat(response.readShort(), is((short) PGTypes.get(DataTypes.BOOLEAN).typeLen()));
+                assertThat(response.readShort(), is(PGTypes.get(DataTypes.BOOLEAN).typeLen()));
                 assertThat(response.readInt(), is(PGTypes.get(DataTypes.LONG).typeMod()));
                 assertThat(response.readShort(), is((short) 0));
             } finally {
@@ -301,7 +301,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
                 assertThat(response.readInt(), is(0));
                 assertThat(response.readShort(), is((short) 0));
                 assertThat(response.readInt(), is(PGTypes.get(DataTypes.BOOLEAN).oid()));
-                assertThat(response.readShort(), is((short) PGTypes.get(DataTypes.BOOLEAN).typeLen()));
+                assertThat(response.readShort(), is(PGTypes.get(DataTypes.BOOLEAN).typeLen()));
                 assertThat(response.readInt(), is(PGTypes.get(DataTypes.LONG).typeMod()));
                 assertThat(response.readShort(), is((short) 0));
             } finally {
