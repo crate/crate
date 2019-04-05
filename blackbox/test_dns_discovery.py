@@ -22,65 +22,64 @@
 # with Crate.  Your use of the Enterprise Features if governed by the terms
 # and conditions of your Enterprise or Subscription Agreement with Crate.
 
+from unittest import TestCase
 from testutils.paths import crate_path
 from testutils.ports import bind_port
-from crate.testing.layer import CrateLayer
+from cr8.run_crate import CrateNode
 from crate.client import connect
 from dnslib.server import DNSServer
 from dnslib.zoneresolver import ZoneResolver
 
 
-def main():
+class DnsSrvDiscoveryTest(TestCase):
+    
     num_nodes = 3
 
-    node0_http_port = bind_port()
-    dns_port = bind_port()
-    transport_ports = []
-    zone_file = '''
+    def setUp(self):
+        zone_file = '''
 crate.internal.               600   IN   SOA   localhost localhost ( 2007120710 1d 2h 4w 1h )
 crate.internal.               400   IN   NS    localhost
 crate.internal.               600   IN   A     127.0.0.1'''
 
-    for i in range(0, num_nodes):
-        port = bind_port()
-        transport_ports.append(port)
-        zone_file += '''
+        transport_ports = [bind_port() for _ in range(self.num_nodes)]
+        for port in transport_ports:
+            zone_file += '''
 _test._srv.crate.internal.    600   IN   SRV   1 10 {port} 127.0.0.1.'''.format(port=port)
 
-    dns_server = DNSServer(ZoneResolver(zone_file), port=dns_port)
-    dns_server.start_thread()
+        dns_port = bind_port()
+        self.dns_server = DNSServer(ZoneResolver(zone_file), port=dns_port)
+        self.dns_server.start_thread()
 
-    crate_layers = []
-    for i in range(0, num_nodes):
-        crate_layer = CrateLayer(
-            'node-' + str(i),
-            cluster_name='crate-dns-discovery',
-            crate_home=crate_path(),
-            port=node0_http_port if i == 0 else bind_port(),
-            transport_port=transport_ports[i],
-            settings={
-                'psql.port': bind_port(),
-                "discovery.zen.hosts_provider": "srv",
-                "discovery.srv.query": "_test._srv.crate.internal.",
-                "discovery.srv.resolver": "127.0.0.1:" + str(dns_port)
-            }
-        )
-        crate_layers.append(crate_layer)
-        crate_layer.start()
+        self.nodes = nodes = []
+        for i in range(self.num_nodes):
+            node = CrateNode(
+                crate_dir=crate_path(),
+                version=(4, 0, 0),
+                settings={
+                    'node.name': f'node-{i}',
+                    'cluster.name': 'crate-dns-discovery',
+                    'psql.port': 0,
+                    'transport.tcp.port': transport_ports[i],
+                    "discovery.zen.hosts_provider": "srv",
+                    "discovery.srv.query": "_test._srv.crate.internal.",
+                    "discovery.srv.resolver": "127.0.0.1:" + str(dns_port)
+                },
+                env={
+                    'CRATE_HEAP_SIZE': '256M'
+                }
+            )
+            node.start()
+            nodes.append(node)
 
-    try:
-        conn = connect('localhost:{}'.format(node0_http_port))
-        c = conn.cursor()
-        c.execute('''select count() from sys.nodes''')
-        result = c.fetchone()
-        if result[0] != num_nodes:
-            raise AssertionError("Nodes could not join, expected number of nodes: " + str(num_nodes) + ", found: " + str(result[0]))
+    def tearDown(self):
+        for node in self.nodes:
+            node.stop()
+        self.dns_server.server.server_close()
+        self.dns_server.stop()
 
-    finally:
-        for crate_layer in crate_layers:
-            crate_layer.stop()
-        dns_server.stop()
-
-
-if __name__ == "__main__":
-    main()
+    def test_nodes_discover_each_other(self):
+        with connect(self.nodes[0].http_url) as conn:
+            c = conn.cursor()
+            c.execute('''select count(*) from sys.nodes''')
+            result = c.fetchone()
+        self.assertEqual(result[0], self.num_nodes, 'Nodes must be able to join')

@@ -1,4 +1,3 @@
 #!/bin/bash
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-BLACKBOX="$DIR/.."
-PYTHONPATH=$BLACKBOX/shared/src $BLACKBOX/.venv/bin/python $BLACKBOX/dns_discovery/src/tests.py "$@"
+$DIR/../.venv/bin/python -m unittest -v --failfast test_dns_discovery

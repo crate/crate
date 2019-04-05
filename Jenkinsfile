@@ -103,7 +103,7 @@ pipeline {
           steps {
             sh 'git clean -xdff'
             checkout scm
-            sh 'timeout 20m ./gradlew --no-daemon hdfsTest monitoringTest gtest'
+            sh 'timeout 20m ./gradlew --no-daemon hdfsTest monitoringTest gtest dnsDiscoveryTest'
           }
         }
       }
