@@ -25,15 +25,12 @@
 
 import os
 import unittest
-import logging
 from testutils.ports import bind_port
 from testutils.paths import crate_path
-from crate.testing.layer import CrateLayer
+from cr8.run_crate import CrateNode
 from test_jmx import JmxClient
 
 JMX_PORT = bind_port()
-CRATE_HTTP_PORT = bind_port()
-
 JMX_OPTS = '''
      -Dcom.sun.management.jmxremote
      -Dcom.sun.management.jmxremote.port={}
@@ -41,19 +38,16 @@ JMX_OPTS = '''
      -Dcom.sun.management.jmxremote.authenticate=false
 '''
 
-log = logging.getLogger('crate.testing.layer')
-ch = logging.StreamHandler()
-ch.setLevel(logging.ERROR)
-log.addHandler(ch)
-
 
 env = os.environ.copy()
 env['CRATE_JAVA_OPTS'] = JMX_OPTS.format(JMX_PORT)
-crate_layer = CrateLayer(
-    'crate-ce',
-    crate_home=crate_path(),
-    port=CRATE_HTTP_PORT,
-    transport_port=0,
+crate_layer = CrateNode(
+    crate_dir=crate_path(),
+    version=(4, 0, 0),
+    settings={
+        'transport.tcp.port': 0,
+        'node.name': 'crate-ce',
+    },
     env=env
 )
 
@@ -79,4 +73,3 @@ class CeHasNoEnterpriseModulesITest(unittest.TestCase):
             stderr,
             'MBean not found: io.crate.monitoring:type=QueryStats\n')
         self.assertEqual(stdout, '')
-

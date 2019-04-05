@@ -26,18 +26,14 @@
 import os
 import re
 import unittest
-import time
-import logging
 from crate.client import connect
 from testutils.ports import bind_port
 from testutils.paths import crate_path
-from crate.testing.layer import CrateLayer
+from cr8.run_crate import CrateNode
 from subprocess import PIPE, Popen
 from urllib.request import urlretrieve
 
 JMX_PORT = bind_port()
-CRATE_HTTP_PORT = bind_port()
-
 JMX_OPTS = '''
      -Dcom.sun.management.jmxremote
      -Dcom.sun.management.jmxremote.port={}
@@ -45,21 +41,20 @@ JMX_OPTS = '''
      -Dcom.sun.management.jmxremote.authenticate=false
 '''
 
-log = logging.getLogger('crate.testing.layer')
-ch = logging.StreamHandler()
-ch.setLevel(logging.ERROR)
-log.addHandler(ch)
-
 
 env = os.environ.copy()
 env['CRATE_JAVA_OPTS'] = JMX_OPTS.format(JMX_PORT)
-enterprise_crate = CrateLayer(
-    'crate-enterprise',
-    crate_home=crate_path(),
-    port=CRATE_HTTP_PORT,
-    transport_port=0,
-    env=env
+enterprise_crate = CrateNode(
+    crate_dir=crate_path(),
+    settings={
+        'transport.tcp.port': 0,
+        'psql.port': 0,
+        'node.name': 'crate-enterprise',
+    },
+    env=env,
+    version=(4, 0, 0)
 )
+
 
 class JmxClient:
 
@@ -122,7 +117,7 @@ class JmxIntegrationTest(unittest.TestCase):
 
     def test_mbean_select_total_count(self):
         jmx_client = JmxClient(JMX_PORT)
-        with connect(f'localhost:{CRATE_HTTP_PORT}') as conn:
+        with connect(enterprise_crate.http_url) as conn:
             c = conn.cursor()
             c.execute("select 1")
             stdout, stderr = jmx_client.query_jmx(
@@ -168,10 +163,11 @@ class JmxIntegrationTest(unittest.TestCase):
 
     def test_number_of_open_connections(self):
         jmx_client = JmxClient(JMX_PORT)
-        stdout, stderr = jmx_client.query_jmx(
-            'io.crate.monitoring:type=Connections', 'HttpOpen')
-        self.assertGreater(int(stdout), 0)
-        self.assertEqual(stderr, '')
+        with connect(enterprise_crate.http_url) as _:
+            stdout, stderr = jmx_client.query_jmx(
+                'io.crate.monitoring:type=Connections', 'HttpOpen')
+            self.assertGreater(int(stdout), 0)
+            self.assertEqual(stderr, '')
 
     def test_search_pool(self):
         jmx_client = JmxClient(JMX_PORT)
@@ -181,10 +177,10 @@ class JmxIntegrationTest(unittest.TestCase):
             '\n'.join((line.strip() for line in stdout.split('\n'))),
             '''\
 active:          0
-completed:       4
-largestPoolSize: 4
+completed:       2
+largestPoolSize: 2
 name:            search
-poolSize:        4
+poolSize:        2
 queueSize:       0
 rejected:        0
 

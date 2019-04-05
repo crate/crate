@@ -30,7 +30,7 @@ import tarfile
 import logging
 from testutils.ports import bind_port
 from testutils.paths import crate_path, project_root
-from crate.testing.layer import CrateLayer
+from cr8.run_crate import CrateNode
 from crate.client import connect
 from urllib.error import HTTPError
 from urllib.request import urlretrieve
@@ -42,7 +42,6 @@ CACHE_DIR = os.environ.get(
     'XDG_CACHE_HOME', os.path.join(os.path.expanduser('~'), '.cache', 'crate-tests'))
 
 
-CRATE_HTTP_PORT = bind_port()
 NN_PORT = bind_port()
 
 
@@ -140,22 +139,20 @@ class HadoopLayer:
             self.p = None
 
 
-class HdfsCrateLayer(CrateLayer):
-    def setUp(self):
+class HdfsCrateLayer(CrateNode):
+    def start(self):
         add_hadoop_libs(hdfs_repo_libs_path, crate_path())
-        super().setUp()
+        super().start()
 
 
 crate = HdfsCrateLayer(
-    'crate',
-    host='localhost',
-    crate_home=crate_path(),
-    port=CRATE_HTTP_PORT,
-    transport_port=0,
+    crate_dir=crate_path(),
     settings={
         'psql.port': 0,
+        'transport.tcp.port': 0
     },
-    env=os.environ.copy()
+    env=os.environ.copy(),
+    version=(4, 0, 0)
 )
 hadoop = HadoopLayer()
 
@@ -164,14 +161,14 @@ class HdfsIntegrationTest(unittest.TestCase):
 
     def setUp(self):
         hadoop.start()
-        crate.setUp()
+        crate.start()
 
     def tearDown(self):
         hadoop.stop()
-        crate.tearDown()
+        crate.stop()
 
     def test_create_hdfs_repository(self):
-        with connect('localhost:{}'.format(CRATE_HTTP_PORT)) as conn:
+        with connect(f'{crate.http_url}') as conn:
             c = conn.cursor()
             stmt = '''create repository "test-repo" type hdfs with (uri = ?, path = '/data')'''
             # okay if it doesn't raise a exception
