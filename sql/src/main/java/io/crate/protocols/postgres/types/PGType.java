@@ -50,8 +50,8 @@ public abstract class PGType {
         return oid;
     }
 
-    public int typeLen() {
-        return typeLen;
+    public short typeLen() {
+        return (short) typeLen;
     }
 
     public abstract int typArray();
