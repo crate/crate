@@ -41,8 +41,4 @@ public interface WindowFunction extends FunctionImplementation {
      */
     Object execute(int rowIdx, WindowFrameState currentFrame, List<? extends CollectExpression<Row, ?>> expressions, Input... args);
 
-    default boolean isNewFrame(int lastSeenFramUpperBound, WindowFrameState frame) {
-        return frame.upperBoundExclusive() > lastSeenFramUpperBound;
-    }
-
 }

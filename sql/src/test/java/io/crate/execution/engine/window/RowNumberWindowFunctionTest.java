@@ -29,7 +29,6 @@ import java.util.Collections;
 
 import static org.hamcrest.Matchers.contains;
 
-
 public class RowNumberWindowFunctionTest extends AbstractWindowFunctionTest {
 
     @Test
@@ -45,5 +44,37 @@ public class RowNumberWindowFunctionTest extends AbstractWindowFunctionTest {
             new Object[] {2},
             new Object[] {1}
             );
+    }
+
+    @Test
+    public void testRowNumberOverPartitionedWindow() {
+        Object[] expected = new Object[]{1, 2, 3, 1, 2, 3, 1};
+        assertEvaluate("row_number() over(partition by x>2)",
+                       contains(expected),
+                       Collections.singletonMap(new ColumnIdent("x"), 0),
+                       null,
+                       new Object[]{1},
+                       new Object[]{2},
+                       new Object[]{2},
+                       new Object[]{3},
+                       new Object[]{4},
+                       new Object[]{5},
+                       new Object[]{null});
+    }
+
+    @Test
+    public void testRowNumberOverPartitionedOrderedWindow() {
+        Object[] expected = new Object[]{1, 2, 3, 1, 2, 3, 1};
+        assertEvaluate("row_number() over(partition by x>2 order by x)",
+                       contains(expected),
+                       Collections.singletonMap(new ColumnIdent("x"), 0),
+                       new int[]{0},
+                       new Object[]{1, 1},
+                       new Object[]{2, 2},
+                       new Object[]{2, 2},
+                       new Object[]{3, 3},
+                       new Object[]{4, 4},
+                       new Object[]{5, 5},
+                       new Object[]{null, null});
     }
 }

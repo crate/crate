@@ -62,7 +62,7 @@ public class NthValueFunctions implements WindowFunction {
                           WindowFrameState currentFrame,
                           List<? extends CollectExpression<Row, ?>> expressions,
                           Input... args) {
-        if (isNewFrame(seenFrameUpperBound, currentFrame)) {
+        if (rowIdx == 0 || currentFrame.upperBoundExclusive() > seenFrameUpperBound) {
             seenFrameUpperBound = currentFrame.upperBoundExclusive();
             Object[] nthRowCells = currentFrame.getRowAtIndexOrNull(frameIndexSupplier.apply(currentFrame, args));
             if (nthRowCells == null) {

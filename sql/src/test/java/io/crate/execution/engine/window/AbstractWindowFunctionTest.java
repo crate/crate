@@ -30,7 +30,9 @@ import io.crate.auth.user.User;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Input;
+import io.crate.data.Row;
 import io.crate.data.RowN;
+import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.InputCollectExpression;
 import io.crate.expression.InputFactory;
 import io.crate.expression.symbol.Literal;
@@ -40,9 +42,11 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.SearchPath;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.settings.SessionSettings;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.testing.SqlExpressions;
@@ -132,6 +136,9 @@ public abstract class AbstractWindowFunctionTest {
         List<Symbol> allInputSymbols = extractSymbolsOnceMaintainOrder(windowFunctionSymbol);
         ctx.add(allInputSymbols);
 
+        InputFactory.Context<CollectExpression<Row, ?>> ctxForPartitions = inputFactory.ctxForRefs(txnCtx, r -> new InputCollectExpression(positionInRowByColumn.get(r.column())));
+        ctxForPartitions.add(windowFunctionSymbol.windowDefinition().partitions());
+
         FunctionImplementation impl = functions.getQualified(windowFunctionSymbol.info().ident());
         assert(impl instanceof WindowFunction): "General-purpose window functions are supported only";
         WindowFunction windowFunctionImpl = (WindowFunction) impl;
@@ -143,6 +150,8 @@ public abstract class AbstractWindowFunctionTest {
             InMemoryBatchIterator.of(Arrays.stream(inputRows).map(RowN::new).collect(Collectors.toList()), SENTINEL),
             Collections.singletonList(windowFunctionImpl),
             ctx.expressions(),
+            ctxForPartitions.expressions(),
+            ctxForPartitions.topLevelInputs(),
             // remove all Literal instances from standaloneInputTypes
             // as these will not be included in inputRows
             allInputSymbols.stream()
