@@ -44,6 +44,7 @@ JMX_OPTS = '''
 
 env = os.environ.copy()
 env['CRATE_JAVA_OPTS'] = JMX_OPTS.format(JMX_PORT)
+env['CRATE_HEAP_SIZE'] = '256M'
 enterprise_crate = CrateNode(
     crate_dir=crate_path(),
     settings={

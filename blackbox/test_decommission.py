@@ -137,7 +137,10 @@ class GracefulStopTest(unittest.TestCase):
                     'node.name': self.node_name(i),
                     'transport.tcp.port': transport_port_range,
                 },
-                env=os.environ.copy(),
+                env={
+                    **os.environ.copy(),
+                    'CRATE_HEAP_SIZE': '256M'
+                },
                 version=(4, 0, 0)
             )
             layer.start()

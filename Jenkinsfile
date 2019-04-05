@@ -96,7 +96,7 @@ pipeline {
           }
         }
         stage('blackbox tests') {
-          agent { label 'large' }
+          agent { label 'medium' }
           tools {
             jdk 'jdk11'
           }
