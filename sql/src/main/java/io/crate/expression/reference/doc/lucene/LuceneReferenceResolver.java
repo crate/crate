@@ -46,7 +46,6 @@ import io.crate.types.SetType;
 import io.crate.types.ShortType;
 import io.crate.types.StringType;
 import io.crate.types.TimestampType;
-import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.mapper.MappedFieldType;
 
 import java.util.Set;
@@ -58,11 +57,9 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
 
     private static final Set<DataType<?>> NO_FIELD_TYPES = ImmutableSet.of(ObjectType.untyped(), DataTypes.GEO_SHAPE);
     private final FieldTypeLookup fieldTypeLookup;
-    private final IndexSettings indexSettings;
 
-    public LuceneReferenceResolver(FieldTypeLookup fieldTypeLookup, IndexSettings indexSettings) {
+    public LuceneReferenceResolver(FieldTypeLookup fieldTypeLookup) {
         this.fieldTypeLookup = fieldTypeLookup;
-        this.indexSettings = indexSettings;
     }
 
     @Override

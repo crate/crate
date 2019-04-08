@@ -93,7 +93,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
         this.docInputFactory = new DocInputFactory(
             functions,
             fieldTypeLookup,
-            new LuceneReferenceResolver(fieldTypeLookup, indexShard.indexSettings())
+            new LuceneReferenceResolver(fieldTypeLookup)
         );
         this.bigArrays = bigArrays;
     }
