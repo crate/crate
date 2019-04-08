@@ -23,6 +23,7 @@
 package io.crate.analyze;
 
 import io.crate.action.sql.SessionContext;
+import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.sql.ExpressionFormatter;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Expression;
@@ -30,8 +31,10 @@ import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.Query;
 import io.crate.sql.tree.ShowColumns;
 import io.crate.sql.tree.ShowSchemas;
+import io.crate.sql.tree.ShowSessionParameter;
 import io.crate.sql.tree.ShowTables;
 
+import javax.annotation.Nullable;
 import java.util.Locale;
 import java.util.Optional;
 
@@ -75,6 +78,54 @@ class ShowStatementAnalyzer {
         Analysis newAnalysis = analyzer.boundAnalyze(query, analysis.transactionContext(), ParameterContext.EMPTY);
         analysis.rootRelation(newAnalysis.rootRelation());
         return newAnalysis.analyzedStatement();
+    }
+
+    static Query rewriteShowSessionParameter(ShowSessionParameter node) {
+        /*
+         * Rewrite
+         * <code>
+         *     SHOW { parameter_name | ALL }
+         * </code>
+         * To
+         * <code>
+         *     SELECT [ name, ] setting
+         *     FROM pg_catalog.pg_settings
+         *     [ WHERE name = parameter_name ]
+         * </code>
+         */
+        StringBuilder sb = new StringBuilder("SELECT ");
+        QualifiedName sessionSetting = node.parameter();
+        if (sessionSetting != null) {
+            sb.append("setting ");
+        } else {
+            sb.append("name, setting ");
+        }
+        sb.append("FROM pg_catalog.pg_settings ");
+        if (sessionSetting != null) {
+            sb.append("WHERE name = ");
+            singleQuote(sb, sessionSetting.toString());
+        }
+        return (Query) SqlParser.createStatement(sb.toString());
+    }
+
+    public AnalyzedStatement analyze(ShowSessionParameter node, Analysis analysis) {
+        validateSessionSetting(node.parameter());
+        Query query = rewriteShowSessionParameter(node);
+        Analysis newAnalysis = analyzer.boundAnalyze(
+            query,
+            analysis.transactionContext(),
+            analysis.parameterContext()
+        );
+        analysis.rootRelation(newAnalysis.rootRelation());
+        return newAnalysis.analyzedStatement();
+    }
+
+    static void validateSessionSetting(@Nullable QualifiedName settingParameter) {
+        if (settingParameter != null &&
+            !SessionSettingRegistry.SETTINGS.containsKey(settingParameter.toString())) {
+            throw new IllegalArgumentException(
+                "Unknown session setting name '" + settingParameter + "'.");
+        }
     }
 
     Query rewriteShowSchemas(ShowSchemas node) {
