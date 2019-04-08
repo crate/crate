@@ -54,7 +54,6 @@ import io.crate.execution.dsl.projection.UpdateProjection;
 import io.crate.execution.dsl.projection.WindowAggProjection;
 import io.crate.execution.dsl.projection.WriterProjection;
 import io.crate.execution.engine.aggregation.AggregationContext;
-import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.AggregationPipe;
 import io.crate.execution.engine.aggregation.GroupingProjector;
 import io.crate.execution.engine.collect.CollectExpression;
@@ -73,8 +72,6 @@ import io.crate.execution.engine.indexing.UpsertResultContext;
 import io.crate.execution.engine.sort.OrderingByPosition;
 import io.crate.execution.engine.sort.SortingProjector;
 import io.crate.execution.engine.sort.SortingTopNProjector;
-import io.crate.execution.engine.window.AggregateToWindowFunctionAdapter;
-import io.crate.execution.engine.window.WindowFunction;
 import io.crate.execution.engine.window.WindowProjector;
 import io.crate.execution.jobs.NodeJobsCounter;
 import io.crate.expression.InputFactory;
@@ -85,14 +82,12 @@ import io.crate.expression.reference.sys.SysRowUpdater;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.SubQueryResults;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.StringType;
 import org.elasticsearch.Version;
@@ -107,9 +102,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -611,68 +604,15 @@ public class ProjectionToProjectorVisitor
 
     @Override
     public Projector visitWindowAgg(WindowAggProjection windowAgg, Context context) {
-        LinkedHashMap<io.crate.expression.symbol.WindowFunction, List<Symbol>> functionsWithInputs = windowAgg.functionsWithInputs();
-
-        ArrayList<WindowFunction> windowFunctions = new ArrayList<>(functionsWithInputs.size());
-        List<CollectExpression<Row, ?>> windowFuncArgsExpressions = new ArrayList<>(functionsWithInputs.size());
-        Input[][] windowFuncArgsInputs = new Input[functionsWithInputs.size()][];
-        int inputsIndex = 0;
-        for (Map.Entry<io.crate.expression.symbol.WindowFunction, List<Symbol>> functionAndInputsEntry : functionsWithInputs.entrySet()) {
-            InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns(context.txnCtx);
-            ctx.add(functionAndInputsEntry.getValue());
-            windowFuncArgsInputs[inputsIndex] = ctx.topLevelInputs().toArray(new Input[0]);
-            inputsIndex++;
-            windowFuncArgsExpressions.addAll(ctx.expressions());
-
-            FunctionImplementation impl = this.functions.getQualified(functionAndInputsEntry.getKey().info().ident());
-            if (impl instanceof AggregationFunction) {
-                windowFunctions.add(
-                    new AggregateToWindowFunctionAdapter(
-                        (AggregationFunction) impl,
-                        indexVersionCreated,
-                        bigArrays,
-                        context.ramAccountingContext)
-                );
-            } else if (impl instanceof WindowFunction) {
-                windowFunctions.add((WindowFunction) impl);
-            } else {
-                throw new AssertionError("Function needs to be either a window or an aggregate function");
-            }
-        }
-
-        ArrayList<DataType> standaloneInputTypes = new ArrayList<>(windowAgg.standalone().size());
-        for (Symbol symbol : windowAgg.standalone()) {
-            standaloneInputTypes.add(symbol.valueType());
-        }
-
-        InputFactory.Context<CollectExpression<Row, ?>> contextForStandaloneInputs = inputFactory.ctxForInputColumns(context.txnCtx);
-        contextForStandaloneInputs.add(windowAgg.standalone());
-
-        List<Symbol> partitions = windowAgg.windowDefinition().partitions();
-        List<CollectExpression<Row, ?>> partitionByExpressions;
-        List<Input<?>> partitionByInputs;
-        if (partitions.size() > 0) {
-            InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns(context.txnCtx);
-            ctx.add(partitions);
-            partitionByExpressions = ctx.expressions();
-            partitionByInputs = ctx.topLevelInputs();
-        } else {
-            partitionByExpressions = Collections.emptyList();
-            partitionByInputs = Collections.emptyList();
-        }
-
-        return new WindowProjector(
-            windowAgg.windowDefinition(),
-            windowFunctions,
-            windowFuncArgsExpressions,
-            windowFuncArgsInputs,
-            contextForStandaloneInputs.expressions(),
-            contextForStandaloneInputs.topLevelInputs(),
-            standaloneInputTypes,
-            partitionByExpressions,
-            partitionByInputs,
+        return WindowProjector.fromProjection(
+            windowAgg,
+            functions,
+            inputFactory,
+            context.txnCtx,
             context.ramAccountingContext,
-            windowAgg.orderByIndexes());
+            bigArrays,
+            indexVersionCreated
+        );
     }
 
     @Override

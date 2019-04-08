@@ -88,9 +88,9 @@ public final class CollectingBatchIterator<T> implements BatchIterator<T> {
         );
     }
 
-    public static <T> BatchIterator<T> newInstance(BatchIterator<T> source,
-                                                   Function<BatchIterator<T>, CompletableFuture<? extends Iterable<? extends T>>> processSource,
-                                                   boolean involvesIO) {
+    public static <I, O> BatchIterator<O> newInstance(BatchIterator<I> source,
+                                                      Function<BatchIterator<I>, CompletableFuture<? extends Iterable<? extends O>>> processSource,
+                                                      boolean involvesIO) {
         return newInstance(
             source::close,
             source::kill,

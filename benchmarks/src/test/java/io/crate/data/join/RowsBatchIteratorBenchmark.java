@@ -22,11 +22,11 @@
 
 package io.crate.data.join;
 
-import io.crate.analyze.WindowDefinition;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.breaker.RowAccounting;
 import io.crate.breaker.RowAccountingWithEstimators;
 import io.crate.data.BatchIterator;
+import io.crate.data.BatchIterators;
 import io.crate.data.CloseAssertingBatchIterator;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Input;
@@ -37,8 +37,8 @@ import io.crate.data.SkippingBatchIterator;
 import io.crate.execution.engine.collect.InputCollectExpression;
 import io.crate.execution.engine.join.HashInnerJoinBatchIterator;
 import io.crate.execution.engine.join.RamAccountingBatchIterator;
-import io.crate.execution.engine.window.WindowBatchIterator;
 import io.crate.execution.engine.window.WindowFunction;
+import io.crate.execution.engine.window.WindowFunctionBatchIterator;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Functions;
 import io.crate.module.EnterpriseFunctionsModule;
@@ -142,21 +142,7 @@ public class RowsBatchIteratorBenchmark {
             InMemoryBatchIterator.of(tenThousandRows, SENTINEL),
             new CombinedRow(1, 1),
             () -> 1000,
-            new RowAccounting() {
-                @Override
-                public void accountForAndMaybeBreak(Row row) {
-
-                }
-                @Override
-                public void release() {
-
-                }
-
-                @Override
-                public void close() {
-
-                }
-            }
+            new NoRowAccounting()
         );
         while (crossJoin.moveNext()) {
             blackhole.consume(crossJoin.currentElement().get(0));
@@ -214,23 +200,34 @@ public class RowsBatchIteratorBenchmark {
     }
 
     @Benchmark
-    public void measureConsumeWindowBatchIterator(Blackhole blackhole) {
+    public void measureConsumeWindowBatchIterator(Blackhole blackhole) throws Exception{
         InputCollectExpression input = new InputCollectExpression(0);
-        WindowBatchIterator iterator = new WindowBatchIterator(
-            new WindowDefinition(Collections.emptyList(), null, null),
-            Collections.emptyList(),
-            Collections.emptyList(),
+        BatchIterator<Row> batchIterator = WindowFunctionBatchIterator.of(
             new InMemoryBatchIterator<>(rows, SENTINEL),
-            Collections.singletonList(lastValueIntFunction),
-            Collections.singletonList(input),
-            Collections.singletonList(DataTypes.INTEGER),
-            ramAccountingContext,
-            new int[] { 0 },
-            new Input[] { input }
+            new NoRowAccounting(),
+            null,
+            null,
+            1,
+            List.of(lastValueIntFunction),
+            List.of(),
+            new Input[]{input}
         );
+        BatchIterators.collect(batchIterator, Collectors.summingInt(x -> { blackhole.consume(x); return 1; })).get();
+    }
 
-        while (iterator.moveNext()) {
-            blackhole.consume(iterator.currentElement().get(0));
+    private static class NoRowAccounting implements RowAccounting {
+        @Override
+        public void accountForAndMaybeBreak(Row row) {
+        }
+
+        @Override
+        public void release() {
+
+        }
+
+        @Override
+        public void close() {
+
         }
     }
 }

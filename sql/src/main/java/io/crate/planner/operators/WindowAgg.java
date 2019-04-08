@@ -28,7 +28,6 @@ import io.crate.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.execution.dsl.phases.MergePhase;
-import io.crate.execution.dsl.projection.OrderedTopNProjection;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.WindowAggProjection;
 import io.crate.execution.dsl.projection.builder.InputColumns;
@@ -40,7 +39,6 @@ import io.crate.planner.ExecutionPlan;
 import io.crate.planner.ExplainLeaf;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
-import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.ResultDescription;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.distribution.DistributionType;
@@ -105,7 +103,7 @@ public class WindowAgg extends OneInputPlan {
     }
 
     private WindowAgg(LogicalPlan source, WindowDefinition windowDefinition, List<WindowFunction> windowFunctions, List<Symbol> standalone) {
-        super(source, Lists2.concat(windowFunctions, standalone));
+        super(source, Lists2.concat(standalone, windowFunctions));
         this.windowDefinition = windowDefinition;
         this.windowFunctions = windowFunctions;
         this.standalone = standalone;
@@ -136,33 +134,10 @@ public class WindowAgg extends OneInputPlan {
             functionsWithInputs.put(windowFunction, inputs);
         }
         List<Projection> projections = new ArrayList<>();
-        OrderBy orderByInclPartitionBy = createOrderByInclPartitionBy(windowDefinition);
-        int[] orderByIndices;
-        if (orderByInclPartitionBy == null) {
-            orderByIndices = new int[0];
-        } else {
-            OrderedTopNProjection topNProjection = new OrderedTopNProjection(
-                TopN.NO_LIMIT,
-                TopN.NO_OFFSET,
-                InputColumns.create(source.outputs(), sourceSymbols),
-                InputColumns.create(orderByInclPartitionBy.orderBySymbols(), sourceSymbols),
-                orderByInclPartitionBy.reverseFlags(),
-                orderByInclPartitionBy.nullsFirst()
-            );
-            projections.add(topNProjection);
-            orderByIndices = new int[orderByInclPartitionBy.orderBySymbols().size()];
-            for (int i = 0; i < orderByInclPartitionBy.orderBySymbols().size(); i++) {
-                Symbol orderBy = orderByInclPartitionBy.orderBySymbols().get(i);
-                int idx = source.outputs().indexOf(orderBy);
-                assert idx >= 0 : "Symbol in order by must appear in the outputs";
-                orderByIndices[i] = idx;
-            }
-        }
         WindowAggProjection windowAggProjection = new WindowAggProjection(
             windowDefinition.map(s -> InputColumns.create(s, sourceSymbols)),
             functionsWithInputs,
-            InputColumns.create(this.standalone, sourceSymbols),
-            orderByIndices
+            InputColumns.create(this.standalone, sourceSymbols)
         );
         projections.add(windowAggProjection);
         ExecutionPlan sourcePlan = source.build(
@@ -209,7 +184,7 @@ public class WindowAgg extends OneInputPlan {
                 TopN.NO_OFFSET,
                 windowAggProjection.outputs().size(),
                 resultDescription.maxRowsPerNode(),
-                PositionalOrderBy.of(orderByInclPartitionBy, source.outputs())
+                null
             );
         }
         return sourcePlan;

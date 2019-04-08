@@ -23,9 +23,9 @@
 package io.crate.execution.engine.window;
 
 import io.crate.breaker.RamAccountingContext;
+import io.crate.data.ArrayRow;
 import io.crate.data.Input;
 import io.crate.data.Row;
-import io.crate.data.RowN;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.expression.symbol.Function;
@@ -71,11 +71,11 @@ public class AggregateToWindowFunctionAdapter implements WindowFunction {
     }
 
     @Override
-    public Object execute(int rowIdx,
+    public Object execute(int idxInPartition,
                           WindowFrameState frame,
                           List<? extends CollectExpression<Row, ?>> expressions,
                           Input... args) {
-        if (rowIdx == 0) {
+        if (idxInPartition == 0) {
             accumulatedState = aggregationFunction.newState(ramAccountingContext, indexVersionCreated, bigArrays);
             seenFrameUpperBound = -1;
             executeAggregateForFrame(frame, expressions, args);
@@ -90,11 +90,12 @@ public class AggregateToWindowFunctionAdapter implements WindowFunction {
          * The successive frames have overlapping rows (especially now as we currently only support UNBOUNDED PRECEDING - CURRENT_ROW frames).
          * We want to accumulate the rows we haven't processed yet (the difference between the rows in the current frame to the rows in the previous frame, if any).
          */
-        int unseenRowsInCurrentFrameStart = seenFrameUpperBound > 0 ? seenFrameUpperBound : 0;
+        int unseenRowsInCurrentFrameStart = seenFrameUpperBound > 0 ? seenFrameUpperBound : frame.lowerBound();
+        var row = new ArrayRow();
         for (int i = unseenRowsInCurrentFrameStart; i < frame.upperBoundExclusive(); i++) {
             Object[] cells = frame.getRowAtIndexOrNull(i);
-            assert cells != null : "Requested row for invalid index in the current frame";
-            RowN row = new RowN(cells);
+            assert cells != null : "No row at idx=" + i + " in current frame=" + frame;
+            row.cells(cells);
             for (int j = 0, expressionsSize = expressions.size(); j < expressionsSize; j++) {
                 expressions.get(j).setNextRow(row);
             }

@@ -58,11 +58,11 @@ public class NthValueFunctions implements WindowFunction {
     }
 
     @Override
-    public Object execute(int rowIdx,
+    public Object execute(int idxInPartition,
                           WindowFrameState currentFrame,
                           List<? extends CollectExpression<Row, ?>> expressions,
                           Input... args) {
-        if (rowIdx == 0 || currentFrame.upperBoundExclusive() > seenFrameUpperBound) {
+        if (idxInPartition == 0 || currentFrame.upperBoundExclusive() > seenFrameUpperBound) {
             seenFrameUpperBound = currentFrame.upperBoundExclusive();
             Object[] nthRowCells = currentFrame.getRowAtIndexOrNull(frameIndexSupplier.apply(currentFrame, args));
             if (nthRowCells == null) {

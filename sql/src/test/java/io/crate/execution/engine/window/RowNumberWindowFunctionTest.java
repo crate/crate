@@ -38,21 +38,19 @@ public class RowNumberWindowFunctionTest extends AbstractWindowFunctionTest {
         assertEvaluate("row_number() over(order by x)",
             contains(expected),
             Collections.singletonMap(new ColumnIdent("x"), 0),
-            new int[] {0},
             new Object[] {4},
             new Object[] {3},
             new Object[] {2},
             new Object[] {1}
-            );
+        );
     }
 
     @Test
-    public void testRowNumberOverPartitionedWindow() {
+    public void testRowNumberOverPartitionedWindow() throws Exception {
         Object[] expected = new Object[]{1, 2, 3, 1, 2, 3, 1};
         assertEvaluate("row_number() over(partition by x>2)",
                        contains(expected),
                        Collections.singletonMap(new ColumnIdent("x"), 0),
-                       null,
                        new Object[]{1},
                        new Object[]{2},
                        new Object[]{2},
@@ -63,12 +61,11 @@ public class RowNumberWindowFunctionTest extends AbstractWindowFunctionTest {
     }
 
     @Test
-    public void testRowNumberOverPartitionedOrderedWindow() {
+    public void testRowNumberOverPartitionedOrderedWindow() throws Exception {
         Object[] expected = new Object[]{1, 2, 3, 1, 2, 3, 1};
         assertEvaluate("row_number() over(partition by x>2 order by x)",
                        contains(expected),
                        Collections.singletonMap(new ColumnIdent("x"), 0),
-                       new int[]{0},
                        new Object[]{1, 1},
                        new Object[]{2, 2},
                        new Object[]{2, 2},
