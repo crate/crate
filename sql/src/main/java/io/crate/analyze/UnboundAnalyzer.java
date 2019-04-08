@@ -161,7 +161,11 @@ class UnboundAnalyzer {
 
         @Override
         public AnalyzedStatement visitShowSessionParameter(ShowSessionParameter node, Analysis context) {
-            return new ShowSessionParameterAnalyzedStatement(node.parameter());
+            ShowStatementAnalyzer.validateSessionSetting(node.parameter());
+            Query query = ShowStatementAnalyzer.rewriteShowSessionParameter(node);
+            return (QueriedRelation) relationAnalyzer.analyzeUnbound(query,
+                context.transactionContext(),
+                context.parameterContext().typeHints());
         }
 
         @Override
