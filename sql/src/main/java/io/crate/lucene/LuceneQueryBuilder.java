@@ -170,7 +170,8 @@ public class LuceneQueryBuilder {
             this.docInputFactory = new DocInputFactory(
                 functions,
                 typeLookup,
-                new LuceneReferenceResolver(typeLookup, mapperService.getIndexSettings()));
+                new LuceneReferenceResolver(typeLookup)
+            );
             this.mapperService = mapperService;
             this.indexCache = indexCache;
         }

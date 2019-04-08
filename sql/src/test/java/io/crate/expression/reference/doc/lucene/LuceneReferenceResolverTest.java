@@ -38,7 +38,7 @@ public class LuceneReferenceResolverTest extends CrateUnitTest {
 
     // just return any fieldType to get passt the null check
     private LuceneReferenceResolver luceneReferenceResolver = new LuceneReferenceResolver(
-        i -> KeywordFieldMapper.Defaults.FIELD_TYPE, null);
+        i -> KeywordFieldMapper.Defaults.FIELD_TYPE);
 
     @Test
     public void testGetImplementationWithColumnsOfTypeCollection() {
