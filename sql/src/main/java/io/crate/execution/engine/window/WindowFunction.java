@@ -36,9 +36,11 @@ public interface WindowFunction extends FunctionImplementation {
      * This method should be called sequentially for all the rows in a window, with each's row corresponding window
      * frame state {@link WindowFrameState}.
      *
-     * @param rowIdx       the 0-indexed id of the current window row.
+     * @param rowIdx       the 0-indexed id of the current partition
      * @param currentFrame the frame the row identified by {@param rowIdx} is part of.
      */
-    Object execute(int rowIdx, WindowFrameState currentFrame, List<? extends CollectExpression<Row, ?>> expressions, Input... args);
-
+    Object execute(int rowIdx,
+                   WindowFrameState currentFrame,
+                   List<? extends CollectExpression<Row, ?>> expressions,
+                   Input... args);
 }

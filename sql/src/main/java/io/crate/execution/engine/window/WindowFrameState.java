@@ -30,9 +30,10 @@ import java.util.List;
  */
 public final class WindowFrameState {
 
-    private final int lowerBound;
-    private final int upperBoundExclusive;
-    private List<Object[]> rows;
+    private final List<Object[]> rows;
+    private int lowerBound;
+    private int upperBoundExclusive;
+    private int partitionStart;
 
     WindowFrameState(int lowerBound, int upperBoundExclusive, List<Object[]> rows) {
         this.lowerBound = lowerBound;
@@ -56,7 +57,7 @@ public final class WindowFrameState {
      * Returns the number of rows that are part of this frame.
      */
     public int size() {
-        return rows.size();
+        return upperBoundExclusive - lowerBound;
     }
 
     /**
@@ -64,10 +65,25 @@ public final class WindowFrameState {
      */
     @Nullable
     public Object[] getRowAtIndexOrNull(int index) {
-        if (index < 0 || index >= rows.size()) {
+        if (index < lowerBound || index >= upperBoundExclusive) {
             return null;
         }
+        int globalIdx = partitionStart + index;
+        return rows.get(globalIdx);
+    }
 
-        return rows.get(index);
+    void updateBounds(int pStart, int wBegin, int wEnd) {
+        this.partitionStart = pStart;
+        this.lowerBound = wBegin - pStart;
+        this.upperBoundExclusive = wEnd - pStart;
+    }
+
+    @Override
+    public String toString() {
+        return "WindowFrameState{" +
+               "lowerBound=" + lowerBound +
+               ", upperBoundExclusive=" + upperBoundExclusive +
+               ", partitionStart=" + partitionStart +
+               '}';
     }
 }

@@ -31,31 +31,31 @@ import java.util.Collection;
 
 public class RowAccountingWithEstimators implements RowAccounting {
 
-    private final RamAccountingContext ramAccountingContext;
+    private final RamAccounting ramAccounting;
     private final ArrayList<SizeEstimator<Object>> estimators;
     private int extraSizePerRow = 0;
 
     /**
-     * See {@link RowAccountingWithEstimators#RowAccountingWithEstimators(Collection, RamAccountingContext, int)}
+     * See {@link RowAccountingWithEstimators#RowAccountingWithEstimators(Collection, RamAccounting, int)}
      */
-    public RowAccountingWithEstimators(Collection<? extends DataType> columnTypes, RamAccountingContext ramAccountingContext) {
+    public RowAccountingWithEstimators(Collection<? extends DataType> columnTypes, RamAccounting ramAccounting) {
         this.estimators = new ArrayList<>(columnTypes.size());
         for (DataType columnType : columnTypes) {
             estimators.add(SizeEstimatorFactory.create(columnType));
         }
-        this.ramAccountingContext = ramAccountingContext;
+        this.ramAccounting = ramAccounting;
     }
 
     /**
-     * @param columnTypes           Column types are needed to use the correct {@link SizeEstimator} per column
-     * @param ramAccountingContext  {@link RamAccountingContext} implementing the CircuitBreaker logic
-     * @param extraSizePerRow       Extra size that need to be calculated per row. E.g. {@link HashInnerJoinBatchIterator}
-     *                              might instantiate an ArrayList per row used for the internal hash->row buffer
+     * @param columnTypes     Column types are needed to use the correct {@link SizeEstimator} per column
+     * @param ramAccounting   {@link RamAccounting} implementing the CircuitBreaker logic
+     * @param extraSizePerRow Extra size that need to be calculated per row. E.g. {@link HashInnerJoinBatchIterator}
+     *                        might instantiate an ArrayList per row used for the internal hash->row buffer
      */
     public RowAccountingWithEstimators(Collection<? extends DataType> columnTypes,
-                                       RamAccountingContext ramAccountingContext,
+                                       RamAccounting ramAccounting,
                                        int extraSizePerRow) {
-        this(columnTypes, ramAccountingContext);
+        this(columnTypes, ramAccounting);
         this.extraSizePerRow = extraSizePerRow;
     }
 
@@ -74,17 +74,17 @@ public class RowAccountingWithEstimators implements RowAccounting {
         for (int i = 0; i < row.numColumns(); i++) {
             size += (estimators.get(i).estimateSize(row.get(i)) + extraSizePerRow);
         }
-        ramAccountingContext.addBytes(size);
+        ramAccounting.addBytes(size);
     }
 
     @Override
     public void release() {
-        ramAccountingContext.release();
+        ramAccounting.release();
     }
 
     @Override
     public void close() {
-        ramAccountingContext.close();
+        ramAccounting.close();
     }
 
 }

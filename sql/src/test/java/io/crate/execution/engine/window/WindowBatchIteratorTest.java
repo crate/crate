@@ -22,18 +22,14 @@
 
 package io.crate.execution.engine.window;
 
-import io.crate.analyze.OrderBy;
-import io.crate.analyze.WindowDefinition;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.data.InMemoryBatchIterator;
+import io.crate.breaker.RowAccountingWithEstimators;
+import io.crate.collections.Lists2;
+import io.crate.data.BatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Row;
-import io.crate.data.Row1;
-import io.crate.data.RowN;
 import io.crate.execution.engine.collect.CollectExpression;
-import io.crate.execution.engine.collect.InputCollectExpression;
-import io.crate.expression.symbol.InputColumn;
-import io.crate.expression.symbol.Literal;
+import io.crate.execution.engine.sort.OrderingByPosition;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.testing.BatchIteratorTester;
@@ -45,14 +41,14 @@ import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import static io.crate.data.SentinelRow.SENTINEL;
-import static java.util.Collections.singletonList;
+import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static org.elasticsearch.common.collect.Tuple.tuple;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
@@ -61,9 +57,10 @@ import static org.hamcrest.Matchers.is;
 public class WindowBatchIteratorTest {
 
     private RamAccountingContext ramAccountingContext;
+    private Input[][] args = {new Input[0]};
 
     private List<Object[]> expectedRowNumberResult = IntStream.range(0, 10)
-        .mapToObj(l -> new Object[]{l + 1}).collect(Collectors.toList());
+        .mapToObj(l -> new Object[]{l, l + 1}).collect(Collectors.toList());
 
     @Before
     public void setUp() {
@@ -73,229 +70,169 @@ public class WindowBatchIteratorTest {
     @Test
     public void testWindowBatchIterator() throws Exception {
         BatchIteratorTester tester = new BatchIteratorTester(
-            () -> new WindowBatchIterator(
-                emptyWindow(),
-                Collections.emptyList(),
-                Collections.emptyList(),
+            () -> WindowFunctionBatchIterator.of(
                 TestingBatchIterators.range(0, 10),
+                new IgnoreRowAccounting(),
+                null,
+                OrderingByPosition.arrayOrdering(0, false, false),
+                1,
                 Collections.singletonList(rowNumberWindowFunction()),
                 Collections.emptyList(),
-                Collections.singletonList(DataTypes.INTEGER),
-                ramAccountingContext,
-                null,
                 new Input[0])
         );
-
         tester.verifyResultAndEdgeCaseBehaviour(expectedRowNumberResult);
     }
 
     @Test
     public void testWindowBatchIteratorWithBatchSimulatingSource() throws Exception {
         BatchIteratorTester tester = new BatchIteratorTester(
-            () -> new WindowBatchIterator(
-                emptyWindow(),
-                Collections.emptyList(),
-                Collections.emptyList(),
-                new BatchSimulatingIterator<>(
-                    TestingBatchIterators.range(0, 10), 4, 2, null),
+            () -> WindowFunctionBatchIterator.of(
+                new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 10), 4, 2, null),
+                new IgnoreRowAccounting(),
+                null,
+                OrderingByPosition.arrayOrdering(0, false, false),
+                1,
                 Collections.singletonList(rowNumberWindowFunction()),
                 Collections.emptyList(),
-                Collections.singletonList(DataTypes.INTEGER),
-                ramAccountingContext,
-                null,
                 new Input[0])
         );
-
         tester.verifyResultAndEdgeCaseBehaviour(expectedRowNumberResult);
     }
 
     @Test
     public void testFrameBoundsEmptyWindow() throws Exception {
-        TestingRowConsumer consumer = new TestingRowConsumer();
-        consumer.accept(new WindowBatchIterator(
-            emptyWindow(),
-            Collections.emptyList(),
-            Collections.emptyList(),
-            TestingBatchIterators.range(0, 10),
-            Collections.singletonList(frameBoundsWindowFunction()),
-            Collections.emptyList(),
-            Collections.singletonList(DataTypes.INTEGER),
-            ramAccountingContext,
+        var rows = IntStream.range(0, 10).mapToObj(i -> new Object[]{i, null}).collect(Collectors.toList());
+        var result = new ArrayList<>(rows);
+        WindowFunctionBatchIterator.computeWindowFunctions(
+            result,
             null,
-            new Input[0]), null);
-
-        Object[] expectedBounds = {tuple(0, 10)};
-        List<Object[]> result = consumer.getResult();
-
-        IntStream.range(0, 10).forEach(i -> assertThat(result.get(i), is(expectedBounds)));
+            null,
+            1,
+            List.of(frameBoundsWindowFunction()),
+            List.of(),
+            args
+        );
+        var expectedBounds = tuple(0, 10);
+        IntStream.range(0, 10).forEach(i -> assertThat(result.get(i), is(new Object[] { i, expectedBounds})));
     }
 
     @Test
     public void testFrameBoundsForPartitionedWindow() throws Exception {
-        InputCollectExpression partitionKey = new InputCollectExpression(0);
-        TestingRowConsumer consumer = new TestingRowConsumer();
-        consumer.accept(new WindowBatchIterator(
-            new WindowDefinition(List.of(new InputColumn(0)), null, null),
-            Collections.emptyList(),
-            Collections.emptyList(),
-            InMemoryBatchIterator.of(
-                List.of(
-                    new Row1(-1), new Row1(1), new Row1(1), new Row1(2), new Row1(2),
-                    new Row1(3), new Row1(4), new Row1(5), new Row1(null), new Row1(null)
-                ),
-                SENTINEL
-            ),
+        var rows = Arrays.asList(-1, 1, 1, 2, 2, 3, 4, 5, null, null);
+        var result = Lists2.map(rows, i -> new Object[] { i, null });
+        WindowFunctionBatchIterator.computeWindowFunctions(
+            result,
+            OrderingByPosition.arrayOrdering(0, false, false),
+            null,
+            1,
             List.of(frameBoundsWindowFunction()),
             List.of(),
-            List.of(partitionKey),
-            List.of(partitionKey),
-            List.of(DataTypes.INTEGER),
-            ramAccountingContext,
-            null,
-            new Input[0]), null);
-
-        Object[] expectedBounds = {
-            tuple(0, 1), // partition: -1
-            tuple(0, 2), tuple(0, 2), // partition: 1, 1
-            tuple(0, 2), tuple(0, 2), // partition: 2, 2
-            tuple(0, 1), // partition: 3
-            tuple(0, 1), // partition: 4
-            tuple(0, 1), // partition: 5
-            tuple(0, 2), tuple(0, 2) // partition: null, null
-        };
-        List<Object[]> result = consumer.getResult();
-
-        IntStream.range(0, 10).forEach(i -> assertThat(result.get(i)[0], is(expectedBounds[i])));
+            args
+        );
+        assertThat(
+            result,
+            contains(
+                $(-1, tuple(0, 1)),
+                $(1, tuple(0, 2)),
+                $(1, tuple(0, 2)),
+                $(2, tuple(0, 2)),
+                $(2, tuple(0, 2)),
+                $(3, tuple(0, 1)),
+                $(4, tuple(0, 1)),
+                $(5, tuple(0, 1)),
+                $(null, tuple(0, 2)),
+                $(null, tuple(0, 2))
+            )
+        );
     }
 
     @Test
     public void testFrameBoundsForPartitionedOrderedWindow() throws Exception {
         // window: partition by IC0, order by IC1
-
-        InputCollectExpression partitionKey = new InputCollectExpression(0);
-        TestingRowConsumer consumer = new TestingRowConsumer();
-        consumer.accept(new WindowBatchIterator(
-            new WindowDefinition(List.of(new InputColumn(0)), new OrderBy(List.of(new InputColumn(1))), null),
-            Collections.emptyList(),
-            Collections.emptyList(),
-            InMemoryBatchIterator.of(
-                List.of(
-                    new RowN(new Object[]{-1, -1}),
-                    new RowN(new Object[]{1, 0}), new RowN(new Object[]{1, 1}),
-                    new RowN(new Object[]{2, 2}), new RowN(new Object[]{2, -1}),
-                    new RowN(new Object[]{3, 3}),
-                    new RowN(new Object[]{4, 4}),
-                    new RowN(new Object[]{5, 5}),
-                    new RowN(new Object[]{null, null}), new RowN(new Object[]{null, null})
-                ),
-                SENTINEL
-            ),
+        var rows = Arrays.asList(
+            $(-1 , -1, null),
+            $(1, 0, null),
+            $(1, 1, null),
+            $(2, 2, null),
+            $(2, -1, null),
+            $(3, 3, null),
+            $(4, 4, null),
+            $(5, 5, null),
+            $(null, null, null),
+            $(null, null, null)
+        );
+        WindowFunctionBatchIterator.computeWindowFunctions(
+            rows,
+            OrderingByPosition.arrayOrdering(0, false, false),
+            OrderingByPosition.arrayOrdering(1, false, false),
+            2,
             List.of(frameBoundsWindowFunction()),
             List.of(),
-            List.of(partitionKey),
-            List.of(partitionKey),
-            List.of(DataTypes.INTEGER, DataTypes.INTEGER),
-            ramAccountingContext,
-            new int[]{1},
-            new Input[0]), null);
-
-        Object[] expectedBounds = {
-            tuple(0, 1), // partition: -1 -1
-            tuple(0, 1), tuple(0, 2), // partition: 1 0, 1 1 (rows are not peers)
-            tuple(0, 1), tuple(0, 2), // partition: 2 2, 2 -1 (rows are not peers)
-            tuple(0, 1), // partition: 3 3
-            tuple(0, 1), // partition: 4 4
-            tuple(0, 1), // partition: 5 5
-            tuple(0, 2), tuple(0, 2) // partition: null null, null null (rows are peers)
-        };
-        List<Object[]> result = consumer.getResult();
-
-        IntStream.range(0, 10).forEach(i -> assertThat(result.get(i)[0], is(expectedBounds[i])));
+            args
+        );
+        assertThat(
+            rows,
+            contains(
+                $(-1, -1, tuple(0, 1)),
+                $(1, 0, tuple(0, 1)),
+                $(1, 1, tuple(0, 2)),
+                $(2, -1, tuple(0, 1)),
+                $(2, 2, tuple(0, 2)),
+                $(3, 3, tuple(0, 1)),
+                $(4, 4, tuple(0, 1)),
+                $(5, 5, tuple(0, 1)),
+                $(null, null, tuple(0, 2)),
+                $(null, null, tuple(0, 2))
+            )
+        );
     }
 
     @Test
     public void testWindowBatchIteratorAccountsUsedMemory() {
-        WindowBatchIterator windowBatchIterator = new WindowBatchIterator(
-            emptyWindow(),
-            Collections.emptyList(),
-            Collections.emptyList(),
+        BatchIterator<Row> iterator = WindowFunctionBatchIterator.of(
             TestingBatchIterators.range(0, 10),
-            Collections.singletonList(rowNumberWindowFunction()),
-            Collections.emptyList(),
-            Collections.singletonList(DataTypes.INTEGER),
-            ramAccountingContext,
+            new RowAccountingWithEstimators(List.of(DataTypes.INTEGER), ramAccountingContext, 32),
             null,
-            new Input[0]);
+            null,
+            1,
+            List.of(rowNumberWindowFunction()),
+            List.of(),
+            new Input[][]{new Input[0]}
+        );
         TestingRowConsumer consumer = new TestingRowConsumer();
-        consumer.accept(windowBatchIterator, null);
-
-        // should've accounted for 10 integers of 48 bytes each (16 for the integer, 32 for the LinkedList element)
+        consumer.accept(iterator, null);
+        // should've accounted for 10 integers of 48 bytes each (16 for the integer, 32 for the ArrayList element)
         assertThat(ramAccountingContext.totalBytes(), is(480L));
     }
 
     @Test
     public void testWindowBatchIteratorWithOrderedWindowOverNullValues() throws Exception {
-        OrderBy orderBy = new OrderBy(singletonList(Literal.of(1L)), new boolean[]{true}, new boolean[]{true});
-        WindowDefinition windowDefinition = new WindowDefinition(Collections.emptyList(), orderBy, null);
-
-        WindowBatchIterator windowBatchIterator = new WindowBatchIterator(
-            windowDefinition,
-            Collections.emptyList(),
-            Collections.emptyList(),
-            InMemoryBatchIterator.of(List.of(new Row1(null), new Row1(2)), SENTINEL),
-            Collections.singletonList(firstCellValue()),
-            Collections.emptyList(),
-            Collections.singletonList(DataTypes.INTEGER),
-            ramAccountingContext,
-            new int[]{0},
-            new Input[0]);
-        TestingRowConsumer consumer = new TestingRowConsumer();
-        consumer.accept(windowBatchIterator, null);
-
-        List<Object[]> result = consumer.getResult();
-        assertThat(result, contains(new Object[]{null}, new Object[]{null}));
-    }
-
-    @Test
-    public void testWindowBatchIteratorWithPartitions() throws Exception {
-        Supplier<WindowBatchIterator> batchIterator = () -> {
-            InputCollectExpression partitionByCollectExpression = new InputCollectExpression(0);
-            return new WindowBatchIterator(
-                new WindowDefinition(List.of(new InputColumn(0)), null, null),
-                Collections.emptyList(),
-                Collections.emptyList(),
-                InMemoryBatchIterator.of(
-                    List.of(
-                        new Row1(-1), new Row1(1), new Row1(1), new Row1(2), new Row1(2),
-                        new Row1(3), new Row1(4), new Row1(5), new Row1(null), new Row1(null)
-                    ),
-                    SENTINEL
-                ),
-                singletonList(rowNumberWindowFunction()),
-                Collections.emptyList(),
-                Collections.singletonList(partitionByCollectExpression),
-                Collections.singletonList(partitionByCollectExpression),
-                singletonList(DataTypes.INTEGER),
-                ramAccountingContext,
-                null,
-                new Input[0]);
-        };
-
-        List<Object[]> expectedResult = List.of(new Object[]{1}, new Object[]{1}, new Object[]{2}, new Object[]{1}, new Object[]{2}, new Object[]{1},
-            new Object[]{1}, new Object[]{1}, new Object[]{1}, new Object[]{2});
-
-        BatchIteratorTester tester = new BatchIteratorTester(() -> batchIterator.get());
-        tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
-    }
-
-    private static WindowDefinition emptyWindow() {
-        return new WindowDefinition(Collections.emptyList(), null, null);
+        var rows = Arrays.asList(
+            $(null, null),
+            $(2, null)
+        );
+        WindowFunctionBatchIterator.computeWindowFunctions(
+            rows,
+            null,
+            OrderingByPosition.arrayOrdering(0, true, true),
+            1,
+            List.of(firstCellValue()),
+            List.of(),
+            args
+        );
+        assertThat(
+            rows,
+            contains(
+                $(null, null),
+                $(2, null)
+            )
+        );
     }
 
     private static WindowFunction firstCellValue() {
         return new WindowFunction() {
             @Override
-            public Object execute(int rowIdx, WindowFrameState currentFrame, List<? extends CollectExpression<Row, ?>> expressions, Input... args) {
+            public Object execute(int idxInPartition, WindowFrameState currentFrame, List<? extends CollectExpression<Row, ?>> expressions, Input... args) {
                 return currentFrame.getRows().iterator().next()[0];
             }
 
@@ -308,26 +245,10 @@ public class WindowBatchIteratorTest {
         };
     }
 
-    private static WindowFunction rowNumberWindowFunction() {
-        return new WindowFunction() {
-            @Override
-            public Object execute(int rowIdx, WindowFrameState currentFrame, List<? extends CollectExpression<Row, ?>> expressions, Input... args) {
-                return rowIdx + 1; // sql row numbers are 1-indexed;
-            }
-
-            @Override
-            public FunctionInfo info() {
-                return new FunctionInfo(
-                    new FunctionIdent("row_number", Collections.emptyList()),
-                    DataTypes.INTEGER);
-            }
-        };
-    }
-
     private static WindowFunction frameBoundsWindowFunction() {
         return new WindowFunction() {
             @Override
-            public Object execute(int rowIdx, WindowFrameState currentFrame, List<? extends CollectExpression<Row, ?>> expressions, Input... args) {
+            public Object execute(int idxInPartition, WindowFrameState currentFrame, List<? extends CollectExpression<Row, ?>> expressions, Input... args) {
                 return tuple(currentFrame.lowerBound(), currentFrame.upperBoundExclusive());
             }
 
@@ -335,6 +256,22 @@ public class WindowBatchIteratorTest {
             public FunctionInfo info() {
                 return new FunctionInfo(
                     new FunctionIdent("a_frame_bounded_window_function", Collections.emptyList()),
+                    DataTypes.INTEGER);
+            }
+        };
+    }
+
+    private static WindowFunction rowNumberWindowFunction() {
+        return new WindowFunction() {
+            @Override
+            public Object execute(int idxInPartition, WindowFrameState currentFrame, List<? extends CollectExpression<Row, ?>> expressions, Input... args) {
+                return idxInPartition + 1; // sql row numbers are 1-indexed;
+            }
+
+            @Override
+            public FunctionInfo info() {
+                return new FunctionInfo(
+                    new FunctionIdent("row_number", Collections.emptyList()),
                     DataTypes.INTEGER);
             }
         };

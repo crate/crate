@@ -22,25 +22,22 @@
 
 package io.crate.execution.engine.window;
 
-import org.junit.Test;
+import io.crate.breaker.RowAccounting;
+import io.crate.data.Row;
 
-import java.util.Collections;
+class IgnoreRowAccounting implements RowAccounting {
 
-import static org.hamcrest.Matchers.anything;
+    @Override
+    public void accountForAndMaybeBreak(Row row) {
+    }
 
+    @Override
+    public void release() {
 
-public class WindowFunctionsTestingFrameworkTest extends AbstractWindowFunctionTest {
+    }
 
-    @Test
-    public void testInputOfDifferentSizeRaiseException() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Inputs need to be of equal size");
+    @Override
+    public void close() {
 
-        assertEvaluate("row_number() over()",
-            anything("does not matter"),
-            Collections.emptyMap(),
-            new Object[]{1},
-            new Object[]{1, 2}
-        );
     }
 }

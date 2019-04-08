@@ -31,7 +31,6 @@ import io.crate.planner.ExplainLeaf;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -44,16 +43,12 @@ public class WindowAggProjection extends Projection {
 
     private final WindowDefinition windowDefinition;
     private final List<Symbol> standaloneWithInputs;
-    private LinkedHashMap<WindowFunction, List<Symbol>> functionsWithInputs;
-    private ArrayList<Symbol> outputs;
-    private int[] orderByIndexes;
+    private final LinkedHashMap<WindowFunction, List<Symbol>> functionsWithInputs;
+    private final ArrayList<Symbol> outputs;
 
     public WindowAggProjection(WindowDefinition windowDefinition,
                                LinkedHashMap<WindowFunction, List<Symbol>> functionsWithInputs,
-                               List<Symbol> standaloneWithInputs,
-                               int[] orderByIndexes) {
-        assert orderByIndexes != null
-            : "Order by indexes cannot be null. An empty container signals the absence of order by symbols";
+                               List<Symbol> standaloneWithInputs) {
         Set<WindowFunction> windowFunctions = functionsWithInputs.keySet();
         assert windowFunctions.stream().noneMatch(Symbols.IS_COLUMN)
             : "Cannot operate on Reference or Field: " + windowFunctions;
@@ -62,7 +57,6 @@ public class WindowAggProjection extends Projection {
         this.windowDefinition = windowDefinition;
         this.functionsWithInputs = functionsWithInputs;
         this.standaloneWithInputs = standaloneWithInputs;
-        this.orderByIndexes = orderByIndexes;
         outputs = new ArrayList<>(windowFunctions);
         outputs.addAll(standaloneWithInputs);
     }
@@ -77,7 +71,6 @@ public class WindowAggProjection extends Projection {
             List<Symbol> inputs = Symbols.listFromStream(in);
             functionsWithInputs.put(function, inputs);
         }
-        orderByIndexes = in.readIntArray();
         outputs = new ArrayList<>(functionsWithInputs.keySet());
     }
 
@@ -91,11 +84,6 @@ public class WindowAggProjection extends Projection {
 
     public List<Symbol> standalone() {
         return standaloneWithInputs;
-    }
-
-    @Nullable
-    public int[] orderByIndexes() {
-        return orderByIndexes;
     }
 
     @Override
@@ -136,7 +124,6 @@ public class WindowAggProjection extends Projection {
             Symbols.toStream(functionWithInputs.getKey(), out);
             Symbols.toStream(functionWithInputs.getValue(), out);
         }
-        out.writeIntArray(orderByIndexes);
     }
 
     @Override

@@ -828,10 +828,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         Merge distMerge = (Merge) localMerge.subPlan();
         assertThat(distMerge.nodeIds().size(), is(2));
         assertThat(distMerge.mergePhase().projections(), contains(
-             // We order by the PARTITION BY column so that the batchIterator can rely on seeing all rows of a partition
-             // before a new partition starts
-            instanceOf(OrderedTopNProjection.class),
-            instanceOf(WindowAggProjection.class)
+            instanceOf(WindowAggProjection.class),
+            instanceOf(EvalProjection.class)
         ));
         Collect collect = (Collect) distMerge.subPlan();
         assertThat(collect.nodeIds().size(), is(2));

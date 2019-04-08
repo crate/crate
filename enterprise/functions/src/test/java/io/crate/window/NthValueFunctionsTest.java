@@ -45,7 +45,6 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate("last_value(x) over()",
             contains(new Object[] {4, 4, 4, 4}),
             Collections.singletonMap(new ColumnIdent("x"), 0),
-            new int[] {0},
             new Object[] {1},
             new Object[] {2},
             new Object[] {3},
@@ -62,7 +61,6 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate("last_value(x) over(order by y)",
             contains(new Object[] {1, 3, 3, 2}),
             mapping,
-            new int[] {1},
             new Object[] {1, 1},
             new Object[] {1, 2},
             new Object[] {3, 2},
@@ -79,7 +77,6 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate("last_value(x) over(order by y, x)",
             contains(new Object[] {1, 1, 3, 2}),
             mapping,
-            new int[] {1, 0},
             new Object[] {1, 1},
             new Object[] {1, 2},
             new Object[] {3, 2},
@@ -92,7 +89,6 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate("first_value(x) over()",
             contains(new Object[] {1, 1, 1, 1}),
             Collections.singletonMap(new ColumnIdent("x"), 0),
-            new int[] {0},
             new Object[] {1},
             new Object[] {2},
             new Object[] {3},
@@ -109,7 +105,6 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate("first_value(x) over(order by y)",
             contains(new Object[] {1, 1, 1, 1}),
             mapping,
-            new int[] {1},
             new Object[] {1, 1},
             new Object[] {1, 2},
             new Object[] {3, 2},
@@ -122,7 +117,6 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate("nth_value(x, 3) over()",
             contains(new Object[] {3, 3, 3, 3}),
             Collections.singletonMap(new ColumnIdent("x"), 0),
-            new int[] {},
             new Object[] {1},
             new Object[] {2},
             new Object[] {3},
@@ -136,10 +130,9 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
         mapping.put(new ColumnIdent("x"), 0);
         mapping.put(new ColumnIdent("y"), 1);
 
-        assertEvaluate("nth_value(x,3) over(order by y)",
+        assertEvaluate("nth_value(x, 3) over(order by y)",
             contains(new Object[] {null, 3, 3, 3}),
             mapping,
-            new int[] {1},
             new Object[] {1, 1},
             new Object[] {1, 2},
             new Object[] {3, 2},
@@ -156,7 +149,6 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate("nth_value(x,null) over(order by y)",
             contains(new Object[] {null, null, null, null}),
             mapping,
-            new int[] {1},
             new Object[] {1, 1},
             new Object[] {1, 2},
             new Object[] {3, 2},
@@ -165,12 +157,11 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
     }
 
     @Test
-    public void testRowNthValueOverPartitionedWindow() {
+    public void testRowNthValueOverPartitionedWindow() throws Exception {
         Object[] expected = new Object[]{2, 2, 2, 4, 4, 4, null};
-        assertEvaluate("nth_value(x, 2) over(partition by x>2)",
+        assertEvaluate("nth_value(x, 2) over(partition by x > 2)",
                        contains(expected),
                        Collections.singletonMap(new ColumnIdent("x"), 0),
-                       null,
                        new Object[]{1, 1},
                        new Object[]{2, 2},
                        new Object[]{2, 2},
@@ -181,18 +172,17 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
     }
 
     @Test
-    public void testNthValueOverPartitionedOrderedWindow() {
+    public void testNthValueOverPartitionedOrderedWindow() throws Exception {
         Object[] expected = new Object[]{null, 2, 2, null, 4, 4, null};
-        assertEvaluate("nth_value(x, 2) over(partition by x>2 order by x)",
+        assertEvaluate("nth_value(x, 2) over(partition by x > 2 order by x)",
                        contains(expected),
                        Collections.singletonMap(new ColumnIdent("x"), 0),
-                       new int[]{0},
-                       new Object[]{1, 1},
-                       new Object[]{2, 2},
-                       new Object[]{2, 2},
-                       new Object[]{3, 3},
-                       new Object[]{4, 4},
-                       new Object[]{5, 5},
-                       new Object[]{null, null});
+                       new Object[]{1},
+                       new Object[]{2},
+                       new Object[]{2},
+                       new Object[]{3},
+                       new Object[]{4},
+                       new Object[]{5},
+                       new Object[]{null});
     }
 }
