@@ -179,7 +179,7 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
         IndexMetaData metaData = getIndexMetaData("test1", builder);
         DocIndexMetaData md = newMeta(metaData, "test1");
         assertThat(md.columns().size(), is(4));
-        assertThat(md.references().size(), is(18));
+        assertThat(md.references().size(), is(20));
         assertThat(md.references().get(new ColumnIdent("implicit_dynamic")).columnPolicy(), is(ColumnPolicy.DYNAMIC));
         assertThat(md.references().get(new ColumnIdent("explicit_dynamic")).columnPolicy(), is(ColumnPolicy.DYNAMIC));
         assertThat(md.references().get(new ColumnIdent("ignored")).columnPolicy(), is(ColumnPolicy.IGNORED));
@@ -252,7 +252,7 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
         DocIndexMetaData md = newMeta(metaData, "test1");
 
         assertThat(md.columns().size(), is(11));
-        assertThat(md.references().size(), is(21));
+        assertThat(md.references().size(), is(23));
 
         Reference birthday = md.references().get(new ColumnIdent("person", "birthday"));
         assertThat(birthday.valueType(), is(DataTypes.TIMESTAMP));
@@ -291,8 +291,8 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
         ImmutableList<Reference> references = ImmutableList.copyOf(md.references().values());
         List<String> fqns = Lists.transform(references, r -> r.column().fqn());
         assertThat(fqns, Matchers.is(
-            ImmutableList.of("_doc", "_fetchid", "_id", "_raw", "_score", "_uid", "_version", "_docid",
-                "integerIndexed", "integerIndexedBWC", "integerNotIndexed", "integerNotIndexedBWC",
+            ImmutableList.of("_doc", "_fetchid", "_id", "_raw", "_score", "_uid", "_version", "_docid", "_seq_no",
+                "_primary_term", "integerIndexed", "integerIndexedBWC", "integerNotIndexed", "integerNotIndexedBWC",
                 "person", "person.birthday", "person.first_name",
                 "stringAnalyzed", "stringAnalyzedBWC", "stringNotAnalyzed", "stringNotAnalyzedBWC",
                 "stringNotIndexed", "stringNotIndexedBWC")));
@@ -352,7 +352,7 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
         DocIndexMetaData md = newMeta(metaData, "test1");
 
         assertEquals(6, md.columns().size());
-        assertEquals(17, md.references().size());
+        assertEquals(19, md.references().size());
         assertEquals(1, md.partitionedByColumns().size());
         assertEquals(DataTypes.TIMESTAMP, md.partitionedByColumns().get(0).valueType());
         assertThat(md.partitionedByColumns().get(0).column().fqn(), is("datum"));
@@ -386,7 +386,7 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
 
         // partitioned by column is not added twice
         assertEquals(2, md.columns().size());
-        assertEquals(10, md.references().size());
+        assertEquals(12, md.references().size());
         assertEquals(1, md.partitionedByColumns().size());
     }
 
@@ -420,7 +420,7 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
 
         // partitioned by column is not added twice
         assertEquals(2, md.columns().size());
-        assertEquals(11, md.references().size());
+        assertEquals(13, md.references().size());
         assertEquals(1, md.partitionedByColumns().size());
     }
 

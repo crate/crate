@@ -76,6 +76,8 @@ public class GeneratedColumnsTest extends CrateDummyClusterServiceUnitTest {
             table.concreteIndices()[0],
             "1",
             1,
+            1,
+            1,
             XContentHelper.convertToMap(bytes, false, XContentType.JSON).v2(),
             bytes::utf8ToString
         ));

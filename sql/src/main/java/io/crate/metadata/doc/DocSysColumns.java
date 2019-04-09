@@ -47,6 +47,8 @@ public class DocSysColumns {
         public static final String UID = "_uid";
         public static final String DOC = "_doc";
         public static final String RAW = "_raw";
+        public static final String SEQ_NO = "_seq_no";
+        public static final String PRIMARY_TERM = "_primary_term";
 
         /**
          * Column that contains the lucene docId + a readerId.
@@ -62,6 +64,8 @@ public class DocSysColumns {
     public static final ColumnIdent UID = new ColumnIdent(Names.UID);
     public static final ColumnIdent DOC = new ColumnIdent(Names.DOC);
     public static final ColumnIdent RAW = new ColumnIdent(Names.RAW);
+    public static final ColumnIdent SEQ_NO = new ColumnIdent(Names.SEQ_NO);
+    public static final ColumnIdent PRIMARY_TERM = new ColumnIdent(Names.PRIMARY_TERM);
 
     /**
      * See {@link Names#FETCHID}
@@ -78,6 +82,8 @@ public class DocSysColumns {
         .put(UID, DataTypes.STRING)
         .put(VERSION, DataTypes.LONG)
         .put(DOCID, DataTypes.INTEGER)
+        .put(SEQ_NO, DataTypes.LONG)
+        .put(PRIMARY_TERM, DataTypes.LONG)
         .build();
 
     private static final ImmutableMap<ColumnIdent, String> LUCENE_COLUMN_NAMES = ImmutableMap.<ColumnIdent, String>builder()

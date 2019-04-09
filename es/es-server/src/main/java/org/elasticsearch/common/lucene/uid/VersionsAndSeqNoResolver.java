@@ -31,8 +31,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentMap;
 
-import static org.elasticsearch.common.lucene.uid.Versions.NOT_FOUND;
-
 /** Utility class to resolve the Lucene doc ID, version, seqNo and primaryTerms for a given uid. */
 public final class VersionsAndSeqNoResolver {
 
