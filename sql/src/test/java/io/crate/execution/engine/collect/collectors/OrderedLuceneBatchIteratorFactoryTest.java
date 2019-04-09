@@ -85,7 +85,7 @@ public class OrderedLuceneBatchIteratorFactoryTest extends CrateUnitTest {
     private OrderBy orderBy;
     private List<Object[]> expectedResult;
     private boolean[] reverseFlags = new boolean[]{true};
-    private Boolean[] nullsFirst = new Boolean[]{null};
+    private boolean[] nullsFirst = new boolean[]{true};
 
     @Before
     public void prepareSearchers() throws Exception {

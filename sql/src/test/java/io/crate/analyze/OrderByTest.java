@@ -45,7 +45,7 @@ public class OrderByTest extends CrateUnitTest {
 
     @Test
     public void testStreaming() throws Exception {
-        OrderBy orderBy = new OrderBy(ImmutableList.<Symbol>of(ref("name")), new boolean[]{true}, new Boolean[]{true});
+        OrderBy orderBy = new OrderBy(ImmutableList.<Symbol>of(ref("name")), new boolean[]{true}, new boolean[]{true});
         BytesStreamOutput out = new BytesStreamOutput();
         orderBy.writeTo(out);
 

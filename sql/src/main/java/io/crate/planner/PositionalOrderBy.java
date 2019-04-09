@@ -37,9 +37,9 @@ public class PositionalOrderBy {
 
     private final int[] indices;
     private final boolean[] reverseFlags;
-    private final Boolean[] nullsFirst;
+    private final boolean[] nullsFirst;
 
-    public PositionalOrderBy(int[] indices, boolean[] reverseFlags, Boolean[] nullsFirst) {
+    public PositionalOrderBy(int[] indices, boolean[] reverseFlags, boolean[] nullsFirst) {
         assert indices.length == reverseFlags.length && reverseFlags.length == nullsFirst.length
             : "all parameters to OrderByPositions must have the same length";
         // PositionalOrderBy should be null if there is no order by
@@ -58,7 +58,7 @@ public class PositionalOrderBy {
         return reverseFlags;
     }
 
-    public Boolean[] nullsFirst() {
+    public boolean[] nullsFirst() {
         return nullsFirst;
     }
 
@@ -116,11 +116,11 @@ public class PositionalOrderBy {
         }
         int[] indices = new int[size];
         boolean[] reverseFlags = new boolean[size];
-        Boolean[] nullsFirst = new Boolean[size];
+        boolean[] nullsFirst = new boolean[size];
         for (int i = 0; i < size; i++) {
             indices[i] = in.readVInt();
             reverseFlags[i] = in.readBoolean();
-            nullsFirst[i] = in.readOptionalBoolean();
+            nullsFirst[i] = in.readBoolean();
         }
         return new PositionalOrderBy(indices, reverseFlags, nullsFirst);
     }
@@ -134,7 +134,7 @@ public class PositionalOrderBy {
         for (int i = 0; i < orderBy.indices.length; i++) {
             out.writeVInt(orderBy.indices[i]);
             out.writeBoolean(orderBy.reverseFlags[i]);
-            out.writeOptionalBoolean(orderBy.nullsFirst[i]);
+            out.writeBoolean(orderBy.nullsFirst[i]);
         }
     }
 

@@ -149,8 +149,8 @@ public class SQLPrinter {
                 if (orderBy.reverseFlags()[i]) {
                     sb.append(" DESC");
                 }
-                Boolean nullsFirst = orderBy.nullsFirst()[i];
-                if (nullsFirst != null) {
+                boolean nullsFirst = orderBy.nullsFirst()[i];
+                if (orderBy.reverseFlags()[i] != nullsFirst) {
                     sb.append(" NULLS");
                     if (nullsFirst) {
                         sb.append(" FIRST");

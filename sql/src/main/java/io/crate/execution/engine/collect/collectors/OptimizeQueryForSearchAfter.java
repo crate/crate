@@ -72,7 +72,7 @@ public class OptimizeQueryForSearchAfter implements Function<FieldDoc, Query> {
                     // must not contain system columns.
                     return null;
                 }
-                boolean nullsFirst = orderBy.nullsFirst()[i] == null ? false : orderBy.nullsFirst()[i];
+                boolean nullsFirst = orderBy.nullsFirst()[i];
                 value = value == null || value.equals(missingValues[i]) ? null : value;
                 if (nullsFirst && value == null) {
                     // no filter needed

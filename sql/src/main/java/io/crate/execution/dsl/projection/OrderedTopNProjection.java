@@ -46,14 +46,14 @@ public class OrderedTopNProjection extends Projection {
     private final List<Symbol> outputs;
     private final List<Symbol> orderBy;
     private final boolean[] reverseFlags;
-    private final Boolean[] nullsFirst;
+    private final boolean[] nullsFirst;
 
     public OrderedTopNProjection(int limit,
                                  int offset,
                                  List<Symbol> outputs,
                                  List<Symbol> orderBy,
                                  boolean[] reverseFlags,
-                                 Boolean[] nullsFirst) {
+                                 boolean[] nullsFirst) {
         assert outputs.stream().noneMatch(s -> SymbolVisitors.any(Symbols.IS_COLUMN.or(x -> x instanceof SelectSymbol), s))
             : "OrderedTopNProjection outputs cannot contain Field, Reference or SelectSymbol symbols: " + outputs;
         assert orderBy.stream().noneMatch(s -> SymbolVisitors.any(Symbols.IS_COLUMN.or(x -> x instanceof SelectSymbol), s))
@@ -77,15 +77,15 @@ public class OrderedTopNProjection extends Projection {
         if (numOrderBy == 0) {
             orderBy = Collections.emptyList();
             reverseFlags = new boolean[0];
-            nullsFirst = new Boolean[0];
+            nullsFirst = new boolean[0];
         } else {
             orderBy = new ArrayList<>(numOrderBy);
             reverseFlags = new boolean[numOrderBy];
-            nullsFirst = new Boolean[numOrderBy];
+            nullsFirst = new boolean[numOrderBy];
             for (int i = 0; i < numOrderBy; i++) {
                 orderBy.add(Symbols.fromStream(in));
                 reverseFlags[i] = in.readBoolean();
-                nullsFirst[i] = in.readOptionalBoolean();
+                nullsFirst[i] = in.readBoolean();
             }
         }
     }
@@ -106,7 +106,7 @@ public class OrderedTopNProjection extends Projection {
         return reverseFlags;
     }
 
-    public Boolean[] nullsFirst() {
+    public boolean[] nullsFirst() {
         return nullsFirst;
     }
 
@@ -134,7 +134,7 @@ public class OrderedTopNProjection extends Projection {
         for (int i = 0; i < orderBy.size(); i++) {
             Symbols.toStream(orderBy.get(i), out);
             out.writeBoolean(reverseFlags[i]);
-            out.writeOptionalBoolean(nullsFirst[i]);
+            out.writeBoolean(nullsFirst[i]);
         }
     }
 

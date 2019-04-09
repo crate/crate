@@ -43,7 +43,7 @@ public class OrderyByAnalyzer {
         }
         List<Symbol> symbols = new ArrayList<>(size);
         boolean[] reverseFlags = new boolean[size];
-        Boolean[] nullsFirst = new Boolean[size];
+        boolean[] nullsFirst = new boolean[size];
 
         for (int i = 0; i < size; i++) {
             SortItem sortItem = sortItems.get(i);
@@ -58,7 +58,7 @@ public class OrderyByAnalyzer {
                     nullsFirst[i] = false;
                     break;
                 case UNDEFINED:
-                    nullsFirst[i] = null;
+                    nullsFirst[i] = sortItem.getOrdering() == SortItem.Ordering.DESCENDING;
                     break;
                 default:
             }

@@ -39,14 +39,29 @@ import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+/**
+ * <pre>
+ *   ORDER BY { expression [ ASC | DESC ] [ NULLS { FIRST | LAST } ] } [, ...]
+ *                                 ^^^^
+ *                                 reverseFlag: true
+ *
+ *
+ *   nullsFirst: [ null | true | false ]
+ *                  |      ^       ^
+ *                  |      |       |
+ *                  +--  DESC      |      // null is re-written to true or false depending on ASC|DESC
+ *                  |              |
+ *                  +--   ASC -----+
+ * </pre>
+ */
 public class OrderBy implements Writeable {
 
     private static final boolean REVERSE_FLAG_DEFAULT_ASC = false;
-    private static final Boolean NULLS_FIRST_DEFAULT_UNDEFINED = null;
+    private static final Boolean NULLS_FIRST_DEFAULT_FOR_ASC = false;
 
     private final List<Symbol> orderBySymbols;
     private final boolean[] reverseFlags;
-    private final Boolean[] nullsFirst;
+    private final boolean[] nullsFirst;
 
     /**
      * Create a OrderBy with reverseFlags and nullsFirst defaults
@@ -54,12 +69,12 @@ public class OrderBy implements Writeable {
     public OrderBy(List<Symbol> orderBySymbols) {
         this.orderBySymbols = orderBySymbols;
         this.reverseFlags = new boolean[orderBySymbols.size()];
-        this.nullsFirst = new Boolean[orderBySymbols.size()];
+        this.nullsFirst = new boolean[orderBySymbols.size()];
         Arrays.fill(reverseFlags, REVERSE_FLAG_DEFAULT_ASC);
-        Arrays.fill(nullsFirst, NULLS_FIRST_DEFAULT_UNDEFINED);
+        Arrays.fill(nullsFirst, NULLS_FIRST_DEFAULT_FOR_ASC);
     }
 
-    public OrderBy(List<Symbol> orderBySymbols, boolean[] reverseFlags, Boolean[] nullsFirst) {
+    public OrderBy(List<Symbol> orderBySymbols, boolean[] reverseFlags, boolean[] nullsFirst) {
         assert !orderBySymbols.isEmpty() : "orderBySymbols must not be empty";
         assert orderBySymbols.size() == reverseFlags.length && reverseFlags.length == nullsFirst.length :
             "size of symbols / reverseFlags / nullsFirst must match";
@@ -100,7 +115,7 @@ public class OrderBy implements Writeable {
             } else {
                 newOrderBySymbols.add(toPrepend);
                 newReverseFlags.add(REVERSE_FLAG_DEFAULT_ASC);
-                newNullsFirst.add(NULLS_FIRST_DEFAULT_UNDEFINED);
+                newNullsFirst.add(NULLS_FIRST_DEFAULT_FOR_ASC);
             }
         }
         if (nextOrderBy != null) {
@@ -113,7 +128,7 @@ public class OrderBy implements Writeable {
             newReverseFlags.add(reverseFlags[orderBySymbols.previousIndex()]);
             newNullsFirst.add(nullsFirst[orderBySymbols.previousIndex()]);
         }
-        return new OrderBy(newOrderBySymbols, Booleans.toArray(newReverseFlags), newNullsFirst.toArray(new Boolean[0]));
+        return new OrderBy(newOrderBySymbols, Booleans.toArray(newReverseFlags), Booleans.toArray(newNullsFirst));
     }
 
     public List<Symbol> orderBySymbols() {
@@ -124,26 +139,23 @@ public class OrderBy implements Writeable {
         return reverseFlags;
     }
 
-    public Boolean[] nullsFirst() {
+    public boolean[] nullsFirst() {
         return nullsFirst;
     }
 
     public OrderBy(StreamInput in) throws IOException {
         int numOrderBy = in.readVInt();
         reverseFlags = new boolean[numOrderBy];
-
         for (int i = 0; i < numOrderBy; i++) {
             reverseFlags[i] = in.readBoolean();
         }
-
         orderBySymbols = new ArrayList<>(numOrderBy);
         for (int i = 0; i < numOrderBy; i++) {
             orderBySymbols.add(Symbols.fromStream(in));
         }
-
-        nullsFirst = new Boolean[numOrderBy];
+        nullsFirst = new boolean[numOrderBy];
         for (int i = 0; i < numOrderBy; i++) {
-            nullsFirst[i] = in.readOptionalBoolean();
+            nullsFirst[i] = in.readBoolean();
         }
     }
 
@@ -156,8 +168,8 @@ public class OrderBy implements Writeable {
         for (Symbol symbol : orderBySymbols) {
             Symbols.toStream(symbol, out);
         }
-        for (Boolean nullFirst : nullsFirst) {
-            out.writeOptionalBoolean(nullFirst);
+        for (boolean nullFirst : nullsFirst) {
+            out.writeBoolean(nullFirst);
         }
     }
 
@@ -190,7 +202,7 @@ public class OrderBy implements Writeable {
     public static StringBuilder explainRepresentation(StringBuilder sb,
                                                       List<? extends ExplainLeaf> leaves,
                                                       boolean[] reverseFlags,
-                                                      Boolean[] nullsFirst) {
+                                                      boolean[] nullsFirst) {
         for (int i = 0; i < leaves.size(); i++) {
             ExplainLeaf leaf = leaves.get(i);
             sb.append(leaf.representation());
@@ -200,8 +212,8 @@ public class OrderBy implements Writeable {
             } else {
                 sb.append("ASC");
             }
-            Boolean nullFirst = nullsFirst[i];
-            if (nullFirst != null) {
+            boolean nullFirst = nullsFirst[i];
+            if (reverseFlags[i] != nullFirst) {
                 sb.append(" ");
                 sb.append(nullFirst ? "NULLS FIRST" : "NULLS LAST");
             }

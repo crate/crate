@@ -74,7 +74,6 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
 
 public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -282,7 +281,7 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(positionalOrderBy.indices().length, is(1));
         assertThat(positionalOrderBy.indices()[0], is(0));
         assertThat(positionalOrderBy.reverseFlags()[0], is(false));
-        assertThat(positionalOrderBy.nullsFirst()[0], nullValue());
+        assertThat(positionalOrderBy.nullsFirst()[0], is(false));
     }
 
     @Test

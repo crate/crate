@@ -81,7 +81,7 @@ public class OrderedLuceneBatchIteratorBenchmark {
     private String columnName;
     private IndexSearcher indexSearcher;
     private boolean[] reverseFlags = new boolean[]{true};
-    private Boolean[] nullsFirst = new Boolean[]{null};
+    private boolean[] nullsFirst = new boolean[]{true};
     private Reference reference;
     private OrderBy orderBy;
     private CollectorContext collectorContext;
