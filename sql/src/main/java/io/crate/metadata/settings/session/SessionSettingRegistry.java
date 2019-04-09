@@ -59,7 +59,7 @@ public class SessionSettingRegistry {
                     SessionContext::setSemiJoinsRewriteEnabled,
                     s -> Boolean.toString(s.semiJoinsRewriteEnabled()),
                     () -> String.valueOf(false),
-                    "Consider rewriting a SemiJoin query into a conventional join query.",
+                    "Considers rewriting a SemiJoin query into a conventional join query.",
                     DataTypes.BOOLEAN.getName()))
             .put(HASH_JOIN_KEY,
                 new SessionSetting<>(

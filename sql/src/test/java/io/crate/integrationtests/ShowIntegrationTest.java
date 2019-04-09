@@ -401,8 +401,10 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testShowAll() {
         execute("show all");
-        assertThat(printedTable(response.rows()), is("search_path| pg_catalog, doc\n" +
-                                                     "enable_semijoin| false\n" +
-                                                     "enable_hashjoin| true\n"));
+        assertThat(printedTable(response.rows()), is(
+            "search_path| pg_catalog, doc| Sets the schema search order.\n" +
+            "enable_semijoin| false| Considers rewriting a SemiJoin query into a conventional join query.\n" +
+            "enable_hashjoin| true| Considers using the Hash Join instead of the Nested Loop Join implementation.\n")
+        );
     }
 }
