@@ -96,7 +96,7 @@ public class RamAccountingPageIteratorTest extends CrateUnitTest {
     @Test
     public void testRamAccountingWrappingAppliedForOrderedIterators() {
         PositionalOrderBy orderBy = PositionalOrderBy.of(
-            new OrderBy(Collections.singletonList(Literal.of(1)), new boolean[]{false}, new Boolean[]{false}),
+            new OrderBy(Collections.singletonList(Literal.of(1)), new boolean[]{false}, new boolean[]{false}),
             Collections.singletonList(Literal.of(1)));
 
         PagingIterator<Integer, Row> repeatingSortedPagingIterator = PagingIterator.create(

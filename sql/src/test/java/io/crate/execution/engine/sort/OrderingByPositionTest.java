@@ -90,7 +90,7 @@ public class OrderingByPositionTest extends CrateUnitTest {
     @Test
     public void testSingleOrderByPositionResultsInNonCompoundOrdering() throws Exception {
         Ordering<Object[]> ordering = OrderingByPosition.arrayOrdering(
-            new int[]{0}, new boolean[]{false}, new Boolean[]{null});
+            new int[]{0}, new boolean[]{false}, new boolean[]{false});
         assertThat(ordering, Matchers.instanceOf(OrderingByPosition.class));
     }
 }

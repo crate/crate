@@ -32,7 +32,6 @@ import io.crate.data.Row1;
 import io.crate.data.RowN;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.InputCollectExpression;
-import io.crate.expression.FunctionExpression;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.FunctionIdent;
@@ -236,7 +235,7 @@ public class WindowBatchIteratorTest {
 
     @Test
     public void testWindowBatchIteratorWithOrderedWindowOverNullValues() throws Exception {
-        OrderBy orderBy = new OrderBy(singletonList(Literal.of(1L)), new boolean[]{true}, new Boolean[]{true});
+        OrderBy orderBy = new OrderBy(singletonList(Literal.of(1L)), new boolean[]{true}, new boolean[]{true});
         WindowDefinition windowDefinition = new WindowDefinition(Collections.emptyList(), orderBy, null);
 
         WindowBatchIterator windowBatchIterator = new WindowBatchIterator(

@@ -59,7 +59,7 @@ public class WindowDefinitionSerialisationTest {
         FrameBoundDefinition start = new FrameBoundDefinition(FrameBound.Type.UNBOUNDED_PRECEDING, Literal.of(5L));
         FrameBoundDefinition end = new FrameBoundDefinition(FrameBound.Type.FOLLOWING, Literal.of(3L));
         WindowFrameDefinition frameDefinition = new WindowFrameDefinition(WindowFrame.Type.RANGE, start, end);
-        OrderBy orderBy = new OrderBy(singletonList(Literal.of(1L)), new boolean[]{true}, new Boolean[]{true});
+        OrderBy orderBy = new OrderBy(singletonList(Literal.of(1L)), new boolean[]{true}, new boolean[]{true});
         WindowDefinition windowDefinition = new WindowDefinition(singletonList(Literal.of(2L)), orderBy, frameDefinition);
 
         BytesStreamOutput output = new BytesStreamOutput();

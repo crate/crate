@@ -148,7 +148,7 @@ public class SemiJoinsTest extends CrateDummyClusterServiceUnitTest {
             "MultiPhase[\n" +
             "    subQueries[\n" +
             "        RootBoundary['foo']\n" +
-            "        OrderBy['foo' ASC NULLS LAST]\n" +
+            "        OrderBy['foo' ASC]\n" +
             "        Collect[.empty_row | ['foo'] | All]\n" +
             "    ]\n" +
             "    FetchOrEval[a, x, i]\n" +

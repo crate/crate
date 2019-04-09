@@ -81,12 +81,12 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
         private final boolean reverseFlag;
         private final CollectorContext context;
         private final TransactionContext txnCtx;
-        private final Boolean nullFirst;
+        private final boolean nullFirst;
 
         SortSymbolContext(TransactionContext txnCtx,
                           CollectorContext collectorContext,
                           boolean reverseFlag,
-                          Boolean nullFirst) {
+                          boolean nullFirst) {
             this.txnCtx = txnCtx;
             this.nullFirst = nullFirst;
             this.context = collectorContext;
@@ -107,7 +107,7 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
                                    TransactionContext txnCtx,
                                    CollectorContext collectorContext,
                                    boolean[] reverseFlags,
-                                   Boolean[] nullsFirst) {
+                                   boolean[] nullsFirst) {
         SortField[] sortFields = new SortField[sortSymbols.size()];
         for (int i = 0; i < sortSymbols.size(); i++) {
             Symbol sortSymbol = sortSymbols.get(i);

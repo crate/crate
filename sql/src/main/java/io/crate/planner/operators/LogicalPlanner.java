@@ -50,9 +50,9 @@ import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.DependencyCarrier;
@@ -141,9 +141,7 @@ public class LogicalPlanner {
             OrderBy relationOrderBy = relation.orderBy();
             if (relationOrderBy == null ||
                 relationOrderBy.orderBySymbols().get(0).equals(relation.outputs().get(0)) == false) {
-                return Order.create(
-                    planBuilder,
-                    new OrderBy(relation.outputs(), new boolean[]{false}, new Boolean[]{false}));
+                return Order.create(planBuilder, new OrderBy(relation.outputs()));
             }
         }
         return planBuilder;

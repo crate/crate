@@ -98,7 +98,7 @@ public class RoutedCollectPhaseTest extends CrateUnitTest {
             WhereClause.MATCH_ALL.queryOrFallback(),
             DistributionInfo.DEFAULT_SAME_NODE
         );
-        collect.orderBy(new OrderBy(Collections.singletonList(toInt10), new boolean[]{false}, new Boolean[]{null}));
+        collect.orderBy(new OrderBy(Collections.singletonList(toInt10)));
         EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(getFunctions());
         RoutedCollectPhase normalizedCollect = collect.normalize(
             normalizer, new CoordinatorTxnCtx(SessionContext.systemSessionContext()));

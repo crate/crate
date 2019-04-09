@@ -44,7 +44,7 @@ public class OrderedTopNProjectionTest extends CrateUnitTest {
             Collections.singletonList(Literal.of("foobar")),
             Collections.singletonList(new InputColumn(0, DataTypes.STRING)),
             new boolean[] { true },
-            new Boolean[] { null }
+            new boolean[] { true }
         );
 
         BytesStreamOutput out = new BytesStreamOutput();
