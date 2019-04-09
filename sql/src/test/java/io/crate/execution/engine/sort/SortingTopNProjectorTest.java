@@ -23,7 +23,6 @@
 package io.crate.execution.engine.sort;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Ordering;
 import io.crate.data.Bucket;
 import io.crate.data.Input;
 import io.crate.data.Projector;
@@ -37,6 +36,7 @@ import io.crate.testing.TestingBatchIterators;
 import io.crate.testing.TestingRowConsumer;
 import org.junit.Test;
 
+import java.util.Comparator;
 import java.util.List;
 
 import static io.crate.testing.TestingHelpers.isRow;
@@ -48,11 +48,11 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
     private static final Literal<Boolean> TRUE_LITERAL = Literal.of(true);
     private static final List<Input<?>> INPUT_LITERAL_LIST = ImmutableList.of(INPUT, TRUE_LITERAL);
     private static final List<CollectExpression<Row, ?>> COLLECT_EXPRESSIONS = ImmutableList.<CollectExpression<Row, ?>>of(INPUT);
-    private static final Ordering<Object[]> FIRST_CELL_ORDERING = OrderingByPosition.arrayOrdering(0, false, null);
+    private static final Comparator<Object[]> FIRST_CELL_ORDERING = OrderingByPosition.arrayOrdering(0, false, false);
 
     private TestingRowConsumer consumer = new TestingRowConsumer();
 
-    private Projector getProjector(int numOutputs, int limit, int offset, Ordering<Object[]> ordering) {
+    private Projector getProjector(int numOutputs, int limit, int offset, Comparator<Object[]> ordering) {
         int unboundedCollectorThreshold = 10_000;
         if (random().nextFloat() >= 0.5f) {
             unboundedCollectorThreshold = 1;

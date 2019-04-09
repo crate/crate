@@ -97,7 +97,7 @@ public class UnboundedSortingTopNCollector implements Collector<Row, PriorityQue
 
     @Override
     public Supplier<PriorityQueue<Object[]>> supplier() {
-        return () -> new PriorityQueue<>(initialCapacity, comparator);
+        return () -> new PriorityQueue<>(initialCapacity, comparator.reversed());
     }
 
     @Override
@@ -135,7 +135,7 @@ public class UnboundedSortingTopNCollector implements Collector<Row, PriorityQue
 
         if (pq.size() == maxNumberOfRowsInQueue) {
             Object[] highestElementInOrder = pq.peek();
-            if (highestElementInOrder == null || comparator.compare(rowCells, highestElementInOrder) > 0) {
+            if (highestElementInOrder == null || comparator.compare(rowCells, highestElementInOrder) < 0) {
                 pq.poll();
                 pq.add(rowCells);
             }

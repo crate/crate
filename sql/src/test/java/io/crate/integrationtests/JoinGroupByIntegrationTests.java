@@ -163,7 +163,8 @@ public class JoinGroupByIntegrationTests extends SQLTransportIntegrationTest {
 
         assertThat(
             TestingHelpers.printedTable(response.rows()),
-            is("apple| 2| 1.9\nbanana| 2| 0.8\n")
+            is("apple| 2| 1.9\n" +
+               "banana| 2| 0.8\n")
         );
     }
 
@@ -213,7 +214,7 @@ public class JoinGroupByIntegrationTests extends SQLTransportIntegrationTest {
         );
 
         List<Object[]> rows = Arrays.asList(response.rows());
-        rows.sort(OrderingByPosition.arrayOrdering(1, true, null));
+        rows.sort(OrderingByPosition.arrayOrdering(1, false, false));
         assertThat(
             TestingHelpers.printedTable(new CollectionBucket(rows)),
             is("yellow| 5.0\n" +
@@ -231,7 +232,7 @@ public class JoinGroupByIntegrationTests extends SQLTransportIntegrationTest {
         );
 
         List<Object[]> rows = Arrays.asList(response.rows());
-        rows.sort(OrderingByPosition.arrayOrdering(1, true, null));
+        rows.sort(OrderingByPosition.arrayOrdering(1, false, false));
 
         assertThat(
             TestingHelpers.printedTable(new CollectionBucket(rows)),

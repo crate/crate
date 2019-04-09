@@ -100,7 +100,7 @@ public class SortingProjector implements Projector {
     }
 
     private Bucket sortAndCreateBucket(List<Object[]> rows) {
-        rows.sort(comparator.reversed());
+        rows.sort(comparator);
         if (offset == 0) {
             return new CollectionBucket(rows, numOutputs);
         }
