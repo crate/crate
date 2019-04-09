@@ -404,7 +404,8 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(printedTable(response.rows()), is(
             "search_path| pg_catalog, doc| Sets the schema search order.\n" +
             "enable_semijoin| false| Considers rewriting a SemiJoin query into a conventional join query.\n" +
-            "enable_hashjoin| true| Considers using the Hash Join instead of the Nested Loop Join implementation.\n")
+            "enable_hashjoin| true| Considers using the Hash Join instead of the Nested Loop Join implementation.\n" +
+            "max_index_keys| 32| Shows the maximum number of index keys.\n")
         );
     }
 }

@@ -26,7 +26,9 @@ import io.crate.action.sql.SessionContext;
 import io.crate.data.Row;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.StringLiteral;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,12 +40,23 @@ import static org.junit.Assert.fail;
 
 public class SessionSettingRegistryTest {
 
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
+
     private SessionContext sessionContext = SessionContext.systemSessionContext();
 
     @Test
     public void testSemiJoinSessionSetting() {
         SessionSetting<?> setting = SessionSettingRegistry.SETTINGS.get(SessionSettingRegistry.SEMI_JOIN_KEY);
         assertBooleanNonEmptySetting(sessionContext::getSemiJoinsRewriteEnabled, setting, false);
+    }
+
+    @Test
+    public void testMaxIndexKeysSessionSettingCannotBeChanged() {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("\"max_index_keys\" cannot be changed.");
+        SessionSetting<?> setting = SessionSettingRegistry.SETTINGS.get(SessionSettingRegistry.MAX_INDEX_KEYS);
+        setting.apply(Row.EMPTY, generateInput("32"), sessionContext);
     }
 
     @Test
