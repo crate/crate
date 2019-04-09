@@ -132,6 +132,9 @@ Deprecations
 Changes
 =======
 
+- Show the session setting description in the output of the ``SHOW ALL``
+  statement.
+
 - Exposed the :ref:`_seq_no <sql_administration_system_columns_seq_no>` and
   :ref:`_primary_term <sql_administration_system_columns_primary_term>` system
   columns.

@@ -98,7 +98,7 @@ class ShowStatementAnalyzer {
         if (sessionSetting != null) {
             sb.append("setting ");
         } else {
-            sb.append("name, setting ");
+            sb.append("name, setting, short_desc as description ");
         }
         sb.append("FROM pg_catalog.pg_settings ");
         if (sessionSetting != null) {
