@@ -29,6 +29,7 @@ import io.crate.types.DataTypes;
 
 import java.util.Iterator;
 import java.util.Map;
+import java.util.function.Function;
 
 import static io.crate.metadata.SearchPath.createSearchPathFrom;
 
@@ -37,6 +38,7 @@ public class SessionSettingRegistry {
     private static final String SEARCH_PATH_KEY = "search_path";
     static final String SEMI_JOIN_KEY = "enable_semijoin";
     static final String HASH_JOIN_KEY = "enable_hashjoin";
+    static final String MAX_INDEX_KEYS = "max_index_keys";
 
     public static final Map<String, SessionSetting<?>> SETTINGS = ImmutableMap.<String, SessionSetting<?>>builder()
             .put(SEARCH_PATH_KEY,
@@ -74,6 +76,17 @@ public class SessionSettingRegistry {
                     () -> String.valueOf(true),
                     "Considers using the Hash Join instead of the Nested Loop Join implementation.",
                     DataTypes.BOOLEAN.getName()))
+            .put(MAX_INDEX_KEYS,
+                new SessionSetting<>(
+                    objects -> {},
+                    Function.identity(),
+                    (s, v) -> {
+                        throw new UnsupportedOperationException("\"" + MAX_INDEX_KEYS + "\" cannot be changed.");
+                    },
+                    s -> String.valueOf(32),
+                    () -> String.valueOf(32),
+                    "Shows the maximum number of index keys.",
+                    DataTypes.INTEGER.getName()))
             .build();
 
     private static String[] objectsToStringArray(Object[] objects) {

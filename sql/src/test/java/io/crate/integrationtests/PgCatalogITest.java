@@ -104,7 +104,8 @@ public class PgCatalogITest extends SQLTransportIntegrationTest {
         assertThat(printedTable(response.rows()), is(
             "pg_catalog, doc| NULL| NULL| NULL| NULL| NULL| NULL| search_path| NULL| pg_catalog, doc| pg_catalog, doc| Sets the schema search order.| NULL| NULL| NULL| NULL| text\n" +
             "false| NULL| NULL| NULL| NULL| NULL| NULL| enable_semijoin| NULL| false| true| Considers rewriting a SemiJoin query into a conventional join query.| NULL| NULL| NULL| NULL| boolean\n" +
-            "true| NULL| NULL| NULL| NULL| NULL| NULL| enable_hashjoin| NULL| true| false| Considers using the Hash Join instead of the Nested Loop Join implementation.| NULL| NULL| NULL| NULL| boolean\n")
+            "true| NULL| NULL| NULL| NULL| NULL| NULL| enable_hashjoin| NULL| true| false| Considers using the Hash Join instead of the Nested Loop Join implementation.| NULL| NULL| NULL| NULL| boolean\n" +
+            "32| NULL| NULL| NULL| NULL| NULL| NULL| max_index_keys| NULL| 32| 32| Shows the maximum number of index keys.| NULL| NULL| NULL| NULL| integer\n")
         );
     }
 }

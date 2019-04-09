@@ -14,7 +14,8 @@ Session settings only apply to the currently connected client session.
 Usage
 =====
 
-To configure a session setting, use :ref:`SET <ref-set>` eg:
+To configure a modifiable session setting, use :ref:`SET <ref-set>`,
+for example:
 
 .. code-block:: sql
 
@@ -36,7 +37,10 @@ Supported Session Settings
 
 .. _conf-session-search-path:
 
-``search_path``: *schema names* (default: ``doc``)
+**search_path**
+  | *Default:* ``pg_catalog, doc``
+  | *Modifiable:* ``yes``
+
   The list of schemas to be searched when a relation is referenced without a
   schema.
 
@@ -57,7 +61,10 @@ Supported Session Settings
      includes it in the ``search_path`` *before* the configured schemas, unless
      it is already explicitly in the schema configuration.
 
-``enable_semijoin``: *enabled* (default: ``false``)
+**enable_semijoin**
+  | *Default:* ``false``
+  | *Modifiable:* ``yes``
+
   An :ref:`experimental <experimental-warning>` setting which enables CrateDB
   to consider rewriting a ``SemiJoin`` query into a conventional join query,
   if possible. For instance, a query in the form of:
@@ -73,7 +80,10 @@ Supported Session Settings
 
 .. _conf-session-enable-hashjoin:
 
-``enable_hashjoin``: *enabled* (default: ``true``)
+**enable_hashjoin**
+  | *Default:* ``true``
+  | *Modifiable:* ``yes``
+
   An :ref:`experimental <experimental-warning>` setting which enables CrateDB
   to consider whether a Join operation should be evaluated using the
   ``HashJoin`` implementation instead of the ``Nested-Loops`` implementation.
@@ -85,6 +95,19 @@ Supported Session Settings
      option of considering it, it will not guaranty it.
      See also the :ref:`available join algorithms
      <available-join-algo>` for more insights on this topic.
+
+.. _conf-session-max_index_keys:
+
+**max_index_keys**
+  | *Default:* ``32``
+  | *Modifiable:* ``no``
+
+  Shows the maximum number of index keys.
+
+  .. NOTE::
+
+     The session setting has not effect on CrateDB and was added to enhance
+     compatibility with ``PostgreSQL``.
 
 .. _experimental-warning:
 
