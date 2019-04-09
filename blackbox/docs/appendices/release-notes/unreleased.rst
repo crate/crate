@@ -51,14 +51,4 @@ None
 Fixes
 =====
 
-- Fixed a ``ClassCastException`` which could occur when selecting
-  ``pg_catalog.pg_type.typlen``.
-
-- Fixed an issue that could cause window functions to compute incorrect results
-  if multiple window functions with different window definitions were used.
-
-- Fixed an issue that could cause a query with window functions and limit to
-  return too few rows or have the window functions compute wrong results.
-
-- Fixed an issue that would cause a ``ClassCastException`` for queries ordered
-  by a window function.
+None
