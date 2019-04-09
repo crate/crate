@@ -159,10 +159,6 @@ public class AnalyzedStatementVisitor<C, R> {
         return visitAnalyzedStatement(analysis, context);
     }
 
-    public R visitShowSessionParameterAnalyzedStatement(ShowSessionParameterAnalyzedStatement analysis, C context) {
-        return visitAnalyzedStatement(analysis, context);
-    }
-
     public R visitDropRepositoryAnalyzedStatement(DropRepositoryAnalyzedStatement analysis, C context) {
         return visitDDLStatement(analysis, context);
     }
