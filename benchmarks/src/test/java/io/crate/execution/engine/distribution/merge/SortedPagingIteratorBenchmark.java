@@ -59,7 +59,7 @@ public class SortedPagingIteratorBenchmark {
     @Setup
     public void prepareData() {
         rnd = new Random(42);
-        compareOnFirstColumn = OrderingByPosition.rowOrdering(0, false, null);
+        compareOnFirstColumn = OrderingByPosition.rowOrdering(0, false, false);
 
         unsortedFirst = IntStream.range(0, 1_000_000).mapToObj(Row1::new).collect(Collectors.toList());
         unsortedSecond = IntStream.range(500_000, 1_500_00).mapToObj(Row1::new).collect(Collectors.toList());

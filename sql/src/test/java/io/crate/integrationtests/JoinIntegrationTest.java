@@ -192,7 +192,7 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
 
         List<Object[]> rows = Arrays.asList(response.rows());
         Collections.sort(rows, OrderingByPosition.arrayOrdering(
-            new int[]{0, 1}, new boolean[]{false, false}, new boolean[]{false, false}).reverse());
+            new int[]{0, 1}, new boolean[]{false, false}, new boolean[]{false, false}));
         assertThat(printRows(rows), is(
             "blue| large\n" +
             "blue| small\n" +
@@ -276,7 +276,7 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
 
         List<Object[]> rows = Arrays.asList(response.rows());
         Collections.sort(rows, OrderingByPosition.arrayOrdering(
-            new int[]{0, 1}, new boolean[]{false, true}, new boolean[]{false, true}).reverse());
+            new int[]{0, 1}, new boolean[]{false, true}, new boolean[]{false, true}));
 
         assertThat(printedTable(new CollectionBucket(rows)),
             is("" +

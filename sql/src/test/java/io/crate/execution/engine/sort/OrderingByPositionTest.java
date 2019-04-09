@@ -28,69 +28,65 @@ import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.Comparator;
 
 import static org.hamcrest.core.Is.is;
 
-/**
- * NOTE: The given <p>reverse</p> boolean is always reversed by the {@link OrderingByPosition} so the comparator is
- * working correctly while used on queue implementations where elements are popped from the end of the queue
- * while iterating. So all tests should also be read reversed ;).
- */
 public class OrderingByPositionTest extends CrateUnitTest {
 
     @Test
     public void testOrderByAscNullsFirst() throws Exception {
-        Ordering<Object[]> ordering = OrderingByPosition.arrayOrdering(0, false, true);
+        Comparator<Object[]> ordering = OrderingByPosition.arrayOrdering(0, false, true);
 
-        assertThat(ordering.compare(new Object[]{1}, new Object[]{null}), is(-1));
+        assertThat(ordering.compare(new Object[]{1}, new Object[]{null}), is(1));
     }
 
     @Test
     public void testOrderByAscNullsLast() throws Exception {
-        Ordering<Object[]> ordering = OrderingByPosition.arrayOrdering(0, false, false);
-
-        assertThat(ordering.compare(new Object[]{1}, new Object[]{null}), is(1));
-    }
-
-    @Test
-    public void testOrderByDescNullsLast() throws Exception {
-        Ordering<Object[]> ordering = OrderingByPosition.arrayOrdering(0, true, false);
-
-        assertThat(ordering.compare(new Object[]{1}, new Object[]{null}), is(1));
-        assertThat(ordering.compare(new Object[]{1}, new Object[]{2}), is(-1));
-    }
-
-    @Test
-    public void testOrderByDescNullsFirst() throws Exception {
-        Ordering<Object[]> ordering = OrderingByPosition.arrayOrdering(0, true, true);
+        Comparator<Object[]> ordering = OrderingByPosition.arrayOrdering(0, false, false);
 
         assertThat(ordering.compare(new Object[]{1}, new Object[]{null}), is(-1));
     }
 
     @Test
+    public void testOrderByDescNullsLast() throws Exception {
+        Comparator<Object[]> ordering = OrderingByPosition.arrayOrdering(0, true, false);
+
+        assertThat(ordering.compare(new Object[]{1}, new Object[]{null}), is(-1));
+        assertThat(ordering.compare(new Object[]{1}, new Object[]{2}), is(1));
+    }
+
+    @Test
+    public void testOrderByDescNullsFirst() throws Exception {
+        Comparator<Object[]> ordering = OrderingByPosition.arrayOrdering(0, true, true);
+
+        assertThat(ordering.compare(new Object[]{1}, new Object[]{null}), is(1));
+    }
+
+    @Test
     public void testOrderByAsc() throws Exception {
-        Ordering<Object[]> ordering = OrderingByPosition.arrayOrdering(0, true, null);
+        Comparator<Object[]> ordering = OrderingByPosition.arrayOrdering(0, false, true);
 
         assertThat(ordering.compare(new Object[]{1}, new Object[]{2}), is(-1));
     }
 
     @Test
     public void testMultipleOrderBy() throws Exception {
-        Ordering<Object[]> ordering = Ordering.compound(Arrays.asList(
-            OrderingByPosition.arrayOrdering(1, false, null),
-            OrderingByPosition.arrayOrdering(0, false, null)
+        Comparator<Object[]> ordering = Ordering.compound(Arrays.asList(
+            OrderingByPosition.arrayOrdering(1, false, false),
+            OrderingByPosition.arrayOrdering(0, false, false)
         ));
 
-        assertThat(ordering.compare(new Object[]{0, 0}, new Object[]{4, 0}), is(1));
-        assertThat(ordering.compare(new Object[]{4, 0}, new Object[]{1, 1}), is(1));
-        assertThat(ordering.compare(new Object[]{5, 1}, new Object[]{2, 2}), is(1));
-        assertThat(ordering.compare(new Object[]{5, 1}, new Object[]{2, 2}), is(1));
+        assertThat(ordering.compare(new Object[]{0, 0}, new Object[]{4, 0}), is(-1));
+        assertThat(ordering.compare(new Object[]{4, 0}, new Object[]{1, 1}), is(-1));
+        assertThat(ordering.compare(new Object[]{5, 1}, new Object[]{2, 2}), is(-1));
+        assertThat(ordering.compare(new Object[]{5, 1}, new Object[]{2, 2}), is(-1));
     }
 
     @Test
     public void testSingleOrderByPositionResultsInNonCompoundOrdering() throws Exception {
-        Ordering<Object[]> ordering = OrderingByPosition.arrayOrdering(
+        Comparator<Object[]> ordering = OrderingByPosition.arrayOrdering(
             new int[]{0}, new boolean[]{false}, new boolean[]{false});
-        assertThat(ordering, Matchers.instanceOf(OrderingByPosition.class));
+        assertThat(ordering, Matchers.instanceOf(NullAwareComparator.class));
     }
 }

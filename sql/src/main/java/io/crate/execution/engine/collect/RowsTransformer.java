@@ -24,7 +24,6 @@ package io.crate.execution.engine.collect;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Ordering;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueryClause;
 import io.crate.data.Buckets;
@@ -40,6 +39,7 @@ import io.crate.types.DataTypes;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 
 public final class RowsTransformer {
 
@@ -85,8 +85,8 @@ public final class RowsTransformer {
 
     public static Iterable<Row> sortRows(Iterable<Object[]> rows, RoutedCollectPhase collectPhase) {
         ArrayList<Object[]> objects = Lists.newArrayList(rows);
-        Ordering<Object[]> ordering = OrderingByPosition.arrayOrdering(collectPhase);
-        objects.sort(ordering.reverse());
+        Comparator<Object[]> ordering = OrderingByPosition.arrayOrdering(collectPhase);
+        objects.sort(ordering);
         return Iterables.transform(objects, Buckets.arrayToSharedRow()::apply);
     }
 }

@@ -23,12 +23,12 @@
 package io.crate.execution.engine.sort;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.expression.symbol.Literal;
 import io.crate.data.BatchIterator;
 import io.crate.data.Bucket;
 import io.crate.data.Row;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.InputCollectExpression;
+import io.crate.expression.symbol.Literal;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingBatchIterators;
 import io.crate.testing.TestingRowConsumer;
@@ -47,7 +47,7 @@ public class SortingProjectorTest extends CrateUnitTest {
             ImmutableList.of(input, Literal.of(true)),
             ImmutableList.<CollectExpression<Row, ?>>of(input),
             numOutputs,
-            OrderingByPosition.arrayOrdering(0, false, null),
+            OrderingByPosition.arrayOrdering(0, false, false),
             offset
         );
     }

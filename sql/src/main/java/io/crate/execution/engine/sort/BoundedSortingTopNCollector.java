@@ -92,7 +92,7 @@ public class BoundedSortingTopNCollector implements Collector<Row, RowPriorityQu
 
     @Override
     public Supplier<RowPriorityQueue<Object[]>> supplier() {
-        return () -> new RowPriorityQueue<>(maxSize, comparator);
+        return () -> new RowPriorityQueue<>(maxSize, comparator.reversed());
     }
 
     @Override
