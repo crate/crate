@@ -73,7 +73,7 @@ public class OrderByAnalyzerTest {
         assertThat(reverseFlags[0], is(false));
         assertThat(reverseFlags[1], is(true));
 
-        Boolean[] nullsFirst = orderBy.nullsFirst();
+        boolean[] nullsFirst = orderBy.nullsFirst();
         assertThat(nullsFirst.length, is(2));
         assertThat(nullsFirst[0], is(true));
         assertThat(nullsFirst[1], is(false));

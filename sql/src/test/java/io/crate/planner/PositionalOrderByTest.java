@@ -46,7 +46,7 @@ public class PositionalOrderByTest {
         OrderBy orderBy = new OrderBy(
             Arrays.asList(ref("a"), ref("c"), ref("b")),
             new boolean[]{true, false, true},
-            new Boolean[]{true, null, null}
+            new boolean[]{true, false, false}
         );
         PositionalOrderBy positionalOrderBy = PositionalOrderBy.of(orderBy, oldOutputs);
         PositionalOrderBy newOrderBy = positionalOrderBy.tryMapToNewOutputs(oldOutputs, newOutputs);

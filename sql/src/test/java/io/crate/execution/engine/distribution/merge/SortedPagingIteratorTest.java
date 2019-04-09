@@ -43,7 +43,7 @@ import static org.hamcrest.core.Is.is;
 public class SortedPagingIteratorTest extends CrateUnitTest {
 
     public static final Ordering<Row> ORDERING =
-        OrderingByPosition.rowOrdering(new int[]{0}, new boolean[]{false}, new Boolean[]{null});
+        OrderingByPosition.rowOrdering(new int[]{0}, new boolean[]{false}, new boolean[]{false});
 
     @Test
     public void testTwoBucketsAndTwoPagesAreSortedCorrectly() throws Exception {

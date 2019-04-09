@@ -50,7 +50,7 @@ public abstract class OrderingByPosition<T> extends Ordering<T> {
         return rowOrdering(orderBy.indices(), orderBy.reverseFlags(), orderBy.nullsFirst());
     }
 
-    public static Ordering<Row> rowOrdering(int[] positions, boolean[] reverseFlags, Boolean[] nullsFirst) {
+    public static Ordering<Row> rowOrdering(int[] positions, boolean[] reverseFlags, boolean[] nullsFirst) {
         List<Comparator<Row>> comparators = new ArrayList<>(positions.length);
         for (int i = 0; i < positions.length; i++) {
             OrderingByPosition<Row> rowOrdering = OrderingByPosition.rowOrdering(
@@ -78,7 +78,7 @@ public abstract class OrderingByPosition<T> extends Ordering<T> {
         }
     }
 
-    public static Ordering<Object[]> arrayOrdering(int[] position, boolean[] reverse, Boolean[] nullsFirst) {
+    public static Ordering<Object[]> arrayOrdering(int[] position, boolean[] reverse, boolean[] nullsFirst) {
         if (position.length == 1) {
             return arrayOrdering(position[0], reverse[0], nullsFirst[0]);
         }

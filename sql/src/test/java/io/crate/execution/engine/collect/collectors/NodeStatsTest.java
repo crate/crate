@@ -31,10 +31,10 @@ import io.crate.expression.InputFactory;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.BatchIteratorTester;
@@ -170,8 +170,7 @@ public class NodeStatsTest extends CrateUnitTest {
         toCollect.add(idRef);
         when(collectPhase.toCollect()).thenReturn(toCollect);
         when(collectPhase.where()).thenReturn(Literal.BOOLEAN_TRUE);
-        when(collectPhase.orderBy()).thenReturn(new OrderBy(Collections.singletonList(idRef),
-            new boolean[]{false}, new Boolean[]{true}));
+        when(collectPhase.orderBy()).thenReturn(new OrderBy(Collections.singletonList(idRef)));
 
         List<Object[]> expectedResult = Arrays.asList(
             new Object[]{"nodeOne"},

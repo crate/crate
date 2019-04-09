@@ -153,7 +153,7 @@ public class RelationSplitterTest extends CrateUnitTest {
         // select a from t1, t2 order by a, b + x desc
 
         List<Symbol> orderBySymbols = Arrays.asList(asSymbol("a"), asSymbol("x + y"));
-        OrderBy orderBy = new OrderBy(orderBySymbols, new boolean[]{true, false}, new Boolean[]{null, null});
+        OrderBy orderBy = new OrderBy(orderBySymbols, new boolean[]{true, false}, new boolean[]{true, false});
 
         QuerySpec querySpec = new QuerySpec()
             .outputs(singleTrue())
@@ -171,7 +171,7 @@ public class RelationSplitterTest extends CrateUnitTest {
     public void testSplitOrderByWith3RelationsButOutputsOnly2Relations() throws Exception {
         QuerySpec querySpec = fromQuery("x = 1 and y = 2 and z = 3").limit(Literal.of(30));
         List<Symbol> orderBySymbols = Arrays.asList(asSymbol("x"), asSymbol("y"), asSymbol("z"));
-        OrderBy orderBy = new OrderBy(orderBySymbols, new boolean[]{false, false, false}, new Boolean[]{null, null, null});
+        OrderBy orderBy = new OrderBy(orderBySymbols);
         querySpec.orderBy(orderBy).limit(Literal.of(20)).outputs(Arrays.asList(asSymbol("x"), asSymbol("y")));
 
         RelationSplitter splitter = split(querySpec);
@@ -191,9 +191,7 @@ public class RelationSplitterTest extends CrateUnitTest {
             asSymbol("x - y + z"),
             asSymbol("y"),
             asSymbol("x+y"));
-        OrderBy orderBy = new OrderBy(orderBySymbols,
-            new boolean[]{false, false, false, false},
-            new Boolean[]{null, null, null, null});
+        OrderBy orderBy = new OrderBy(orderBySymbols);
         querySpec.orderBy(orderBy);
 
         RelationSplitter splitter = split(querySpec);

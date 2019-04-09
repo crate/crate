@@ -76,7 +76,7 @@ public class SystemCollectSourceTest extends SQLTransportIntegrationTest {
             WhereClause.MATCH_ALL.queryOrFallback(),
             DistributionInfo.DEFAULT_BROADCAST
         );
-        collectPhase.orderBy(new OrderBy(Collections.singletonList(shardId), new boolean[]{false}, new Boolean[]{null}));
+        collectPhase.orderBy(new OrderBy(Collections.singletonList(shardId), new boolean[]{false}, new boolean[]{false}));
 
         Iterable<? extends Row> rows = systemCollectSource.toRowsIterableTransformation(
             collectPhase,

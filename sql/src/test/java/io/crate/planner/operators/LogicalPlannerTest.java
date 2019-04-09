@@ -224,7 +224,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan.dependencies().entrySet().size(), is(1));
         LogicalPlan subPlan = plan.dependencies().keySet().iterator().next();
         assertThat(subPlan, isPlan("RootBoundary[x]\n" +
-                                   "OrderBy[x ASC NULLS LAST]\n" +
+                                   "OrderBy[x ASC]\n" +
                                    "Collect[doc.t1 | [x] | All]\n"));
     }
 
@@ -245,7 +245,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan.dependencies().entrySet().size(), is(1));
         LogicalPlan subPlan = plan.dependencies().keySet().iterator().next();
         assertThat(subPlan, isPlan("RootBoundary[x]\n" +
-                                   "OrderBy[x ASC NULLS LAST]\n" +
+                                   "OrderBy[x ASC]\n" +
                                    "FetchOrEval[x]\n" +
                                    "Limit[10;0]\n" +
                                    "OrderBy[a DESC]\n" +

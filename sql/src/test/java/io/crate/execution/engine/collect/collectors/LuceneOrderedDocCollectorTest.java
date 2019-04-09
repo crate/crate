@@ -100,7 +100,7 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
         StandardAnalyzer analyzer = new StandardAnalyzer();
         IndexWriterConfig cfg = new IndexWriterConfig(analyzer);
         IndexWriter w = new IndexWriter(index, cfg);
-        for (Long i = 0L; i < 4; i++) {
+        for (long i = 0L; i < 4; i++) {
             if (i < 2) {
                 addDocToLucene(w, i + 1);
             } else {
@@ -137,10 +137,10 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
         return docs;
     }
 
-    private Long[] nextPageQuery(IndexReader reader, FieldDoc lastCollected, boolean reverseFlag, @Nullable Boolean nullFirst) throws IOException {
+    private Long[] nextPageQuery(IndexReader reader, FieldDoc lastCollected, boolean reverseFlag, boolean nullFirst) throws IOException {
         OrderBy orderBy = new OrderBy(ImmutableList.of(REFERENCE),
             new boolean[]{reverseFlag},
-            new Boolean[]{nullFirst});
+            new boolean[]{nullFirst});
 
         SortField sortField = new SortedNumericSortField("value", SortField.Type.LONG, reverseFlag);
         Long missingValue = (Long) LuceneMissingValue.missingValue(orderBy, 0);
@@ -168,7 +168,7 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
     @Test
     public void testNextPageQueryWithLastCollectedNullValue() {
         FieldDoc fieldDoc = new FieldDoc(1, 0, new Object[]{null});
-        OrderBy orderBy = new OrderBy(Collections.singletonList(REFERENCE), new boolean[]{false}, new Boolean[]{null});
+        OrderBy orderBy = new OrderBy(Collections.singletonList(REFERENCE), new boolean[]{false}, new boolean[]{false});
 
         OptimizeQueryForSearchAfter queryForSearchAfter = new OptimizeQueryForSearchAfter(
             orderBy, mock(QueryShardContext.class), name -> valueFieldType);
@@ -187,14 +187,14 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
         //    ^  (lastCollected = 2)
 
         FieldDoc afterDoc = new FieldDoc(0, 0, new Object[]{2L});
-        Long[] result = nextPageQuery(reader, afterDoc, false, null);
+        Long[] result = nextPageQuery(reader, afterDoc, false, false);
         assertThat(result, is(new Long[]{2L, null, null}));
 
         // reverseOrdering = false, nulls First = false
         // 1  2  null null
         //       ^
         afterDoc = new FieldDoc(0, 0, new Object[]{LuceneMissingValue.missingValue(false, null, SortField.Type.LONG)});
-        result = nextPageQuery(reader, afterDoc, false, null);
+        result = nextPageQuery(reader, afterDoc, false, false);
         assertThat(result, is(new Long[]{null, null}));
 
         // reverseOrdering = true, nulls First = false
@@ -263,7 +263,7 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
 
         OrderBy orderBy = new OrderBy(ImmutableList.of(sysColReference, REFERENCE),
             new boolean[]{false, false},
-            new Boolean[]{false, false});
+            new boolean[]{false, false});
 
         FieldDoc lastCollected = new FieldDoc(0, 0, new Object[]{2L});
 

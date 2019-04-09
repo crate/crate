@@ -55,10 +55,10 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SearchPath;
+import io.crate.metadata.TransactionContext;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingBatchIterators;
 import io.crate.testing.TestingRowConsumer;
@@ -158,7 +158,7 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
         OrderedTopNProjection projection = new OrderedTopNProjection(10, 0, outputs,
             Arrays.asList(new InputColumn(0), new InputColumn(1)),
             new boolean[]{false, false},
-            new Boolean[]{null, null}
+            new boolean[]{false, false}
         );
         Projector projector = visitor.create(projection, txnCtx, RAM_ACCOUNTING_CONTEXT, UUID.randomUUID());
         assertThat(projector, instanceOf(SortingTopNProjector.class));
@@ -170,7 +170,7 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
         OrderedTopNProjection projection = new OrderedTopNProjection(TopN.NO_LIMIT, TopN.NO_OFFSET, outputs,
             Arrays.asList(new InputColumn(0), new InputColumn(1)),
             new boolean[]{false, false},
-            new Boolean[]{null, null}
+            new boolean[]{false, false}
         );
         Projector projector = visitor.create(projection, txnCtx, RAM_ACCOUNTING_CONTEXT, UUID.randomUUID());
         assertThat(projector, instanceOf(SortingProjector.class));
@@ -235,7 +235,7 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
         OrderedTopNProjection topNProjection = new OrderedTopNProjection(10, 0, outputs,
             ImmutableList.of(new InputColumn(2, DataTypes.DOUBLE)),
             new boolean[]{false},
-            new Boolean[]{null});
+            new boolean[]{false});
         Projector topNProjector = visitor.create(topNProjection, txnCtx, RAM_ACCOUNTING_CONTEXT, UUID.randomUUID());
 
         String human = "human";
