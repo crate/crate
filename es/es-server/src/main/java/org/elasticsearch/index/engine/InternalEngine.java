@@ -613,10 +613,12 @@ public class InternalEngine extends Engine {
                                 Translog.Operation operation = translog.readOperation(versionValue.getLocation());
                                 if (operation != null) {
                                     // in the case of a already pruned translog generation we might get null here - yet very unlikely
-                                    TranslogLeafReader reader = new TranslogLeafReader((Translog.Index) operation, engineConfig
+                                    final Translog.Index index = (Translog.Index) operation;
+                                    TranslogLeafReader reader = new TranslogLeafReader(index, engineConfig
                                         .getIndexSettings().getIndexVersionCreated());
                                     return new GetResult(new Searcher("realtime_get", new IndexSearcher(reader), reader::close),
-                                        new VersionsAndSeqNoResolver.DocIdAndVersion(0, ((Translog.Index) operation).version(), reader, 0));
+                                                         new VersionsAndSeqNoResolver.DocIdAndVersion(0, index.version(), index.seqNo(), index.primaryTerm(),
+                                                                                                      reader, 0));
                                 }
                             } catch (IOException e) {
                                 maybeFailEngine("realtime_get", e); // lets check if the translog has failed with a tragic event
@@ -693,14 +695,17 @@ public class InternalEngine extends Engine {
     }
 
     /** resolves the current version of the document, returning null if not found */
-    private VersionValue resolveDocVersion(final Operation op) throws IOException {
+    private VersionValue resolveDocVersion(final Operation op, boolean loadSeqNo) throws IOException {
         assert incrementVersionLookup(); // used for asserting in tests
         VersionValue versionValue = getVersionFromMap(op.uid().bytes());
         if (versionValue == null) {
             assert incrementIndexVersionLookup(); // used for asserting in tests
-            final long currentVersion = loadCurrentVersionFromIndex(op.uid());
-            if (currentVersion != Versions.NOT_FOUND) {
-                versionValue = new IndexVersionValue(null, currentVersion, SequenceNumbers.UNASSIGNED_SEQ_NO, 0L);
+            final VersionsAndSeqNoResolver.DocIdAndVersion docIdAndVersion;
+            try (Searcher searcher = acquireSearcher("load_version", SearcherScope.INTERNAL)) {
+                docIdAndVersion = VersionsAndSeqNoResolver.loadDocIdAndVersion(searcher.reader(), op.uid(), loadSeqNo);
+            }
+            if (docIdAndVersion != null) {
+                versionValue = new IndexVersionValue(null, docIdAndVersion.version, docIdAndVersion.seqNo, docIdAndVersion.primaryTerm);
             }
         } else if (engineConfig.isEnableGcDeletes() && versionValue.isDelete() &&
             (engineConfig.getThreadPool().relativeTimeInMillis() - ((DeleteVersionValue)versionValue).time) > getGcDeletesInMillis()) {
@@ -971,7 +976,7 @@ public class InternalEngine extends Engine {
         } else {
             versionMap.enforceSafeAccess();
             // resolves incoming version
-            final VersionValue versionValue = resolveDocVersion(index);
+            final VersionValue versionValue = resolveDocVersion(index, false);
             final long currentVersion;
             final boolean currentNotFoundOrDeleted;
             if (versionValue == null) {
@@ -1298,7 +1303,7 @@ public class InternalEngine extends Engine {
         assert delete.origin() == Operation.Origin.PRIMARY : "planing as primary but got " + delete.origin();
         assert getMaxSeqNoOfUpdatesOrDeletes() != SequenceNumbers.UNASSIGNED_SEQ_NO : "max_seq_no_of_updates is not initialized";
         // resolve operation from external to internal
-        final VersionValue versionValue = resolveDocVersion(delete);
+        final VersionValue versionValue = resolveDocVersion(delete, false);
         assert incrementVersionLookup();
         final long currentVersion;
         final boolean currentlyDeleted;
@@ -2057,13 +2062,6 @@ public class InternalEngine extends Engine {
                 return externalSearcherManager;
             default:
                 throw new IllegalStateException("unknown scope: " + scope);
-        }
-    }
-
-    private long loadCurrentVersionFromIndex(Term uid) throws IOException {
-        assert incrementIndexVersionLookup();
-        try (Searcher searcher = acquireSearcher("load_version", SearcherScope.INTERNAL)) {
-            return VersionsAndSeqNoResolver.loadVersion(searcher.reader(), uid);
         }
     }
 
