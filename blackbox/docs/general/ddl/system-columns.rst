@@ -16,6 +16,21 @@ _version
   increased on every write. This column can be used for `Optimistic Concurrency
   Control`_, see :ref:`sql_occ` for usage details.
 
+.. _sql_administration_system_columns_seq_no:
+
+_seq_no
+  The CrateDB primary shards will increment a sequence number for every insert,
+  update and delete operation executed against a row. The current sequence
+  number of a row is exposed under this column. 
+
+.. _sql_administration_system_columns_primary_term:
+
+_primary_term
+  The CrateDB master will assign each primary shard a term value. This value is
+  incremented with every primary shard assignment. Used in conjunction with
+  :ref:`_seq_no <sql_administration_system_columns_seq_no>` we can obtain a total order
+  of opertions across shards.
+
 .. _sql_administration_system_column_score:
 
 _score

@@ -135,6 +135,8 @@ public final class PKLookupOperation {
                     shard.shardId().getIndexName(),
                     id,
                     docIdAndVersion.version,
+                    docIdAndVersion.seqNo,
+                    docIdAndVersion.primaryTerm,
                     convertToMap(visitor.source(), false, XContentType.JSON).v2(),
                     () -> visitor.source().utf8ToString()
                 );

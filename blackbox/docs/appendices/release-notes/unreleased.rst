@@ -132,6 +132,10 @@ Deprecations
 Changes
 =======
 
+- Exposed the :ref:`_seq_no <sql_administration_system_columns_seq_no>` and
+  :ref:`_primary_term <sql_administration_system_columns_primary_term>` system
+  columns.
+
 - Added information for the internal PostgreSQL data type: ``name`` in
   :ref:`pg_catalog.pg_type <postgres_pg_type>` for improved PostgreSQL
   compatibility.

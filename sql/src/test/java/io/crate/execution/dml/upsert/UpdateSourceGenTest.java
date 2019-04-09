@@ -22,17 +22,16 @@
 
 package io.crate.execution.dml.upsert;
 
-import io.crate.metadata.SearchPath;
-import io.crate.metadata.settings.SessionSettings;
 import io.crate.analyze.AnalyzedUpdateStatement;
 import io.crate.expression.reference.Doc;
 import io.crate.expression.symbol.Assignments;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.SearchPath;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.settings.session.SessionSettingRegistry;
+import io.crate.metadata.settings.SessionSettings;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.elasticsearch.common.Strings;
@@ -80,6 +79,8 @@ public class UpdateSourceGenTest extends CrateDummyClusterServiceUnitTest {
                 table.concreteIndices()[0],
                 "1",
                 1,
+                1,
+                1,
                 source,
                 () -> {
                     try {
@@ -120,6 +121,8 @@ public class UpdateSourceGenTest extends CrateDummyClusterServiceUnitTest {
                 table.concreteIndices()[0],
                 "4",
                 1,
+                1,
+                1,
                 emptyMap(),
                 source::utf8ToString
             ),
@@ -149,6 +152,8 @@ public class UpdateSourceGenTest extends CrateDummyClusterServiceUnitTest {
                 table.concreteIndices()[0],
                 "1",
                 1,
+                1,
+                1,
                 emptyMap(),
                 () -> "{}"
             ),
@@ -175,7 +180,7 @@ public class UpdateSourceGenTest extends CrateDummyClusterServiceUnitTest {
         );
 
         BytesReference source = sourceGen.generateSource(
-            new Doc(1, table.concreteIndices()[0], "1", 1, emptyMap(), () -> "{}"),
+            new Doc(1, table.concreteIndices()[0], "1", 1, 1, 1, emptyMap(), () -> "{}"),
             assignments.sources(),
             new Object[0]
         );

@@ -93,6 +93,12 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
             case DocSysColumns.Names.VERSION:
                 return new VersionCollectorExpression();
 
+            case DocSysColumns.Names.SEQ_NO:
+                return new SeqNoCollectorExpression();
+
+            case DocSysColumns.Names.PRIMARY_TERM:
+                return new PrimaryTermCollectorExpression();
+
             default:
                 return typeSpecializedExpression(fieldTypeLookup, ref);
         }
