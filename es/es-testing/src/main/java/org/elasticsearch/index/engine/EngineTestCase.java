@@ -646,25 +646,22 @@ public abstract class EngineTestCase extends ESTestCase {
                     throw new UnsupportedOperationException("unknown version type: " + versionType);
             }
             if (randomBoolean()) {
-                op = new Engine.Index(id, testParsedDocument(docId, null, testDocumentWithTextField(
-                    valuePrefix + i), SOURCE, null),
-                    forReplica && i >= startWithSeqNo ? i * 2 : SequenceNumbers.UNASSIGNED_SEQ_NO,
-                    forReplica && i >= startWithSeqNo && incrementTermWhenIntroducingSeqNo ?
-                        primaryTerm + 1 : primaryTerm,
-                    version,
-                    forReplica ? versionType.versionTypeForReplicationAndRecovery() : versionType,
-                    forReplica ? REPLICA : PRIMARY,
-                    System.currentTimeMillis(), -1, false
-                );
+                op = new Engine.Index(id, testParsedDocument(docId, null, testDocumentWithTextField(valuePrefix + i), SOURCE, null),
+                                      forReplica && i >= startWithSeqNo ? i * 2 : SequenceNumbers.UNASSIGNED_SEQ_NO,
+                                      forReplica && i >= startWithSeqNo && incrementTermWhenIntroducingSeqNo ? primaryTerm + 1 : primaryTerm,
+                                      version,
+                                      forReplica ? null : versionType,
+                                      forReplica ? REPLICA : PRIMARY,
+                                      System.currentTimeMillis(), -1, false,
+                                      SequenceNumbers.UNASSIGNED_SEQ_NO, 0);
             } else {
                 op = new Engine.Delete("test", docId, id,
-                    forReplica && i >= startWithSeqNo ? i * 2 : SequenceNumbers.UNASSIGNED_SEQ_NO,
-                    forReplica && i >= startWithSeqNo && incrementTermWhenIntroducingSeqNo ?
-                        primaryTerm + 1 : primaryTerm,
-                    version,
-                    forReplica ? versionType.versionTypeForReplicationAndRecovery() : versionType,
-                    forReplica ? REPLICA : PRIMARY,
-                    System.currentTimeMillis());
+                                       forReplica && i >= startWithSeqNo ? i * 2 : SequenceNumbers.UNASSIGNED_SEQ_NO,
+                                       forReplica && i >= startWithSeqNo && incrementTermWhenIntroducingSeqNo ? primaryTerm + 1 : primaryTerm,
+                                       version,
+                                       forReplica ? null : versionType,
+                                       forReplica ? REPLICA : PRIMARY,
+                                       System.currentTimeMillis(), SequenceNumbers.UNASSIGNED_SEQ_NO, 0);
             }
             ops.add(op);
         }
