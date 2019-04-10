@@ -37,11 +37,15 @@ public final class Doc {
     private final String index;
     private final String id;
     private final long version;
+    private final long seqNo;
+    private final long primaryTerm;
 
     public Doc(int docId,
                String index,
                String id,
                long version,
+               long seqNo,
+               long primaryTerm,
                Map<String, Object> source,
                Supplier<String> raw) {
         this.docId = docId;
@@ -50,6 +54,8 @@ public final class Doc {
         this.version = version;
         this.source = source;
         this.raw = raw;
+        this.seqNo = seqNo;
+        this.primaryTerm = primaryTerm;
     }
 
     public int docId() {
@@ -58,6 +64,14 @@ public final class Doc {
 
     public long getVersion() {
         return version;
+    }
+
+    long getSeqNo() {
+        return seqNo;
+    }
+
+    long getPrimaryTerm() {
+        return primaryTerm;
     }
 
     public String getId() {
@@ -82,6 +96,8 @@ public final class Doc {
             index,
             id,
             version,
+            seqNo,
+            primaryTerm,
             updatedSource,
             () -> {
                 try {

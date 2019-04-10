@@ -38,7 +38,7 @@ public class LuceneReferenceResolverTest extends CrateUnitTest {
 
     // just return any fieldType to get passt the null check
     private LuceneReferenceResolver luceneReferenceResolver = new LuceneReferenceResolver(
-        i -> KeywordFieldMapper.Defaults.FIELD_TYPE, null);
+        i -> KeywordFieldMapper.Defaults.FIELD_TYPE);
 
     @Test
     public void testGetImplementationWithColumnsOfTypeCollection() {
@@ -55,5 +55,24 @@ public class LuceneReferenceResolverTest extends CrateUnitTest {
         );
         assertThat(luceneReferenceResolver.getImplementation(setRef),
             instanceOf(DocCollectorExpression.ChildDocCollectorExpression.class));
+    }
+
+    @Test
+    public void testGetImplementationForSequenceNumber() {
+        Reference seqNumberRef = new Reference(
+            new ReferenceIdent(
+                new RelationName("s", "t"), "_seq_no"), RowGranularity.DOC, DataTypes.LONG, null
+        );
+        assertThat(luceneReferenceResolver.getImplementation(seqNumberRef), instanceOf(SeqNoCollectorExpression.class));
+    }
+
+    @Test
+    public void testGetImplementationForPrimaryTerm() {
+        Reference primaryTerm = new Reference(
+            new ReferenceIdent(
+                new RelationName("s", "t"), "_primary_term"), RowGranularity.DOC, DataTypes.LONG, null
+        );
+        assertThat(luceneReferenceResolver.getImplementation(primaryTerm),
+                   instanceOf(PrimaryTermCollectorExpression.class));
     }
 }
