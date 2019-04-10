@@ -38,6 +38,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.monitor.jvm.JvmInfo;
 import org.elasticsearch.node.InternalSettingsPreparer;
+import org.elasticsearch.node.NodeNames;
 import org.elasticsearch.node.NodeValidationException;
 
 import java.io.IOException;
@@ -91,7 +92,7 @@ public class CrateDB extends EnvironmentAwareCommand {
     }
 
     @Override
-    protected Environment createEnv(Terminal terminal, Map<String, String> cmdLineSettings) throws UserException {
+    protected Environment createEnv(Map<String, String> cmdLineSettings) throws UserException {
         // 1) Check that path.home is set on the command-line (mandatory)
         String crateHomePath = cmdLineSettings.get("path.home");
         if (crateHomePath == null) {
@@ -108,7 +109,7 @@ public class CrateDB extends EnvironmentAwareCommand {
         } else {
             confPath = Paths.get(crateHomePath, "config");
         }
-        return InternalSettingsPreparer.prepareEnvironment(Settings.EMPTY, terminal, cmdLineSettings, confPath);
+        return InternalSettingsPreparer.prepareEnvironment(Settings.EMPTY, cmdLineSettings, confPath, NodeNames::randomNodeName);
     }
 
     @Override

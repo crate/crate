@@ -47,13 +47,13 @@ import org.apache.lucene.util.TestRuleMarkFailure;
 import org.apache.lucene.util.TestUtil;
 import org.apache.lucene.util.TimeUnits;
 import org.elasticsearch.Version;
+import org.elasticsearch.bootstrap.JavaVersion;
 import org.elasticsearch.client.Requests;
 import org.elasticsearch.cluster.ClusterModule;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.CheckedBiFunction;
 import org.elasticsearch.common.CheckedRunnable;
 import org.elasticsearch.common.SuppressForbidden;
-import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.PathUtils;
 import org.elasticsearch.common.io.PathUtilsForTesting;
@@ -148,7 +148,6 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS;
 import static org.elasticsearch.common.util.CollectionUtils.arrayAsArrayList;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
@@ -216,7 +215,6 @@ public abstract class ESTestCase extends LuceneTestCase {
             Configurator.shutdown(context);
         }));
 
-
         // filter out joda timezones that are deprecated for the java time migration
         List<String> jodaTZIds = DateTimeZone.getAvailableIDs().stream()
             .filter(s -> DateUtils.DEPRECATED_SHORT_TZ_IDS.contains(s) == false).sorted().collect(Collectors.toList());
@@ -240,7 +238,6 @@ public abstract class ESTestCase extends LuceneTestCase {
     }
 
     protected final Logger logger = LogManager.getLogger(getClass());
-    protected final DeprecationLogger deprecationLogger = new DeprecationLogger(logger);
     private ThreadContext threadContext;
 
     // -----------------------------------------------------------------
@@ -317,6 +314,16 @@ public abstract class ESTestCase extends LuceneTestCase {
         Requests.INDEX_CONTENT_TYPE = XContentType.JSON;
     }
 
+    @BeforeClass
+    public static void ensureSupportedLocale() {
+        if (isUnusableLocale()) {
+            Logger logger = LogManager.getLogger(ESTestCase.class);
+            logger.warn("Attempting to run tests in an unusable locale in a FIPS JVM. Certificate expiration validation will fail, " +
+                "switching to English. See: https://github.com/bcgit/bc-java/issues/405");
+            Locale.setDefault(Locale.ENGLISH);
+        }
+    }
+
     @Before
     public final void before()  {
         logger.info("{}before test", getTestParamsForLogging());
@@ -359,7 +366,7 @@ public abstract class ESTestCase extends LuceneTestCase {
         return "[" + name.substring(start + 1, end) + "] ";
     }
 
-    private void ensureNoWarnings() throws IOException {
+    private void ensureNoWarnings() {
         //Check that there are no unaccounted warning headers. These should be checked with {@link #assertWarnings(String...)} in the
         //appropriate test
         try {
@@ -420,13 +427,7 @@ public abstract class ESTestCase extends LuceneTestCase {
     private void resetDeprecationLogger(final boolean setNewThreadContext) {
         // "clear" current warning headers by setting a new ThreadContext
         DeprecationLogger.removeThreadContext(this.threadContext);
-        try {
-            this.threadContext.close();
-            // catch IOException to avoid that call sites have to deal with it. It is only declared because this class implements Closeable
-            // but it is impossible that this implementation will ever throw an IOException.
-        } catch (IOException ex) {
-            throw new AssertionError("IOException thrown while closing deprecation logger's thread context", ex);
-        }
+        this.threadContext.close();
         if (setNewThreadContext) {
             this.threadContext = new ThreadContext(Settings.EMPTY);
             DeprecationLogger.setThreadContext(this.threadContext);
@@ -494,7 +495,7 @@ public abstract class ESTestCase extends LuceneTestCase {
         checkIndexFailed = false;
     }
 
-    public final void ensureCheckIndexPassed() throws Exception {
+    public final void ensureCheckIndexPassed() {
         assertFalse("at least one shard failed CheckIndex", checkIndexFailed);
     }
 
@@ -862,7 +863,7 @@ public abstract class ESTestCase extends LuceneTestCase {
         return breakSupplier.getAsBoolean();
     }
 
-    public static boolean terminate(ExecutorService... services) throws InterruptedException {
+    public static boolean terminate(ExecutorService... services) {
         boolean terminated = true;
         for (ExecutorService service : services) {
             if (service != null) {
@@ -872,7 +873,7 @@ public abstract class ESTestCase extends LuceneTestCase {
         return terminated;
     }
 
-    public static boolean terminate(ThreadPool threadPool) throws InterruptedException {
+    public static boolean terminate(ThreadPool threadPool) {
         return ThreadPool.terminate(threadPool, 10, TimeUnit.SECONDS);
     }
 
@@ -913,43 +914,22 @@ public abstract class ESTestCase extends LuceneTestCase {
         return newNodeEnvironment(Settings.EMPTY);
     }
 
-    public NodeEnvironment newNodeEnvironment(Settings settings) throws IOException {
-        Settings build = Settings.builder()
+    public Settings buildEnvSettings(Settings settings) {
+        return Settings.builder()
                 .put(settings)
                 .put(Environment.PATH_HOME_SETTING.getKey(), createTempDir().toAbsolutePath())
                 .putList(Environment.PATH_DATA_SETTING.getKey(), tmpPaths()).build();
-        return new NodeEnvironment(build, TestEnvironment.newEnvironment(build), nodeId -> {});
+    }
+
+    public NodeEnvironment newNodeEnvironment(Settings settings) throws IOException {
+        Settings build = buildEnvSettings(settings);
+        return new NodeEnvironment(build, TestEnvironment.newEnvironment(build));
     }
 
     /** Return consistent index settings for the provided index version. */
     public static Settings.Builder settings(Version version) {
-        return settings(version, UUIDs.randomBase64UUID());
-    }
-
-    /** Return consistent index settings for the provided index version and uuid. */
-    public static Settings.Builder settings(Version version, String uuid) {
-        Settings.Builder builder = Settings.builder()
-            .put(IndexMetaData.SETTING_VERSION_CREATED, version)
-            .put(SETTING_AUTO_EXPAND_REPLICAS, false)
-            .put(IndexMetaData.SETTING_INDEX_UUID, uuid);
+        Settings.Builder builder = Settings.builder().put(IndexMetaData.SETTING_VERSION_CREATED, version);
         return builder;
-    }
-
-    private static String threadName(Thread t) {
-        return "Thread[" +
-                "id=" + t.getId() +
-                ", name=" + t.getName() +
-                ", state=" + t.getState() +
-                ", group=" + groupName(t.getThreadGroup()) +
-                "]";
-    }
-
-    private static String groupName(ThreadGroup threadGroup) {
-        if (threadGroup == null) {
-            return "{null group}";
-        } else {
-            return threadGroup.getName();
-        }
     }
 
     /**
@@ -961,10 +941,10 @@ public abstract class ESTestCase extends LuceneTestCase {
     }
 
     /**
-     * Returns a random subset of values (including a potential empty list)
+     * Returns a random subset of values (including a potential empty list, or the full original list)
      */
     public static <T> List<T> randomSubsetOf(Collection<T> collection) {
-        return randomSubsetOf(randomInt(Math.max(collection.size() - 1, 0)), collection);
+        return randomSubsetOf(randomInt(collection.size()), collection);
     }
 
     /**
@@ -1088,7 +1068,6 @@ public abstract class ESTestCase extends LuceneTestCase {
         List<Object> targetList = new ArrayList<>();
         for(Object value : list) {
             if (value instanceof Map) {
-                @SuppressWarnings("unchecked")
                 LinkedHashMap<String, Object> valueMap = (LinkedHashMap<String, Object>) value;
                 targetList.add(shuffleMap(valueMap, exceptFields));
             } else if(value instanceof List) {
@@ -1108,7 +1087,6 @@ public abstract class ESTestCase extends LuceneTestCase {
         for (String key : keys) {
             Object value = map.get(key);
             if (value instanceof Map && exceptFields.contains(key) == false) {
-                @SuppressWarnings("unchecked")
                 LinkedHashMap<String, Object> valueMap = (LinkedHashMap<String, Object>) value;
                 targetMap.put(key, shuffleMap(valueMap, exceptFields));
             } else if(value instanceof List && exceptFields.contains(key) == false) {
@@ -1152,7 +1130,12 @@ public abstract class ESTestCase extends LuceneTestCase {
                 Streamable.newWriteableReader(supplier), version);
     }
 
-    private static <T> T copyInstance(T original, NamedWriteableRegistry namedWriteableRegistry, Writeable.Writer<T> writer,
+    public static <T extends Streamable> T copyStreamable(T original, NamedWriteableRegistry namedWriteableRegistry,
+                                                          Supplier<T> supplier) throws IOException {
+        return copyStreamable(original, namedWriteableRegistry, supplier, Version.CURRENT);
+    }
+
+    protected static <T> T copyInstance(T original, NamedWriteableRegistry namedWriteableRegistry, Writeable.Writer<T> writer,
                                       Writeable.Reader<T> reader, Version version) throws IOException {
         try (BytesStreamOutput output = new BytesStreamOutput()) {
             output.setVersion(version);
@@ -1399,8 +1382,13 @@ public abstract class ESTestCase extends LuceneTestCase {
         }
     }
 
+    private static boolean isUnusableLocale() {
+        return inFipsJvm() && (Locale.getDefault().toLanguageTag().equals("th-TH")
+            || Locale.getDefault().toLanguageTag().equals("ja-JP-u-ca-japanese-x-lvariant-JP")
+            || Locale.getDefault().toLanguageTag().equals("th-TH-u-nu-thai-x-lvariant-TH"));
+    }
+
     public static boolean inFipsJvm() {
         return Security.getProviders()[0].getName().toLowerCase(Locale.ROOT).contains("fips");
     }
-
 }

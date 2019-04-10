@@ -35,7 +35,6 @@ import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.BigArrays;
-import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.core.internal.io.IOUtils;
 import org.elasticsearch.env.NodeEnvironment;
@@ -67,6 +66,7 @@ import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.indices.cluster.IndicesClusterStateService;
 import org.elasticsearch.indices.fielddata.cache.IndicesFieldDataCache;
 import org.elasticsearch.indices.mapper.MapperRegistry;
+import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import java.io.Closeable;
@@ -79,7 +79,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
@@ -289,7 +288,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
         IndexShard indexShard = null;
         ShardLock lock = null;
         try {
-            lock = nodeEnv.shardLock(shardId, TimeUnit.SECONDS.toMillis(5));
+            lock = nodeEnv.shardLock(shardId, "shard creation", TimeUnit.SECONDS.toMillis(5));
             eventListener.beforeIndexShardCreated(shardId, indexSettings);
             ShardPath path;
             try {
@@ -710,7 +709,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
         protected final IndexService indexService;
         protected final ThreadPool threadPool;
         private final TimeValue interval;
-        private ScheduledFuture<?> scheduledFuture;
+        private Scheduler.ScheduledCancellable scheduledFuture;
         private final AtomicBoolean closed = new AtomicBoolean(false);
         private volatile Exception lastThrownException;
 
@@ -732,7 +731,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
                 if (indexService.logger.isTraceEnabled()) {
                     indexService.logger.trace("scheduling {} every {}", toString(), interval);
                 }
-                this.scheduledFuture = threadPool.schedule(interval, getThreadPool(), BaseAsyncTask.this);
+                this.scheduledFuture = threadPool.schedule(BaseAsyncTask.this, interval, getThreadPool());
             } else {
                 indexService.logger.trace("scheduled {} disabled", toString());
                 this.scheduledFuture = null;
@@ -788,8 +787,8 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
 
         @Override
         public synchronized void close() {
-            if (closed.compareAndSet(false, true)) {
-                FutureUtils.cancel(scheduledFuture);
+            if (closed.compareAndSet(false, true) && isScheduled()) {
+                scheduledFuture.cancel();
                 scheduledFuture = null;
             }
         }

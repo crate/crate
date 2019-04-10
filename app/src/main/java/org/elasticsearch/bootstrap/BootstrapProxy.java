@@ -184,8 +184,7 @@ public class BootstrapProxy {
         node = new CrateNode(environment) {
 
             @Override
-            protected void validateNodeBeforeAcceptingRequests(Settings settings,
-                                                               BoundTransportAddress boundTransportAddress,
+            protected void validateNodeBeforeAcceptingRequests(BoundTransportAddress boundTransportAddress,
                                                                List<BootstrapCheck> bootstrapChecks) throws NodeValidationException {
                 BootstrapChecks.check(settings, boundTransportAddress, bootstrapChecks);
             }
@@ -217,9 +216,7 @@ public class BootstrapProxy {
         BootstrapInfo.init();
 
         INSTANCE = new BootstrapProxy();
-        if (Node.NODE_NAME_SETTING.exists(environment.settings())) {
-            LogConfigurator.setNodeName(Node.NODE_NAME_SETTING.get(environment.settings()));
-        }
+        LogConfigurator.setNodeName(Node.NODE_NAME_SETTING.get(environment.settings()));
         try {
             LogConfigurator.configure(environment);
         } catch (IOException e) {

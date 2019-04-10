@@ -58,6 +58,6 @@ public class PrivilegesResponse extends AcknowledgedResponse {
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
         out.writeLong(affectedRows);
-        out.writeStringList(unknownUserNames);
+        out.writeStringCollection(unknownUserNames);
     }
 }

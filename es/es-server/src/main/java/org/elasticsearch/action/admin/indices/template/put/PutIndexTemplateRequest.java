@@ -482,7 +482,7 @@ public class PutIndexTemplateRequest extends MasterNodeRequest<PutIndexTemplateR
         super.writeTo(out);
         out.writeString(cause);
         out.writeString(name);
-        out.writeStringList(indexPatterns);
+        out.writeStringCollection(indexPatterns);
         out.writeInt(order);
         out.writeBoolean(create);
         writeSettingsToStream(settings, out);

@@ -51,8 +51,6 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static java.util.Collections.emptyList;
-import static java.util.Collections.singletonList;
 import static org.elasticsearch.cluster.routing.UnassignedInfo.INDEX_DELAYED_NODE_LEFT_TIMEOUT_SETTING;
 
 
@@ -205,7 +203,7 @@ public class AllocationService extends AbstractComponent {
      * unassigned an shards that are associated with nodes that are no longer part of the cluster, potentially promoting replicas
      * if needed.
      */
-    public ClusterState deassociateDeadNodes(ClusterState clusterState, boolean reroute, String reason) {
+    public ClusterState disassociateDeadNodes(ClusterState clusterState, boolean reroute, String reason) {
         RoutingNodes routingNodes = getMutableRoutingNodes(clusterState);
         // shuffle the unassigned nodes, just so we won't have things like poison failed shards
         routingNodes.unassigned().shuffle();
@@ -213,7 +211,7 @@ public class AllocationService extends AbstractComponent {
             clusterInfoService.getClusterInfo(), currentNanoTime());
 
         // first, clear from the shards any node id they used to belong to that is now dead
-        deassociateDeadNodes(allocation);
+        disassociateDeadNodes(allocation);
 
         if (allocation.routingNodesChanged()) {
             clusterState = buildResult(clusterState, allocation);
@@ -403,7 +401,7 @@ public class AllocationService extends AbstractComponent {
         assert RoutingNodes.assertShardStats(allocation.routingNodes());
     }
 
-    private void deassociateDeadNodes(RoutingAllocation allocation) {
+    private void disassociateDeadNodes(RoutingAllocation allocation) {
         for (Iterator<RoutingNode> it = allocation.routingNodes().mutableIterator(); it.hasNext(); ) {
             RoutingNode node = it.next();
             if (allocation.nodes().getDataNodes().containsKey(node.nodeId())) {
@@ -447,6 +445,10 @@ public class AllocationService extends AbstractComponent {
     /** override this to control time based decisions during allocation */
     protected long currentNanoTime() {
         return System.nanoTime();
+    }
+
+    public void cleanCaches() {
+        gatewayAllocator.cleanCaches();
     }
 
     /**

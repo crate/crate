@@ -52,43 +52,6 @@ public class SysChecksTest extends CrateUnitTest {
     private final SchemaInfo docSchemaInfo = mock(DocSchemaInfo.class);
     private final DocTableInfo docTableInfo = mock(DocTableInfo.class);
 
-    @Test
-    public void testMaxMasterNodesCheckWithEmptySetting() {
-        MinMasterNodesSysCheck minMasterNodesCheck = new MinMasterNodesSysCheck(clusterService, referenceResolver);
-
-        assertThat(minMasterNodesCheck.id(), is(1));
-        assertThat(minMasterNodesCheck.severity(), is(Severity.HIGH));
-        assertThat(minMasterNodesCheck.validate(2,
-            GatewayService.RECOVER_AFTER_MASTER_NODES_SETTING.getDefault(Settings.EMPTY)), is(false));
-    }
-
-    @Test
-    public void testMaxMasterNodesCheckWithCorrectSetting() {
-        MinMasterNodesSysCheck minMasterNodesCheck = new MinMasterNodesSysCheck(clusterService, referenceResolver);
-
-        assertThat(minMasterNodesCheck.id(), is(1));
-        assertThat(minMasterNodesCheck.severity(), is(Severity.HIGH));
-        assertThat(minMasterNodesCheck.validate(8, 5), is(true));
-    }
-
-    @Test
-    public void testMaxMasterNodesCheckWithLessThanQuorum() {
-        MinMasterNodesSysCheck minMasterNodesCheck = new MinMasterNodesSysCheck(clusterService, referenceResolver);
-
-        assertThat(minMasterNodesCheck.id(), is(1));
-        assertThat(minMasterNodesCheck.severity(), is(Severity.HIGH));
-        assertThat(minMasterNodesCheck.validate(6, 3), is(false));
-    }
-
-    @Test
-    public void testMaxMasterNodesCheckWithGreaterThanNodes() {
-        MinMasterNodesSysCheck minMasterNodesCheck = new MinMasterNodesSysCheck(clusterService, referenceResolver);
-
-        assertThat(minMasterNodesCheck.id(), is(1));
-        assertThat(minMasterNodesCheck.severity(), is(Severity.HIGH));
-        assertThat(minMasterNodesCheck.validate(6, 7), is(false));
-    }
-
     @SuppressWarnings("unchecked")
     @Test
     public void testNumberOfPartitionCorrectPartitioning() {

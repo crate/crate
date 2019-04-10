@@ -62,6 +62,11 @@ public abstract class AdminUIHttpIntegrationTest extends ESIntegTestCase {
     protected CloseableHttpClient httpClient = HttpClients.createDefault();
 
     @Override
+    protected boolean addMockHttpTransport() {
+        return false;
+    }
+
+    @Override
     protected Settings nodeSettings(int nodeOrdinal) {
         return Settings.builder()
             .put(super.nodeSettings(nodeOrdinal))

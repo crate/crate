@@ -20,6 +20,7 @@
 package org.elasticsearch.indices.breaker;
 
 import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.settings.Settings;
 
@@ -52,6 +53,8 @@ public abstract class CircuitBreakerService extends AbstractLifecycleComponent {
      * @return stats about a specific breaker
      */
     public abstract CircuitBreakerStats stats(String name);
+
+    public abstract void checkParentLimit(String label) throws CircuitBreakingException;
 
     @Override
     protected void doStart() {

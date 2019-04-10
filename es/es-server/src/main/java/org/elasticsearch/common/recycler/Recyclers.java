@@ -34,6 +34,13 @@ public enum Recyclers {
     }
 
     /**
+     * Return a concurrent recycler based on a deque.
+     */
+    public static <T> Recycler<T> concurrentDeque(Recycler.C<T> c, int limit) {
+        return new ConcurrentDequeRecycler<>(c, limit);
+    }
+
+    /**
      * Return a recycler based on a deque.
      */
     public static <T> Recycler<T> deque(Recycler.C<T> c, int limit) {
@@ -44,12 +51,7 @@ public enum Recyclers {
      * Return a recycler based on a deque.
      */
     public static <T> Recycler.Factory<T> dequeFactory(final Recycler.C<T> c, final int limit) {
-        return new Recycler.Factory<T>() {
-            @Override
-            public Recycler<T> build() {
-                return deque(c, limit);
-            }
-        };
+        return () -> deque(c, limit);
     }
 
     /**
@@ -71,14 +73,7 @@ public enum Recyclers {
             }
 
             @Override
-            public org.elasticsearch.common.recycler.Recycler.V<T> obtain(int sizing) {
-                synchronized (lock) {
-                    return super.obtain(sizing);
-                }
-            }
-
-            @Override
-            public org.elasticsearch.common.recycler.Recycler.V<T> obtain() {
+            public Recycler.V<T> obtain() {
                 synchronized (lock) {
                     return super.obtain();
                 }
@@ -112,7 +107,8 @@ public enum Recyclers {
     }
 
     /**
-     * Create a concurrent implementation that can support concurrent access from <code>concurrencyLevel</code> threads with little contention.
+     * Create a concurrent implementation that can support concurrent access from
+     * <code>concurrencyLevel</code> threads with little contention.
      */
     public static <T> Recycler<T> concurrent(final Recycler.Factory<T> factory, final int concurrencyLevel) {
         if (concurrencyLevel < 1) {

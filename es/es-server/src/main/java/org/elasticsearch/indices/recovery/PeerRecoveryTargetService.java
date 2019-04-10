@@ -55,6 +55,7 @@ import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.index.translog.TranslogCorruptedException;
 import org.elasticsearch.indices.recovery.RecoveriesCollection.RecoveryRef;
 import org.elasticsearch.node.NodeClosedException;
+import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.ConnectTransportException;
 import org.elasticsearch.transport.FutureTransportResponseHandler;
@@ -157,7 +158,7 @@ public class PeerRecoveryTargetService extends AbstractComponent implements Inde
     private void retryRecovery(final long recoveryId, final TimeValue retryAfter, final TimeValue activityTimeout) {
         RecoveryTarget newTarget = onGoingRecoveries.resetRecovery(recoveryId, activityTimeout);
         if (newTarget != null) {
-            threadPool.schedule(retryAfter, ThreadPool.Names.GENERIC, new RecoveryRunner(newTarget.recoveryId()));
+            threadPool.schedule(new RecoveryRunner(newTarget.recoveryId()), retryAfter, ThreadPool.Names.GENERIC);
         }
     }
 
@@ -398,7 +399,7 @@ public class PeerRecoveryTargetService extends AbstractComponent implements Inde
     class PrepareForTranslogOperationsRequestHandler implements TransportRequestHandler<RecoveryPrepareForTranslogOperationsRequest> {
 
         @Override
-        public void messageReceived(RecoveryPrepareForTranslogOperationsRequest request, TransportChannel channel) throws Exception {
+        public void messageReceived(RecoveryPrepareForTranslogOperationsRequest request, TransportChannel channel, Task task) throws Exception {
             try (RecoveryRef recoveryRef = onGoingRecoveries.getRecoverySafe(request.recoveryId(), request.shardId()
             )) {
                 recoveryRef.target().prepareForTranslogOperations(request.isFileBasedRecovery(), request.totalTranslogOps());
@@ -410,7 +411,7 @@ public class PeerRecoveryTargetService extends AbstractComponent implements Inde
     class FinalizeRecoveryRequestHandler implements TransportRequestHandler<RecoveryFinalizeRecoveryRequest> {
 
         @Override
-        public void messageReceived(RecoveryFinalizeRecoveryRequest request, TransportChannel channel) throws Exception {
+        public void messageReceived(RecoveryFinalizeRecoveryRequest request, TransportChannel channel, Task task) throws Exception {
             try (RecoveryRef recoveryRef =
                      onGoingRecoveries.getRecoverySafe(request.recoveryId(), request.shardId())) {
                 recoveryRef.target().finalizeRecovery(request.globalCheckpoint());
@@ -422,7 +423,7 @@ public class PeerRecoveryTargetService extends AbstractComponent implements Inde
     class WaitForClusterStateRequestHandler implements TransportRequestHandler<RecoveryWaitForClusterStateRequest> {
 
         @Override
-        public void messageReceived(RecoveryWaitForClusterStateRequest request, TransportChannel channel) throws Exception {
+        public void messageReceived(RecoveryWaitForClusterStateRequest request, TransportChannel channel, Task task) throws Exception {
             try (RecoveryRef recoveryRef = onGoingRecoveries.getRecoverySafe(request.recoveryId(), request.shardId()
             )) {
                 recoveryRef.target().ensureClusterStateVersion(request.clusterStateVersion());
@@ -434,7 +435,7 @@ public class PeerRecoveryTargetService extends AbstractComponent implements Inde
     class HandoffPrimaryContextRequestHandler implements TransportRequestHandler<RecoveryHandoffPrimaryContextRequest> {
 
         @Override
-        public void messageReceived(final RecoveryHandoffPrimaryContextRequest request, final TransportChannel channel) throws Exception {
+        public void messageReceived(final RecoveryHandoffPrimaryContextRequest request, final TransportChannel channel, Task task) throws Exception {
             try (RecoveryRef recoveryRef = onGoingRecoveries.getRecoverySafe(request.recoveryId(), request.shardId())) {
                 recoveryRef.target().handoffPrimaryContext(request.primaryContext());
             }
@@ -446,7 +447,7 @@ public class PeerRecoveryTargetService extends AbstractComponent implements Inde
     class TranslogOperationsRequestHandler implements TransportRequestHandler<RecoveryTranslogOperationsRequest> {
 
         @Override
-        public void messageReceived(final RecoveryTranslogOperationsRequest request, final TransportChannel channel) throws IOException {
+        public void messageReceived(final RecoveryTranslogOperationsRequest request, final TransportChannel channel, Task task) throws IOException {
             try (RecoveryRef recoveryRef =
                          onGoingRecoveries.getRecoverySafe(request.recoveryId(), request.shardId())) {
                 final ClusterStateObserver observer = new ClusterStateObserver(clusterService, null, logger, threadPool.getThreadContext());
@@ -465,7 +466,7 @@ public class PeerRecoveryTargetService extends AbstractComponent implements Inde
                         @Override
                         public void onNewClusterState(ClusterState state) {
                             try {
-                                messageReceived(request, channel);
+                                messageReceived(request, channel, task);
                             } catch (Exception e) {
                                 onFailure(e);
                             }
@@ -539,7 +540,7 @@ public class PeerRecoveryTargetService extends AbstractComponent implements Inde
     class FilesInfoRequestHandler implements TransportRequestHandler<RecoveryFilesInfoRequest> {
 
         @Override
-        public void messageReceived(RecoveryFilesInfoRequest request, TransportChannel channel) throws Exception {
+        public void messageReceived(RecoveryFilesInfoRequest request, TransportChannel channel, Task task) throws Exception {
             try (RecoveryRef recoveryRef = onGoingRecoveries.getRecoverySafe(request.recoveryId(), request.shardId()
             )) {
                 recoveryRef.target().receiveFileInfo(request.phase1FileNames, request.phase1FileSizes, request.phase1ExistingFileNames,
@@ -552,7 +553,7 @@ public class PeerRecoveryTargetService extends AbstractComponent implements Inde
     class CleanFilesRequestHandler implements TransportRequestHandler<RecoveryCleanFilesRequest> {
 
         @Override
-        public void messageReceived(RecoveryCleanFilesRequest request, TransportChannel channel) throws Exception {
+        public void messageReceived(RecoveryCleanFilesRequest request, TransportChannel channel, Task task) throws Exception {
             try (RecoveryRef recoveryRef = onGoingRecoveries.getRecoverySafe(request.recoveryId(), request.shardId()
             )) {
                 recoveryRef.target().cleanFiles(request.totalTranslogOps(), request.sourceMetaSnapshot());
@@ -567,7 +568,7 @@ public class PeerRecoveryTargetService extends AbstractComponent implements Inde
         final AtomicLong bytesSinceLastPause = new AtomicLong();
 
         @Override
-        public void messageReceived(final RecoveryFileChunkRequest request, TransportChannel channel) throws Exception {
+        public void messageReceived(final RecoveryFileChunkRequest request, TransportChannel channel, Task task) throws Exception {
             try (RecoveryRef recoveryRef = onGoingRecoveries.getRecoverySafe(request.recoveryId(), request.shardId()
             )) {
                 final RecoveryTarget recoveryTarget = recoveryRef.target();

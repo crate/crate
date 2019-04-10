@@ -56,7 +56,7 @@ public class Validators {
         }
 
         @Override
-        public void validate(String value, Map settings) {
+        public void validate(String value) {
             if (Booleans.isBoolean(value)) {
                 throw new IllegalArgumentException(INVALID_MESSAGE + key + "'");
             }

@@ -52,8 +52,6 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.discovery.DiscoverySettings;
-import org.elasticsearch.discovery.zen.ElectMasterService;
-import org.elasticsearch.discovery.zen.ZenDiscovery;
 import org.elasticsearch.gateway.GatewayService;
 import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import org.elasticsearch.indices.recovery.RecoverySettings;
@@ -161,8 +159,6 @@ public final class CrateSettings implements ClusterStateListener {
             CrateSetting.of(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_HIGH_DISK_WATERMARK_SETTING, DataTypes.STRING),
             CrateSetting.of(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_DISK_FLOOD_STAGE_WATERMARK_SETTING, DataTypes.STRING),
             // DISCOVERY
-            CrateSetting.of(ElectMasterService.DISCOVERY_ZEN_MINIMUM_MASTER_NODES_SETTING, DataTypes.INTEGER),
-            CrateSetting.of(ZenDiscovery.PING_TIMEOUT_SETTING, DataTypes.STRING),
             CrateSetting.of(DiscoverySettings.PUBLISH_TIMEOUT_SETTING, DataTypes.STRING),
             // GATEWAY
             CrateSetting.of(GatewayService.RECOVER_AFTER_NODES_SETTING, DataTypes.INTEGER),

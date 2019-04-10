@@ -141,7 +141,7 @@ public class MainAndStaticFileHandler extends SimpleChannelInboundHandler<FullHt
                                                                    ClusterStateResponse response,
                                                                    ByteBufAllocator alloc,
                                                                    @Nullable String nodeName) {
-        var httpStatus = response.getState().blocks().hasGlobalBlock(RestStatus.SERVICE_UNAVAILABLE)
+        var httpStatus = response.getState().blocks().hasGlobalBlockWithStatus(RestStatus.SERVICE_UNAVAILABLE)
             ? HttpResponseStatus.SERVICE_UNAVAILABLE
             : HttpResponseStatus.OK;
         try {

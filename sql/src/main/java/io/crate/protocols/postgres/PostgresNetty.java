@@ -109,8 +109,8 @@ public class PostgresNetty extends AbstractLifecycleComponent {
         this.sslContextProvider = sslContextProvider;
 
         enabled = PSQL_ENABLED_SETTING.setting().get(settings);
-        bindHosts = NetworkService.GLOBAL_NETWORK_BINDHOST_SETTING.get(settings).toArray(new String[0]);
-        publishHosts = NetworkService.GLOBAL_NETWORK_PUBLISHHOST_SETTING.get(settings).toArray(new String[0]);
+        bindHosts = NetworkService.GLOBAL_NETWORK_BIND_HOST_SETTING.get(settings).toArray(new String[0]);
+        publishHosts = NetworkService.GLOBAL_NETWORK_PUBLISH_HOST_SETTING.get(settings).toArray(new String[0]);
         port = PSQL_PORT_SETTING.setting().get(settings);
     }
 

@@ -68,9 +68,6 @@ import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.core.internal.io.IOUtils;
-import org.elasticsearch.discovery.Discovery;
-import org.elasticsearch.discovery.zen.ElectMasterService;
-import org.elasticsearch.discovery.zen.ZenDiscovery;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.env.TestEnvironment;
@@ -88,7 +85,6 @@ import org.elasticsearch.indices.store.IndicesStore;
 import org.elasticsearch.node.NodeMocksPlugin;
 import org.elasticsearch.plugins.NetworkPlugin;
 import org.elasticsearch.plugins.Plugin;
-import org.elasticsearch.test.discovery.TestZenDiscovery;
 import org.elasticsearch.test.disruption.ServiceDisruptionScheme;
 import org.elasticsearch.test.store.MockFSIndexStore;
 import org.elasticsearch.test.transport.MockTransportService;
@@ -124,22 +120,20 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import java.util.function.Function;
 
 import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS;
 import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_REPLICAS;
 import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_SHARDS;
 import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_WAIT_FOR_ACTIVE_SHARDS;
-import static org.elasticsearch.discovery.DiscoveryModule.DISCOVERY_HOSTS_PROVIDER_SETTING;
-import static org.elasticsearch.discovery.zen.SettingsBasedHostsProvider.DISCOVERY_ZEN_PING_UNICAST_HOSTS_SETTING;
+import static org.elasticsearch.discovery.DiscoveryModule.DISCOVERY_SEED_PROVIDERS_SETTING;
+import static org.elasticsearch.discovery.SettingsBasedSeedHostsProvider.DISCOVERY_SEED_HOSTS_SETTING;
 import static org.elasticsearch.test.XContentTestUtils.convertToMap;
 import static org.elasticsearch.test.XContentTestUtils.differenceBetweenMapsIgnoringArrayOrder;
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcked;
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertNoFailures;
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertNoTimeout;
 import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.emptyArray;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.hamcrest.Matchers.startsWith;
@@ -437,10 +431,6 @@ public abstract class ESIntegTestCase extends ESTestCase {
                         final Set<String> persistent = metaData.persistentSettings().keySet();
                         assertThat("test leaves persistent cluster metadata behind: " + persistent, persistent.size(), equalTo(0));
                         final Set<String> transientSettings =  new HashSet<>(metaData.transientSettings().keySet());
-                        if (isInternalCluster() && internalCluster().getAutoManageMinMasterNode()) {
-                            // this is set by the test infra
-                            transientSettings.remove(ElectMasterService.DISCOVERY_ZEN_MINIMUM_MASTER_NODES_SETTING.getKey());
-                        }
                         // CRATE_PATCH: crate has a cluster id that is generated upon startup ... remove it here
                         transientSettings.remove("cluster_id");
 
@@ -449,21 +439,6 @@ public abstract class ESIntegTestCase extends ESTestCase {
                     }
                     ensureClusterSizeConsistency();
                     ensureClusterStateConsistency();
-                    if (isInternalCluster()) {
-                        // check no pending cluster states are leaked
-                        for (Discovery discovery : internalCluster().getInstances(Discovery.class)) {
-                            if (discovery instanceof ZenDiscovery) {
-                                final ZenDiscovery zenDiscovery = (ZenDiscovery) discovery;
-                                assertBusy(() -> {
-                                    final ClusterState[] states = zenDiscovery.pendingClusterStates();
-                                    assertThat(zenDiscovery.clusterState().nodes().getLocalNode().getName() +
-                                            " still having pending states:\n" +
-                                            Stream.of(states).map(ClusterState::toString).collect(Collectors.joining("\n")),
-                                        states, emptyArray());
-                                });
-                            }
-                        }
-                    }
                     beforeIndexDeletion();
                     cluster().wipe(excludeTemplates()); // wipe after to make sure we fail in the test that didn't ack the delete
                     if (afterClass || currentClusterScope == Scope.TEST) {
@@ -821,16 +796,6 @@ public abstract class ESIntegTestCase extends ESTestCase {
     }
 
     /**
-     * Sets the cluster's minimum master node and make sure the response is acknowledge.
-     * Note: this doesn't guarantee that the new setting has taken effect, just that it has been received by all nodes.
-     */
-    public void setMinimumMasterNodes(int n) {
-        assertTrue(client().admin().cluster().prepareUpdateSettings().setTransientSettings(
-            Settings.builder().put(ElectMasterService.DISCOVERY_ZEN_MINIMUM_MASTER_NODES_SETTING.getKey(), n))
-            .get().isAcknowledged());
-    }
-
-    /**
      * Prints the current cluster state as debug logging.
      */
     public void logClusterState() {
@@ -998,8 +963,7 @@ public abstract class ESIntegTestCase extends ESTestCase {
         boolean supportsDedicatedMasters() default true;
 
         /**
-         * The cluster automatically manages the {@link ElectMasterService#DISCOVERY_ZEN_MINIMUM_MASTER_NODES_SETTING} by default
-         * as nodes are started and stopped. Set this to false to manage the setting manually.
+         * The cluster automatically manages the bootstrap voting configuration. Set this to false to manage the setting manually.
          */
         boolean autoMinMasterNodes() default true;
 
@@ -1084,8 +1048,9 @@ public abstract class ESIntegTestCase extends ESTestCase {
             .put(IndicesQueryCache.INDICES_QUERIES_CACHE_ALL_SEGMENTS_SETTING.getKey(), nodeOrdinal % 2 == 0)
             // wait short time for other active shards before actually deleting, default 30s not needed in tests
             .put(IndicesStore.INDICES_STORE_DELETE_SHARD_TIMEOUT.getKey(), new TimeValue(1, TimeUnit.SECONDS))
-            .putList(DISCOVERY_ZEN_PING_UNICAST_HOSTS_SETTING.getKey()) // empty list disables a port scan for other nodes
-            .putList(DISCOVERY_HOSTS_PROVIDER_SETTING.getKey(), "file");
+            .putList(DISCOVERY_SEED_HOSTS_SETTING.getKey()) // empty list disables a port scan for other nodes
+            .putList(DISCOVERY_SEED_PROVIDERS_SETTING.getKey(), "file");
+
         return builder.build();
     }
 
@@ -1155,7 +1120,7 @@ public abstract class ESIntegTestCase extends ESTestCase {
         return new InternalTestCluster(seed, createTempDir(), supportsDedicatedMasters, getAutoMinMasterNodes(),
             minNumDataNodes, maxNumDataNodes,
             InternalTestCluster.clusterName(scope.name(), seed) + "-cluster", nodeConfigurationSource, getNumClientNodes(),
-            nodePrefix, mockPlugins, forbidPrivateIndexSettings());
+            nodePrefix, mockPlugins, getClientWrapper(), forbidPrivateIndexSettings());
     }
 
     protected NodeConfigurationSource getNodeConfigSource() {
@@ -1208,12 +1173,18 @@ public abstract class ESIntegTestCase extends ESTestCase {
         return true;
     }
 
-    /**
-     * Iff this returns true test zen discovery implementations is used for the test runs.
-     * The default is {@code true}.
-     */
-    protected boolean addTestZenDiscovery() {
+    /** Returns {@code true} iff this test cluster should use a dummy http transport */
+    protected boolean addMockHttpTransport() {
         return true;
+    }
+
+    /**
+     * Returns a function that allows to wrap / filter all clients that are exposed by the test cluster. This is useful
+     * for debugging or request / response pre and post processing. It also allows to intercept all calls done by the test
+     * framework. By default this method returns an identity function {@link Function#identity()}.
+     */
+    protected Function<Client,Client> getClientWrapper() {
+        return Function.identity();
     }
 
     /** Return the mock plugins the cluster should use */
@@ -1241,9 +1212,10 @@ public abstract class ESIntegTestCase extends ESTestCase {
             mocks.add(getTestTransportPlugin());
         }
 
-        if (addTestZenDiscovery()) {
-            mocks.add(TestZenDiscovery.TestPlugin.class);
+        if (addMockHttpTransport()) {
+            mocks.add(MockHttpTransport.TestPlugin.class);
         }
+
         mocks.add(TestSeedPlugin.class);
         mocks.add(AssertActionNamePlugin.class);
         return Collections.unmodifiableList(mocks);

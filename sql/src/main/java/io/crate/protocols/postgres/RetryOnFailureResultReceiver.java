@@ -93,7 +93,7 @@ public class RetryOnFailureResultReceiver implements ResultReceiver {
         if (attempt <= Constants.MAX_SHARD_MISSING_RETRIES &&
             (SQLExceptions.isShardFailure(error) || error instanceof ConnectTransportException || indexWasTemporaryUnavailable(error))) {
 
-            if (clusterService.state().blocks().hasGlobalBlock(RestStatus.SERVICE_UNAVAILABLE)) {
+            if (clusterService.state().blocks().hasGlobalBlockWithStatus(RestStatus.SERVICE_UNAVAILABLE)) {
                 delegate.fail(error);
             } else {
                 ClusterStateObserver clusterStateObserver =

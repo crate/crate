@@ -32,7 +32,7 @@ from dnslib.zoneresolver import ZoneResolver
 
 
 class DnsSrvDiscoveryTest(TestCase):
-    
+
     num_nodes = 3
 
     def setUp(self):
@@ -52,18 +52,21 @@ _test._srv.crate.internal.    600   IN   SRV   1 10 {port} 127.0.0.1.'''.format(
 
         self.nodes = nodes = []
         for i in range(self.num_nodes):
+            settings = {
+                         'node.name': f'node-{i}',
+                         'cluster.name': 'crate-dns-discovery',
+                         'psql.port': 0,
+                         'transport.tcp.port': transport_ports[i],
+                         "discovery.seed_providers": "srv",
+                         "discovery.srv.query": "_test._srv.crate.internal.",
+                         "discovery.srv.resolver": "127.0.0.1:" + str(dns_port)
+                     }
+            if i is 0:
+                settings['cluster.initial_master_nodes'] = f'node-{i}'
             node = CrateNode(
                 crate_dir=crate_path(),
                 version=(4, 0, 0),
-                settings={
-                    'node.name': f'node-{i}',
-                    'cluster.name': 'crate-dns-discovery',
-                    'psql.port': 0,
-                    'transport.tcp.port': transport_ports[i],
-                    "discovery.zen.hosts_provider": "srv",
-                    "discovery.srv.query": "_test._srv.crate.internal.",
-                    "discovery.srv.resolver": "127.0.0.1:" + str(dns_port)
-                },
+                settings=settings,
                 env={
                     'CRATE_HEAP_SIZE': '256M'
                 }

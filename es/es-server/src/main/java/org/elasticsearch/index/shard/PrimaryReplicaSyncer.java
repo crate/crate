@@ -42,6 +42,7 @@ import org.elasticsearch.transport.TransportService;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -280,8 +281,8 @@ public class PrimaryReplicaSyncer extends AbstractComponent {
         }
 
         @Override
-        public Task createTask(long id, TaskId parentTaskId) {
-            return new ResyncTask(id, getDescription(), parentTaskId);
+        public Task createTask(long id, String type, String action, TaskId parentTaskId, Map<String, String> headers) {
+            return new ResyncTask(id, type, action, getDescription(), parentTaskId, headers);
         }
 
         @Override
@@ -305,8 +306,8 @@ public class PrimaryReplicaSyncer extends AbstractComponent {
         private volatile int totalOperations;
         private volatile int resyncedOperations;
 
-        public ResyncTask(long id, String description, TaskId parentTaskId) {
-            super(id, description, parentTaskId);
+        public ResyncTask(long id, String type, String action, String description, TaskId parentTaskId, Map<String, String> headers) {
+            super(id, type, action, description, parentTaskId, headers);
         }
 
         /**

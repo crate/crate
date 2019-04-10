@@ -28,7 +28,6 @@ import io.crate.metadata.IndexMappings;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.testing.TestingHelpers;
-import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedSchema;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.collect.MapBuilder;
@@ -587,7 +586,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     @Test
     public void testDefaultColumns() {
         execute("select * from information_schema.columns order by table_schema, table_name");
-        assertEquals(674, response.rowCount());
+        assertEquals(672, response.rowCount());
     }
 
     @Test

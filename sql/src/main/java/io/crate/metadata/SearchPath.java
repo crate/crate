@@ -131,6 +131,6 @@ public final class SearchPath implements Iterable<String>, Writeable {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeBoolean(pgCatalogIsSetExplicitly);
-        out.writeStringList(searchPath);
+        out.writeStringCollection(searchPath);
     }
 }

@@ -265,7 +265,7 @@ public class BlobTransferTarget extends AbstractComponent {
              * delay the state removal a bit and re-check the recoveryActive flag in order to not remove
              * states which might still be needed.
              */
-            threadPool.schedule(STATE_REMOVAL_DELAY, ThreadPool.Names.GENERIC, new StateRemoval(transferId));
+            threadPool.schedule(new StateRemoval(transferId), STATE_REMOVAL_DELAY, ThreadPool.Names.GENERIC);
         }
     }
 

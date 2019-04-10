@@ -26,7 +26,7 @@ import io.crate.discovery.SrvUnicastHostsProvider;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.discovery.zen.UnicastHostsProvider;
+import org.elasticsearch.discovery.SeedHostsProvider;
 import org.elasticsearch.plugins.DiscoveryPlugin;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.transport.TransportService;
@@ -56,8 +56,10 @@ public class SrvPlugin extends Plugin implements DiscoveryPlugin {
     }
 
     @Override
-    public Map<String, Supplier<UnicastHostsProvider>> getZenHostsProviders(TransportService transportService,
-                                                                            NetworkService networkService) {
+    public Map<String, Supplier<SeedHostsProvider>> getSeedHostProviders(TransportService transportService,
+                                                                         NetworkService networkService) {
         return Collections.singletonMap(DISCOVERY_NAME, () -> new SrvUnicastHostsProvider(settings, transportService));
     }
+
+
 }

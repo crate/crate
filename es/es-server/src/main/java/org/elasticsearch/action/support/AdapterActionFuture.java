@@ -35,6 +35,11 @@ public abstract class AdapterActionFuture<T, L> extends BaseFuture<T> implements
     }
 
     @Override
+    public T actionGet(long timeoutMillis) {
+        return actionGet(timeoutMillis, TimeUnit.MILLISECONDS);
+    }
+
+    @Override
     public T actionGet(TimeValue timeout) {
         return actionGet(timeout.millis(), TimeUnit.MILLISECONDS);
     }

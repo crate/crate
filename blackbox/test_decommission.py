@@ -177,7 +177,7 @@ class GracefulStopTest(unittest.TestCase):
 
 class TestGracefulStopPrimaries(GracefulStopTest):
 
-    NUM_SERVERS = 2
+    NUM_SERVERS = 3
 
     def setUp(self):
         super().setUp()
@@ -246,7 +246,7 @@ class TestGracefulStopFull(GracefulStopTest):
 
 class TestGracefulStopNone(GracefulStopTest):
 
-    NUM_SERVERS = 2
+    NUM_SERVERS = 3
 
     def setUp(self):
         super().setUp()
@@ -304,7 +304,6 @@ class TestGracefulStopDuringQueryExecution(GracefulStopTest):
             CLUSTERED INTO 4 SHARDS
             WITH (number_of_replicas = 1)
         ''')
-        self.set_settings({'discovery.zen.minimum_master_nodes': 2})
 
         def bulk_params():
             for i in range(5000):

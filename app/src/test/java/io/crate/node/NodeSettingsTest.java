@@ -99,7 +99,7 @@ public class NodeSettingsTest extends CrateUnitTest {
         // Avoid connecting to other test nodes
         settings.put("discovery.type", "single-node");
 
-        Environment environment = InternalSettingsPreparer.prepareEnvironment(Settings.EMPTY, Terminal.DEFAULT, settings, configPath);
+        Environment environment = InternalSettingsPreparer.prepareEnvironment(Settings.EMPTY, settings, configPath, () -> "node-test");
         node = new CrateNode(environment);
         node.start();
         sqlOperations = node.injector().getInstance(SQLOperations.class);
