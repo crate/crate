@@ -39,6 +39,11 @@ import static org.hamcrest.Matchers.notNullValue;
 public class AzureSimpleTests extends AbstractAzureComputeServiceTestCase {
 
     @Override
+    protected boolean addMockHttpTransport() {
+        return false;
+    }
+
+    @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {
         return Arrays.asList(AzureDiscoveryPlugin.class, HttpTransportPlugin.class);
     }

@@ -36,14 +36,13 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.node.Node;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import java.util.Collections;
 import java.util.Map;
-import java.util.function.Supplier;
 
 public class ClusterService extends AbstractLifecycleComponent {
-
     private final MasterService masterService;
 
     private final ClusterApplierService clusterApplierService;
@@ -55,20 +54,28 @@ public class ClusterService extends AbstractLifecycleComponent {
     public static final org.elasticsearch.common.settings.Setting.AffixSetting<String> USER_DEFINED_META_DATA =
         Setting.prefixKeySetting("cluster.metadata.", (key) -> Setting.simpleString(key, Property.Dynamic, Property.NodeScope));
 
+    /**
+     * The node's settings.
+     */
+    private final Settings settings;
+
     private final ClusterName clusterName;
 
     private final OperationRouting operationRouting;
 
     private final ClusterSettings clusterSettings;
-    private final Map<String, Supplier<ClusterState.Custom>> initialClusterStateCustoms;
-    private final Settings settings;
+
+    public ClusterService(Settings settings, ClusterSettings clusterSettings, ThreadPool threadPool) {
+        this(settings, clusterSettings, new MasterService(Node.NODE_NAME_SETTING.get(settings), settings, threadPool),
+            new ClusterApplierService(Node.NODE_NAME_SETTING.get(settings), settings, clusterSettings, threadPool));
+    }
 
     public ClusterService(Settings settings,
                           ClusterSettings clusterSettings,
-                          ThreadPool threadPool,
-                          Map<String, Supplier<ClusterState.Custom>> initialClusterStateCustoms) {
+                          MasterService masterService,
+                          ClusterApplierService clusterApplierService) {
         this.settings = settings;
-        this.masterService = new MasterService(settings, threadPool);
+        this.masterService = masterService;
         this.operationRouting = new OperationRouting(settings, clusterSettings);
         this.clusterSettings = clusterSettings;
         this.clusterName = ClusterName.CLUSTER_NAME_SETTING.get(settings);
@@ -76,19 +83,7 @@ public class ClusterService extends AbstractLifecycleComponent {
             this::setSlowTaskLoggingThreshold);
         // Add a no-op update consumer so changes are logged
         this.clusterSettings.addAffixUpdateConsumer(USER_DEFINED_META_DATA, (first, second) -> {}, (first, second) -> {});
-        this.initialClusterStateCustoms = initialClusterStateCustoms;
-        this.clusterApplierService = new ClusterApplierService(settings, clusterSettings, threadPool, this::newClusterStateBuilder);
-    }
-
-    /**
-     * Creates a new cluster state builder that is initialized with the cluster name and all initial cluster state customs.
-     */
-    public ClusterState.Builder newClusterStateBuilder() {
-        ClusterState.Builder builder = ClusterState.builder(ClusterName.CLUSTER_NAME_SETTING.get(settings));
-        for (Map.Entry<String, Supplier<ClusterState.Custom>> entry : initialClusterStateCustoms.entrySet()) {
-            builder.putCustom(entry.getKey(), entry.getValue().get());
-        }
-        return builder;
+        this.clusterApplierService = clusterApplierService;
     }
 
     private void setSlowTaskLoggingThreshold(TimeValue slowTaskLoggingThreshold) {
@@ -213,6 +208,9 @@ public class ClusterService extends AbstractLifecycleComponent {
         return clusterSettings;
     }
 
+    /**
+     * The node's settings.
+     */
     public Settings getSettings() {
         return settings;
     }

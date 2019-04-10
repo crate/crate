@@ -74,11 +74,11 @@ public class TableParameterInfo {
     static final Setting<Integer> MAX_NGRAM_DIFF = IndexSettings.MAX_NGRAM_DIFF_SETTING;
     static final Setting<Integer> MAX_SHINGLE_DIFF = IndexSettings.MAX_SHINGLE_DIFF_SETTING;
     static final Setting<String> COLUMN_POLICY =
-        new Setting<>(
+        new Setting<String>(
             new Setting.SimpleKey(ColumnPolicies.ES_MAPPING_NAME),
             s -> ColumnPolicy.STRICT.lowerCaseName(),
             s -> ColumnPolicies.encodeMappingValue(ColumnPolicy.of(s)),
-            (o, m) -> {
+            o -> {
                 if (ColumnPolicies.encodeMappingValue(ColumnPolicy.IGNORED).equals(o)) {
                     throw new IllegalArgumentException("Invalid value for argument '" + ColumnPolicies.CRATE_NAME + "'");
                 }

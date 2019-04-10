@@ -23,8 +23,9 @@
 package io.crate.execution.support;
 
 import io.crate.exceptions.SQLExceptions;
-import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.tasks.Task;
 import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportRequestHandler;
@@ -43,7 +44,7 @@ public final class NodeActionRequestHandler<TRequest extends TransportRequest, T
     }
 
     @Override
-    public void messageReceived(TRequest request, TransportChannel channel) throws Exception {
+    public void messageReceived(TRequest request, TransportChannel channel, Task task) throws Exception {
         nodeAction.nodeOperation(request).whenComplete((result, throwable) -> {
             if (throwable == null) {
                 try {

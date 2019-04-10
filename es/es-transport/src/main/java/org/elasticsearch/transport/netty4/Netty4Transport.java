@@ -58,6 +58,7 @@ import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TcpTransport;
+import org.elasticsearch.transport.TransportSettings;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -148,22 +149,22 @@ public class Netty4Transport extends TcpTransport {
         bootstrap.group(new NioEventLoopGroup(workerCount, daemonThreadFactory(settings, TRANSPORT_CLIENT_BOSS_THREAD_NAME_PREFIX)));
         bootstrap.channel(NioSocketChannel.class);
 
-        bootstrap.option(ChannelOption.TCP_NODELAY, TCP_NO_DELAY.get(settings));
-        bootstrap.option(ChannelOption.SO_KEEPALIVE, TCP_KEEP_ALIVE.get(settings));
+        bootstrap.option(ChannelOption.TCP_NODELAY, TransportSettings.TCP_NO_DELAY.get(settings));
+        bootstrap.option(ChannelOption.SO_KEEPALIVE, TransportSettings.TCP_KEEP_ALIVE.get(settings));
 
-        final ByteSizeValue tcpSendBufferSize = TCP_SEND_BUFFER_SIZE.get(settings);
+        final ByteSizeValue tcpSendBufferSize = TransportSettings.TCP_SEND_BUFFER_SIZE.get(settings);
         if (tcpSendBufferSize.getBytes() > 0) {
             bootstrap.option(ChannelOption.SO_SNDBUF, Math.toIntExact(tcpSendBufferSize.getBytes()));
         }
 
-        final ByteSizeValue tcpReceiveBufferSize = TCP_RECEIVE_BUFFER_SIZE.get(settings);
+        final ByteSizeValue tcpReceiveBufferSize = TransportSettings.TCP_RECEIVE_BUFFER_SIZE.get(settings);
         if (tcpReceiveBufferSize.getBytes() > 0) {
             bootstrap.option(ChannelOption.SO_RCVBUF, Math.toIntExact(tcpReceiveBufferSize.getBytes()));
         }
 
         bootstrap.option(ChannelOption.RCVBUF_ALLOCATOR, recvByteBufAllocator);
 
-        final boolean reuseAddress = TCP_REUSE_ADDRESS.get(settings);
+        final boolean reuseAddress = TransportSettings.TCP_REUSE_ADDRESS.get(settings);
         bootstrap.option(ChannelOption.SO_REUSEADDR, reuseAddress);
 
         return bootstrap;

@@ -26,6 +26,7 @@ import io.crate.types.DataTypes;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.ClusterSettings;
@@ -127,6 +128,11 @@ public class CrateCircuitBreakerService extends CircuitBreakerService {
     @Override
     public CircuitBreakerStats stats(String name) {
         return esCircuitBreakerService.stats(name);
+    }
+
+    @Override
+    public void checkParentLimit(String label) throws CircuitBreakingException {
+        esCircuitBreakerService.checkParentLimit(label);
     }
 
     public static String breakingExceptionMessage(String label, long limit) {

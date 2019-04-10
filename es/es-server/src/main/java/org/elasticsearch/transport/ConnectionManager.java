@@ -73,12 +73,12 @@ public class ConnectionManager implements Closeable {
     public ConnectionManager(Settings settings, Transport transport, ThreadPool threadPool, ConnectionProfile defaultProfile) {
         this.transport = transport;
         this.threadPool = threadPool;
-        this.pingSchedule = TcpTransport.PING_SCHEDULE.get(settings);
+        this.pingSchedule = TransportSettings.PING_SCHEDULE.get(settings);
         this.defaultProfile = defaultProfile;
         this.lifecycle.moveToStarted();
 
         if (pingSchedule.millis() > 0) {
-            threadPool.schedule(pingSchedule, ThreadPool.Names.GENERIC, new ScheduledPing());
+            threadPool.schedule(new ScheduledPing(), pingSchedule, ThreadPool.Names.GENERIC);
         }
     }
 
@@ -271,7 +271,7 @@ public class ConnectionManager implements Closeable {
         @Override
         protected void onAfterInLifecycle() {
             try {
-                threadPool.schedule(pingSchedule, ThreadPool.Names.GENERIC, this);
+                threadPool.schedule(this, pingSchedule, ThreadPool.Names.GENERIC);
             } catch (EsRejectedExecutionException ex) {
                 if (ex.isExecutorShutdown()) {
                     logger.debug("couldn't schedule new ping execution, executor is shutting down", ex);

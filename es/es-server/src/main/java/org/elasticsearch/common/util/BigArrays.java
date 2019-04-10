@@ -33,16 +33,9 @@ import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import java.util.Arrays;
 
 /** Utility class to work with arrays. */
-public class BigArrays implements Releasable {
+public class BigArrays {
 
-    public static final BigArrays NON_RECYCLING_INSTANCE = new BigArrays(null, null, false);
-
-    /** Page size in bytes: 16KB */
-    public static final int PAGE_SIZE_IN_BYTES = 1 << 14;
-    public static final int BYTE_PAGE_SIZE = BigArrays.PAGE_SIZE_IN_BYTES;
-    public static final int INT_PAGE_SIZE = BigArrays.PAGE_SIZE_IN_BYTES / Integer.BYTES;
-    public static final int LONG_PAGE_SIZE = BigArrays.PAGE_SIZE_IN_BYTES / Long.BYTES;
-    public static final int OBJECT_PAGE_SIZE = BigArrays.PAGE_SIZE_IN_BYTES / RamUsageEstimator.NUM_BYTES_OBJECT_REF;
+    public static final BigArrays NON_RECYCLING_INSTANCE = new BigArrays(null, null, CircuitBreaker.REQUEST);
 
     /** Return the next size to grow to that is &gt;= <code>minTargetSize</code>.
      *  Inspired from {@link ArrayUtil#oversize(int, int)} and adapted to play nicely with paging. */
@@ -75,11 +68,6 @@ public class BigArrays implements Releasable {
 
     static boolean indexIsInt(long index) {
         return index == (int) index;
-    }
-
-    @Override
-    public void close() {
-        recycler.close();
     }
 
     private abstract static class AbstractArrayWrapper extends AbstractArray implements BigArray {
@@ -212,7 +200,8 @@ public class BigArrays implements Releasable {
 
         @Override
         public long ramBytesUsed() {
-            return SHALLOW_SIZE + RamUsageEstimator.alignObjectSize(RamUsageEstimator.NUM_BYTES_ARRAY_HEADER + RamUsageEstimator.NUM_BYTES_OBJECT_REF * size());
+            return SHALLOW_SIZE + RamUsageEstimator.alignObjectSize(RamUsageEstimator.NUM_BYTES_ARRAY_HEADER +
+                RamUsageEstimator.NUM_BYTES_OBJECT_REF * size());
         }
 
         @SuppressWarnings("unchecked")
@@ -237,21 +226,23 @@ public class BigArrays implements Releasable {
     private final CircuitBreakerService breakerService;
     private final boolean checkBreaker;
     private final BigArrays circuitBreakingInstance;
+    private final String breakerName;
 
-    public BigArrays(PageCacheRecycler recycler, @Nullable final CircuitBreakerService breakerService) {
+    public BigArrays(PageCacheRecycler recycler, @Nullable final CircuitBreakerService breakerService, String breakerName) {
         // Checking the breaker is disabled if not specified
-        this(recycler, breakerService, false);
+        this(recycler, breakerService, breakerName, false);
     }
 
-    // public for tests
-    public BigArrays(PageCacheRecycler recycler, @Nullable final CircuitBreakerService breakerService, boolean checkBreaker) {
+    protected BigArrays(PageCacheRecycler recycler, @Nullable final CircuitBreakerService breakerService, String breakerName,
+                        boolean checkBreaker) {
         this.checkBreaker = checkBreaker;
         this.recycler = recycler;
         this.breakerService = breakerService;
+        this.breakerName = breakerName;
         if (checkBreaker) {
             this.circuitBreakingInstance = this;
         } else {
-            this.circuitBreakingInstance = new BigArrays(recycler, breakerService, true);
+            this.circuitBreakingInstance = new BigArrays(recycler, breakerService, breakerName, true);
         }
     }
 
@@ -265,7 +256,7 @@ public class BigArrays implements Releasable {
      */
     void adjustBreaker(final long delta, final boolean isDataAlreadyCreated) {
         if (this.breakerService != null) {
-            CircuitBreaker breaker = this.breakerService.getBreaker(CircuitBreaker.REQUEST);
+            CircuitBreaker breaker = this.breakerService.getBreaker(breakerName);
             if (this.checkBreaker) {
                 // checking breaker means potentially tripping, but it doesn't
                 // have to if the delta is negative
@@ -327,12 +318,12 @@ public class BigArrays implements Releasable {
      * @param clearOnResize whether values should be set to 0 on initialization and resize
      */
     public ByteArray newByteArray(long size, boolean clearOnResize) {
-        if (size > BYTE_PAGE_SIZE) {
+        if (size > PageCacheRecycler.BYTE_PAGE_SIZE) {
             // when allocating big arrays, we want to first ensure we have the capacity by
             // checking with the circuit breaker before attempting to allocate
             adjustBreaker(BigByteArray.estimateRamBytes(size), false);
             return new BigByteArray(size, this, clearOnResize);
-        } else if (size >= BYTE_PAGE_SIZE / 2 && recycler != null) {
+        } else if (size >= PageCacheRecycler.BYTE_PAGE_SIZE / 2 && recycler != null) {
             final Recycler.V<byte[]> page = recycler.bytePage(clearOnResize);
             return validate(new ByteArrayWrapper(this, page.v(), size, page, clearOnResize));
         } else {
@@ -362,12 +353,13 @@ public class BigArrays implements Releasable {
         }
     }
 
-    /** Grow an array to a size that is larger than <code>minSize</code>, preserving content, and potentially reusing part of the provided array. */
+    /** Grow an array to a size that is larger than <code>minSize</code>,
+     * preserving content, and potentially reusing part of the provided array. */
     public ByteArray grow(ByteArray array, long minSize) {
         if (minSize <= array.size()) {
             return array;
         }
-        final long newSize = overSize(minSize, BYTE_PAGE_SIZE, 1);
+        final long newSize = overSize(minSize, PageCacheRecycler.BYTE_PAGE_SIZE, 1);
         return resize(array, newSize);
     }
 
@@ -410,12 +402,12 @@ public class BigArrays implements Releasable {
      * @param clearOnResize whether values should be set to 0 on initialization and resize
      */
     public IntArray newIntArray(long size, boolean clearOnResize) {
-        if (size > INT_PAGE_SIZE) {
+        if (size > PageCacheRecycler.INT_PAGE_SIZE) {
             // when allocating big arrays, we want to first ensure we have the capacity by
             // checking with the circuit breaker before attempting to allocate
             adjustBreaker(BigIntArray.estimateRamBytes(size), false);
             return new BigIntArray(size, this, clearOnResize);
-        } else if (size >= INT_PAGE_SIZE / 2 && recycler != null) {
+        } else if (size >= PageCacheRecycler.INT_PAGE_SIZE / 2 && recycler != null) {
             final Recycler.V<int[]> page = recycler.intPage(clearOnResize);
             return validate(new IntArrayWrapper(this, page.v(), size, page, clearOnResize));
         } else {
@@ -446,12 +438,13 @@ public class BigArrays implements Releasable {
         }
     }
 
-    /** Grow an array to a size that is larger than <code>minSize</code>, preserving content, and potentially reusing part of the provided array. */
+    /** Grow an array to a size that is larger than <code>minSize</code>,
+     * preserving content, and potentially reusing part of the provided array. */
     public IntArray grow(IntArray array, long minSize) {
         if (minSize <= array.size()) {
             return array;
         }
-        final long newSize = overSize(minSize, INT_PAGE_SIZE, Integer.BYTES);
+        final long newSize = overSize(minSize, PageCacheRecycler.INT_PAGE_SIZE, Integer.BYTES);
         return resize(array, newSize);
     }
 
@@ -460,12 +453,12 @@ public class BigArrays implements Releasable {
      * @param size          the initial length of the array
      */
     public <T> ObjectArray<T> newObjectArray(long size) {
-        if (size > OBJECT_PAGE_SIZE) {
+        if (size > PageCacheRecycler.OBJECT_PAGE_SIZE) {
             // when allocating big arrays, we want to first ensure we have the capacity by
             // checking with the circuit breaker before attempting to allocate
             adjustBreaker(BigObjectArray.estimateRamBytes(size), false);
             return new BigObjectArray<>(size, this);
-        } else if (size >= OBJECT_PAGE_SIZE / 2 && recycler != null) {
+        } else if (size >= PageCacheRecycler.OBJECT_PAGE_SIZE / 2 && recycler != null) {
             final Recycler.V<Object[]> page = recycler.objectPage();
             return validate(new ObjectArrayWrapper<>(this, page.v(), size, page));
         } else {
@@ -487,12 +480,13 @@ public class BigArrays implements Releasable {
         }
     }
 
-    /** Grow an array to a size that is larger than <code>minSize</code>, preserving content, and potentially reusing part of the provided array. */
+    /** Grow an array to a size that is larger than <code>minSize</code>,
+     * preserving content, and potentially reusing part of the provided array. */
     public <T> ObjectArray<T> grow(ObjectArray<T> array, long minSize) {
         if (minSize <= array.size()) {
             return array;
         }
-        final long newSize = overSize(minSize, OBJECT_PAGE_SIZE, RamUsageEstimator.NUM_BYTES_OBJECT_REF);
+        final long newSize = overSize(minSize, PageCacheRecycler.OBJECT_PAGE_SIZE, RamUsageEstimator.NUM_BYTES_OBJECT_REF);
         return resize(array, newSize);
     }
 }

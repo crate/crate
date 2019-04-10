@@ -22,7 +22,7 @@ package org.elasticsearch.common.breaker;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.indices.breaker.BreakerSettings;
-import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
+import org.elasticsearch.indices.breaker.CircuitBreakerService;
 
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -37,7 +37,7 @@ public class ChildMemoryCircuitBreaker implements CircuitBreaker {
     private final AtomicLong used;
     private final AtomicLong trippedCount;
     private final Logger logger;
-    private final HierarchyCircuitBreakerService parent;
+    private final CircuitBreakerService parent;
     private final String name;
 
     /**
@@ -48,8 +48,10 @@ public class ChildMemoryCircuitBreaker implements CircuitBreaker {
      * @param parent parent circuit breaker service to delegate tripped breakers to
      * @param name the name of the breaker
      */
-    public ChildMemoryCircuitBreaker(BreakerSettings settings, Logger logger,
-                                     HierarchyCircuitBreakerService parent, String name) {
+    public ChildMemoryCircuitBreaker(BreakerSettings settings,
+                                     Logger logger,
+                                     CircuitBreakerService parent,
+                                     String name) {
         this(settings, null, logger, parent, name);
     }
 
@@ -63,8 +65,11 @@ public class ChildMemoryCircuitBreaker implements CircuitBreaker {
      * @param name the name of the breaker
      * @param oldBreaker the previous circuit breaker to inherit the used value from (starting offset)
      */
-    public ChildMemoryCircuitBreaker(BreakerSettings settings, ChildMemoryCircuitBreaker oldBreaker,
-                                     Logger logger, HierarchyCircuitBreakerService parent, String name) {
+    public ChildMemoryCircuitBreaker(BreakerSettings settings,
+                                     ChildMemoryCircuitBreaker oldBreaker,
+                                     Logger logger,
+                                     CircuitBreakerService parent,
+                                     String name) {
         this.name = name;
         this.settings = settings;
         this.memoryBytesLimit = settings.getLimit();

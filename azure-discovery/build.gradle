@@ -36,7 +36,6 @@ dependencies {
     testImplementation('com.microsoft.azure:azure-mgmt-utility:0.9.8') {
         exclude group: 'stax', module: 'stax-api'
         exclude group: 'javax.mail', module: 'mail'
-        exclude group: 'org.slf4j', module: 'slf4j-api'
         exclude group: 'commons-logging', module: 'commons-logging'
         exclude group: 'commons-codec', module: 'commons-codec'
         exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'

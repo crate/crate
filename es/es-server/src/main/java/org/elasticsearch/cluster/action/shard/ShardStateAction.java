@@ -32,6 +32,7 @@ import org.elasticsearch.cluster.ClusterStateTaskExecutor;
 import org.elasticsearch.cluster.ClusterStateTaskListener;
 import org.elasticsearch.cluster.MasterNodeChangePredicate;
 import org.elasticsearch.cluster.NotMasterException;
+import org.elasticsearch.cluster.coordination.FailedToCommitClusterStateException;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.RoutingService;
@@ -47,9 +48,9 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
-import org.elasticsearch.discovery.Discovery;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.node.NodeClosedException;
+import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.ConnectTransportException;
 import org.elasticsearch.transport.EmptyTransportResponseHandler;
@@ -130,7 +131,7 @@ public class ShardStateAction {
     private static Class[] MASTER_CHANNEL_EXCEPTIONS = new Class[]{
         NotMasterException.class,
         ConnectTransportException.class,
-        Discovery.FailedToCommitClusterStateException.class
+        FailedToCommitClusterStateException.class
     };
 
     private static boolean isMasterChannelException(TransportException exp) {
@@ -236,7 +237,7 @@ public class ShardStateAction {
         }
 
         @Override
-        public void messageReceived(FailedShardEntry request, TransportChannel channel) throws Exception {
+        public void messageReceived(FailedShardEntry request, TransportChannel channel, Task task) throws Exception {
             logger.debug(() -> new ParameterizedMessage("{} received shard failed for {}", request.shardId, request), request.failure);
             clusterService.submitStateUpdateTask(
                 "shard-failed",
@@ -480,7 +481,7 @@ public class ShardStateAction {
         }
 
         @Override
-        public void messageReceived(StartedShardEntry request, TransportChannel channel) throws Exception {
+        public void messageReceived(StartedShardEntry request, TransportChannel channel, Task task) throws Exception {
             logger.debug("{} received shard started for [{}]", request.shardId, request);
             clusterService.submitStateUpdateTask(
                 "shard-started " + request,
@@ -603,7 +604,7 @@ public class ShardStateAction {
          * are:
          *  - {@link NotMasterException}
          *  - {@link NodeDisconnectedException}
-         *  - {@link Discovery.FailedToCommitClusterStateException}
+         *  - {@link FailedToCommitClusterStateException}
          *
          * Any other exception is communicated to the requester via
          * this notification.

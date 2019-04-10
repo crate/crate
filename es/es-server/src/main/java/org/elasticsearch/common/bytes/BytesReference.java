@@ -18,7 +18,6 @@
  */
 package org.elasticsearch.common.bytes;
 
-import org.apache.lucene.util.Accountable;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.BytesRefIterator;
 import org.elasticsearch.common.io.stream.BytesStream;
@@ -36,7 +35,7 @@ import java.util.function.ToIntBiFunction;
 /**
  * A reference to bytes.
  */
-public abstract class BytesReference implements Accountable, Comparable<BytesReference>, ToXContentFragment {
+public abstract class BytesReference implements Comparable<BytesReference>, ToXContentFragment {
 
     private Integer hash = null; // we cache the hash of this reference since it can be quite costly to re-calculated it
 
@@ -60,6 +59,22 @@ public abstract class BytesReference implements Accountable, Comparable<BytesRef
     public abstract byte get(int index);
 
     /**
+     * Finds the index of the first occurrence of the given marker between within the given bounds.
+     * @param marker marker byte to search
+     * @param from lower bound for the index to check (inclusive)
+     * @return first index of the marker or {@code -1} if not found
+     */
+    public int indexOf(byte marker, int from) {
+        final int to = length();
+        for (int i = from; i < to; i++) {
+            if (get(i) == marker) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    /**
      * The length.
      */
     public abstract int length();
@@ -68,6 +83,11 @@ public abstract class BytesReference implements Accountable, Comparable<BytesRef
      * Slice the bytes from the {@code from} index up to {@code length}.
      */
     public abstract BytesReference slice(int from, int length);
+
+    /**
+     * The amount of memory used by this BytesReference
+     */
+    public abstract long ramBytesUsed();
 
     /**
      * A stream input of the bytes.
@@ -168,7 +188,7 @@ public abstract class BytesReference implements Accountable, Comparable<BytesRef
 
     @Override
     public int compareTo(final BytesReference other) {
-        return compareIterators(this, other, (a, b) -> a.compareTo(b));
+        return compareIterators(this, other, BytesRef::compareTo);
     }
 
     /**
