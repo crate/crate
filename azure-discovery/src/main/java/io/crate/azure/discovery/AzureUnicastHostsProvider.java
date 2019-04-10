@@ -41,7 +41,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.SingleObjectCache;
-import org.elasticsearch.discovery.zen.UnicastHostsProvider;
+import org.elasticsearch.discovery.SeedHostsProvider;
 import org.elasticsearch.transport.TransportService;
 
 import java.io.IOException;
@@ -52,7 +52,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 
-public class AzureUnicastHostsProvider implements UnicastHostsProvider {
+public class AzureUnicastHostsProvider implements SeedHostsProvider {
 
     private static final Logger logger = LogManager.getLogger(AzureUnicastHostsProvider.class);
 
@@ -62,7 +62,7 @@ public class AzureUnicastHostsProvider implements UnicastHostsProvider {
 
         private String type;
 
-        private HostType(String type) {
+        HostType(String type) {
             this.type = type;
         }
 
@@ -108,12 +108,13 @@ public class AzureUnicastHostsProvider implements UnicastHostsProvider {
      * The cache time can be controlled using `cloud.azure.refresh_interval` setting.
      */
     @Override
-    public List<TransportAddress> buildDynamicHosts(HostsResolver hostsResolver) {
+    public List<TransportAddress> getSeedAddresses(HostsResolver hostsResolver) {
         if (cache == null) {
             cache = new AddressCache(refreshInterval, Collections.emptyList());
         }
         return cache.getOrRefresh();
     }
+
 
     private class AddressCache extends SingleObjectCache<List<TransportAddress>> {
 

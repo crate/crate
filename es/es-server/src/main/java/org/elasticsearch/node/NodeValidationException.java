@@ -26,7 +26,7 @@ import java.util.List;
 /**
  * An exception thrown during node validation. Node validation runs immediately before a node
  * begins accepting network requests in
- * {@link Node#validateNodeBeforeAcceptingRequests(org.elasticsearch.bootstrap.BootstrapContext, BoundTransportAddress, List)}.
+ * {@link Node#validateNodeBeforeAcceptingRequests(BoundTransportAddress, List)}.
  * This exception is a checked exception that is declared as thrown from this method for the purpose of bubbling up to the user.
  */
 public class NodeValidationException extends Exception {

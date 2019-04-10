@@ -23,7 +23,6 @@
 package org.elasticsearch.node;
 
 
-import org.elasticsearch.cli.Terminal;
 import org.elasticsearch.common.io.PathUtils;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.SettingsException;
@@ -55,15 +54,15 @@ public class InternalSettingsPreparerTest {
         settings.put("cluster.name", "clusterNameOverridden");
         settings.put("path.logs", "/some/other/path");
         Settings finalSettings = InternalSettingsPreparer
-            .prepareEnvironment(Settings.EMPTY, Terminal.DEFAULT, settings, config).settings();
+            .prepareEnvironment(Settings.EMPTY, settings, config, () -> "node1").settings();
         // Overriding value from crate.yml
-            assertThat(finalSettings.getAsBoolean("stats.enabled", null), is(false));
+        assertThat(finalSettings.getAsBoolean("stats.enabled", null), is(false));
         // Value kept from crate.yml
-            assertThat(finalSettings.getAsBoolean("psql.enabled", null), is(false));
+        assertThat(finalSettings.getAsBoolean("psql.enabled", null), is(false));
         // Overriding value from crate.yml
-            assertThat(finalSettings.get("cluster.name"), is("clusterNameOverridden"));
+        assertThat(finalSettings.get("cluster.name"), is("clusterNameOverridden"));
         // Value kept from crate.yml
-            assertThat(finalSettings.get("path.logs"), is("/some/other/path"));
+        assertThat(finalSettings.get("path.logs"), is("/some/other/path"));
     }
 
     @Test
@@ -74,11 +73,11 @@ public class InternalSettingsPreparerTest {
         Path config = PathUtils.get(getClass().getResource("config_custom").toURI());
         settings.put("path.conf", config.toString());
         Settings finalSettings = InternalSettingsPreparer
-            .prepareEnvironment(Settings.EMPTY, Terminal.DEFAULT, settings, config).settings();
+            .prepareEnvironment(Settings.EMPTY, settings, config, () -> "node1").settings();
         // Values from crate.yml
-            assertThat(finalSettings.get("cluster.name"), is("custom"));
+        assertThat(finalSettings.get("cluster.name"), is("custom"));
         // path.logs is not set in config_custom/crate.yml
-            // so it needs to use default value and not the value set in config/crate.yml
+        // so it needs to use default value and not the value set in config/crate.yml
         assertThat(finalSettings.get("path.logs"), endsWith("/test/org/elasticsearch/node/logs"));
     }
 
@@ -89,7 +88,7 @@ public class InternalSettingsPreparerTest {
         settings.put("cluster.name", "clusterName");
         Path config = PathUtils.get(getClass().getResource("config").toURI());
         Settings finalSettings = InternalSettingsPreparer
-            .prepareEnvironment(Settings.EMPTY, Terminal.DEFAULT, settings, config).settings();
+            .prepareEnvironment(Settings.EMPTY, settings, config, () -> "node1").settings();
         assertThat(finalSettings.get("cluster.name"), is("clusterName"));
     }
 
@@ -102,6 +101,6 @@ public class InternalSettingsPreparerTest {
         expectedException.expect(SettingsException.class);
         expectedException.expectMessage("Failed to load settings from");
         expectedException.expectCause(Matchers.hasProperty("message", containsString("Duplicate field 'stats.enabled'")));
-        InternalSettingsPreparer.prepareEnvironment(Settings.EMPTY, Terminal.DEFAULT, settings, config);
+        InternalSettingsPreparer.prepareEnvironment(Settings.EMPTY, settings, config, () -> "node1");
     }
 }

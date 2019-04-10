@@ -25,74 +25,33 @@ import io.crate.expression.reference.sys.check.SysCheck.Severity;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.action.ActionFuture;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 
-import static org.elasticsearch.common.settings.Settings.builder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 
 @ESIntegTestCase.ClusterScope(
-    numDataNodes = 0, numClientNodes = 0, supportsDedicatedMasters = false, autoMinMasterNodes = false)
+    numDataNodes = 0, numClientNodes = 0, supportsDedicatedMasters = false)
 public class SysCheckerIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testChecksPresenceAndSeverityLevels() throws Exception {
-        // must set minimum_master_nodes due to autoMinMasterNodes=false ClusterScope
-        internalCluster().startNode(builder().put("discovery.zen.minimum_master_nodes", 1).build());
+        internalCluster().startNode(internalCluster().getDefaultSettings());
         internalCluster().ensureAtLeastNumDataNodes(1);
 
         SQLResponse response = execute("select severity, passed from sys.checks order by id asc");
-        assertThat(response.rowCount(), equalTo(3L));
-        assertThat(response.rows()[0][0], is(Severity.HIGH.value()));
+        assertThat(response.rowCount(), equalTo(2L));
+        assertThat(response.rows()[0][0], is(Severity.MEDIUM.value()));
         assertThat(response.rows()[1][0], is(Severity.MEDIUM.value()));
-        assertThat(response.rows()[2][0], is(Severity.MEDIUM.value()));
-    }
-
-    @Test
-    public void testMinimumMasterNodesCheckSetNotCorrectNumberOfMasterNodes() throws InterruptedException {
-        Settings settings = builder().put("discovery.zen.minimum_master_nodes", 1).build();
-        internalCluster().startNode(settings);
-        internalCluster().startNode(settings);
-        internalCluster().ensureAtLeastNumDataNodes(2);
-        // update discovery.zen.minimum_master_nodes again:
-        // test uses SUITE cluster-scope, so depending on the execution order of the tests there may be another node running
-        // that has "minimum_master_nodes" set to something else - if the execute then hits that particular node
-        // it would fail.
-        execute("set global transient discovery.zen.minimum_master_nodes = 1");
-
-        try {
-            SQLResponse response = execute("select severity, passed from sys.checks where id=?", new Object[]{1});
-            assertThat(TestingHelpers.printedTable(response.rows()), is("3| false\n"));
-        } finally {
-            execute("reset global discovery.zen.minimum_master_nodes");
-        }
-    }
-
-    @Test
-    public void testMinimumMasterNodesCheckWithCorrectSetting() {
-        Settings settings = builder().put("discovery.zen.minimum_master_nodes", 1).build();
-        internalCluster().startNode(settings);
-        internalCluster().startNode(settings);
-        internalCluster().ensureAtLeastNumDataNodes(2);
-        execute("set global transient discovery.zen.minimum_master_nodes = 2");
-
-        try {
-            SQLResponse response = execute("select severity, passed from sys.checks where id=?", new Object[]{1});
-            assertThat(TestingHelpers.printedTable(response.rows()), is("3| true\n"));
-        } finally {
-            execute("reset global discovery.zen.minimum_master_nodes");
-        }
     }
 
     @Test
     public void testNumberOfPartitionCheckPassedForDocTablesCustomAndDefaultSchemas() {
-        // must set minimum_master_nodes due to autoMinMasterNodes=false ClusterScope
-        internalCluster().startNode(builder().put("discovery.zen.minimum_master_nodes", 1));
+        internalCluster().startNode();
         internalCluster().ensureAtLeastNumDataNodes(1);
         execute("create table foo.bar (id int) partitioned by (id)");
         execute("create table bar (id int) partitioned by (id)");
@@ -104,9 +63,8 @@ public class SysCheckerIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectingConcurrentlyFromSysCheckPassesWithoutExceptions() {
-        Settings settings = builder().put("discovery.zen.minimum_master_nodes", 1).build();
-        internalCluster().startNode(settings);
-        internalCluster().startNode(settings);
+        internalCluster().startNode();
+        internalCluster().startNode();
         internalCluster().ensureAtLeastNumDataNodes(2);
 
         ArrayList<ActionFuture<SQLResponse>> responses = new ArrayList<>();

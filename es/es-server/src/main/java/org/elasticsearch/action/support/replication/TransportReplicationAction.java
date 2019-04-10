@@ -80,6 +80,7 @@ import org.elasticsearch.transport.TransportResponseHandler;
 import org.elasticsearch.transport.TransportService;
 
 import java.io.IOException;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
@@ -269,22 +270,12 @@ public abstract class TransportReplicationAction<
                 }
             });
         }
-
-        @Override
-        public void messageReceived(Request request, TransportChannel channel) throws Exception {
-            throw new UnsupportedOperationException("the task parameter is required for this operation");
-        }
     }
 
     protected class PrimaryOperationTransportHandler implements TransportRequestHandler<ConcreteShardRequest<Request>> {
 
         public PrimaryOperationTransportHandler() {
 
-        }
-
-        @Override
-        public void messageReceived(final ConcreteShardRequest<Request> request, final TransportChannel channel) throws Exception {
-            throw new UnsupportedOperationException("the task parameter is required for this operation");
         }
 
         @Override
@@ -488,12 +479,6 @@ public abstract class TransportReplicationAction<
     }
 
     public class ReplicaOperationTransportHandler implements TransportRequestHandler<ConcreteReplicaRequest<ReplicaRequest>> {
-
-        @Override
-        public void messageReceived(
-                final ConcreteReplicaRequest<ReplicaRequest> replicaRequest, final TransportChannel channel) throws Exception {
-            throw new UnsupportedOperationException("the task parameter is required for this operation");
-        }
 
         @Override
         public void messageReceived(
@@ -1235,8 +1220,8 @@ public abstract class TransportReplicationAction<
         }
 
         @Override
-        public Task createTask(long id, TaskId parentTaskId) {
-            return request.createTask(id, parentTaskId);
+        public Task createTask(long id, String type, String action, TaskId parentTaskId, Map<String, String> headers) {
+            return request.createTask(id, type, action, parentTaskId, headers);
         }
 
         @Override

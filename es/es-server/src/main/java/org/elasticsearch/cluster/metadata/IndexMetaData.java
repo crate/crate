@@ -145,22 +145,27 @@ public class IndexMetaData implements Diffable<IndexMetaData>, ToXContentFragmen
             Setting.intSetting(SETTING_ROUTING_PARTITION_SIZE, 1, 1, Property.IndexScope);
 
     public static final Setting<Integer> INDEX_NUMBER_OF_ROUTING_SHARDS_SETTING =
-        Setting.intSetting("index.number_of_routing_shards", INDEX_NUMBER_OF_SHARDS_SETTING, 1, new Setting.Validator<Integer>() {
-            @Override
-            public void validate(Integer numRoutingShards, Map<Setting<Integer>, Integer> settings) {
-                Integer numShards = settings.get(INDEX_NUMBER_OF_SHARDS_SETTING);
-                if (numRoutingShards < numShards) {
-                    throw new IllegalArgumentException("index.number_of_routing_shards [" + numRoutingShards
-                        + "] must be >= index.number_of_shards [" + numShards + "]");
+        Setting.intSetting("index.number_of_routing_shards", INDEX_NUMBER_OF_SHARDS_SETTING,
+            1, new Setting.Validator<Integer>() {
+                @Override
+                public void validate(Integer value) {
                 }
-                getRoutingFactor(numShards, numRoutingShards);
-            }
 
-            @Override
-            public Iterator<Setting<Integer>> settings() {
-                return Collections.singleton(INDEX_NUMBER_OF_SHARDS_SETTING).iterator();
-            }
-        }, Property.IndexScope);
+                @Override
+                public void validate(Integer numRoutingShards, Map<Setting<Integer>, Integer> settings) {
+                    Integer numShards = settings.get(INDEX_NUMBER_OF_SHARDS_SETTING);
+                    if (numRoutingShards < numShards) {
+                        throw new IllegalArgumentException("index.number_of_routing_shards [" + numRoutingShards
+                                                           + "] must be >= index.number_of_shards [" + numShards + "]");
+                    }
+                    getRoutingFactor(numShards, numRoutingShards);
+                }
+
+                @Override
+                public Iterator<Setting<Integer>> settings() {
+                    return Collections.singleton(INDEX_NUMBER_OF_SHARDS_SETTING).iterator();
+                }
+            }, Property.IndexScope);
 
     public static final String SETTING_AUTO_EXPAND_REPLICAS = "index.auto_expand_replicas";
     public static final Setting<AutoExpandReplicas> INDEX_AUTO_EXPAND_REPLICAS_SETTING = AutoExpandReplicas.SETTING;
@@ -212,14 +217,14 @@ public class IndexMetaData implements Diffable<IndexMetaData>, ToXContentFragmen
     public static final String INDEX_ROUTING_INCLUDE_GROUP_PREFIX = "index.routing.allocation.include";
     public static final String INDEX_ROUTING_EXCLUDE_GROUP_PREFIX = "index.routing.allocation.exclude";
     public static final Setting.AffixSetting<String> INDEX_ROUTING_REQUIRE_GROUP_SETTING =
-        Setting.prefixKeySetting(INDEX_ROUTING_REQUIRE_GROUP_PREFIX + ".", (key) ->
-            Setting.simpleString(key, (value, map) -> IP_VALIDATOR.accept(key, value), Property.Dynamic, Property.IndexScope));
+        Setting.prefixKeySetting(INDEX_ROUTING_REQUIRE_GROUP_PREFIX + ".", key ->
+            Setting.simpleString(key, value -> IP_VALIDATOR.accept(key, value), Property.Dynamic, Property.IndexScope));
     public static final Setting.AffixSetting<String> INDEX_ROUTING_INCLUDE_GROUP_SETTING =
-        Setting.prefixKeySetting(INDEX_ROUTING_INCLUDE_GROUP_PREFIX + ".", (key) ->
-            Setting.simpleString(key, (value, map) -> IP_VALIDATOR.accept(key, value), Property.Dynamic, Property.IndexScope));
+        Setting.prefixKeySetting(INDEX_ROUTING_INCLUDE_GROUP_PREFIX + ".", key ->
+            Setting.simpleString(key, value -> IP_VALIDATOR.accept(key, value), Property.Dynamic, Property.IndexScope));
     public static final Setting.AffixSetting<String> INDEX_ROUTING_EXCLUDE_GROUP_SETTING =
-        Setting.prefixKeySetting(INDEX_ROUTING_EXCLUDE_GROUP_PREFIX + ".", (key) ->
-            Setting.simpleString(key, (value, map) -> IP_VALIDATOR.accept(key, value), Property.Dynamic, Property.IndexScope));
+        Setting.prefixKeySetting(INDEX_ROUTING_EXCLUDE_GROUP_PREFIX + ".", key ->
+            Setting.simpleString(key, value -> IP_VALIDATOR.accept(key, value), Property.Dynamic, Property.IndexScope));
     public static final Setting.AffixSetting<String> INDEX_ROUTING_INITIAL_RECOVERY_GROUP_SETTING =
         Setting.prefixKeySetting("index.routing.allocation.initial_recovery.", key -> Setting.simpleString(key));
         // this is only setable internally not a registered setting!!

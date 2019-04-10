@@ -35,7 +35,7 @@ import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.discovery.zen.UnicastHostsProvider;
+import org.elasticsearch.discovery.SeedHostsProvider;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.plugins.DiscoveryPlugin;
@@ -110,14 +110,18 @@ public class AzureDiscoveryPlugin extends Plugin implements DiscoveryPlugin {
         return Collections.emptyList();
     }
 
+
     @Override
-    public Map<String, Supplier<UnicastHostsProvider>> getZenHostsProviders(TransportService transportService,
-                                                                            NetworkService networkService) {
+    public Map<String, Supplier<SeedHostsProvider>> getSeedHostProviders(TransportService transportService,
+                                                                         NetworkService networkService) {
         return Collections.singletonMap(
             AzureConfiguration.AZURE,
             () -> {
                 if (AzureConfiguration.isDiscoveryReady(settings, logger)) {
-                    return new AzureUnicastHostsProvider(settings, azureComputeService(), transportService, networkService);
+                    return new AzureUnicastHostsProvider(settings,
+                                                         azureComputeService(),
+                                                         transportService,
+                                                         networkService);
                 } else {
                     return hostsResolver -> Collections.emptyList();
                 }

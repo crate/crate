@@ -56,6 +56,11 @@ public abstract class BlobIntegrationTestBase extends ESIntegTestCase {
     private Field indicesField;
     private Field shardsField;
 
+    @Override
+    protected boolean addMockHttpTransport() {
+        return false;
+    }
+
     @Before
     public void initFields() throws Exception {
         indicesField = BlobIndicesService.class.getDeclaredField("indices");

@@ -44,7 +44,7 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.discovery.zen.UnicastHostsProvider;
+import org.elasticsearch.discovery.SeedHostsProvider;
 import org.elasticsearch.transport.TransportService;
 
 import java.net.InetSocketAddress;
@@ -58,7 +58,7 @@ import java.util.concurrent.TimeoutException;
 import static org.elasticsearch.common.util.concurrent.EsExecutors.daemonThreadFactory;
 
 @Singleton
-public class SrvUnicastHostsProvider implements UnicastHostsProvider, AutoCloseable {
+public class SrvUnicastHostsProvider implements AutoCloseable, SeedHostsProvider {
 
     private static final Logger logger = LogManager.getLogger(SrvUnicastHostsProvider.class);
 
@@ -132,9 +132,8 @@ public class SrvUnicastHostsProvider implements UnicastHostsProvider, AutoClosea
         return resolverBuilder.build();
     }
 
-
     @Override
-    public List<TransportAddress> buildDynamicHosts(HostsResolver hostsResolver) {
+    public List<TransportAddress> getSeedAddresses(HostsResolver hostsResolver) {
         if (query == null) {
             logger.error("DNS query must not be null. Please set '{}'", DISCOVERY_SRV_QUERY);
             return Collections.emptyList();
@@ -193,4 +192,5 @@ public class SrvUnicastHostsProvider implements UnicastHostsProvider, AutoClosea
     public void close() {
         resolver.close();
     }
+
 }

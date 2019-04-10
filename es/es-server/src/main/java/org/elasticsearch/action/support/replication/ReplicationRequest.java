@@ -34,6 +34,7 @@ import org.elasticsearch.tasks.Task;
 import org.elasticsearch.tasks.TaskId;
 
 import java.io.IOException;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import static org.elasticsearch.action.ValidateActions.addValidationError;
@@ -206,8 +207,8 @@ public abstract class ReplicationRequest<Request extends ReplicationRequest<Requ
     }
 
     @Override
-    public Task createTask(long id, TaskId parentTaskId) {
-        return new ReplicationTask(id, getDescription(), parentTaskId);
+    public Task createTask(long id, String type, String action, TaskId parentTaskId, Map<String, String> headers) {
+        return new ReplicationTask(id, type, action, getDescription(), parentTaskId, headers);
     }
 
     /**
