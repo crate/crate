@@ -105,6 +105,21 @@ public final class ConstructingObjectParser<Value, Context> extends AbstractObje
      *
      * @param name The name given to the delegate ObjectParser for error identification. Use what you'd use if the object worked with
      *        ObjectParser.
+     * @param builder A function that builds the object from an array of Objects. Declare this inline with the parser, casting the elements
+     *        of the array to the arguments so they work with your favorite constructor. The objects in the array will be in the same order
+     *        that you declared the {@link #constructorArg()}s and none will be null. If any of the constructor arguments aren't defined in
+     *        the XContent then parsing will throw an error. We use an array here rather than a {@code Map<String, Object>} to save on
+     *        allocations.
+     */
+    public ConstructingObjectParser(String name, Function<Object[], Value> builder) {
+        this(name, false, builder);
+    }
+
+    /**
+     * Build the parser.
+     *
+     * @param name The name given to the delegate ObjectParser for error identification. Use what you'd use if the object worked with
+     *        ObjectParser.
      * @param ignoreUnknownFields Should this parser ignore unknown fields? This should generally be set to true only when parsing responses
      *        from external systems, never when parsing requests from users.
      * @param builder A function that builds the object from an array of Objects. Declare this inline with the parser, casting the elements

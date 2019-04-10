@@ -1,23 +1,20 @@
 /*
- * Licensed to Crate under one or more contributor license agreements.
- * See the NOTICE file distributed with this work for additional
- * information regarding copyright ownership.  Crate licenses this file
- * to you under the Apache License, Version 2.0 (the "License"); you may
- * not use this file except in compliance with the License.  You may
- * obtain a copy of the License at
+ * Licensed to Elasticsearch under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
- * implied.  See the License for the specific language governing
- * permissions and limitations under the License.
- *
- * However, if you have executed another commercial license agreement
- * with Crate these terms will supersede the license and you may use the
- * software solely pursuant to the terms of the relevant commercial
- * agreement.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 
 package org.elasticsearch.node;
@@ -28,6 +25,7 @@ import org.elasticsearch.cluster.ClusterInfoService;
 import org.elasticsearch.cluster.MockInternalClusterInfoService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.network.NetworkModule;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.BoundTransportAddress;
@@ -36,9 +34,11 @@ import org.elasticsearch.common.util.MockBigArrays;
 import org.elasticsearch.common.util.MockPageCacheRecycler;
 import org.elasticsearch.common.util.PageCacheRecycler;
 import org.elasticsearch.env.Environment;
+import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.indices.recovery.RecoverySettings;
 import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.test.MockHttpTransport;
 import org.elasticsearch.test.transport.MockTransportService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.Transport;
@@ -77,23 +77,12 @@ public class MockNode extends Node {
     public MockNode(
             final Settings settings,
             final Collection<Class<? extends Plugin>> classpathPlugins,
-            final Path configPath) {
-        this(settings, classpathPlugins, configPath, true);
-    }
-
-    public MockNode(
-            final Settings settings,
-            final Collection<Class<? extends Plugin>> classpathPlugins,
             final Path configPath,
             final boolean forbidPrivateIndexSettings) {
         this(
-                InternalSettingsPreparer.prepareEnvironment(settings, null, Collections.emptyMap(), configPath),
+                InternalSettingsPreparer.prepareEnvironment(settings, Collections.emptyMap(), configPath, () -> "mock_ node"),
                 classpathPlugins,
                 forbidPrivateIndexSettings);
-    }
-
-    public MockNode(final Environment environment, final Collection<Class<? extends Plugin>> classpathPlugins) {
-        this(environment, classpathPlugins, true);
     }
 
     private MockNode(
@@ -161,7 +150,16 @@ public class MockNode extends Node {
     }
 
     @Override
-    protected void registerDerivedNodeNameWithLogger(String nodeName) {
-        // Nothing to do because test uses the thread name
+    protected HttpServerTransport newHttpTransport(NetworkModule networkModule) {
+        if (getPluginsService().filterPlugins(MockHttpTransport.TestPlugin.class).isEmpty()) {
+            return super.newHttpTransport(networkModule);
+        } else {
+            return new MockHttpTransport(Settings.EMPTY);
+        }
+    }
+
+    @Override
+    protected void configureNodeAndClusterIdStateListener(ClusterService clusterService) {
+        //do not configure this in tests as this is causing SetOnce to throw exceptions when jvm is used for multiple tests
     }
 }

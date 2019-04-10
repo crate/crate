@@ -21,7 +21,6 @@ package org.elasticsearch.gateway;
 
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.FailedNodeException;
 import org.elasticsearch.action.support.nodes.BaseNodeRequest;
@@ -67,19 +66,20 @@ public class TransportNodesListGatewayStartedShards extends
         TransportNodesListGatewayStartedShards.NodeGatewayStartedShards> {
 
     public static final String ACTION_NAME = "internal:gateway/local/started_shards";
+    private final Settings settings;
     private final NodeEnvironment nodeEnv;
     private final IndicesService indicesService;
     private final NamedXContentRegistry namedXContentRegistry;
 
     @Inject
-    public TransportNodesListGatewayStartedShards(Settings settings, ThreadPool threadPool,
-                                                  ClusterService clusterService, TransportService transportService,
+    public TransportNodesListGatewayStartedShards(Settings settings, ThreadPool threadPool, ClusterService clusterService,
+                                                  TransportService transportService,
                                                   IndexNameExpressionResolver indexNameExpressionResolver,
                                                   NodeEnvironment env, IndicesService indicesService,
                                                   NamedXContentRegistry namedXContentRegistry) {
-        super(settings, ACTION_NAME, threadPool, clusterService, transportService,
-              indexNameExpressionResolver, Request::new, NodeRequest::new, ThreadPool.Names.FETCH_SHARD_STARTED,
-              NodeGatewayStartedShards.class);
+        super(settings, ACTION_NAME, threadPool, clusterService, transportService, indexNameExpressionResolver,
+            Request::new, NodeRequest::new, ThreadPool.Names.FETCH_SHARD_STARTED, NodeGatewayStartedShards.class);
+        this.settings = settings;
         this.nodeEnv = env;
         this.indicesService = indicesService;
         this.namedXContentRegistry = namedXContentRegistry;
@@ -89,11 +89,6 @@ public class TransportNodesListGatewayStartedShards extends
     public void list(ShardId shardId, DiscoveryNode[] nodes,
                      ActionListener<NodesGatewayStartedShards> listener) {
         execute(new Request(shardId, nodes), listener);
-    }
-
-    @Override
-    protected boolean transportCompress() {
-        return true; // this can become big...
     }
 
     @Override

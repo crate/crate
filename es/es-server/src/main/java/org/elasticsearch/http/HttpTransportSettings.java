@@ -80,7 +80,12 @@ public final class HttpTransportSettings {
             return true;
         }, Property.NodeScope, Property.Deprecated);
     public static final Setting<ByteSizeValue> SETTING_HTTP_MAX_CONTENT_LENGTH =
-        Setting.byteSizeSetting("http.max_content_length", new ByteSizeValue(100, ByteSizeUnit.MB), Property.NodeScope);
+        Setting.byteSizeSetting(
+                "http.max_content_length",
+                new ByteSizeValue(100, ByteSizeUnit.MB),
+                new ByteSizeValue(0, ByteSizeUnit.BYTES),
+                new ByteSizeValue(Integer.MAX_VALUE, ByteSizeUnit.BYTES),
+                Property.NodeScope);
     public static final Setting<ByteSizeValue> SETTING_HTTP_MAX_CHUNK_SIZE =
         Setting.byteSizeSetting("http.max_chunk_size", new ByteSizeValue(8, ByteSizeUnit.KB), Property.NodeScope);
     public static final Setting<ByteSizeValue> SETTING_HTTP_MAX_HEADER_SIZE =
@@ -100,8 +105,13 @@ public final class HttpTransportSettings {
     public static final Setting<TimeValue> SETTING_HTTP_READ_TIMEOUT =
         Setting.timeSetting("http.read_timeout", new TimeValue(0), new TimeValue(0), Property.NodeScope);
 
-    public static final Setting<Boolean> SETTING_HTTP_TCP_NO_DELAY =
+    // Tcp socket settings
+
+    // TODO: Deprecate in 7.0
+    public static final Setting<Boolean> OLD_SETTING_HTTP_TCP_NO_DELAY =
         boolSetting("http.tcp_no_delay", NetworkService.TCP_NO_DELAY, Setting.Property.NodeScope);
+    public static final Setting<Boolean> SETTING_HTTP_TCP_NO_DELAY =
+        boolSetting("http.tcp.no_delay", OLD_SETTING_HTTP_TCP_NO_DELAY, Setting.Property.NodeScope);
     public static final Setting<Boolean> SETTING_HTTP_TCP_KEEP_ALIVE =
         boolSetting("http.tcp.keep_alive", NetworkService.TCP_KEEP_ALIVE, Setting.Property.NodeScope);
     public static final Setting<Boolean> SETTING_HTTP_TCP_REUSE_ADDRESS =

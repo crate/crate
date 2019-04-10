@@ -19,9 +19,9 @@
 
 package org.elasticsearch.gateway;
 
-import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.FailedNodeException;
+import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.action.support.nodes.BaseNodeRequest;
 import org.elasticsearch.action.support.nodes.BaseNodeResponse;
 import org.elasticsearch.action.support.nodes.BaseNodesRequest;
@@ -54,22 +54,21 @@ public class TransportNodesListGatewayMetaState extends TransportNodesAction<Tra
     private final GatewayMetaState metaState;
 
     @Inject
-    public TransportNodesListGatewayMetaState(Settings settings, ThreadPool threadPool,
-                                              ClusterService clusterService, TransportService transportService,
+    public TransportNodesListGatewayMetaState(Settings settings,
+                                              ThreadPool threadPool,
+                                              ClusterService clusterService,
+                                              TransportService transportService,
                                               IndexNameExpressionResolver indexNameExpressionResolver,
                                               GatewayMetaState metaState) {
-        super(settings, ACTION_NAME, threadPool, clusterService, transportService,
-              indexNameExpressionResolver, Request::new, NodeRequest::new, ThreadPool.Names.GENERIC, NodeGatewayMetaState.class);
+        super(settings, ACTION_NAME, threadPool, clusterService, transportService, indexNameExpressionResolver,
+            Request::new, NodeRequest::new, ThreadPool.Names.GENERIC, NodeGatewayMetaState.class);
         this.metaState = metaState;
     }
 
     public ActionFuture<NodesGatewayMetaState> list(String[] nodesIds, @Nullable TimeValue timeout) {
-        return execute(new Request(nodesIds).timeout(timeout));
-    }
-
-    @Override
-    protected boolean transportCompress() {
-        return true; // compress since the metadata can become large
+        PlainActionFuture<NodesGatewayMetaState> future = PlainActionFuture.newFuture();
+        execute(new Request(nodesIds).timeout(timeout), future);
+        return future;
     }
 
     @Override
@@ -89,11 +88,7 @@ public class TransportNodesListGatewayMetaState extends TransportNodesAction<Tra
 
     @Override
     protected NodeGatewayMetaState nodeOperation(NodeRequest request) {
-        try {
-            return new NodeGatewayMetaState(clusterService.localNode(), metaState.loadMetaState());
-        } catch (Exception e) {
-            throw new ElasticsearchException("failed to load metadata", e);
-        }
+        return new NodeGatewayMetaState(clusterService.localNode(), metaState.getMetaData());
     }
 
     public static class Request extends BaseNodesRequest<Request> {
@@ -117,6 +112,9 @@ public class TransportNodesListGatewayMetaState extends TransportNodesAction<Tra
     }
 
     public static class NodesGatewayMetaState extends BaseNodesResponse<NodeGatewayMetaState> {
+
+        NodesGatewayMetaState() {
+        }
 
         public NodesGatewayMetaState(ClusterName clusterName, List<NodeGatewayMetaState> nodes, List<FailedNodeException> failures) {
             super(clusterName, nodes, failures);

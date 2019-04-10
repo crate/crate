@@ -644,7 +644,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
             .build();
         replica.updateShardState(routingEntry, replica.getPendingPrimaryTerm() + 1,
             (is, listener) ->
-                listener.onResponse(new PrimaryReplicaSyncer.ResyncTask(1, "desc", null)),
+                listener.onResponse(new PrimaryReplicaSyncer.ResyncTask(1, "type", "action", "desc", null, Collections.emptyMap())),
             currentClusterStateVersion.incrementAndGet(),
             inSyncIds, newRoutingTable);
     }

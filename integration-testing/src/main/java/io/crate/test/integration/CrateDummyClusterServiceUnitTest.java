@@ -35,6 +35,7 @@ import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.set.Sets;
+import org.elasticsearch.node.Node;
 import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.After;
@@ -93,16 +94,18 @@ public class CrateDummyClusterServiceUnitTest extends CrateUnitTest {
         clusterSettingsSet.addAll(additionalClusterSettings);
         ClusterSettings clusterSettings = new ClusterSettings(Settings.EMPTY, clusterSettingsSet);
         ClusterService clusterService = new ClusterService(
-            Settings.builder().put("cluster.name", "ClusterServiceTests").build(),
+            Settings.builder()
+                .put("cluster.name", "ClusterServiceTests")
+                .put(Node.NODE_NAME_SETTING.getKey(), NODE_NAME)
+                .build(),
             clusterSettings,
-            THREAD_POOL,
-            Collections.emptyMap()
+            THREAD_POOL
         );
         clusterService.setNodeConnectionsService(new NodeConnectionsService(Settings.EMPTY, null, null) {
 
             @Override
-            public void connectToNodes(DiscoveryNodes discoveryNodes) {
-                // skip
+            public void connectToNodes(DiscoveryNodes discoveryNodes, Runnable onCompletion) {
+                onCompletion.run();
             }
 
             @Override

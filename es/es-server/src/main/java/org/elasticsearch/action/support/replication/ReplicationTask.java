@@ -22,14 +22,16 @@ package org.elasticsearch.action.support.replication;
 import org.elasticsearch.tasks.Task;
 import org.elasticsearch.tasks.TaskId;
 
+import java.util.Map;
+
 /**
  * Task that tracks replication actions.
  */
 public class ReplicationTask extends Task {
     private volatile String phase = "starting";
 
-    public ReplicationTask(long id, String description, TaskId parentTaskId) {
-        super(id, description, parentTaskId);
+    public ReplicationTask(long id, String type, String action, String description, TaskId parentTaskId, Map<String, String> headers) {
+        super(id, type, action, description, parentTaskId, headers);
     }
 
     /**

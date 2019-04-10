@@ -28,6 +28,7 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.transport.TransportSettings;
 import org.elasticsearch.transport.netty4.Netty4Transport;
 
 import static org.elasticsearch.common.util.concurrent.EsExecutors.daemonThreadFactory;
@@ -45,13 +46,13 @@ public final class CrateChannelBootstrapFactory {
             Netty4Transport.NETTY_BOSS_COUNT.get(settings), daemonThreadFactory(settings, id + "-netty-boss"));
         EventLoopGroup worker = new NioEventLoopGroup(
             Netty4Transport.WORKER_COUNT.get(settings), daemonThreadFactory(settings, id + "-netty-worker"));
-        Boolean reuseAddress = Netty4Transport.TCP_REUSE_ADDRESS.get(settings);
+        Boolean reuseAddress = TransportSettings.TCP_REUSE_ADDRESS.get(settings);
         return new ServerBootstrap()
             .channel(NioServerSocketChannel.class)
             .group(boss, worker)
             .option(ChannelOption.SO_REUSEADDR, reuseAddress)
             .childOption(ChannelOption.SO_REUSEADDR, reuseAddress)
-            .childOption(ChannelOption.TCP_NODELAY, Netty4Transport.TCP_NO_DELAY.get(settings))
-            .childOption(ChannelOption.SO_KEEPALIVE, Netty4Transport.TCP_KEEP_ALIVE.get(settings));
+            .childOption(ChannelOption.TCP_NODELAY, TransportSettings.TCP_NO_DELAY.get(settings))
+            .childOption(ChannelOption.SO_KEEPALIVE, TransportSettings.TCP_KEEP_ALIVE.get(settings));
     }
 }

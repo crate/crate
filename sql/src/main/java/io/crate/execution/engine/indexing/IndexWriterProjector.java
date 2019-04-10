@@ -45,7 +45,7 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.BigArrays;
+import org.elasticsearch.common.util.PageCacheRecycler;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.support.XContentMapValues;
@@ -157,7 +157,7 @@ public class IndexWriterProjector implements Projector {
             this.sourceInput = sourceInput;
             this.includes = includes;
             this.excludes = excludes;
-            this.lastSourceSize = BigArrays.BYTE_PAGE_SIZE;
+            this.lastSourceSize = PageCacheRecycler.BYTE_PAGE_SIZE;
         }
 
         @Override

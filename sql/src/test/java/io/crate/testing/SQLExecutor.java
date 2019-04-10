@@ -287,11 +287,14 @@ public class SQLExecutor {
         }
 
         private void addNodesToClusterState(ClusterService clusterService, int numNodes) {
-            DiscoveryNodes.Builder builder = DiscoveryNodes.builder();
+            DiscoveryNodes.Builder builder = DiscoveryNodes.builder(clusterService.state().nodes());
             for (int i = 1; i <= numNodes; i++) {
-                builder.add(new DiscoveryNode("n" + i, newFakeAddress(), Version.CURRENT));
+                if (builder.get("n" + i) == null) {
+                    builder.add(new DiscoveryNode("n" + i, newFakeAddress(), Version.CURRENT));
+                }
             }
             builder.localNodeId("n1");
+            builder.masterNodeId("n1");
             ClusterServiceUtils.setState(
                 clusterService,
                 ClusterState.builder(clusterService.state()).nodes(builder).build());

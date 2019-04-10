@@ -19,10 +19,7 @@
 
 package org.elasticsearch.node;
 
-import org.elasticsearch.cli.Terminal;
 import org.elasticsearch.cluster.ClusterName;
-import org.elasticsearch.common.collect.Tuple;
-import org.elasticsearch.common.logging.LogConfigurator;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.SettingsException;
 import org.elasticsearch.env.Environment;
@@ -35,44 +32,38 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
-
-import static org.elasticsearch.node.NodeNames.randomNodeName;
+import java.util.function.Supplier;
 
 public class InternalSettingsPreparer {
 
     /**
-     * Prepares the settings by gathering all elasticsearch system properties, optionally loading the configuration settings,
-     * and then replacing all property placeholders. If a {@link Terminal} is provided and configuration settings are loaded,
-     * settings with a value of <code>${prompt.text}</code> or <code>${prompt.secret}</code> will result in a prompt for
-     * the setting to the user.
-     * @param input The custom settings to use. These are not overwritten by settings in the configuration file.
-     * @param terminal the Terminal to use for input/output
-     * @return the {@link Settings} and {@link Environment} as a {@link Tuple}
+     * Prepares settings for the transport client by gathering all
+     * elasticsearch system properties and setting defaults.
      */
-    public static Environment prepareEnvironment(Settings input, Terminal terminal) {
-        return prepareEnvironment(input, terminal, Collections.emptyMap(), null);
+    public static Settings prepareSettings(Settings input) {
+        Settings.Builder output = Settings.builder();
+        initializeSettings(output, input, Collections.emptyMap());
+        finalizeSettings(output, () -> null);
+        return output.build();
     }
 
     /**
-     * Prepares the settings by gathering all elasticsearch system properties, optionally loading the configuration settings,
-     * and then replacing all property placeholders. If a {@link Terminal} is provided and configuration settings are loaded,
-     * settings with a value of <code>${prompt.text}</code> or <code>${prompt.secret}</code> will result in a prompt for
-     * the setting to the user.
+     * Prepares the settings by gathering all elasticsearch system properties, optionally loading the configuration settings.
      *
      * @param input      the custom settings to use; these are not overwritten by settings in the configuration file
-     * @param terminal   the Terminal to use for input/output
      * @param properties map of properties key/value pairs (usually from the command-line)
      * @param configPath path to config directory; (use null to indicate the default)
-     * @return the {@link Settings} and {@link Environment} as a {@link Tuple}
+     * @param defaultNodeName supplier for the default node.name if the setting isn't defined
+     * @return the {@link Environment}
      */
-    public static Environment prepareEnvironment(Settings input, Terminal terminal, Map<String, String> properties, Path configPath) {
+    public static Environment prepareEnvironment(Settings input,
+                                                 Map<String, String> properties,
+                                                 Path configPath,
+                                                 Supplier<String> defaultNodeName) {
         // just create enough settings to build the environment, to get the config dir
         Settings.Builder output = Settings.builder();
         initializeSettings(output, input, properties);
         Environment environment = new Environment(output.build(), configPath);
-
-        LogConfigurator.configureWithoutConfig(environment.settings());
-        LogConfigurator.registerErrorListener();
 
         output = Settings.builder(); // start with a fresh output
         Path path = environment.configFile().resolve("crate.yml");
@@ -86,7 +77,7 @@ public class InternalSettingsPreparer {
 
         // re-initialize settings now that the config file has been loaded
         initializeSettings(output, input, properties);
-        finalizeSettings(output, terminal);
+        finalizeSettings(output, defaultNodeName);
 
         environment = new Environment(output.build(), configPath);
 
@@ -110,10 +101,9 @@ public class InternalSettingsPreparer {
     }
 
     /**
-     * Finish preparing settings by replacing forced settings, prompts, and any defaults that need to be added.
-     * The provided terminal is used to prompt for settings needing to be replaced.
+     * Finish preparing settings by replacing forced settings and any defaults that need to be added.
      */
-    private static void finalizeSettings(Settings.Builder output, Terminal terminal) {
+    private static void finalizeSettings(Settings.Builder output, Supplier<String> defaultNodeName) {
         // allow to force set properties based on configuration of the settings provided
         List<String> forcedSettings = new ArrayList<>();
         for (String setting : output.keys()) {
@@ -127,12 +117,12 @@ public class InternalSettingsPreparer {
         }
         output.replacePropertyPlaceholders();
 
-        // put the cluster name
+        // put the cluster and node name if they aren't set
         if (output.get(ClusterName.CLUSTER_NAME_SETTING.getKey()) == null) {
             output.put(ClusterName.CLUSTER_NAME_SETTING.getKey(), ClusterName.CLUSTER_NAME_SETTING.getDefault(Settings.EMPTY).value());
         }
         if (output.get(Node.NODE_NAME_SETTING.getKey()) == null) {
-            output.put(Node.NODE_NAME_SETTING.getKey(), randomNodeName());
+            output.put(Node.NODE_NAME_SETTING.getKey(), defaultNodeName.get());
         }
     }
 }

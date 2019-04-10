@@ -150,8 +150,6 @@ applied cluster settings.
     | settings['cluster']['routing']['rebalance']['enable']                             | text             |
     | settings['discovery']                                                             | object           |
     | settings['discovery']['zen']                                                      | object           |
-    | settings['discovery']['zen']['minimum_master_nodes']                              | integer          |
-    | settings['discovery']['zen']['ping_timeout']                                      | text             |
     | settings['discovery']['zen']['publish_timeout']                                   | text             |
     | settings['gateway']                                                               | object           |
     | settings['gateway']['expected_nodes']                                             | integer          |
@@ -1417,12 +1415,11 @@ Here's an example query::
   +----+--------------------------------------------------------------...-+
   | id | description                                                      |
   +----+--------------------------------------------------------------...-+
-  |  1 | The setting 'discovery.zen.minimum_master_nodes' must not be ... |
   |  2 | The total number of partitions of one or more partitioned tab... |
   |  3 | The following tables need to be upgraded for compatibility wi... |
   |  6 | Your CrateDB license is valid. Enjoy CrateDB!                    |
   +----+--------------------------------------------------------------...-+
-  SELECT 4 rows in set (... sec)
+  SELECT 3 rows in set (... sec)
 
 Cluster checks are also indicated in the CrateDB `admin console`_. When all
 cluster checks (and all :ref:`sys-node-checks`) pass, the *Checks* icon will be

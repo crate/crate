@@ -95,6 +95,10 @@ public class DiskThresholdSettings {
     static final class LowDiskWatermarkValidator implements Setting.Validator<String> {
 
         @Override
+        public void validate(String value) {
+        }
+
+        @Override
         public void validate(String value, Map<Setting<String>, String> settings) {
             final String highWatermarkRaw = settings.get(CLUSTER_ROUTING_ALLOCATION_HIGH_DISK_WATERMARK_SETTING);
             final String floodStageRaw = settings.get(CLUSTER_ROUTING_ALLOCATION_DISK_FLOOD_STAGE_WATERMARK_SETTING);
@@ -104,14 +108,18 @@ public class DiskThresholdSettings {
         @Override
         public Iterator<Setting<String>> settings() {
             return Arrays.asList(
-                    CLUSTER_ROUTING_ALLOCATION_HIGH_DISK_WATERMARK_SETTING,
-                    CLUSTER_ROUTING_ALLOCATION_DISK_FLOOD_STAGE_WATERMARK_SETTING)
-                    .iterator();
+                CLUSTER_ROUTING_ALLOCATION_HIGH_DISK_WATERMARK_SETTING,
+                CLUSTER_ROUTING_ALLOCATION_DISK_FLOOD_STAGE_WATERMARK_SETTING)
+                .iterator();
         }
 
     }
 
     static final class HighDiskWatermarkValidator implements Setting.Validator<String> {
+
+        @Override
+        public void validate(String value) {
+        }
 
         @Override
         public void validate(String value, Map<Setting<String>, String> settings) {
@@ -123,14 +131,18 @@ public class DiskThresholdSettings {
         @Override
         public Iterator<Setting<String>> settings() {
             return Arrays.asList(
-                    CLUSTER_ROUTING_ALLOCATION_LOW_DISK_WATERMARK_SETTING,
-                    CLUSTER_ROUTING_ALLOCATION_DISK_FLOOD_STAGE_WATERMARK_SETTING)
-                    .iterator();
+                CLUSTER_ROUTING_ALLOCATION_LOW_DISK_WATERMARK_SETTING,
+                CLUSTER_ROUTING_ALLOCATION_DISK_FLOOD_STAGE_WATERMARK_SETTING)
+                .iterator();
         }
 
     }
 
     static final class FloodStageValidator implements Setting.Validator<String> {
+
+        @Override
+        public void validate(String value) {
+        }
 
         @Override
         public void validate(String value, Map<Setting<String>, String> settings) {
@@ -142,9 +154,9 @@ public class DiskThresholdSettings {
         @Override
         public Iterator<Setting<String>> settings() {
             return Arrays.asList(
-                    CLUSTER_ROUTING_ALLOCATION_LOW_DISK_WATERMARK_SETTING,
-                    CLUSTER_ROUTING_ALLOCATION_HIGH_DISK_WATERMARK_SETTING)
-                    .iterator();
+                CLUSTER_ROUTING_ALLOCATION_LOW_DISK_WATERMARK_SETTING,
+                CLUSTER_ROUTING_ALLOCATION_HIGH_DISK_WATERMARK_SETTING)
+                .iterator();
         }
     }
 

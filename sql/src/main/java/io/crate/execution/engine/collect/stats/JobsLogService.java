@@ -62,7 +62,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ScheduledExecutorService;
@@ -372,7 +371,7 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
         Consumer<String> validate = s -> { };
 
         @Override
-        public void validate(String value, Map<Setting<String>, String> settings) {
+        public void validate(String value) {
             validate.accept(value);
         }
     }

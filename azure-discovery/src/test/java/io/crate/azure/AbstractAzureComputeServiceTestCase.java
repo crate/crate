@@ -36,7 +36,7 @@ public abstract class AbstractAzureComputeServiceTestCase extends ESIntegTestCas
     protected Settings nodeSettings(int nodeOrdinal) {
         Settings.Builder builder = Settings.builder()
             .put(super.nodeSettings(nodeOrdinal))
-            .put(DiscoveryModule.DISCOVERY_HOSTS_PROVIDER_SETTING.getKey(), "azure")
+            .put(DiscoveryModule.DISCOVERY_SEED_PROVIDERS_SETTING.getKey(), "azure")
             .put(Management.SUBSCRIPTION_ID.getKey(), "fake")
             .put(Discovery.REFRESH.getKey(), "5s")
             .put(Management.APP_ID.getKey(), "dummy")

@@ -73,8 +73,8 @@ public class AzureConfiguration {
         }
 
         // User set discovery.zen.hosts_provider: azure
-        if (!AZURE.equalsIgnoreCase(settings.get(DiscoveryModule.DISCOVERY_HOSTS_PROVIDER_SETTING.getKey()))) {
-            logger.trace("{} not set to {}", DiscoveryModule.DISCOVERY_HOSTS_PROVIDER_SETTING.getKey(), AZURE);
+        if (!AZURE.equalsIgnoreCase(settings.get(DiscoveryModule.DISCOVERY_SEED_PROVIDERS_SETTING.getKey()))) {
+            logger.trace("{} not set to {}", DiscoveryModule.DISCOVERY_SEED_PROVIDERS_SETTING.getKey(), AZURE);
             return false;
         }
 

@@ -90,7 +90,7 @@ public class TableHealthService extends AbstractComponent {
             logger.debug("Could not retrieve tables health information. localNode is not fully available yet.");
             return completedFuture(Collections.emptyList());
         }
-        if (clusterService.state().getBlocks().hasGlobalBlock(RestStatus.SERVICE_UNAVAILABLE)) {
+        if (clusterService.state().getBlocks().hasGlobalBlockWithStatus(RestStatus.SERVICE_UNAVAILABLE)) {
             return completedFuture(allAsUnavailable());
         }
         try {

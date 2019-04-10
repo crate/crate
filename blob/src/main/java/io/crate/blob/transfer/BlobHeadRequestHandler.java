@@ -26,6 +26,7 @@ import io.crate.blob.BlobTransferTarget;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportRequestHandler;
@@ -72,7 +73,7 @@ public class BlobHeadRequestHandler {
          * the target is requesting the head of a file it got a PutReplicaChunkRequest for.
          */
         @Override
-        public void messageReceived(final GetBlobHeadRequest request, TransportChannel channel) throws Exception {
+        public void messageReceived(final GetBlobHeadRequest request, TransportChannel channel, Task task) throws Exception {
 
             final BlobTransferStatus transferStatus = blobTransferTarget.getActiveTransfer(request.transferId);
             assert transferStatus != null :
@@ -100,7 +101,7 @@ public class BlobHeadRequestHandler {
          * called when the target node in a recovery receives a PutBlobHeadChunkRequest
          */
         @Override
-        public void messageReceived(PutBlobHeadChunkRequest request, TransportChannel channel) throws Exception {
+        public void messageReceived(PutBlobHeadChunkRequest request, TransportChannel channel, Task task) throws Exception {
             BlobTransferStatus transferStatus = blobTransferTarget.getActiveTransfer(request.transferId);
             assert transferStatus != null : "transferStatus should not be null";
             transferStatus.digestBlob().addToHead(request.content);
@@ -110,7 +111,7 @@ public class BlobHeadRequestHandler {
 
     private class GetTransferInfoHandler implements TransportRequestHandler<BlobInfoRequest> {
         @Override
-        public void messageReceived(BlobInfoRequest request, TransportChannel channel) throws Exception {
+        public void messageReceived(BlobInfoRequest request, TransportChannel channel, Task task) throws Exception {
             final BlobTransferStatus transferStatus = blobTransferTarget.getActiveTransfer(request.transferId);
             assert transferStatus != null :
                 "Received GetBlobHeadRequest for transfer " + request.transferId.toString() +
