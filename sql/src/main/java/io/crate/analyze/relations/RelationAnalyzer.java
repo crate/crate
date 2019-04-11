@@ -53,6 +53,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.format.SymbolPrinter;
+import io.crate.expression.tablefunctions.TableFunctionFactory;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
@@ -646,24 +647,24 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             null
         );
 
-        Symbol symbol = expressionAnalyzer.convert(node.functionCall(), context.expressionAnalysisContext());
+        ExpressionAnalysisContext expressionContext = context.expressionAnalysisContext();
+        // we support `FROM scalar()` but not `FROM 'literal'` -> we turn off eager normalization
+        // so we can distinguish between Function and Literal.
+        final boolean allowEagerNormalizeOriginalValue = expressionContext.isEagerNormalizationAllowed();
+        expressionContext.allowEagerNormalize(false);
+        Symbol symbol = expressionAnalyzer.convert(node.functionCall(), expressionContext);
+        expressionContext.allowEagerNormalize(allowEagerNormalizeOriginalValue);
 
         if (!(symbol instanceof Function)) {
             throw new UnsupportedOperationException(
                 String.format(
                     Locale.ENGLISH,
-                    "Non table function '%s' is not supported in from clause", node.name()));
+                    "Symbol '%s' is not supported in FROM clause", node.name()));
         }
         Function function = (Function) symbol;
         FunctionIdent ident = function.info().ident();
         FunctionImplementation functionImplementation = functions.getQualified(ident);
-        if (functionImplementation.info().type() != FunctionInfo.Type.TABLE) {
-            throw new UnsupportedOperationException(
-                String.format(
-                    Locale.ENGLISH,
-                    "Non table function '%s' is not supported in from clause", ident.name()));
-        }
-        TableFunctionImplementation tableFunction = (TableFunctionImplementation) functionImplementation;
+        TableFunctionImplementation tableFunction = TableFunctionFactory.from(functionImplementation);
         TableInfo tableInfo = tableFunction.createTableInfo();
         Operation.blockedRaiseException(tableInfo, statementContext.currentOperation());
         TableRelation tableRelation = new TableFunctionRelation(tableInfo, tableFunction, function);
@@ -674,7 +675,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     @Override
     protected AnalyzedRelation visitTableSubquery(TableSubquery node, StatementAnalysisContext context) {
         if (!context.currentRelationContext().isAliasedRelation()) {
-            throw new UnsupportedOperationException("subquery in FROM must have an alias");
+            throw new UnsupportedOperationException("subquery in FROM clause must have an alias");
         }
         return super.visitTableSubquery(node, context);
     }

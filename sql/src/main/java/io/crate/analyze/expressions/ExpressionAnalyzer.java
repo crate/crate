@@ -1057,7 +1057,7 @@ public class ExpressionAnalyzer {
             }
             newFunction = new WindowFunction(functionInfo, castArguments, windowDefinition);
         }
-        if (functionInfo.isDeterministic() && Symbols.allLiterals(newFunction)) {
+        if (context.isEagerNormalizationAllowed() && functionInfo.isDeterministic() && Symbols.allLiterals(newFunction)) {
             return funcImpl.normalizeSymbol(newFunction, coordinatorTxnCtx);
         }
         return newFunction;
