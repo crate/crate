@@ -305,13 +305,14 @@ public final class DataTypes {
         .put("int4", INTEGER)
         .put("int8", LONG)
         .put("name", STRING)
-
         .put("long", LONG)
         .put("byte", BYTE)
         .put("short", SHORT)
         .put("float", FLOAT)
         .put("double", DOUBLE)
         .put("string", STRING)
+        .put("timestamptz", TIMESTAMP)
+        .put("timestamp", TIMESTAMP)
         .build();
 
     public static DataType ofName(String name) {

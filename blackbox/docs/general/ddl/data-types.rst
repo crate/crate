@@ -208,6 +208,8 @@ Date/Time Types
 | ``timestamp with time zone`` | 8 bytes | time and date with time zone | ``292275054BC`` to ``292278993AD`` |
 +------------------------------+---------+------------------------------+------------------------------------+
 
+.. _datetime-with-time-zone:
+
 ``timestamp with time zone``
 ----------------------------
 
@@ -852,6 +854,8 @@ Trying to cast a ``text`` to ``integer``, will fail with ``cast`` if
     +---------------------------+
     SELECT 1 row in set (... sec)
 
+.. _data-type-aliases:
+
 Type aliases
 ============
 
@@ -871,32 +875,35 @@ For example, in a type cast::
 
 See the table below for a full list of aliases:
 
-+----------+------------------+
-| Alias    | Crate Type       |
-+==========+==================+
-| int2     | smallint         |
-+----------+------------------+
-| short    | smallint         |
-+----------+------------------+
-| int      | integer          |
-+----------+------------------+
-| int4     | integer          |
-+----------+------------------+
-| int8     | bigint           |
-+----------+------------------+
-| long     | bigint           |
-+----------+------------------+
-| string   | text             |
-+----------+------------------+
-| name     | text             |
-+----------+------------------+
-| byte     | char             |
-+----------+------------------+
-| float    | real             |
-+----------+------------------+
-| double   | double precision |
-+----------+------------------+
-
++-------------+--------------------------+
+| Alias       | Crate Type               |
++=============+==========================+
+| int2        | smallint                 |
++-------------+--------------------------+
+| short       | smallint                 |
++-------------+--------------------------+
+| int         | integer                  |
++-------------+--------------------------+
+| int4        | integer                  |
++-------------+--------------------------+
+| int8        | bigint                   |
++-------------+--------------------------+
+| long        | bigint                   |
++-------------+--------------------------+
+| string      | text                     |
++-------------+--------------------------+
+| name        | text                     |
++-------------+--------------------------+
+| byte        | char                     |
++-------------+--------------------------+
+| float       | real                     |
++-------------+--------------------------+
+| double      | double precision         |
++-------------+--------------------------+
+| timestamp   | timestamp with time zone |
++-------------+--------------------------+
+| timestamptz | timestamp with time zone |
++-------------+--------------------------+
 
 .. _dateOptionalTime: http://joda-time.sourceforge.net/apidocs/org/joda/time/format/ISODateTimeFormat.html#dateOptionalTimeParser()
 .. _WKT: http://en.wikipedia.org/wiki/Well-known_text
