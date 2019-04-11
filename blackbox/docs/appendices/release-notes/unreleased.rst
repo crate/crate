@@ -130,6 +130,13 @@ Breaking Changes
 Deprecations
 ============
 
+- Deprecate the usage of the :ref:`TIMESTAMP <data-type-aliases>` data type as
+  a timestamp with time zone, use
+  :ref:`TIMESTAMP WITH TIME ZONE <datetime-with-time-zone>` or
+  :ref:`TIMESTAMPTZ <data-type-aliases>` instead. The ``TIMESTAMP`` data type
+  will be an equivalent to data type without time zone in future ``CrateDB``
+  releases.
+
 - Marked SynonymFilter tokenizer as deprecated.
 
 - Marked LowerCase tokenizer as deprecated.

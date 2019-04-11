@@ -90,6 +90,15 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     }
 
     @Test
+    public void testTimestampDataTypeDeprecationWarning() {
+        e.analyze("create table t (ts timestamp)");
+        assertWarnings(
+            "Column [ts]: Usage of the `TIMESTAMP` data type as a timestamp with zone is deprecated," +
+            " use the `TIMESTAMPTZ` or `TIMESTAMP WITH TIME ZONE` data type instead."
+        );
+    }
+
+    @Test
     public void testCreateTableInSystemSchemasIsProhibited() {
         for (String schema : Schemas.READ_ONLY_SCHEMAS) {
             try {
