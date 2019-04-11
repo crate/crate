@@ -23,8 +23,6 @@
 package io.crate.execution.dml.upsert;
 
 import io.crate.Constants;
-import io.crate.metadata.SearchPath;
-import io.crate.metadata.settings.SessionSettings;
 import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.execution.ddl.SchemaUpdateClient;
 import io.crate.execution.dml.ShardResponse;
@@ -37,8 +35,9 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.SearchPath;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.settings.session.SessionSettingRegistry;
+import io.crate.metadata.settings.SessionSettings;
 import io.crate.metadata.table.Operation;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.DataTypes;
@@ -72,7 +71,6 @@ import org.junit.Test;
 import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -193,7 +191,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             UUID.randomUUID(),
             false
         ).newRequest(shardId);
-        request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null));
+        request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null, null, null));
 
         TransportWriteAction.WritePrimaryResult<ShardUpsertRequest, ShardResponse> result =
             transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(false));
@@ -214,7 +212,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             UUID.randomUUID(),
             false
         ).newRequest(shardId);
-        request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null));
+        request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null, null, null));
 
         TransportWriteAction.WritePrimaryResult<ShardUpsertRequest, ShardResponse> result =
             transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(false));
@@ -255,7 +253,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             UUID.randomUUID(),
             false
         ).newRequest(shardId);
-        request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null));
+        request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null, null, null));
 
         TransportWriteAction.WritePrimaryResult<ShardUpsertRequest, ShardResponse> result =
             transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(true));
@@ -276,7 +274,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             UUID.randomUUID(),
             false
         ).newRequest(shardId);
-        request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null));
+        request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null, null, null));
 
         reset(indexShard);
 

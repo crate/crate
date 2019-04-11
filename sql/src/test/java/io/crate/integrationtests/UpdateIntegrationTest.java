@@ -22,7 +22,7 @@
 package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
-import io.crate.exceptions.VersionInvalidException;
+import io.crate.exceptions.VersioninigValidationException;
 import io.crate.testing.SQLBulkResponse;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
@@ -666,7 +666,7 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
         execute("refresh table test");
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(VersionInvalidException.ERROR_MSG);
+        expectedException.expectMessage(VersioninigValidationException.VERSION_COLUMN_USAGE_MSG);
         execute("update test set c = 4 where _version = 2 or _version=1");
     }
 
@@ -678,7 +678,7 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
         execute("refresh table test");
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(VersionInvalidException.ERROR_MSG);
+        expectedException.expectMessage(VersioninigValidationException.VERSION_COLUMN_USAGE_MSG);
         execute("update test set c = 4 where _version in (1,2)");
     }
 

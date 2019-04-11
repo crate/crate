@@ -25,6 +25,7 @@ package io.crate.planner;
 import com.carrotsearch.randomizedtesting.RandomizedTest;
 import io.crate.analyze.TableDefinitions;
 import io.crate.data.Row;
+import io.crate.exceptions.VersioninigValidationException;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.MergeCountProjection;
@@ -130,5 +131,14 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
         Collect collect = (Collect) update.createExecutionPlan.create(
             e.getPlannerContext(clusterService.state()), Row.EMPTY, SubQueryResults.EMPTY);
         assertThat(((RoutedCollectPhase) collect.collectPhase()).routing().nodes(), Matchers.emptyIterable());
+    }
+
+    @Test
+    public void testUpdateUsingSeqNoRequiresPk() {
+        expectedException.expect(VersioninigValidationException.class);
+        expectedException.expectMessage(VersioninigValidationException.SEQ_NO_AND_PRIMARY_TERM_USAGE_MSG);
+        UpdatePlanner.Update plan = e.plan("update users set name = 'should not update' where _seq_no = 11 and _primary_term = 1");
+        plan.createExecutionPlan.create(
+            e.getPlannerContext(clusterService.state()), Row.EMPTY, SubQueryResults.EMPTY);
     }
 }

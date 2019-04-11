@@ -30,7 +30,7 @@ import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
-import io.crate.exceptions.VersionInvalidException;
+import io.crate.exceptions.VersioninigValidationException;
 import io.crate.execution.dsl.phases.NodeOperationTree;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.MergeCountProjection;
@@ -202,7 +202,9 @@ public final class UpdatePlanner {
         WhereClause where = detailedQuery.toBoundWhereClause(
             tableInfo, functions, params, subQueryResults, plannerCtx.transactionContext());
         if (where.hasVersions()) {
-            throw new VersionInvalidException();
+            throw VersioninigValidationException.versionInvalidUsage();
+        } else if (where.hasSeqNoAndPrimaryTerm()) {
+            throw VersioninigValidationException.seqNoAndPrimaryTermUsage();
         }
         return createCollectAndMerge(plannerCtx, tableInfo, idReference, updateProjection, where);
     }

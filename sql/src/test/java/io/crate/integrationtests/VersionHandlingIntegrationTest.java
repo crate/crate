@@ -22,7 +22,7 @@
 package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
-import io.crate.exceptions.VersionInvalidException;
+import io.crate.exceptions.VersioninigValidationException;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -117,7 +117,7 @@ public class VersionHandlingIntegrationTest extends SQLTransportIntegrationTest 
     @Test
     public void testUpdateWhereVersionWithoutPrimaryKey() throws Exception {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(VersionInvalidException.ERROR_MSG);
+        expectedException.expectMessage(VersioninigValidationException.VERSION_COLUMN_USAGE_MSG);
         execute("create table test (col1 integer primary key, col2 string)");
         ensureYellow();
         execute("update test set col2 = ? where \"_version\" = ?",
@@ -158,7 +158,7 @@ public class VersionHandlingIntegrationTest extends SQLTransportIntegrationTest 
         execute("create table test (col1 integer primary key, col2 string)");
         ensureYellow();
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(VersionInvalidException.ERROR_MSG);
+        expectedException.expectMessage(VersioninigValidationException.VERSION_COLUMN_USAGE_MSG);
         execute("select _version from test where col2 = 'hello' and _version = 1");
     }
 

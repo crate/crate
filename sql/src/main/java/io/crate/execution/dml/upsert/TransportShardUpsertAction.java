@@ -189,7 +189,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 }
                 continue;
             }
-            SourceToParse sourceToParse = SourceToParse.source(
+            SourceToParse sourceToParse = new SourceToParse(indexShard.shardId().getIndexName(),
                 Constants.DEFAULT_MAPPING_TYPE, item.id(), item.source(), XContentType.JSON);
 
             Engine.IndexResult indexResult = indexShard.applyIndexOperationOnReplica(
@@ -300,14 +300,19 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         }
 
         long finalVersion = version;
-        SourceToParse sourceToParse = SourceToParse.source(
-            Constants.DEFAULT_MAPPING_TYPE, item.id(), item.source(), XContentType.JSON);
+        SourceToParse sourceToParse = new SourceToParse(indexShard.shardId().getIndexName(),
+                                                        Constants.DEFAULT_MAPPING_TYPE,
+                                                        item.id(),
+                                                        item.source(),
+                                                        XContentType.JSON);
         Engine.IndexResult indexResult = executeOnPrimaryHandlingMappingUpdate(
             indexShard.shardId(),
             () -> indexShard.applyIndexOperationOnPrimary(
                 finalVersion,
                 VersionType.INTERNAL,
                 sourceToParse,
+                item.seqNo(),
+                item.primaryTerm(),
                 Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
                 isRetry
             ),
