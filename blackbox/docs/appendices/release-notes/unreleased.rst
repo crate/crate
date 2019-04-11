@@ -44,6 +44,9 @@ Breaking Changes
 - Renamed column `information_schema.table_partitions.schema_name` to
   `table_schema`.
 
+- Added the :ref:`TIMESTAMPTZ <data-type-aliases>` alias for the
+  :ref:`TIMESTAMP WITH TIME ZONE <datetime-with-time-zone>` data type.
+
 - Renamed CrateDB data types to the corresponding PostgreSQL data types.
 
    +---------------+------------------------------+
@@ -65,7 +68,7 @@ Breaking Changes
    +---------------+------------------------------+
 
   See :ref:`data-types` for more detailed information. The old data type names,
-  except ``timestamp``, are registered as aliases for backward comparability.
+  are registered as aliases for backward comparability.
 
 - Removed the deprecated ``license.enterprise`` setting. To use CrateDB without
   any enterprise features one should use the Community Edition instead.
