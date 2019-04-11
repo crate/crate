@@ -400,6 +400,8 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
                     analysis.routingValues().get(i),
                     onDuplicateKeyAssignments,
                     null,
+                    null,
+                    null,
                     analysis.sourceMaps().get(i));
             }
         } else {
@@ -413,6 +415,8 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
                     analysis.ids().get(i),
                     analysis.routingValues().get(i),
                     onDuplicateKeyAssignments,
+                    null,
+                    null,
                     null,
                     analysis.sourceMaps().get(i));
             }

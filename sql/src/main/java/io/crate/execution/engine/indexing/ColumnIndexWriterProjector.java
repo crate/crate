@@ -107,7 +107,7 @@ public class ColumnIndexWriterProjector implements Projector {
 
         InputRow insertValues = new InputRow(insertInputs);
         Function<String, ShardUpsertRequest.Item> itemFactory = id -> new ShardUpsertRequest.Item(
-            id, assignments, insertValues.materialize(), null);
+            id, assignments, insertValues.materialize(), null, null, null);
 
         shardingUpsertExecutor = new ShardingUpsertExecutor(
             clusterService,

@@ -23,7 +23,7 @@ package io.crate.integrationtests;
 
 import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import io.crate.action.sql.SQLActionException;
-import io.crate.exceptions.VersionInvalidException;
+import io.crate.exceptions.VersioninigValidationException;
 import io.crate.testing.SQLBulkResponse;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
@@ -794,7 +794,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table users (name string) clustered into 1 shards");
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(VersionInvalidException.ERROR_MSG);
+        expectedException.expectMessage(VersioninigValidationException.VERSION_COLUMN_USAGE_MSG);
         execute("insert into users (name) (select name from users where _version = 1)");
     }
 

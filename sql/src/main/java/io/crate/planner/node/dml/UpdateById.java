@@ -145,8 +145,18 @@ public final class UpdateById implements Plan {
         }
 
         @Override
-        public void addItem(ShardUpsertRequest request, int location, String id, Long version) {
-            ShardUpsertRequest.Item item = new ShardUpsertRequest.Item(id, assignmentSources, null, version);
+        public void addItem(ShardUpsertRequest request,
+                            int location,
+                            String id,
+                            Long version,
+                            Long seqNo,
+                            Long primaryTerm) {
+            ShardUpsertRequest.Item item = new ShardUpsertRequest.Item(id,
+                                                                       assignmentSources,
+                                                                       null,
+                                                                       version,
+                                                                       seqNo,
+                                                                       primaryTerm);
             request.add(location, item);
         }
     }

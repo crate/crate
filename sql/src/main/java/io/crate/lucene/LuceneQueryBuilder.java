@@ -26,7 +26,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.crate.data.Input;
 import io.crate.exceptions.UnsupportedFeatureException;
-import io.crate.exceptions.VersionInvalidException;
+import io.crate.exceptions.VersioninigValidationException;
 import io.crate.execution.engine.collect.DocInputFactory;
 import io.crate.expression.InputFactory;
 import io.crate.expression.eval.EvaluatingNormalizer;
@@ -209,7 +209,9 @@ public class LuceneQueryBuilder {
          * the LuceneQueryBuilder is never used)
          */
         static final Map<String, String> UNSUPPORTED_FIELDS = ImmutableMap.<String, String>builder()
-            .put("_version", VersionInvalidException.ERROR_MSG)
+            .put("_version", VersioninigValidationException.VERSION_COLUMN_USAGE_MSG)
+            .put("_seq_no", VersioninigValidationException.SEQ_NO_AND_PRIMARY_TERM_USAGE_MSG)
+            .put("_primary_term", VersioninigValidationException.SEQ_NO_AND_PRIMARY_TERM_USAGE_MSG)
             .build();
 
         @Nullable

@@ -130,6 +130,12 @@ Breaking Changes
 Deprecations
 ============
 
+- Deprecate the usage of the :ref:`_version 
+  <sql_administration_system_column_version>` column for :ref:`sql_occ` in
+  favour of the :ref:`_seq_no <sql_administration_system_columns_seq_no>` and
+  :ref:`_primary_term <sql_administration_system_columns_primary_term>`
+  columns.
+
 - Deprecate the usage of the :ref:`TIMESTAMP <data-type-aliases>` data type as
   a timestamp with time zone, use
   :ref:`TIMESTAMP WITH TIME ZONE <datetime-with-time-zone>` or
@@ -152,7 +158,7 @@ Changes
 
 - Exposed the :ref:`_seq_no <sql_administration_system_columns_seq_no>` and
   :ref:`_primary_term <sql_administration_system_columns_primary_term>` system
-  columns.
+  columns which can be used for :ref:`sql_occ`.
 
 - Added information for the internal PostgreSQL data type: ``name`` in
   :ref:`pg_catalog.pg_type <postgres_pg_type>` for improved PostgreSQL

@@ -25,7 +25,7 @@ package io.crate.planner;
 import com.google.common.collect.Lists;
 import io.crate.analyze.TableDefinitions;
 import io.crate.data.Row;
-import io.crate.exceptions.VersionInvalidException;
+import io.crate.exceptions.VersioninigValidationException;
 import io.crate.expression.symbol.ParameterSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -90,8 +90,8 @@ public class DeletePlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testDeleteWhereVersionIsNullPredicate() throws Exception {
-        expectedException.expect(VersionInvalidException.class);
-        expectedException.expectMessage(VersionInvalidException.ERROR_MSG);
+        expectedException.expect(VersioninigValidationException.class);
+        expectedException.expectMessage(VersioninigValidationException.VERSION_COLUMN_USAGE_MSG);
         e.plan("delete from users where _version is null");
     }
 }

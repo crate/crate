@@ -34,8 +34,8 @@ import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Functions;
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.Functions;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.operators.SubQueryAndParamBinder;
@@ -153,7 +153,9 @@ public final class WhereClauseOptimizer {
         }
 
         boolean versionInQuery = Symbols.containsColumn(query, DocSysColumns.VERSION);
-        List<ColumnIdent> pkCols = pkColsInclVersion(table, versionInQuery);
+        boolean sequenceVersioningInQuery = Symbols.containsColumn(query, DocSysColumns.SEQ_NO) &&
+                                            Symbols.containsColumn(query, DocSysColumns.PRIMARY_TERM);
+        List<ColumnIdent> pkCols = pkColsInclVersioning(table, versionInQuery, sequenceVersioningInQuery);
 
         EqualityExtractor eqExtractor = new EqualityExtractor(normalizer);
         List<List<Symbol>> pkValues = eqExtractor.extractExactMatches(pkCols, query, txnCtx);
@@ -167,7 +169,11 @@ public final class WhereClauseOptimizer {
             if (table.isPartitioned()) {
                 partitionIndicesWithinPks = getPartitionIndices(table.primaryKey(), table.partitionedBy());
             }
-            docKeys = new DocKeys(pkValues, versionInQuery, clusterdIdxWithinPK, partitionIndicesWithinPks);
+            docKeys = new DocKeys(pkValues,
+                                  versionInQuery,
+                                  sequenceVersioningInQuery,
+                                  clusterdIdxWithinPK,
+                                  partitionIndicesWithinPks);
         }
         List<List<Symbol>> partitionValues = null;
         if (table.isPartitioned()) {
@@ -202,11 +208,19 @@ public final class WhereClauseOptimizer {
         return result;
     }
 
-    private static List<ColumnIdent> pkColsInclVersion(DocTableInfo table, boolean versionInQuery) {
+    private static List<ColumnIdent> pkColsInclVersioning(DocTableInfo table,
+                                                          boolean versionInQuery,
+                                                          boolean seqNoAndPrimaryTermInQuery) {
         if (versionInQuery) {
             ArrayList<ColumnIdent> pkCols = new ArrayList<>(table.primaryKey().size() + 1);
             pkCols.addAll(table.primaryKey());
             pkCols.add(DocSysColumns.VERSION);
+            return pkCols;
+        } else if (seqNoAndPrimaryTermInQuery) {
+            ArrayList<ColumnIdent> pkCols = new ArrayList<>(table.primaryKey().size() + 1);
+            pkCols.addAll(table.primaryKey());
+            pkCols.add(DocSysColumns.SEQ_NO);
+            pkCols.add(DocSysColumns.PRIMARY_TERM);
             return pkCols;
         }
         return table.primaryKey();

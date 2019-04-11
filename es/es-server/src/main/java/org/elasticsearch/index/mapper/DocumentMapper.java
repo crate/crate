@@ -211,20 +211,21 @@ public class DocumentMapper implements ToXContentFragment {
         return documentParser.parseDocument(source, mapping.metadataMappers);
     }
 
-    public ParsedDocument createDeleteTombstoneDoc(String type, String id) throws MapperParsingException {
-        final SourceToParse emptySource = SourceToParse.source(type, id, new BytesArray("{}"), XContentType.JSON);
+    public ParsedDocument createDeleteTombstoneDoc(String index, String type, String id) throws MapperParsingException {
+        final SourceToParse emptySource = new SourceToParse(index, type, id, new BytesArray("{}"), XContentType.JSON);
         return documentParser.parseDocument(emptySource, deleteTombstoneMetadataFieldMappers).toTombstone();
     }
 
-    public ParsedDocument createNoopTombstoneDoc(String reason) throws MapperParsingException {
+    public ParsedDocument createNoopTombstoneDoc(String index, String reason) throws MapperParsingException {
         final String id = ""; // _id won't be used.
-        final SourceToParse sourceToParse = SourceToParse.source(type, id, new BytesArray("{}"), XContentType.JSON);
+        final SourceToParse sourceToParse = new SourceToParse(index, type, id, new BytesArray("{}"), XContentType.JSON);
         final ParsedDocument parsedDoc = documentParser.parseDocument(sourceToParse, noopTombstoneMetadataFieldMappers).toTombstone();
         // Store the reason of a noop as a raw string in the _source field
         final BytesRef byteRef = new BytesRef(reason);
         parsedDoc.rootDoc().add(new StoredField(SourceFieldMapper.NAME, byteRef.bytes, byteRef.offset, byteRef.length));
         return parsedDoc;
     }
+
 
     public DocumentMapper merge(Mapping mapping, boolean updateAllTypes) {
         Mapping merged = this.mapping.merge(mapping, updateAllTypes);

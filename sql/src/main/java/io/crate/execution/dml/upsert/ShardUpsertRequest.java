@@ -24,16 +24,17 @@ package io.crate.execution.dml.upsert;
 
 import com.google.common.base.Objects;
 import io.crate.Streamer;
-import io.crate.metadata.settings.SessionSettings;
 import io.crate.execution.dml.ShardRequest;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.Reference;
+import io.crate.metadata.settings.SessionSettings;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.ShardId;
 
 import javax.annotation.Nullable;
@@ -256,11 +257,19 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
         public Item(String id,
                     @Nullable Symbol[] updateAssignments,
                     @Nullable Object[] insertValues,
-                    @Nullable Long version) {
+                    @Nullable Long version,
+                    @Nullable Long seqNo,
+                    @Nullable Long primaryTerm) {
             super(id);
             this.updateAssignments = updateAssignments;
             if (version != null) {
                 this.version = version;
+            }
+            if (seqNo != null) {
+                this.seqNo = seqNo;
+            }
+            if (primaryTerm != null) {
+                this.primaryTerm = primaryTerm;
             }
             this.insertValues = insertValues;
         }
@@ -275,7 +284,7 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
         }
 
         boolean retryOnConflict() {
-            return version == Versions.MATCH_ANY;
+            return seqNo == SequenceNumbers.UNASSIGNED_SEQ_NO && version == Versions.MATCH_ANY;
         }
 
         @Nullable

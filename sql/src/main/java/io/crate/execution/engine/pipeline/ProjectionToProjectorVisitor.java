@@ -489,7 +489,7 @@ public class ProjectionToProjectorVisitor
             clusterService,
             nodeJobsCounter,
             () -> builder.newRequest(shardId),
-            id -> new ShardUpsertRequest.Item(id, projection.assignments(), null, projection.requiredVersion()),
+            id -> new ShardUpsertRequest.Item(id, projection.assignments(), null, projection.requiredVersion(), null, null),
             transportActionProvider.transportShardUpsertAction()::execute
         );
 
