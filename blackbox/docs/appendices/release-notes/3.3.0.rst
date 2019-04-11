@@ -74,17 +74,6 @@ Changelog
 Changes
 -------
 
-New Features
-~~~~~~~~~~~~
-
-- Exposed the sum of durations, total, and failed count metrics under the
-  :ref:`query_stats_mbean` for ``QUERY``, ``INSERT``, ``UPDATE``, ``DELETE``,
-  ``MANAGEMENT``, ``DDL``, and ``COPY`` statement types via JMX.
-
-- Exposed the sum of statement durations, total, and failed count classified by
-  statement type under the ``sum_of_durations``, ``total_count`` and
-  ``failed_count`` columns, respectively, in the :ref:`sys-jobs-metrics` table.
-
 Window Functions
 ~~~~~~~~~~~~~~~~
 
@@ -94,7 +83,7 @@ Window Functions
 - Added support for the ``row_number()`` window function.
 
 Other SQL Improvements
-~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
 
 - Added ``current_schemas(boolean)`` scalar function which will return the
   names of schemas in the ``search_path``.
@@ -123,6 +112,17 @@ PostgreSQL Compatibility
 - Fixed function resolution for PostgreSQL functions ``pg_backend_pid``,
   ``pg_get_expr``, and ``current_database`` when the schema prefix
   ``pg_catalog`` is included.
+
+Monitoring
+~~~~~~~~~~
+
+- Exposed the sum of durations, total, and failed count metrics under the
+  :ref:`query_stats_mbean` for ``QUERY``, ``INSERT``, ``UPDATE``, ``DELETE``,
+  ``MANAGEMENT``, ``DDL``, and ``COPY`` statement types via JMX.
+
+- Exposed the sum of statement durations, total, and failed count classified by
+  statement type under the ``sum_of_durations``, ``total_count`` and
+  ``failed_count`` columns, respectively, in the :ref:`sys-jobs-metrics` table.
 
 Database Administration
 ~~~~~~~~~~~~~~~~~~~~~~~
