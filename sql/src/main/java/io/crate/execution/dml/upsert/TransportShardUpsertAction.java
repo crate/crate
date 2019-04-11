@@ -195,7 +195,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             Engine.IndexResult indexResult = indexShard.applyIndexOperationOnReplica(
                 item.seqNo(),
                 item.version(),
-                VersionType.EXTERNAL,
                 Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
                 false,
                 sourceToParse
