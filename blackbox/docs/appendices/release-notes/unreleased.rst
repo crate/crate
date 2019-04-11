@@ -132,6 +132,9 @@ Deprecations
 Changes
 =======
 
+- Enabled Scalar function evaluation when used :ref:`in the query FROM
+  clause <table-functions-scalar>`.
+
 - Show the session setting description in the output of the ``SHOW ALL``
   statement.
 

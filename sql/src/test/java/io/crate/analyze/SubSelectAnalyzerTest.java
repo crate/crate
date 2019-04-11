@@ -79,7 +79,7 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testSubSelectWithoutAlias() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("subquery in FROM must have an alias");
+        expectedException.expectMessage("subquery in FROM clause must have an alias");
         analyze("select id from (select a as id from t1)");
     }
 

@@ -34,6 +34,11 @@ values will be returned for the functions that are exhausted. An example::
     around is not allowed, unless sub queries are utilized.
     (SELECT aggregate_func(col) FROM (SELECT table_func(...) as col) ...)
 
+.. NOTE::
+
+  In addition to the pure table functions listed below, :ref:`scalar`
+  can also be used :ref:`in the context of the FROM clause
+  <table-functions-scalar>`.
 
 .. rubric:: Table of Contents
 
@@ -104,3 +109,24 @@ value will match the argument types.
     |    4 |
     +------+
     SELECT 4 rows in set (... sec)
+
+.. _table-functions-scalar:
+
+Scalar functions
+================
+
+:ref:`scalar` can also return a set of rows when used in the ``FROM`` clause
+of a query as a table or subquery. The result set of such functions is always
+a relation of one row and one column which contains the value returned from
+the scalar function.
+
+::
+
+    cr> SELECT * FROM abs(-5), initcap('hello world');
+    +-----+-------------+
+    | abs | initcap     |
+    +-----+-------------+
+    |   5 | Hello World |
+    +-----+-------------+
+    SELECT 1 row in set (... sec)
+

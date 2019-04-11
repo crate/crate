@@ -5,7 +5,7 @@
 Scalar Functions
 ================
 
-Scalar functions return a single value (not a table).
+Scalar functions return a single value.
 
 .. rubric:: Table of Contents
 
