@@ -79,20 +79,25 @@ New Features
 
 - Exposed the sum of durations, total, and failed count metrics under the
   :ref:`query_stats_mbean` for ``QUERY``, ``INSERT``, ``UPDATE``, ``DELETE``,
-  ``MANAGEMENT``, ``DDL``, and ``COPY`` statement types.
+  ``MANAGEMENT``, ``DDL``, and ``COPY`` statement types via JMX.
 
 - Exposed the sum of statement durations, total, and failed count classified by
   statement type under the ``sum_of_durations``, ``total_count`` and
   ``failed_count`` columns, respectively, in the :ref:`sys-jobs-metrics` table.
 
-SQL Improvements
+Window Functions
 ~~~~~~~~~~~~~~~~
-
-- Added ``current_schemas(boolean)`` scalar function which will return the
-  names of schemas in the ``search_path``.
 
 - Added support for the ``first_value``, ``last_value``, and ``nth_value``
   window functions as enterprise features.
+
+- Added support for the ``row_number()`` window function.
+
+Other SQL Improvements
+~~~~~~~~~~~~~~~~~~~~~~
+
+- Added ``current_schemas(boolean)`` scalar function which will return the
+  names of schemas in the ``search_path``.
 
 - Added the ``DROP ANALYZER`` statement to support removal of custom
   analyzer definitions from the cluster.
@@ -100,8 +105,6 @@ SQL Improvements
 - Output the custom analyzer, tokenizer, token_filter, and char_filter
   definition inside the ``information_schema.routines.routine_definition``
   column.
-
-- Added support for the ``row_number()`` window function.
 
 - Added support for using any expression in the operand of a ``CASE`` clause.
 
@@ -124,8 +127,6 @@ PostgreSQL Compatibility
 Database Administration
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-- Added a node check for the JVM version number.
-
 - Added ``ALTER CLUSTER DECOMMISSION <nodeId | nodeName>`` statement that
   triggers the existing node decommission functionality.
 
@@ -134,6 +135,8 @@ Database Administration
 
 - The :ref:`usage_data_collector` now includes information about the available
   number of processors.
+
+- Added a node check for the JVM version number.
 
 Deprecations
 ~~~~~~~~~~~~
