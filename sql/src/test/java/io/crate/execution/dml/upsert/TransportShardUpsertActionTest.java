@@ -281,6 +281,6 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         // would fail with NPE if not skipped
         transportShardUpsertAction.processRequestItemsOnReplica(indexShard, request);
         verify(indexShard, times(0)).applyIndexOperationOnReplica(
-            anyLong(), anyLong(), any(VersionType.class), anyLong(), anyBoolean(), any(SourceToParse.class));
+            anyLong(), anyLong(), anyLong(), anyBoolean(), any(SourceToParse.class));
     }
 }
