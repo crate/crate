@@ -291,7 +291,7 @@ public class TransportVerifyShardBeforeCloseActionTests extends ESTestCase {
         TransportVerifyShardBeforeCloseAction.ShardRequest request =
             new TransportVerifyShardBeforeCloseAction.ShardRequest(shardId, false, clusterBlock);
         ReplicationOperation.Replicas<TransportVerifyShardBeforeCloseAction.ShardRequest> proxy =
-            action.newReplicasProxy(primaryTerm);
+            action.newReplicasProxy();
         ReplicationOperation<TransportVerifyShardBeforeCloseAction.ShardRequest,
             TransportVerifyShardBeforeCloseAction.ShardRequest, PrimaryResult> operation = new ReplicationOperation<>(
             request,
@@ -299,7 +299,8 @@ public class TransportVerifyShardBeforeCloseActionTests extends ESTestCase {
             listener,
             proxy,
             logger,
-            "test"
+            "test",
+            primaryTerm
         );
         operation.execute();
 
