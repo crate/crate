@@ -151,8 +151,9 @@ public class MainAndStaticFileHandler extends SimpleChannelInboundHandler<FullHt
                 HttpUtil.setContentLength(resp, 0);
             } else {
                 var buffer = alloc.buffer();
-                var outputStream = new ByteBufOutputStream(buffer);
-                writeJSON(outputStream, response, httpStatus, nodeName);
+                try (var outputStream = new ByteBufOutputStream(buffer)) {
+                    writeJSON(outputStream, response, httpStatus, nodeName);
+                }
                 resp = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, httpStatus, buffer);
                 resp.headers().set(HttpHeaderNames.CONTENT_TYPE, "application/json");
                 HttpUtil.setContentLength(resp, buffer.readableBytes());
