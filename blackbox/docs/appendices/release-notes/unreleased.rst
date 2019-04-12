@@ -151,7 +151,7 @@ Changes
 =======
 
 - Enabled Scalar function evaluation when used :ref:`in the query FROM
-  clause <table-functions-scalar>`.
+  clause in place of a relation<table-functions-scalar>`.
 
 - Show the session setting description in the output of the ``SHOW ALL``
   statement.
