@@ -66,11 +66,11 @@ public final class Doc {
         return version;
     }
 
-    long getSeqNo() {
+    public long getSeqNo() {
         return seqNo;
     }
 
-    long getPrimaryTerm() {
+    public long getPrimaryTerm() {
         return primaryTerm;
     }
 
