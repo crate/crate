@@ -70,7 +70,6 @@ import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.CreateUser;
 import io.crate.sql.tree.CreateView;
 import io.crate.sql.tree.CurrentTime;
-import io.crate.sql.tree.DateLiteral;
 import io.crate.sql.tree.DeallocateStatement;
 import io.crate.sql.tree.DecommissionNodeStatement;
 import io.crate.sql.tree.Delete;
@@ -168,8 +167,6 @@ import io.crate.sql.tree.Table;
 import io.crate.sql.tree.TableElement;
 import io.crate.sql.tree.TableFunction;
 import io.crate.sql.tree.TableSubquery;
-import io.crate.sql.tree.TimeLiteral;
-import io.crate.sql.tree.TimestampLiteral;
 import io.crate.sql.tree.TokenFilters;
 import io.crate.sql.tree.Tokenizer;
 import io.crate.sql.tree.TrimMode;
@@ -1376,6 +1373,16 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         return new Cast((Expression) visit(context.valueExpression()), (ColumnType) visit(context.dataType()));
     }
 
+    @Override
+    public Node visitFromStringLiteralCast(SqlBaseParser.FromStringLiteralCastContext context) {
+        ColumnType targetType = (ColumnType) visit(context.dataType());
+        if (targetType.type() != ColumnType.Type.PRIMITIVE) {
+            throw new UnsupportedOperationException("type 'string' cast notation only supports primitive types. " +
+                                                    "Use '::' or cast() operator instead.");
+        }
+        return new Cast((Expression) visit(context.stringLiteral()), targetType);
+    }
+
     // Primary expressions
 
     @Override
@@ -1559,21 +1566,6 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     @Override
     public Node visitArrayLiteral(SqlBaseParser.ArrayLiteralContext context) {
         return new ArrayLiteral(visitCollection(context.expr(), Expression.class));
-    }
-
-    @Override
-    public Node visitDateLiteral(SqlBaseParser.DateLiteralContext context) {
-        return new DateLiteral(unquote(context.STRING().getText()));
-    }
-
-    @Override
-    public Node visitTimeLiteral(SqlBaseParser.TimeLiteralContext context) {
-        return new TimeLiteral(unquote(context.STRING().getText()));
-    }
-
-    @Override
-    public Node visitTimestampLiteral(SqlBaseParser.TimestampLiteralContext context) {
-        return new TimestampLiteral(unquote(context.STRING().getText()));
     }
 
     @Override
