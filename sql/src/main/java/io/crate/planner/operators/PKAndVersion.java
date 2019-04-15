@@ -32,21 +32,29 @@ public final class PKAndVersion implements Writeable {
 
     private final String id;
     private final long version;
+    private final long seqNo;
+    private final long primaryTerm;
 
-    public PKAndVersion(String id, long version) {
+    public PKAndVersion(String id, long version, long seqNo, long primaryTerm) {
         this.id = id;
         this.version = version;
+        this.seqNo = seqNo;
+        this.primaryTerm = primaryTerm;
     }
 
     public PKAndVersion(StreamInput in) throws IOException {
         this.id = in.readString();
         this.version = in.readLong();
+        this.seqNo = in.readLong();
+        this.primaryTerm = in.readLong();
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeString(id);
         out.writeLong(version);
+        out.writeLong(seqNo);
+        out.writeLong(primaryTerm);
     }
 
     public long version() {
@@ -55,5 +63,13 @@ public final class PKAndVersion implements Writeable {
 
     public String id() {
         return id;
+    }
+
+    public long seqNo() {
+        return seqNo;
+    }
+
+    public long primaryTerm() {
+        return primaryTerm;
     }
 }

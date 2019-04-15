@@ -96,7 +96,11 @@ public final class PKLookupOperation {
                     throw new ShardNotFoundException(shardId);
                 }
                 return entry.getValue().stream()
-                    .map(pkAndVersion -> lookupDoc(shard, pkAndVersion.id(), pkAndVersion.version()))
+                    .map(pkAndVersion -> lookupDoc(shard,
+                                                   pkAndVersion.id(),
+                                                   pkAndVersion.version(),
+                                                   pkAndVersion.seqNo(),
+                                                   pkAndVersion.primaryTerm()))
                     .filter(Objects::nonNull);
             });
         final Iterable<Doc> getResultIterable;
@@ -109,16 +113,18 @@ public final class PKLookupOperation {
     }
 
     @Nullable
-    public static Doc lookupDoc(IndexShard shard, String id, long version) {
-        return lookupDoc(shard, id, version, VersionType.EXTERNAL);
+    public static Doc lookupDoc(IndexShard shard, String id, long version, long seqNo, long primaryTerm) {
+        return lookupDoc(shard, id, version, VersionType.EXTERNAL, seqNo, primaryTerm);
     }
 
     @Nullable
-    public static Doc lookupDoc(IndexShard shard, String id, long version, VersionType versionType) {
+    public static Doc lookupDoc(IndexShard shard, String id, long version, VersionType versionType, long seqNo, long primaryTerm) {
         Term uidTerm = shard.mapperService().createUidTerm(Constants.DEFAULT_MAPPING_TYPE, id);
         Engine.Get get = new Engine.Get(true, true, Constants.DEFAULT_MAPPING_TYPE, id, uidTerm)
             .version(version)
-            .versionType(versionType);
+            .versionType(versionType)
+            .setIfSeqNo(seqNo)
+            .setIfPrimaryTerm(primaryTerm);
 
         Engine.GetResult getResult = shard.get(get);
         if (getResult.exists()) {
@@ -190,7 +196,11 @@ public final class PKLookupOperation {
         ArrayList<BatchIterator<Row>> iterators = new ArrayList<>(shardAndIdsList.size());
         for (ShardAndIds shardAndIds : shardAndIdsList) {
             Stream<Row> rowStream = shardAndIds.value.stream()
-                .map(pkAndVersion -> lookupDoc(shardAndIds.shard, pkAndVersion.id(), pkAndVersion.version()))
+                .map(pkAndVersion -> lookupDoc(shardAndIds.shard,
+                                               pkAndVersion.id(),
+                                               pkAndVersion.version(),
+                                               pkAndVersion.seqNo(),
+                                               pkAndVersion.primaryTerm()))
                 .map(resultToRow);
 
             Projectors projectors = new Projectors(

@@ -43,6 +43,7 @@ import io.crate.planner.node.dql.Collect;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.index.IndexNotFoundException;
+import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.shard.ShardNotFoundException;
 
@@ -121,7 +122,11 @@ public class Get extends ZeroInputPlan {
             long version = docKey
                 .version(plannerContext.transactionContext(), plannerContext.functions(), params, subQueryResults)
                 .orElse(Versions.MATCH_ANY);
-            pkAndVersions.add(new PKAndVersion(id, version));
+            long sequenceNumber = docKey.sequenceNo(plannerContext.transactionContext(), plannerContext.functions(), params, subQueryResults)
+                .orElse(SequenceNumbers.UNASSIGNED_SEQ_NO);
+            long primaryTerm = docKey.primaryTerm(plannerContext.transactionContext(), plannerContext.functions(), params, subQueryResults)
+                .orElse(SequenceNumbers.UNASSIGNED_PRIMARY_TERM);
+            pkAndVersions.add(new PKAndVersion(id, version, sequenceNumber, primaryTerm));
         }
         return new Collect(
             new PKLookupPhase(
