@@ -208,6 +208,8 @@ public class RowsBatchIteratorBenchmark {
             null,
             null,
             1,
+            () -> 1,
+            Runnable::run,
             List.of(lastValueIntFunction),
             List.of(),
             new Input[]{input}
