@@ -51,4 +51,9 @@ None
 Fixes
 =====
 
-None
+- Fixed an issue that would cause the wrong evaluation of nested sub-queries
+  in cases where the inner sub-query returns a multi-value and the outer returns
+  a single value result. For instance, the assignment sub-query expression in
+  the following update statement
+  ``UPDATE t1 SET x = (SELECT COUNT(*) FROM t2 WHERE x IN (SELECT x FROM t3))")``
+  might have produced an incorrect result.
