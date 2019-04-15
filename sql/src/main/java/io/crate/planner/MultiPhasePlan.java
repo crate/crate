@@ -22,6 +22,7 @@
 
 package io.crate.planner;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.MultiPhaseExecutor;
@@ -46,9 +47,11 @@ import java.util.Map;
  */
 public class MultiPhasePlan implements Plan {
 
-    private final Plan rootPlan;
+    @VisibleForTesting
+    protected final Plan rootPlan;
 
-    private final Map<LogicalPlan, SelectSymbol> dependencies;
+    @VisibleForTesting
+    protected final Map<LogicalPlan, SelectSymbol> dependencies;
 
     public static Plan createIfNeeded(Plan rootPlan, Map<LogicalPlan, SelectSymbol> dependencies) {
         if (dependencies.isEmpty()) {
