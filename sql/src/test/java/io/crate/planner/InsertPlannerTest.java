@@ -23,7 +23,6 @@
 package io.crate.planner;
 
 import io.crate.analyze.TableDefinitions;
-import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.phases.PKLookupPhase;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
@@ -33,7 +32,9 @@ import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.FilterProjection;
 import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.execution.dsl.projection.MergeCountProjection;
+import io.crate.execution.dsl.projection.OrderedTopNProjection;
 import io.crate.execution.dsl.projection.Projection;
+import io.crate.execution.dsl.projection.TopNProjection;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.PartitionName;
@@ -164,10 +165,30 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testInsertFromSubQueryDistributedGroupByWithLimit() {
-        expectedException.expect(UnsupportedFeatureException.class);
-        expectedException.expectMessage("Using limit, offset or order by is not supported on insert using a sub-query");
+        Merge localMerge = e.plan("insert into users (id, name) " +
+                             "(select name, count(*) from users group by name order by name limit 10)");
 
-        e.plan("insert into users (id, name) (select name, count(*) from users group by name order by name limit 10)");
+        Merge distMerge = (Merge) localMerge.subPlan();
+        Collect collect = (Collect) distMerge.subPlan();
+        assertThat(
+            collect.collectPhase().projections(),
+            contains(instanceOf(GroupProjection.class))
+        );
+        assertThat(
+            distMerge.mergePhase().projections(),
+            contains(
+                instanceOf(GroupProjection.class),
+                instanceOf(OrderedTopNProjection.class),
+                instanceOf(EvalProjection.class)
+            )
+        );
+        assertThat(
+            localMerge.mergePhase().projections(),
+            contains(
+                instanceOf(TopNProjection.class),
+                instanceOf(ColumnIndexWriterProjection.class)
+            )
+        );
     }
 
     @Test
@@ -300,26 +321,33 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testInsertFromSubQueryWithLimit() {
-        expectedException.expect(UnsupportedFeatureException.class);
-        expectedException.expectMessage("Using limit, offset or order by is not supported on insert using a sub-query");
-
-        e.plan("insert into users (date, id, name) (select date, id, name from users limit 10)");
+        Merge merge = e.plan("insert into users (date, id, name) (select date, id, name from users limit 10)");
+        Collect collect = (Collect) merge.subPlan();
+        assertThat(collect.collectPhase().projections(), contains(instanceOf(TopNProjection.class)));
+        assertThat(
+            merge.mergePhase().projections(),
+            contains(
+                instanceOf(TopNProjection.class),
+                instanceOf(ColumnIndexWriterProjection.class)
+            )
+        );
     }
 
     @Test
-    public void testInsertFromSubQueryWithOffset() {
-        expectedException.expect(UnsupportedFeatureException.class);
-        expectedException.expectMessage("Using limit, offset or order by is not supported on insert using a sub-query");
-
-        e.plan("insert into users (id, name) (select id, name from users offset 10)");
+    public void testInsertFromSubQueryWithOffsetDoesTableWriteOnCollect() {
+        Merge merge = e.plan("insert into users (id, name) (select id, name from users offset 10)");
+        // We can ignore the offset since SQL semantics don't promise a deterministic order without explicit order by clause
+        Collect collect = (Collect) merge.subPlan();
+        assertThat(collect.collectPhase().projections(), contains(instanceOf(ColumnIndexWriterProjection.class)));
+        assertThat(merge.mergePhase().projections(), contains(instanceOf(MergeCountProjection.class)));
     }
 
     @Test
     public void testInsertFromSubQueryWithOrderBy() {
-        expectedException.expect(UnsupportedFeatureException.class);
-        expectedException.expectMessage("Using limit, offset or order by is not supported on insert using a sub-query");
-
-        e.plan("insert into users (date, id, name) (select date, id, name from users order by id)");
+        Merge merge = e.plan("insert into users (date, id, name) (select date, id, name from users order by id)");
+        Collect collect = (Collect) merge.subPlan();
+        assertThat(collect.collectPhase().projections(), contains(instanceOf(ColumnIndexWriterProjection.class)));
+        assertThat(merge.mergePhase().projections(), contains(instanceOf(MergeCountProjection.class)));
     }
 
     @Test

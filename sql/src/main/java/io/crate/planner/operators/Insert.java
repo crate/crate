@@ -25,6 +25,8 @@ package io.crate.planner.operators;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.data.Row;
+import io.crate.execution.dsl.projection.ColumnIndexWriterProjection;
+import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.MergeCountProjection;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
@@ -34,17 +36,23 @@ import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
 
 import javax.annotation.Nullable;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
 public class Insert extends OneInputPlan {
 
-    private final List<Projection> projections;
+    private final ColumnIndexWriterProjection writeToTable;
 
-    public Insert(LogicalPlan source, List<Projection> projections) {
+    @Nullable
+    private final EvalProjection applyCasts;
+
+    public Insert(LogicalPlan source, ColumnIndexWriterProjection writeToTable, @Nullable EvalProjection applyCasts) {
         super(source);
-        this.projections = projections;
+        this.writeToTable = writeToTable;
+        this.applyCasts = applyCasts;
     }
 
     @Override
@@ -56,22 +64,28 @@ public class Insert extends OneInputPlan {
                                @Nullable Integer pageSizeHint,
                                Row params,
                                SubQueryResults subQueryResults) {
-        ExecutionPlan executionSubPlan = source.build(
+        ExecutionPlan sourcePlan = source.build(
             plannerContext, projectionBuilder, limit, offset, order, pageSizeHint, params, subQueryResults);
-        for (Projection projection : projections) {
-            executionSubPlan.addProjection(projection);
+        if (applyCasts != null) {
+            sourcePlan.addProjection(applyCasts);
         }
-        ExecutionPlan executionPlan = Merge.ensureOnHandler(executionSubPlan, plannerContext);
-        if (executionPlan == executionSubPlan) {
-            return executionPlan;
+        if (sourcePlan.resultDescription().hasRemainingLimitOrOffset()) {
+            ExecutionPlan localMerge = Merge.ensureOnHandler(sourcePlan, plannerContext);
+            localMerge.addProjection(writeToTable);
+            return localMerge;
+        } else {
+            sourcePlan.addProjection(writeToTable);
+            ExecutionPlan localMerge = Merge.ensureOnHandler(sourcePlan, plannerContext);
+            if (sourcePlan != localMerge) {
+                localMerge.addProjection(MergeCountProjection.INSTANCE);
+            }
+            return localMerge;
         }
-        executionPlan.addProjection(MergeCountProjection.INSTANCE);
-        return executionPlan;
     }
 
     @Override
     protected LogicalPlan updateSource(LogicalPlan newSource, SymbolMapper mapper) {
-        return new Insert(newSource, projections);
+        return new Insert(newSource, writeToTable, applyCasts);
     }
 
     @Override
@@ -99,12 +113,16 @@ public class Insert extends OneInputPlan {
         return visitor.visitInsert(this, context);
     }
 
-    public List<Projection> projections() {
-        return projections;
-    }
-
     @Override
     public StatementType type() {
         return StatementType.INSERT;
+    }
+
+    public Collection<Projection> projections() {
+        if (applyCasts == null) {
+            return Collections.singletonList(writeToTable);
+        } else {
+            return Arrays.asList(applyCasts, writeToTable);
+        }
     }
 }
