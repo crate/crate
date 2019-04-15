@@ -48,6 +48,8 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executor;
+import java.util.function.IntSupplier;
 
 import static io.crate.execution.engine.sort.Comparators.createComparator;
 
@@ -59,6 +61,8 @@ public class WindowProjector implements Projector {
     private final ArrayList<WindowFunction> windowFunctions;
     private final List<CollectExpression<Row, ?>> argsExpressions;
     private final Input[][] args;
+    private final IntSupplier numThreads;
+    private final Executor executor;
     private final RowAccounting rowAccounting;
 
     public static WindowProjector fromProjection(WindowAggProjection projection,
@@ -67,7 +71,9 @@ public class WindowProjector implements Projector {
                                                  TransactionContext txnCtx,
                                                  RamAccountingContext ramAccountingContext,
                                                  BigArrays bigArrays,
-                                                 Version indexVersionCreated) {
+                                                 Version indexVersionCreated,
+                                                 IntSupplier numThreads,
+                                                 Executor executor) {
         LinkedHashMap<io.crate.expression.symbol.WindowFunction, List<Symbol>> functionsWithInputs = projection.functionsWithInputs();
         ArrayList<WindowFunction> windowFunctions = new ArrayList<>(functionsWithInputs.size());
         List<CollectExpression<Row, ?>> windowFuncArgsExpressions = new ArrayList<>(functionsWithInputs.size());
@@ -109,7 +115,9 @@ public class WindowProjector implements Projector {
             projection.standalone().size(),
             windowFunctions,
             windowFuncArgsExpressions,
-            windowFuncArgsInputs
+            windowFuncArgsInputs,
+            numThreads,
+            executor
         );
     }
 
@@ -119,7 +127,9 @@ public class WindowProjector implements Projector {
                             int cellOffset,
                             ArrayList<WindowFunction> windowFunctions,
                             List<CollectExpression<Row, ?>> argsExpressions,
-                            Input[][] args) {
+                            Input[][] args,
+                            IntSupplier numThreads,
+                            Executor executor) {
         this.rowAccounting = rowAccounting;
         this.cmpPartitionBy = cmpPartitionBy;
         this.cmpOrderBy = cmpOrderBy;
@@ -127,6 +137,8 @@ public class WindowProjector implements Projector {
         this.windowFunctions = windowFunctions;
         this.argsExpressions = argsExpressions;
         this.args = args;
+        this.numThreads = numThreads;
+        this.executor = executor;
     }
 
     @Override
@@ -137,6 +149,8 @@ public class WindowProjector implements Projector {
             cmpPartitionBy,
             cmpOrderBy,
             cellOffset,
+            numThreads,
+            executor,
             windowFunctions,
             argsExpressions,
             args
