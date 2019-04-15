@@ -27,28 +27,58 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.format.ResolverStyle;
+import java.time.temporal.TemporalAccessor;
+import java.util.Locale;
+import java.util.function.Function;
 
-public class TimestampType extends DataType<Long> implements FixedWidthType, Streamer<Long> {
+import static java.time.format.DateTimeFormatter.ISO_LOCAL_DATE;
+import static java.time.format.DateTimeFormatter.ISO_LOCAL_TIME;
 
-    public static final TimestampType INSTANCE = new TimestampType();
-    public static final int ID = 11;
+public final class TimestampType extends DataType<Long>
+    implements FixedWidthType, Streamer<Long> {
 
-    private TimestampType() {
+    public static final int ID_WITH_TZ = 11;
+    public static final int ID_WITHOUT_TZ = 15;
+
+    public static final TimestampType INSTANCE_WITH_TZ = new TimestampType(
+        ID_WITH_TZ,
+        "timestamp with time zone",
+        TimestampType::parseTimestamp);
+
+    public static final TimestampType INSTANCE_WITHOUT_TZ = new TimestampType(
+        ID_WITHOUT_TZ,
+        "timestamp without time zone",
+        TimestampType::parseTimestampIgnoreTimeZone);
+
+    private final int id;
+    private final String name;
+    private final Function<String, Long> parse;
+
+    private TimestampType(int id, String name, Function<String, Long> parse) {
+        this.id = id;
+        this.name = name;
+        this.parse = parse;
     }
 
     @Override
     public int id() {
-        return ID;
+        return id;
+    }
+
+    @Override
+    public String getName() {
+        return name;
     }
 
     @Override
     public Precedence precedence() {
         return Precedence.LongType;
-    }
-
-    @Override
-    public String getName() {
-        return "timestamp with time zone";
     }
 
     @Override
@@ -62,7 +92,7 @@ public class TimestampType extends DataType<Long> implements FixedWidthType, Str
             return null;
         }
         if (value instanceof String) {
-            return valueFromString((String) value);
+            return parse.apply((String) value);
         }
         // we treat float and double values as seconds with milliseconds as fractions
         // see timestamp documentation
@@ -83,14 +113,6 @@ public class TimestampType extends DataType<Long> implements FixedWidthType, Str
         return nullSafeCompareValueTo(val1, val2, Long::compare);
     }
 
-    private Long valueFromString(String s) {
-        try {
-            return Long.valueOf(s);
-        } catch (NumberFormatException e) {
-            return TimestampFormat.parseTimestampString(s);
-        }
-    }
-
     @Override
     public Long readValueFrom(StreamInput in) throws IOException {
         return in.readBoolean() ? null : in.readLong();
@@ -108,4 +130,38 @@ public class TimestampType extends DataType<Long> implements FixedWidthType, Str
     public int fixedSize() {
         return 16; // 8 object overhead, 8 long
     }
+
+    static long parseTimestamp(String timestamp) {
+        try {
+            return Long.valueOf(timestamp);
+        } catch (NumberFormatException e) {
+            return TimestampFormat.parseTimestampString(timestamp);
+        }
+    }
+
+    static long parseTimestampIgnoreTimeZone(String timestamp) {
+        try {
+            return Long.valueOf(timestamp);
+        } catch (NumberFormatException e) {
+            TemporalAccessor dt = TIMESTAMP_PARSER.parseBest(
+                timestamp, LocalDateTime::from, LocalDate::from);
+
+            if (dt instanceof LocalDate) {
+                LocalDate localDate = LocalDate.from(dt);
+                return localDate.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli();
+            }
+            LocalDateTime localDateTime = LocalDateTime.from(dt);
+            return localDateTime.toInstant(ZoneOffset.UTC).toEpochMilli();
+        }
+    }
+
+    private static final DateTimeFormatter TIMESTAMP_PARSER = new DateTimeFormatterBuilder()
+        .parseCaseInsensitive()
+        .append(ISO_LOCAL_DATE)
+        .optionalStart()
+            .appendLiteral('T')
+            .append(ISO_LOCAL_TIME)
+            .optionalStart()
+                .appendPattern("[VV][x][xx][xxx]")
+        .toFormatter(Locale.ENGLISH).withResolverStyle(ResolverStyle.STRICT);
 }

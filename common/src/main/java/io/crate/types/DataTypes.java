@@ -68,7 +68,9 @@ public final class DataTypes {
     public static final ShortType SHORT = ShortType.INSTANCE;
     public static final IntegerType INTEGER = IntegerType.INSTANCE;
     public static final LongType LONG = LongType.INSTANCE;
-    public static final TimestampType TIMESTAMP = TimestampType.INSTANCE;
+
+    public static final TimestampType TIMESTAMPZ = TimestampType.INSTANCE_WITH_TZ;
+    public static final TimestampType TIMESTAMP = TimestampType.INSTANCE_WITHOUT_TZ;
 
     public static final GeoPointType GEO_POINT = GeoPointType.INSTANCE;
     public static final GeoShapeType GEO_SHAPE = GeoShapeType.INSTANCE;
@@ -88,6 +90,7 @@ public final class DataTypes {
         SHORT,
         INTEGER,
         LONG,
+        TIMESTAMPZ,
         TIMESTAMP
     );
 
@@ -115,7 +118,8 @@ public final class DataTypes {
         .put(ShortType.ID, () -> SHORT)
         .put(IntegerType.ID, () -> INTEGER)
         .put(LongType.ID, () -> LONG)
-        .put(TimestampType.ID, () -> TIMESTAMP)
+        .put(TimestampType.ID_WITH_TZ, () -> TIMESTAMPZ)
+        .put(TimestampType.ID_WITHOUT_TZ, () -> TIMESTAMP)
         .put(ObjectType.ID, ObjectType::untyped)
         .put(GeoPointType.ID, () -> GEO_POINT)
         .put(GeoShapeType.ID, () -> GEO_SHAPE)
@@ -127,7 +131,7 @@ public final class DataTypes {
     private static final Set<DataType> NUMBER_CONVERSIONS = ImmutableSet.<DataType>builder()
         .addAll(NUMERIC_PRIMITIVE_TYPES)
         .add(BOOLEAN)
-        .add(STRING, TIMESTAMP, IP)
+        .add(STRING, TIMESTAMPZ, TIMESTAMP, IP)
         .build();
     // allowed conversion from key to one of the value types
     // the key type itself does not need to be in the value set
@@ -147,6 +151,7 @@ public final class DataTypes {
             .add(ObjectType.untyped())
             .build())
         .put(IP.id(), ImmutableSet.of(STRING))
+        .put(TIMESTAMPZ.id(), ImmutableSet.of(DOUBLE, LONG, STRING))
         .put(TIMESTAMP.id(), ImmutableSet.of(DOUBLE, LONG, STRING))
         .put(UNDEFINED.id(), ImmutableSet.of()) // actually convertible to every type, see NullType
         .put(GEO_POINT.id(), ImmutableSet.of(new ArrayType(DOUBLE)))
@@ -161,10 +166,10 @@ public final class DataTypes {
      * used to store the value)
      */
     private static final ImmutableMap<Integer, Set<DataType>> SAFE_CONVERSIONS = ImmutableMap.<Integer, Set<DataType>>builder()
-        .put(BYTE.id(), ImmutableSet.of(SHORT, INTEGER, LONG, TIMESTAMP, FLOAT, DOUBLE))
-        .put(SHORT.id(), ImmutableSet.of(INTEGER, LONG, TIMESTAMP, FLOAT, DOUBLE))
-        .put(INTEGER.id(), ImmutableSet.of(LONG, TIMESTAMP, FLOAT, DOUBLE))
-        .put(LONG.id(), ImmutableSet.of(TIMESTAMP, DOUBLE))
+        .put(BYTE.id(), ImmutableSet.of(SHORT, INTEGER, LONG, TIMESTAMPZ, TIMESTAMP, FLOAT, DOUBLE))
+        .put(SHORT.id(), ImmutableSet.of(INTEGER, LONG, TIMESTAMPZ, TIMESTAMP, FLOAT, DOUBLE))
+        .put(INTEGER.id(), ImmutableSet.of(LONG, TIMESTAMPZ, TIMESTAMP, FLOAT, DOUBLE))
+        .put(LONG.id(), ImmutableSet.of(TIMESTAMPZ, TIMESTAMP, DOUBLE))
         .put(FLOAT.id(), ImmutableSet.of(DOUBLE))
         .build();
 
@@ -296,6 +301,7 @@ public final class DataTypes {
         .put(SHORT.getName(), SHORT)
         .put(INTEGER.getName(), INTEGER)
         .put(LONG.getName(), LONG)
+        .put(TIMESTAMPZ.getName(), TIMESTAMPZ)
         .put(TIMESTAMP.getName(), TIMESTAMP)
         .put(ObjectType.NAME, ObjectType.untyped())
         .put(GEO_POINT.getName(), GEO_POINT)
@@ -311,7 +317,7 @@ public final class DataTypes {
         .put("float", FLOAT)
         .put("double", DOUBLE)
         .put("string", STRING)
-        .put("timestamptz", TIMESTAMP)
+        .put("timestamptz", TIMESTAMPZ)
         // The usage of the `timestamp` data type as a data type with time
         // zone is deprecate, use `timestamp with time zone` or `timestamptz`
         // instead. In future releases the `timestamp` data type will be changed
@@ -319,7 +325,7 @@ public final class DataTypes {
         // `timestamp` as an alias for the `timestamp with time zone` data type
         // to warn users about the data type semantic change and give a time
         // to adjust to the change.
-        .put("timestamp", TIMESTAMP)
+        .put("timestamp", TIMESTAMPZ)
         .build();
 
     public static DataType ofName(String name) {
@@ -331,7 +337,7 @@ public final class DataTypes {
     }
 
     private static final ImmutableMap<String, DataType> MAPPING_NAMES_TO_TYPES = ImmutableMap.<String, DataType>builder()
-        .put("date", DataTypes.TIMESTAMP)
+        .put("date", DataTypes.TIMESTAMPZ)
         .put("string", DataTypes.STRING)
         .put("keyword", DataTypes.STRING)
         .put("text", DataTypes.STRING)
@@ -349,6 +355,7 @@ public final class DataTypes {
         .put("nested", ObjectType.untyped()).build();
 
     private static final Map<Integer, String> TYPE_IDS_TO_MAPPINGS = Map.ofEntries(
+        entry(TIMESTAMPZ.id(), "date"),
         entry(TIMESTAMP.id(), "date"),
         entry(STRING.id(), "text"),
         entry(BYTE.id(), "byte"),

@@ -1637,7 +1637,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat(symbol, isFunction("extract_DAY_OF_MONTH"));
 
         Symbol argument = ((Function) symbol).arguments().get(0);
-        assertThat(argument, isFunction("to_timestamp"));
+        assertThat(argument, isFunction("to_timestampz"));
     }
 
     @Test
@@ -1652,11 +1652,11 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
-    public void selectCurrentTimeStamp() throws Exception {
+    public void selectCurrentTimeStamp() {
         QueriedRelation relation = analyze("select CURRENT_TIMESTAMP from sys.cluster");
         Symbol currentTime = relation.querySpec().outputs().get(0);
         assertThat(currentTime, instanceOf(Literal.class));
-        assertThat(currentTime.valueType(), is(DataTypes.TIMESTAMP));
+        assertThat(currentTime.valueType(), is(DataTypes.TIMESTAMPZ));
     }
 
     @Test
@@ -2009,6 +2009,6 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testCastTimestampFromStringLiteral()  {
         QueriedRelation relation = analyze("select timestamp '2018-12-12T00:00:00'");
-        assertThat(relation.outputs().get(0).valueType(), is(DataTypes.TIMESTAMP));
+        assertThat(relation.outputs().get(0).valueType(), is(DataTypes.TIMESTAMPZ));
     }
 }

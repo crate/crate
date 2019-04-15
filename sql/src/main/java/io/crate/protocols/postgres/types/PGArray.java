@@ -40,7 +40,8 @@ class PGArray extends PGType {
     static final PGArray FLOAT4_ARRAY = new PGArray(1021, RealType.INSTANCE);
     static final PGArray FLOAT8_ARRAY = new PGArray(1022, DoubleType.INSTANCE);
     static final PGArray BOOL_ARRAY = new PGArray(1000, BooleanType.INSTANCE);
-    static final PGArray TIMESTAMPZ_ARRAY = new PGArray(1185, TimestampType.INSTANCE);
+    static final PGArray TIMESTAMPZ_ARRAY = new PGArray(1185, TimestampZType.INSTANCE);
+    static final PGArray TIMESTAMP_ARRAY = new PGArray(1115, TimestampType.INSTANCE);
     static final PGArray VARCHAR_ARRAY = new PGArray(1015, VarCharType.INSTANCE);
     static final PGArray JSON_ARRAY = new PGArray(199, JsonType.INSTANCE);
 

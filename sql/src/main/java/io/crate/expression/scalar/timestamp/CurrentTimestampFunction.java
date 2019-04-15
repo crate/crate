@@ -21,7 +21,6 @@
 
 package io.crate.expression.scalar.timestamp;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.math.LongMath;
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
@@ -33,11 +32,11 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
 import java.math.RoundingMode;
 import java.util.Collections;
+import java.util.List;
 import java.util.Locale;
 
 public class CurrentTimestampFunction extends Scalar<Long, Integer> implements FunctionFormatSpec {
@@ -46,8 +45,8 @@ public class CurrentTimestampFunction extends Scalar<Long, Integer> implements F
     public static final int DEFAULT_PRECISION = 3;
 
     public static final FunctionInfo INFO = new FunctionInfo(
-        new FunctionIdent(NAME, ImmutableList.<DataType>of(DataTypes.INTEGER)),
-        DataTypes.TIMESTAMP,
+        new FunctionIdent(NAME, List.of(DataTypes.INTEGER)),
+        DataTypes.TIMESTAMPZ,
         FunctionInfo.Type.SCALAR,
         Collections.emptySet());
 

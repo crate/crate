@@ -79,7 +79,7 @@ public class SysClusterTableInfo extends StaticTableInfo {
             .register("master_node", DataTypes.STRING)
             .register("license",
                 ObjectType.builder()
-                    .setInnerType(EXPIRY_DATE, DataTypes.TIMESTAMP)
+                    .setInnerType(EXPIRY_DATE, DataTypes.TIMESTAMPZ)
                     .setInnerType(ISSUED_TO, DataTypes.STRING)
                     .setInnerType(MAX_NODES, DataTypes.INTEGER)
                     .build())
