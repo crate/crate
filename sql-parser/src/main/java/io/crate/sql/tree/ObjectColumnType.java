@@ -33,7 +33,7 @@ public class ObjectColumnType extends ColumnType {
     private final List<ColumnDefinition> nestedColumns;
 
     public ObjectColumnType(@Nullable String objectType, List<ColumnDefinition> nestedColumns) {
-        super("object");
+        super("object", Type.OBJECT);
         this.objectType = objectType == null ? Optional.empty() : Optional.of(ColumnPolicy.of(objectType));
         this.nestedColumns = nestedColumns;
     }

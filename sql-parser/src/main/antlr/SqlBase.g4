@@ -215,6 +215,7 @@ valueExpression
     | left=valueExpression operator=(PLUS | MINUS) right=valueExpression             #arithmeticBinary
     | left=valueExpression CONCAT right=valueExpression                              #concatenation
     | valueExpression CAST_OPERATOR dataType                                         #doubleColonCast
+    | dataType stringLiteral                                                         #fromStringLiteralCast
     ;
 
 primaryExpression
@@ -267,7 +268,6 @@ identExpr
 
 parameterOrLiteral
     : parameterOrSimpleLiteral
-    | datetimeLiteral
     | arrayLiteral
     | objectLiteral
     ;
@@ -324,12 +324,6 @@ cmpOp
 
 setCmpQuantifier
     : ANY | SOME | ALL
-    ;
-
-datetimeLiteral
-    : DATE STRING                                                                    #dateLiteral
-    | TIME STRING                                                                    #timeLiteral
-    | TIMESTAMP STRING                                                               #timestampLiteral
     ;
 
 whenClause
@@ -651,7 +645,7 @@ isolationLevel
 
 nonReserved
     : ALIAS | ANALYZE | ANALYZER | BERNOULLI | BLOB | CATALOGS | CHAR_FILTERS | CLUSTERED
-    | COLUMNS | COPY | CURRENT | DATE | DAY | DEALLOCATE | DISTRIBUTED | DUPLICATE | DYNAMIC | EXPLAIN
+    | COLUMNS | COPY | CURRENT |  DAY | DEALLOCATE | DISTRIBUTED | DUPLICATE | DYNAMIC | EXPLAIN
     | EXTENDS | FOLLOWING | FORMAT | FULLTEXT | FUNCTIONS | GEO_POINT | GEO_SHAPE | GLOBAL
     | GRAPHVIZ | HOUR | IGNORED | KEY | KILL | LICENSE | LOGICAL | LOCAL | MATERIALIZED | MINUTE
     | MONTH | OFF | ONLY | OVER | OPTIMIZE | PARTITION | PARTITIONED | PARTITIONS | PLAIN
@@ -708,7 +702,6 @@ LEADING: 'LEADING';
 TRAILING: 'TRAILING';
 BOTH: 'BOTH';
 FOR: 'FOR';
-DATE: 'DATE';
 TIME: 'TIME';
 ZONE: 'ZONE';
 YEAR: 'YEAR';

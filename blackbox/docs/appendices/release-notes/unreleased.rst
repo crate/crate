@@ -150,6 +150,9 @@ Deprecations
 Changes
 =======
 
+- Added support for the :ref:`type 'string' <type_cast_from_string_literal>`
+  cast operator, which is used to initialize a constant of an arbitrary type.
+
 - Enabled Scalar function evaluation when used :ref:`in the query FROM
   clause in place of a relation<table-functions-scalar>`.
 

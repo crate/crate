@@ -61,10 +61,6 @@ public abstract class AstVisitor<R, C> {
         return visitExpression(node, context);
     }
 
-    protected R visitDateLiteral(DateLiteral node, C context) {
-        return visitLiteral(node, context);
-    }
-
     protected R visitDoubleLiteral(DoubleLiteral node, C context) {
         return visitLiteral(node, context);
     }
@@ -91,10 +87,6 @@ public abstract class AstVisitor<R, C> {
 
     protected R visitShowColumns(ShowColumns node, C context) {
         return visitStatement(node, context);
-    }
-
-    protected R visitTimeLiteral(TimeLiteral node, C context) {
-        return visitLiteral(node, context);
     }
 
     protected R visitSelect(Select node, C context) {
@@ -127,10 +119,6 @@ public abstract class AstVisitor<R, C> {
 
     protected R visitExcept(Except node, C context) {
         return visitSetOperation(node, context);
-    }
-
-    protected R visitTimestampLiteral(TimestampLiteral node, C context) {
-        return visitLiteral(node, context);
     }
 
     protected R visitWhenClause(WhenClause node, C context) {

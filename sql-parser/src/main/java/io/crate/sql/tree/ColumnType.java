@@ -28,7 +28,8 @@ public class ColumnType extends Expression {
     public enum Type {
         PRIMITIVE,
         ARRAY,
-        SET
+        SET,
+        OBJECT
     }
 
     protected final String name;
