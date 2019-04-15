@@ -47,6 +47,14 @@ None
 Fixes
 =====
 
+- Fixed the processing of ``LIMIT`` clauses within queries in the :ref:`INSERT
+  INTO <ref-insert>` statement. A query like ``INSERT INTO target (SELECT *
+  FROM (SELECT * FROM source LIMIT 10) t)`` could insert more than 10 rows if
+  there is more than 1 node in the cluster.
+  In addition, using ``LIMIT`` in the top level query of the ``INSERT INTO``
+  statement is now no longer prohibited. So the query can be written as
+  follows: ``INSERT INTO target (SELECT * FROM source LIMIT 10)``.
+
 - Fixed an issue that would cause the wrong evaluation of nested sub-queries
   in cases where the inner sub-query returns a multi-value and the outer returns
   a single value result. For instance, the assignment sub-query expression in
