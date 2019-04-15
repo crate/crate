@@ -118,7 +118,7 @@ public class HyperLogLogDistinctAggregationTest extends AggregationTest {
             is(-2508561340476696217L));
         assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.BYTE).hash(new Byte("1")),
             is(-2508561340476696217L));
-        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.TIMESTAMP).hash(1512569562000L),
+        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.TIMESTAMPZ).hash(1512569562000L),
             is(-3066297687939346384L));
 
         // bytes types

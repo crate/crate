@@ -127,7 +127,7 @@ public final class TableDefinitions {
         TEST_PARTITIONED_TABLE_IDENT, new Routing(ImmutableMap.of()))
         .add("id", DataTypes.INTEGER)
         .add("name", DataTypes.STRING)
-        .add("date", DataTypes.TIMESTAMP, null, true)
+        .add("date", DataTypes.TIMESTAMPZ, null, true)
         .add("obj", ObjectType.untyped())
         // add 3 partitions/simulate already done inserts
         .addPartitions(
@@ -140,14 +140,14 @@ public final class TableDefinitions {
     public static final DocTableInfo TEST_EMPTY_PARTITIONED_TABLE_INFO = new TestingTableInfo.Builder(
         TEST_EMPTY_PARTITIONED_TABLE_IDENT, new Routing(ImmutableMap.of()))
         .add("name", DataTypes.STRING)
-        .add("date", DataTypes.TIMESTAMP, null, true)
+        .add("date", DataTypes.TIMESTAMPZ, null, true)
         .build();
     public static final RelationName PARTED_PKS_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "parted_pks");
     public static final DocTableInfo PARTED_PKS_TI = new TestingTableInfo.Builder(
         PARTED_PKS_IDENT, PARTED_ROUTING)
         .add("id", DataTypes.INTEGER)
         .add("name", DataTypes.STRING)
-        .add("date", DataTypes.TIMESTAMP, null, true)
+        .add("date", DataTypes.TIMESTAMPZ, null, true)
         .add("obj", ObjectType.untyped())
         // add 3 partitions/simulate already done inserts
         .addPartitions(
@@ -165,7 +165,7 @@ public final class TableDefinitions {
         .add("sender", DataTypes.STRING)
         .add("recipient", DataTypes.STRING)
         .add("amount", DataTypes.DOUBLE)
-        .add("timestamp", DataTypes.TIMESTAMP)
+        .add("timestamp", DataTypes.TIMESTAMPZ)
         .build();
     private static final RelationName DEEPLY_NESTED_TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "deeply_nested");
     public static final DocTableInfo DEEPLY_NESTED_TABLE_INFO = new TestingTableInfo.Builder(

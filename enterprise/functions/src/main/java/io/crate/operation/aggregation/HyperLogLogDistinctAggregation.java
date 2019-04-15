@@ -280,7 +280,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
                 case IntegerType.ID:
                 case ShortType.ID:
                 case ByteType.ID:
-                case TimestampType.ID:
+                case TimestampType.ID_WITH_TZ:
                     return Long.INSTANCE;
                 case StringType.ID:
                 case BooleanType.ID:

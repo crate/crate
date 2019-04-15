@@ -150,6 +150,9 @@ Deprecations
 Changes
 =======
 
+- Added the :ref:`TIMESTAMP WITHOUT TIME ZONE <datetime-without-time-zone>` data
+  type.
+
 - Added support for the :ref:`type 'string' <type_cast_from_string_literal>`
   cast operator, which is used to initialize a constant of an arbitrary type.
 

@@ -42,6 +42,7 @@ import org.elasticsearch.common.util.BigArrays;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.util.List;
 
 public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanAggregation.GeometricMeanState, Double> {
 
@@ -58,7 +59,7 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
                 FunctionInfo.Type.AGGREGATE)));
         }
         mod.register(new GeometricMeanAggregation(new FunctionInfo(
-            new FunctionIdent(NAME, ImmutableList.<DataType>of(DataTypes.TIMESTAMP)), DataTypes.DOUBLE,
+            new FunctionIdent(NAME, List.of(DataTypes.TIMESTAMPZ)), DataTypes.DOUBLE,
             FunctionInfo.Type.AGGREGATE)));
     }
 

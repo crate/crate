@@ -38,6 +38,7 @@ import org.elasticsearch.common.util.BigArrays;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.util.List;
 
 public class AverageAggregation extends AggregationFunction<AverageAggregation.AverageState, Double> {
 
@@ -60,7 +61,7 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
                     FunctionInfo.Type.AGGREGATE)));
             }
             mod.register(new AverageAggregation(new FunctionInfo(
-                new FunctionIdent(name, ImmutableList.<DataType>of(DataTypes.TIMESTAMP)), DataTypes.DOUBLE,
+                new FunctionIdent(name, List.of(DataTypes.TIMESTAMPZ)), DataTypes.DOUBLE,
                 FunctionInfo.Type.AGGREGATE)));
         }
     }

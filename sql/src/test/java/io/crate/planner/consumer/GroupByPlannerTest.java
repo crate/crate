@@ -663,7 +663,7 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
 
         Symbol orderBy = topNProjection.orderBy().get(0);
         assertThat(orderBy, instanceOf(InputColumn.class));
-        assertThat(orderBy.valueType(), is(DataTypes.TIMESTAMP));
+        assertThat(orderBy.valueType(), is(DataTypes.TIMESTAMPZ));
     }
 
     @Test

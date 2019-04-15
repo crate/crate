@@ -60,6 +60,7 @@ import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.common.Booleans;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.mapper.DateFieldMapper;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -273,6 +274,14 @@ public class DocIndexMetaData {
             type = new ArrayType(innerType);
         } else {
             typeName = typeName.toLowerCase(Locale.ENGLISH);
+            if (DateFieldMapper.CONTENT_TYPE.equals(typeName)) {
+                Boolean ignoreTimezone = (Boolean) columnProperties.get("ignore_timezone");
+                if (ignoreTimezone != null && ignoreTimezone) {
+                    return DataTypes.TIMESTAMP;
+                } else {
+                    return DataTypes.TIMESTAMPZ;
+                }
+            }
             type = MoreObjects.firstNonNull(DataTypes.ofMappingName(typeName), DataTypes.NOT_SUPPORTED);
         }
         return type;

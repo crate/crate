@@ -83,8 +83,8 @@ public class SysOperationsLogTableInfo extends StaticTableInfo {
             .register(Columns.ID, DataTypes.STRING)
             .register(Columns.JOB_ID, DataTypes.STRING)
             .register(Columns.NAME, DataTypes.STRING)
-            .register(Columns.STARTED, DataTypes.TIMESTAMP)
-            .register(Columns.ENDED, DataTypes.TIMESTAMP)
+            .register(Columns.STARTED, DataTypes.TIMESTAMPZ)
+            .register(Columns.ENDED, DataTypes.TIMESTAMPZ)
             .register(Columns.USED_BYTES, DataTypes.LONG)
             .register(Columns.ERROR, DataTypes.STRING), Collections.emptyList());
     }

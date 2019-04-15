@@ -85,7 +85,7 @@ public class SysJobsTableInfo extends StaticTableInfo {
                     .setInnerType("name", DataTypes.STRING)
                     .build())
                 .register(Columns.STMT, DataTypes.STRING)
-                .register(Columns.STARTED, DataTypes.TIMESTAMP),
+                .register(Columns.STARTED, DataTypes.TIMESTAMPZ),
             PRIMARY_KEY);
     }
 

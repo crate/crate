@@ -37,9 +37,9 @@ import io.crate.types.DataTypes;
 import io.crate.types.GeoShapeType;
 import io.crate.types.ObjectType;
 import io.crate.types.StringType;
-import io.crate.types.TimestampType;
 import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.common.logging.DeprecationLogger;
+import io.crate.types.TimestampType;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
@@ -261,26 +261,24 @@ public class AnalyzedColumnDefinition {
     }
 
     String typeNameForESMapping() {
-        switch (dataType.id()) {
-            case TimestampType.ID:
-                return "date";
-
-            case StringType.ID:
-                return analyzer == null && !isIndex ? "keyword" : "text";
-
-            default:
-                return DataTypes.esMappingNameFrom(dataType.id());
+        if (StringType.ID == dataType.id()) {
+            return analyzer == null && !isIndex ? "keyword" : "text";
         }
+        return DataTypes.esMappingNameFrom(dataType.id());
     }
 
     private void addTypeOptions(Map<String, Object> mapping) {
         switch (dataType.id()) {
-            case TimestampType.ID:
+            case TimestampType.ID_WITH_TZ:
                 /*
                  * We want 1000 not be be interpreted as year 1000AD but as 1970-01-01T00:00:01.000
                  * so prefer date mapping format epoch_millis over strict_date_optional_time
                  */
                 mapping.put("format", "epoch_millis||strict_date_optional_time");
+                break;
+            case TimestampType.ID_WITHOUT_TZ:
+                mapping.put("format", "epoch_millis||strict_date_optional_time");
+                mapping.put("ignore_timezone", true);
                 break;
             case GeoShapeType.ID:
                 GeoSettingsApplier.applySettings(mapping, geoSettings, geoTree);

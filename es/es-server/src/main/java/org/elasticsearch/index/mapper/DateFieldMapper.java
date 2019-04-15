@@ -72,6 +72,7 @@ public class DateFieldMapper extends FieldMapper {
     public static class Builder extends FieldMapper.Builder<Builder, DateFieldMapper> {
 
         private Boolean ignoreMalformed;
+        private Boolean ignoreTimezone;
         private Locale locale;
         private boolean dateTimeFormatterSet = false;
 
@@ -88,6 +89,11 @@ public class DateFieldMapper extends FieldMapper {
 
         public Builder ignoreMalformed(boolean ignoreMalformed) {
             this.ignoreMalformed = ignoreMalformed;
+            return builder;
+        }
+
+        public Builder ignoreTimezone(boolean ignoreTimezone) {
+            this.ignoreTimezone = ignoreTimezone;
             return builder;
         }
 
@@ -135,6 +141,7 @@ public class DateFieldMapper extends FieldMapper {
                 fieldType,
                 defaultFieldType,
                 ignoreMalformed(context),
+                ignoreTimezone,
                 context.indexSettings(),
                 multiFieldsBuilder.build(this, context),
                 copyTo);
@@ -169,6 +176,9 @@ public class DateFieldMapper extends FieldMapper {
                     iterator.remove();
                 } else if (propName.equals("format")) {
                     builder.dateTimeFormatter(parseDateTimeFormatter(propNode));
+                    iterator.remove();
+                } else if (propName.equals("ignore_timezone")) {
+                    builder.ignoreTimezone(nodeBooleanValue(propNode, "ignore_timezone"));
                     iterator.remove();
                 } else if (TypeParsers.parseMultiField(builder, name, parserContext, propName, propNode)) {
                     iterator.remove();
@@ -335,6 +345,7 @@ public class DateFieldMapper extends FieldMapper {
     }
 
     private Explicit<Boolean> ignoreMalformed;
+    private final Boolean ignoreTimezone;
 
     private DateFieldMapper(
             String simpleName,
@@ -342,11 +353,13 @@ public class DateFieldMapper extends FieldMapper {
             MappedFieldType fieldType,
             MappedFieldType defaultFieldType,
             Explicit<Boolean> ignoreMalformed,
+            Boolean ignoreTimezone,
             Settings indexSettings,
             MultiFields multiFields,
             CopyTo copyTo) {
         super(simpleName, position, fieldType, defaultFieldType, indexSettings, multiFields, copyTo);
         this.ignoreMalformed = ignoreMalformed;
+        this.ignoreTimezone = ignoreTimezone;
     }
 
     @Override
@@ -436,6 +449,11 @@ public class DateFieldMapper extends FieldMapper {
                 || fieldType().dateTimeFormatter().format().equals(DEFAULT_DATE_TIME_FORMATTER.format()) == false) {
             builder.field("format", fieldType().dateTimeFormatter().format());
         }
+
+        if (includeDefaults || ignoreTimezone != null) {
+            builder.field("ignore_timezone", ignoreTimezone);
+        }
+
         if (includeDefaults
                 || fieldType().dateTimeFormatter().locale() != Locale.ROOT) {
             builder.field("locale", fieldType().dateTimeFormatter().locale());
