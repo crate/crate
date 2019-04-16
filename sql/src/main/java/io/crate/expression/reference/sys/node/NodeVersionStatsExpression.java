@@ -22,11 +22,15 @@
 
 package io.crate.expression.reference.sys.node;
 
+import org.elasticsearch.Version;
+
 public class NodeVersionStatsExpression extends NestedNodeStatsExpression {
 
     private static final String NUMBER = "number";
     private static final String BUILD_HASH = "build_hash";
     private static final String BUILD_SNAPSHOT = "build_snapshot";
+    private static final String MINIMUM_INDEX_COMPATIBILITY_VERSION = "minimum_index_compatibility_version";
+    private static final String MINIMUM_WIRE_COMPATIBILITY_VERSION = "minimum_wire_compatibility_version";
 
     public NodeVersionStatsExpression() {
         childImplementations.put(NUMBER, new SimpleNodeStatsExpression<String>() {
@@ -47,5 +51,11 @@ public class NodeVersionStatsExpression extends NestedNodeStatsExpression {
                 return nodeStatsContext.version().isSnapshot();
             }
         });
+        
+        childImplementations.put(MINIMUM_INDEX_COMPATIBILITY_VERSION,
+                                 constant(Version.CURRENT.minimumIndexCompatibilityVersion().externalNumber()));
+
+        childImplementations.put(MINIMUM_WIRE_COMPATIBILITY_VERSION,
+                                 constant(Version.CURRENT.minimumCompatibilityVersion().externalNumber()));
     }
 }
