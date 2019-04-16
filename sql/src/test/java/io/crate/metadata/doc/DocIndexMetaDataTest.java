@@ -96,7 +96,7 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Before
-    public void setupUdfService() throws Exception {
+    public void setupUdfService() {
         functions = getFunctions();
         udfService = new UserDefinedFunctionService(clusterService, functions);
     }
@@ -253,7 +253,7 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
         assertThat(md.references().size(), is(23));
 
         Reference birthday = md.references().get(new ColumnIdent("person", "birthday"));
-        assertThat(birthday.valueType(), is(DataTypes.TIMESTAMP));
+        assertThat(birthday.valueType(), is(DataTypes.TIMESTAMPZ));
         assertThat(birthday.indexType(), is(Reference.IndexType.NOT_ANALYZED));
 
         Reference integerIndexed = md.references().get(new ColumnIdent("integerIndexed"));
@@ -352,7 +352,7 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
         assertEquals(6, md.columns().size());
         assertEquals(19, md.references().size());
         assertEquals(1, md.partitionedByColumns().size());
-        assertEquals(DataTypes.TIMESTAMP, md.partitionedByColumns().get(0).valueType());
+        assertEquals(DataTypes.TIMESTAMPZ, md.partitionedByColumns().get(0).valueType());
         assertThat(md.partitionedByColumns().get(0).column().fqn(), is("datum"));
 
         assertThat(md.partitionedBy().size(), is(1));
@@ -1201,7 +1201,7 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
         assertThat(docIndexMetaData.references().get(ColumnIdent.fromPath("array_col")).valueType(),
             is(DataTypes.IP));
         assertThat(docIndexMetaData.references().get(ColumnIdent.fromPath("nested.inner_nested")).valueType(),
-            is(DataTypes.TIMESTAMP));
+            is(DataTypes.TIMESTAMPZ));
     }
 
     @Test
@@ -1243,7 +1243,7 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
         assertThat(docIndexMetaData.references().get(ColumnIdent.fromPath("array_col")).valueType(),
             is(new ArrayType(DataTypes.IP)));
         assertThat(docIndexMetaData.references().get(ColumnIdent.fromPath("nested.inner_nested")).valueType(),
-            is(new ArrayType(DataTypes.TIMESTAMP)));
+            is(new ArrayType(DataTypes.TIMESTAMPZ)));
     }
 
     @Test
@@ -1320,6 +1320,29 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
         DocIndexMetaData md = getDocIndexMetaDataFromStatement("create table t1 (x as ([10, 20]))");
         GeneratedReference generatedReference = md.generatedColumnReferences().get(0);
         assertThat(generatedReference.valueType(), is(new ArrayType(DataTypes.LONG)));
+    }
+
+    @Test
+    public void testTimestampColumnReferences() throws Exception {
+        XContentBuilder builder = XContentFactory.jsonBuilder()
+            .startObject()
+                .startObject(Constants.DEFAULT_MAPPING_TYPE)
+                    .startObject("properties")
+                        .startObject("tz")
+                            .field("type", "date")
+                        .endObject()
+                        .startObject("t")
+                            .field("type", "date")
+                            .field("ignore_timezone", true)
+                        .endObject()
+                    .endObject()
+                .endObject()
+            .endObject();
+        DocIndexMetaData md = newMeta(getIndexMetaData("test", builder), "test");
+
+        assertThat(md.columns().size(), is(2));
+        assertThat(md.references().get(new ColumnIdent("tz")).valueType(), is(DataTypes.TIMESTAMPZ));
+        assertThat(md.references().get(new ColumnIdent("t")).valueType(), is(DataTypes.TIMESTAMP));
     }
 
     @Test

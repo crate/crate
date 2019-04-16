@@ -21,7 +21,6 @@
 
 package io.crate.expression.scalar;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.data.Input;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.format.FunctionFormatSpec;
@@ -37,11 +36,12 @@ import org.elasticsearch.common.joda.Joda;
 import org.joda.time.DateTimeField;
 import org.joda.time.chrono.ISOChronology;
 
+import java.util.List;
 import java.util.Locale;
 
 public class ExtractFunctions {
 
-    private static final ImmutableList<DataType> ARGUMENT_TYPES = ImmutableList.of(DataTypes.TIMESTAMP);
+    private static final List<DataType> ARGUMENT_TYPES = List.of(DataTypes.TIMESTAMPZ);
     private static final String NAME_PREFIX = "extract_";
 
     private static final String EXTRACT_EPOCH_PREFIX = "extract(epoch from ";

@@ -131,7 +131,8 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
             case FloatType.ID:
                 return new FloatColumnReference(fqn, fieldType);
             case LongType.ID:
-            case TimestampType.ID:
+            case TimestampType.ID_WITH_TZ:
+            case TimestampType.ID_WITHOUT_TZ:
                 return new LongColumnReference(fqn);
             case IntegerType.ID:
                 return new IntegerColumnReference(fqn);

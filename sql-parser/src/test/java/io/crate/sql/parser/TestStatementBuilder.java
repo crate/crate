@@ -508,6 +508,8 @@ public class TestStatementBuilder {
         printStatement("create table test (col1 int, col2 timestamp with time zone) partitioned by (col1) clustered by (col2)");
         printStatement("create table test (col1 int, col2 timestamp with time zone) clustered by (col2) partitioned by (col1)");
         printStatement("create table test (col1 int, col2 object as (col3 timestamp with time zone)) partitioned by (col2['col3'])");
+        printStatement("create table test (col1 object as (col3 timestamp without time zone))");
+        printStatement("create table test (col1 int, col2 timestamp without time zone not null)");
 
         printStatement("create table test (col1 string storage with (columnstore = false))");
     }
@@ -1057,10 +1059,12 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testCastStmtBuilder() throws Exception {
+    public void testCastStmtBuilder() {
         // double colon cast
         printStatement("select 1+4::integer");
         printStatement("select '2'::integer");
+        printStatement("select 1.0::timestamp with time zone");
+        printStatement("select 1.0::timestamp without time zone");
         printStatement("select 1+3::string");
         printStatement("select [0,1,5]::array(boolean)");
         printStatement("select field::boolean");

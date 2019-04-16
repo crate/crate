@@ -98,7 +98,8 @@ public class DataTypeTesting {
                 return () -> (T) (Integer) random.nextInt();
 
             case LongType.ID:
-            case TimestampType.ID:
+            case TimestampType.ID_WITH_TZ:
+            case TimestampType.ID_WITHOUT_TZ:
                 return () -> (T) (Long) random.nextLong();
 
             case GeoPointType.ID:

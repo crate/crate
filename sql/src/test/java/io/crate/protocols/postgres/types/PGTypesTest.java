@@ -22,7 +22,6 @@
 
 package io.crate.protocols.postgres.types;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -36,6 +35,8 @@ import io.crate.types.StringType;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.junit.Test;
+
+import java.util.List;
 
 import static io.crate.types.DataTypes.GEO_POINT;
 import static io.crate.types.DataTypes.GEO_SHAPE;
@@ -54,6 +55,7 @@ public class PGTypesTest extends CrateUnitTest {
         assertThat(PGTypes.get(DataTypes.INTEGER), instanceOf(IntegerType.class));
         assertThat(PGTypes.get(DataTypes.LONG), instanceOf(BigIntType.class));
         assertThat(PGTypes.get(DataTypes.FLOAT), instanceOf(RealType.class));
+        assertThat(PGTypes.get(DataTypes.DOUBLE), instanceOf(DoubleType.class));
         assertThat(PGTypes.get(DataTypes.DOUBLE), instanceOf(DoubleType.class));
         assertThat("Crate IP type is mapped to PG varchar", PGTypes.get(DataTypes.IP),
             instanceOf(VarCharType.class));
@@ -101,6 +103,7 @@ public class PGTypesTest extends CrateUnitTest {
         assertThat(PGTypes.fromOID(PGArray.FLOAT8_ARRAY.oid()), instanceOf(ArrayType.class));
         assertThat(PGTypes.fromOID(PGArray.BOOL_ARRAY.oid()), instanceOf(ArrayType.class));
         assertThat(PGTypes.fromOID(PGArray.TIMESTAMPZ_ARRAY.oid()), instanceOf(ArrayType.class));
+        assertThat(PGTypes.fromOID(PGArray.TIMESTAMP_ARRAY.oid()), instanceOf(ArrayType.class));
         assertThat(PGTypes.fromOID(PGArray.VARCHAR_ARRAY.oid()), instanceOf(ArrayType.class));
         assertThat(PGTypes.fromOID(PGArray.JSON_ARRAY.oid()), instanceOf(ArrayType.class));
     }
@@ -116,8 +119,8 @@ public class PGTypesTest extends CrateUnitTest {
     }
 
     @Test
-    public void testByteReadWrite() throws Exception {
-        for (Entry entry : ImmutableList.of(
+    public void testByteReadWrite() {
+        for (Entry entry : List.of(
             new Entry(DataTypes.STRING, "foobar"),
             new Entry(DataTypes.LONG, 392873L),
             new Entry(DataTypes.INTEGER, 1234),
@@ -125,10 +128,14 @@ public class PGTypesTest extends CrateUnitTest {
             new Entry(DataTypes.FLOAT, 42.3f),
             new Entry(DataTypes.DOUBLE, 42.00003),
             new Entry(DataTypes.BOOLEAN, true),
-            new Entry(DataTypes.TIMESTAMP, DataTypes.TIMESTAMP.value("2014-05-08")),
+            new Entry(DataTypes.TIMESTAMPZ, DataTypes.TIMESTAMPZ.value("2014-05-08")),
+            new Entry(DataTypes.TIMESTAMPZ, DataTypes.TIMESTAMPZ.value("2014-05-08T16:34:33.123")),
+            new Entry(DataTypes.TIMESTAMPZ, DataTypes.TIMESTAMPZ.value("2014-05-08T16:34:33.123+0100")),
+            new Entry(DataTypes.TIMESTAMPZ, DataTypes.TIMESTAMPZ.value(999999999999999L)),
+            new Entry(DataTypes.TIMESTAMPZ, DataTypes.TIMESTAMPZ.value(-999999999999999L)),
             new Entry(DataTypes.TIMESTAMP, DataTypes.TIMESTAMP.value("2014-05-08T16:34:33.123")),
+            new Entry(DataTypes.TIMESTAMP, DataTypes.TIMESTAMP.value("2014-05-08T16:34:33.123+0100")),
             new Entry(DataTypes.TIMESTAMP, DataTypes.TIMESTAMP.value(999999999999999L)),
-            new Entry(DataTypes.TIMESTAMP, DataTypes.TIMESTAMP.value(-999999999999999L)),
             new Entry(DataTypes.IP, "192.168.1.1"),
             new Entry(DataTypes.BYTE, (byte) 20),
             new Entry(new ArrayType(DataTypes.INTEGER), new Integer[]{10, null, 20}),

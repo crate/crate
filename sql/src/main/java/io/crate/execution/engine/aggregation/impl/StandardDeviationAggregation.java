@@ -40,6 +40,7 @@ import org.elasticsearch.common.util.BigArrays;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.util.List;
 
 public class StandardDeviationAggregation extends AggregationFunction<StandardDeviationAggregation.StdDevState, Double> {
 
@@ -56,7 +57,7 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
                 FunctionInfo.Type.AGGREGATE)));
         }
         mod.register(new StandardDeviationAggregation(new FunctionInfo(
-            new FunctionIdent(NAME, ImmutableList.<DataType>of(DataTypes.TIMESTAMP)), DataTypes.DOUBLE,
+            new FunctionIdent(NAME, List.of(DataTypes.TIMESTAMPZ)), DataTypes.DOUBLE,
             FunctionInfo.Type.AGGREGATE)));
     }
 

@@ -231,6 +231,10 @@ public class TypeConversionTest extends CrateUnitTest {
 
     @Test
     public void testTimestampToDoubleConversion() {
-        assertThat(TimestampType.INSTANCE.isConvertableTo(DoubleType.INSTANCE), is(true));
+        assertThat(TimestampType.INSTANCE_WITH_TZ.isConvertableTo(DoubleType.INSTANCE),
+            is(true));
+        assertThat(TimestampType.INSTANCE_WITHOUT_TZ.isConvertableTo(DoubleType.INSTANCE),
+            is(true));
+
     }
 }

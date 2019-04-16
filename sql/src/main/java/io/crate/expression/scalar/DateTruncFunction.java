@@ -62,7 +62,7 @@ public class DateTruncFunction extends Scalar<Long, Object> {
 
     public static void register(ScalarFunctionModule module) {
         List<DataType> supportedTimestampTypes = ImmutableList.of(
-            DataTypes.TIMESTAMP, DataTypes.LONG, DataTypes.STRING);
+            DataTypes.TIMESTAMPZ, DataTypes.LONG, DataTypes.STRING);
         for (DataType dataType : supportedTimestampTypes) {
             module.register(new DateTruncFunction(info(DataTypes.STRING, dataType)));
             // time zone aware variant
@@ -73,7 +73,7 @@ public class DateTruncFunction extends Scalar<Long, Object> {
     private static FunctionInfo info(DataType... types) {
         return new FunctionInfo(
             new FunctionIdent(NAME, Arrays.asList(types)),
-            DataTypes.TIMESTAMP, FunctionInfo.Type.SCALAR, FunctionInfo.DETERMINISTIC_AND_COMPARISON_REPLACEMENT);
+            DataTypes.TIMESTAMPZ, FunctionInfo.Type.SCALAR, FunctionInfo.DETERMINISTIC_AND_COMPARISON_REPLACEMENT);
     }
 
 
@@ -137,7 +137,7 @@ public class DateTruncFunction extends Scalar<Long, Object> {
         }
 
         return Literal.of(
-            DataTypes.TIMESTAMP,
+            DataTypes.TIMESTAMPZ,
             evaluate(txnCtx, new Input[]{interval, timezone, tsSymbol})
         );
     }
@@ -161,9 +161,10 @@ public class DateTruncFunction extends Scalar<Long, Object> {
             if (interval == null) {
                 return null;
             }
-            return truncate(rounding(interval, timeZone), TimestampType.INSTANCE.value(value));
+            return truncate(rounding(interval, timeZone),
+                TimestampType.INSTANCE_WITH_TZ.value(value));
         }
-        return truncate(tzRounding, TimestampType.INSTANCE.value(value));
+        return truncate(tzRounding, TimestampType.INSTANCE_WITH_TZ.value(value));
     }
 
     private Rounding rounding(String interval, String timeZoneString) {

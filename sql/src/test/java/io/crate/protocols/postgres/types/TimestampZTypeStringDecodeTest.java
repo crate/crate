@@ -33,17 +33,16 @@ import java.util.Locale;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static org.hamcrest.Matchers.is;
 
-public class TimestampTypeStringDecodeTest extends BasePGTypeTest<Long> {
+public class TimestampZTypeStringDecodeTest extends BasePGTypeTest<Long> {
 
     private final int numberOfFractionDigits;
     private final int timezoneDiffInHours;
     private final String era;
 
-    public TimestampTypeStringDecodeTest(
-        @Name("numberOfFractionDigits") int numberOfFractionDigits,
-        @Name("era") String era,
-        @Name("timezoneDiffInHours") int timezoneDiffInHours) {
-        super(TimestampType.INSTANCE);
+    public TimestampZTypeStringDecodeTest(@Name("numberOfFractionDigits") int numberOfFractionDigits,
+                                          @Name("era") String era,
+                                          @Name("timezoneDiffInHours") int timezoneDiffInHours) {
+        super(TimestampZType.INSTANCE);
         this.numberOfFractionDigits = numberOfFractionDigits;
         this.era = era;
         this.timezoneDiffInHours = timezoneDiffInHours;
@@ -54,34 +53,45 @@ public class TimestampTypeStringDecodeTest extends BasePGTypeTest<Long> {
         return Arrays.asList(
             $(0, "", 0), $(1, "", -1), $(2, "", -2), $(3, "", -3), $(4, "", -4),
             $(5, "", -5), $(6, "", 1), $(7, "", 2), $(8, "", 3), $(9, "", 4),
-            $(0, " AD", 0), $(1, " AD", -1), $(2, " AD", -2), $(3, " AD", -3), $(4, " AD", -4),
-            $(5, " AD", -5), $(6, " AD", 1), $(7, " AD", 2), $(8, " AD", 3), $(9, " AD", 4));
+            $(0, " BC", 0), $(1, " BC", -1), $(2, " BC", -2), $(3, " BC", -3), $(4, " BC", -4),
+            $(5, " BC", -5), $(6, " BC", 1), $(7, " BC", 2), $(8, " BC", 3), $(9, " BC", 4));
     }
 
     @Test
     public void testDecodeEncodeUTF8Text() {
-        long expectedMillis = 1514764800000L;
+        long expectedMsecs = 1514764800000L;
         String prefix = "2018-01-01 00:00:00";
+        String tzString = String.format(Locale.ENGLISH, "%+03d:00", timezoneDiffInHours);
 
         StringBuilder fullTimestamp = new StringBuilder(prefix);
         appendFractionOfSecDigits(fullTimestamp);
 
-        String tzString = String.format(Locale.ENGLISH, "%+03d:00", timezoneDiffInHours);
         fullTimestamp.append(tzString);
         fullTimestamp.append(era);
 
+        // Calculate expected result because of fraction of second digits
+        long msecs = 0;
         if (numberOfFractionDigits > 0 && numberOfFractionDigits <= 3) {
-            expectedMillis += Math.pow(10, 3 - numberOfFractionDigits);
+            msecs = (long) Math.pow(10, 3 - numberOfFractionDigits);
         }
 
-        assertThat(
-            TimestampType.INSTANCE.decodeUTF8Text(fullTimestamp.toString().getBytes(StandardCharsets.UTF_8)),
-            is(expectedMillis));
+        long tzMsecs = timezoneDiffInHours * 60 * 60 * 1000;
 
-        assertThat(
-            TimestampType.INSTANCE.decodeUTF8Text(TimestampType.INSTANCE.encodeAsUTF8Text(expectedMillis)),
-            is(expectedMillis)
-        );
+        if (era.equals(" BC")) {
+            expectedMsecs *= -1;
+            expectedMsecs -= 124302816000000L;
+        }
+        expectedMsecs += msecs;
+        expectedMsecs -= tzMsecs;
+
+        assertThat(TimestampZType.INSTANCE.decodeUTF8Text(fullTimestamp.toString().getBytes(StandardCharsets.UTF_8)),
+            is(expectedMsecs));
+
+        // Check that the "round-trip" also works.
+        // We cannot assert against the fullTimestamp since the decoding truncates <= 1msec fraction digits
+        // and also the timezone originally passed is calculated and the encodeAsUTF8Text always sends as UTC.
+        assertThat(TimestampZType.INSTANCE.decodeUTF8Text(TimestampZType.INSTANCE.encodeAsUTF8Text(expectedMsecs)),
+            is(expectedMsecs));
     }
 
     private void appendFractionOfSecDigits(StringBuilder fullTimestamp) {

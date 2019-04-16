@@ -71,7 +71,7 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
     private static final ImmutableList<ColumnIdent> PRIMARY_KEY = ImmutableList.of(new ColumnIdent("digest"));
     private static final List<Tuple<String, DataType>> STATIC_COLUMNS = ImmutableList.<Tuple<String, DataType>>builder()
         .add(new Tuple<>("digest", DataTypes.STRING))
-        .add(new Tuple<>("last_modified", DataTypes.TIMESTAMP))
+        .add(new Tuple<>("last_modified", DataTypes.TIMESTAMPZ))
         .build();
 
     public BlobTableInfo(RelationName ident,

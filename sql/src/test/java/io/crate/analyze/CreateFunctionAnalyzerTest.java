@@ -150,7 +150,7 @@ public class CreateFunctionAnalyzerTest extends CrateDummyClusterServiceUnitTest
         assertThat(analysis.arguments().get(0), is(FunctionArgumentDefinition.of(new ArrayType(DataTypes.INTEGER))));
         assertThat(analysis.arguments().get(1), is(FunctionArgumentDefinition.of(ObjectType.untyped())));
         assertThat(analysis.arguments().get(2), is(FunctionArgumentDefinition.of(DataTypes.IP)));
-        assertThat(analysis.arguments().get(3), is(FunctionArgumentDefinition.of(DataTypes.TIMESTAMP)));
+        assertThat(analysis.arguments().get(3), is(FunctionArgumentDefinition.of(DataTypes.TIMESTAMPZ)));
         assertThat(analysis.language(), is(Literal.fromObject("dummy_lang")));
     }
 }

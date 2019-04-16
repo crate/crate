@@ -71,6 +71,7 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
         .put(DataTypes.INTEGER, SortField.Type.LONG)
         .put(DataTypes.FLOAT, SortField.Type.FLOAT)
         .put(DataTypes.DOUBLE, SortField.Type.DOUBLE)
+        .put(DataTypes.TIMESTAMPZ, SortField.Type.LONG)
         .put(DataTypes.TIMESTAMP, SortField.Type.LONG)
         .put(DataTypes.IP, SortField.Type.LONG)
         .put(DataTypes.STRING, SortField.Type.STRING)
@@ -238,7 +239,7 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
                 return min ? Float.NEGATIVE_INFINITY : Float.POSITIVE_INFINITY;
             case DoubleType.ID:
                 return min ? Double.NEGATIVE_INFINITY : Double.POSITIVE_INFINITY;
-            case TimestampType.ID:
+            case TimestampType.ID_WITH_TZ:
                 return min ? Long.MIN_VALUE : Long.MAX_VALUE;
             case StringType.ID:
                 return null;

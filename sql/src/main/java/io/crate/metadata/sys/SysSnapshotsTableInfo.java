@@ -80,8 +80,8 @@ public class SysSnapshotsTableInfo extends StaticTableInfo {
                 .register(Columns.NAME, DataTypes.STRING)
                 .register(Columns.REPOSITORY, DataTypes.STRING)
                 .register(Columns.CONCRETE_INDICES, new ArrayType(DataTypes.STRING))
-                .register(Columns.STARTED, DataTypes.TIMESTAMP)
-                .register(Columns.FINISHED, DataTypes.TIMESTAMP)
+                .register(Columns.STARTED, DataTypes.TIMESTAMPZ)
+                .register(Columns.FINISHED, DataTypes.TIMESTAMPZ)
                 .register(Columns.VERSION, DataTypes.STRING)
                 .register(Columns.STATE, DataTypes.STRING),
             PRIMARY_KEY);
