@@ -30,11 +30,6 @@ dependencies {
     // time handling
     compile "joda-time:joda-time:${versions.jodatime}"
 
-    // percentiles aggregation
-    compile "com.tdunning:t-digest:3.2"
-    // percentil ranks aggregation
-    compile "org.hdrhistogram:HdrHistogram:2.1.9"
-
     // lucene spatial
     compile "org.locationtech.spatial4j:spatial4j:${versions.spatial4j}"
     compile "org.locationtech.jts:jts-core:${versions.jts}"
