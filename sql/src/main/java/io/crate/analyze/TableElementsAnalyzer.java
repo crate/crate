@@ -220,7 +220,8 @@ public class TableElementsAnalyzer {
 
             context.analyzedColumnDefinition.collectionType("array");
 
-            if (node.innerType().type() != ColumnType.Type.PRIMITIVE) {
+            if (node.innerType().type() != ColumnType.Type.PRIMITIVE &&
+                node.innerType().type() != ColumnType.Type.OBJECT) {
                 throw new UnsupportedOperationException("Nesting ARRAY or SET types is not supported");
             }
 

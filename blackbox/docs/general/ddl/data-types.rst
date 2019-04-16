@@ -763,6 +763,8 @@ Special Character Types
 Type Conversion
 ===============
 
+.. _type_cast:
+
 ``CAST``
 --------
 
@@ -853,6 +855,42 @@ Trying to cast a ``text`` to ``integer``, will fail with ``cast`` if
     | NULL                      |
     +---------------------------+
     SELECT 1 row in set (... sec)
+
+.. _type_cast_from_string_literal:
+
+``type 'string'``
+-----------------
+
+This cast operation is applied to a string literal and it effectively
+initializes a constant of an arbitrary type.
+
+Example usages, initializing an ``integer`` and a ``timestamp`` constant:
+
+::
+
+    cr> select integer '25';
+    +-----------------------+
+    | CAST('25' AS integer) |
+    +-----------------------+
+    |                    25 |
+    +-----------------------+
+    SELECT 1 row in set (... sec)
+
+::
+
+    cr> select timestamp with time zone '2029-12-12T11:44:00.24446';
+    +---------------------------------------------------------------+
+    | CAST('2029-12-12T11:44:00.24446' AS timestamp with time zone) |
+    +---------------------------------------------------------------+
+    |                                                 1891770240244 |
+    +---------------------------------------------------------------+
+    SELECT 1 row in set (... sec)
+
+.. NOTE::
+
+  This cast operation is limited to :ref:`sql_ddl_datatypes_primitives` only.
+  For complex types such as ``array`` or ``object`` use the
+  :ref:`type_cast` syntax.
 
 .. _data-type-aliases:
 

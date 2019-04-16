@@ -140,7 +140,7 @@ quoted if used as identifiers.
     UNBOUNDED, UNION, UPDATE, USER
     USING, WHEN, WHERE, WITH
 
-Tokens such as ``my_table``, ``id``, ``name``, or ``data`` in the example above
+Tokens such as ``my_table``, ``id``, ``name``, or ``data`` in the example below
 are **identifiers**, which identify names of tables, columns, and other
 database objects.
 

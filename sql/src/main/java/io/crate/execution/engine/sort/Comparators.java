@@ -78,8 +78,12 @@ public final class Comparators {
             var row = new ArrayRow();
             comparators.add(new NullAwareComparator<>(
                 cells -> {
-                    row.cells(cells);
-                    return (Comparable) expressionsInput.value(row);
+                    Comparable<Object> value;
+                    synchronized (row) {
+                        row.cells(cells);
+                        value = (Comparable<Object>) expressionsInput.value(row);
+                    }
+                    return value;
                 },
                 orderBy.reverseFlags()[i],
                 orderBy.nullsFirst()[i]

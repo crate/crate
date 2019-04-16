@@ -25,23 +25,24 @@ package io.crate.execution.engine.window;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.execution.engine.collect.CollectExpression;
+import io.crate.execution.engine.sort.OrderingByPosition;
 import io.crate.metadata.FunctionInfo;
 import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
-import static io.crate.execution.engine.window.WindowFunctionBatchIterator.computeWindowFunctions;
+import static io.crate.execution.engine.window.WindowFunctionBatchIterator.sortAndComputeWindowFunctions;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 
 public class WindowFunctionBatchIteratorTest {
 
     @Test
-    public void testWindowFunctionComputation() {
-        List<Object[]> list = computeWindowFunctions(
+    public void testWindowFunctionComputation() throws Exception {
+        List<Object[]> list = sortAndComputeWindowFunctions(
             Arrays.asList(
                 new Object[]{"a", 1, null},
                 new Object[]{"b", 7, null},
@@ -49,10 +50,12 @@ public class WindowFunctionBatchIteratorTest {
                 new Object[]{"a", 8, null},
                 new Object[]{"b", 2, null}
             ),
-            Comparator.comparing(cells -> (Comparable) cells[0]),
-            Comparator.comparing(cells -> (Comparable) cells[1]),
+            OrderingByPosition.arrayOrdering(0, false, false),
+            OrderingByPosition.arrayOrdering(1, false, false),
             2,
-            Arrays.asList(new WindowFunction() {
+            () -> 1,
+            Runnable::run,
+            List.of(new WindowFunction() {
                 @Override
                 public Object execute(int idxInPartition,
                                       WindowFrameState currentFrame,
@@ -68,7 +71,7 @@ public class WindowFunctionBatchIteratorTest {
             }),
             Collections.emptyList(),
             new Input[][] { new Input[0] }
-        );
+        ).get(5, TimeUnit.SECONDS);
         assertThat(
             list,
             contains(

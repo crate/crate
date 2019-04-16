@@ -4,7 +4,6 @@ archivesBaseName = 'crate-udc'
 dependencies {
     implementation project(':common')
     implementation project(':es:es-server')
-    implementation "com.google.guava:guava:${versions.guava}"
     implementation "com.fasterxml.jackson.core:jackson-core:${versions.jackson}"
     testImplementation project(':integration-testing')
     testImplementation "io.netty:netty-transport:${versions.netty4}"

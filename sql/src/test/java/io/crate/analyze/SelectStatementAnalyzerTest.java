@@ -2005,4 +2005,10 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         QueriedRelation relation = analyze("select [[1, 2, 3]]::array(array(int))");
         assertThat(relation.outputs().get(0).valueType(), is(new ArrayType(new ArrayType(DataTypes.INTEGER))));
     }
+
+    @Test
+    public void testCastTimestampFromStringLiteral()  {
+        QueriedRelation relation = analyze("select timestamp '2018-12-12T00:00:00'");
+        assertThat(relation.outputs().get(0).valueType(), is(DataTypes.TIMESTAMP));
+    }
 }

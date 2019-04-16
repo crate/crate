@@ -74,6 +74,7 @@ import io.crate.execution.engine.sort.SortingProjector;
 import io.crate.execution.engine.sort.SortingTopNProjector;
 import io.crate.execution.engine.window.WindowProjector;
 import io.crate.execution.jobs.NodeJobsCounter;
+import io.crate.execution.support.ThreadPools;
 import io.crate.expression.InputFactory;
 import io.crate.expression.RowFilter;
 import io.crate.expression.eval.EvaluatingNormalizer;
@@ -97,6 +98,7 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.BigArrays;
+import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.threadpool.ThreadPool;
 
@@ -106,6 +108,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -141,6 +144,7 @@ public class ProjectionToProjectorVisitor
     private final BigArrays bigArrays;
     @Nullable
     private final ShardId shardId;
+    private final int numProcessors;
 
     public ProjectionToProjectorVisitor(ClusterService clusterService,
                                         NodeJobsCounter nodeJobsCounter,
@@ -168,6 +172,7 @@ public class ProjectionToProjectorVisitor
         this.indexVersionCreated = indexVersionCreated;
         this.bigArrays = bigArrays;
         this.shardId = shardId;
+        this.numProcessors = EsExecutors.numberOfProcessors(settings);
     }
 
     public ProjectionToProjectorVisitor(ClusterService clusterService,
@@ -604,6 +609,7 @@ public class ProjectionToProjectorVisitor
 
     @Override
     public Projector visitWindowAgg(WindowAggProjection windowAgg, Context context) {
+        var searchThreadPool = (ThreadPoolExecutor) threadPool.executor(ThreadPool.Names.SEARCH);
         return WindowProjector.fromProjection(
             windowAgg,
             functions,
@@ -611,7 +617,9 @@ public class ProjectionToProjectorVisitor
             context.txnCtx,
             context.ramAccountingContext,
             bigArrays,
-            indexVersionCreated
+            indexVersionCreated,
+            ThreadPools.numIdleThreads(searchThreadPool, numProcessors),
+            searchThreadPool
         );
     }
 

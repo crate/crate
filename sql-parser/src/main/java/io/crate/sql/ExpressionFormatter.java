@@ -39,7 +39,6 @@ import io.crate.sql.tree.CollectionColumnType;
 import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.ComparisonExpression;
 import io.crate.sql.tree.CurrentTime;
-import io.crate.sql.tree.DateLiteral;
 import io.crate.sql.tree.DoubleLiteral;
 import io.crate.sql.tree.EscapedCharStringLiteral;
 import io.crate.sql.tree.ExistsPredicate;
@@ -72,8 +71,6 @@ import io.crate.sql.tree.SortItem;
 import io.crate.sql.tree.StringLiteral;
 import io.crate.sql.tree.SubqueryExpression;
 import io.crate.sql.tree.SubscriptExpression;
-import io.crate.sql.tree.TimeLiteral;
-import io.crate.sql.tree.TimestampLiteral;
 import io.crate.sql.tree.TryCast;
 import io.crate.sql.tree.WhenClause;
 import io.crate.sql.tree.Window;
@@ -227,23 +224,8 @@ public final class ExpressionFormatter {
         }
 
         @Override
-        protected String visitTimeLiteral(TimeLiteral node, Void context) {
-            return "TIME '" + node.getValue() + "'";
-        }
-
-        @Override
-        protected String visitTimestampLiteral(TimestampLiteral node, Void context) {
-            return "TIMESTAMP '" + node.getValue() + "'";
-        }
-
-        @Override
         protected String visitNullLiteral(NullLiteral node, Void context) {
             return "NULL";
-        }
-
-        @Override
-        protected String visitDateLiteral(DateLiteral node, Void context) {
-            return "DATE '" + node.getValue() + "'";
         }
 
         @Override

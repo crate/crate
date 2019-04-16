@@ -75,5 +75,17 @@ public class CastFunctionTest extends AbstractScalarFunctionsTest {
         assertEvaluate("'-4'::long", -4L);
         assertEvaluate("-4::string || ' apples'", "-4 apples");
         assertEvaluate("'-4'::long + 10", 6L);
+        assertEvaluate("'2017-01-01'::timestamp with time zone", 1483228800000L);
+        assertEvaluate("'2017-01-01T00:00:00'::timestamp with time zone", 1483228800000L);
+        assertEvaluate("'2017-01-01T00:00:00.0000'::timestamp with time zone", 1483228800000L);
+    }
+
+    @Test
+    public void testFromStringLiteralCast() {
+        assertEvaluate("string '10.4'", "10.4");
+        assertEvaluate("string '-4' || ' apples'", "-4 apples");
+        assertEvaluate("long '-4' + 10", 6L);
+        assertEvaluate("int4 '1'", 1);
+        assertEvaluate("timestamp with time zone '2017-01-01T00:00:00'", 1483228800000L);
     }
 }
