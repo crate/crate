@@ -122,11 +122,11 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
         RelationName generatedColumnRelationName = new RelationName(Schemas.DOC_SCHEMA_NAME, "generated_column");
         TestingTableInfo.Builder generatedColumnTable = new TestingTableInfo.Builder(
             generatedColumnRelationName, new Routing(ImmutableMap.of()))
-            .add("ts", DataTypes.TIMESTAMP, null)
+            .add("ts", DataTypes.TIMESTAMPZ, null)
             .add("user",
                 ObjectType.builder().setInnerType("name", DataTypes.STRING).build(),
                 null)
-            .addGeneratedColumn("day", DataTypes.TIMESTAMP, "date_trunc('day', ts)", false)
+            .addGeneratedColumn("day", DataTypes.TIMESTAMPZ, "date_trunc('day', ts)", false)
             .addGeneratedColumn("name", DataTypes.STRING, "concat(\"user\"['name'], 'bar')", false);
         executorBuilder.addDocTable(generatedColumnTable);
 
@@ -146,7 +146,7 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
             new RelationName(Schemas.DOC_SCHEMA_NAME, "generated_pk_parted_column");
         TestingTableInfo.Builder generatedPkAndPartedColumnTable = new TestingTableInfo.Builder(
             generatedPkAndPartedColumnRelationName, SHARD_ROUTING)
-            .add("ts", DataTypes.TIMESTAMP, null, true)
+            .add("ts", DataTypes.TIMESTAMPZ, null, true)
             .add("value", DataTypes.INTEGER, null)
             .addGeneratedColumn("part_key__generated", DataTypes.INTEGER, "date_trunc('day', ts)", true)
             .addPrimaryKey("value")

@@ -217,7 +217,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
                     new ReferenceIdent(relationName, "id"), RowGranularity.DOC, DataTypes.INTEGER, null
                 ),
                 new Reference(
-                    new ReferenceIdent(relationName, "date"), RowGranularity.SHARD, DataTypes.TIMESTAMP, null
+                    new ReferenceIdent(relationName, "date"), RowGranularity.SHARD, DataTypes.TIMESTAMPZ, null
                 )),
             routing,
             WhereClause.MATCH_ALL

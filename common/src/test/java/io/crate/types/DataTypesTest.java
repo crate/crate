@@ -68,7 +68,7 @@ public class DataTypesTest extends CrateUnitTest {
         assertEquals((Float) 123.0f, DataTypes.FLOAT.value(longValue));
         assertEquals((Short) (short) 123, DataTypes.SHORT.value(longValue));
         assertEquals((Byte) (byte) 123, DataTypes.BYTE.value(longValue));
-        assertEquals((Long) 123L, DataTypes.TIMESTAMP.value(longValue));
+        assertEquals((Long) 123L, DataTypes.TIMESTAMPZ.value(longValue));
         assertEquals("123", DataTypes.STRING.value(longValue));
     }
 
@@ -148,7 +148,7 @@ public class DataTypesTest extends CrateUnitTest {
 
     @Test(expected = ClassCastException.class)
     public void testConvertMapToTimestamp() {
-        DataTypes.TIMESTAMP.value(testMap);
+        DataTypes.TIMESTAMPZ.value(testMap);
     }
 
     @Test
@@ -200,12 +200,6 @@ public class DataTypesTest extends CrateUnitTest {
         assertEquals((Short) (short) 123, DataTypes.SHORT.value(value));
         assertEquals((Byte) (byte) 123, DataTypes.BYTE.value(value));
         assertEquals("123", DataTypes.STRING.value(value));
-    }
-
-    @Test
-    public void testConvertStringsToTimestamp() {
-        assertEquals((Long) 1393555173000L, DataTypes.TIMESTAMP.value("2014-02-28T02:39:33"));
-        assertEquals((Long) 1393545600000L, DataTypes.TIMESTAMP.value("2014-02-28"));
     }
 
     @Test(expected = NumberFormatException.class)

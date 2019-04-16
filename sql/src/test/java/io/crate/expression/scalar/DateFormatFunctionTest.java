@@ -51,50 +51,50 @@ public class DateFormatFunctionTest extends AbstractScalarFunctionsTest {
     }
 
     @Test
-    public void testEvaluateWithNullValues() throws Exception {
-        assertEvaluate("date_format('%d.%m.%Y %H:%i:%S', timestamp)", null, Literal.of(DataTypes.TIMESTAMP, null));
+    public void testEvaluateWithNullValues() {
+        assertEvaluate("date_format('%d.%m.%Y %H:%i:%S', timestamp)", null, Literal.of(DataTypes.TIMESTAMPZ, null));
         assertEvaluate("date_format(name, 'Europe/Berlin', 0)", null, Literal.of(DataTypes.STRING, null));
     }
 
     @Test
-    public void testEvaluateDefault() throws Exception {
+    public void testEvaluateDefault() {
         assertEvaluate("date_format(timestamp)", "2015-06-10T07:03:00.004000Z",
-            Literal.of(DataTypes.TIMESTAMP, DataTypes.TIMESTAMP.value("2015-06-10T09:03:00.004+02")));
+            Literal.of(DataTypes.TIMESTAMPZ, DataTypes.TIMESTAMPZ.value("2015-06-10T09:03:00.004+02")));
     }
 
     @Test
-    public void testEvaluateDefaultTimezone() throws Exception {
+    public void testEvaluateDefaultTimezone() {
         assertEvaluate("date_format(time_format, timestamp)",
             "Fri Jan 1 1st 01 1 000000 00 12 12 00 001 0 12 January 01 AM 12:00:00 AM " +
                          "00 00 00:00:00 00 00 52 53 Friday 5 2054 2054 2055 55",
             Literal.of("%a %b %c %D %d %e %f %H %h %I %i %j %k %l %M %m %p %r " +
                        "%S %s %T %U %u %V %v %W %w %X %x %Y %y"),
-            Literal.of(DataTypes.TIMESTAMP, DataTypes.TIMESTAMP.value("2055-01-01")));
+            Literal.of(DataTypes.TIMESTAMPZ, DataTypes.TIMESTAMPZ.value("2055-01-01")));
     }
 
     @Test
-    public void testEvaluateWithTimezone() throws Exception {
+    public void testEvaluateWithTimezone() {
         assertEvaluate("date_format(time_format, timezone, timestamp)",
             "Sun Jan 1 1st 01 1 000000 04 04 04 00 001 4 4 January 01 AM 04:00:00 AM " +
                          "00 00 04:00:00 01 00 01 52 Sunday 0 1871 1870 1871 71",
             Literal.of("%a %b %c %D %d %e %f %H %h %I %i %j %k %l %M %m %p %r " +
                        "%S %s %T %U %u %V %v %W %w %X %x %Y %y"),
             Literal.of("EST"),
-            Literal.of(DataTypes.TIMESTAMP, DataTypes.TIMESTAMP.value("1871-01-01T09:00:00.000Z")));
+            Literal.of(DataTypes.TIMESTAMPZ, DataTypes.TIMESTAMPZ.value("1871-01-01T09:00:00.000Z")));
     }
 
     @Test
-    public void testNullInputs() throws Exception {
+    public void testNullInputs() {
         assertEvaluate("date_format(time_format, timezone, timestamp)",
             null,
             Literal.of("%d.%m.%Y %H:%i:%S"),
             Literal.of(DataTypes.STRING, null),
-            Literal.of(DataTypes.TIMESTAMP, null));
+            Literal.of(DataTypes.TIMESTAMPZ, null));
         assertEvaluate("date_format(time_format, timezone, timestamp)",
             null,
             Literal.of(DataTypes.STRING, null),
             Literal.of("Europe/Berlin"),
-            Literal.of(DataTypes.TIMESTAMP, 0L));
+            Literal.of(DataTypes.TIMESTAMPZ, 0L));
     }
 
     @Test
@@ -181,18 +181,18 @@ public class DateFormatFunctionTest extends AbstractScalarFunctionsTest {
     }
 
     @Test
-    public void testEvaluateUTF8Support() throws Exception {
+    public void testEvaluateUTF8Support() {
         assertEvaluate("date_format(time_format, timestamp)",
             "2000®01\uD834\uDD1E01 € 00:00:00",
             Literal.of("%Y®%m\uD834\uDD1E%d € %H:%i:%S"),
-            Literal.of(DataTypes.TIMESTAMP, DataTypes.TIMESTAMP.value("2000-01-01")));
+            Literal.of(DataTypes.TIMESTAMPZ, DataTypes.TIMESTAMPZ.value("2000-01-01")));
     }
 
     @Test
-    public void testInvalidFormats() throws Exception {
+    public void testInvalidFormats() {
         assertEvaluate("date_format(time_format, timestamp)",
             "t%Z",
             Literal.of("%t%%%Z"),
-            Literal.of(DataTypes.TIMESTAMP, DataTypes.TIMESTAMP.value("2000-01-01")));
+            Literal.of(DataTypes.TIMESTAMPZ, DataTypes.TIMESTAMPZ.value("2000-01-01")));
     }
 }

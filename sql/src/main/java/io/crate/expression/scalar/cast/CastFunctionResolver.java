@@ -48,6 +48,7 @@ public class CastFunctionResolver {
         public static final String TO_STRING = "to_string";
         public static final String TO_INTEGER = "to_int";
         public static final String TO_LONG = "to_long";
+        public static final String TO_TIMESTAMPZ = "to_timestampz";
         public static final String TO_TIMESTAMP = "to_timestamp";
         public static final String TO_DOUBLE = "to_double";
         public static final String TO_BOOLEAN = "to_boolean";
@@ -66,8 +67,9 @@ public class CastFunctionResolver {
         public static final String TO_FLOAT_ARRAY = "to_float_array";
         public static final String TO_SHORT_ARRAY = "to_short_array";
         public static final String TO_IP_ARRAY = "to_ip_array";
-        public static final String TO_TIMESTAMP_ARRAY = "to_timestamp_array"
-            ;
+        public static final String TO_TIMESTAMPZ_ARRAY = "to_timestampz_array";
+        public static final String TO_TIMESTAMP_ARRAY = "to_timestamp_array";
+
         public static final String TO_GEO_POINT = "to_geo_point";
         public static final String TO_GEO_SHAPE = "to_geo_shape";
 
@@ -86,6 +88,7 @@ public class CastFunctionResolver {
         .put(DataTypes.STRING, FunctionNames.TO_STRING)
         .put(DataTypes.INTEGER, FunctionNames.TO_INTEGER)
         .put(DataTypes.LONG, FunctionNames.TO_LONG)
+        .put(DataTypes.TIMESTAMPZ, FunctionNames.TO_TIMESTAMPZ)
         .put(DataTypes.TIMESTAMP, FunctionNames.TO_TIMESTAMP)
         .put(DataTypes.DOUBLE, FunctionNames.TO_DOUBLE)
         .put(DataTypes.BOOLEAN, FunctionNames.TO_BOOLEAN)
@@ -110,6 +113,7 @@ public class CastFunctionResolver {
         .put(new ArrayType(DataTypes.FLOAT), FunctionNames.TO_FLOAT_ARRAY)
         .put(new ArrayType(DataTypes.SHORT), FunctionNames.TO_SHORT_ARRAY)
         .put(new ArrayType(DataTypes.IP), FunctionNames.TO_IP_ARRAY)
+        .put(new ArrayType(DataTypes.TIMESTAMPZ), FunctionNames.TO_TIMESTAMPZ_ARRAY)
         .put(new ArrayType(DataTypes.TIMESTAMP), FunctionNames.TO_TIMESTAMP_ARRAY)
         .build();
 

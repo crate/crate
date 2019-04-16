@@ -22,142 +22,77 @@
 
 package io.crate.protocols.postgres.types;
 
-import io.netty.buffer.ByteBuf;
-import org.joda.time.format.DateTimeFormat;
-import org.joda.time.format.DateTimeFormatter;
-
 import javax.annotation.Nonnull;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.format.ResolverStyle;
 import java.util.Locale;
 
-class TimestampType extends PGType {
+import static java.time.format.DateTimeFormatter.ISO_LOCAL_DATE;
+import static java.time.format.DateTimeFormatter.ISO_LOCAL_TIME;
+
+final class TimestampType extends BaseTimestampType {
 
     public static final PGType INSTANCE = new TimestampType();
 
-    /**
-     * this oid is TIMESTAMPZ (with timezone) instead of TIMESTAMP
-     * the timezone is always GMT
-     * <p>
-     * If TIMESTAMP was used resultSet.getTimestamp() would convert the timestamp to a local time.
-     */
-    private static final int OID = 1184;
-    private static final int TYPE_LEN = 8;
-    private static final int TYPE_MOD = -1;
+    private static final int OID = 1114;
+    private static final String NAME = "timestamp without time zone";
 
-    // amount of seconds between 1970-01-01 and 2000-01-01
-    private static final long EPOCH_DIFF_IN_MS = 946_684_800_000L;
+    private static final DateTimeFormatter PARSER_WITH_OPTIONAL_ERA = new DateTimeFormatterBuilder()
+        .parseCaseInsensitive()
+        .append(ISO_LOCAL_DATE)
+        .optionalStart()
+            .appendLiteral(' ')
+            .append(ISO_LOCAL_TIME)
+            .optionalStart()
+                .appendPattern("[VV][x][xx][xxx]")
+            .optionalStart()
+                .appendLiteral(' ')
+                .appendPattern("G")
+        .toFormatter(Locale.ENGLISH).withResolverStyle(ResolverStyle.STRICT);
 
-    // 1st msec where BC date becomes AD date
-    private static final long FIRST_MSEC_AFTER_CHRIST = -62135596800000L;
+    private static final DateTimeFormatter ISO_FORMATTER = new DateTimeFormatterBuilder()
+        .parseCaseInsensitive()
+        .appendPattern("yyyy-MM-dd HH:mm:ss.SSS+00")
+        .toFormatter(Locale.ENGLISH).withResolverStyle(ResolverStyle.STRICT);
 
-    // ISO is the default - postgres allows changing the format but that's currently not supported
-
-    // For Golang if date is AD (after Christ), era abbreviation is not parsed.
-    private static final DateTimeFormatter ISO_FORMATTER =
-        DateTimeFormat.forPattern("YYYY-MM-dd HH:mm:ss.SSS+00").withZoneUTC().withLocale(Locale.ENGLISH);
-    // For Golang if date is BC (before Christ), era abbreviation needs to be appended.
-    private static final DateTimeFormatter ISO_FORMATTER_WITH_ERA =
-        DateTimeFormat.forPattern("YYYY-MM-dd HH:mm:ss.SSS+00 G").withZoneUTC().withLocale(Locale.ENGLISH);
-
-
-    private static final DateTimeFormatter[] PARSERS_WITHOUT_ERA = generateParseFormatters(false);
-    private static final DateTimeFormatter[] PARSERS_WITH_ERA = generateParseFormatters(true);
-
-    private static DateTimeFormatter[] generateParseFormatters(boolean withEra) {
-        DateTimeFormatter[] formatters = new DateTimeFormatter[10];
-        String prefix = "YYYY-MM-dd HH:mm:ss";
-        String suffix = "ZZ";
-        if (withEra) {
-            suffix = "ZZ G";
-        }
-
-        formatters[0] = DateTimeFormat.forPattern(prefix + suffix).withLocale(Locale.ENGLISH);
-        for (int i = 1; i < 10; i++) { // 1-9 digits for fraction of second
-            StringBuilder pattern = new StringBuilder(prefix);
-            pattern.append('.');
-            for (int j = 1; j <= i; j++) {
-                pattern.append('S');
-            }
-            pattern.append(suffix);
-            formatters[i] = DateTimeFormat.forPattern(pattern.toString()).withLocale(Locale.ENGLISH);
-        }
-        return formatters;
-    }
+    private static final DateTimeFormatter ISO_FORMATTER_WITH_ERA = new DateTimeFormatterBuilder()
+        .parseCaseInsensitive()
+        .append(ISO_FORMATTER)
+        .appendLiteral(' ')
+        .appendPattern("G")
+        .toFormatter(Locale.ENGLISH).withResolverStyle(ResolverStyle.STRICT);
 
     private TimestampType() {
-        super(OID, TYPE_LEN, TYPE_MOD, "timestamptz");
+        super(OID, TYPE_LEN, TYPE_MOD, NAME);
     }
 
     @Override
     public int typArray() {
-        return PGArray.TIMESTAMPZ_ARRAY.oid();
-    }
-
-    @Override
-    public int writeAsBinary(ByteBuf buffer, @Nonnull Object value) {
-        buffer.writeInt(TYPE_LEN);
-        buffer.writeLong(toPgTimestamp((long) value));
-        return INT32_BYTE_SIZE + TYPE_LEN;
-    }
-
-    /**
-     * Convert a crate timestamp (unix timestamp in ms) into a postgres timestamp (long microseconds since 2000-01-01)
-     */
-    private static long toPgTimestamp(long unixTsInMs) {
-        return (unixTsInMs - EPOCH_DIFF_IN_MS) * 1000;
-    }
-
-    /**
-     * Convert a postgres timestamp (seconds since 2000-01-01) into a crate timestamp (unix timestamp in ms)
-     */
-    private static long toCrateTimestamp(long microSecondsSince2k) {
-        return (microSecondsSince2k / 1000) + EPOCH_DIFF_IN_MS;
-    }
-
-    @Override
-    public Object readBinaryValue(ByteBuf buffer, int valueLength) {
-        assert valueLength == TYPE_LEN : "valueLength must be " + TYPE_LEN +
-                                         " because timestamp is a 64 bit long. Actual length: " + valueLength;
-        long microSecondsSince2K = buffer.readLong();
-        return toCrateTimestamp(microSecondsSince2K);
+        return PGArray.TIMESTAMP_ARRAY.oid();
     }
 
     @Override
     byte[] encodeAsUTF8Text(@Nonnull Object value) {
-        long msecs = (long) value;
-        if (msecs >= FIRST_MSEC_AFTER_CHRIST) {
-            return ISO_FORMATTER.print(msecs).getBytes(StandardCharsets.UTF_8);
+        long millis = (long) value;
+        LocalDateTime ts =
+            LocalDateTime.ofInstant(Instant.ofEpochMilli(millis), ZoneOffset.UTC);
+        if (millis >= FIRST_MSEC_AFTER_CHRIST) {
+            return ts.format(ISO_FORMATTER).getBytes(StandardCharsets.UTF_8);
         } else {
-            return ISO_FORMATTER_WITH_ERA.print(msecs).getBytes(StandardCharsets.UTF_8);
+            return ts.format(ISO_FORMATTER_WITH_ERA).getBytes(StandardCharsets.UTF_8);
         }
     }
 
-
     @Override
     Object decodeUTF8Text(byte[] bytes) {
-        // Currently seems that only GoLang prepared statements are sent as TimestampType
-        // Other PostgreSQL clients send the parameter as Bigint or Varchar
         String s = new String(bytes, StandardCharsets.UTF_8);
 
-        int endOfSeconds = s.indexOf(".");
-        int idx = endOfSeconds;
-        if (endOfSeconds > 0) {
-            idx++;
-            while (s.charAt(idx) != '+' && s.charAt(idx) != '-') { // start of timezone
-                idx++;
-            }
-        }
-
-        int fractionDigits = idx - endOfSeconds - 1;
-        fractionDigits = fractionDigits < 0 ? 0 : fractionDigits;
-        if (fractionDigits > 9) {
-            throw new IllegalArgumentException("Cannot parse more than 9 digits for fraction of a second");
-        }
-
-        boolean withEra = s.endsWith("BC") || s.endsWith("AD");
-        if (withEra) {
-            return PARSERS_WITH_ERA[fractionDigits].parseMillis(s);
-        }
-        return PARSERS_WITHOUT_ERA[fractionDigits].parseMillis(s);
+        LocalDateTime dt = LocalDateTime.parse(s, PARSER_WITH_OPTIONAL_ERA);
+        return dt.toInstant(ZoneOffset.UTC).toEpochMilli();
     }
 }

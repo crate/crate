@@ -57,7 +57,7 @@ public class LicenseTool {
         try {
             OptionSet optionSet = parser.parse(args);
             keyPath = keyArg.value(optionSet);
-            expirationDate = DataTypes.TIMESTAMP.value(expirationDateArg.value(optionSet));
+            expirationDate = DataTypes.TIMESTAMPZ.value(expirationDateArg.value(optionSet));
             issuedTo = issuedToArg.value(optionSet);
             maxNodes = maxNodesArg.value(optionSet);
             if (maxNodes <= 0) throw new IllegalArgumentException("max-nodes needs to be a positive number");

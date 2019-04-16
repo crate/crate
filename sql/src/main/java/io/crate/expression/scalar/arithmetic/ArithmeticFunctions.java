@@ -114,7 +114,7 @@ public class ArithmeticFunctions {
     static final class DoubleFunctionResolver extends BaseFunctionResolver {
 
         private static final Param ARITHMETIC_TYPE = Param.of(
-            DataTypes.NUMERIC_PRIMITIVE_TYPES, DataTypes.TIMESTAMP);
+            DataTypes.NUMERIC_PRIMITIVE_TYPES, DataTypes.TIMESTAMPZ);
 
         private final String name;
         private final BinaryOperator<Double> doubleFunction;
@@ -135,7 +135,7 @@ public class ArithmeticFunctions {
     static final class ArithmeticFunctionResolver extends BaseFunctionResolver {
 
         private static final Param ARITHMETIC_TYPE = Param.of(
-            DataTypes.NUMERIC_PRIMITIVE_TYPES, DataTypes.TIMESTAMP);
+            DataTypes.NUMERIC_PRIMITIVE_TYPES, DataTypes.TIMESTAMPZ);
 
         private final String name;
         private final String operator;
@@ -186,7 +186,7 @@ public class ArithmeticFunctions {
                     break;
 
                 case LongType.ID:
-                case TimestampType.ID:
+                case TimestampType.ID_WITH_TZ:
                     scalar = new BinaryScalar<>(longFunction, name, DataTypes.LONG, features);
                     break;
 

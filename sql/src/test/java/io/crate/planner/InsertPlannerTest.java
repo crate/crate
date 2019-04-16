@@ -449,7 +449,7 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(toCollect.get(1), equalTo(new Reference(
             new ReferenceIdent(TableDefinitions.PARTED_PKS_IDENT, "date"),
             RowGranularity.PARTITION,
-            DataTypes.TIMESTAMP,
+            DataTypes.TIMESTAMPZ,
             3)));
     }
 

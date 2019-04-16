@@ -31,12 +31,15 @@ public class ExtractFunctionsTest extends AbstractScalarFunctionsTest {
 
     private void assertEvaluate(String functionExpression, Object expected) {
         assertEvaluate(functionExpression, expected,
-            Literal.of(DataTypes.TIMESTAMP, DataTypes.TIMESTAMP.value(D_2014_02_15___21_33_23)));
+            Literal.of(DataTypes.TIMESTAMPZ, DataTypes.TIMESTAMPZ.value(D_2014_02_15___21_33_23)));
     }
 
     @Test
-    public void testYayNullValue() throws Exception {
-        assertEvaluate("extract(day from timestamp)", null, Literal.of(DataTypes.TIMESTAMP, null));
+    public void testYayNullValue() {
+        assertEvaluate(
+            "extract(day from timestamp)",
+            null,
+            Literal.of(DataTypes.TIMESTAMPZ, null));
     }
 
     @Test

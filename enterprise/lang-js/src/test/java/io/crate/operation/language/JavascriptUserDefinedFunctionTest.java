@@ -170,7 +170,7 @@ public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTe
 
     @Test
     public void testTimestampReturnType() throws Exception {
-        registerUserDefinedFunction("f", DataTypes.TIMESTAMP, ImmutableList.of(),
+        registerUserDefinedFunction("f", DataTypes.TIMESTAMPZ, ImmutableList.of(),
             "function f() { return \"1990-01-01T00:00:00\"; }");
         assertEvaluate("f()", 631152000000L);
     }
