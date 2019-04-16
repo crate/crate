@@ -42,7 +42,7 @@ public class WindowFunctionBatchIteratorTest {
 
     @Test
     public void testWindowFunctionComputation() throws Exception {
-        List<Object[]> list = sortAndComputeWindowFunctions(
+        Iterable<Object[]> result = sortAndComputeWindowFunctions(
             Arrays.asList(
                 new Object[]{"a", 1, null},
                 new Object[]{"b", 7, null},
@@ -73,7 +73,7 @@ public class WindowFunctionBatchIteratorTest {
             new Input[][] { new Input[0] }
         ).get(5, TimeUnit.SECONDS);
         assertThat(
-            list,
+            result,
             contains(
                 new Object[] { "a", 1, 1 },
                 new Object[] { "a", 4, 2 },
