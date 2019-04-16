@@ -21,9 +21,6 @@
 
 package io.crate.udc.ping;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableMap;
 import io.crate.license.LicenseData;
 import io.crate.license.LicenseService;
 import io.crate.monitor.ExtendedNodeInfo;
@@ -93,14 +90,13 @@ public class PingTask extends TimerTask {
     }
 
     private Map<String, Object> getCounters() {
-        return ImmutableMap.of(
+        return Map.of(
             "success", successCounter.get(),
             "failure", failCounter.get()
         );
     }
 
     @Nullable
-    @VisibleForTesting
     String getHardwareAddress() {
         String macAddress = extendedNodeInfo.networkInfo().primaryInterface().macAddress();
         return macAddress.equals("") ? null : macAddress;
@@ -136,14 +132,14 @@ public class PingTask extends TimerTask {
             logger.debug("Sending data: {}", queryMap);
         }
 
-        final Joiner joiner = Joiner.on('=');
         List<String> params = new ArrayList<>(queryMap.size());
         for (Map.Entry<String, String> entry : queryMap.entrySet()) {
-            if (entry.getValue() != null) {
-                params.add(joiner.join(entry.getKey(), entry.getValue()));
+            String value = entry.getValue();
+            if (value != null) {
+                params.add(entry.getKey() + '=' + value);
             }
         }
-        String query = Joiner.on('&').join(params);
+        String query = String.join("&", params);
 
         return new URI(
             uri.getScheme(), uri.getUserInfo(), uri.getHost(), uri.getPort(),
