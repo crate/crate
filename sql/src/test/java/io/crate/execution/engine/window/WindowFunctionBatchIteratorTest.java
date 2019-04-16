@@ -22,23 +22,29 @@
 
 package io.crate.execution.engine.window;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.sort.OrderingByPosition;
 import io.crate.metadata.FunctionInfo;
+import io.crate.test.integration.CrateUnitTest;
+import org.hamcrest.Matchers;
 import org.junit.Test;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import static io.crate.execution.engine.window.WindowFunctionBatchIterator.findFirstNonPeer;
 import static io.crate.execution.engine.window.WindowFunctionBatchIterator.sortAndComputeWindowFunctions;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.core.Is.is;
 
-public class WindowFunctionBatchIteratorTest {
+public class WindowFunctionBatchIteratorTest extends CrateUnitTest {
 
     @Test
     public void testWindowFunctionComputation() throws Exception {
@@ -82,5 +88,55 @@ public class WindowFunctionBatchIteratorTest {
                 new Object[] { "b", 7, 2 }
             )
         );
+    }
+
+    @Test
+    public void testFindFirstWithAllUnique() {
+        var numbers = List.of(1, 2, 3, 4, 5, 6, 7, 8);
+        assertThat(
+            findFirstNonPeer(numbers, 0, numbers.size() - 1, Comparator.comparingInt(x -> x)),
+            is(1)
+        );
+    }
+    @Test
+    public void testFindFirstNonPeerAllSame() {
+        var numbers = List.of(1, 1, 1, 1, 1, 1, 1, 1);
+        assertThat(
+            findFirstNonPeer(numbers, 0, numbers.size() - 1, Comparator.comparingInt(x -> x)),
+            is(numbers.size() - 1)
+        );
+    }
+
+    @Test
+    @Repeat (iterations = 100)
+    public void testOptimizedFindFirstNonPeerMatchesBehaviorOfTrivial() {
+        int length = randomIntBetween(10, 1000);
+        ArrayList<Integer> numbers = new ArrayList<>(length);
+        for (int i = 0; i < length; i++) {
+            numbers.add(randomInt());
+        }
+        Comparator<Integer> comparingInt = Comparator.comparingInt(x -> x);
+        numbers.sort(comparingInt);
+        int begin = randomIntBetween(0, length - 1);
+        int end = randomIntBetween(begin, length - 1);
+
+        int expectedPosition = findFirstNonPeerTrivial(numbers, begin, end, comparingInt);
+        assertThat(
+            "Expected firstNonPeer position=" + expectedPosition + " for " + numbers + "[" + begin + ":" + end + "]",
+            expectedPosition,
+            Matchers.is(WindowFunctionBatchIterator.findFirstNonPeer(
+                numbers, begin, end, comparingInt)
+            )
+        );
+    }
+
+    private static <T> int findFirstNonPeerTrivial(List<T> rows, int begin, int end, Comparator<T> cmp) {
+        T fst = rows.get(begin);
+        for (int i = begin + 1; i < end; i++) {
+            if (cmp.compare(fst, rows.get(i)) != 0) {
+                return i;
+            }
+        }
+        return end;
     }
 }

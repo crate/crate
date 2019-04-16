@@ -230,14 +230,52 @@ public final class WindowFunctionBatchIterator {
         return row;
     }
 
-    private static <T> int findFirstNonPeer(List<T> rows, int begin, int end, @Nullable Comparator<T> cmp) {
-        if (cmp == null) {
+    static <T> int findFirstNonPeer(List<T> rows, int begin, int end, @Nullable Comparator<T> cmp) {
+        if (cmp == null || (begin + 1) >= end) {
             return end;
         }
         T fst = rows.get(begin);
-        for (int i = begin + 1; i < end; i++) {
-            if (cmp.compare(fst, rows.get(i)) != 0) {
-                return i;
+        if (cmp.compare(fst, rows.get(begin + 1)) != 0) {
+            return begin + 1;
+        }
+        /*
+         * Adapted binarySearch algorithm to find the first non peer (instead of the first match)
+         * This depends on there being at least some EQ values;
+         * Whenever we find a EQ pair we check if the following element isn't EQ anymore.
+         *
+         * E.g.
+         *
+         * i:     0  1  2  3  4  5  6  7
+         * rows: [1, 1, 1, 1, 4, 4, 5, 6]
+         *        ^ [1  1  1  4  4  5  6]
+         *        +-----------^
+         *           cmp: -1
+         *        1 [1  1  1  4] 4  5  6
+         *        ^     ^
+         *        +-----+
+         *           cmp: 0 --> cmp (mid +1) != 0 --> false
+         *        1  1  1 [1  4] 4  5  6
+         *        ^        ^
+         *        +--------+
+         *           cmp: 0 --> cmp (mid +1) != 0 --> true
+         */
+        int low = begin + 1;
+        int high = end;
+        while (low <= high) {
+            int mid = (low + high) >>> 1;
+            T t = rows.get(mid);
+            int cmpResult = cmp.compare(fst, t);
+            if (cmpResult == 0) {
+                int next = mid + 1;
+                if (next == high || cmp.compare(fst, rows.get(next)) != 0) {
+                    return next;
+                } else {
+                    low = next;
+                }
+            } else if (cmpResult < 0) {
+                high = mid;
+            } else {
+                low = mid;
             }
         }
         return end;
