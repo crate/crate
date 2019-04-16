@@ -22,6 +22,7 @@
 
 package io.crate.execution.engine.window;
 
+import com.google.common.collect.Lists;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.breaker.RowAccountingWithEstimators;
 import io.crate.collections.Lists2;
@@ -108,7 +109,7 @@ public class WindowBatchIteratorTest {
     @Test
     public void testFrameBoundsEmptyWindow() throws Exception {
         var rows = IntStream.range(0, 10).mapToObj(i -> new Object[]{i, null}).collect(Collectors.toList());
-        var result = sortAndComputeWindowFunctions(
+        var result = Lists.newArrayList(sortAndComputeWindowFunctions(
             new ArrayList<>(rows),
             null,
             null,
@@ -118,7 +119,7 @@ public class WindowBatchIteratorTest {
             List.of(frameBoundsWindowFunction()),
             List.of(),
             args
-        ).get(5, TimeUnit.SECONDS);
+        ).get(5, TimeUnit.SECONDS));
         var expectedBounds = tuple(0, 10);
         IntStream.range(0, 10).forEach(i -> assertThat(result.get(i), is(new Object[] { i, expectedBounds})));
     }
@@ -170,7 +171,7 @@ public class WindowBatchIteratorTest {
             $(null, null, null),
             $(null, null, null)
         );
-        sortAndComputeWindowFunctions(
+        var result = sortAndComputeWindowFunctions(
             rows,
             OrderingByPosition.arrayOrdering(0, false, false),
             OrderingByPosition.arrayOrdering(1, false, false),
@@ -182,7 +183,7 @@ public class WindowBatchIteratorTest {
             args
         ).get(5, TimeUnit.SECONDS);
         assertThat(
-            rows,
+            result,
             contains(
                 $(-1, -1, tuple(0, 1)),
                 $(1, 0, tuple(0, 1)),

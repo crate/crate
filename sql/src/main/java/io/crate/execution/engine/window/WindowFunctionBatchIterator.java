@@ -22,7 +22,7 @@
 
 package io.crate.execution.engine.window;
 
-import com.google.common.collect.Lists;
+import com.google.common.collect.Iterables;
 import io.crate.breaker.RowAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.BatchIterators;
@@ -38,7 +38,9 @@ import org.elasticsearch.common.logging.Loggers;
 import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.Function;
@@ -103,7 +105,7 @@ public final class WindowFunctionBatchIterator {
                     argsExpressions,
                     args
                 ))
-                .thenApply(rows -> Lists.transform(rows, Buckets.arrayToSharedRow()::apply)),
+                .thenApply(rows -> Iterables.transform(rows, Buckets.arrayToSharedRow()::apply)),
             source.involvesIO()
         );
     }
@@ -116,7 +118,7 @@ public final class WindowFunctionBatchIterator {
         return cells;
     }
 
-    static CompletableFuture<List<Object[]>> sortAndComputeWindowFunctions(
+    static CompletableFuture<Iterable<Object[]>> sortAndComputeWindowFunctions(
         List<Object[]> rows,
         @Nullable Comparator<Object[]> cmpPartitionBy,
         @Nullable Comparator<Object[]> cmpOrderBy,
@@ -127,7 +129,7 @@ public final class WindowFunctionBatchIterator {
         List<? extends CollectExpression<Row, ?>> argsExpressions,
         Input[]... args) {
 
-        Function<List<Object[]>, List<Object[]>> computeWindowsFn = sortedRows -> computeWindowFunctions(
+        Function<List<Object[]>, Iterable<Object[]>> computeWindowsFn = sortedRows -> computeWindowFunctions(
             sortedRows,
             cmpPartitionBy,
             cmpOrderBy,
@@ -146,38 +148,57 @@ public final class WindowFunctionBatchIterator {
         }
     }
 
-    private static List<Object[]> computeWindowFunctions(List<Object[]> sortedRows,
-                                                         @Nullable Comparator<Object[]> cmpPartitionBy,
-                                                         @Nullable Comparator<Object[]> cmpOrderBy,
-                                                         int numCellsInSourceRow,
-                                                         List<WindowFunction> windowFunctions,
-                                                         List<? extends CollectExpression<Row, ?>> argsExpressions,
-                                                         Input[]... args) {
-        int start = 0;
-        int end = sortedRows.size();
-        int pStart = start;
-        int pEnd = findFirstNonPeer(sortedRows, pStart, end, cmpPartitionBy);
-        var frame = new WindowFrameState(pStart, pEnd, sortedRows);
-        boolean isTraceEnabled = LOGGER.isTraceEnabled();
-        for (int i = 0, idxInPartition = 0; i < end; i++, idxInPartition++) {
-            if (i == pEnd) {
-                pStart = i;
-                idxInPartition = 0;
-                pEnd = findFirstNonPeer(sortedRows, pStart, end, cmpPartitionBy);
-            }
-            int wBegin = pStart; // UNBOUNDED PRECEDING -> Frame always starts at the start of the partition
-            int wEnd = findFirstNonPeer(sortedRows, i, pEnd, cmpOrderBy);
-            frame.updateBounds(pStart, wBegin, wEnd);
-            computeAndInjectResults(
-                sortedRows, numCellsInSourceRow, windowFunctions, frame, i, idxInPartition, argsExpressions, args);
+    private static Iterable<Object[]> computeWindowFunctions(List<Object[]> sortedRows,
+                                                             @Nullable Comparator<Object[]> cmpPartitionBy,
+                                                             @Nullable Comparator<Object[]> cmpOrderBy,
+                                                             int numCellsInSourceRow,
+                                                             List<WindowFunction> windowFunctions,
+                                                             List<? extends CollectExpression<Row, ?>> argsExpressions,
+                                                             Input[]... args) {
+        return () -> new Iterator<>() {
 
-            if (isTraceEnabled) {
-                LOGGER.trace(
-                    "idx={} idxInPartition={} pStart={} pEnd={} wBegin={} wEnd={} row={}",
-                    i, idxInPartition, pStart, pEnd, wBegin, wEnd, Arrays.toString(sortedRows.get(i)));
+            private boolean isTraceEnabled = LOGGER.isTraceEnabled();
+
+            private final int start = 0;
+            private final int end = sortedRows.size();
+            private final WindowFrameState frame = new WindowFrameState(start, end, sortedRows);
+
+            private int pStart = start;
+            private int pEnd = findFirstNonPeer(sortedRows, pStart, end, cmpPartitionBy);
+            private int i = 0;
+            private int idxInPartition = 0;
+
+            @Override
+            public boolean hasNext() {
+                return i < end;
             }
-        }
-        return sortedRows;
+
+            @Override
+            public Object[] next() {
+                if (!hasNext()) {
+                    throw new NoSuchElementException();
+                }
+                if (i == pEnd) {
+                    pStart = i;
+                    idxInPartition = 0;
+                    pEnd = findFirstNonPeer(sortedRows, pStart, end, cmpPartitionBy);
+                }
+                int wBegin = pStart; // UNBOUNDED PRECEDING -> Frame always starts at the start of the partition
+                int wEnd = findFirstNonPeer(sortedRows, i, pEnd, cmpOrderBy);
+                frame.updateBounds(pStart, wBegin, wEnd);
+                final Object[] row = computeAndInjectResults(
+                    sortedRows, numCellsInSourceRow, windowFunctions, frame, i, idxInPartition, argsExpressions, args);
+
+                if (isTraceEnabled) {
+                    LOGGER.trace(
+                        "idx={} idxInPartition={} pStart={} pEnd={} wBegin={} wEnd={} row={}",
+                        i, idxInPartition, pStart, pEnd, wBegin, wEnd, Arrays.toString(sortedRows.get(i)));
+                }
+                i++;
+                idxInPartition++;
+                return row;
+            }
+        };
     }
 
     @Nullable
@@ -192,20 +213,21 @@ public final class WindowFunctionBatchIterator {
         return cmpPartitionBy.thenComparing(cmpOrderBy);
     }
 
-    private static void computeAndInjectResults(List<Object[]> rows,
-                                                int numCellsInSourceRow,
-                                                List<WindowFunction> windowFunctions,
-                                                WindowFrameState frame,
-                                                int idx,
-                                                int idxInPartition,
-                                                List<? extends CollectExpression<Row, ?>> argsExpressions,
-                                                Input[]... args) {
+    private static Object[] computeAndInjectResults(List<Object[]> rows,
+                                                    int numCellsInSourceRow,
+                                                    List<WindowFunction> windowFunctions,
+                                                    WindowFrameState frame,
+                                                    int idx,
+                                                    int idxInPartition,
+                                                    List<? extends CollectExpression<Row, ?>> argsExpressions,
+                                                    Input[]... args) {
         Object[] row = rows.get(idx);
         for (int c = 0; c < windowFunctions.size(); c++) {
             WindowFunction windowFunction = windowFunctions.get(c);
             Object result = windowFunction.execute(idxInPartition, frame, argsExpressions, args[c]);
             row[numCellsInSourceRow + c] = result;
         }
+        return row;
     }
 
     private static <T> int findFirstNonPeer(List<T> rows, int begin, int end, @Nullable Comparator<T> cmp) {
