@@ -372,7 +372,7 @@ public abstract class TransportReplicationAction<
                             primaryRequest.getPrimaryTerm()
                         ),
                         transportOptions,
-                        new ActionListenerResponseHandler<Response>(
+                        new ActionListenerResponseHandler<>(
                             onCompletionListener,
                             TransportReplicationAction.this::newResponseInstance) {
 
@@ -390,11 +390,35 @@ public abstract class TransportReplicationAction<
                         });
                 } else {
                     setPhase(replicationTask, "primary");
-                    final ActionListener<Response> listener = createResponseListener(primaryShardReference);
-                    createReplicatedOperation(primaryRequest.getRequest(),
-                            ActionListener.wrap(result -> result.respond(listener), listener::onFailure),
-                            primaryShardReference)
-                            .execute();
+
+                    final ActionListener<Response> referenceClosingListener = ActionListener.wrap(response -> {
+                        primaryShardReference.close(); // release shard operation lock before responding to caller
+                        setPhase(replicationTask, "finished");
+                        onCompletionListener.onResponse(response);
+                    }, e -> handleException(primaryShardReference, e));
+
+                    final ActionListener<Response> globalCheckpointSyncingListener = ActionListener.wrap(response -> {
+                        if (syncGlobalCheckpointAfterOperation) {
+                            final IndexShard shard = primaryShardReference.indexShard;
+                            try {
+                                shard.maybeSyncGlobalCheckpoint("post-operation");
+                            } catch (final Exception e) {
+                                // only log non-closed exceptions
+                                if (ExceptionsHelper.unwrap(
+                                    e, AlreadyClosedException.class, IndexShardClosedException.class) == null) {
+                                    // intentionally swallow, a missed global checkpoint sync should not fail this operation
+                                    logger.info(
+                                        new ParameterizedMessage(
+                                            "{} failed to execute post-operation global checkpoint sync", shard.shardId()), e);
+                                }
+                            }
+                        }
+                        referenceClosingListener.onResponse(response);
+                    }, referenceClosingListener::onFailure);
+
+                    new ReplicationOperation<>(primaryRequest.getRequest(), primaryShardReference,
+                        ActionListener.wrap(result -> result.respond(globalCheckpointSyncingListener), referenceClosingListener::onFailure),
+                        newReplicasProxy(), logger, actionName, primaryRequest.getPrimaryTerm()).execute();
                 }
             } catch (Exception e) {
                 Releasables.closeWhileHandlingException(primaryShardReference); // release shard operation lock before responding to caller
@@ -402,51 +426,15 @@ public abstract class TransportReplicationAction<
             }
         }
 
+        private void handleException(PrimaryShardReference primaryShardReference, Exception e) {
+            Releasables.closeWhileHandlingException(primaryShardReference); // release shard operation lock before responding to caller
+            onFailure(e);
+        }
+
         @Override
         public void onFailure(Exception e) {
             setPhase(replicationTask, "finished");
             onCompletionListener.onFailure(e);
-        }
-
-        private ActionListener<Response> createResponseListener(final PrimaryShardReference primaryShardReference) {
-            return new ActionListener<Response>() {
-                @Override
-                public void onResponse(Response response) {
-                    if (syncGlobalCheckpointAfterOperation) {
-                        final IndexShard shard = primaryShardReference.indexShard;
-                        try {
-                            shard.maybeSyncGlobalCheckpoint("post-operation");
-                        } catch (final Exception e) {
-                            // only log non-closed exceptions
-                            if (ExceptionsHelper.unwrap(e, AlreadyClosedException.class, IndexShardClosedException.class) == null) {
-                                logger.info(
-                                        new ParameterizedMessage(
-                                                "{} failed to execute post-operation global checkpoint sync",
-                                                shard.shardId()),
-                                        e);
-                                // intentionally swallow, a missed global checkpoint sync should not fail this operation
-                            }
-                        }
-                    }
-                    primaryShardReference.close(); // release shard operation lock before responding to caller
-                    setPhase(replicationTask, "finished");
-                    onCompletionListener.onResponse(response);
-                }
-
-                @Override
-                public void onFailure(Exception e) {
-                    primaryShardReference.close(); // release shard operation lock before responding to caller
-                    setPhase(replicationTask, "finished");
-                    onCompletionListener.onFailure(e);
-                }
-            };
-        }
-
-        protected ReplicationOperation<Request, ReplicaRequest, PrimaryResult<ReplicaRequest, Response>> createReplicatedOperation(
-            Request request, ActionListener<PrimaryResult<ReplicaRequest, Response>> listener,
-            PrimaryShardReference primaryShardReference) {
-            return new ReplicationOperation<>(request, primaryShardReference, listener,
-                    newReplicasProxy(), logger, actionName, primaryRequest.getPrimaryTerm());
         }
     }
 
