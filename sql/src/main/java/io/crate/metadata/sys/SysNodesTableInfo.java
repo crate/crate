@@ -387,6 +387,8 @@ public class SysNodesTableInfo extends StaticTableInfo {
                     .setInnerType("number", DataTypes.STRING)
                     .setInnerType("build_hash", DataTypes.STRING)
                     .setInnerType("build_snapshot", DataTypes.BOOLEAN)
+                    .setInnerType("minimum_index_compatibility_version", DataTypes.STRING)
+                    .setInnerType("minimum_wire_compatibility_version", DataTypes.STRING)
                     .build())
 
                 .register(Columns.CLUSTER_STATE_VERSION, DataTypes.LONG)

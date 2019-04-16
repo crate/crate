@@ -150,6 +150,11 @@ Deprecations
 Changes
 =======
 
+- Added `minimum_index_compatibility_version` and
+  `minimum_wire_compatibility_version` to  :ref:`sys.version <sys-versions>`
+  to expose the current state of the node's index and wire protocol version
+  as part of the :ref:`sys.nodes <sys-nodes>` table.
+
 - Added the :ref:`TIMESTAMP WITHOUT TIME ZONE <datetime-without-time-zone>` data
   type.
 

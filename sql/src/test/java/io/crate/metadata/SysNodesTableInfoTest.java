@@ -22,18 +22,23 @@
 
 package io.crate.metadata;
 
-import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.expression.reference.ReferenceResolver;
 import io.crate.expression.reference.StaticTableReferenceResolver;
+import io.crate.expression.reference.sys.node.NodeStatsContext;
+import io.crate.metadata.expressions.RowCollectExpressionFactory;
+import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.Version;
 import org.junit.Test;
 
 import java.util.Iterator;
 
+import static org.hamcrest.core.Is.is;
+
 public class SysNodesTableInfoTest extends CrateUnitTest {
 
     /**
-     *  Ensures that all columns registered in SysNodesTableInfo can actually be resolved
+     * Ensures that all columns registered in SysNodesTableInfo can actually be resolved
      */
     @Test
     public void testRegistered() {
@@ -43,5 +48,17 @@ public class SysNodesTableInfoTest extends CrateUnitTest {
         while (iter.hasNext()) {
             assertNotNull(referenceResolver.getImplementation(iter.next()));
         }
+    }
+
+    @Test
+    public void testCompatibilityVersion() {
+        RowCollectExpressionFactory<NodeStatsContext> sysNodeTableStatws = SysNodesTableInfo.expressions().get(
+            SysNodesTableInfo.Columns.VERSION);
+
+        assertThat(sysNodeTableStatws.create().getChild("minimum_index_compatibility_version").value(),
+                   is(Version.CURRENT.minimumIndexCompatibilityVersion().externalNumber()));
+
+        assertThat(sysNodeTableStatws.create().getChild("minimum_wire_compatibility_version").value(),
+                   is(Version.CURRENT.minimumCompatibilityVersion().externalNumber()));
     }
 }
