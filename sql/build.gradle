@@ -18,6 +18,8 @@ dependencies {
     compile project(':sql-parser')
     compile project(':udc')
     compile project(':ssl')
+    compile "com.tdunning:t-digest:3.2"
+    compile "org.hdrhistogram:HdrHistogram:2.1.9"
     implementation "io.netty:netty-codec-http:${versions.netty4}"
     compile "io.netty:netty-transport:${versions.netty4}"
     compile "io.netty:netty-codec:${versions.netty4}"
