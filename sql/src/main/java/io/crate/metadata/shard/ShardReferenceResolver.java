@@ -29,17 +29,17 @@ import io.crate.expression.NestableInput;
 import io.crate.expression.reference.ReferenceResolver;
 import io.crate.expression.reference.StaticTableReferenceResolver;
 import io.crate.expression.reference.sys.shard.ShardRowContext;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.MapBackedRefResolver;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.sys.SysShardsTableInfo;
-import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.index.Index;
 
 import java.util.Collections;
@@ -57,7 +57,6 @@ public class ShardReferenceResolver implements ReferenceResolver<NestableInput<?
         new MapBackedRefResolver(Collections.emptyMap());
 
     private static ReferenceResolver<NestableInput<?>> createPartitionColumnResolver(Index index, Schemas schemas) {
-        ImmutableMap.Builder<ReferenceIdent, NestableInput> builder = ImmutableMap.builder();
         PartitionName partitionName;
         try {
             partitionName = PartitionName.fromIndexOrTemplate(index.getName());
@@ -66,6 +65,7 @@ public class ShardReferenceResolver implements ReferenceResolver<NestableInput<?
                 "Unable to load PARTITIONED BY columns from partition %s", index.getName()), e);
         }
         RelationName relationName = partitionName.relationName();
+        ImmutableMap.Builder<ColumnIdent, NestableInput> builder = ImmutableMap.builder();
         try {
             DocTableInfo info = schemas.getTableInfo(relationName);
             assert info.isPartitioned() : "table must be partitioned";
@@ -77,7 +77,7 @@ public class ShardReferenceResolver implements ReferenceResolver<NestableInput<?
                    numPartitionedColumns : "invalid number of partitioned columns";
             for (Reference partitionedInfo : info.partitionedByColumns()) {
                 builder.put(
-                    partitionedInfo.ident(),
+                    partitionedInfo.column(),
                     constant(partitionedInfo.valueType().value(partitionValue.get(i)))
                 );
                 i++;
