@@ -25,6 +25,7 @@ package io.crate.metadata;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import io.crate.expression.FunctionImplementation;
 import io.crate.expression.symbol.FuncArg;
 import io.crate.metadata.functions.params.FuncParams;
 import io.crate.types.DataType;

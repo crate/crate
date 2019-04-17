@@ -25,7 +25,7 @@ package io.crate.expression.scalar;
 import com.google.common.base.Preconditions;
 import io.crate.metadata.BaseFunctionResolver;
 import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
+import io.crate.expression.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.functions.params.Param;

@@ -25,7 +25,6 @@ package io.crate.expression.scalar;
 import io.crate.data.Input;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.Scalar;
 
 class ArrayLowerFunction extends Scalar<Integer, Object[]> {
 

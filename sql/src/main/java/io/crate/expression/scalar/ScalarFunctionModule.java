@@ -61,7 +61,7 @@ import io.crate.expression.scalar.systeminformation.CurrentSchemasFunction;
 import io.crate.expression.scalar.systeminformation.PgGetExpr;
 import io.crate.expression.scalar.timestamp.CurrentTimestampFunction;
 import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
+import io.crate.expression.FunctionImplementation;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.FunctionResolver;
 import org.elasticsearch.common.inject.AbstractModule;

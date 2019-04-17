@@ -30,7 +30,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.WindowFunction;
 import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
+import io.crate.expression.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.ModulesBuilder;

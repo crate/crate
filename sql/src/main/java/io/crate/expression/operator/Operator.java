@@ -30,7 +30,7 @@ import io.crate.expression.symbol.format.OperatorFormatSpec;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.Scalar;
+import io.crate.expression.scalar.Scalar;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 

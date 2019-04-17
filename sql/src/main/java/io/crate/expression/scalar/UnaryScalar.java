@@ -27,7 +27,6 @@ import io.crate.data.Input;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.Scalar;
 import io.crate.types.DataType;
 
 import java.util.function.Function;

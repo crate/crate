@@ -25,7 +25,7 @@ package io.crate.expression.operator;
 import io.crate.expression.operator.any.AnyLikeOperator;
 import io.crate.expression.operator.any.AnyOperators;
 import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
+import io.crate.expression.FunctionImplementation;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.FunctionResolver;
 import org.elasticsearch.common.inject.AbstractModule;

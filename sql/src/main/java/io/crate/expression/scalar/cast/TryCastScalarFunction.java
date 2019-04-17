@@ -27,7 +27,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.BaseFunctionResolver;
 import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
+import io.crate.expression.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.types.DataType;

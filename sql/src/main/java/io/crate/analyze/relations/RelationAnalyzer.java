@@ -56,7 +56,7 @@ import io.crate.expression.symbol.format.SymbolPrinter;
 import io.crate.expression.tablefunctions.TableFunctionFactory;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
+import io.crate.expression.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RelationName;

@@ -24,7 +24,7 @@ package io.crate.execution.engine.aggregation;
 
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.Input;
-import io.crate.metadata.FunctionImplementation;
+import io.crate.expression.FunctionImplementation;
 import io.crate.types.DataType;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;

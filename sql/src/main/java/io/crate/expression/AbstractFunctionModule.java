@@ -23,7 +23,6 @@
 package io.crate.expression;
 
 import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.FunctionResolver;
 import org.elasticsearch.common.inject.AbstractModule;

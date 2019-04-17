@@ -28,7 +28,7 @@ import io.crate.analyze.FunctionArgumentDefinition;
 import io.crate.analyze.TableDefinitions;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
+import io.crate.expression.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;

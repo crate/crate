@@ -23,7 +23,7 @@ package io.crate.testing.plugin;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
+import io.crate.expression.FunctionImplementation;
 import io.crate.testing.SleepScalarFunction;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.AbstractModule;

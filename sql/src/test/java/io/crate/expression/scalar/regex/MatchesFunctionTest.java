@@ -23,7 +23,7 @@ package io.crate.expression.scalar.regex;
 
 import io.crate.expression.scalar.AbstractScalarFunctionsTest;
 import io.crate.expression.symbol.Literal;
-import io.crate.metadata.Scalar;
+import io.crate.expression.scalar.Scalar;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import org.hamcrest.BaseMatcher;

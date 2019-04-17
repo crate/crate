@@ -24,6 +24,7 @@ package io.crate.expression.eval;
 
 import io.crate.analyze.relations.FieldResolver;
 import io.crate.data.Input;
+import io.crate.expression.FunctionImplementation;
 import io.crate.expression.NestableInput;
 import io.crate.expression.reference.ReferenceResolver;
 import io.crate.expression.scalar.arithmetic.MapFunction;
@@ -36,7 +37,6 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.WindowFunction;
 import io.crate.expression.symbol.format.SymbolFormatter;
-import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;

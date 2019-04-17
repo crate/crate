@@ -21,7 +21,7 @@ package io.crate.operation.aggregation;
 import com.google.common.collect.ImmutableList;
 import io.crate.Streamer;
 import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
+import io.crate.expression.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.module.EnterpriseFunctionsModule;
 import io.crate.types.DataType;

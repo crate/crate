@@ -32,10 +32,9 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.expression.symbol.format.SymbolFormatter;
 import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
-import io.crate.metadata.Scalar;
+import io.crate.expression.scalar.Scalar;
 
 import java.util.List;
 import java.util.Locale;

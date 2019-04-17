@@ -22,6 +22,7 @@
 
 package io.crate.metadata;
 
+import io.crate.expression.FunctionImplementation;
 import io.crate.expression.symbol.FuncArg;
 import io.crate.types.DataType;
 

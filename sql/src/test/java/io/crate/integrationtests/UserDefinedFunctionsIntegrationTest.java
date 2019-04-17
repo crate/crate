@@ -34,7 +34,7 @@ import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.Scalar;
+import io.crate.expression.scalar.Scalar;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.test.ESIntegTestCase;

@@ -25,7 +25,7 @@ package io.crate.execution.engine.window;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.execution.engine.collect.CollectExpression;
-import io.crate.metadata.FunctionImplementation;
+import io.crate.expression.FunctionImplementation;
 
 import java.util.List;
 

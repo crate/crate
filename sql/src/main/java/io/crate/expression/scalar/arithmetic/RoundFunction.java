@@ -24,7 +24,7 @@ package io.crate.expression.scalar.arithmetic;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.scalar.UnaryScalar;
 import io.crate.expression.symbol.FuncArg;
-import io.crate.metadata.FunctionImplementation;
+import io.crate.expression.FunctionImplementation;
 import io.crate.metadata.FunctionResolver;
 import io.crate.metadata.functions.params.FuncParams;
 import io.crate.types.DataType;
