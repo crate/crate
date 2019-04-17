@@ -2011,4 +2011,10 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         QueriedRelation relation = analyze("select timestamp '2018-12-12T00:00:00'");
         assertThat(relation.outputs().get(0).valueType(), is(DataTypes.TIMESTAMPZ));
     }
+
+    @Test
+    public void testCastTimestampWithoutTimeZoneFromStringLiteralUsingSQLStandardFormat()  {
+        QueriedRelation relation = analyze("select timestamp without time zone '2018-12-12 00:00:00'");
+        assertThat(relation.outputs().get(0).valueType(), is(DataTypes.TIMESTAMP));
+    }
 }

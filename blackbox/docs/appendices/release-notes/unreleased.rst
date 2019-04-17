@@ -150,6 +150,10 @@ Deprecations
 Changes
 =======
 
+- Added support for `SQL Standard Timestamp Format
+  <https://crate.io/docs/sql-99/en/latest/chapters/08.html#timestamp-literal>`_
+  to the :ref:`date-time-types`.
+
 - Added `minimum_index_compatibility_version` and
   `minimum_wire_compatibility_version` to  :ref:`sys.version <sys-versions>`
   to expose the current state of the node's index and wire protocol version
