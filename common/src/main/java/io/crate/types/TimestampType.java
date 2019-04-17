@@ -22,14 +22,13 @@
 package io.crate.types;
 
 import io.crate.Streamer;
-import io.crate.TimestampFormat;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
+import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.ResolverStyle;
@@ -37,6 +36,7 @@ import java.time.temporal.TemporalAccessor;
 import java.util.Locale;
 import java.util.function.Function;
 
+import static java.time.ZoneOffset.UTC;
 import static java.time.format.DateTimeFormatter.ISO_LOCAL_DATE;
 import static java.time.format.DateTimeFormatter.ISO_LOCAL_TIME;
 
@@ -135,7 +135,19 @@ public final class TimestampType extends DataType<Long>
         try {
             return Long.valueOf(timestamp);
         } catch (NumberFormatException e) {
-            return TimestampFormat.parseTimestampString(timestamp);
+            TemporalAccessor dt = TIMESTAMP_PARSER.parseBest(
+                timestamp, OffsetDateTime::from, LocalDateTime::from, LocalDate::from);
+
+            if (dt instanceof LocalDateTime) {
+                LocalDateTime localDateTime = LocalDateTime.from(dt);
+                return localDateTime.toInstant(UTC).toEpochMilli();
+            } else if (dt instanceof LocalDate) {
+                LocalDate localDate = LocalDate.from(dt);
+                return localDate.atStartOfDay(UTC).toInstant().toEpochMilli();
+            }
+
+            OffsetDateTime offsetDateTime = OffsetDateTime.from(dt);
+            return offsetDateTime.toInstant().toEpochMilli();
         }
     }
 
@@ -148,10 +160,11 @@ public final class TimestampType extends DataType<Long>
 
             if (dt instanceof LocalDate) {
                 LocalDate localDate = LocalDate.from(dt);
-                return localDate.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli();
+                return localDate.atStartOfDay(UTC).toInstant().toEpochMilli();
             }
+
             LocalDateTime localDateTime = LocalDateTime.from(dt);
-            return localDateTime.toInstant(ZoneOffset.UTC).toEpochMilli();
+            return localDateTime.toInstant(UTC).toEpochMilli();
         }
     }
 

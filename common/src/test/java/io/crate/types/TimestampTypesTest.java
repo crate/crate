@@ -9,10 +9,12 @@ public class TimestampTypesTest {
 
     @Test
     public void testTimestampWithZoneParseWithOffset() {
-        assertThat(TimestampType.parseTimestamp("1999-01-08T04:00:00Z"), is(915768000000L));
+        assertThat(TimestampType.parseTimestamp("1999-01-08T01:00:00Z"), is(915757200000L));
+        assertThat(TimestampType.parseTimestamp("1999-01-08T01:00:00+00"), is(915757200000L));
+        assertThat(TimestampType.parseTimestamp("1999-01-08T04:00:00-03:00"), is(915778800000L));
         assertThat(TimestampType.parseTimestamp("1999-01-08T04:00:00+0300"), is(915757200000L));
         assertThat(TimestampType.parseTimestamp("1999-01-08T04:00:00+03:00"), is(915757200000L));
-        assertThat(TimestampType.parseTimestamp("1999-01-08T04:00:00-03:00"), is(915778800000L));
+        assertThat(TimestampType.parseTimestamp("1999-01-08T04:00:00.123456789+03:00"), is(915757200123L));
     }
 
     @Test
@@ -20,8 +22,6 @@ public class TimestampTypesTest {
         assertThat(TimestampType.parseTimestamp("1999-01-08"), is(915753600000L));
         assertThat(TimestampType.parseTimestamp("1999-01-08T04:00:00"), is(915768000000L));
         assertThat(TimestampType.parseTimestamp("1999-01-08T04:00:00.123456789"), is(915768000123L));
-        assertThat(TimestampType.parseTimestamp("1999-01-08T04:00:00+01"), is(915764400000L));
-        assertThat(TimestampType.parseTimestamp("1999-01-08T04:00:00.123456789+01"), is(915764400123L));
     }
 
     @Test
