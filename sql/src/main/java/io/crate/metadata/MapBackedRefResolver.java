@@ -28,26 +28,25 @@ import java.util.Map;
 
 public final class MapBackedRefResolver implements ReferenceResolver<NestableInput<?>> {
 
-    private final Map<ReferenceIdent, NestableInput> implByIdent;
+    private Map<ColumnIdent, NestableInput> implByColumn;
 
-    public MapBackedRefResolver(Map<ReferenceIdent, NestableInput> implByIdent) {
-        this.implByIdent = implByIdent;
+    public MapBackedRefResolver(Map<ColumnIdent, NestableInput> implByColumn) {
+        this.implByColumn = implByColumn;
     }
 
     @Override
     public NestableInput getImplementation(Reference ref) {
-        return lookupMapWithChildTraversal(implByIdent, ref.ident());
+        return lookupMapWithChildTraversal(implByColumn, ref.column());
     }
 
-    static NestableInput lookupMapWithChildTraversal(Map<ReferenceIdent, NestableInput> implByIdent,
-                                                     ReferenceIdent ident) {
-        if (ident.columnIdent().isTopLevel()) {
-            return implByIdent.get(ident);
+    static NestableInput lookupMapWithChildTraversal(Map<ColumnIdent, NestableInput> implByColumn, ColumnIdent column) {
+        if (column.isTopLevel()) {
+            return implByColumn.get(column);
         }
-        NestableInput<?> impl = implByIdent.get(ident.columnReferenceIdent());
-        if (impl == null) {
+        NestableInput<?> rootImpl = implByColumn.get(column.getRoot());
+        if (rootImpl == null) {
             return null;
         }
-        return NestableInput.getChildByPath(impl, ident.columnIdent().path());
+        return NestableInput.getChildByPath(rootImpl, column.path());
     }
 }

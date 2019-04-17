@@ -12,6 +12,7 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ClusterReferenceResolver;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
@@ -46,12 +47,12 @@ public class EvaluatingNormalizerTest extends CrateUnitTest {
 
     @Before
     public void prepare() throws Exception {
-        Map<ReferenceIdent, NestableInput> referenceImplementationMap = new HashMap<>(1, 1);
+        Map<ColumnIdent, NestableInput> referenceImplementationMap = new HashMap<>(1, 1);
 
         ReferenceIdent dummyLoadIdent = new ReferenceIdent(new RelationName("test", "dummy"), "load");
         dummyLoadInfo = new Reference(dummyLoadIdent, RowGranularity.NODE, DataTypes.DOUBLE, null);
 
-        referenceImplementationMap.put(dummyLoadIdent, constant(0.08d));
+        referenceImplementationMap.put(dummyLoadIdent.columnIdent(), constant(0.08d));
         functions = getFunctions();
         referenceResolver = new ClusterReferenceResolver(referenceImplementationMap);
     }
