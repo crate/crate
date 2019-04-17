@@ -228,12 +228,13 @@ The syntax for timestamp string literals is as follows:
 
 .. code-block:: text
 
-    date-element ['T' [time-element [offset]]]
+    date-element [time-separator [time-element [offset]]]
 
-    date-element: yyyy-MM-dd
-    time-element: HH:mm:ss [fraction]
-    fraction:     '.' digit+
-    offset:       {+ | -} HH [:mm] | 'Z'
+    time-separator: 'T' | ' '
+    date-element:   yyyy-MM-dd
+    time-element:   HH:mm:ss [fraction]
+    fraction:       '.' digit+
+    offset:         {+ | -} HH [:mm] | 'Z'
 
 For more detailed information about the date and time elements, see
 `pattern letters and symbols`_.
@@ -262,12 +263,13 @@ converted to UTC considering its offset for the time zone.
 
     cr> select '1970-01-02T00:00:00+0100'::timestamp with time zone as ts_z,
     ...        '1970-01-02T00:00:00Z'::timestamp with time zone ts_z,
-    ...        '1970-01-02T00:00:00'::timestamp with time zone ts_z;
-    +----------+----------+----------+
-    |     ts_z |     ts_z |     ts_z |
-    +----------+----------+----------+
-    | 82800000 | 86400000 | 86400000 |
-    +----------+----------+----------+
+    ...        '1970-01-02T00:00:00'::timestamp with time zone ts_z,
+    ...        '1970-01-02 00:00:00'::timestamp with time zone ts_z_sql_format;
+    +----------+----------+----------+-----------------+
+    |     ts_z |     ts_z |     ts_z | ts_z_sql_format |
+    +----------+----------+----------+-----------------+
+    | 82800000 | 86400000 | 86400000 |        86400000 |
+    +----------+----------+----------+-----------------+
     SELECT 1 row in set (... sec)
 
 
@@ -298,12 +300,13 @@ converted to UTC without considering the time zone indication.
 
     cr> select '1970-01-02T00:00:00+0200'::timestamp without time zone as ts,
     ...        '1970-01-02T00:00:00+0400'::timestamp without time zone as ts,
-    ...        '1970-01-02T00:00:00Z'::timestamp without time zone as ts;
-    +----------+----------+----------+
-    |       ts |       ts |       ts |
-    +----------+----------+----------+
-    | 86400000 | 86400000 | 86400000 |
-    +----------+----------+----------+
+    ...        '1970-01-02T00:00:00Z'::timestamp without time zone as ts,
+    ...        '1970-01-02 00:00:00Z'::timestamp without time zone as ts_sql_format;
+    +----------+----------+----------+---------------+
+    |       ts |       ts |       ts | ts_sql_format |
+    +----------+----------+----------+---------------+
+    | 86400000 | 86400000 | 86400000 |      86400000 |
+    +----------+----------+----------+---------------+
     SELECT 1 row in set (... sec)
 
 
