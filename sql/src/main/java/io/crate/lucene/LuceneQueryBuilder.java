@@ -568,11 +568,10 @@ public class LuceneQueryBuilder {
         @SuppressWarnings("unchecked")
         final Collection<? extends LuceneCollectorExpression<?>> expressions = ctx.expressions();
         final CollectorContext collectorContext = new CollectorContext(context.queryShardContext::getForField);
-
         for (LuceneCollectorExpression expression : expressions) {
             expression.startCollect(collectorContext);
         }
-        return new GenericFunctionQuery(function, expressions, collectorContext, condition);
+        return new GenericFunctionQuery(function, expressions, condition);
     }
 
     private static void raiseUnsupported(Function function) {

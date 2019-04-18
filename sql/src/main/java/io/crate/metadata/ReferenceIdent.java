@@ -61,13 +61,6 @@ public class ReferenceIdent {
         return columnIdent;
     }
 
-    public ReferenceIdent columnReferenceIdent() {
-        if (columnIdent.isTopLevel()) {
-            return this;
-        }
-        return new ReferenceIdent(relationName, columnIdent.name());
-    }
-
     @Override
     public boolean equals(Object obj) {
         if (this == obj) {

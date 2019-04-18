@@ -47,7 +47,6 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchParseException;
-import org.elasticsearch.action.admin.cluster.health.TransportClusterHealthAction;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
@@ -114,7 +113,6 @@ public class AlterTableOperation {
     private final TransportRenameTableAction transportRenameTableAction;
     private final TransportOpenCloseTableOrPartitionAction transportOpenCloseTableOrPartitionAction;
     private final TransportResizeAction transportResizeAction;
-    private final TransportClusterHealthAction transportClusterHealthAction;
     private final TransportDeleteIndexAction transportDeleteIndexAction;
     private final TransportSwapAndDropIndexNameAction transportSwapAndDropIndexNameAction;
     private final IndexScopedSettings indexScopedSettings;
@@ -129,7 +127,6 @@ public class AlterTableOperation {
                                TransportRenameTableAction transportRenameTableAction,
                                TransportOpenCloseTableOrPartitionAction transportOpenCloseTableOrPartitionAction,
                                TransportResizeAction transportResizeAction,
-                               TransportClusterHealthAction transportClusterHealthAction,
                                TransportDeleteIndexAction transportDeleteIndexAction,
                                TransportSwapAndDropIndexNameAction transportSwapAndDropIndexNameAction,
                                SQLOperations sqlOperations,
@@ -141,7 +138,6 @@ public class AlterTableOperation {
         this.transportUpdateSettingsAction = transportUpdateSettingsAction;
         this.transportRenameTableAction = transportRenameTableAction;
         this.transportResizeAction = transportResizeAction;
-        this.transportClusterHealthAction = transportClusterHealthAction;
         this.transportDeleteIndexAction = transportDeleteIndexAction;
         this.transportSwapAndDropIndexNameAction = transportSwapAndDropIndexNameAction;
         this.transportOpenCloseTableOrPartitionAction = transportOpenCloseTableOrPartitionAction;
