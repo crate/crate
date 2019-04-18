@@ -1507,26 +1507,24 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
-    public void testCastExpression() throws Exception {
-        QueriedRelation relation = analyze("select cast(other_id as string) from users");
+    public void testCastExpression() {
+        QueriedRelation relation = analyze("select cast(other_id as text) from users");
         assertThat(relation.querySpec().outputs().get(0),
-            isFunction(CastFunctionResolver.FunctionNames.TO_STRING, singletonList(DataTypes.LONG)));
+            isFunction("to_text", singletonList(DataTypes.LONG)));
 
         relation = analyze("select cast(1+1 as string) from users");
         assertThat(relation.querySpec().outputs().get(0), isLiteral("2", DataTypes.STRING));
 
-        relation = analyze("select cast(friends['id'] as array(string)) from users");
+        relation = analyze("select cast(friends['id'] as array(text)) from users");
         assertThat(relation.querySpec().outputs().get(0), isFunction(
-            CastFunctionResolver.FunctionNames.TO_STRING_ARRAY,
-            singletonList(new ArrayType(DataTypes.LONG))));
+            "to_text_array", singletonList(new ArrayType(DataTypes.LONG))));
     }
 
     @Test
-    public void testTryCastExpression() throws Exception {
-        QueriedRelation relation = analyze("select try_cast(other_id as string) from users");
+    public void testTryCastExpression() {
+        QueriedRelation relation = analyze("select try_cast(other_id as text) from users");
         assertThat(relation.querySpec().outputs().get(0), isFunction(
-            CastFunctionResolver.tryFunctionsMap().get(DataTypes.STRING),
-            singletonList(DataTypes.LONG)));
+            "try_to_text", singletonList(DataTypes.LONG)));
 
         relation = analyze("select try_cast(1+1 as string) from users");
         assertThat(relation.querySpec().outputs().get(0), isLiteral("2", DataTypes.STRING));
@@ -1536,7 +1534,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
         relation = analyze("select try_cast(counters as array(boolean)) from users");
         assertThat(relation.querySpec().outputs().get(0), isFunction(
-            CastFunctionResolver.tryFunctionsMap().get(new ArrayType(DataTypes.BOOLEAN)),
+            "try_to_boolean_array",
             singletonList(new ArrayType(DataTypes.LONG))));
     }
 
@@ -1637,7 +1635,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat(symbol, isFunction("extract_DAY_OF_MONTH"));
 
         Symbol argument = ((Function) symbol).arguments().get(0);
-        assertThat(argument, isFunction("to_timestampz"));
+        assertThat(argument, isFunction("to_timestamp with time zone"));
     }
 
     @Test

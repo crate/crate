@@ -232,8 +232,8 @@ public class SymbolPrinterTest extends CrateUnitTest {
 
     @Test
     public void testExtract() {
-        assertPrintIsParseable("to_long(extract(century from '1970-01-01'))");
-        assertPrintIsParseable("to_long(extract(day_of_week from current_timestamp))");
+        assertPrintIsParseable("to_bigint(extract(century from '1970-01-01'))");
+        assertPrintIsParseable("to_bigint(extract(day_of_week from current_timestamp))");
     }
 
     @Test
