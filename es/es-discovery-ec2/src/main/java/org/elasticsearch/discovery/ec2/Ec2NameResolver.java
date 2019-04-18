@@ -96,14 +96,14 @@ class Ec2NameResolver implements CustomNameResolver {
             URLConnection urlConnection = url.openConnection();
             urlConnection.setConnectTimeout(2000);
             in = urlConnection.getInputStream();
-            BufferedReader urlReader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
-
-            String metadataResult = urlReader.readLine();
-            if (metadataResult == null || metadataResult.length() == 0) {
-                throw new IOException("no gce metadata returned from [" + url + "] for [" + type.configName + "]");
+            try(BufferedReader urlReader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
+                String metadataResult = urlReader.readLine();
+                if (metadataResult == null || metadataResult.length() == 0) {
+                    throw new IOException("no gce metadata returned from [" + url + "] for [" + type.configName + "]");
+                }
+                // only one address: because we explicitly ask for only one via the Ec2HostnameType
+                return new InetAddress[]{InetAddress.getByName(metadataResult)};
             }
-            // only one address: because we explicitly ask for only one via the Ec2HostnameType
-            return new InetAddress[] { InetAddress.getByName(metadataResult) };
         } catch (IOException e) {
             throw new IOException("IOException caught when fetching InetAddress from [" + metadataUrl + "]", e);
         } finally {

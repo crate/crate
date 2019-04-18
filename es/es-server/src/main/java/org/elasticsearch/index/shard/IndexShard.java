@@ -330,10 +330,10 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
             if (!newRouting.shardId().equals(shardId())) {
                 throw new IllegalArgumentException("Trying to set a routing entry with shardId " + newRouting.shardId() + " on a shard with shardId " + shardId());
             }
-            if ((currentRouting == null || newRouting.isSameAllocation(currentRouting)) == false) {
+            if (currentRouting == null || newRouting.isSameAllocation(currentRouting) == false) {
                 throw new IllegalArgumentException("Trying to set a routing entry with a different allocation. Current " + currentRouting + ", new " + newRouting);
             }
-            if (currentRouting != null && currentRouting.primary() && newRouting.primary() == false) {
+            if (currentRouting.primary() && newRouting.primary() == false) {
                 throw new IllegalArgumentException("illegal state: trying to move shard from primary mode to replica mode. Current "
                     + currentRouting + ", new " + newRouting);
             }
@@ -480,7 +480,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
                 : "a started primary with non-pending operation term must be in primary mode " + this.shardRouting;
             shardStateUpdated.countDown();
         }
-        if (currentRouting != null && currentRouting.active() == false && newRouting.active()) {
+        if (currentRouting.active() == false && newRouting.active()) {
             indexEventListener.afterIndexShardStarted(this);
         }
         if (newRouting.equals(currentRouting) == false) {

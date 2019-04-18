@@ -156,7 +156,7 @@ public class ShardsLimitAllocationDecider extends AllocationDecider {
             }
             nodeShardCount++;
         }
-        if (clusterShardLimit >= 0 && nodeShardCount >= clusterShardLimit) {
+        if (nodeShardCount >= clusterShardLimit) {
             return allocation.decision(Decision.NO, NAME,
                 "too many shards [%d] allocated to this node, cluster setting [%s=%d]",
                 nodeShardCount, CLUSTER_TOTAL_SHARDS_PER_NODE_SETTING.getKey(), clusterShardLimit);

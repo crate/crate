@@ -134,12 +134,14 @@ class ElasticsearchConcurrentMergeScheduler extends ConcurrentMergeScheduler {
     }
 
     @Override
+    @SuppressWarnings("sync-override")
     protected boolean maybeStall(IndexWriter writer) {
         // Don't stall here, because we do our own index throttling (in InternalEngine.IndexThrottle) when merges can't keep up
         return true;
     }
 
     @Override
+    @SuppressWarnings("sync-override")
     protected MergeThread getMergeThread(IndexWriter writer, MergePolicy.OneMerge merge) throws IOException {
         MergeThread thread = super.getMergeThread(writer, merge);
         thread.setName(EsExecutors.threadName(indexSettings, "[" + shardId.getIndexName() + "][" + shardId.id() + "]: " + thread.getName()));

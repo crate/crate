@@ -418,6 +418,8 @@ public class RecoveryState implements ToXContentFragment, Streamable {
         private volatile long checkIndexTime;
 
 
+        @Override
+        @SuppressWarnings("sync-override")
         public void reset() {
             super.reset();
             checkIndexTime = 0;
@@ -529,7 +531,8 @@ public class RecoveryState implements ToXContentFragment, Streamable {
         }
 
         @Override
-        public void readFrom(StreamInput in) throws IOException {
+        @SuppressWarnings("sync-override")
+        public  void readFrom(StreamInput in) throws IOException {
             super.readFrom(in);
             recovered = in.readVInt();
             total = in.readVInt();
@@ -537,6 +540,7 @@ public class RecoveryState implements ToXContentFragment, Streamable {
         }
 
         @Override
+        @SuppressWarnings("sync-override")
         public void writeTo(StreamOutput out) throws IOException {
             super.writeTo(out);
             out.writeVInt(recovered);

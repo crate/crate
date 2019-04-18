@@ -89,7 +89,7 @@ abstract class GeoJsonParser {
                     } else if (CircleBuilder.FIELD_RADIUS.match(fieldName, parser.getDeprecationHandler())) {
                         if (shapeType == null) {
                             shapeType = GeoShapeType.CIRCLE;
-                        } else if (shapeType != null && shapeType.equals(GeoShapeType.CIRCLE) == false) {
+                        } else if (shapeType.equals(GeoShapeType.CIRCLE) == false) {
                             malformedException = "cannot have [" + CircleBuilder.FIELD_RADIUS + "] with type set to ["
                                 + shapeType + "]";
                         }
@@ -128,10 +128,6 @@ abstract class GeoJsonParser {
         } else if (radius != null && GeoShapeType.CIRCLE != shapeType) {
             throw new ElasticsearchParseException("field [{}] is supported for [{}] only", CircleBuilder.FIELD_RADIUS,
                 CircleBuilder.TYPE);
-        }
-
-        if (shapeType == null) {
-            throw new ElasticsearchParseException("shape type [{}] not included", shapeType);
         }
 
         if (shapeType.equals(GeoShapeType.GEOMETRYCOLLECTION)) {

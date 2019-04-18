@@ -765,6 +765,7 @@ public class BalancedShardsAllocator implements ShardsAllocator {
                                                       allocationDecision.getTargetNode().getId() : null;
                     final ModelNode minNode = assignedNodeId != null ? nodes.get(assignedNodeId) : null;
 
+
                     if (allocationDecision.getAllocationDecision() == AllocationDecision.YES) {
                         if (logger.isTraceEnabled()) {
                             logger.trace("Assigned shard [{}] to [{}]", shard, minNode.getNodeId());
@@ -892,7 +893,7 @@ public class BalancedShardsAllocator implements ShardsAllocator {
                          *  than the id of the shard we need to assign. This works find when new indices are created since
                          *  primaries are added first and we only add one shard set a time in this algorithm.
                          */
-                        if (currentDecision.type() == decision.type()) {
+                        if (decision != null && currentDecision.type() == decision.type()) {
                             final int repId = shard.id();
                             final int nodeHigh = node.highestPrimary(shard.index().getName());
                             final int minNodeHigh = minNode.highestPrimary(shard.getIndexName());

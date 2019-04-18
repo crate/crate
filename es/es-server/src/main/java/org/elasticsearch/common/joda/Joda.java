@@ -245,6 +245,7 @@ public class Joda {
                         parsers[i] = currentParser.getParser();
                     }
 
+                    assert dateTimeFormatter != null;
                     DateTimeFormatterBuilder builder = new DateTimeFormatterBuilder().append(dateTimeFormatter.withZone(DateTimeZone.UTC).getPrinter(), parsers);
                     formatter = builder.toFormatter();
                 }

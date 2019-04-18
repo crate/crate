@@ -77,6 +77,7 @@ class ByteBufStreamInput extends StreamInput {
     }
 
     @Override
+    @SuppressWarnings("sync-override")
     public void mark(int readlimit) {
         buffer.markReaderIndex();
     }
@@ -110,6 +111,7 @@ class ByteBufStreamInput extends StreamInput {
     }
 
     @Override
+    @SuppressWarnings("sync-override")
     public void reset() throws IOException {
         buffer.resetReaderIndex();
     }

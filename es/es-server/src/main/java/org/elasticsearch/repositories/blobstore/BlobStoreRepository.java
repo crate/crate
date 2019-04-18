@@ -1323,18 +1323,19 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
             try (IndexInput indexInput = store.openVerifyingInput(file, IOContext.READONCE, fileInfo.metadata())) {
                 for (int i = 0; i < fileInfo.numberOfParts(); i++) {
                     final long partBytes = fileInfo.partBytes(i);
-
-                    final InputStreamIndexInput inputStreamIndexInput = new InputStreamIndexInput(indexInput, partBytes);
-                    InputStream inputStream = inputStreamIndexInput;
-                    if (snapshotRateLimiter != null) {
-                        inputStream = new RateLimitingInputStream(inputStreamIndexInput, snapshotRateLimiter,
-                                                                  snapshotRateLimitingTimeInNanos::inc);
+                    try (final InputStreamIndexInput inputStreamIndexInput = new InputStreamIndexInput(indexInput,
+                                                                                                       partBytes)) {
+                        InputStream inputStream = inputStreamIndexInput;
+                        if (snapshotRateLimiter != null) {
+                            inputStream = new RateLimitingInputStream(inputStreamIndexInput, snapshotRateLimiter,
+                                                                      snapshotRateLimitingTimeInNanos::inc);
+                        }
+                        inputStream = new AbortableInputStream(inputStream, fileInfo.physicalName());
+                        blobContainer.writeBlob(fileInfo.partName(i), inputStream, partBytes, true);
                     }
-                    inputStream = new AbortableInputStream(inputStream, fileInfo.physicalName());
-                    blobContainer.writeBlob(fileInfo.partName(i), inputStream, partBytes, true);
+                    Store.verify(indexInput);
+                    snapshotStatus.addProcessedFile(fileInfo.length());
                 }
-                Store.verify(indexInput);
-                snapshotStatus.addProcessedFile(fileInfo.length());
             } catch (Exception t) {
                 failStoreIfCorrupted(t);
                 snapshotStatus.addProcessedFile(0);

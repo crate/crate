@@ -979,7 +979,7 @@ public class InternalEngine extends Engine {
                 final VersionConflictEngineException e = new VersionConflictEngineException(shardId, index.type(), index.id(),
                                                                                             index.getIfSeqNoMatch(), index.getIfPrimaryTermMatch(), SequenceNumbers.UNASSIGNED_SEQ_NO, 0);
                 plan = IndexingStrategy.skipDueToVersionConflict(e, currentNotFoundOrDeleted, currentVersion, getPrimaryTerm());
-            } else if (index.getIfSeqNoMatch() != SequenceNumbers.UNASSIGNED_SEQ_NO && (
+            } else if (versionValue != null && index.getIfSeqNoMatch() != SequenceNumbers.UNASSIGNED_SEQ_NO && (
                 versionValue.seqNo != index.getIfSeqNoMatch() || versionValue.term != index.getIfPrimaryTermMatch()
             )) {
                 final VersionConflictEngineException e = new VersionConflictEngineException(shardId, index.type(), index.id(),
@@ -1313,7 +1313,7 @@ public class InternalEngine extends Engine {
             final VersionConflictEngineException e = new VersionConflictEngineException(shardId, delete.type(), delete.id(),
                                                                                         delete.getIfSeqNoMatch(), delete.getIfPrimaryTermMatch(), SequenceNumbers.UNASSIGNED_SEQ_NO, 0);
             plan = DeletionStrategy.skipDueToVersionConflict(e, currentVersion, getPrimaryTerm(), currentlyDeleted);
-        } else if (delete.getIfSeqNoMatch() != SequenceNumbers.UNASSIGNED_SEQ_NO && (
+        } else if (versionValue != null &&  delete.getIfSeqNoMatch() != SequenceNumbers.UNASSIGNED_SEQ_NO && (
             versionValue.seqNo != delete.getIfSeqNoMatch() || versionValue.term != delete.getIfPrimaryTermMatch()
         )) {
             final VersionConflictEngineException e = new VersionConflictEngineException(shardId, delete.type(), delete.id(),

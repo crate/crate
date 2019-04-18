@@ -238,7 +238,7 @@ public class MembershipAction {
                 "The cluster contains nodes with version [" + maxClusterNodeVersion + "], which is incompatible.");
         }
         if (joiningNodeVersion.isCompatible(minClusterNodeVersion) == false) {
-            throw new IllegalStateException("node version [" + joiningNodeVersion + "] is not supported." +
+            throw new IllegalStateException("node version [" + joiningNodeVersion + "] is not supported. " +
                 "The cluster contains nodes with version [" + minClusterNodeVersion + "], which is incompatible.");
         }
     }

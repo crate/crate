@@ -133,7 +133,7 @@ public class DocumentMapper implements ToXContentFragment {
         List<FieldMapper> newFieldMappers = new ArrayList<>();
         List<FieldAliasMapper> newFieldAliasMappers = new ArrayList<>();
         for (MetadataFieldMapper metadataMapper : this.mapping.metadataMappers) {
-            if (metadataMapper instanceof FieldMapper) {
+            if (metadataMapper != null) {
                 newFieldMappers.add(metadataMapper);
             }
         }

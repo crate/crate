@@ -80,11 +80,11 @@ public class MockTcpTransport extends TcpTransport {
     static {
         ConnectionProfile.Builder builder = new ConnectionProfile.Builder();
         builder.addConnections(1,
-            TransportRequestOptions.Type.BULK,
-            TransportRequestOptions.Type.PING,
-            TransportRequestOptions.Type.RECOVERY,
-            TransportRequestOptions.Type.REG,
-            TransportRequestOptions.Type.STATE);
+                               TransportRequestOptions.Type.BULK,
+                               TransportRequestOptions.Type.PING,
+                               TransportRequestOptions.Type.RECOVERY,
+                               TransportRequestOptions.Type.REG,
+                               TransportRequestOptions.Type.STATE);
         LIGHT_PROFILE = builder.build();
     }
 
@@ -95,16 +95,23 @@ public class MockTcpTransport extends TcpTransport {
                             CircuitBreakerService circuitBreakerService, NamedWriteableRegistry namedWriteableRegistry,
                             NetworkService networkService) {
         this(settings, threadPool, bigArrays, circuitBreakerService, namedWriteableRegistry, networkService,
-            Version.CURRENT);
+             Version.CURRENT);
     }
 
     public MockTcpTransport(Settings settings, ThreadPool threadPool, BigArrays bigArrays,
                             CircuitBreakerService circuitBreakerService, NamedWriteableRegistry namedWriteableRegistry,
                             NetworkService networkService, Version mockVersion) {
-        super("mock-tcp-transport", settings, threadPool, bigArrays, circuitBreakerService, namedWriteableRegistry, networkService);
+        super("mock-tcp-transport",
+              settings,
+              threadPool,
+              bigArrays,
+              circuitBreakerService,
+              namedWriteableRegistry,
+              networkService);
         // we have our own crazy cached threadpool this one is not bounded at all...
         // using the ES thread factory here is crucial for tests otherwise disruption tests won't block that thread
-        executor = Executors.newCachedThreadPool(EsExecutors.daemonThreadFactory(settings, Transports.TEST_MOCK_TRANSPORT_THREAD_PREFIX));
+        executor = Executors.newCachedThreadPool(EsExecutors.daemonThreadFactory(settings,
+                                                                                 Transports.TEST_MOCK_TRANSPORT_THREAD_PREFIX));
         this.mockVersion = mockVersion;
     }
 
@@ -162,7 +169,7 @@ public class MockTcpTransport extends TcpTransport {
                 if (TcpTransport.validateMessageHeader(bytes)) {
                     InetSocketAddress remoteAddress = (InetSocketAddress) socket.getRemoteSocketAddress();
                     messageReceived(bytes.slice(TcpHeader.MARKER_BYTES_SIZE + TcpHeader.MESSAGE_LENGTH_SIZE, msgSize),
-                        mockChannel, mockChannel.profile, remoteAddress, msgSize);
+                                    mockChannel, mockChannel.profile, remoteAddress, msgSize);
                 } else {
                     // ping message - we just drop all stuff
                 }
@@ -250,9 +257,9 @@ public class MockTcpTransport extends TcpTransport {
         /**
          * Constructs a new MockChannel instance intended for handling the actual incoming / outgoing traffic.
          *
-         * @param socket The client socket. Mut not be null.
+         * @param socket       The client socket. Mut not be null.
          * @param localAddress Address associated with the corresponding local server socket. Must not be null.
-         * @param profile The associated profile name.
+         * @param profile      The associated profile name.
          */
         public MockChannel(Socket socket, InetSocketAddress localAddress, String profile) {
             this.localAddress = localAddress;
@@ -268,7 +275,7 @@ public class MockTcpTransport extends TcpTransport {
          * Constructs a new MockChannel instance intended for accepting requests.
          *
          * @param serverSocket The associated server socket. Must not be null.
-         * @param profile The associated profile name.
+         * @param profile      The associated profile name.
          */
         MockChannel(ServerSocket serverSocket, String profile) {
             this.localAddress = (InetSocketAddress) serverSocket.getLocalSocketAddress();
@@ -289,7 +296,11 @@ public class MockTcpTransport extends TcpTransport {
                     synchronized (this) {
                         if (isOpen.get()) {
                             incomingChannel = new MockChannel(incomingSocket,
-                                new InetSocketAddress(incomingSocket.getLocalAddress(), incomingSocket.getPort()), profile);
+                                                              new InetSocketAddress(
+                                                                  incomingSocket.getLocalAddress(),
+                                                                  incomingSocket.getPort()
+                                                              ),
+                                                              profile);
                             MockChannel finalIncomingChannel = incomingChannel;
                             incomingChannel.addCloseListener(new ActionListener<Void>() {
                                 @Override
@@ -359,19 +370,19 @@ public class MockTcpTransport extends TcpTransport {
                     removedChannel = openChannels.remove(this);
                 }
                 IOUtils.close(serverSocket, activeChannel, () -> IOUtils.close(workerChannels),
-                    () -> cancellableThreads.cancel("channel closed"));
-                assert removedChannel: "Channel was not removed or removed twice?";
+                              () -> cancellableThreads.cancel("channel closed"));
+                assert removedChannel : "Channel was not removed or removed twice?";
             }
         }
 
         @Override
         public String toString() {
             return "MockChannel{" +
-                "profile='" + profile + '\'' +
-                ", isOpen=" + isOpen +
-                ", localAddress=" + localAddress +
-                ", isServerSocket=" + (serverSocket != null) +
-                '}';
+                   "profile='" + profile + '\'' +
+                   ", isOpen=" + isOpen +
+                   ", localAddress=" + localAddress +
+                   ", isServerSocket=" + (serverSocket != null) +
+                   '}';
         }
 
         @Override
@@ -422,7 +433,6 @@ public class MockTcpTransport extends TcpTransport {
             }
         }
     }
-
 
     @Override
     protected void doStart() {
