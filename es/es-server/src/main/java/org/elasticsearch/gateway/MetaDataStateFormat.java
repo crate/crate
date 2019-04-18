@@ -31,7 +31,6 @@ import org.apache.lucene.store.IndexInput;
 import org.apache.lucene.store.OutputStreamIndexOutput;
 import org.apache.lucene.store.SimpleFSDirectory;
 import org.elasticsearch.ExceptionsHelper;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.lucene.store.IndexOutputOutputStream;
 import org.elasticsearch.common.lucene.store.InputStreamIndexInput;
 import org.elasticsearch.common.xcontent.LoggingDeprecationHandler;
@@ -191,10 +190,12 @@ public abstract class MetaDataStateFormat<T> {
                 long filePointer = indexInput.getFilePointer();
                 long contentSize = indexInput.length() - CodecUtil.footerLength() - filePointer;
                 try (IndexInput slice = indexInput.slice("state_xcontent", filePointer, contentSize)) {
-                    try (XContentParser parser = XContentFactory.xContent(FORMAT)
-                            .createParser(namedXContentRegistry, LoggingDeprecationHandler.INSTANCE,
-                                new InputStreamIndexInput(slice, contentSize))) {
-                        return fromXContent(parser);
+                    try (InputStreamIndexInput in = new InputStreamIndexInput(slice, contentSize)) {
+                        try (XContentParser parser = XContentFactory.xContent(FORMAT)
+                                .createParser(namedXContentRegistry, LoggingDeprecationHandler.INSTANCE,
+                                    in)) {
+                            return fromXContent(parser);
+                        }
                     }
                 }
             } catch(CorruptIndexException | IndexFormatTooOldException | IndexFormatTooNewException ex) {

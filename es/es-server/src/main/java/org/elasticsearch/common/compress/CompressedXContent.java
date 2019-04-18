@@ -82,11 +82,12 @@ public final class CompressedXContent {
         BytesStreamOutput bStream = new BytesStreamOutput();
         OutputStream compressedStream = CompressorFactory.COMPRESSOR.streamOutput(bStream);
         CRC32 crc32 = new CRC32();
-        OutputStream checkedStream = new CheckedOutputStream(compressedStream, crc32);
-        try (XContentBuilder builder = XContentFactory.contentBuilder(type, checkedStream)) {
-            builder.startObject();
-            xcontent.toXContent(builder, params);
-            builder.endObject();
+        try(OutputStream checkedStream = new CheckedOutputStream(compressedStream, crc32)) {
+            try (XContentBuilder builder = XContentFactory.contentBuilder(type, checkedStream)) {
+                builder.startObject();
+                xcontent.toXContent(builder, params);
+                builder.endObject();
+            }
         }
         this.bytes = BytesReference.toBytes(bStream.bytes());
         this.crc32 = (int) crc32.getValue();

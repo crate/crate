@@ -224,6 +224,7 @@ public final class RefreshListeners implements ReferenceManager.RefreshListener,
             synchronized (this) {
                 if (refreshListeners == null) {
                     if (closed) {
+                        assert listenersToFire != null;
                         listenersToFire.addAll(preservedListeners);
                     } else {
                         refreshListeners = preservedListeners;

@@ -95,7 +95,7 @@ public class InputStreamIndexInput extends InputStream {
     }
 
     @Override
-    public synchronized void reset() throws IOException {
+    public void reset() throws IOException {
         indexInput.seek(markPointer);
         counter = markCounter;
     }

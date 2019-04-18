@@ -642,7 +642,7 @@ public class Translog extends AbstractIndexShardComponent implements IndexShardC
             onClose = () -> {};
         } else {
             assert Arrays.stream(snapshots).map(BaseTranslogReader::getGeneration).min(Long::compareTo).get()
-                == snapshots[0].generation : "first reader generation of " + snapshots + " is not the smallest";
+                == snapshots[0].generation : "first reader generation of " + Arrays.toString(snapshots) + " is not the smallest";
             onClose = acquireTranslogGenFromDeletionPolicy(snapshots[0].generation);
         }
         boolean success = false;

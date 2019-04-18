@@ -68,7 +68,6 @@ public final class KeyedLock<T> {
                     return newLock;
                 }
             } else {
-                assert perNodeLock != null;
                 int i = perNodeLock.count.get();
                 if (i > 0 && perNodeLock.count.compareAndSet(i, i + 1)) {
                     perNodeLock.lock();

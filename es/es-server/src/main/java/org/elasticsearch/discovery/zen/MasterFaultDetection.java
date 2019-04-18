@@ -306,6 +306,7 @@ public class MasterFaultDetection extends FaultDetection {
         }
 
         @Override
+        @SuppressWarnings("sync-override")
         public Throwable fillInStackTrace() {
             return null;
         }
@@ -313,6 +314,7 @@ public class MasterFaultDetection extends FaultDetection {
 
     static class NodeDoesNotExistOnMasterException extends IllegalStateException {
         @Override
+        @SuppressWarnings("sync-override")
         public Throwable fillInStackTrace() {
             return null;
         }
