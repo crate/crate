@@ -6,7 +6,6 @@ archivesBaseName = 'crate-testing'
 dependencies {
     api project(':es:es-testing')
     api "org.codehaus.jackson:jackson-mapper-asl:${versions.jacksonasl}"
-    api "org.apache.commons:commons-lang3:${versions.commonslang3}"
 
     implementation project(':es:es-server')
     implementation "com.google.guava:guava:${versions.guava}"

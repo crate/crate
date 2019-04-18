@@ -25,7 +25,6 @@ import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
-import org.apache.commons.lang3.RandomStringUtils;
 import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
@@ -180,7 +179,7 @@ public class HostBasedAuthenticationTest extends CrateUnitTest {
         entry = new HashMap.SimpleEntry<>(
             "0", Collections.emptyMap() // key "user" not present in map
         );
-        assertTrue(isValidUser(entry, RandomStringUtils.random(8)));
+        assertTrue(isValidUser(entry, randomAlphaOfLength(8)));
     }
 
     @Test
