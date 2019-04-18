@@ -27,6 +27,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.types.DataTypes;
 import org.junit.Test;
 
+import java.time.format.DateTimeParseException;
 import java.util.Locale;
 import java.util.Map;
 
@@ -105,9 +106,9 @@ public class DateFormatFunctionTest extends AbstractScalarFunctionsTest {
     }
 
     @Test
-    public void testInvalidTimestamp() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid format: \"NO TIMESTAMP\"");
+    public void testInvalidTimestamp() {
+        expectedException.expect(DateTimeParseException.class);
+        expectedException.expectMessage("Text 'NO TIMESTAMP' could not be parsed");
         assertEvaluate("date_format('%d.%m.%Y', 'NO TIMESTAMP')", null);
     }
 
