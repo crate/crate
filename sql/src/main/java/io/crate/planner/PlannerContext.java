@@ -26,10 +26,10 @@ import io.crate.action.sql.SessionContext;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.WhereClause;
 import io.crate.expression.symbol.Literal;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.table.TableInfo;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.routing.ShardRouting;
@@ -82,10 +82,6 @@ public class PlannerContext {
         this.softLimit = softLimit;
         this.fetchSize = fetchSize;
         this.handlerNode = clusterState.getNodes().getLocalNodeId();
-    }
-
-    public int softLimit() {
-        return softLimit;
     }
 
     public int fetchSize() {
