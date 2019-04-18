@@ -23,7 +23,6 @@ package io.crate.expression.scalar;
 
 import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
-import io.crate.metadata.settings.SessionSettings;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.collections.Lists2;
@@ -45,7 +44,7 @@ import io.crate.metadata.SearchPath;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.settings.session.SessionSettingRegistry;
+import io.crate.metadata.settings.SessionSettings;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateUnitTest;
@@ -255,10 +254,6 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
     protected FunctionImplementation getFunction(String functionName, List<DataType> argTypes) {
         return functions.get(
             null, functionName, Lists2.map(argTypes, t -> new InputColumn(0, t)), SearchPath.pathWithPGCatalogAndDoc());
-    }
-
-    protected Symbol normalize(String functionName, Object value, DataType type) {
-        return normalize(functionName, Literal.of(type, value));
     }
 
     protected Symbol normalize(CoordinatorTxnCtx coordinatorTxnCtx, String functionName, Symbol... args) {
