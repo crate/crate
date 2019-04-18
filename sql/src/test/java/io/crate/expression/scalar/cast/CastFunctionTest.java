@@ -38,7 +38,7 @@ public class CastFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testNormalize() {
-        assertNormalize("cast(name as long)", isFunction("to_long"));
+        assertNormalize("cast(name as bigint)", isFunction("to_bigint"));
     }
 
     @Test
@@ -46,7 +46,7 @@ public class CastFunctionTest extends AbstractScalarFunctionsTest {
         assertEvaluate("cast(10.4 as string)", "10.4");
         assertEvaluate("cast(null as string)", null);
         assertEvaluate("cast(10.4 as long)", 10L);
-        assertEvaluate("to_long_array([10.2, 12.3])", new Long[] { 10L, 12L });
+        assertEvaluate("to_bigint_array([10.2, 12.3])", new Long[] { 10L, 12L });
 
         Map<String, Object> object = Map.of("x", 10);
         assertEvaluate("'{\"x\": 10}'::object", object);

@@ -419,10 +419,16 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testGroupByHavingRecursiveFunction() throws Exception {
-        QueriedRelation relation = analyze("select sum(floats), name from users " +
-                                                   "group by name having sum(power(power(id::double, id::double), id::double)) > 0");
-        assertThat(relation.querySpec().having().query(),
-            isSQL("(sum(power(power(to_double(doc.users.id), to_double(doc.users.id)), to_double(doc.users.id))) > 0.0)"));
+    public void testGroupByHavingRecursiveFunction() {
+        QueriedRelation relation = analyze(
+            "select sum(floats), name " +
+            "from users " +
+            "group by name " +
+            "having sum(power(power(id::double, id::double), id::double)) > 0");
+        assertThat(
+            relation.querySpec().having().query(),
+            isSQL("(sum(power(" +
+                "power(to_double precision(doc.users.id), to_double precision(doc.users.id)), " +
+                "to_double precision(doc.users.id))) > 0.0)"));
     }
 }

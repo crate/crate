@@ -131,7 +131,7 @@ public class CastFunction extends Scalar<Object, Object> implements FunctionForm
         private final String name;
         private final DataType targetType;
 
-        protected Resolver(DataType targetType, String name) {
+        Resolver(DataType targetType, String name) {
             super(FuncParams.builder(Param.ANY).build());
             this.name = name;
             this.targetType = targetType;
@@ -145,14 +145,14 @@ public class CastFunction extends Scalar<Object, Object> implements FunctionForm
         }
 
         @Override
-        public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
+        public FunctionImplementation getForTypes(List<DataType> dataTypes) {
             checkPreconditions(dataTypes);
             return new CastFunction(new FunctionInfo(new FunctionIdent(name, dataTypes), targetType));
         }
     }
 
     public static void register(ScalarFunctionModule module) {
-        for (Map.Entry<DataType, String> function : CastFunctionResolver.FUNCTION_MAP.entrySet()) {
+        for (Map.Entry<DataType, String> function : CastFunctionResolver.CAST_SIGNATURES.entrySet()) {
             module.register(function.getValue(), new Resolver(function.getKey(), function.getValue()));
         }
     }

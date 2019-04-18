@@ -1078,7 +1078,7 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
             "on conflict (id) do update set name = awesome");
         assertThat(statement.onDuplicateKeyAssignments().size(), is(1));
         Symbol symbol = statement.onDuplicateKeyAssignments().get(0)[0];
-        assertThat(symbol, isFunction("to_string"));
+        assertThat(symbol, isFunction("to_text"));
     }
 
     @Test
