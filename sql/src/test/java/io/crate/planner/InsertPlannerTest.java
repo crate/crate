@@ -401,7 +401,7 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
             instanceOf(EvalProjection.class),
             instanceOf(ColumnIndexWriterProjection.class)));
         EvalProjection collectTopN = (EvalProjection) collectPhase.projections().get(1);
-        assertThat(collectTopN.outputs(), contains(isInputColumn(0), isFunction("to_string")));
+        assertThat(collectTopN.outputs(), contains(isInputColumn(0), isFunction("to_text")));
 
         ColumnIndexWriterProjection columnIndexWriterProjection = (ColumnIndexWriterProjection) collectPhase.projections().get(2);
         assertThat(columnIndexWriterProjection.columnReferences(), contains(isReference("id"), isReference("name")));
@@ -492,7 +492,7 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
         );
         assertThat(projections.get(0).outputs(),
             contains(
-                isFunction("to_long"),
+                isFunction("to_bigint"),
                 isInputColumn(1)
             )
         );
