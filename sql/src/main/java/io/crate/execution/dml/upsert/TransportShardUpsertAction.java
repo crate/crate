@@ -266,7 +266,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
     }
 
     @VisibleForTesting
-    @Nullable
     protected Translog.Location indexItem(ShardUpsertRequest request,
                                           ShardUpsertRequest.Item item,
                                           IndexShard indexShard,
@@ -274,21 +273,20 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                           UpdateSourceGen updateSourceGen,
                                           InsertSourceGen insertSourceGen,
                                           boolean isRetry) throws Exception {
-        // try insert first without fetching the document
-        long seqNo = SequenceNumbers.UNASSIGNED_SEQ_NO;
-        long primaryTerm = SequenceNumbers.UNASSIGNED_PRIMARY_TERM;
-        long version;
+        final long seqNo;
+        final long primaryTerm;
+        final long version;
         if (tryInsertFirst) {
-            // set version so it will fail if already exists (will be overwritten for updates, see below)
-            version = Versions.MATCH_DELETED;
+            version = request.duplicateKeyAction() == DuplicateKeyAction.OVERWRITE
+                ? Versions.MATCH_ANY
+                : Versions.MATCH_DELETED;
+            seqNo = SequenceNumbers.UNASSIGNED_SEQ_NO;
+            primaryTerm = SequenceNumbers.UNASSIGNED_PRIMARY_TERM;
             try {
                 insertSourceGen.checkConstraints(item.insertValues());
                 item.source(insertSourceGen.generateSource(item.insertValues()));
             } catch (IOException e) {
                 throw ExceptionsHelper.convertToElastic(e);
-            }
-            if (request.duplicateKeyAction() == DuplicateKeyAction.OVERWRITE) {
-                version = Versions.MATCH_ANY;
             }
         } else {
             Doc currentDoc = getDocument(indexShard, item.id(), item.version(), item.seqNo(), item.primaryTerm());
@@ -302,11 +300,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             primaryTerm = item.primaryTerm();
             version = Versions.MATCH_ANY;
         }
-
-        final long finalSeqNo = seqNo;
-        final long finalPrimaryTerm = primaryTerm;
-        long finalVersion = version;
-
         SourceToParse sourceToParse = new SourceToParse(indexShard.shardId().getIndexName(),
                                                         Constants.DEFAULT_MAPPING_TYPE,
                                                         item.id(),
@@ -315,11 +308,11 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         Engine.IndexResult indexResult = executeOnPrimaryHandlingMappingUpdate(
             indexShard.shardId(),
             () -> indexShard.applyIndexOperationOnPrimary(
-                finalVersion,
+                version,
                 VersionType.INTERNAL,
                 sourceToParse,
-                finalSeqNo,
-                finalPrimaryTerm,
+                seqNo,
+                primaryTerm,
                 Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
                 isRetry
             ),
