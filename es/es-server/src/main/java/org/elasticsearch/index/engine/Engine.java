@@ -1357,31 +1357,22 @@ public abstract class Engine implements Closeable {
     }
 
     public static class GetResult implements Releasable {
-        private final boolean exists;
-        private final long version;
+
+        @Nullable
         private final DocIdAndVersion docIdAndVersion;
         private final Searcher searcher;
 
-        public static final GetResult NOT_EXISTS = new GetResult(false, Versions.NOT_FOUND, null, null);
-
-        private GetResult(boolean exists, long version, DocIdAndVersion docIdAndVersion, Searcher searcher) {
-            this.exists = exists;
-            this.version = version;
-            this.docIdAndVersion = docIdAndVersion;
-            this.searcher = searcher;
-        }
+        static final GetResult NOT_EXISTS = new GetResult(null, null);
 
         /**
          * Build a non-realtime get result from the searcher.
          */
-        public GetResult(Searcher searcher, DocIdAndVersion docIdAndVersion) {
-            this(true, docIdAndVersion.version, docIdAndVersion, searcher);
+        GetResult(Searcher searcher, DocIdAndVersion docIdAndVersion) {
+            this.searcher = searcher;
+            this.docIdAndVersion = docIdAndVersion;
         }
 
-        public boolean exists() {
-            return exists;
-        }
-
+        @Nullable
         public DocIdAndVersion docIdAndVersion() {
             return docIdAndVersion;
         }

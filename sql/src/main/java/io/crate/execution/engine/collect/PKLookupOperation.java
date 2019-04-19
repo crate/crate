@@ -40,7 +40,6 @@ import io.crate.expression.reference.doc.lucene.SourceFieldVisitor;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.PKAndVersion;
 import org.apache.lucene.index.Term;
-import org.elasticsearch.common.lucene.uid.VersionsAndSeqNoResolver;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexService;
@@ -126,31 +125,27 @@ public final class PKLookupOperation {
             .setIfSeqNo(seqNo)
             .setIfPrimaryTerm(primaryTerm);
 
-        Engine.GetResult getResult = shard.get(get);
-        if (getResult.exists()) {
-            try {
-                VersionsAndSeqNoResolver.DocIdAndVersion docIdAndVersion = getResult.docIdAndVersion();
-                SourceFieldVisitor visitor = new SourceFieldVisitor();
-                try {
-                    docIdAndVersion.reader.document(docIdAndVersion.docId, visitor);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-                return new Doc(
-                    docIdAndVersion.docId,
-                    shard.shardId().getIndexName(),
-                    id,
-                    docIdAndVersion.version,
-                    docIdAndVersion.seqNo,
-                    docIdAndVersion.primaryTerm,
-                    convertToMap(visitor.source(), false, XContentType.JSON).v2(),
-                    () -> visitor.source().utf8ToString()
-                );
-            } finally {
-                getResult.release();
+        try (Engine.GetResult getResult = shard.get(get)) {
+            var docIdAndVersion = getResult.docIdAndVersion();
+            if (docIdAndVersion == null) {
+                return null;
             }
-        } else {
-            return null;
+            SourceFieldVisitor visitor = new SourceFieldVisitor();
+            try {
+                docIdAndVersion.reader.document(docIdAndVersion.docId, visitor);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            return new Doc(
+                docIdAndVersion.docId,
+                shard.shardId().getIndexName(),
+                id,
+                docIdAndVersion.version,
+                docIdAndVersion.seqNo,
+                docIdAndVersion.primaryTerm,
+                convertToMap(visitor.source(), false, XContentType.JSON).v2(),
+                () -> visitor.source().utf8ToString()
+            );
         }
     }
 
