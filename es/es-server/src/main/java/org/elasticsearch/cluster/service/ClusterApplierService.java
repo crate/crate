@@ -19,6 +19,7 @@
 
 package org.elasticsearch.cluster.service;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.cluster.ClusterChangedEvent;
@@ -44,6 +45,7 @@ import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.common.util.concurrent.PrioritizedEsThreadPoolExecutor;
 import org.elasticsearch.common.util.iterable.Iterables;
+import org.elasticsearch.node.Node;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import java.util.Collection;
@@ -67,10 +69,14 @@ import static org.elasticsearch.common.util.concurrent.EsExecutors.daemonThreadF
 
 public class ClusterApplierService extends AbstractLifecycleComponent implements ClusterApplier {
 
+    private static final Logger logger = LogManager.getLogger(ClusterApplierService.class);
+
     public static final String CLUSTER_UPDATE_THREAD_NAME = "clusterApplierService#updateTask";
 
     private final ClusterSettings clusterSettings;
     protected final ThreadPool threadPool;
+    private final Settings settings;
+    private final String nodeName;
 
     private volatile TimeValue slowTaskLoggingThreshold;
 
@@ -98,9 +104,12 @@ public class ClusterApplierService extends AbstractLifecycleComponent implements
     private NodeConnectionsService nodeConnectionsService;
     private Supplier<ClusterState.Builder> stateBuilderSupplier;
 
-    public ClusterApplierService(Settings settings, ClusterSettings clusterSettings, ThreadPool threadPool, Supplier<ClusterState
-        .Builder> stateBuilderSupplier) {
-        super(settings);
+    public ClusterApplierService(Settings settings,
+                                 ClusterSettings clusterSettings,
+                                 ThreadPool threadPool,
+                                 Supplier<ClusterState.Builder> stateBuilderSupplier) {
+        this.nodeName = Node.NODE_NAME_SETTING.get(settings);
+        this.settings = settings;
         this.clusterSettings = clusterSettings;
         this.threadPool = threadPool;
         this.state = new AtomicReference<>();
@@ -133,7 +142,7 @@ public class ClusterApplierService extends AbstractLifecycleComponent implements
         Objects.requireNonNull(state.get(), "please set initial state before starting");
         addListener(localNodeMasterListeners);
         threadPoolExecutor = EsExecutors.newSinglePrioritizing(
-                nodeName() + "/" + CLUSTER_UPDATE_THREAD_NAME,
+                nodeName + "/" + CLUSTER_UPDATE_THREAD_NAME,
                 daemonThreadFactory(settings, CLUSTER_UPDATE_THREAD_NAME),
                 threadPool.getThreadContext(),
                 threadPool.scheduler());

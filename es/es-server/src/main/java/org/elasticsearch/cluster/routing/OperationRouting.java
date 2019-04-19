@@ -25,7 +25,6 @@ import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.allocation.decider.AwarenessAllocationDecider;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexNotFoundException;
@@ -38,12 +37,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class OperationRouting extends AbstractComponent {
+public class OperationRouting {
 
     private List<String> awarenessAttributes;
 
     public OperationRouting(Settings settings, ClusterSettings clusterSettings) {
-        super(settings);
         this.awarenessAttributes = AwarenessAllocationDecider.CLUSTER_ROUTING_ALLOCATION_AWARENESS_ATTRIBUTE_SETTING.get(settings);
         clusterSettings.addSettingsUpdateConsumer(AwarenessAllocationDecider.CLUSTER_ROUTING_ALLOCATION_AWARENESS_ATTRIBUTE_SETTING,
             this::setAwarenessAttributes);

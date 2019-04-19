@@ -27,7 +27,6 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.blob.BlobTableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import org.elasticsearch.common.settings.Settings;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
@@ -94,7 +93,7 @@ public class TableHealthServiceTest extends CrateDummyClusterServiceUnitTest {
         RelationName relationName = new RelationName("doc", "t1");
         Schemas schemas = mock(Schemas.class);
         when(schemas.getTableInfo(relationName)).thenThrow(new RelationUnknown(relationName));
-        TableHealthService tableHealthService = new TableHealthService(Settings.EMPTY, clusterService, schemas, null);
+        TableHealthService tableHealthService = new TableHealthService(clusterService, schemas, null);
         Map<TableHealthService.TablePartitionIdent, TableHealthService.ShardsInfo> tables =
             Collections.singletonMap(tablePartitionIdent, new TableHealthService.ShardsInfo());
 
@@ -118,7 +117,7 @@ public class TableHealthServiceTest extends CrateDummyClusterServiceUnitTest {
             null,
             null,
             false));
-        TableHealthService tableHealthService = new TableHealthService(Settings.EMPTY, clusterService, schemas, null);
+        TableHealthService tableHealthService = new TableHealthService(clusterService, schemas, null);
         Map<TableHealthService.TablePartitionIdent, TableHealthService.ShardsInfo> tables =
             Collections.singletonMap(tablePartitionIdent, new TableHealthService.ShardsInfo());
 

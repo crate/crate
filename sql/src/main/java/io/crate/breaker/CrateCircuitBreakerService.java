@@ -23,6 +23,8 @@ package io.crate.breaker;
 
 import io.crate.settings.CrateSetting;
 import io.crate.types.DataTypes;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -40,6 +42,8 @@ import java.util.function.Consumer;
 
 @Singleton
 public class CrateCircuitBreakerService extends CircuitBreakerService {
+
+    private static final Logger logger = LogManager.getLogger(CrateCircuitBreakerService.class);
 
     public static final String QUERY = "query";
 
@@ -72,7 +76,6 @@ public class CrateCircuitBreakerService extends CircuitBreakerService {
     public CrateCircuitBreakerService(Settings settings,
                                       ClusterSettings clusterSettings,
                                       CircuitBreakerService esCircuitBreakerService) {
-        super(settings);
         this.esCircuitBreakerService = esCircuitBreakerService;
 
         queryBreakerSettings = new BreakerSettings(QUERY,

@@ -31,7 +31,6 @@ import org.elasticsearch.common.cache.CacheBuilder;
 import org.elasticsearch.common.cache.CacheLoader;
 import org.elasticsearch.common.cache.RemovalListener;
 import org.elasticsearch.common.cache.RemovalNotification;
-import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.lucene.index.ElasticsearchDirectoryReader;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
@@ -62,8 +61,7 @@ import java.util.function.Supplier;
  * There are still several TODOs left in this class, some easily addressable, some more complex, but the support
  * is functional.
  */
-public final class IndicesRequestCache extends AbstractComponent implements RemovalListener<IndicesRequestCache.Key,
-    BytesReference>, Closeable {
+public final class IndicesRequestCache implements RemovalListener<IndicesRequestCache.Key, BytesReference>, Closeable {
 
     /**
      * A setting to enable or disable request caching on an index level. Its dynamic by default
@@ -83,7 +81,6 @@ public final class IndicesRequestCache extends AbstractComponent implements Remo
     private final Cache<Key, BytesReference> cache;
 
     IndicesRequestCache(Settings settings) {
-        super(settings);
         this.size = INDICES_CACHE_QUERY_SIZE.get(settings);
         this.expire = INDICES_CACHE_QUERY_EXPIRE.exists(settings) ? INDICES_CACHE_QUERY_EXPIRE.get(settings) : null;
         long sizeInBytes = size.getBytes();

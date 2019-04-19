@@ -31,7 +31,6 @@ import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.TestingRowConsumer;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.transport.TransportService;
 import org.junit.Test;
 
@@ -49,8 +48,7 @@ public class KillPlanTest extends CrateDummyClusterServiceUnitTest {
         AtomicInteger broadcastCalls = new AtomicInteger(0);
         AtomicInteger nodeOperationCalls = new AtomicInteger(0);
         TransportKillAllNodeAction killAllNodeAction = new TransportKillAllNodeAction(
-            Settings.EMPTY,
-            new TasksService(Settings.EMPTY, clusterService, new JobsLogs(() -> false)),
+            new TasksService(clusterService, new JobsLogs(() -> false)),
             clusterService,
             mock(TransportService.class)
         ) {

@@ -34,7 +34,6 @@ import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
@@ -49,14 +48,19 @@ public class TransportSwapAndDropIndexNameAction extends AbstractDDLTransportAct
     private final SwapAndDropIndexExecutor executor;
 
     @Inject
-    public TransportSwapAndDropIndexNameAction(Settings settings,
-                                               TransportService transportService,
+    public TransportSwapAndDropIndexNameAction(TransportService transportService,
                                                ClusterService clusterService,
                                                ThreadPool threadPool,
                                                AllocationService allocationService,
                                                IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(settings, ACTION_NAME, transportService, clusterService, threadPool,
-            indexNameExpressionResolver, SwapAndDropIndexRequest::new, AcknowledgedResponse::new, AcknowledgedResponse::new,
+        super(ACTION_NAME,
+            transportService,
+            clusterService,
+            threadPool,
+            indexNameExpressionResolver,
+            SwapAndDropIndexRequest::new,
+            AcknowledgedResponse::new,
+            AcknowledgedResponse::new,
             "swap-and-drop-index");
         executor = new SwapAndDropIndexExecutor(allocationService);
     }

@@ -40,7 +40,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
@@ -57,16 +56,15 @@ public class TransportRenameTableAction extends TransportMasterNodeAction<Rename
     private final ActiveShardsObserver activeShardsObserver;
 
     @Inject
-    public TransportRenameTableAction(Settings settings,
-                                      TransportService transportService,
+    public TransportRenameTableAction(TransportService transportService,
                                       ClusterService clusterService,
                                       ThreadPool threadPool,
                                       IndexNameExpressionResolver indexNameExpressionResolver,
                                       AllocationService allocationService,
                                       DDLClusterStateService ddlClusterStateService) {
-        super(settings, ACTION_NAME, transportService, clusterService, threadPool,
+        super(ACTION_NAME, transportService, clusterService, threadPool,
             indexNameExpressionResolver, RenameTableRequest::new);
-        activeShardsObserver = new ActiveShardsObserver(settings, clusterService, threadPool);
+        activeShardsObserver = new ActiveShardsObserver(clusterService, threadPool);
         executor = new RenameTableClusterStateExecutor(
             indexNameExpressionResolver,
             allocationService,

@@ -32,7 +32,6 @@ import org.elasticsearch.Version;
 import org.elasticsearch.bootstrap.JarHell;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.collect.Tuple;
-import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.io.FileSystemUtils;
@@ -70,8 +69,11 @@ import java.util.stream.Collectors;
 import static org.elasticsearch.common.io.FileSystemUtils.isAccessibleDirectory;
 import static org.elasticsearch.plugins.PluginInfo.ES_PLUGIN_PROPERTIES;
 
-public class PluginsService extends AbstractComponent {
+public class PluginsService {
 
+    private static final Logger logger = LogManager.getLogger(PluginsService.class);
+
+    private final Settings settings;
     private final Path configPath;
 
     /**
@@ -97,8 +99,7 @@ public class PluginsService extends AbstractComponent {
      * @param classpathPlugins Plugins that exist in the classpath which should be loaded
      */
     public PluginsService(Settings settings, Path configPath, Path modulesDirectory, Path pluginsDirectory, Collection<Class<? extends Plugin>> classpathPlugins) {
-        super(settings);
-
+        this.settings = settings;
         this.configPath = configPath;
 
         List<Tuple<PluginInfo, Plugin>> pluginsLoaded = new ArrayList<>();

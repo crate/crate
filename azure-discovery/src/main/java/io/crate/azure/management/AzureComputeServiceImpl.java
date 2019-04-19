@@ -29,6 +29,8 @@ import com.microsoft.windowsazure.Configuration;
 import com.microsoft.windowsazure.core.DefaultBuilder;
 import com.microsoft.windowsazure.management.configuration.ManagementConfiguration;
 import io.crate.azure.AzureConfiguration;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
@@ -44,6 +46,8 @@ import static io.crate.azure.management.AzureComputeService.Management.SUBSCRIPT
 import static io.crate.azure.management.AzureComputeService.Management.TENANT_ID;
 
 public class AzureComputeServiceImpl extends AbstractLifecycleComponent implements AzureComputeService {
+
+    private static final Logger logger = LogManager.getLogger(AzureComputeServiceImpl.class);
 
     private final String resourceGroupName;
     private final String subscriptionId;
@@ -62,7 +66,6 @@ public class AzureComputeServiceImpl extends AbstractLifecycleComponent implemen
 
     @Inject
     public AzureComputeServiceImpl(Settings settings) {
-        super(settings);
         subscriptionId = SUBSCRIPTION_ID.get(settings);
         tenantId = TENANT_ID.get(settings);
         appId = APP_ID.get(settings);

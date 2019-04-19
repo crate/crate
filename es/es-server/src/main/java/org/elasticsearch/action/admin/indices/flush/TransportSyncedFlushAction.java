@@ -23,7 +23,6 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.HandledTransportAction;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.flush.SyncedFlushService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
@@ -36,11 +35,11 @@ public class TransportSyncedFlushAction extends HandledTransportAction<SyncedFlu
     SyncedFlushService syncedFlushService;
 
     @Inject
-    public TransportSyncedFlushAction(Settings settings, ThreadPool threadPool,
+    public TransportSyncedFlushAction(ThreadPool threadPool,
                                       TransportService transportService,
                                       IndexNameExpressionResolver indexNameExpressionResolver,
                                       SyncedFlushService syncedFlushService) {
-        super(settings, SyncedFlushAction.NAME, threadPool, transportService, indexNameExpressionResolver, SyncedFlushRequest::new);
+        super(SyncedFlushAction.NAME, threadPool, transportService, indexNameExpressionResolver, SyncedFlushRequest::new);
         this.syncedFlushService = syncedFlushService;
     }
 

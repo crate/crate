@@ -20,6 +20,7 @@
 package org.elasticsearch.indices.breaker;
 
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.breaker.ChildMemoryCircuitBreaker;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
@@ -42,6 +43,8 @@ import java.util.stream.Collectors;
  * if tripped
  */
 public class HierarchyCircuitBreakerService extends CircuitBreakerService {
+
+    private static final Logger logger = LogManager.getLogger(HierarchyCircuitBreakerService.class);
 
     private static final String CHILD_LOGGER_PREFIX = "org.elasticsearch.indices.breaker.";
 
@@ -88,7 +91,6 @@ public class HierarchyCircuitBreakerService extends CircuitBreakerService {
     private final AtomicLong parentTripCount = new AtomicLong(0);
 
     public HierarchyCircuitBreakerService(Settings settings, ClusterSettings clusterSettings) {
-        super(settings);
         this.fielddataSettings = new BreakerSettings(CircuitBreaker.FIELDDATA,
                 FIELDDATA_CIRCUIT_BREAKER_LIMIT_SETTING.get(settings).getBytes(),
                 FIELDDATA_CIRCUIT_BREAKER_OVERHEAD_SETTING.get(settings),

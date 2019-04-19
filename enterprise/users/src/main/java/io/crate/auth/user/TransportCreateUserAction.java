@@ -34,7 +34,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
@@ -43,12 +42,11 @@ import java.util.Collections;
 public class TransportCreateUserAction extends TransportMasterNodeAction<CreateUserRequest, WriteUserResponse> {
 
     @Inject
-    public TransportCreateUserAction(Settings settings,
-                              TransportService transportService,
-                              ClusterService clusterService,
-                              ThreadPool threadPool,
-                              IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(settings, "internal:crate:sql/user/create", transportService, clusterService, threadPool,
+    public TransportCreateUserAction(TransportService transportService,
+                                     ClusterService clusterService,
+                                     ThreadPool threadPool,
+                                     IndexNameExpressionResolver indexNameExpressionResolver) {
+        super("internal:crate:sql/user/create", transportService, clusterService, threadPool,
             indexNameExpressionResolver, CreateUserRequest::new);
     }
 

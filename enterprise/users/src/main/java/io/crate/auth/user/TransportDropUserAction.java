@@ -32,7 +32,6 @@ import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
@@ -41,13 +40,16 @@ import javax.annotation.Nullable;
 public class TransportDropUserAction extends TransportMasterNodeAction<DropUserRequest, WriteUserResponse> {
 
     @Inject
-    public TransportDropUserAction(Settings settings,
-                                   TransportService transportService,
+    public TransportDropUserAction(TransportService transportService,
                                    ClusterService clusterService,
                                    ThreadPool threadPool,
                                    IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(settings, "internal:crate:sql/user/drop", transportService, clusterService, threadPool,
-            indexNameExpressionResolver, DropUserRequest::new);
+        super("internal:crate:sql/user/drop",
+            transportService,
+            clusterService,
+            threadPool,
+            indexNameExpressionResolver,
+            DropUserRequest::new);
     }
 
     @Override

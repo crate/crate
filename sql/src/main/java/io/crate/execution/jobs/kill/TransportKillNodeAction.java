@@ -22,16 +22,14 @@
 
 package io.crate.execution.jobs.kill;
 
+import io.crate.execution.jobs.TasksService;
 import io.crate.execution.support.MultiActionListener;
 import io.crate.execution.support.NodeAction;
 import io.crate.execution.support.NodeActionRequestHandler;
-import io.crate.execution.jobs.TasksService;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionListenerResponseHandler;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.component.AbstractComponent;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportResponseHandler;
@@ -46,8 +44,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-abstract class TransportKillNodeAction<Request extends TransportRequest> extends AbstractComponent
-    implements NodeAction<Request, KillResponse>, Callable<Request> {
+abstract class TransportKillNodeAction<Request extends TransportRequest> implements NodeAction<Request, KillResponse>, Callable<Request> {
 
     protected final TasksService tasksService;
     protected final ClusterService clusterService;
@@ -55,12 +52,10 @@ abstract class TransportKillNodeAction<Request extends TransportRequest> extends
     protected final String name;
 
     TransportKillNodeAction(String name,
-                            Settings settings,
                             TasksService tasksService,
                             ClusterService clusterService,
                             TransportService transportService,
                             Supplier<Request> requestSupplier) {
-        super(settings);
         this.tasksService = tasksService;
         this.clusterService = clusterService;
         this.transportService = transportService;

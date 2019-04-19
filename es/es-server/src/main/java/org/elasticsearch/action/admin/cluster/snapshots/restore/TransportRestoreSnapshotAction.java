@@ -31,7 +31,6 @@ import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.snapshots.RestoreInfo;
 import org.elasticsearch.snapshots.RestoreService;
@@ -49,10 +48,12 @@ public class TransportRestoreSnapshotAction extends TransportMasterNodeAction<Re
     private final RestoreService restoreService;
 
     @Inject
-    public TransportRestoreSnapshotAction(Settings settings, TransportService transportService, ClusterService clusterService,
-                                          ThreadPool threadPool, RestoreService restoreService,
+    public TransportRestoreSnapshotAction(TransportService transportService,
+                                          ClusterService clusterService,
+                                          ThreadPool threadPool,
+                                          RestoreService restoreService,
                                           IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(settings, RestoreSnapshotAction.NAME, transportService, clusterService, threadPool, indexNameExpressionResolver, RestoreSnapshotRequest::new);
+        super(RestoreSnapshotAction.NAME, transportService, clusterService, threadPool, indexNameExpressionResolver, RestoreSnapshotRequest::new);
         this.restoreService = restoreService;
     }
 

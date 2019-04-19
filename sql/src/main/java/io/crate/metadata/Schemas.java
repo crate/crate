@@ -41,6 +41,8 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.view.ViewMetaData;
 import io.crate.metadata.view.ViewsMetaData;
 import io.crate.sql.tree.QualifiedName;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.metadata.MetaData;
@@ -49,7 +51,6 @@ import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -67,6 +68,8 @@ import java.util.stream.StreamSupport;
 
 @Singleton
 public class Schemas extends AbstractLifecycleComponent implements Iterable<SchemaInfo>, ClusterStateListener {
+
+    private static final Logger logger = LogManager.getLogger(Schemas.class);
 
     public static final Collection<String> READ_ONLY_SCHEMAS = ImmutableSet.of(
         SysSchemaInfo.NAME,
@@ -92,16 +95,14 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
     private final DefaultTemplateService defaultTemplateService;
 
     @Inject
-    public Schemas(Settings settings,
-                   Map<String, SchemaInfo> builtInSchemas,
+    public Schemas(Map<String, SchemaInfo> builtInSchemas,
                    ClusterService clusterService,
                    DocSchemaInfoFactory docSchemaInfoFactory) {
-        super(settings);
         this.clusterService = clusterService;
         this.docSchemaInfoFactory = docSchemaInfoFactory;
         schemas.putAll(builtInSchemas);
         this.builtInSchemas = builtInSchemas;
-        this.defaultTemplateService = new DefaultTemplateService(settings, clusterService);
+        this.defaultTemplateService = new DefaultTemplateService(clusterService);
     }
 
     public TableInfo resolveTableInfo(QualifiedName ident, Operation operation, SearchPath searchPath) {

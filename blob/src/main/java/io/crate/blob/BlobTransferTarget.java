@@ -29,14 +29,14 @@ import io.crate.blob.transfer.BlobTransferInfoResponse;
 import io.crate.blob.transfer.GetBlobHeadRequest;
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.blob.v2.BlobShard;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.IOUtils;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -58,10 +58,11 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
-public class BlobTransferTarget extends AbstractComponent {
+public class BlobTransferTarget {
 
-    private final ConcurrentMap<UUID, BlobTransferStatus> activeTransfers =
-        ConcurrentCollections.newConcurrentMap();
+    private static final Logger logger = LogManager.getLogger(BlobTransferTarget.class);
+
+    private final ConcurrentMap<UUID, BlobTransferStatus> activeTransfers = ConcurrentCollections.newConcurrentMap();
 
     private final BlobIndicesService blobIndicesService;
     private final ThreadPool threadPool;
@@ -77,12 +78,10 @@ public class BlobTransferTarget extends AbstractComponent {
     private final TimeValue STATE_REMOVAL_DELAY;
 
     @Inject
-    public BlobTransferTarget(Settings settings,
-                              BlobIndicesService blobIndicesService,
+    public BlobTransferTarget(BlobIndicesService blobIndicesService,
                               ThreadPool threadPool,
                               TransportService transportService,
                               ClusterService clusterService) {
-        super(settings);
         String property = System.getProperty("tests.short_timeouts");
         if (property == null) {
             STATE_REMOVAL_DELAY = new TimeValue(40, TimeUnit.SECONDS);

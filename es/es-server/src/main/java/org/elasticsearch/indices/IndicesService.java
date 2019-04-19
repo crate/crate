@@ -19,6 +19,7 @@
 
 package org.elasticsearch.indices;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.store.LockObtainFailedException;
@@ -113,6 +114,8 @@ import static org.elasticsearch.common.collect.MapBuilder.newMapBuilder;
 public class IndicesService extends AbstractLifecycleComponent
     implements IndicesClusterStateService.AllocatedIndices<IndexShard, IndexService>, IndexService.ShardStoreDeleter {
 
+    private static final Logger logger = LogManager.getLogger(IndicesService.class);
+
     public static final String INDICES_SHARDS_CLOSED_TIMEOUT = "indices.shards_closed_timeout";
     public static final Setting<TimeValue> INDICES_CACHE_CLEAN_INTERVAL_SETTING =
         Setting.positiveTimeSetting("indices.cache.cleanup_interval", TimeValue.timeValueMinutes(1), Property.NodeScope);
@@ -144,6 +147,7 @@ public class IndicesService extends AbstractLifecycleComponent
     private final CircuitBreakerService circuitBreakerService;
     private final BigArrays bigArrays;
     private final Client client;
+    private final Settings settings;
     private volatile Map<String, IndexService> indices = emptyMap();
     private final Map<Index, List<PendingDelete>> pendingDeletes = new HashMap<>();
     private final AtomicInteger numUncompletedDeletes = new AtomicInteger();
@@ -170,7 +174,7 @@ public class IndicesService extends AbstractLifecycleComponent
                           Client client, MetaStateService metaStateService,
                           Collection<Function<IndexSettings, Optional<EngineFactory>>> engineFactoryProviders,
                           Map<String, Function<IndexSettings, IndexStore>> indexStoreFactories) {
-        super(settings);
+        this.settings = settings;
         this.threadPool = threadPool;
         this.pluginsService = pluginsService;
         this.nodeEnv = nodeEnv;
