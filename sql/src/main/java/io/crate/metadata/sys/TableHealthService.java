@@ -38,11 +38,9 @@ import io.crate.sql.tree.Statement;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.rest.RestStatus;
 
 import javax.annotation.Nonnull;
@@ -58,7 +56,9 @@ import java.util.stream.StreamSupport;
 import static java.util.concurrent.CompletableFuture.completedFuture;
 
 @Singleton
-public class TableHealthService extends AbstractComponent {
+public class TableHealthService {
+
+    private static final Logger logger = LogManager.getLogger(TableHealthService.class);
 
     private static final String STMT = "select table_name, schema_name, partition_ident, routing_state," +
                                        " \"primary\", relocating_node, count(*) from sys.shards " +
@@ -71,11 +71,9 @@ public class TableHealthService extends AbstractComponent {
     private Session session;
 
     @Inject
-    public TableHealthService(Settings settings,
-                              ClusterService clusterService,
+    public TableHealthService(ClusterService clusterService,
                               Schemas schemas,
                               Provider<SQLOperations> sqlOperationsProvider) {
-        super(settings);
         this.clusterService = clusterService;
         this.schemas = schemas;
         this.sqlOperationsProvider = sqlOperationsProvider;

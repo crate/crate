@@ -19,21 +19,20 @@
 
 package org.elasticsearch.common.blobstore.fs;
 
-import org.elasticsearch.core.internal.io.IOUtils;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.blobstore.BlobContainer;
 import org.elasticsearch.common.blobstore.BlobPath;
 import org.elasticsearch.common.blobstore.BlobStore;
-import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
+import org.elasticsearch.core.internal.io.IOUtils;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-public class FsBlobStore extends AbstractComponent implements BlobStore {
+public class FsBlobStore implements BlobStore {
 
     private final Path path;
 
@@ -42,7 +41,6 @@ public class FsBlobStore extends AbstractComponent implements BlobStore {
     private final boolean readOnly;
 
     public FsBlobStore(Settings settings, Path path) throws IOException {
-        super(settings);
         this.path = path;
         this.readOnly = settings.getAsBoolean("readonly", false);
         if (!this.readOnly) {

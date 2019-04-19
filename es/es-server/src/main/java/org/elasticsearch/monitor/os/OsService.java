@@ -19,7 +19,8 @@
 
 package org.elasticsearch.monitor.os;
 
-import org.elasticsearch.common.component.AbstractComponent;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
@@ -27,7 +28,9 @@ import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.SingleObjectCache;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
 
-public class OsService extends AbstractComponent {
+public class OsService {
+
+    private static final Logger logger = LogManager.getLogger(OsService.class);
 
     private final OsProbe probe;
     private final OsInfo info;
@@ -38,7 +41,6 @@ public class OsService extends AbstractComponent {
                 Property.NodeScope);
 
     public OsService(Settings settings) {
-        super(settings);
         this.probe = OsProbe.getInstance();
         TimeValue refreshInterval = REFRESH_INTERVAL_SETTING.get(settings);
         this.info = probe.osInfo(refreshInterval.millis(), EsExecutors.numberOfProcessors(settings));

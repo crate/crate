@@ -35,7 +35,6 @@ import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.Priority;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
@@ -49,8 +48,7 @@ public abstract class AbstractDDLTransportAction<Request extends AcknowledgedReq
     private final Function<Boolean, Response> ackedResponseFunction;
     private final String source;
 
-    public AbstractDDLTransportAction(Settings settings,
-                                      String actionName,
+    public AbstractDDLTransportAction(String actionName,
                                       TransportService transportService,
                                       ClusterService clusterService,
                                       ThreadPool threadPool,
@@ -59,8 +57,7 @@ public abstract class AbstractDDLTransportAction<Request extends AcknowledgedReq
                                       Supplier<Response> responseSupplier,
                                       Function<Boolean, Response> ackedResponseFunction,
                                       String source) {
-        super(settings, actionName, transportService, clusterService, threadPool,
-            indexNameExpressionResolver, requestSupplier);
+        super(actionName, transportService, clusterService, threadPool, indexNameExpressionResolver, requestSupplier);
         this.responseSupplier = responseSupplier;
         this.ackedResponseFunction = ackedResponseFunction;
         this.source = source;

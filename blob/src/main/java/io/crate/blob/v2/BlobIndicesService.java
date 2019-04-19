@@ -23,11 +23,12 @@ package io.crate.blob.v2;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.plugin.IndexEventListenerProxy;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.PathUtils;
 import org.elasticsearch.common.settings.Setting;
@@ -55,7 +56,9 @@ import static io.crate.blob.v2.BlobIndex.isBlobIndex;
 /**
  * Manages the creation and deletion of BlobIndex and BlobShard instances.
  */
-public class BlobIndicesService extends AbstractComponent implements IndexEventListener {
+public class BlobIndicesService implements IndexEventListener {
+
+    private static final Logger logger = LogManager.getLogger(BlobIndicesService.class);
 
     public static final Setting<Boolean> SETTING_INDEX_BLOBS_ENABLED = Setting.boolSetting(
         "index.blobs.enabled", false, Setting.Property.IndexScope);
@@ -74,7 +77,6 @@ public class BlobIndicesService extends AbstractComponent implements IndexEventL
 
     @Inject
     public BlobIndicesService(Settings settings, ClusterService clusterService, IndexEventListenerProxy indexEventListenerProxy) {
-        super(settings);
         this.clusterService = clusterService;
         globalBlobPath = getGlobalBlobPath(settings);
         indexEventListenerProxy.addFirst(this);

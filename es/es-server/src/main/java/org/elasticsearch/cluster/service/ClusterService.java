@@ -61,10 +61,13 @@ public class ClusterService extends AbstractLifecycleComponent {
 
     private final ClusterSettings clusterSettings;
     private final Map<String, Supplier<ClusterState.Custom>> initialClusterStateCustoms;
+    private final Settings settings;
 
-    public ClusterService(Settings settings, ClusterSettings clusterSettings, ThreadPool threadPool,
+    public ClusterService(Settings settings,
+                          ClusterSettings clusterSettings,
+                          ThreadPool threadPool,
                           Map<String, Supplier<ClusterState.Custom>> initialClusterStateCustoms) {
-        super(settings);
+        this.settings = settings;
         this.masterService = new MasterService(settings, threadPool);
         this.operationRouting = new OperationRouting(settings, clusterSettings);
         this.clusterSettings = clusterSettings;

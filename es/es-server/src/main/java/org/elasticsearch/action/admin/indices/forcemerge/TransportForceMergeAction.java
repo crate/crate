@@ -30,7 +30,6 @@ import org.elasticsearch.cluster.routing.ShardsIterator;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -47,10 +46,12 @@ public class TransportForceMergeAction extends TransportBroadcastByNodeAction<Fo
     private final IndicesService indicesService;
 
     @Inject
-    public TransportForceMergeAction(Settings settings, ThreadPool threadPool, ClusterService clusterService,
-                                   TransportService transportService, IndicesService indicesService,
-                                   IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(settings, ForceMergeAction.NAME, threadPool, clusterService, transportService, indexNameExpressionResolver,
+    public TransportForceMergeAction(ThreadPool threadPool,
+                                     ClusterService clusterService,
+                                     TransportService transportService,
+                                     IndicesService indicesService,
+                                     IndexNameExpressionResolver indexNameExpressionResolver) {
+        super(ForceMergeAction.NAME, threadPool, clusterService, transportService, indexNameExpressionResolver,
                 ForceMergeRequest::new, ThreadPool.Names.FORCE_MERGE);
         this.indicesService = indicesService;
     }

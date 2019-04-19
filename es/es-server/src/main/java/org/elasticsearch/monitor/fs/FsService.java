@@ -19,21 +19,23 @@
 
 package org.elasticsearch.monitor.fs;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.ClusterInfo;
+import org.elasticsearch.cluster.ClusterInfoService;
 import org.elasticsearch.common.Nullable;
-import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.SingleObjectCache;
 import org.elasticsearch.env.NodeEnvironment;
-import org.elasticsearch.cluster.ClusterInfoService;
 
 import java.io.IOException;
 
-public class FsService extends AbstractComponent {
+public class FsService {
+
+    private static final Logger logger = LogManager.getLogger(FsService.class);
 
     private final FsProbe probe;
     private final TimeValue refreshInterval;
@@ -48,8 +50,7 @@ public class FsService extends AbstractComponent {
             Property.NodeScope);
 
     public FsService(final Settings settings, final NodeEnvironment nodeEnvironment, ClusterInfoService clusterInfoService) {
-        super(settings);
-        this.probe = new FsProbe(settings, nodeEnvironment);
+        this.probe = new FsProbe(nodeEnvironment);
         this.clusterInfoService = clusterInfoService;
         refreshInterval = REFRESH_INTERVAL_SETTING.get(settings);
         logger.debug("using refresh_interval [{}]", refreshInterval);

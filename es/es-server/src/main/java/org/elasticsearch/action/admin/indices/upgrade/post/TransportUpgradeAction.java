@@ -38,7 +38,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.tasks.Task;
@@ -62,10 +61,13 @@ public class TransportUpgradeAction extends TransportBroadcastByNodeAction<Upgra
     private final TransportUpgradeSettingsAction upgradeSettingsAction;
 
     @Inject
-    public TransportUpgradeAction(Settings settings, ThreadPool threadPool, ClusterService clusterService,
-                                  TransportService transportService, IndicesService indicesService,
-                                  IndexNameExpressionResolver indexNameExpressionResolver, TransportUpgradeSettingsAction upgradeSettingsAction) {
-        super(settings, UpgradeAction.NAME, threadPool, clusterService, transportService, indexNameExpressionResolver, UpgradeRequest::new, ThreadPool.Names.FORCE_MERGE);
+    public TransportUpgradeAction(ThreadPool threadPool,
+                                  ClusterService clusterService,
+                                  TransportService transportService,
+                                  IndicesService indicesService,
+                                  IndexNameExpressionResolver indexNameExpressionResolver,
+                                  TransportUpgradeSettingsAction upgradeSettingsAction) {
+        super(UpgradeAction.NAME, threadPool, clusterService, transportService, indexNameExpressionResolver, UpgradeRequest::new, ThreadPool.Names.FORCE_MERGE);
         this.indicesService = indicesService;
         this.upgradeSettingsAction = upgradeSettingsAction;
     }

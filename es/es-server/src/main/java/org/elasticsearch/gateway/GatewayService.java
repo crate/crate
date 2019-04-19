@@ -20,6 +20,8 @@
 package org.elasticsearch.gateway;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterState;
@@ -48,6 +50,8 @@ import org.elasticsearch.threadpool.ThreadPool;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class GatewayService extends AbstractLifecycleComponent implements ClusterStateListener {
+
+    private static final Logger logger = LogManager.getLogger(GatewayService.class);
 
     public static final Setting<Integer> EXPECTED_NODES_SETTING =
         Setting.intSetting("gateway.expected_nodes", -1, -1, Property.NodeScope);
@@ -106,29 +110,28 @@ public class GatewayService extends AbstractLifecycleComponent implements Cluste
                           ThreadPool threadPool, GatewayMetaState metaState,
                           TransportNodesListGatewayMetaState listGatewayMetaState,
                           IndicesService indicesService) {
-        super(settings);
         this.gateway = new Gateway(settings, clusterService, listGatewayMetaState,
             indicesService);
         this.allocationService = allocationService;
         this.clusterService = clusterService;
         this.threadPool = threadPool;
         // allow to control a delay of when indices will get created
-        this.expectedNodes = EXPECTED_NODES_SETTING.get(this.settings);
-        this.expectedDataNodes = EXPECTED_DATA_NODES_SETTING.get(this.settings);
-        this.expectedMasterNodes = EXPECTED_MASTER_NODES_SETTING.get(this.settings);
+        this.expectedNodes = EXPECTED_NODES_SETTING.get(settings);
+        this.expectedDataNodes = EXPECTED_DATA_NODES_SETTING.get(settings);
+        this.expectedMasterNodes = EXPECTED_MASTER_NODES_SETTING.get(settings);
 
-        if (RECOVER_AFTER_TIME_SETTING.exists(this.settings)) {
-            recoverAfterTime = RECOVER_AFTER_TIME_SETTING.get(this.settings);
+        if (RECOVER_AFTER_TIME_SETTING.exists(settings)) {
+            recoverAfterTime = RECOVER_AFTER_TIME_SETTING.get(settings);
         } else if (expectedNodes >= 0 || expectedDataNodes >= 0 || expectedMasterNodes >= 0) {
             recoverAfterTime = DEFAULT_RECOVER_AFTER_TIME_IF_EXPECTED_NODES_IS_SET;
         } else {
             recoverAfterTime = null;
         }
-        this.recoverAfterNodes = RECOVER_AFTER_NODES_SETTING.get(this.settings);
-        this.recoverAfterDataNodes = RECOVER_AFTER_DATA_NODES_SETTING.get(this.settings);
+        this.recoverAfterNodes = RECOVER_AFTER_NODES_SETTING.get(settings);
+        this.recoverAfterDataNodes = RECOVER_AFTER_DATA_NODES_SETTING.get(settings);
         // default the recover after master nodes to the minimum master nodes in the discovery
-        if (RECOVER_AFTER_MASTER_NODES_SETTING.exists(this.settings)) {
-            recoverAfterMasterNodes = RECOVER_AFTER_MASTER_NODES_SETTING.get(this.settings);
+        if (RECOVER_AFTER_MASTER_NODES_SETTING.exists(settings)) {
+            recoverAfterMasterNodes = RECOVER_AFTER_MASTER_NODES_SETTING.get(settings);
         } else {
             // TODO: change me once the minimum_master_nodes is changed too
             recoverAfterMasterNodes = settings.getAsInt("discovery.zen.minimum_master_nodes", -1);

@@ -19,6 +19,8 @@
 
 package org.elasticsearch.repositories.blobstore;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.index.CorruptIndexException;
 import org.apache.lucene.index.IndexCommit;
@@ -171,6 +173,8 @@ import static org.elasticsearch.index.snapshots.blobstore.BlobStoreIndexShardSna
  */
 public abstract class BlobStoreRepository extends AbstractLifecycleComponent implements Repository {
 
+    protected final Logger logger = LogManager.getLogger(getClass());
+
     protected final RepositoryMetaData metadata;
 
     protected final NamedXContentRegistry namedXContentRegistry;
@@ -213,6 +217,8 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
 
     private final CounterMetric restoreRateLimitingTimeInNanos = new CounterMetric();
 
+    protected final Settings settings;
+
     private ChecksumBlobStoreFormat<MetaData> globalMetaDataFormat;
 
     private ChecksumBlobStoreFormat<IndexMetaData> indexMetaDataFormat;
@@ -238,7 +244,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
      * @param globalSettings Settings for the node this repository object is created on
      */
     protected BlobStoreRepository(RepositoryMetaData metadata, Settings globalSettings, NamedXContentRegistry namedXContentRegistry) {
-        super(globalSettings);
+        this.settings = globalSettings;
         this.metadata = metadata;
         this.namedXContentRegistry = namedXContentRegistry;
         snapshotRateLimiter = getRateLimiter(metadata.settings(), "max_snapshot_bytes_per_sec", new ByteSizeValue(40, ByteSizeUnit.MB));

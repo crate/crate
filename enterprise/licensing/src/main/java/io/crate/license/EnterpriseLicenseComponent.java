@@ -22,7 +22,6 @@ import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
 
@@ -33,10 +32,7 @@ public class EnterpriseLicenseComponent extends AbstractLifecycleComponent {
     private final ClusterStateListener listener;
 
     @Inject
-    public EnterpriseLicenseComponent(Settings settings,
-                                      ClusterService clusterService,
-                                      LicenseService licenseService) {
-        super(settings);
+    public EnterpriseLicenseComponent(ClusterService clusterService, LicenseService licenseService) {
         this.clusterService = clusterService;
         this.listener = licenseService.clusterStateListener();
     }

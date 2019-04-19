@@ -35,12 +35,11 @@ import io.crate.settings.CrateSetting;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
 import io.crate.types.DataTypes;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
@@ -54,7 +53,9 @@ import java.util.function.Consumer;
  * Periodically refresh {@link TableStats} based on {@link #refreshInterval}.
  */
 @Singleton
-public class TableStatsService extends AbstractComponent implements Runnable {
+public class TableStatsService implements Runnable {
+
+    private static final Logger logger = LogManager.getLogger(TableStatsService.class);
 
     public static final CrateSetting<TimeValue> STATS_SERVICE_REFRESH_INTERVAL_SETTING = CrateSetting.of(Setting.timeSetting(
         "stats.service.interval", TimeValue.timeValueHours(1), Setting.Property.NodeScope, Setting.Property.Dynamic),
@@ -80,7 +81,6 @@ public class TableStatsService extends AbstractComponent implements Runnable {
                              ClusterService clusterService,
                              TableStats tableStats,
                              SQLOperations sqlOperations) {
-        super(settings);
         this.threadPool = threadPool;
         this.clusterService = clusterService;
         resultReceiver = new TableStatsResultReceiver(tableStats::updateTableStats);

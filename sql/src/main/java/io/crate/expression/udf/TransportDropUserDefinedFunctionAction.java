@@ -35,7 +35,6 @@ import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
@@ -46,14 +45,17 @@ public class TransportDropUserDefinedFunctionAction
     private final UserDefinedFunctionService udfService;
 
     @Inject
-    public TransportDropUserDefinedFunctionAction(Settings settings,
-                                                  TransportService transportService,
+    public TransportDropUserDefinedFunctionAction(TransportService transportService,
                                                   ClusterService clusterService,
                                                   ThreadPool threadPool,
                                                   UserDefinedFunctionService udfService,
                                                   IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(settings, "internal:crate:sql/udf/drop", transportService, clusterService, threadPool,
-            indexNameExpressionResolver, DropUserDefinedFunctionRequest::new);
+        super("internal:crate:sql/udf/drop",
+            transportService,
+            clusterService,
+            threadPool,
+            indexNameExpressionResolver,
+            DropUserDefinedFunctionRequest::new);
         this.udfService = udfService;
     }
 

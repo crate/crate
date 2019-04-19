@@ -33,7 +33,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
@@ -48,12 +47,11 @@ public class TransportPrivilegesAction extends TransportMasterNodeAction<Privile
     private static final String ACTION_NAME = "internal:crate:sql/privileges/grant";
 
     @Inject
-    public TransportPrivilegesAction(Settings settings,
-                                     TransportService transportService,
+    public TransportPrivilegesAction(TransportService transportService,
                                      ClusterService clusterService,
                                      ThreadPool threadPool,
                                      IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(settings, ACTION_NAME, transportService, clusterService, threadPool, indexNameExpressionResolver, PrivilegesRequest::new);
+        super(ACTION_NAME, transportService, clusterService, threadPool, indexNameExpressionResolver, PrivilegesRequest::new);
     }
 
     @Override

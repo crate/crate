@@ -33,19 +33,17 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 public class TransportAlterUserAction extends TransportMasterNodeAction<AlterUserRequest, WriteUserResponse> {
 
     @Inject
-    public TransportAlterUserAction(Settings settings,
-                                       TransportService transportService,
-                                       ClusterService clusterService,
-                                       ThreadPool threadPool,
-                                       IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(settings, "internal:crate:sql/user/alter", transportService, clusterService, threadPool,
+    public TransportAlterUserAction(TransportService transportService,
+                                    ClusterService clusterService,
+                                    ThreadPool threadPool,
+                                    IndexNameExpressionResolver indexNameExpressionResolver) {
+        super("internal:crate:sql/user/alter", transportService, clusterService, threadPool,
             indexNameExpressionResolver, AlterUserRequest::new);
     }
 

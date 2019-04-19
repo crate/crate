@@ -19,11 +19,12 @@
 
 package org.elasticsearch.action.support.replication;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.store.AlreadyClosedException;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ExceptionsHelper;
-import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionListenerResponseHandler;
 import org.elasticsearch.action.ActionResponse;
@@ -98,6 +99,8 @@ public abstract class TransportReplicationAction<
             Response extends ReplicationResponse
         > extends TransportAction<Request, Response> {
 
+    protected final Logger logger = LogManager.getLogger(getClass());
+
     protected final TransportService transportService;
     protected final ClusterService clusterService;
     protected final ShardStateAction shardStateAction;
@@ -110,6 +113,7 @@ public abstract class TransportReplicationAction<
     protected final String transportPrimaryAction;
 
     private final boolean syncGlobalCheckpointAfterOperation;
+
 
     protected TransportReplicationAction(Settings settings, String actionName, TransportService transportService,
                                          ClusterService clusterService, IndicesService indicesService,
@@ -127,7 +131,7 @@ public abstract class TransportReplicationAction<
                                          IndexNameExpressionResolver indexNameExpressionResolver, Supplier<Request> request,
                                          Supplier<ReplicaRequest> replicaRequest, String executor,
                                          boolean syncGlobalCheckpointAfterOperation) {
-        super(settings, actionName, threadPool, indexNameExpressionResolver, transportService.getTaskManager());
+        super(actionName, threadPool, indexNameExpressionResolver, transportService.getTaskManager());
         this.transportService = transportService;
         this.clusterService = clusterService;
         this.indicesService = indicesService;

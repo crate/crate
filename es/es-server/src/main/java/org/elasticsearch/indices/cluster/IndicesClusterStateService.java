@@ -19,11 +19,11 @@
 
 package org.elasticsearch.indices.cluster;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.store.LockObtainFailedException;
 import org.elasticsearch.ResourceAlreadyExistsException;
-import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterState;
@@ -33,7 +33,6 @@ import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
-import org.elasticsearch.cluster.routing.AllocationId;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
 import org.elasticsearch.cluster.routing.RecoverySource.Type;
 import org.elasticsearch.cluster.routing.RoutingNode;
@@ -86,8 +85,6 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static org.elasticsearch.indices.cluster.IndicesClusterStateService.AllocatedIndices.IndexRemovalReason.CLOSED;
 import static org.elasticsearch.indices.cluster.IndicesClusterStateService.AllocatedIndices.IndexRemovalReason.DELETED;
@@ -95,6 +92,8 @@ import static org.elasticsearch.indices.cluster.IndicesClusterStateService.Alloc
 import static org.elasticsearch.indices.cluster.IndicesClusterStateService.AllocatedIndices.IndexRemovalReason.NO_LONGER_ASSIGNED;
 
 public class IndicesClusterStateService extends AbstractLifecycleComponent implements ClusterStateApplier {
+
+    private static final Logger logger = LogManager.getLogger(IndicesClusterStateService.class);
 
     final AllocatedIndices<? extends Shard, ? extends AllocatedIndex<? extends Shard>> indicesService;
     private final ClusterService clusterService;
@@ -117,6 +116,7 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
     private final List<IndexEventListener> buildInIndexListener;
     private final PrimaryReplicaSyncer primaryReplicaSyncer;
     private final Consumer<ShardId> globalCheckpointSyncer;
+    private final Settings settings;
 
     @Inject
     public IndicesClusterStateService(Settings settings,
@@ -152,13 +152,13 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
                                SnapshotShardsService snapshotShardsService,
                                PrimaryReplicaSyncer primaryReplicaSyncer,
                                Consumer<ShardId> globalCheckpointSyncer) {
-        super(settings);
         this.buildInIndexListener =
                 Arrays.asList(
                         peerRecoverySourceService,
                         recoveryTargetService,
                         syncedFlushService,
                         snapshotShardsService);
+        this.settings = settings;
         this.indicesService = indicesService;
         this.clusterService = clusterService;
         this.threadPool = threadPool;
@@ -168,7 +168,7 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
         this.repositoriesService = repositoriesService;
         this.primaryReplicaSyncer = primaryReplicaSyncer;
         this.globalCheckpointSyncer = globalCheckpointSyncer;
-        this.sendRefreshMapping = this.settings.getAsBoolean("indices.cluster.send_refresh_mapping", true);
+        this.sendRefreshMapping = settings.getAsBoolean("indices.cluster.send_refresh_mapping", true);
     }
 
     @Override

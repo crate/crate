@@ -49,6 +49,7 @@ import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.common.util.concurrent.PrioritizedEsThreadPoolExecutor;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.discovery.Discovery;
+import org.elasticsearch.node.Node;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import java.util.Arrays;
@@ -68,7 +69,11 @@ import static org.elasticsearch.common.util.concurrent.EsExecutors.daemonThreadF
 
 public class MasterService extends AbstractLifecycleComponent {
 
+    private static final Logger logger = LogManager.getLogger(MasterService.class);
+
     public static final String MASTER_UPDATE_THREAD_NAME = "masterService#updateTask";
+    private final Settings settings;
+    private final String nodeName;
 
     private BiConsumer<ClusterChangedEvent, Discovery.AckListener> clusterStatePublisher;
 
@@ -82,8 +87,9 @@ public class MasterService extends AbstractLifecycleComponent {
     private volatile Batcher taskBatcher;
 
     public MasterService(Settings settings, ThreadPool threadPool) {
-        super(settings);
         // TODO: introduce a dedicated setting for master service
+        this.nodeName = Node.NODE_NAME_SETTING.get(settings);
+        this.settings = settings;
         this.slowTaskLoggingThreshold = CLUSTER_SERVICE_SLOW_TASK_LOGGING_THRESHOLD_SETTING.get(settings);
         this.threadPool = threadPool;
     }
@@ -105,7 +111,7 @@ public class MasterService extends AbstractLifecycleComponent {
         Objects.requireNonNull(clusterStatePublisher, "please set a cluster state publisher before starting");
         Objects.requireNonNull(clusterStateSupplier, "please set a cluster state supplier before starting");
         threadPoolExecutor = EsExecutors.newSinglePrioritizing(
-                nodeName() + "/" + MASTER_UPDATE_THREAD_NAME,
+                nodeName + "/" + MASTER_UPDATE_THREAD_NAME,
                 daemonThreadFactory(settings, MASTER_UPDATE_THREAD_NAME),
                 threadPool.getThreadContext(),
                 threadPool.scheduler());

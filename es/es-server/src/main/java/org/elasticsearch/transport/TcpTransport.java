@@ -20,6 +20,8 @@ package org.elasticsearch.transport;
 
 import com.carrotsearch.hppc.IntHashSet;
 import com.carrotsearch.hppc.IntSet;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.Version;
@@ -64,6 +66,7 @@ import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.core.internal.io.IOUtils;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.monitor.jvm.JvmInfo;
+import org.elasticsearch.node.Node;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.threadpool.ThreadPool;
 
@@ -115,6 +118,7 @@ import static org.elasticsearch.common.transport.NetworkExceptionHelper.isConnec
 import static org.elasticsearch.common.util.concurrent.ConcurrentCollections.newConcurrentMap;
 
 public abstract class TcpTransport extends AbstractLifecycleComponent implements Transport {
+
 
     public static final String TRANSPORT_SERVER_WORKER_THREAD_NAME_PREFIX = "transport_server_worker";
     public static final String TRANSPORT_CLIENT_BOSS_THREAD_NAME_PREFIX = "transport_client_boss";
@@ -172,6 +176,8 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
 
     public static final String FEATURE_PREFIX = "transport.features";
     public static final Setting<Settings> DEFAULT_FEATURES_SETTING = Setting.groupSetting(FEATURE_PREFIX + ".", Setting.Property.NodeScope);
+
+    protected final Logger logger = LogManager.getLogger(getClass());
     private final String[] features;
 
     private final CircuitBreakerService circuitBreakerService;
@@ -194,6 +200,8 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
     // connections while no connect operations is going on
     private final ReadWriteLock closeLock = new ReentrantReadWriteLock();
     protected final boolean compress;
+    protected final Settings settings;
+    private final String nodeName;
     private volatile BoundTransportAddress boundAddress;
     private final String transportName;
 
@@ -210,7 +218,7 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
     public TcpTransport(String transportName, Settings settings, ThreadPool threadPool, BigArrays bigArrays,
                         CircuitBreakerService circuitBreakerService, NamedWriteableRegistry namedWriteableRegistry,
                         NetworkService networkService) {
-        super(settings);
+        this.settings = settings;
         this.profileSettings = getProfileSettings(settings);
         this.threadPool = threadPool;
         this.bigArrays = bigArrays;
@@ -219,6 +227,7 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
         this.compress = Transport.TRANSPORT_TCP_COMPRESS.get(settings);
         this.networkService = networkService;
         this.transportName = transportName;
+        this.nodeName = Node.NODE_NAME_SETTING.get(settings);
         final Settings defaultFeatures = DEFAULT_FEATURES_SETTING.get(settings);
         if (defaultFeatures == null) {
             this.features = new String[0];
@@ -919,7 +928,7 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
             stream.setVersion(nodeVersion);
             stream.setFeatures(features);
             RemoteTransportException tx = new RemoteTransportException(
-                nodeName(), new TransportAddress(channel.getLocalAddress()), action, error);
+                nodeName, new TransportAddress(channel.getLocalAddress()), action, error);
             threadPool.getThreadContext().writeTo(stream);
             stream.writeException(tx);
             byte status = 0;

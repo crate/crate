@@ -21,7 +21,6 @@ package org.elasticsearch.gateway;
 
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.FailedNodeException;
 import org.elasticsearch.action.support.nodes.BaseNodeRequest;
@@ -70,16 +69,21 @@ public class TransportNodesListGatewayStartedShards extends
     private final NodeEnvironment nodeEnv;
     private final IndicesService indicesService;
     private final NamedXContentRegistry namedXContentRegistry;
+    private final Settings settings;
 
     @Inject
-    public TransportNodesListGatewayStartedShards(Settings settings, ThreadPool threadPool,
-                                                  ClusterService clusterService, TransportService transportService,
+    public TransportNodesListGatewayStartedShards(Settings settings,
+                                                  ThreadPool threadPool,
+                                                  ClusterService clusterService,
+                                                  TransportService transportService,
                                                   IndexNameExpressionResolver indexNameExpressionResolver,
-                                                  NodeEnvironment env, IndicesService indicesService,
+                                                  NodeEnvironment env,
+                                                  IndicesService indicesService,
                                                   NamedXContentRegistry namedXContentRegistry) {
-        super(settings, ACTION_NAME, threadPool, clusterService, transportService,
+        super(ACTION_NAME, threadPool, clusterService, transportService,
               indexNameExpressionResolver, Request::new, NodeRequest::new, ThreadPool.Names.FETCH_SHARD_STARTED,
               NodeGatewayStartedShards.class);
+        this.settings = settings;
         this.nodeEnv = env;
         this.indicesService = indicesService;
         this.namedXContentRegistry = namedXContentRegistry;

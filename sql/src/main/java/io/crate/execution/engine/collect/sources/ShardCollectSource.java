@@ -70,12 +70,13 @@ import io.crate.metadata.sys.SysShardsTableInfo;
 import io.crate.planner.consumer.OrderByPositionVisitor;
 import io.crate.plugin.IndexEventListenerProxy;
 import io.crate.types.DataType;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Nullable;
-import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
@@ -137,7 +138,9 @@ import static io.crate.execution.support.ThreadPools.numIdleThreads;
  * In other cases multiple shards are simply processed sequentially by concatenating the BatchIterators
  */
 @Singleton
-public class ShardCollectSource extends AbstractComponent implements CollectSource {
+public class ShardCollectSource implements CollectSource {
+
+    private static final Logger logger = LogManager.getLogger(ShardCollectSource.class);
 
     private final IndicesService indicesService;
     private final ClusterService clusterService;
@@ -167,7 +170,6 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
                               IndexEventListenerProxy indexEventListenerProxy,
                               BlobIndicesService blobIndicesService,
                               BigArrays bigArrays) {
-        super(settings);
         this.unassignedShardReferenceResolver = new StaticTableReferenceResolver<>(
             SysShardsTableInfo.unassignedShardsExpressions());
         this.shardReferenceResolver = new StaticTableReferenceResolver<>(SysShardsTableInfo.expressions());

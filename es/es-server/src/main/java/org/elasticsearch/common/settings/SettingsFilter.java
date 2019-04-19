@@ -19,7 +19,6 @@
 package org.elasticsearch.common.settings;
 
 import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.common.xcontent.ToXContent.Params;
 
@@ -35,24 +34,21 @@ import java.util.Set;
  * A class that allows to filter settings objects by simple regular expression patterns or full settings keys.
  * It's used for response filtering on the rest layer to for instance filter out sensitive information like access keys.
  */
-public final class SettingsFilter extends AbstractComponent {
+public final class SettingsFilter {
     /**
      * Can be used to specify settings filter that will be used to filter out matching settings in toXContent method
      */
     public static String SETTINGS_FILTER_PARAM = "settings_filter";
 
     private final Set<String> patterns;
-    private final String patternString;
 
-    public SettingsFilter(Settings settings, Collection<String> patterns) {
-        super(settings);
+    public SettingsFilter(Collection<String> patterns) {
         for (String pattern : patterns) {
             if (isValidPattern(pattern) == false) {
                 throw new IllegalArgumentException("invalid pattern: " + pattern);
             }
         }
         this.patterns = Collections.unmodifiableSet(new HashSet<>(patterns));
-        patternString = Strings.collectionToDelimitedString(patterns, ",");
     }
 
     /**

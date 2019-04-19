@@ -18,6 +18,8 @@
  */
 package org.elasticsearch.cluster;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
@@ -55,6 +57,8 @@ import static org.elasticsearch.common.settings.Setting.positiveTimeSetting;
  */
 public class NodeConnectionsService extends AbstractLifecycleComponent {
 
+    private static final Logger logger = LogManager.getLogger(NodeConnectionsService.class);
+
     public static final Setting<TimeValue> CLUSTER_NODE_RECONNECT_INTERVAL_SETTING =
             positiveTimeSetting("cluster.nodes.reconnect_interval", TimeValue.timeValueSeconds(10), Property.NodeScope);
     private final ThreadPool threadPool;
@@ -72,7 +76,6 @@ public class NodeConnectionsService extends AbstractLifecycleComponent {
 
     @Inject
     public NodeConnectionsService(Settings settings, ThreadPool threadPool, TransportService transportService) {
-        super(settings);
         this.threadPool = threadPool;
         this.transportService = transportService;
         this.reconnectInterval = NodeConnectionsService.CLUSTER_NODE_RECONNECT_INTERVAL_SETTING.get(settings);

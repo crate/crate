@@ -23,7 +23,6 @@ import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.logging.log4j.util.Supplier;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.tasks.Task;
 import org.elasticsearch.tasks.TaskAwareRequest;
 import org.elasticsearch.tasks.TaskManager;
@@ -40,10 +39,6 @@ public class MockTaskManager extends TaskManager {
         Setting.boolSetting("tests.mock.taskmanager.enabled", false, Property.NodeScope);
 
     private final Collection<MockTaskManagerListener> listeners = new CopyOnWriteArrayList<>();
-
-    public MockTaskManager(Settings settings) {
-        super(settings);
-    }
 
     @Override
     public Task register(String type, String action, TaskAwareRequest request) {

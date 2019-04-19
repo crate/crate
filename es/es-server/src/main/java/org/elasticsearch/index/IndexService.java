@@ -156,8 +156,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
         this.nodeEnv = nodeEnv;
         this.indexStore = indexStore;
         this.bitsetFilterCache = new BitsetFilterCache(indexSettings, new BitsetCacheListener(this));
-        this.warmer = new IndexWarmer(indexSettings.getSettings(), threadPool, indexFieldData,
-            bitsetFilterCache.createListener(threadPool));
+        this.warmer = new IndexWarmer(threadPool, indexFieldData, bitsetFilterCache.createListener(threadPool));
         this.indexCache = new IndexCache(indexSettings, queryCache, bitsetFilterCache);
         this.engineFactory = Objects.requireNonNull(engineFactory);
         // initialize this last -- otherwise if the wrapper requires any other member to be non-null we fail with an NPE

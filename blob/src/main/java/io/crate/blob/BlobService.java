@@ -28,7 +28,6 @@ import io.crate.blob.v2.BlobIndex;
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.plugin.PipelineRegistry;
 import io.crate.protocols.http.HttpBlobHandler;
-import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -38,13 +37,7 @@ import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.recovery.PeerRecoverySourceService;
-import org.elasticsearch.indices.recovery.RecoverySourceHandler;
-import org.elasticsearch.indices.recovery.RecoverySourceHandlerProvider;
-import org.elasticsearch.indices.recovery.RemoteRecoveryTargetHandler;
-import org.elasticsearch.indices.recovery.StartRecoveryRequest;
 import org.elasticsearch.transport.TransportService;
 
 public class BlobService extends AbstractLifecycleComponent {
@@ -59,8 +52,7 @@ public class BlobService extends AbstractLifecycleComponent {
     private final PipelineRegistry piplineRegistry;
 
     @Inject
-    public BlobService(Settings settings,
-                       ClusterService clusterService,
+    public BlobService(ClusterService clusterService,
                        BlobIndicesService blobIndicesService,
                        BlobHeadRequestHandler blobHeadRequestHandler,
                        PeerRecoverySourceService peerRecoverySourceService,
@@ -68,7 +60,6 @@ public class BlobService extends AbstractLifecycleComponent {
                        BlobTransferTarget blobTransferTarget,
                        Client client,
                        PipelineRegistry pipelineRegistry) {
-        super(settings);
         this.clusterService = clusterService;
         this.blobIndicesService = blobIndicesService;
         this.blobHeadRequestHandler = blobHeadRequestHandler;
@@ -92,28 +83,19 @@ public class BlobService extends AbstractLifecycleComponent {
         );
 
         blobHeadRequestHandler.registerHandler();
-        peerRecoverySourceService.registerRecoverySourceHandlerProvider(new RecoverySourceHandlerProvider() {
-
-            @Override
-            public RecoverySourceHandler get(IndexShard shard,
-                                             StartRecoveryRequest request,
-                                             RemoteRecoveryTargetHandler recoveryTarget,
-                                             int fileChunkSizeInBytes,
-                                             Settings settings,
-                                             Logger logger) {
-                if (!BlobIndex.isBlobIndex(shard.shardId().getIndexName())) {
-                    return null;
-                }
-                return new BlobRecoveryHandler(
-                    shard,
-                    recoveryTarget,
-                    request,
-                    fileChunkSizeInBytes,
-                    transportService,
-                    blobTransferTarget,
-                    blobIndicesService
-                );
+        peerRecoverySourceService.registerRecoverySourceHandlerProvider((shard, request, recoveryTarget, fileChunkSizeInBytes) -> {
+            if (!BlobIndex.isBlobIndex(shard.shardId().getIndexName())) {
+                return null;
             }
+            return new BlobRecoveryHandler(
+                shard,
+                recoveryTarget,
+                request,
+                fileChunkSizeInBytes,
+                transportService,
+                blobTransferTarget,
+                blobIndicesService
+            );
         });
     }
 

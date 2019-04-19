@@ -19,10 +19,10 @@
 
 package org.elasticsearch.discovery.ec2;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.SuppressForbidden;
-import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.network.NetworkService.CustomNameResolver;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.core.internal.io.IOUtils;
 
 import java.io.BufferedReader;
@@ -51,7 +51,9 @@ import java.nio.charset.StandardCharsets;
  *
  * @author Paul_Loy (keteracel)
  */
-class Ec2NameResolver extends AbstractComponent implements CustomNameResolver {
+class Ec2NameResolver implements CustomNameResolver {
+
+    private static final Logger logger = LogManager.getLogger(Ec2NameResolver.class);
 
     /**
      * enum that can be added to over time with more meta-data types (such as ipv6 when this is available)
@@ -77,13 +79,6 @@ class Ec2NameResolver extends AbstractComponent implements CustomNameResolver {
             this.configName = configName;
             this.ec2Name = ec2Name;
         }
-    }
-
-    /**
-     * Construct a {@link CustomNameResolver}.
-     */
-    Ec2NameResolver(Settings settings) {
-        super(settings);
     }
 
     /**

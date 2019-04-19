@@ -50,7 +50,6 @@ import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.routing.ShardRoutingHelper;
 import org.elasticsearch.cluster.routing.UnassignedInfo;
 import org.elasticsearch.common.UUIDs;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.shard.DocsStats;
@@ -94,7 +93,6 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
         Functions functions = getFunctions();
         UserDefinedFunctionService udfService = new UserDefinedFunctionService(clusterService, functions);
         schemas = new Schemas(
-            Settings.EMPTY,
             ImmutableMap.of("sys", new SysSchemaInfo()),
             clusterService,
             new DocSchemaInfoFactory(new TestingDocTableInfoFactory(Collections.emptyMap()), (ident, state) -> null , functions, udfService)

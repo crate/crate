@@ -30,6 +30,8 @@ import io.crate.execution.jobs.TasksService;
 import io.crate.settings.CrateSetting;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.cluster.health.TransportClusterHealthAction;
@@ -63,6 +65,8 @@ import java.util.function.IntSupplier;
 
 @Singleton
 public class DecommissioningService extends AbstractLifecycleComponent implements ClusterStateListener {
+
+    private static final Logger logger = LogManager.getLogger(DecommissioningService.class);
 
     static final String DECOMMISSION_PREFIX = "crate.internal.decommission.";
     public static final CrateSetting<Settings> DECOMMISSION_INTERNAL_SETTING_GROUP = CrateSetting.of(Setting.groupSetting(
@@ -121,7 +125,6 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
                                      @Nullable Runnable safeExitAction,
                                      final TransportClusterHealthAction healthAction,
                                      final TransportClusterUpdateSettingsAction updateSettingsAction) {
-        super(settings);
         this.clusterService = clusterService;
         this.jobsLogs = jobsLogs;
         this.sqlOperations = sqlOperations;
