@@ -35,10 +35,8 @@ import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
-import org.elasticsearch.common.ValidationException;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.logging.DeprecationLogger;
 import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Setting;
@@ -48,11 +46,9 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
 import static org.elasticsearch.action.support.ContextPreservingActionListener.wrapPreservingContext;
@@ -64,7 +60,6 @@ import static org.elasticsearch.index.IndexSettings.same;
 public class MetaDataUpdateSettingsService {
 
     private static final Logger logger = LogManager.getLogger(MetaDataUpdateSettingsService.class);
-    private static final DeprecationLogger deprecationLogger = new DeprecationLogger(logger);
 
     private final ClusterService clusterService;
 
@@ -149,17 +144,6 @@ public class MetaDataUpdateSettingsService {
 
                 int updatedNumberOfReplicas = openSettings.getAsInt(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, -1);
                 if (updatedNumberOfReplicas != -1 && preserveExisting == false) {
-
-                    // Verify that this won't take us over the cluster shard limit.
-                    int totalNewShards = Arrays.stream(request.indices())
-                        .mapToInt(i -> getTotalNewShards(i, currentState, updatedNumberOfReplicas))
-                        .sum();
-                    Optional<String> error = IndicesService.checkShardLimit(totalNewShards, currentState, deprecationLogger);
-                    if (error.isPresent()) {
-                        ValidationException ex = new ValidationException();
-                        ex.addValidationError(error.get());
-                        throw ex;
-                    }
 
                     // we do *not* update the in sync allocation ids as they will be removed upon the first index
                     // operation which make these copies stale
