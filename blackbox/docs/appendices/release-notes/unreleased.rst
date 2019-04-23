@@ -150,6 +150,8 @@ Deprecations
 Changes
 =======
 
+- Improved resiliency of the :ref:`ref-create-snapshot` operation.
+
 - Added support for `SQL Standard Timestamp Format
   <https://crate.io/docs/sql-99/en/latest/chapters/08.html#timestamp-literal>`_
   to the :ref:`date-time-types`.
