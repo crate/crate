@@ -122,9 +122,6 @@ public class MetaData implements Iterable<IndexMetaData>, Diffable<MetaData>, To
         EnumSet<XContentContext> context();
     }
 
-    public static final Setting<Integer> SETTING_CLUSTER_MAX_SHARDS_PER_NODE =
-        Setting.intSetting("cluster.max_shards_per_node", 1000, 1, Property.Dynamic, Property.NodeScope);
-
     public static final Setting<Boolean> SETTING_READ_ONLY_SETTING =
         Setting.boolSetting("cluster.blocks.read_only", false, Property.Dynamic, Property.NodeScope);
 
