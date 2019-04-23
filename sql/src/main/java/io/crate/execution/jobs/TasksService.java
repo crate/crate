@@ -39,7 +39,6 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -47,6 +46,7 @@ import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.stream.Stream;
@@ -61,7 +61,7 @@ public class TasksService extends AbstractLifecycleComponent {
     private final ConcurrentMap<UUID, RootTask> activeTasks =
         ConcurrentCollections.newConcurrentMapWithAggressiveConcurrency();
 
-    private final List<KillAllListener> killAllListeners = Collections.synchronizedList(new ArrayList<>());
+    private final List<KillAllListener> killAllListeners = new CopyOnWriteArrayList<>();
 
     private final Object failedSentinel = new Object();
     private final Cache<UUID, Object> recentlyFailed = CacheBuilder.newBuilder()
