@@ -222,7 +222,7 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
         this.threadPool = threadPool;
         this.xContentRegistry = xContentRegistry;
 
-        ByteSizeValue maxContentLength = SETTING_HTTP_MAX_CONTENT_LENGTH.get(settings);
+        this.maxContentLength = SETTING_HTTP_MAX_CONTENT_LENGTH.get(settings);
         this.maxChunkSize = SETTING_HTTP_MAX_CHUNK_SIZE.get(settings);
         this.maxHeaderSize = SETTING_HTTP_MAX_HEADER_SIZE.get(settings);
         this.maxInitialLineLength = SETTING_HTTP_MAX_INITIAL_LINE_LENGTH.get(settings);
@@ -249,19 +249,9 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
         this.pipeliningMaxEvents = SETTING_PIPELINING_MAX_EVENTS.get(settings);
         this.corsConfig = buildCorsConfig(settings);
 
-        // validate max content length
-        if (maxContentLength.getBytes() > Integer.MAX_VALUE) {
-            logger.warn("maxContentLength[{}] set to high value, resetting it to [100mb]", maxContentLength);
-            deprecationLogger.deprecated(
-                    "out of bounds max content length value [{}] will no longer be truncated to [100mb], you must enter a valid setting",
-                    maxContentLength.getStringRep());
-            maxContentLength = new ByteSizeValue(100, ByteSizeUnit.MB);
-        }
-        this.maxContentLength = maxContentLength;
-
         logger.debug("using max_chunk_size[{}], max_header_size[{}], max_initial_line_length[{}], max_content_length[{}], " +
                 "receive_predictor[{}], max_composite_buffer_components[{}], pipelining_max_events[{}]",
-            maxChunkSize, maxHeaderSize, maxInitialLineLength, this.maxContentLength,
+            maxChunkSize, maxHeaderSize, maxInitialLineLength, maxContentLength,
             receivePredictor, maxCompositeBufferComponents, pipeliningMaxEvents);
     }
 
