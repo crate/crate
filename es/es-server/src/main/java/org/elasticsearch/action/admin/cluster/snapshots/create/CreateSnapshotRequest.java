@@ -62,7 +62,7 @@ import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeBo
  * </ul>
  */
 public class CreateSnapshotRequest extends MasterNodeRequest<CreateSnapshotRequest>
-        implements IndicesRequest.Replaceable, ToXContentObject {
+    implements IndicesRequest.Replaceable, ToXContentObject {
 
     private String snapshot;
 
@@ -92,6 +92,31 @@ public class CreateSnapshotRequest extends MasterNodeRequest<CreateSnapshotReque
     public CreateSnapshotRequest(String repository, String snapshot) {
         this.snapshot = snapshot;
         this.repository = repository;
+    }
+
+    public CreateSnapshotRequest(StreamInput in) throws IOException {
+        super(in);
+        snapshot = in.readString();
+        repository = in.readString();
+        indices = in.readStringArray();
+        indicesOptions = IndicesOptions.readIndicesOptions(in);
+        settings = readSettingsFromStream(in);
+        includeGlobalState = in.readBoolean();
+        waitForCompletion = in.readBoolean();
+        partial = in.readBoolean();
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        super.writeTo(out);
+        out.writeString(snapshot);
+        out.writeString(repository);
+        out.writeStringArray(indices);
+        indicesOptions.writeIndicesOptions(out);
+        writeSettingsToStream(settings, out);
+        out.writeBoolean(includeGlobalState);
+        out.writeBoolean(waitForCompletion);
+        out.writeBoolean(partial);
     }
 
     @Override
@@ -414,28 +439,7 @@ public class CreateSnapshotRequest extends MasterNodeRequest<CreateSnapshotReque
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
-        snapshot = in.readString();
-        repository = in.readString();
-        indices = in.readStringArray();
-        indicesOptions = IndicesOptions.readIndicesOptions(in);
-        settings = readSettingsFromStream(in);
-        includeGlobalState = in.readBoolean();
-        waitForCompletion = in.readBoolean();
-        partial = in.readBoolean();
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
-        out.writeString(snapshot);
-        out.writeString(repository);
-        out.writeStringArray(indices);
-        indicesOptions.writeIndicesOptions(out);
-        writeSettingsToStream(settings, out);
-        out.writeBoolean(includeGlobalState);
-        out.writeBoolean(waitForCompletion);
-        out.writeBoolean(partial);
+        throw new UnsupportedOperationException("usage of Streamable is to be replaced by Writeable");
     }
 
     @Override

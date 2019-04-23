@@ -93,6 +93,10 @@ public class RestoreInProgress extends AbstractNamedDiffable<Custom> implements 
         return builder.append("]").toString();
     }
 
+    public boolean isEmpty() {
+        return entries.isEmpty();
+    }
+
     /**
      * Restore metadata
      */
