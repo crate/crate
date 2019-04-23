@@ -81,7 +81,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
@@ -548,30 +547,11 @@ public class MetaDataCreateIndexService {
     public void validateIndexSettings(String indexName, final Settings settings, final ClusterState clusterState,
                                       final boolean forbidPrivateIndexSettings) throws IndexCreationException {
         List<String> validationErrors = getIndexSettingsValidationErrors(settings, forbidPrivateIndexSettings);
-
-        Optional<String> shardAllocation = checkShardLimit(settings, clusterState, deprecationLogger);
-        shardAllocation.ifPresent(validationErrors::add);
-
         if (validationErrors.isEmpty() == false) {
             ValidationException validationException = new ValidationException();
             validationException.addValidationErrors(validationErrors);
             throw new IndexCreationException(indexName, validationException);
         }
-    }
-
-    /**
-     * Checks whether an index can be created without going over the cluster shard limit.
-     *
-     * @param settings The settings of the index to be created.
-     * @param clusterState The current cluster state.
-     * @param deprecationLogger The logger to use to emit a deprecation warning, if appropriate.
-     * @return If present, an error message to be used to reject index creation. If empty, a signal that this operation may be carried out.
-     */
-    static Optional<String> checkShardLimit(Settings settings, ClusterState clusterState, DeprecationLogger deprecationLogger) {
-        int shardsToCreate = IndexMetaData.INDEX_NUMBER_OF_SHARDS_SETTING.get(settings)
-            * (1 + IndexMetaData.INDEX_NUMBER_OF_REPLICAS_SETTING.get(settings));
-
-        return IndicesService.checkShardLimit(shardsToCreate, clusterState, deprecationLogger);
     }
 
     List<String> getIndexSettingsValidationErrors(final Settings settings, final boolean forbidPrivateIndexSettings) {
@@ -602,9 +582,11 @@ public class MetaDataCreateIndexService {
      * Validates the settings and mappings for shrinking an index.
      * @return the list of nodes at least one instance of the source index shards are allocated
      */
-    static List<String> validateShrinkIndex(ClusterState state, String sourceIndex,
-                                        Set<String> targetIndexMappingsTypes, String targetIndexName,
-                                        Settings targetIndexSettings) {
+    static List<String> validateShrinkIndex(ClusterState state,
+                                            String sourceIndex,
+                                            Set<String> targetIndexMappingsTypes,
+                                            String targetIndexName,
+                                            Settings targetIndexSettings) {
         IndexMetaData sourceMetaData = validateResize(state, sourceIndex, targetIndexMappingsTypes, targetIndexName, targetIndexSettings);
         assert IndexMetaData.INDEX_NUMBER_OF_SHARDS_SETTING.exists(targetIndexSettings);
         IndexMetaData.selectShrinkShards(0, sourceMetaData, IndexMetaData.INDEX_NUMBER_OF_SHARDS_SETTING.get(targetIndexSettings));

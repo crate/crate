@@ -401,14 +401,25 @@ public abstract class Node implements Closeable {
                             .flatMap(m -> m.entrySet().stream())
                             .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
-            final IndicesService indicesService =
-                    new IndicesService(settings, pluginsService, nodeEnvironment, xContentRegistry, analysisModule.getAnalysisRegistry(),
-                            clusterModule.getIndexNameExpressionResolver(), indicesModule.getMapperRegistry(), namedWriteableRegistry,
-                            threadPool, settingsModule.getIndexScopedSettings(), circuitBreakerService, bigArrays,
-                            client, metaStateService, engineFactoryProviders, indexStoreFactories);
+            final IndicesService indicesService = new IndicesService(
+                settings,
+                pluginsService,
+                nodeEnvironment,
+                xContentRegistry,
+                analysisModule.getAnalysisRegistry(),
+                indicesModule.getMapperRegistry(),
+                namedWriteableRegistry,
+                threadPool,
+                settingsModule.getIndexScopedSettings(),
+                circuitBreakerService,
+                bigArrays,
+                client,
+                metaStateService,
+                engineFactoryProviders,
+                indexStoreFactories
+            );
 
             final AliasValidator aliasValidator = new AliasValidator();
-
             final MetaDataCreateIndexService metaDataCreateIndexService = new MetaDataCreateIndexService(
                     settings,
                     clusterService,
