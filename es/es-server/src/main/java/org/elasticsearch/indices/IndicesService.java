@@ -155,7 +155,6 @@ public class IndicesService extends AbstractLifecycleComponent
     private final NamedWriteableRegistry namedWriteableRegistry;
     private final IndexingMemoryController indexingMemoryController;
     private final TimeValue cleanInterval;
-    private final IndicesRequestCache indicesRequestCache;
     private final IndicesQueryCache indicesQueryCache;
     private final MetaStateService metaStateService;
     private final Collection<Function<IndexSettings, Optional<EngineFactory>>> engineFactoryProviders;
@@ -182,7 +181,6 @@ public class IndicesService extends AbstractLifecycleComponent
         this.shardsClosedTimeout = settings.getAsTime(INDICES_SHARDS_CLOSED_TIMEOUT, new TimeValue(1, TimeUnit.DAYS));
         this.analysisRegistry = analysisRegistry;
         this.indexNameExpressionResolver = indexNameExpressionResolver;
-        this.indicesRequestCache = new IndicesRequestCache(settings);
         this.indicesQueryCache = new IndicesQueryCache(settings);
         this.mapperRegistry = mapperRegistry;
         this.namedWriteableRegistry = namedWriteableRegistry;
@@ -201,7 +199,7 @@ public class IndicesService extends AbstractLifecycleComponent
             }
         });
         this.cleanInterval = INDICES_CACHE_CLEAN_INTERVAL_SETTING.get(settings);
-        this.cacheCleaner = new CacheCleaner(indicesFieldDataCache, indicesRequestCache,  logger, threadPool, this.cleanInterval);
+        this.cacheCleaner = new CacheCleaner(indicesFieldDataCache, logger, threadPool, this.cleanInterval);
         this.metaStateService = metaStateService;
         this.engineFactoryProviders = engineFactoryProviders;
 
@@ -244,7 +242,7 @@ public class IndicesService extends AbstractLifecycleComponent
 
     @Override
     protected void doClose() {
-        IOUtils.closeWhileHandlingException(analysisRegistry, indexingMemoryController, indicesFieldDataCache, cacheCleaner, indicesRequestCache, indicesQueryCache);
+        IOUtils.closeWhileHandlingException(analysisRegistry, indexingMemoryController, indicesFieldDataCache, cacheCleaner, indicesQueryCache);
     }
 
     /**
@@ -943,11 +941,9 @@ public class IndicesService extends AbstractLifecycleComponent
         private final ThreadPool threadPool;
         private final TimeValue interval;
         private final AtomicBoolean closed = new AtomicBoolean(false);
-        private final IndicesRequestCache requestCache;
 
-        CacheCleaner(IndicesFieldDataCache cache, IndicesRequestCache requestCache, Logger logger, ThreadPool threadPool, TimeValue interval) {
+        CacheCleaner(IndicesFieldDataCache cache, Logger logger, ThreadPool threadPool, TimeValue interval) {
             this.cache = cache;
-            this.requestCache = requestCache;
             this.logger = logger;
             this.threadPool = threadPool;
             this.interval = interval;
@@ -966,12 +962,6 @@ public class IndicesService extends AbstractLifecycleComponent
             }
             if (logger.isTraceEnabled()) {
                 logger.trace("periodic field data cache cleanup finished in {} milliseconds", TimeValue.nsecToMSec(System.nanoTime() - startTimeNS));
-            }
-
-            try {
-                this.requestCache.cleanCache();
-            } catch (Exception e) {
-                logger.warn("Exception during periodic request cache cleanup:", e);
             }
             // Reschedule itself to run again if not closed
             if (closed.get() == false) {
