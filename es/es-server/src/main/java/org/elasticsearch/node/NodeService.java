@@ -19,8 +19,6 @@
 
 package org.elasticsearch.node;
 
-import org.elasticsearch.common.component.AbstractComponent;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.core.internal.io.IOUtils;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.monitor.MonitorService;
@@ -28,13 +26,12 @@ import org.elasticsearch.monitor.MonitorService;
 import java.io.Closeable;
 import java.io.IOException;
 
-public class NodeService extends AbstractComponent implements Closeable {
+public class NodeService implements Closeable {
 
     private final MonitorService monitorService;
     private final IndicesService indicesService;
 
-    NodeService(Settings settings, MonitorService monitorService, IndicesService indicesService) {
-        super(settings);
+    NodeService(MonitorService monitorService, IndicesService indicesService) {
         this.monitorService = monitorService;
         this.indicesService = indicesService;
     }

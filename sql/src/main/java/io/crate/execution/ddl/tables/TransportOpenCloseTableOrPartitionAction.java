@@ -37,7 +37,6 @@ import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
@@ -52,8 +51,7 @@ public class TransportOpenCloseTableOrPartitionAction extends AbstractDDLTranspo
     private final CloseTableClusterStateTaskExecutor closeExecutor;
 
     @Inject
-    public TransportOpenCloseTableOrPartitionAction(Settings settings,
-                                                    TransportService transportService,
+    public TransportOpenCloseTableOrPartitionAction(TransportService transportService,
                                                     ClusterService clusterService,
                                                     ThreadPool threadPool,
                                                     IndexNameExpressionResolver indexNameExpressionResolver,
@@ -61,9 +59,14 @@ public class TransportOpenCloseTableOrPartitionAction extends AbstractDDLTranspo
                                                     DDLClusterStateService ddlClusterStateService,
                                                     MetaDataIndexUpgradeService metaDataIndexUpgradeService,
                                                     IndicesService indexServices) {
-        super(settings, ACTION_NAME, transportService, clusterService, threadPool,
-            indexNameExpressionResolver, OpenCloseTableOrPartitionRequest::new,
-            OpenCloseTableOrPartitionResponse::new, OpenCloseTableOrPartitionResponse::new,
+        super(ACTION_NAME,
+            transportService,
+            clusterService,
+            threadPool,
+            indexNameExpressionResolver,
+            OpenCloseTableOrPartitionRequest::new,
+            OpenCloseTableOrPartitionResponse::new,
+            OpenCloseTableOrPartitionResponse::new,
             "open-table-or-partition");
         openExecutor = new OpenTableClusterStateTaskExecutor(indexNameExpressionResolver, allocationService,
             ddlClusterStateService, metaDataIndexUpgradeService, indexServices);

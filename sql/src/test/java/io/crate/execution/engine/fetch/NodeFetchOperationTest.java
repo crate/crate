@@ -27,7 +27,6 @@ import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.execution.jobs.TasksService;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
-import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
 import java.util.UUID;
@@ -48,7 +47,7 @@ public class NodeFetchOperationTest extends CrateDummyClusterServiceUnitTest {
                 threadPoolExecutor,
                 2,
                 jobsLogs,
-                new TasksService(Settings.EMPTY, clusterService, jobsLogs),
+                new TasksService(clusterService, jobsLogs),
                 new NoopCircuitBreaker("dummy"));
 
             fetchOperation.fetch(UUID.randomUUID(), 1, null, true).get(5, TimeUnit.SECONDS);

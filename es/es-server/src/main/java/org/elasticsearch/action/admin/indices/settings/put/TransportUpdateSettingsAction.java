@@ -44,9 +44,12 @@ public class TransportUpdateSettingsAction extends TransportMasterNodeAction<Upd
     private final MetaDataUpdateSettingsService updateSettingsService;
 
     @Inject
-    public TransportUpdateSettingsAction(Settings settings, TransportService transportService, ClusterService clusterService, ThreadPool threadPool,
-                                         MetaDataUpdateSettingsService updateSettingsService, IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(settings, UpdateSettingsAction.NAME, transportService, clusterService, threadPool, indexNameExpressionResolver, UpdateSettingsRequest::new);
+    public TransportUpdateSettingsAction(TransportService transportService,
+                                         ClusterService clusterService,
+                                         ThreadPool threadPool,
+                                         MetaDataUpdateSettingsService updateSettingsService,
+                                         IndexNameExpressionResolver indexNameExpressionResolver) {
+        super(UpdateSettingsAction.NAME, transportService, clusterService, threadPool, indexNameExpressionResolver, UpdateSettingsRequest::new);
         this.updateSettingsService = updateSettingsService;
     }
 

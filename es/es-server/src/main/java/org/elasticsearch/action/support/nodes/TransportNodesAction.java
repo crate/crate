@@ -28,7 +28,6 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.NodeShouldNotConnectException;
@@ -60,13 +59,16 @@ public abstract class TransportNodesAction<NodesRequest extends BaseNodesRequest
 
     final String transportNodeAction;
 
-    protected TransportNodesAction(Settings settings, String actionName, ThreadPool threadPool,
-                                   ClusterService clusterService, TransportService transportService,
+    protected TransportNodesAction(String actionName,
+                                   ThreadPool threadPool,
+                                   ClusterService clusterService,
+                                   TransportService transportService,
                                    IndexNameExpressionResolver indexNameExpressionResolver,
-                                   Supplier<NodesRequest> request, Supplier<NodeRequest> nodeRequest,
+                                   Supplier<NodesRequest> request,
+                                   Supplier<NodeRequest> nodeRequest,
                                    String nodeExecutor,
                                    Class<NodeResponse> nodeResponseClass) {
-        super(settings, actionName, threadPool, transportService, indexNameExpressionResolver, request);
+        super(actionName, threadPool, transportService, indexNameExpressionResolver, request);
         this.clusterService = Objects.requireNonNull(clusterService);
         this.transportService = Objects.requireNonNull(transportService);
         this.nodeResponseClass = Objects.requireNonNull(nodeResponseClass);

@@ -31,7 +31,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.Settings;
 
 import java.util.List;
 import java.util.regex.Pattern;
@@ -46,9 +45,7 @@ public class DanglingArtifactsService extends AbstractLifecycleComponent impleme
     private final List<Pattern> danglingPatterns;
 
     @Inject
-    public DanglingArtifactsService(Settings settings,
-                                    ClusterService clusterService) {
-        super(settings);
+    public DanglingArtifactsService(ClusterService clusterService) {
         this.clusterService = clusterService;
         this.danglingPatterns = IndexParts.DANGLING_INDICES_PREFIX_PATTERNS
             .stream()

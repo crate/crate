@@ -25,8 +25,6 @@ package io.crate.execution.engine.collect.collectors;
 import com.carrotsearch.hppc.IntArrayList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.MoreExecutors;
-import io.crate.metadata.SearchPath;
-import io.crate.metadata.settings.SessionSettings;
 import io.crate.analyze.WhereClause;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.exceptions.JobKilledException;
@@ -40,12 +38,13 @@ import io.crate.execution.jobs.transport.JobResponse;
 import io.crate.execution.jobs.transport.TransportJobAction;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.SearchPath;
+import io.crate.metadata.settings.SessionSettings;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.transport.TransportService;
 import org.junit.Before;
 import org.junit.Test;
@@ -54,7 +53,6 @@ import org.mockito.Captor;
 import org.mockito.MockitoAnnotations;
 
 import java.util.Collections;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -94,12 +92,10 @@ public class RemoteCollectorTest extends CrateDummyClusterServiceUnitTest {
         );
         transportJobAction = mock(TransportJobAction.class);
         TasksService tasksService = new TasksService(
-            Settings.EMPTY,
             clusterService,
             new JobsLogs(() -> true));
         numBroadcastCalls = new AtomicInteger(0);
         transportKillJobsNodeAction = new TransportKillJobsNodeAction(
-            Settings.EMPTY,
             tasksService,
             clusterService,
             mock(TransportService.class)

@@ -25,7 +25,6 @@ package io.crate.lucene;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.mapper.BuilderFactory;
 import org.elasticsearch.indices.IndicesService;
 
@@ -37,8 +36,7 @@ public class ArrayMapperService extends AbstractLifecycleComponent {
     private final IndicesService indicesService;
 
     @Inject
-    public ArrayMapperService(Settings settings, IndicesService indicesService) {
-        super(settings);
+    public ArrayMapperService(IndicesService indicesService) {
         this.indicesService = indicesService;
     }
 

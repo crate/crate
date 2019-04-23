@@ -35,11 +35,8 @@ import org.elasticsearch.index.mapper.FieldMapper;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.store.FsDirectoryService;
 import org.elasticsearch.index.store.Store;
-import org.elasticsearch.indices.IndicesRequestCache;
 
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Predicate;
 
@@ -51,7 +48,8 @@ public final class IndexScopedSettings extends AbstractScopedSettings {
 
     public static final Predicate<String> INDEX_SETTINGS_KEY_PREDICATE = (s) -> s.startsWith(IndexMetaData.INDEX_SETTING_PREFIX);
 
-    public static final Set<Setting<?>> BUILT_IN_INDEX_SETTINGS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+    // this allows analysis settings to be passed
+    public static final Set<Setting<?>> BUILT_IN_INDEX_SETTINGS = Set.of(
         MaxRetryAllocationDecider.SETTING_ALLOCATION_MAX_RETRY,
         IndexSettings.INDEX_TTL_DISABLE_PURGE_SETTING,
         MergeSchedulerConfig.AUTO_THROTTLE_SETTING,
@@ -97,7 +95,6 @@ public final class IndexScopedSettings extends AbstractScopedSettings {
         IndexSettings.INDEX_GC_DELETES_SETTING,
         IndexSettings.INDEX_SOFT_DELETES_SETTING,
         IndexSettings.INDEX_SOFT_DELETES_RETENTION_OPERATIONS_SETTING,
-        IndicesRequestCache.INDEX_CACHE_REQUEST_ENABLED_SETTING,
         UnassignedInfo.INDEX_DELAYED_NODE_LEFT_TIMEOUT_SETTING,
         EnableAllocationDecider.INDEX_ROUTING_REBALANCE_ENABLE_SETTING,
         EnableAllocationDecider.INDEX_ROUTING_ALLOCATION_ENABLE_SETTING,
@@ -120,9 +117,7 @@ public final class IndexScopedSettings extends AbstractScopedSettings {
         EngineConfig.INDEX_CODEC_SETTING,
         EngineConfig.INDEX_OPTIMIZE_AUTO_GENERATED_IDS,
         IndexMetaData.SETTING_WAIT_FOR_ACTIVE_SHARDS,
-        Setting.groupSetting("index.analysis.", Property.IndexScope) // this allows analysis settings to be passed
-
-    )));
+        Setting.groupSetting("index.analysis.", Property.IndexScope));
 
     public static final IndexScopedSettings DEFAULT_SCOPED_SETTINGS = new IndexScopedSettings(Settings.EMPTY, BUILT_IN_INDEX_SETTINGS);
 

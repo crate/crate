@@ -83,7 +83,6 @@ import org.elasticsearch.index.codec.CodecService;
 import org.elasticsearch.index.mapper.MockFieldFilterPlugin;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.indices.IndicesQueryCache;
-import org.elasticsearch.indices.IndicesRequestCache;
 import org.elasticsearch.indices.store.IndicesStore;
 import org.elasticsearch.node.NodeMocksPlugin;
 import org.elasticsearch.plugins.NetworkPlugin;
@@ -331,10 +330,6 @@ public abstract class ESIntegTestCase extends ESTestCase {
 
         if (random.nextBoolean()) {
             builder.put(MergeSchedulerConfig.AUTO_THROTTLE_SETTING.getKey(), false);
-        }
-
-        if (random.nextBoolean()) {
-            builder.put(IndicesRequestCache.INDEX_CACHE_REQUEST_ENABLED_SETTING.getKey(), random.nextBoolean());
         }
 
         if (random.nextBoolean()) {

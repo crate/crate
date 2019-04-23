@@ -40,6 +40,8 @@ import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpRequestDecoder;
 import io.netty.handler.codec.http.HttpResponseEncoder;
 import io.netty.handler.timeout.ReadTimeoutHandler;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
@@ -161,6 +163,7 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
     public static final Setting<ByteSizeValue> SETTING_HTTP_NETTY_RECEIVE_PREDICTOR_SIZE =
         Setting.byteSizeSetting("http.netty.receive_predictor_size", new ByteSizeValue(64, ByteSizeUnit.KB), Property.NodeScope);
 
+    private final Logger logger = LogManager.getLogger(getClass());
 
     protected final NetworkService networkService;
     protected final BigArrays bigArrays;
@@ -197,6 +200,7 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
     private final int readTimeoutMillis;
 
     protected final int maxCompositeBufferComponents;
+    protected final Settings settings;
 
     protected volatile ServerBootstrap serverBootstrap;
 
@@ -215,8 +219,8 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
                                      BigArrays bigArrays,
                                      ThreadPool threadPool,
                                      NamedXContentRegistry xContentRegistry) {
-        super(settings);
         Netty4Utils.setAvailableProcessors(EsExecutors.PROCESSORS_SETTING.get(settings));
+        this.settings = settings;
         this.networkService = networkService;
         this.bigArrays = bigArrays;
         this.threadPool = threadPool;
@@ -267,8 +271,8 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
 
             serverBootstrap = new ServerBootstrap();
 
-            serverBootstrap.group(new NioEventLoopGroup(workerCount, daemonThreadFactory(settings,
-                HTTP_SERVER_WORKER_THREAD_NAME_PREFIX)));
+            serverBootstrap.group(
+                new NioEventLoopGroup(workerCount, daemonThreadFactory(settings, HTTP_SERVER_WORKER_THREAD_NAME_PREFIX)));
             serverBootstrap.channel(NioServerSocketChannel.class);
 
             serverBootstrap.childHandler(configureServerChannelHandler());

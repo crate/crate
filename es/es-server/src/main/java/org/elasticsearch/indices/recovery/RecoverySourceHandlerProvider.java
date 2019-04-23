@@ -19,14 +19,8 @@
 
 package org.elasticsearch.indices.recovery;
 
-import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.Nullable;
-import org.elasticsearch.common.lease.Releasable;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.IndexShard;
-
-import java.util.function.Function;
-import java.util.function.Supplier;
 
 //CRATE_PATCH: used to inject BlobRecoverySourceHandler
 @FunctionalInterface
@@ -36,7 +30,5 @@ public interface RecoverySourceHandlerProvider {
     RecoverySourceHandler get(IndexShard shard,
                               StartRecoveryRequest request,
                               RemoteRecoveryTargetHandler recoveryTarget,
-                              int fileChunkSizeInBytes,
-                              Settings settings,
-                              Logger logger);
+                              int fileChunkSizeInBytes);
 }

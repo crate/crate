@@ -34,7 +34,6 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.transport.TransportService;
 import org.hamcrest.Matchers;
@@ -53,11 +52,9 @@ public class TransportDistributedResultActionTest extends CrateDummyClusterServi
 
     @Test
     public void testKillIsInvokedIfContextIsNotFound() throws Exception {
-        TasksService tasksService = new TasksService(
-            Settings.EMPTY, clusterService, new JobsLogs(() -> false));
+        TasksService tasksService = new TasksService(clusterService, new JobsLogs(() -> false));
         AtomicInteger numBroadcasts = new AtomicInteger(0);
         TransportKillJobsNodeAction killJobsAction = new TransportKillJobsNodeAction(
-            Settings.EMPTY,
             tasksService,
             clusterService,
             mock(TransportService.class)
@@ -74,7 +71,6 @@ public class TransportDistributedResultActionTest extends CrateDummyClusterServi
             mock(TransportService.class),
             clusterService,
             killJobsAction,
-            Settings.EMPTY,
             BackoffPolicy.exponentialBackoff(TimeValue.ZERO, 0)
         );
 

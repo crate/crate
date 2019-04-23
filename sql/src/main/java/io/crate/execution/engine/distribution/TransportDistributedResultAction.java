@@ -35,11 +35,12 @@ import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
 import io.crate.execution.support.NodeAction;
 import io.crate.execution.support.NodeActionRequestHandler;
 import io.crate.execution.support.Transports;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionListenerResponseHandler;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
@@ -58,8 +59,9 @@ import java.util.concurrent.TimeUnit;
 import static io.crate.concurrent.CompletableFutures.failedFuture;
 
 
-public class TransportDistributedResultAction extends AbstractComponent implements NodeAction<DistributedResultRequest, DistributedResultResponse> {
+public class TransportDistributedResultAction implements NodeAction<DistributedResultRequest, DistributedResultResponse> {
 
+    private static final Logger logger = LogManager.getLogger(TransportDistributedResultAction.class);
     private static final String DISTRIBUTED_RESULT_ACTION = "internal:crate:sql/node/merge";
 
     private final Transports transports;
@@ -83,7 +85,6 @@ public class TransportDistributedResultAction extends AbstractComponent implemen
             transportService,
             clusterService,
             killJobsAction,
-            settings,
             BackoffPolicy.exponentialBackoff());
     }
 
@@ -94,9 +95,7 @@ public class TransportDistributedResultAction extends AbstractComponent implemen
                                      TransportService transportService,
                                      ClusterService clusterService,
                                      TransportKillJobsNodeAction killJobsAction,
-                                     Settings settings,
                                      BackoffPolicy backoffPolicy) {
-        super(settings);
         this.transports = transports;
         this.tasksService = tasksService;
         scheduler = threadPool.scheduler();

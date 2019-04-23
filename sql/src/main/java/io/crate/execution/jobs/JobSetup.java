@@ -36,7 +36,6 @@ import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.carrotsearch.hppc.procedures.ObjectProcedure;
 import com.google.common.base.MoreObjects;
 import io.crate.Streamer;
-import io.crate.metadata.settings.SessionSettings;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.breaker.RowAccountingWithEstimators;
@@ -85,19 +84,21 @@ import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Routing;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.settings.SessionSettings;
 import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.node.StreamerVisitor;
 import io.crate.types.DataTypes;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.collect.Tuple;
-import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.indices.IndicesService;
+import org.elasticsearch.node.Node;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
@@ -117,7 +118,9 @@ import static io.crate.execution.dsl.projection.Projections.nodeProjections;
 import static io.crate.execution.dsl.projection.Projections.shardProjections;
 
 @Singleton
-public class JobSetup extends AbstractComponent {
+public class JobSetup {
+
+    private static final Logger logger = LogManager.getLogger(JobSetup.class);
 
     private final MapSideDataCollectOperation collectOperation;
     private final ClusterService clusterService;
@@ -129,6 +132,7 @@ public class JobSetup extends AbstractComponent {
     private final ProjectorFactory projectorFactory;
     private final PKLookupOperation pkLookupOperation;
     private final ExecutorService searchTp;
+    private final String nodeName;
 
     @Inject
     public JobSetup(Settings settings,
@@ -145,7 +149,7 @@ public class JobSetup extends AbstractComponent {
                     SystemCollectSource systemCollectSource,
                     ShardCollectSource shardCollectSource,
                     BigArrays bigArrays) {
-        super(settings);
+        this.nodeName = Node.NODE_NAME_SETTING.get(settings);
         this.collectOperation = collectOperation;
         this.clusterService = clusterService;
         this.countOperation = countOperation;
@@ -659,7 +663,7 @@ public class JobSetup extends AbstractComponent {
             PageBucketReceiver pageBucketReceiver;
             if (collector == null) {
                 pageBucketReceiver = new CumulativePageBucketReceiver(
-                    nodeName(),
+                    nodeName,
                     phase.phaseId(),
                     searchTp,
                     DataTypes.getStreamers(phase.inputTypes()),
@@ -891,7 +895,7 @@ public class JobSetup extends AbstractComponent {
             }
 
             PageBucketReceiver pageBucketReceiver = new CumulativePageBucketReceiver(
-                nodeName(),
+                nodeName,
                 mergePhase.phaseId(),
                 searchTp,
                 StreamerVisitor.streamersFromOutputs(mergePhase),

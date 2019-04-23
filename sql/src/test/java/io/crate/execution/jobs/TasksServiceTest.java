@@ -24,7 +24,6 @@ package io.crate.execution.jobs;
 import com.google.common.collect.ImmutableList;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import org.elasticsearch.common.settings.Settings;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -48,7 +47,7 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
     @Before
     public void prepare() {
         JobsLogs jobsLogs = new JobsLogs(() -> true);
-        tasksService = new TasksService(Settings.EMPTY, clusterService, jobsLogs);
+        tasksService = new TasksService(clusterService, jobsLogs);
     }
 
     @After

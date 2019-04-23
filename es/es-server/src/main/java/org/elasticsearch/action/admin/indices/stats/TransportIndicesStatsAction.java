@@ -31,7 +31,6 @@ import org.elasticsearch.cluster.routing.ShardsIterator;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.engine.CommitStats;
 import org.elasticsearch.index.seqno.SeqNoStats;
@@ -49,11 +48,18 @@ public class TransportIndicesStatsAction extends TransportBroadcastByNodeAction<
     private final IndicesService indicesService;
 
     @Inject
-    public TransportIndicesStatsAction(Settings settings, ThreadPool threadPool, ClusterService clusterService,
-                                       TransportService transportService, IndicesService indicesService,
-                                        IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(settings, IndicesStatsAction.NAME, threadPool, clusterService, transportService, indexNameExpressionResolver,
-                IndicesStatsRequest::new, ThreadPool.Names.MANAGEMENT);
+    public TransportIndicesStatsAction(ThreadPool threadPool,
+                                       ClusterService clusterService,
+                                       TransportService transportService,
+                                       IndicesService indicesService,
+                                       IndexNameExpressionResolver indexNameExpressionResolver) {
+        super(IndicesStatsAction.NAME,
+            threadPool,
+            clusterService,
+            transportService,
+            indexNameExpressionResolver,
+            IndicesStatsRequest::new,
+            ThreadPool.Names.MANAGEMENT);
         this.indicesService = indicesService;
     }
 

@@ -23,8 +23,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.index.DirectoryReader;
-import org.elasticsearch.common.component.AbstractComponent;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.fielddata.IndexFieldDataService;
@@ -42,14 +40,12 @@ import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 
-public final class IndexWarmer extends AbstractComponent {
+public final class IndexWarmer {
 
     private final static Logger LOGGER = LogManager.getLogger(IndexWarmer.class);
     private final List<Listener> listeners;
 
-    IndexWarmer(Settings settings, ThreadPool threadPool, IndexFieldDataService indexFieldDataService,
-                Listener... listeners) {
-        super(settings);
+    IndexWarmer(ThreadPool threadPool, IndexFieldDataService indexFieldDataService, Listener... listeners) {
         ArrayList<Listener> list = new ArrayList<>();
         final Executor executor = threadPool.executor(ThreadPool.Names.WARMER);
         list.add(new FieldDataWarmer(executor, indexFieldDataService));
@@ -65,8 +61,8 @@ public final class IndexWarmer extends AbstractComponent {
         if (settings.isWarmerEnabled() == false) {
             return;
         }
-        if (logger.isTraceEnabled()) {
-            logger.trace("{} top warming [{}]", shard.shardId(), searcher.reader());
+        if (LOGGER.isTraceEnabled()) {
+            LOGGER.trace("{} top warming [{}]", shard.shardId(), searcher.reader());
         }
         long time = System.nanoTime();
         final List<TerminationHandle> terminationHandles = new ArrayList<>();
@@ -80,7 +76,7 @@ public final class IndexWarmer extends AbstractComponent {
                 terminationHandle.awaitTermination();
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                logger.warn("top warming has been interrupted", e);
+                LOGGER.warn("top warming has been interrupted", e);
                 break;
             }
         }

@@ -35,7 +35,6 @@ import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.discovery.Discovery.FailedToCommitClusterStateException;
 import org.elasticsearch.discovery.MasterNotDiscoveredException;
@@ -60,35 +59,42 @@ public abstract class TransportMasterNodeAction<Request extends MasterNodeReques
 
     private final String executor;
 
-    protected TransportMasterNodeAction(Settings settings, String actionName, TransportService transportService,
-                                        ClusterService clusterService, ThreadPool threadPool,
-                                        IndexNameExpressionResolver indexNameExpressionResolver, Supplier<Request> request) {
-        this(settings, actionName, true, transportService, clusterService, threadPool, indexNameExpressionResolver, request);
-    }
-
-    protected TransportMasterNodeAction(Settings settings, String actionName, TransportService transportService,
-                                        ClusterService clusterService, ThreadPool threadPool,
-                                        Writeable.Reader<Request> request, IndexNameExpressionResolver indexNameExpressionResolver) {
-        this(settings, actionName, true, transportService, clusterService, threadPool, request, indexNameExpressionResolver);
-    }
-
-    protected TransportMasterNodeAction(Settings settings, String actionName, boolean canTripCircuitBreaker,
-                                        TransportService transportService, ClusterService clusterService, ThreadPool threadPool,
+    protected TransportMasterNodeAction(String actionName,
+                                        TransportService transportService,
+                                        ClusterService clusterService,
+                                        ThreadPool threadPool,
                                         IndexNameExpressionResolver indexNameExpressionResolver,
                                         Supplier<Request> request) {
-        super(settings, actionName, canTripCircuitBreaker, threadPool, transportService, indexNameExpressionResolver,
-            request);
+        this(actionName, true, transportService, clusterService, threadPool, indexNameExpressionResolver, request);
+    }
+
+    protected TransportMasterNodeAction(String actionName,
+                                        TransportService transportService,
+                                        ClusterService clusterService,
+                                        ThreadPool threadPool,
+                                        Writeable.Reader<Request> request,
+                                        IndexNameExpressionResolver indexNameExpressionResolver) {
+        this(actionName, true, transportService, clusterService, threadPool, request, indexNameExpressionResolver);
+    }
+
+    protected TransportMasterNodeAction(String actionName,
+                                        boolean canTripCircuitBreaker,
+                                        TransportService transportService,
+                                        ClusterService clusterService,
+                                        ThreadPool threadPool,
+                                        IndexNameExpressionResolver indexNameExpressionResolver,
+                                        Supplier<Request> request) {
+        super(actionName, canTripCircuitBreaker, threadPool, transportService, indexNameExpressionResolver, request);
         this.transportService = transportService;
         this.clusterService = clusterService;
         this.executor = executor();
     }
 
-    protected TransportMasterNodeAction(Settings settings, String actionName, boolean canTripCircuitBreaker,
+    protected TransportMasterNodeAction(String actionName, boolean canTripCircuitBreaker,
                                         TransportService transportService, ClusterService clusterService, ThreadPool threadPool,
                                         Writeable.Reader<Request> request,
                                         IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(settings, actionName, canTripCircuitBreaker, threadPool, transportService, request,
-            indexNameExpressionResolver);
+        super(actionName, canTripCircuitBreaker, threadPool, transportService, request, indexNameExpressionResolver);
         this.transportService = transportService;
         this.clusterService = clusterService;
         this.executor = executor();

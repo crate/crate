@@ -25,7 +25,6 @@ import io.crate.execution.jobs.TasksService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.transport.TransportService;
 
 import java.util.concurrent.CompletableFuture;
@@ -34,11 +33,10 @@ import java.util.concurrent.CompletableFuture;
 public class TransportKillAllNodeAction extends TransportKillNodeAction<KillAllRequest> {
 
     @Inject
-    public TransportKillAllNodeAction(Settings settings,
-                                      TasksService tasksService,
+    public TransportKillAllNodeAction(TasksService tasksService,
                                       ClusterService clusterService,
                                       TransportService transportService) {
-        super("internal:crate:sql/kill/all", settings, tasksService, clusterService, transportService, KillAllRequest::new);
+        super("internal:crate:sql/kill/all", tasksService, clusterService, transportService, KillAllRequest::new);
     }
 
     @Override

@@ -26,6 +26,8 @@ import io.crate.monitor.ExtendedNodeInfo;
 import io.crate.settings.CrateSetting;
 import io.crate.types.DataTypes;
 import io.crate.udc.ping.PingTask;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
@@ -39,6 +41,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 public class UDCService extends AbstractLifecycleComponent {
+
+    private static final Logger logger = LogManager.getLogger(UDCService.class);
 
     public static final CrateSetting<Boolean> UDC_ENABLED_SETTING = CrateSetting.of(Setting.boolSetting(
         "udc.enabled", true,
@@ -58,13 +62,14 @@ public class UDCService extends AbstractLifecycleComponent {
     private final ClusterService clusterService;
     private final ExtendedNodeInfo extendedNodeInfo;
     private final LicenseService licenseService;
+    private final Settings settings;
 
     @Inject
     public UDCService(Settings settings,
                       ExtendedNodeInfo extendedNodeInfo,
                       ClusterService clusterService,
                       LicenseService licenseService) {
-        super(settings);
+        this.settings = settings;
         this.extendedNodeInfo = extendedNodeInfo;
         this.clusterService = clusterService;
         this.licenseService = licenseService;

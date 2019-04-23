@@ -25,24 +25,23 @@ import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.ActionRequestValidationException;
 import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.common.component.AbstractComponent;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.tasks.Task;
 import org.elasticsearch.tasks.TaskManager;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import static org.elasticsearch.action.support.PlainActionFuture.newFuture;
 
-public abstract class TransportAction<Request extends ActionRequest, Response extends ActionResponse> extends AbstractComponent {
+public abstract class TransportAction<Request extends ActionRequest, Response extends ActionResponse> {
 
     protected final ThreadPool threadPool;
     protected final String actionName;
     protected final IndexNameExpressionResolver indexNameExpressionResolver;
     protected final TaskManager taskManager;
 
-    protected TransportAction(Settings settings, String actionName, ThreadPool threadPool,
-                              IndexNameExpressionResolver indexNameExpressionResolver, TaskManager taskManager) {
-        super(settings);
+    protected TransportAction(String actionName,
+                              ThreadPool threadPool,
+                              IndexNameExpressionResolver indexNameExpressionResolver,
+                              TaskManager taskManager) {
         this.threadPool = threadPool;
         this.actionName = actionName;
         this.indexNameExpressionResolver = indexNameExpressionResolver;

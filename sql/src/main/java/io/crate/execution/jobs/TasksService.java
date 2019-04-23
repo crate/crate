@@ -29,12 +29,13 @@ import io.crate.concurrent.CountdownFutureCallback;
 import io.crate.exceptions.TaskMissing;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.execution.jobs.kill.KillAllListener;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 
 import javax.annotation.Nullable;
@@ -53,6 +54,8 @@ import java.util.stream.Stream;
 @Singleton
 public class TasksService extends AbstractLifecycleComponent {
 
+    private static final Logger logger = LogManager.getLogger(TasksService.class);
+
     private final ClusterService clusterService;
     private final JobsLogs jobsLogs;
     private final ConcurrentMap<UUID, RootTask> activeTasks =
@@ -67,8 +70,7 @@ public class TasksService extends AbstractLifecycleComponent {
         .build();
 
     @Inject
-    public TasksService(Settings settings, ClusterService clusterService, JobsLogs jobsLogs) {
-        super(settings);
+    public TasksService(ClusterService clusterService, JobsLogs jobsLogs) {
         this.clusterService = clusterService;
         this.jobsLogs = jobsLogs;
     }

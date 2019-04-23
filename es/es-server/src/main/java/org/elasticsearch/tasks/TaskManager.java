@@ -19,10 +19,10 @@
 
 package org.elasticsearch.tasks;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchTimeoutException;
-import org.elasticsearch.common.component.AbstractComponent;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 
@@ -37,7 +37,9 @@ import static org.elasticsearch.common.unit.TimeValue.timeValueMillis;
 /**
  * Task Manager service for keeping track of currently running tasks on the nodes
  */
-public class TaskManager extends AbstractComponent {
+public class TaskManager {
+
+    protected static final Logger logger = LogManager.getLogger(TaskManager.class);
 
     private static final TimeValue WAIT_FOR_COMPLETION_POLL = timeValueMillis(100);
 
@@ -45,9 +47,7 @@ public class TaskManager extends AbstractComponent {
 
     private final AtomicLong taskIdGenerator = new AtomicLong();
 
-
-    public TaskManager(Settings settings) {
-        super(settings);
+    public TaskManager() {
     }
 
     /**

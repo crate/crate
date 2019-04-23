@@ -30,7 +30,6 @@ import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
@@ -40,12 +39,11 @@ public class TransportSetLicenseAction
     extends TransportMasterNodeAction<SetLicenseRequest, AcknowledgedResponse> {
 
     @Inject
-    public TransportSetLicenseAction(Settings settings,
-                                     TransportService transportService,
+    public TransportSetLicenseAction(TransportService transportService,
                                      ClusterService clusterService,
                                      ThreadPool threadPool,
                                      IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(settings, "internal:crate:sql/set_license", transportService, clusterService, threadPool,
+        super("internal:crate:sql/set_license", transportService, clusterService, threadPool,
             indexNameExpressionResolver, SetLicenseRequest::new);
     }
 

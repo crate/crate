@@ -33,7 +33,6 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.transport.TransportService;
 import org.junit.Test;
 
@@ -50,7 +49,7 @@ import static org.mockito.Mockito.mock;
 public class NodeDisconnectJobMonitorServiceTest extends CrateDummyClusterServiceUnitTest {
 
     private TasksService tasksInstance() throws Exception {
-        return new TasksService(Settings.EMPTY, clusterService, new JobsLogs(() -> true));
+        return new TasksService(clusterService, new JobsLogs(() -> true));
     }
 
     @Test
@@ -61,7 +60,6 @@ public class NodeDisconnectJobMonitorServiceTest extends CrateDummyClusterServic
         RootTask context = tasksService.createTask(builder);
 
         NodeDisconnectJobMonitorService monitorService = new NodeDisconnectJobMonitorService(
-            Settings.EMPTY,
             tasksService,
             mock(TransportService.class),
             mock(TransportKillJobsNodeAction.class));
@@ -94,7 +92,6 @@ public class NodeDisconnectJobMonitorServiceTest extends CrateDummyClusterServic
 
         AtomicInteger broadcasts = new AtomicInteger(0);
         TransportKillJobsNodeAction killAction = new TransportKillJobsNodeAction(
-            Settings.EMPTY,
             tasksService,
             clusterService,
             mock(TransportService.class)
@@ -105,7 +102,6 @@ public class NodeDisconnectJobMonitorServiceTest extends CrateDummyClusterServic
             }
         };
         NodeDisconnectJobMonitorService monitorService = new NodeDisconnectJobMonitorService(
-            Settings.EMPTY,
             tasksService,
             mock(TransportService.class),
             killAction);

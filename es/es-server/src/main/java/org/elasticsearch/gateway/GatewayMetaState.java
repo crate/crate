@@ -20,6 +20,8 @@
 package org.elasticsearch.gateway;
 
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterState;
@@ -32,7 +34,6 @@ import org.elasticsearch.cluster.routing.RoutingNode;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
-import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.env.NodeEnvironment;
@@ -57,7 +58,9 @@ import java.util.function.UnaryOperator;
 import static java.util.Collections.emptySet;
 import static java.util.Collections.unmodifiableSet;
 
-public class GatewayMetaState extends AbstractComponent implements ClusterStateApplier {
+public class GatewayMetaState implements ClusterStateApplier {
+
+    protected static final Logger logger = LogManager.getLogger(GatewayMetaState.class);
 
     private final NodeEnvironment nodeEnv;
     private final MetaStateService metaStateService;
@@ -67,9 +70,11 @@ public class GatewayMetaState extends AbstractComponent implements ClusterStateA
 
     private volatile Set<Index> previouslyWrittenIndices = emptySet();
 
-    public GatewayMetaState(Settings settings, NodeEnvironment nodeEnv, MetaStateService metaStateService,
-                            MetaDataIndexUpgradeService metaDataIndexUpgradeService, MetaDataUpgrader metaDataUpgrader) throws IOException {
-        super(settings);
+    public GatewayMetaState(Settings settings,
+                            NodeEnvironment nodeEnv,
+                            MetaStateService metaStateService,
+                            MetaDataIndexUpgradeService metaDataIndexUpgradeService,
+                            MetaDataUpgrader metaDataUpgrader) throws IOException {
         this.nodeEnv = nodeEnv;
         this.metaStateService = metaStateService;
 

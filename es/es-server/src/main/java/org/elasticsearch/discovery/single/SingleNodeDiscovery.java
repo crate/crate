@@ -19,6 +19,8 @@
 
 package org.elasticsearch.discovery.single;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterState;
@@ -29,7 +31,6 @@ import org.elasticsearch.cluster.service.ClusterApplier;
 import org.elasticsearch.cluster.service.ClusterApplier.ClusterApplyListener;
 import org.elasticsearch.cluster.service.MasterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.discovery.Discovery;
 import org.elasticsearch.transport.TransportService;
@@ -45,13 +46,15 @@ import static org.elasticsearch.gateway.GatewayService.STATE_NOT_RECOVERED_BLOCK
  */
 public class SingleNodeDiscovery extends AbstractLifecycleComponent implements Discovery {
 
+    private static final Logger LOGGER = LogManager.getLogger(SingleNodeDiscovery.class);
+
     protected final TransportService transportService;
     private final ClusterApplier clusterApplier;
     private volatile ClusterState clusterState;
 
-    public SingleNodeDiscovery(final Settings settings, final TransportService transportService,
-                               final MasterService masterService, final ClusterApplier clusterApplier) {
-        super(Objects.requireNonNull(settings));
+    public SingleNodeDiscovery(final TransportService transportService,
+                               final MasterService masterService,
+                               final ClusterApplier clusterApplier) {
         this.transportService = Objects.requireNonNull(transportService);
         masterService.setClusterStateSupplier(() -> clusterState);
         this.clusterApplier = clusterApplier;
@@ -75,7 +78,7 @@ public class SingleNodeDiscovery extends AbstractLifecycleComponent implements D
             public void onFailure(String source, Exception e) {
                 latch.countDown();
                 ackListener.onNodeAck(transportService.getLocalNode(), e);
-                logger.warn(() -> new ParameterizedMessage("failed while applying cluster state locally [{}]", event.source()), e);
+                LOGGER.warn(() -> new ParameterizedMessage("failed while applying cluster state locally [{}]", event.source()), e);
             }
         };
         clusterApplier.onNewClusterState("apply-locally-on-node[" + event.source() + "]", () -> clusterState, listener);

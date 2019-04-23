@@ -54,6 +54,7 @@ import java.util.function.BiPredicate;
 public class ShardsLimitAllocationDecider extends AllocationDecider {
 
     public static final String NAME = "shards_limit";
+    private final Settings settings;
 
     private volatile int clusterShardLimit;
 
@@ -74,7 +75,7 @@ public class ShardsLimitAllocationDecider extends AllocationDecider {
             Property.Dynamic, Property.NodeScope);
 
     public ShardsLimitAllocationDecider(Settings settings, ClusterSettings clusterSettings) {
-        super(settings);
+        this.settings = settings;
         this.clusterShardLimit = CLUSTER_TOTAL_SHARDS_PER_NODE_SETTING.get(settings);
         clusterSettings.addSettingsUpdateConsumer(CLUSTER_TOTAL_SHARDS_PER_NODE_SETTING, this::setClusterShardLimit);
     }

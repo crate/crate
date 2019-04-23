@@ -43,7 +43,6 @@ import org.elasticsearch.cluster.ack.ClusterStateUpdateResponse;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.AliasMetaData;
-import org.elasticsearch.cluster.metadata.AliasValidator;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
@@ -107,7 +106,6 @@ public class TransportCreatePartitionsAction
 
     public static final String NAME = "indices:admin/bulk_create";
 
-    private final AliasValidator aliasValidator;
     private final IndicesService indicesService;
     private final AllocationService allocationService;
     private final NamedXContentRegistry xContentRegistry;
@@ -126,22 +124,18 @@ public class TransportCreatePartitionsAction
     };
 
     @Inject
-    public TransportCreatePartitionsAction(Settings settings,
-                                           TransportService transportService,
+    public TransportCreatePartitionsAction(TransportService transportService,
                                            ClusterService clusterService,
                                            ThreadPool threadPool,
-                                           AliasValidator aliasValidator,
                                            IndicesService indicesService,
                                            AllocationService allocationService,
                                            NamedXContentRegistry xContentRegistry,
-                                           IndexNameExpressionResolver indexNameExpressionResolver
-                                           ) {
-        super(settings, NAME, transportService, clusterService, threadPool, indexNameExpressionResolver, CreatePartitionsRequest::new);
-        this.aliasValidator = aliasValidator;
+                                           IndexNameExpressionResolver indexNameExpressionResolver) {
+        super(NAME, transportService, clusterService, threadPool, indexNameExpressionResolver, CreatePartitionsRequest::new);
         this.indicesService = indicesService;
         this.allocationService = allocationService;
         this.xContentRegistry = xContentRegistry;
-        this.activeShardsObserver = new ActiveShardsObserver(settings, clusterService, threadPool);
+        this.activeShardsObserver = new ActiveShardsObserver(clusterService, threadPool);
     }
 
     @Override

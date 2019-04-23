@@ -945,7 +945,6 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
         Path homeDir = createTempDir();
         CreateTableStatementAnalyzer analyzer = new CreateTableStatementAnalyzer(
             new Schemas(
-                Settings.EMPTY,
                 ImmutableMap.of("doc", docSchemaInfo),
                 clusterService,
                 new DocSchemaInfoFactory(docTableInfoFactory, viewInfoFactory, functions, udfService)),

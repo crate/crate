@@ -383,7 +383,7 @@ public abstract class Node implements Closeable {
                 ClusterModule.getNamedXWriteables().stream())
                 .flatMap(Function.identity()).collect(toList()));
             modules.add(new RepositoriesModule(this.environment, pluginsService.filterPlugins(RepositoryPlugin.class), xContentRegistry));
-            final MetaStateService metaStateService = new MetaStateService(settings, nodeEnvironment, xContentRegistry);
+            final MetaStateService metaStateService = new MetaStateService(nodeEnvironment, xContentRegistry);
 
             // collect engine factory providers from server and from plugins
             final Collection<EnginePlugin> enginePlugins = pluginsService.filterPlugins(EnginePlugin.class);
@@ -407,7 +407,7 @@ public abstract class Node implements Closeable {
                             threadPool, settingsModule.getIndexScopedSettings(), circuitBreakerService, bigArrays,
                             client, metaStateService, engineFactoryProviders, indexStoreFactories);
 
-            final AliasValidator aliasValidator = new AliasValidator(settings);
+            final AliasValidator aliasValidator = new AliasValidator();
 
             final MetaDataCreateIndexService metaDataCreateIndexService = new MetaDataCreateIndexService(
                     settings,
@@ -459,7 +459,7 @@ public abstract class Node implements Closeable {
                 indicesModule.getMapperRegistry(), settingsModule.getIndexScopedSettings(), indexMetaDataUpgraders);
             final GatewayMetaState gatewayMetaState = new GatewayMetaState(settings, nodeEnvironment, metaStateService,
                 metaDataIndexUpgradeService, metaDataUpgrader);
-            new TemplateUpgradeService(settings, client, clusterService, threadPool, indexTemplateMetaDataUpgraders);
+            new TemplateUpgradeService(client, clusterService, threadPool, indexTemplateMetaDataUpgraders);
             final Transport transport = networkModule.getTransportSupplier().get();
             Set<String> taskHeaders = Stream.concat(
                 pluginsService.filterPlugins(ActionPlugin.class).stream().flatMap(p -> p.getTaskHeaders().stream()),
@@ -477,7 +477,7 @@ public abstract class Node implements Closeable {
                 networkService, clusterService.getMasterService(), clusterService.getClusterApplierService(),
                 clusterService.getClusterSettings(), pluginsService.filterPlugins(DiscoveryPlugin.class),
                 clusterModule.getAllocationService(), environment.configFile());
-            this.nodeService = new NodeService(settings, monitorService, indicesService);
+            this.nodeService = new NodeService(monitorService, indicesService);
 
             modules.add(b -> {
                     b.bind(Node.class).toInstance(this);
@@ -508,10 +508,10 @@ public abstract class Node implements Closeable {
                     {
                         RecoverySettings recoverySettings = new RecoverySettings(settings, settingsModule.getClusterSettings());
                         processRecoverySettings(settingsModule.getClusterSettings(), recoverySettings);
-                        b.bind(PeerRecoverySourceService.class).toInstance(new PeerRecoverySourceService(settings, transportService,
-                                indicesService, recoverySettings));
-                        b.bind(PeerRecoveryTargetService.class).toInstance(new PeerRecoveryTargetService(settings, threadPool,
-                                transportService, recoverySettings, clusterService));
+                        b.bind(PeerRecoverySourceService.class)
+                            .toInstance(new PeerRecoverySourceService(transportService, indicesService, recoverySettings));
+                        b.bind(PeerRecoveryTargetService.class)
+                            .toInstance(new PeerRecoveryTargetService(threadPool, transportService, recoverySettings, clusterService));
                     }
                     httpBind.accept(b);
                     pluginComponents.stream().forEach(p -> b.bind((Class) p.getClass()).toInstance(p));

@@ -51,7 +51,6 @@ import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.ValidationException;
-import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.io.PathUtils;
 import org.elasticsearch.common.logging.DeprecationLogger;
@@ -98,8 +97,9 @@ import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF
 /**
  * Service responsible for submitting create index requests
  */
-public class MetaDataCreateIndexService extends AbstractComponent {
+public class MetaDataCreateIndexService {
 
+    private static final Logger logger = LogManager.getLogger(MetaDataCreateIndexService.class);
     private static final DeprecationLogger deprecationLogger = new DeprecationLogger(LogManager.getLogger(MetaDataCreateIndexService.class));
 
     public static final int MAX_INDEX_NAME_BYTES = 255;
@@ -113,6 +113,7 @@ public class MetaDataCreateIndexService extends AbstractComponent {
     private final ActiveShardsObserver activeShardsObserver;
     private final NamedXContentRegistry xContentRegistry;
     private final boolean forbidPrivateIndexSettings;
+    private final Settings settings;
 
     public MetaDataCreateIndexService(
             final Settings settings,
@@ -125,14 +126,14 @@ public class MetaDataCreateIndexService extends AbstractComponent {
             final ThreadPool threadPool,
             final NamedXContentRegistry xContentRegistry,
             final boolean forbidPrivateIndexSettings) {
-        super(settings);
+        this.settings = settings;
         this.clusterService = clusterService;
         this.indicesService = indicesService;
         this.allocationService = allocationService;
         this.aliasValidator = aliasValidator;
         this.env = env;
         this.indexScopedSettings = indexScopedSettings;
-        this.activeShardsObserver = new ActiveShardsObserver(settings, clusterService, threadPool);
+        this.activeShardsObserver = new ActiveShardsObserver(clusterService, threadPool);
         this.xContentRegistry = xContentRegistry;
         this.forbidPrivateIndexSettings = forbidPrivateIndexSettings;
     }
