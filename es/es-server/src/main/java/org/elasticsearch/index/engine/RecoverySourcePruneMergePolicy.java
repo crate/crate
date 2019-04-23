@@ -70,7 +70,13 @@ final class RecoverySourcePruneMergePolicy extends OneMergeWrappingMergePolicy {
         Weight weight = s.createWeight(s.rewrite(retainSourceQuerySupplier.get()), ScoreMode.COMPLETE_NO_SCORES, 1.0f);
         Scorer scorer = weight.scorer(reader.getContext());
         if (scorer != null) {
-            return new SourcePruningFilterCodecReader(recoverySourceField, reader, BitSet.of(scorer.iterator(), reader.maxDoc()));
+            BitSet recoverySourceToKeep = BitSet.of(scorer.iterator(), reader.maxDoc());
+            // calculating the cardinality is significantly cheaper than skipping all bulk-merging we might do
+            // if retentions are high we keep most of it
+            if (recoverySourceToKeep.cardinality() == reader.maxDoc()) {
+                return reader; // keep all source
+            }
+            return new SourcePruningFilterCodecReader(recoverySourceField, reader, recoverySourceToKeep);
         } else {
             return new SourcePruningFilterCodecReader(recoverySourceField, reader, null);
         }
@@ -101,7 +107,7 @@ final class RecoverySourcePruneMergePolicy extends OneMergeWrappingMergePolicy {
                             intersection = DocIdSetIterator.empty();
                         } else {
                             intersection = ConjunctionDISI.intersectIterators(Arrays.asList(numeric,
-                                new BitSetIterator(recoverySourceToKeep, recoverySourceToKeep.length())));
+                                                                                            new BitSetIterator(recoverySourceToKeep, recoverySourceToKeep.length())));
                         }
                         return new FilterNumericDocValues(numeric) {
                             @Override

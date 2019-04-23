@@ -42,8 +42,10 @@ dependencies {
 
     compile "net.java.dev.jna:jna:${versions.jna}"
 
+    testCompile project(':es:es-testing')
     testCompile "junit:junit:${versions.junit}"
     testCompile "org.hamcrest:hamcrest-all:${versions.hamcrest}"
+    testCompile "org.apache.lucene:lucene-test-framework:${versions.lucene}"
 }
 
 task getVersion(dependsOn: 'classes') {
