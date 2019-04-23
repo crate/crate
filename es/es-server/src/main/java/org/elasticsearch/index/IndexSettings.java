@@ -71,17 +71,19 @@ public final class IndexSettings {
     @Deprecated
     public static final Setting<Boolean> INDEX_TTL_DISABLE_PURGE_SETTING =
         Setting.boolSetting("index.ttl.disable_purge", false, Property.Dynamic, Property.IndexScope, Property.Deprecated);
-    public static final Setting<String> INDEX_CHECK_ON_STARTUP = new Setting<>("index.shard.check_on_startup", "false", (s) -> {
-        switch(s) {
-            case "false":
-            case "true":
-            case "fix":
-            case "checksum":
-                return s;
-            default:
-                throw new IllegalArgumentException("unknown value for [index.shard.check_on_startup] must be one of [true, false, fix, checksum] but was: " + s);
-        }
-    }, Property.IndexScope);
+
+    public static final Setting<String> INDEX_CHECK_ON_STARTUP =
+        new Setting<>("index.shard.check_on_startup", "false", (s) -> {
+            switch (s) {
+                case "false":
+                case "true":
+                case "checksum":
+                    return s;
+                default:
+                    throw new IllegalArgumentException("unknown value for [index.shard.check_on_startup] must be one of " +
+                                                       "[true, false, checksum] but was: " + s);
+            }
+        }, Property.IndexScope);
 
     /**
      * Index setting describing for NGramTokenizer and NGramTokenFilter
