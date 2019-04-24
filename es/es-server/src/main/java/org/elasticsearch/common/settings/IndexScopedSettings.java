@@ -51,7 +51,6 @@ public final class IndexScopedSettings extends AbstractScopedSettings {
     // this allows analysis settings to be passed
     public static final Set<Setting<?>> BUILT_IN_INDEX_SETTINGS = Set.of(
         MaxRetryAllocationDecider.SETTING_ALLOCATION_MAX_RETRY,
-        IndexSettings.INDEX_TTL_DISABLE_PURGE_SETTING,
         MergeSchedulerConfig.AUTO_THROTTLE_SETTING,
         MergeSchedulerConfig.MAX_MERGE_COUNT_SETTING,
         MergeSchedulerConfig.MAX_THREAD_COUNT_SETTING,
