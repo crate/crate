@@ -26,6 +26,8 @@ import com.google.common.collect.Iterables;
 import io.crate.analyze.NumberOfReplicas;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.RowCellsAccountingWithEstimators;
+import io.crate.collections.Lists2;
 import io.crate.data.Bucket;
 import io.crate.data.Input;
 import io.crate.data.Projector;
@@ -82,6 +84,7 @@ import io.crate.expression.reference.StaticTableDefinition;
 import io.crate.expression.reference.sys.SysRowUpdater;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
@@ -233,8 +236,16 @@ public class ProjectionToProjectorVisitor
         for (int i = numOutputs; i < inputs.size(); i++) {
             orderByIndices[idx++] = i;
         }
+
+        int rowMemoryOverhead = 32; // priority queues implementation are backed by an arrayList
+        RowCellsAccountingWithEstimators rowAccounting = new RowCellsAccountingWithEstimators(
+            Symbols.typeView(Lists2.concat(projection.outputs(), projection.orderBy())),
+            context.ramAccountingContext,
+            rowMemoryOverhead
+        );
         if (projection.limit() > TopN.NO_LIMIT) {
             return new SortingTopNProjector(
+                rowAccounting,
                 inputs,
                 ctx.expressions(),
                 numOutputs,

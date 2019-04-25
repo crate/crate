@@ -22,6 +22,7 @@
 
 package io.crate.execution.engine.sort;
 
+import io.crate.breaker.RowAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.Bucket;
 import io.crate.data.CollectingBatchIterator;
@@ -39,6 +40,7 @@ public class SortingTopNProjector implements Projector {
     private final Collector<Row, ?, Bucket> collector;
 
     /**
+     * @param rowAccounting               sorting is a pipeline breaker so account for the used memory
      * @param inputs                      contains output {@link Input}s and orderBy {@link Input}s
      * @param collectExpressions          gathered from outputs and orderBy inputs
      * @param numOutputs                  <code>inputs</code> contains this much output {@link Input}s starting form index 0
@@ -48,7 +50,8 @@ public class SortingTopNProjector implements Projector {
      * @param unboundedCollectorThreshold if (limit + offset) is greater than this threshold an unbounded collector will
      *                                    be used, otherwise a bounded one is used.
      */
-    public SortingTopNProjector(Collection<? extends Input<?>> inputs,
+    public SortingTopNProjector(RowAccounting<Object[]> rowAccounting,
+                                Collection<? extends Input<?>> inputs,
                                 Iterable<? extends CollectExpression<Row, ?>> collectExpressions,
                                 int numOutputs,
                                 Comparator<Object[]> ordering,
@@ -65,6 +68,7 @@ public class SortingTopNProjector implements Projector {
          */
         if ((limit + offset) > unboundedCollectorThreshold) {
             collector = new UnboundedSortingTopNCollector(
+                rowAccounting,
                 inputs,
                 collectExpressions,
                 numOutputs,
@@ -75,6 +79,7 @@ public class SortingTopNProjector implements Projector {
             );
         } else {
             collector = new BoundedSortingTopNCollector(
+                rowAccounting,
                 inputs,
                 collectExpressions,
                 numOutputs,

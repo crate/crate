@@ -74,7 +74,7 @@ public class RowsBatchIteratorBenchmark {
     private static NoopCircuitBreaker NOOP_CIRCUIT_BREAKER = new NoopCircuitBreaker("dummy");
 
     private final RamAccountingContext ramAccountingContext = new RamAccountingContext("test", NOOP_CIRCUIT_BREAKER);
-    private final RowAccounting rowAccounting = new RowAccountingWithEstimators(Collections.singleton(DataTypes.INTEGER), ramAccountingContext);
+    private final RowAccountingWithEstimators rowAccounting = new RowAccountingWithEstimators(Collections.singleton(DataTypes.INTEGER), ramAccountingContext);
 
     // use materialize to not have shared row instances
     // this is done in the startup, otherwise the allocation costs will make up the majority of the benchmark.
@@ -217,7 +217,7 @@ public class RowsBatchIteratorBenchmark {
         BatchIterators.collect(batchIterator, Collectors.summingInt(x -> { blackhole.consume(x); return 1; })).get();
     }
 
-    private static class NoRowAccounting implements RowAccounting {
+    private static class NoRowAccounting implements RowAccounting<Row> {
         @Override
         public void accountForAndMaybeBreak(Row row) {
         }

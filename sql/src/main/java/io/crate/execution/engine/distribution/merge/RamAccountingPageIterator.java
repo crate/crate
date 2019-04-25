@@ -32,9 +32,9 @@ public class RamAccountingPageIterator<TKey> implements PagingIterator<TKey, Row
 
     @VisibleForTesting
     final PagingIterator<TKey, Row> delegatePagingIterator;
-    private final RowAccounting rowAccounting;
+    private final RowAccounting<Row> rowAccounting;
 
-    public RamAccountingPageIterator(PagingIterator<TKey, Row> delegatePagingIterator, RowAccounting rowAccounting) {
+    public RamAccountingPageIterator(PagingIterator<TKey, Row> delegatePagingIterator, RowAccounting<Row> rowAccounting) {
         this.delegatePagingIterator = delegatePagingIterator;
         this.rowAccounting = rowAccounting;
     }

@@ -224,7 +224,7 @@ public class CrossJoinBlockNLBatchIteratorTest {
         assertThat(expectedResults.toArray(), hasItemInArray(batchIterator.currentElement().materialize()));
     }
 
-    private static class TestingRowAccounting implements RowAccounting {
+    private static class TestingRowAccounting implements RowAccounting<Row> {
 
         int numRows;
         int numReleaseCalled;

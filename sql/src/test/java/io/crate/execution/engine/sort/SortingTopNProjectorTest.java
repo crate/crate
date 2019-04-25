@@ -23,6 +23,9 @@
 package io.crate.execution.engine.sort;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.RowAccounting;
+import io.crate.breaker.RowCellsAccountingWithEstimators;
 import io.crate.data.Bucket;
 import io.crate.data.Input;
 import io.crate.data.Projector;
@@ -34,6 +37,14 @@ import io.crate.expression.symbol.Literal;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingBatchIterators;
 import io.crate.testing.TestingRowConsumer;
+import io.crate.types.DataTypes;
+import org.apache.logging.log4j.LogManager;
+import org.elasticsearch.common.breaker.CircuitBreakingException;
+import org.elasticsearch.common.breaker.MemoryCircuitBreaker;
+import org.elasticsearch.common.unit.ByteSizeUnit;
+import org.elasticsearch.common.unit.ByteSizeValue;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Comparator;
@@ -51,8 +62,21 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
     private static final Comparator<Object[]> FIRST_CELL_ORDERING = OrderingByPosition.arrayOrdering(0, false, false);
 
     private TestingRowConsumer consumer = new TestingRowConsumer();
+    private long originalRamAccountingBufferSize;
 
-    private Projector getProjector(int numOutputs, int limit, int offset, Comparator<Object[]> ordering) {
+    @Before
+    public void reduceFlushBufferSize() throws Exception {
+        originalRamAccountingBufferSize = RamAccountingContext.FLUSH_BUFFER_SIZE;
+        RamAccountingContext.FLUSH_BUFFER_SIZE = 20;
+    }
+
+    @After
+    public void resetFlushBufferSize() throws Exception {
+        RamAccountingContext.FLUSH_BUFFER_SIZE = originalRamAccountingBufferSize;
+    }
+
+
+    private Projector getProjector(RowAccounting<Object[]> rowAccounting, int numOutputs, int limit, int offset, Comparator<Object[]> ordering) {
         int unboundedCollectorThreshold = 10_000;
         if (random().nextFloat() >= 0.5f) {
             unboundedCollectorThreshold = 1;
@@ -60,6 +84,7 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
         logger.info("Creating SortingTopN projector with unbounded collector threshold {}", unboundedCollectorThreshold);
 
         return new SortingTopNProjector(
+            rowAccounting,
             INPUT_LITERAL_LIST,
             COLLECT_EXPRESSIONS,
             numOutputs,
@@ -71,7 +96,7 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
     }
 
     private Projector getProjector(int numOutputs, int limit, int offset) {
-        return getProjector(numOutputs, limit, offset, FIRST_CELL_ORDERING);
+        return getProjector(new IgnoreRowCellsAccounting(), numOutputs, limit, offset, FIRST_CELL_ORDERING);
     }
 
     @Test
@@ -92,7 +117,7 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
 
     @Test
     public void testOrderByWithLimitMuchHigherThanExpectedRowsCount() throws Exception {
-        Projector projector = getProjector(1, 100_000, TopN.NO_OFFSET, FIRST_CELL_ORDERING);
+        Projector projector = getProjector(new IgnoreRowCellsAccounting(), 1, 100_000, TopN.NO_OFFSET, FIRST_CELL_ORDERING);
         consumer.accept(projector.apply(TestingBatchIterators.range(1, 11)), null);
 
         Bucket rows = consumer.getBucket();
@@ -112,6 +137,22 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
             iterateLength++;
         }
         assertThat(iterateLength, is(10));
+    }
+
+    @Test
+    public void testUsedMemoryIsAccountedFor() throws Exception {
+        MemoryCircuitBreaker circuitBreaker = new MemoryCircuitBreaker(new ByteSizeValue(30, ByteSizeUnit.BYTES),
+                                                                       1,
+                                                                       LogManager.getLogger(SortingTopNProjectorTest.class)
+        );
+        RowCellsAccountingWithEstimators rowAccounting =
+            new RowCellsAccountingWithEstimators(List.of(DataTypes.LONG, DataTypes.BOOLEAN), new RamAccountingContext("testContext", circuitBreaker), 0);
+
+        Projector projector = getProjector(rowAccounting, 1, 100_000, TopN.NO_OFFSET, FIRST_CELL_ORDERING);
+        consumer.accept(projector.apply(TestingBatchIterators.range(1, 11)), null);
+
+        expectedException.expect(CircuitBreakingException.class);
+        consumer.getResult();
     }
 
     @Test

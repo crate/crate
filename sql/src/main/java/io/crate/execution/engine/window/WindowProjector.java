@@ -63,7 +63,7 @@ public class WindowProjector implements Projector {
     private final Input[][] args;
     private final IntSupplier numThreads;
     private final Executor executor;
-    private final RowAccounting rowAccounting;
+    private final RowAccounting<Row> rowAccounting;
 
     public static WindowProjector fromProjection(WindowAggProjection projection,
                                                  Functions functions,
@@ -121,7 +121,7 @@ public class WindowProjector implements Projector {
         );
     }
 
-    private WindowProjector(RowAccounting rowAccounting,
+    private WindowProjector(RowAccounting<Row> rowAccounting,
                             Comparator<Object[]> cmpPartitionBy,
                             Comparator<Object[]> cmpOrderBy,
                             int cellOffset,

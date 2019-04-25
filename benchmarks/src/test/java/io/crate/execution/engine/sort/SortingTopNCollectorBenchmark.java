@@ -71,6 +71,7 @@ public class SortingTopNCollectorBenchmark {
     @Setup
     public void setUp() {
         boundedSortingCollector = new BoundedSortingTopNCollector(
+            new IgnoreRowCellsAccounting(),
             INPUTS,
             COLLECT_EXPRESSIONS,
             1,
@@ -79,6 +80,7 @@ public class SortingTopNCollectorBenchmark {
             0);
 
         unboundedSortingCollector = new UnboundedSortingTopNCollector(
+            new IgnoreRowCellsAccounting(),
             INPUTS,
             COLLECT_EXPRESSIONS,
             1,

@@ -23,7 +23,6 @@ package io.crate.execution.engine.join;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.breaker.RowAccounting;
 import io.crate.breaker.RowAccountingWithEstimators;
 import io.crate.concurrent.CompletionListenable;
 import io.crate.data.BatchIterator;
@@ -158,7 +157,7 @@ public class NestedLoopOperation implements CompletionListenable {
         if (blockNestedLoop) {
             IntSupplier blockSizeCalculator = new RamBlockSizeCalculator(
                 Paging.PAGE_SIZE, circuitBreaker, estimatedRowsSizeLeft, estimatedNumberOfRowsLeft);
-            RowAccounting rowAccounting = new RowAccountingWithEstimators(leftSideColumnTypes, ramAccountingContext);
+            RowAccountingWithEstimators rowAccounting = new RowAccountingWithEstimators(leftSideColumnTypes, ramAccountingContext);
             return JoinBatchIterators.crossJoinBlockNL(left, right, combiner, blockSizeCalculator, rowAccounting);
         } else {
             return JoinBatchIterators.crossJoinNL(left, right, combiner);

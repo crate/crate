@@ -23,6 +23,7 @@
 package io.crate.execution.engine.sort;
 
 import com.google.common.base.Preconditions;
+import io.crate.breaker.RowAccounting;
 import io.crate.data.ArrayBucket;
 import io.crate.data.Bucket;
 import io.crate.data.Input;
@@ -54,18 +55,21 @@ public class BoundedSortingTopNCollector implements Collector<Row, RowPriorityQu
     private final Comparator<Object[]> comparator;
     private final int offset;
     private final int maxSize;
+    private final RowAccounting<Object[]> rowAccounting;
 
     private Object[] spare;
 
     /**
-     * @param inputs      contains output {@link Input}s and orderBy {@link Input}s
-     * @param expressions expressions linked to the inputs
-     * @param numOutputs  number of output columns
-     * @param comparator  used to sort the rows
-     * @param limit       the max number of rows the result should contain
-     * @param offset      the number of rows to skip (after sort)
+     * @param rowAccounting    sorting is a pipeline breaker so account for the used memory
+     * @param inputs           contains output {@link Input}s and orderBy {@link Input}s
+     * @param expressions      expressions linked to the inputs
+     * @param numOutputs       number of output columns
+     * @param comparator       used to sort the rows
+     * @param limit            the max number of rows the result should contain
+     * @param offset           the number of rows to skip (after sort)
      */
-    public BoundedSortingTopNCollector(Collection<? extends Input<?>> inputs,
+    public BoundedSortingTopNCollector(RowAccounting<Object[]> rowAccounting,
+                                       Collection<? extends Input<?>> inputs,
                                        Iterable<? extends CollectExpression<Row, ?>> expressions,
                                        int numOutputs,
                                        Comparator<Object[]> comparator,
@@ -74,6 +78,7 @@ public class BoundedSortingTopNCollector implements Collector<Row, RowPriorityQu
         Preconditions.checkArgument(limit > 0, "Invalid LIMIT: value must be > 0; got: " + limit);
         Preconditions.checkArgument(offset >= 0, "Invalid OFFSET: value must be >= 0; got: " + offset);
 
+        this.rowAccounting = rowAccounting;
         this.inputs = inputs;
         this.expressions = expressions;
         this.numOutputs = numOutputs;
@@ -121,13 +126,18 @@ public class BoundedSortingTopNCollector implements Collector<Row, RowPriorityQu
         for (CollectExpression<Row, ?> expression : expressions) {
             expression.setNextRow(row);
         }
+        boolean accountForExtraSpare = false;
         if (spare == null) {
             spare = new Object[inputs.size()];
+            accountForExtraSpare = true;
         }
         int i = 0;
         for (Input<?> input : inputs) {
             spare[i] = input.value();
             i++;
+        }
+        if (accountForExtraSpare) {
+            rowAccounting.accountForAndMaybeBreak(spare);
         }
         spare = pq.insertWithOverflow(spare);
     }

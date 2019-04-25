@@ -20,29 +20,24 @@
  * agreement.
  */
 
-package io.crate.breaker;
+package io.crate.execution.engine.sort;
 
-/**
- * Accounts for memory of rows representations to avoid OutOfMemoryErrors.
- * Calculated memory usage can be released.
- */
-public interface RowAccounting<T> {
+import io.crate.breaker.RowAccounting;
 
-    /**
-     * Accounts memory usage of the supplied row representation.
-     * May throw an exception if it thinks that the entities accounted for
-     * occupy too much memory.
-     * @throws CircuitBreakingException if too much memory would be consumer after materializing this row.
-     */
-    void accountForAndMaybeBreak(T row);
+public class IgnoreRowCellsAccounting implements RowAccounting<Object[]> {
 
-    /**
-     * Stops accounting for previously accounted rows.
-     */
-    void release();
+    @Override
+    public void accountForAndMaybeBreak(Object[] cells) {
 
-    /**
-     * Closes this accounting and prevents further use.
-     */
-    void close();
+    }
+
+    @Override
+    public void release() {
+
+    }
+
+    @Override
+    public void close() {
+
+    }
 }

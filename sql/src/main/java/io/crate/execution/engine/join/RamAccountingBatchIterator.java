@@ -40,9 +40,9 @@ import javax.annotation.Nonnull;
 public class RamAccountingBatchIterator<T extends Row> extends ForwardingBatchIterator<T> {
 
     private final BatchIterator<T> delegateBatchIterator;
-    private final RowAccounting rowAccounting;
+    private final RowAccounting<Row> rowAccounting;
 
-    public RamAccountingBatchIterator(BatchIterator<T> delegatePagingIterator, RowAccounting rowAccounting) {
+    public RamAccountingBatchIterator(BatchIterator<T> delegatePagingIterator, RowAccounting<Row> rowAccounting) {
         this.delegateBatchIterator = delegatePagingIterator;
         this.rowAccounting = rowAccounting;
     }
