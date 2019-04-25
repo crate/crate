@@ -30,10 +30,9 @@ allprojects {
             // fail eagerly on version conflict (includes transitive dependencies)
             failOnVersionConflict()
 
-            // ES requires hamcrest-all which includes hamcrest-core
             dependencySubstitution {
                 substitute module("org.hamcrest:hamcrest-core") with(
-                        module("org.hamcrest:hamcrest-all:${versions.hamcrest}"))
+                        module("org.hamcrest:hamcrest:${versions.hamcrest}"))
             }
 
             // forced versions of conflicting deps
@@ -52,7 +51,7 @@ allprojects {
             force "com.fasterxml.jackson.core:jackson-annotations:${versions.jackson}"
             force "com.fasterxml.jackson.core:jackson-databind:${versions.jackson}"
             force "joda-time:joda-time:${versions.jodatime}"
-            force "org.hamcrest:hamcrest-all:${versions.hamcrest}"
+            force "org.hamcrest:hamcrest:${versions.hamcrest}"
             force "org.antlr:antlr4-runtime:${versions.antlr}"
             force "commons-cli:commons-cli:${versions.commonscli}"
             force "org.apache.commons:commons-math3:${versions.commonsmath}"

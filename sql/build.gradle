@@ -35,7 +35,7 @@ dependencies {
     testCompile project(':integration-testing')
     testCompile project(path: ':dex', configuration: 'testOutput')
     testCompile 'org.skyscreamer:jsonassert:1.3.0'
-    testCompile "org.hamcrest:hamcrest-all:${versions.hamcrest}"
+    testCompile "org.hamcrest:hamcrest:${versions.hamcrest}"
     testCompile "org.slf4j:slf4j-api:${versions.slf4j}"
     testCompile("io.crate:crate-jdbc:${versions.crate_jdbc}") {
         exclude group: 'net.java.dev.jna', module: 'jna'

@@ -44,7 +44,7 @@ dependencies {
 
     testCompile project(':es:es-testing')
     testCompile "junit:junit:${versions.junit}"
-    testCompile "org.hamcrest:hamcrest-all:${versions.hamcrest}"
+    testCompile "org.hamcrest:hamcrest:${versions.hamcrest}"
     testCompile "org.apache.lucene:lucene-test-framework:${versions.lucene}"
 }
 

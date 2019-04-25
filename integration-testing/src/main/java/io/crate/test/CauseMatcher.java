@@ -23,7 +23,6 @@
 package io.crate.test;
 
 import org.hamcrest.Description;
-import org.hamcrest.Factory;
 import org.hamcrest.TypeSafeMatcher;
 
 import javax.annotation.Nullable;
@@ -96,7 +95,6 @@ public class CauseMatcher {
             fMatcher.describeMismatch(item.getCause().getCause(), description);
         }
 
-        @Factory
         public static <T extends Throwable> org.hamcrest.Matcher<T> hasCause(final org.hamcrest.Matcher<T> matcher) {
             return new CauseOfCauseMatcher<T>(matcher);
         }
