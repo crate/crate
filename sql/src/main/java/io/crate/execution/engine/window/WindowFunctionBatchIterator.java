@@ -75,7 +75,7 @@ public final class WindowFunctionBatchIterator {
     private static final Logger LOGGER = Loggers.getLogger(WindowFunctionBatchIterator.class);
 
     public static BatchIterator<Row> of(BatchIterator<Row> source,
-                                        RowAccounting rowAccounting,
+                                        RowAccounting<Row> rowAccounting,
                                         Comparator<Object[]> cmpPartitionBy,
                                         Comparator<Object[]> cmpOrderBy,
                                         int numCellsInSourceRow,

@@ -74,7 +74,7 @@ import java.util.concurrent.TimeUnit;
 @State(Scope.Benchmark)
 public class OrderedLuceneBatchIteratorBenchmark {
 
-    private static final RowAccounting ROW_ACCOUNTING = new RowAccountingWithEstimators(Collections.singleton(LongType.INSTANCE),
+    private static final RowAccountingWithEstimators ROW_ACCOUNTING = new RowAccountingWithEstimators(Collections.singleton(LongType.INSTANCE),
         new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.FIELDDATA))
     );
 

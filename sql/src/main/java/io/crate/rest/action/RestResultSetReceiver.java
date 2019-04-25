@@ -38,7 +38,7 @@ class RestResultSetReceiver implements ResultReceiver<XContentBuilder> {
     private final List<Field> outputFields;
     private final ResultToXContentBuilder builder;
     private final long startTimeNs;
-    private final RowAccounting rowAccounting;
+    private final RowAccounting<Row> rowAccounting;
     private final CompletableFuture<XContentBuilder> result = new CompletableFuture<>();
 
     private long rowCount;
@@ -46,7 +46,7 @@ class RestResultSetReceiver implements ResultReceiver<XContentBuilder> {
     RestResultSetReceiver(XContentBuilder builder,
                           List<Field> outputFields,
                           long startTimeNs,
-                          RowAccounting rowAccounting,
+                          RowAccounting<Row> rowAccounting,
                           boolean includeTypesOnResponse) throws IOException {
         this.outputFields = outputFields;
         this.startTimeNs = startTimeNs;

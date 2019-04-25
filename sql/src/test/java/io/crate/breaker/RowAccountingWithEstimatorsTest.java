@@ -35,6 +35,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Collections;
+import java.util.stream.IntStream;
 
 public class RowAccountingWithEstimatorsTest extends CrateUnitTest {
 
@@ -53,15 +54,31 @@ public class RowAccountingWithEstimatorsTest extends CrateUnitTest {
 
     @Test
     public void testCircuitBreakingWorks() throws Exception {
-        RowAccounting rowAccounting = new RowAccountingWithEstimators(Collections.singletonList(DataTypes.INTEGER),
+        RowAccounting rowAccounting = new RowAccountingWithEstimators(
+            Collections.singletonList(DataTypes.INTEGER),
             new RamAccountingContext(
                 "test",
                 new MemoryCircuitBreaker(
-                    new ByteSizeValue(10, ByteSizeUnit.BYTES), 1.01, LogManager.getLogger(RowAccountingWithEstimatorsTest.class))
+                    new ByteSizeValue(10, ByteSizeUnit.BYTES),
+                    1.01,
+                    LogManager.getLogger(RowAccountingWithEstimatorsTest.class))
             ));
 
         expectedException.expect(CircuitBreakingException.class);
         RowGenerator.range(0, 3).forEach(rowAccounting::accountForAndMaybeBreak);
+    }
+
+    @Test
+    public void testRowCellsAccountingCircuitBreakingWorks() throws Exception {
+        RowCellsAccountingWithEstimators rowAccounting = new RowCellsAccountingWithEstimators(Collections.singletonList(DataTypes.INTEGER),
+                                                                      new RamAccountingContext(
+                                                                          "test",
+                                                                          new MemoryCircuitBreaker(
+                                                                              new ByteSizeValue(10, ByteSizeUnit.BYTES), 1.01, LogManager.getLogger(RowAccountingWithEstimatorsTest.class))
+                                                                      ), 0);
+
+        expectedException.expect(CircuitBreakingException.class);
+        IntStream.range(0, 3).forEach(i -> rowAccounting.accountForAndMaybeBreak(new Object[]{i}));
     }
 
     @Test

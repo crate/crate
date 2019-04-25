@@ -54,7 +54,7 @@ public class HashJoinOperation implements CompletionListenable {
                              Predicate<Row> joinPredicate,
                              List<Symbol> joinLeftInputs,
                              List<Symbol> joinRightInputs,
-                             RowAccounting rowAccounting,
+                             RowAccounting<Row> rowAccounting,
                              TransactionContext txnCtx,
                              InputFactory inputFactory,
                              CircuitBreaker circuitBreaker,
@@ -124,7 +124,7 @@ public class HashJoinOperation implements CompletionListenable {
                                                              Predicate<Row> joinCondition,
                                                              Function<Row, Integer> hashBuilderForLeft,
                                                              Function<Row, Integer> hashBuilderForRight,
-                                                             RowAccounting rowAccounting,
+                                                             RowAccounting<Row> rowAccounting,
                                                              RamBlockSizeCalculator blockSizeCalculator) {
         CombinedRow combiner = new CombinedRow(leftNumCols, rightNumCols);
         return new HashInnerJoinBatchIterator(

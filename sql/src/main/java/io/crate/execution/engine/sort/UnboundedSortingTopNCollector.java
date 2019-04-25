@@ -23,6 +23,7 @@
 package io.crate.execution.engine.sort;
 
 import com.google.common.base.Preconditions;
+import io.crate.breaker.RowAccounting;
 import io.crate.data.ArrayBucket;
 import io.crate.data.Bucket;
 import io.crate.data.Input;
@@ -56,8 +57,10 @@ public class UnboundedSortingTopNCollector implements Collector<Row, PriorityQue
     private final int initialCapacity;
     private final int offset;
     private final int maxNumberOfRowsInQueue;
+    private final RowAccounting<Object[]> rowAccounting;
 
     /**
+     * @param rowAccounting   sorting is a pipeline breaker so account for the used memory
      * @param inputs          contains output {@link Input}s and orderBy {@link Input}s
      * @param expressions     expressions linked to the inputs
      * @param numOutputs      number of output columns
@@ -66,7 +69,8 @@ public class UnboundedSortingTopNCollector implements Collector<Row, PriorityQue
      * @param limit           the max number of rows the result should contain
      * @param offset          the number of rows to skip (after sort)
      */
-    public UnboundedSortingTopNCollector(Collection<? extends Input<?>> inputs,
+    public UnboundedSortingTopNCollector(RowAccounting<Object[]> rowAccounting,
+                                         Collection<? extends Input<?>> inputs,
                                          Iterable<? extends CollectExpression<Row, ?>> expressions,
                                          int numOutputs,
                                          Comparator<Object[]> comparator,
@@ -78,6 +82,7 @@ public class UnboundedSortingTopNCollector implements Collector<Row, PriorityQue
         Preconditions.checkArgument(limit > 0, "Invalid LIMIT: value must be > 0; got: " + limit);
         Preconditions.checkArgument(offset >= 0, "Invalid OFFSET: value must be >= 0; got: " + offset);
 
+        this.rowAccounting = rowAccounting;
         this.inputs = inputs;
         this.expressions = expressions;
         this.numOutputs = numOutputs;
@@ -132,7 +137,7 @@ public class UnboundedSortingTopNCollector implements Collector<Row, PriorityQue
             rowCells[i] = input.value();
             i++;
         }
-
+        rowAccounting.accountForAndMaybeBreak(rowCells);
         if (pq.size() == maxNumberOfRowsInQueue) {
             Object[] highestElementInOrder = pq.peek();
             if (highestElementInOrder == null || comparator.compare(rowCells, highestElementInOrder) < 0) {

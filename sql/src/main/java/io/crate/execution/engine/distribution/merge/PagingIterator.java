@@ -61,7 +61,7 @@ public interface PagingIterator<TKey, TRow> extends Iterator<TRow> {
     static <TKey> PagingIterator<TKey, Row> create(int numUpstreams,
                                                    boolean requiresRepeat,
                                                    @Nullable PositionalOrderBy orderBy,
-                                                   Supplier<RowAccounting> rowAccountingSupplier) {
+                                                   Supplier<RowAccounting<Row>> rowAccountingSupplier) {
         PagingIterator<TKey, Row> pagingIterator;
         if (numUpstreams == 1 || orderBy == null) {
             if (requiresRepeat) {
