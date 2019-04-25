@@ -15,7 +15,7 @@ dependencies {
     testImplementation project(path: ':sql', configuration: 'testOutput')
     testImplementation project(path: ':dex', configuration: 'testOutput')
     testImplementation project(':integration-testing')
-    testImplementation "org.hamcrest:hamcrest-all:${versions.hamcrest}"
+    testImplementation "org.hamcrest:hamcrest:${versions.hamcrest}"
     testImplementation("io.crate:crate-jdbc:${versions.crate_jdbc}") {
             exclude group: 'net.java.dev.jna', module: 'jna'
             exclude group: 'commons-logging', module: 'commons-logging'

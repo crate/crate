@@ -19,7 +19,7 @@ dependencies {
     compile "com.google.code.findbugs:jsr305:${versions.jsr305}"
     compile "com.google.guava:guava:${versions.guava}"
 
-    testCompile "org.hamcrest:hamcrest-all:${versions.hamcrest}"
+    testCompile "org.hamcrest:hamcrest:${versions.hamcrest}"
     testCompile "junit:junit:${versions.junit}"
 }
 

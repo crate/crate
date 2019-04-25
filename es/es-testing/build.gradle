@@ -5,7 +5,7 @@ dependencies {
 
     api "com.carrotsearch.randomizedtesting:randomizedtesting-runner:${versions.randomizedrunner}"
     api "junit:junit:${versions.junit}"
-    api "org.hamcrest:hamcrest-all:${versions.hamcrest}"
+    api "org.hamcrest:hamcrest:${versions.hamcrest}"
     api "org.apache.lucene:lucene-test-framework:${versions.lucene}"
     api "org.apache.lucene:lucene-codecs:${versions.lucene}"
     api "org.mockito:mockito-core:${versions.mockito}"
