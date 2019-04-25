@@ -20,7 +20,11 @@ Control`_ can be achieved by using the internal system columns
 
 Every new primary shard row has an initial sequence number of ``0``. This value
 is increased by ``1`` on every insert, delete or update operation the primary
-shard executes.
+shard executes. The primary term will be incremented when a shard is promoted
+to primary so the user can know if they are executing an update against the
+most up to date cluster configuration.
+
+.. Hidden: update some documents to raise their ``_seq_no`` values.::
 
     cr> update locations set date = 0
     ... where name < 'Altair' and kind = 'Star System';
