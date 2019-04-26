@@ -22,6 +22,7 @@
 
 package io.crate.execution.engine.window;
 
+import com.google.common.collect.Lists;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.breaker.RowAccountingWithEstimators;
 import io.crate.collections.Lists2;
@@ -45,10 +46,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
+import static io.crate.execution.engine.window.WindowFunctionBatchIterator.sortAndComputeWindowFunctions;
 import static org.elasticsearch.common.collect.Tuple.tuple;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
@@ -76,6 +79,8 @@ public class WindowBatchIteratorTest {
                 null,
                 OrderingByPosition.arrayOrdering(0, false, false),
                 1,
+                () -> 1,
+                Runnable::run,
                 Collections.singletonList(rowNumberWindowFunction()),
                 Collections.emptyList(),
                 new Input[0])
@@ -92,6 +97,8 @@ public class WindowBatchIteratorTest {
                 null,
                 OrderingByPosition.arrayOrdering(0, false, false),
                 1,
+                () -> 1,
+                Runnable::run,
                 Collections.singletonList(rowNumberWindowFunction()),
                 Collections.emptyList(),
                 new Input[0])
@@ -102,16 +109,17 @@ public class WindowBatchIteratorTest {
     @Test
     public void testFrameBoundsEmptyWindow() throws Exception {
         var rows = IntStream.range(0, 10).mapToObj(i -> new Object[]{i, null}).collect(Collectors.toList());
-        var result = new ArrayList<>(rows);
-        WindowFunctionBatchIterator.computeWindowFunctions(
-            result,
+        var result = Lists.newArrayList(sortAndComputeWindowFunctions(
+            new ArrayList<>(rows),
             null,
             null,
             1,
+            () -> 1,
+            Runnable::run,
             List.of(frameBoundsWindowFunction()),
             List.of(),
             args
-        );
+        ).get(5, TimeUnit.SECONDS));
         var expectedBounds = tuple(0, 10);
         IntStream.range(0, 10).forEach(i -> assertThat(result.get(i), is(new Object[] { i, expectedBounds})));
     }
@@ -119,16 +127,18 @@ public class WindowBatchIteratorTest {
     @Test
     public void testFrameBoundsForPartitionedWindow() throws Exception {
         var rows = Arrays.asList(-1, 1, 1, 2, 2, 3, 4, 5, null, null);
-        var result = Lists2.map(rows, i -> new Object[] { i, null });
-        WindowFunctionBatchIterator.computeWindowFunctions(
-            result,
+        var rowsWithSpare = Lists2.map(rows, i -> new Object[] { i, null });
+        var result = sortAndComputeWindowFunctions(
+            rowsWithSpare,
             OrderingByPosition.arrayOrdering(0, false, false),
             null,
             1,
+            () -> 1,
+            Runnable::run,
             List.of(frameBoundsWindowFunction()),
             List.of(),
             args
-        );
+        ).get(5, TimeUnit.SECONDS);
         assertThat(
             result,
             contains(
@@ -161,17 +171,19 @@ public class WindowBatchIteratorTest {
             $(null, null, null),
             $(null, null, null)
         );
-        WindowFunctionBatchIterator.computeWindowFunctions(
+        var result = sortAndComputeWindowFunctions(
             rows,
             OrderingByPosition.arrayOrdering(0, false, false),
             OrderingByPosition.arrayOrdering(1, false, false),
             2,
+            () -> 1,
+            Runnable::run,
             List.of(frameBoundsWindowFunction()),
             List.of(),
             args
-        );
+        ).get(5, TimeUnit.SECONDS);
         assertThat(
-            rows,
+            result,
             contains(
                 $(-1, -1, tuple(0, 1)),
                 $(1, 0, tuple(0, 1)),
@@ -195,6 +207,8 @@ public class WindowBatchIteratorTest {
             null,
             null,
             1,
+            () -> 1,
+            Runnable::run,
             List.of(rowNumberWindowFunction()),
             List.of(),
             new Input[][]{new Input[0]}
@@ -211,17 +225,19 @@ public class WindowBatchIteratorTest {
             $(null, null),
             $(2, null)
         );
-        WindowFunctionBatchIterator.computeWindowFunctions(
+        var result = sortAndComputeWindowFunctions(
             rows,
             null,
             OrderingByPosition.arrayOrdering(0, true, true),
             1,
+            () -> 1,
+            Runnable::run,
             List.of(firstCellValue()),
             List.of(),
             args
-        );
+        ).get(5, TimeUnit.SECONDS);
         assertThat(
-            rows,
+            result,
             contains(
                 $(null, null),
                 $(2, null)

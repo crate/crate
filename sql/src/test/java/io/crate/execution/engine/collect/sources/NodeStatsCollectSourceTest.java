@@ -23,7 +23,6 @@
 package io.crate.execution.engine.collect.sources;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.expression.symbol.Symbol;
@@ -43,7 +42,6 @@ import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -99,15 +97,11 @@ public class NodeStatsCollectSourceTest extends CrateUnitTest {
         SqlExpressions sqlExpressions = new SqlExpressions(tableSources, tableRelation);
         Symbol query = sqlExpressions.normalize(sqlExpressions.asSymbol(where));
 
-        List<DiscoveryNode> nodes = Lists.newArrayList(NodeStatsCollectSource.nodeIds(query,
+        List<DiscoveryNode> nodes = new ArrayList<>(NodeStatsCollectSource.filterNodes(
             discoveryNodes,
+            query,
             getFunctions()));
-        Collections.sort(nodes, new Comparator<DiscoveryNode>() {
-            @Override
-            public int compare(DiscoveryNode o1, DiscoveryNode o2) {
-                return o1.getId().compareTo(o2.getId());
-            }
-        });
+        nodes.sort(Comparator.comparing(DiscoveryNode::getId));
         return nodes;
     }
 

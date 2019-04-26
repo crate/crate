@@ -19,6 +19,8 @@
 
 package org.elasticsearch.cluster.metadata;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
@@ -33,9 +35,7 @@ import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
-import org.elasticsearch.common.ValidationException;
 import org.elasticsearch.common.collect.Tuple;
-import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.common.settings.IndexScopedSettings;
@@ -46,11 +46,9 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
 import static org.elasticsearch.action.support.ContextPreservingActionListener.wrapPreservingContext;
@@ -59,7 +57,9 @@ import static org.elasticsearch.index.IndexSettings.same;
 /**
  * Service responsible for submitting update index settings requests
  */
-public class MetaDataUpdateSettingsService extends AbstractComponent {
+public class MetaDataUpdateSettingsService {
+
+    private static final Logger logger = LogManager.getLogger(MetaDataUpdateSettingsService.class);
 
     private final ClusterService clusterService;
 
@@ -70,9 +70,8 @@ public class MetaDataUpdateSettingsService extends AbstractComponent {
     private final ThreadPool threadPool;
 
     @Inject
-    public MetaDataUpdateSettingsService(Settings settings, ClusterService clusterService, AllocationService allocationService,
+    public MetaDataUpdateSettingsService(ClusterService clusterService, AllocationService allocationService,
                                          IndexScopedSettings indexScopedSettings, IndicesService indicesService, ThreadPool threadPool) {
-        super(settings);
         this.clusterService = clusterService;
         this.threadPool = threadPool;
         this.allocationService = allocationService;
@@ -145,17 +144,6 @@ public class MetaDataUpdateSettingsService extends AbstractComponent {
 
                 int updatedNumberOfReplicas = openSettings.getAsInt(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, -1);
                 if (updatedNumberOfReplicas != -1 && preserveExisting == false) {
-
-                    // Verify that this won't take us over the cluster shard limit.
-                    int totalNewShards = Arrays.stream(request.indices())
-                        .mapToInt(i -> getTotalNewShards(i, currentState, updatedNumberOfReplicas))
-                        .sum();
-                    Optional<String> error = IndicesService.checkShardLimit(totalNewShards, currentState, deprecationLogger);
-                    if (error.isPresent()) {
-                        ValidationException ex = new ValidationException();
-                        ex.addValidationError(error.get());
-                        throw ex;
-                    }
 
                     // we do *not* update the in sync allocation ids as they will be removed upon the first index
                     // operation which make these copies stale

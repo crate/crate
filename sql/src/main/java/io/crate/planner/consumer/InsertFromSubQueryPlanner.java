@@ -22,7 +22,6 @@
 package io.crate.planner.consumer;
 
 
-import com.google.common.collect.ImmutableList;
 import io.crate.analyze.InsertFromSubQueryAnalyzedStatement;
 import io.crate.analyze.QueriedTable;
 import io.crate.analyze.relations.AbstractTableRelation;
@@ -31,10 +30,8 @@ import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.RelationNormalizer;
-import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.execution.dsl.projection.ColumnIndexWriterProjection;
 import io.crate.execution.dsl.projection.EvalProjection;
-import io.crate.execution.dsl.projection.Projection;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.DocReferences;
@@ -50,7 +47,6 @@ import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 
@@ -85,21 +81,11 @@ public final class InsertFromSubQueryPlanner {
         QueriedRelation subRelation = (QueriedRelation) relationNormalizer.normalize(
             statement.subQueryRelation(), plannerContext.transactionContext());
 
-        // We'd have to enable paging & add a mergePhase to the sub-plan which applies the ordering/limit before
-        // the indexWriterProjection can be added
-        if (subRelation.limit() != null || subRelation.offset() != null || subRelation.orderBy() != null) {
-            throw new UnsupportedFeatureException("Using limit, offset or order by is not " +
-                                                  "supported on insert using a sub-query");
-        }
         SOURCE_LOOKUP_CONVERTER.process(subRelation, null);
         LogicalPlan plannedSubQuery = logicalPlanner.normalizeAndPlan(
             subRelation, plannerContext, subqueryPlanner, FetchMode.NEVER_CLEAR);
-
         EvalProjection castOutputs = createCastProjection(statement.columns(), plannedSubQuery.outputs());
-        List<Projection> projections = castOutputs == null
-            ? Collections.singletonList(indexWriterProjection)
-            : ImmutableList.of(castOutputs, indexWriterProjection);
-        return new Insert(plannedSubQuery, projections);
+        return new Insert(plannedSubQuery, indexWriterProjection, castOutputs);
     }
 
     @Nullable
@@ -129,9 +115,8 @@ public final class InsertFromSubQueryPlanner {
                 return null;
             }
             AbstractTableRelation tableRelation = table.tableRelation();
-            if (tableRelation instanceof DocTableRelation) {
+            if (tableRelation instanceof DocTableRelation && table.orderBy() == null) {
                 List<Symbol> outputs = table.outputs();
-                assert table.orderBy() == null : "insert from subquery with order by is not supported";
                 for (int i = 0; i < outputs.size(); i++) {
                     outputs.set(i, DocReferences.toSourceLookup(outputs.get(i)));
                 }

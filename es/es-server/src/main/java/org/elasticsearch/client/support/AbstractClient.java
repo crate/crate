@@ -97,17 +97,17 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.client.ClusterAdminClient;
 import org.elasticsearch.client.ElasticsearchClient;
 import org.elasticsearch.client.IndicesAdminClient;
-import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 
-public abstract class AbstractClient extends AbstractComponent implements Client {
+public abstract class AbstractClient implements Client {
 
     private final ThreadPool threadPool;
     private final Admin admin;
+    private final Settings settings;
 
     public AbstractClient(Settings settings, ThreadPool threadPool) {
-        super(settings);
+        this.settings = settings;
         this.threadPool = threadPool;
         this.admin = new Admin(this);
     }

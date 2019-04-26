@@ -643,7 +643,7 @@ public class PolygonBuilder extends ShapeBuilder<JtsGeometry, PolygonBuilder> {
                 translated.set(true);
             }
             // correct the orientation post translation (ccw for shell, cw for holes)
-            if (component == 0 || (component != 0 && handedness == orientation)) {
+            if (component == 0 || handedness == orientation) {
                 orientation = !orientation;
             }
         }

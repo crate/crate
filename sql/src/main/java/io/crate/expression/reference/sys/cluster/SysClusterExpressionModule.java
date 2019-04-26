@@ -21,10 +21,9 @@
 
 package io.crate.expression.reference.sys.cluster;
 
-import io.crate.metadata.ClusterReferenceResolver;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.expression.NestableInput;
-import io.crate.metadata.sys.SysClusterTableInfo;
+import io.crate.metadata.ClusterReferenceResolver;
+import io.crate.metadata.ColumnIdent;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
 
@@ -33,17 +32,13 @@ public class SysClusterExpressionModule extends AbstractModule {
     @Override
     protected void configure() {
         bind(ClusterReferenceResolver.class).asEagerSingleton();
-        MapBinder<ReferenceIdent, NestableInput> b = MapBinder
-            .newMapBinder(binder(), ReferenceIdent.class, NestableInput.class);
+        MapBinder<ColumnIdent, NestableInput> b = MapBinder
+            .newMapBinder(binder(), ColumnIdent.class, NestableInput.class);
 
-        b.addBinding(clusterIdent(ClusterIdExpression.NAME)).to(ClusterIdExpression.class).asEagerSingleton();
-        b.addBinding(clusterIdent(ClusterNameExpression.NAME)).to(ClusterNameExpression.class).asEagerSingleton();
-        b.addBinding(clusterIdent(ClusterMasterNodeExpression.NAME)).to(ClusterMasterNodeExpression.class).asEagerSingleton();
-        b.addBinding(clusterIdent(ClusterSettingsExpression.NAME)).to(ClusterSettingsExpression.class).asEagerSingleton();
-        b.addBinding(clusterIdent(ClusterLicenseExpression.NAME)).to(ClusterLicenseExpression.class).asEagerSingleton();
-    }
-
-    private ReferenceIdent clusterIdent(String name) {
-        return new ReferenceIdent(SysClusterTableInfo.IDENT, name);
+        b.addBinding(new ColumnIdent(ClusterIdExpression.NAME)).to(ClusterIdExpression.class).asEagerSingleton();
+        b.addBinding(new ColumnIdent(ClusterNameExpression.NAME)).to(ClusterNameExpression.class).asEagerSingleton();
+        b.addBinding(new ColumnIdent(ClusterMasterNodeExpression.NAME)).to(ClusterMasterNodeExpression.class).asEagerSingleton();
+        b.addBinding(new ColumnIdent(ClusterSettingsExpression.NAME)).to(ClusterSettingsExpression.class).asEagerSingleton();
+        b.addBinding(new ColumnIdent(ClusterLicenseExpression.NAME)).to(ClusterLicenseExpression.class).asEagerSingleton();
     }
 }

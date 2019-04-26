@@ -27,6 +27,7 @@ import com.carrotsearch.randomizedtesting.RandomizedTest;
 import com.google.common.collect.Iterables;
 import io.crate.analyze.TableDefinitions;
 import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.exceptions.VersioninigValidationException;
 import io.crate.execution.dsl.phases.ExecutionPhase;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.phases.NodeOperation;
@@ -125,7 +126,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
                 "create table parted (" +
                 "   id int," +
                 "   name string," +
-                "   date timestamp with time zone," +
+                "   date timestamp without time zone," +
                 "   obj object" +
                 ") partitioned by (date) ",
                 new PartitionName(new RelationName("doc", "parted"), singletonList("1395874800000")).asIndexName(),
@@ -837,5 +838,12 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         ));
         Collect collect = (Collect) distMerge.subPlan();
         assertThat(collect.nodeIds().size(), is(2));
+    }
+
+    @Test
+    public void testSeqNoAndPrimaryTermFilteringRequirePrimaryKey() {
+        expectedException.expect(VersioninigValidationException.class);
+        expectedException.expectMessage(VersioninigValidationException.SEQ_NO_AND_PRIMARY_TERM_USAGE_MSG);
+        e.plan("select * from users where _seq_no = 2 and _primary_term = 1");
     }
 }

@@ -46,6 +46,7 @@ public abstract class FilterStreamInput extends StreamInput {
     }
 
     @Override
+    @SuppressWarnings("sync-override")
     public void reset() throws IOException {
         delegate.reset();
     }

@@ -32,6 +32,7 @@ import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.lucene.uid.Versions;
+import org.elasticsearch.index.seqno.SequenceNumbers;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -54,6 +55,8 @@ public class LegacyUpsertById implements Plan {
         private final String index;
         private final String id;
         private final String routing;
+        private Long seqNo = SequenceNumbers.UNASSIGNED_SEQ_NO;
+        private Long primaryTerm = SequenceNumbers.UNASSIGNED_PRIMARY_TERM;
         private long version = Versions.MATCH_ANY;
         @Nullable
         private final Symbol[] updateAssignments;
@@ -65,6 +68,8 @@ public class LegacyUpsertById implements Plan {
              String routing,
              @Nullable Symbol[] updateAssignments,
              @Nullable Long version,
+             @Nullable Long seqNo,
+             @Nullable Long primaryTerm,
              @Nullable Object[] insertValues) {
             this.index = index;
             this.id = id;
@@ -72,6 +77,12 @@ public class LegacyUpsertById implements Plan {
             this.updateAssignments = updateAssignments;
             if (version != null) {
                 this.version = version;
+            }
+            if (seqNo != null) {
+                this.seqNo = seqNo;
+            }
+            if (primaryTerm != null) {
+                this.primaryTerm = primaryTerm;
             }
             this.insertValues = insertValues;
         }
@@ -90,6 +101,14 @@ public class LegacyUpsertById implements Plan {
 
         public long version() {
             return version;
+        }
+
+        public Long seqNo() {
+            return seqNo;
+        }
+
+        public Long primaryTerm() {
+            return primaryTerm;
         }
 
         @Nullable
@@ -162,8 +181,10 @@ public class LegacyUpsertById implements Plan {
                     String routing,
                     @Nullable Symbol[] updateAssignments,
                     @Nullable Long version,
+                    @Nullable Long seqNo,
+                    @Nullable Long primaryTerm,
                     @Nullable Object[] insertValues) {
-        items.add(new Item(index, id, routing, updateAssignments, version, insertValues));
+        items.add(new Item(index, id, routing, updateAssignments, version, seqNo, primaryTerm, insertValues));
     }
 
     public List<Item> items() {

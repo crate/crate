@@ -27,16 +27,16 @@ import io.crate.metadata.SearchPath;
 import io.crate.types.DataTypes;
 import org.junit.Test;
 
-import java.util.Arrays;
+import java.util.List;
 
 public class AddFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
-    public void testTimestampTypeValidation() throws Exception {
+    public void testTimestampTypeValidation() {
         functions.get(
             null,
             ArithmeticFunctions.Names.ADD,
-            Arrays.asList(Literal.of(DataTypes.TIMESTAMP, null), Literal.of(DataTypes.TIMESTAMP, null)),
+            List.of(Literal.of(DataTypes.TIMESTAMPZ, null), Literal.of(DataTypes.TIMESTAMPZ, null)),
             SearchPath.pathWithPGCatalogAndDoc()
         );
     }

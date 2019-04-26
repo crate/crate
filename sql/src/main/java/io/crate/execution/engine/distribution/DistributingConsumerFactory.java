@@ -32,10 +32,8 @@ import io.crate.planner.node.StreamerVisitor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import java.util.ArrayList;
@@ -44,7 +42,7 @@ import java.util.UUID;
 import java.util.concurrent.Executor;
 
 @Singleton
-public class DistributingConsumerFactory extends AbstractComponent {
+public class DistributingConsumerFactory {
 
     private static final String RESPONSE_EXECUTOR_NAME = ThreadPool.Names.SEARCH;
 
@@ -54,11 +52,9 @@ public class DistributingConsumerFactory extends AbstractComponent {
     private final Logger distributingDownstreamLogger;
 
     @Inject
-    public DistributingConsumerFactory(Settings settings,
-                                       ClusterService clusterService,
+    public DistributingConsumerFactory(ClusterService clusterService,
                                        ThreadPool threadPool,
                                        TransportDistributedResultAction transportDistributedResultAction) {
-        super(settings);
         this.clusterService = clusterService;
         this.responseExecutor = threadPool.executor(RESPONSE_EXECUTOR_NAME);
         this.transportDistributedResultAction = transportDistributedResultAction;

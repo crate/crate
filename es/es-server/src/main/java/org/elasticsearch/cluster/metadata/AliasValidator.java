@@ -22,8 +22,6 @@ package org.elasticsearch.cluster.metadata;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.component.AbstractComponent;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.indices.InvalidAliasNameException;
@@ -35,10 +33,9 @@ import java.util.function.Function;
  * Validator for an alias, to be used before adding an alias to the index metadata
  * and make sure the alias is valid
  */
-public class AliasValidator extends AbstractComponent {
+public class AliasValidator {
 
-    public AliasValidator(Settings settings) {
-        super(settings);
+    public AliasValidator() {
     }
 
     /**

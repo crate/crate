@@ -53,10 +53,6 @@ public final class FunctionIdent implements Comparable<FunctionIdent>, Writeable
         this(null, name, argumentTypes);
     }
 
-    public String schema() {
-        return fqnName.schema();
-    }
-
     public List<DataType> argumentTypes() {
         return argumentTypes;
     }

@@ -123,7 +123,7 @@ public abstract class BlendedTermQuery extends Query {
 
         }
         if (minSumTTF != -1 && maxDoc > minSumTTF) {
-            maxDoc = (int)minSumTTF;
+            maxDoc = (int) minSumTTF;
         }
 
         if (max == 0) {
@@ -141,6 +141,7 @@ public abstract class BlendedTermQuery extends Query {
                 tieBreak[i] = tieBreak[j];
                 tieBreak[j] = tmp;
             }
+
             @Override
             protected int compare(int i, int j) {
                 return Integer.compare(contexts[tieBreak[j]].docFreq(), contexts[tieBreak[i]].docFreq());
@@ -148,7 +149,7 @@ public abstract class BlendedTermQuery extends Query {
         }.sort(0, tieBreak.length);
         int prev = contexts[tieBreak[0]].docFreq();
         int actualDf = Math.min(maxDoc, max);
-        assert actualDf >=0 : "DF must be >= 0";
+        assert actualDf >= 0 : "DF must be >= 0";
 
 
         // here we try to add a little bias towards
@@ -183,7 +184,9 @@ public abstract class BlendedTermQuery extends Query {
         }
     }
 
-    private TermStates adjustTTF(IndexReaderContext readerContext, TermStates termContext, long sumTTF) throws IOException {
+    private TermStates adjustTTF(IndexReaderContext readerContext,
+                                 TermStates termContext,
+                                 long sumTTF) throws IOException {
         assert termContext.wasBuiltFor(readerContext);
         if (sumTTF == -1 && termContext.totalTermFreq() == -1) {
             return termContext;
@@ -198,19 +201,23 @@ public abstract class BlendedTermQuery extends Query {
         }
         int df = termContext.docFreq();
         long ttf = sumTTF;
-        for (int i = 0; i < len; i++) {
-            TermState termState = termContext.get(leaves.get(i));
-            if (termState == null) {
-                continue;
+        if (leaves != null) {
+            for (int i = 0; i < len; i++) {
+                TermState termState = termContext.get(leaves.get(i));
+                if (termState == null) {
+                    continue;
+                }
+                newTermContext.register(termState, i, df, ttf);
+                df = 0;
+                ttf = 0;
             }
-            newTermContext.register(termState, i, df, ttf);
-            df = 0;
-            ttf = 0;
         }
         return newTermContext;
     }
 
-    private static TermStates adjustDF(IndexReaderContext readerContext, TermStates ctx, int newDocFreq) throws IOException {
+    private static TermStates adjustDF(IndexReaderContext readerContext,
+                                       TermStates ctx,
+                                       int newDocFreq) throws IOException {
         assert ctx.wasBuiltFor(readerContext);
         // Use a value of ttf that is consistent with the doc freq (ie. gte)
         long newTTF;
@@ -227,14 +234,16 @@ public abstract class BlendedTermQuery extends Query {
             len = leaves.size();
         }
         TermStates newCtx = new TermStates(readerContext);
-        for (int i = 0; i < len; ++i) {
-            TermState termState = ctx.get(leaves.get(i));
-            if (termState == null) {
-                continue;
+        if (leaves != null) {
+            for (int i = 0; i < len; ++i) {
+                TermState termState = ctx.get(leaves.get(i));
+                if (termState == null) {
+                    continue;
+                }
+                newCtx.register(termState, i, newDocFreq, newTTF);
+                newDocFreq = 0;
+                newTTF = 0;
             }
-            newCtx.register(termState, i, newDocFreq, newTTF);
-            newDocFreq = 0;
-            newTTF = 0;
         }
         return newCtx;
     }
@@ -284,8 +293,12 @@ public abstract class BlendedTermQuery extends Query {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (sameClassAs(o) == false) return false;
+        if (this == o) {
+            return true;
+        }
+        if (sameClassAs(o) == false) {
+            return false;
+        }
 
         BlendedTermQuery that = (BlendedTermQuery) o;
         return Arrays.equals(equalsTerms(), that.equalsTerms());
@@ -296,7 +309,9 @@ public abstract class BlendedTermQuery extends Query {
         return Objects.hash(classHash(), Arrays.hashCode(equalsTerms()));
     }
 
-    public static BlendedTermQuery commonTermsBlendedQuery(Term[] terms, final float[] boosts, final float maxTermFrequency) {
+    public static BlendedTermQuery commonTermsBlendedQuery(Term[] terms,
+                                                           final float[] boosts,
+                                                           final float maxTermFrequency) {
         return new BlendedTermQuery(terms, boosts) {
             @Override
             protected Query topLevelQuery(Term[] terms, TermStates[] ctx, int[] docFreqs, int maxDoc) {
@@ -338,7 +353,9 @@ public abstract class BlendedTermQuery extends Query {
         return dismaxBlendedQuery(terms, null, tieBreakerMultiplier);
     }
 
-    public static BlendedTermQuery dismaxBlendedQuery(Term[] terms, final float[] boosts, final float tieBreakerMultiplier) {
+    public static BlendedTermQuery dismaxBlendedQuery(Term[] terms,
+                                                      final float[] boosts,
+                                                      final float tieBreakerMultiplier) {
         return new BlendedTermQuery(terms, boosts) {
             @Override
             protected Query topLevelQuery(Term[] terms, TermStates[] ctx, int[] docFreqs, int maxDoc) {

@@ -22,7 +22,6 @@
 
 package io.crate.execution.engine.collect.sources;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import io.crate.analyze.QueryClause;
 import io.crate.analyze.WhereClause;
@@ -33,27 +32,26 @@ import io.crate.data.SentinelRow;
 import io.crate.execution.dsl.phases.CollectPhase;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.engine.collect.CollectTask;
-import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.execution.engine.collect.collectors.NodeStats;
 import io.crate.execution.engine.collect.stats.TransportNodeStatsAction;
 import io.crate.expression.InputFactory;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.reference.sys.node.NodeStatsContext;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
-import io.crate.metadata.LocalSysColReferenceResolver;
+import io.crate.metadata.MapBackedRefResolver;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 @Singleton
 public class NodeStatsCollectSource implements CollectSource {
@@ -82,9 +80,9 @@ public class NodeStatsCollectSource implements CollectSource {
         if (!QueryClause.canMatch(collectPhase.where())) {
             return InMemoryBatchIterator.empty(SentinelRow.SENTINEL);
         }
-        Collection<DiscoveryNode> nodes = nodeIds(
-            collectPhase.where(),
+        Collection<DiscoveryNode> nodes = filterNodes(
             Lists.newArrayList(clusterService.state().getNodes().iterator()),
+            collectPhase.where(),
             functions);
         if (nodes.isEmpty()) {
             return InMemoryBatchIterator.empty(SentinelRow.SENTINEL);
@@ -92,27 +90,28 @@ public class NodeStatsCollectSource implements CollectSource {
         return NodeStats.newInstance(nodeStatsAction, collectPhase, nodes, txnCtx, inputFactory);
     }
 
-    @Nullable
-    static Collection<DiscoveryNode> nodeIds(Symbol where,
-                                             Collection<DiscoveryNode> nodes,
-                                             Functions functions) {
-        LocalSysColReferenceResolver localSysColReferenceResolver = new LocalSysColReferenceResolver(
-            ImmutableList.of(SysNodesTableInfo.Columns.NAME, SysNodesTableInfo.Columns.ID)
+    static Collection<DiscoveryNode> filterNodes(Collection<DiscoveryNode> nodes, Symbol predicate, Functions functions) {
+        var expressions = SysNodesTableInfo.expressions();
+        var nameExpr = expressions.get(SysNodesTableInfo.Columns.NAME).create();
+        var idExpr = expressions.get(SysNodesTableInfo.Columns.ID).create();
+        MapBackedRefResolver referenceResolver = new MapBackedRefResolver(Map.of(
+            SysNodesTableInfo.Columns.NAME, nameExpr,
+            SysNodesTableInfo.Columns.ID, idExpr)
         );
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
             functions,
             RowGranularity.DOC,
-            localSysColReferenceResolver,
+            referenceResolver,
             null
         );
         List<DiscoveryNode> newNodes = new ArrayList<>();
         for (DiscoveryNode node : nodes) {
             String nodeId = node.getId();
-            for (NestableCollectExpression<NodeStatsContext, ?> expression : localSysColReferenceResolver.expressions()) {
-                expression.setNextRow(new NodeStatsContext(nodeId, node.getName()));
-            }
-            Symbol normalized = normalizer.normalize(where, null);
-            if (normalized.equals(where)) {
+            NodeStatsContext statsContext = new NodeStatsContext(nodeId, node.getName());
+            nameExpr.setNextRow(statsContext);
+            idExpr.setNextRow(statsContext);
+            Symbol normalized = normalizer.normalize(predicate, null);
+            if (normalized.equals(predicate)) {
                 return nodes; // No local available sys nodes columns in where clause
             }
             if (WhereClause.canMatch(normalized)) {

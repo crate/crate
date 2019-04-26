@@ -40,6 +40,8 @@ import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpRequestDecoder;
 import io.netty.handler.codec.http.HttpResponseEncoder;
 import io.netty.handler.timeout.ReadTimeoutHandler;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
@@ -161,6 +163,7 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
     public static final Setting<ByteSizeValue> SETTING_HTTP_NETTY_RECEIVE_PREDICTOR_SIZE =
         Setting.byteSizeSetting("http.netty.receive_predictor_size", new ByteSizeValue(64, ByteSizeUnit.KB), Property.NodeScope);
 
+    private final Logger logger = LogManager.getLogger(getClass());
 
     protected final NetworkService networkService;
     protected final BigArrays bigArrays;
@@ -197,6 +200,7 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
     private final int readTimeoutMillis;
 
     protected final int maxCompositeBufferComponents;
+    protected final Settings settings;
 
     protected volatile ServerBootstrap serverBootstrap;
 
@@ -215,14 +219,14 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
                                      BigArrays bigArrays,
                                      ThreadPool threadPool,
                                      NamedXContentRegistry xContentRegistry) {
-        super(settings);
         Netty4Utils.setAvailableProcessors(EsExecutors.PROCESSORS_SETTING.get(settings));
+        this.settings = settings;
         this.networkService = networkService;
         this.bigArrays = bigArrays;
         this.threadPool = threadPool;
         this.xContentRegistry = xContentRegistry;
 
-        ByteSizeValue maxContentLength = SETTING_HTTP_MAX_CONTENT_LENGTH.get(settings);
+        this.maxContentLength = SETTING_HTTP_MAX_CONTENT_LENGTH.get(settings);
         this.maxChunkSize = SETTING_HTTP_MAX_CHUNK_SIZE.get(settings);
         this.maxHeaderSize = SETTING_HTTP_MAX_HEADER_SIZE.get(settings);
         this.maxInitialLineLength = SETTING_HTTP_MAX_INITIAL_LINE_LENGTH.get(settings);
@@ -249,19 +253,9 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
         this.pipeliningMaxEvents = SETTING_PIPELINING_MAX_EVENTS.get(settings);
         this.corsConfig = buildCorsConfig(settings);
 
-        // validate max content length
-        if (maxContentLength.getBytes() > Integer.MAX_VALUE) {
-            logger.warn("maxContentLength[{}] set to high value, resetting it to [100mb]", maxContentLength);
-            deprecationLogger.deprecated(
-                    "out of bounds max content length value [{}] will no longer be truncated to [100mb], you must enter a valid setting",
-                    maxContentLength.getStringRep());
-            maxContentLength = new ByteSizeValue(100, ByteSizeUnit.MB);
-        }
-        this.maxContentLength = maxContentLength;
-
         logger.debug("using max_chunk_size[{}], max_header_size[{}], max_initial_line_length[{}], max_content_length[{}], " +
                 "receive_predictor[{}], max_composite_buffer_components[{}], pipelining_max_events[{}]",
-            maxChunkSize, maxHeaderSize, maxInitialLineLength, this.maxContentLength,
+            maxChunkSize, maxHeaderSize, maxInitialLineLength, maxContentLength,
             receivePredictor, maxCompositeBufferComponents, pipeliningMaxEvents);
     }
 
@@ -277,8 +271,8 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
 
             serverBootstrap = new ServerBootstrap();
 
-            serverBootstrap.group(new NioEventLoopGroup(workerCount, daemonThreadFactory(settings,
-                HTTP_SERVER_WORKER_THREAD_NAME_PREFIX)));
+            serverBootstrap.group(
+                new NioEventLoopGroup(workerCount, daemonThreadFactory(settings, HTTP_SERVER_WORKER_THREAD_NAME_PREFIX)));
             serverBootstrap.channel(NioServerSocketChannel.class);
 
             serverBootstrap.childHandler(configureServerChannelHandler());

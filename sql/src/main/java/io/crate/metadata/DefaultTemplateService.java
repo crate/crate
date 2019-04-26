@@ -24,6 +24,8 @@ package io.crate.metadata;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.Constants;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateUpdateTask;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
@@ -32,8 +34,6 @@ import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
-import org.elasticsearch.common.component.AbstractComponent;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 
@@ -48,7 +48,9 @@ import java.util.Objects;
  *
  *  - dynamically added strings use docValues
  */
-public class DefaultTemplateService extends AbstractComponent {
+public class DefaultTemplateService {
+
+    private static final Logger logger = LogManager.getLogger(DefaultTemplateService.class);
 
     public static final String TEMPLATE_NAME = "crate_defaults";
 
@@ -56,8 +58,7 @@ public class DefaultTemplateService extends AbstractComponent {
     private final ClusterService clusterService;
 
 
-    DefaultTemplateService(Settings settings, ClusterService clusterService) {
-        super(settings);
+    DefaultTemplateService(ClusterService clusterService) {
         this.clusterService = clusterService;
     }
 

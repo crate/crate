@@ -120,10 +120,21 @@ public class DeleteById implements Plan {
         }
 
         @Override
-        public void addItem(ShardDeleteRequest request, int location, String id, Long version) {
+        public void addItem(ShardDeleteRequest request,
+                            int location,
+                            String id,
+                            Long version,
+                            Long seqNo,
+                            Long primaryTerm) {
             ShardDeleteRequest.Item item = new ShardDeleteRequest.Item(id);
             if (version != null) {
                 item.version(version);
+            }
+            if (seqNo != null) {
+                item.seqNo(seqNo);
+            }
+            if (primaryTerm != null) {
+                item.primaryTerm(primaryTerm);
             }
             request.add(location, item);
         }

@@ -31,7 +31,6 @@ import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.IndexRoutingTable;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
-import org.elasticsearch.cluster.routing.Murmur3HashFunction;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
@@ -49,6 +48,9 @@ import java.util.Set;
 import java.util.TreeMap;
 
 import static io.crate.metadata.Routing.forTableOnSingleNode;
+import static org.elasticsearch.cluster.routing.OperationRouting.calculateScaledShardId;
+import static org.elasticsearch.cluster.routing.OperationRouting.generateShardId;
+import static org.elasticsearch.cluster.routing.OperationRouting.indexMetaData;
 
 /**
  * This component can be used to get the Routing for indices.
@@ -206,47 +208,11 @@ public final class RoutingProvider {
         return indexRouting;
     }
 
-    private static IndexMetaData indexMetaData(ClusterState clusterState, String index) {
-        IndexMetaData indexMetaData = clusterState.metaData().index(index);
-        if (indexMetaData == null) {
-            throw new IndexNotFoundException(index);
-        }
-        return indexMetaData;
-    }
-
     private static IndexShardRoutingTable shardRoutingTable(IndexRoutingTable indexRouting, int shardId) {
         IndexShardRoutingTable indexShard = indexRouting.shard(shardId);
         if (indexShard == null) {
             throw new ShardNotFoundException(new ShardId(indexRouting.getIndex(), shardId));
         }
         return indexShard;
-    }
-
-    private static int calculateScaledShardId(IndexMetaData indexMetaData, String effectiveRouting, int partitionOffset) {
-        final int hash = Murmur3HashFunction.hash(effectiveRouting) + partitionOffset;
-        // we don't use IMD#getNumberOfShards since the index might have been shrunk such that we need to use the size
-        // of original index to hash documents
-        return Math.floorMod(hash, indexMetaData.getRoutingNumShards()) / indexMetaData.getRoutingFactor();
-    }
-
-    private static int generateShardId(IndexMetaData indexMetaData, @Nullable String id, @Nullable String routing) {
-        final String effectiveRouting;
-        final int partitionOffset;
-
-        if (routing == null) {
-            assert (indexMetaData.isRoutingPartitionedIndex() == false) : "A routing value is required for gets from a partitioned index";
-            effectiveRouting = id;
-        } else {
-            effectiveRouting = routing;
-        }
-
-        if (indexMetaData.isRoutingPartitionedIndex()) {
-            partitionOffset = Math.floorMod(Murmur3HashFunction.hash(id), indexMetaData.getRoutingPartitionSize());
-        } else {
-            // we would have still got 0 above but this check just saves us an unnecessary hash calculation
-            partitionOffset = 0;
-        }
-
-        return calculateScaledShardId(indexMetaData, effectiveRouting, partitionOffset);
     }
 }

@@ -25,7 +25,6 @@ package io.crate.protocols.http;
 import io.crate.integrationtests.SQLHttpIntegrationTest;
 import io.crate.protocols.ssl.SslConfigSettings;
 import io.crate.testing.UseJdbc;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.util.EntityUtils;
@@ -38,6 +37,7 @@ import org.junit.Test;
 import java.io.File;
 import java.io.IOException;
 
+import static com.google.common.base.Strings.repeat;
 import static io.crate.protocols.ssl.SslConfigurationTest.getAbsoluteFilePathFromClassPath;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
@@ -98,7 +98,7 @@ public class CrateHttpsTransportIntegrationTest extends SQLHttpIntegrationTest {
     public void testBlobLayer() throws IOException {
         try {
             execute("create blob table test");
-            final String blob = StringUtils.repeat("abcdefghijklmnopqrstuvwxyz", 1024 * 600);
+            final String blob = repeat("abcdefghijklmnopqrstuvwxyz", 1024 * 600);
             String blobUrl = upload("test", blob);
             assertThat(blobUrl, not(isEmptyOrNullString()));
             HttpGet httpGet = new HttpGet(blobUrl);

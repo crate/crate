@@ -61,14 +61,14 @@ public final class TransportSwapRelationsAction extends TransportMasterNodeActio
                                         IndexNameExpressionResolver indexNameExpressionResolver,
                                         DDLClusterStateService ddlClusterStateService,
                                         AllocationService allocationService) {
-        super(settings,
+        super(
             "internal:crate:sql/alter/cluster/indices",
             transportService,
             clusterService,
             threadPool,
             indexNameExpressionResolver,
             SwapRelationsRequest::new);
-        this.activeShardsObserver = new ActiveShardsObserver(settings, clusterService, threadPool);
+        this.activeShardsObserver = new ActiveShardsObserver(clusterService, threadPool);
         this.swapRelationsOperation = new SwapRelationsOperation(
             allocationService, ddlClusterStateService, indexNameExpressionResolver);
     }

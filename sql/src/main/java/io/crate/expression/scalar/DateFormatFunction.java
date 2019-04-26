@@ -41,8 +41,8 @@ public class DateFormatFunction extends Scalar<String, Object> {
     public static final String DEFAULT_FORMAT = "%Y-%m-%dT%H:%i:%s.%fZ";
 
     public static void register(ScalarFunctionModule module) {
-        List<DataType> supportedTimestampTypes = ImmutableList.<DataType>of(
-            DataTypes.TIMESTAMP, DataTypes.LONG, DataTypes.STRING);
+        List<DataType> supportedTimestampTypes = List.of(
+            DataTypes.TIMESTAMPZ, DataTypes.LONG, DataTypes.STRING);
         for (DataType dataType : supportedTimestampTypes) {
             // without format
             module.register(new DateFormatFunction(new FunctionInfo(
@@ -88,7 +88,7 @@ public class DateFormatFunction extends Scalar<String, Object> {
         if (tsValue == null) {
             return null;
         }
-        Long timestamp = TimestampType.INSTANCE.value(tsValue);
+        Long timestamp = TimestampType.INSTANCE_WITH_TZ.value(tsValue);
         DateTimeZone timezone = DateTimeZone.UTC;
         if (timezoneLiteral != null) {
             Object timezoneValue = timezoneLiteral.value();

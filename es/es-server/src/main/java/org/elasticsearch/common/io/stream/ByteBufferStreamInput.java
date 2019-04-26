@@ -77,6 +77,7 @@ public class ByteBufferStreamInput extends StreamInput {
     }
 
     @Override
+    @SuppressWarnings("sync-override")
     public void reset() throws IOException {
         buffer.reset();
     }
@@ -94,6 +95,7 @@ public class ByteBufferStreamInput extends StreamInput {
     }
 
     @Override
+    @SuppressWarnings("sync-override")
     public void mark(int readlimit) {
         buffer.mark();
     }

@@ -42,8 +42,9 @@ public class TryCastScalarFunction extends CastFunction {
     }
 
     public static void register(ScalarFunctionModule module) {
-        for (Map.Entry<DataType, String> function : CastFunctionResolver.tryFunctionsMap().entrySet()) {
-            module.register(function.getValue(), new Resolver(function.getKey(), function.getValue()));
+        for (Map.Entry<DataType, String> function : CastFunctionResolver.CAST_SIGNATURES.entrySet()) {
+            String name = CastFunctionResolver.TRY_CAST_PREFIX + function.getValue();
+            module.register(name, new Resolver(function.getKey(), name));
         }
     }
 
@@ -52,14 +53,14 @@ public class TryCastScalarFunction extends CastFunction {
         private final String name;
         private final DataType dataType;
 
-        protected Resolver(DataType dataType, String name) {
+        Resolver(DataType dataType, String name) {
             super(FuncParams.SINGLE_ANY);
             this.name = name;
             this.dataType = dataType;
         }
 
         @Override
-        public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
+        public FunctionImplementation getForTypes(List<DataType> dataTypes) {
             return new TryCastScalarFunction(new FunctionInfo(new FunctionIdent(name, dataTypes), dataType));
         }
     }

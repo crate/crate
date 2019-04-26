@@ -32,8 +32,8 @@ import com.microsoft.azure.management.network.models.VirtualNetwork;
 import io.crate.azure.AzureConfiguration;
 import io.crate.azure.management.AzureComputeService;
 import io.crate.azure.management.AzureComputeService.Discovery;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.network.NetworkAddress;
 import org.elasticsearch.common.network.NetworkService;
@@ -52,10 +52,11 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 
-public class AzureUnicastHostsProvider extends AbstractComponent implements UnicastHostsProvider {
+public class AzureUnicastHostsProvider implements UnicastHostsProvider {
 
+    private static final Logger logger = LogManager.getLogger(AzureUnicastHostsProvider.class);
 
-    public static enum HostType {
+    public enum HostType {
         PRIVATE_IP("private_ip"),
         PUBLIC_IP("public_ip");
 
@@ -91,7 +92,6 @@ public class AzureUnicastHostsProvider extends AbstractComponent implements Unic
                                      AzureComputeService azureComputeService,
                                      TransportService transportService,
                                      NetworkService networkService) {
-        super(settings);
         this.azureComputeService = azureComputeService;
         this.transportService = transportService;
         this.networkService = networkService;

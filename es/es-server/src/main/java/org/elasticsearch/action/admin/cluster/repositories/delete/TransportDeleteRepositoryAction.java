@@ -29,7 +29,6 @@ import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
@@ -42,10 +41,12 @@ public class TransportDeleteRepositoryAction extends TransportMasterNodeAction<D
     private final RepositoriesService repositoriesService;
 
     @Inject
-    public TransportDeleteRepositoryAction(Settings settings, TransportService transportService, ClusterService clusterService,
-                                           RepositoriesService repositoriesService, ThreadPool threadPool,
+    public TransportDeleteRepositoryAction(TransportService transportService,
+                                           ClusterService clusterService,
+                                           RepositoriesService repositoriesService,
+                                           ThreadPool threadPool,
                                            IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(settings, DeleteRepositoryAction.NAME, transportService, clusterService, threadPool, indexNameExpressionResolver, DeleteRepositoryRequest::new);
+        super(DeleteRepositoryAction.NAME, transportService, clusterService, threadPool, indexNameExpressionResolver, DeleteRepositoryRequest::new);
         this.repositoriesService = repositoriesService;
     }
 

@@ -76,7 +76,7 @@ public class GeoUtils {
             final double ratio = 1+(EARTH_POLAR_DISTANCE / EARTH_EQUATOR); // cell ratio
             final double width = Math.sqrt((meters*meters)/(ratio*ratio)); // convert to cell width
             final long part = Math.round(Math.ceil(EARTH_EQUATOR / width));
-            final int level = Long.SIZE - Long.numberOfLeadingZeros(part)-1; // (log_2)
+            final int level = Long.SIZE - Long.numberOfLeadingZeros(part) - 1; // (log_2)
             return (part<=(1L<<level)) ?level :(level+1); // adjust level
         }
     }

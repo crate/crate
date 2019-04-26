@@ -71,6 +71,7 @@ public class InputStreamStreamInput extends StreamInput {
     }
 
     @Override
+    @SuppressWarnings("sync-override")
     public void reset() throws IOException {
         is.reset();
     }
@@ -81,6 +82,7 @@ public class InputStreamStreamInput extends StreamInput {
     }
 
     @Override
+    @SuppressWarnings("sync-override")
     public void mark(int readlimit) {
         is.mark(readlimit);
     }

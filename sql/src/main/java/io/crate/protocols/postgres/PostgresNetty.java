@@ -68,6 +68,8 @@ import java.util.function.Function;
 @Singleton
 public class PostgresNetty extends AbstractLifecycleComponent {
 
+    private static final Logger logger = LogManager.getLogger(PostgresNetty.class);
+
     public static final CrateSetting<Boolean> PSQL_ENABLED_SETTING = CrateSetting.of(Setting.boolSetting(
         "psql.enabled", true,
         Setting.Property.NodeScope), DataTypes.BOOLEAN);
@@ -85,6 +87,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
     private final Authentication authentication;
     private final SslContextProvider sslContextProvider;
     private final Logger namedLogger;
+    private final Settings settings;
 
     private ServerBootstrap bootstrap;
 
@@ -101,7 +104,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
                          NetworkService networkService,
                          Authentication authentication,
                          SslContextProvider sslContextProvider) {
-        super(settings);
+        this.settings = settings;
         namedLogger = LogManager.getLogger("psql");
         this.sqlOperations = sqlOperations;
         this.networkService = networkService;

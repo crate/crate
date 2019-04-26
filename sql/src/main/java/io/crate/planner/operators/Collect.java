@@ -34,7 +34,7 @@ import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.exceptions.UnsupportedFeatureException;
-import io.crate.exceptions.VersionInvalidException;
+import io.crate.exceptions.VersioninigValidationException;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.phases.TableFunctionCollectPhase;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
@@ -120,7 +120,9 @@ class Collect extends ZeroInputPlan {
         this.numExpectedRows = numExpectedRows;
         this.estimatedRowSize = estimatedRowSize;
         if (where.hasVersions()) {
-            throw new VersionInvalidException();
+            throw VersioninigValidationException.versionInvalidUsage();
+        } else if (where.hasSeqNoAndPrimaryTerm()) {
+            throw VersioninigValidationException.seqNoAndPrimaryTermUsage();
         }
         this.relation = relation;
         this.where = where;
@@ -136,7 +138,9 @@ class Collect extends ZeroInputPlan {
         this.numExpectedRows = numExpectedRows;
         this.estimatedRowSize = estimatedRowSize;
         if (where.hasVersions()) {
-            throw new VersionInvalidException();
+            throw VersioninigValidationException.versionInvalidUsage();
+        } else if (where.hasSeqNoAndPrimaryTerm()) {
+            throw VersioninigValidationException.seqNoAndPrimaryTermUsage();
         }
         this.relation = relation;
         this.where = where;

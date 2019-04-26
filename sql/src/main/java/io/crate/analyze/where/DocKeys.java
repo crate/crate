@@ -27,8 +27,8 @@ import io.crate.analyze.Id;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.data.Row;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
+import io.crate.metadata.TransactionContext;
 import io.crate.planner.ExplainLeaf;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.types.DataTypes;
@@ -46,6 +46,7 @@ public class DocKeys implements Iterable<DocKeys.DocKey> {
 
     private final int width;
     private final Function<List<String>, String> idFunction;
+    private final boolean withSequenceVersioning;
     private int clusteredByIdx;
     private final boolean withVersions;
     private final List<List<Symbol>> docKeys;
@@ -75,6 +76,22 @@ public class DocKeys implements Iterable<DocKeys.DocKey> {
             return Optional.empty();
         }
 
+        public Optional<Long> sequenceNo(TransactionContext txnCtx, Functions functions, Row params, SubQueryResults subQueryResults) {
+            if (withSequenceVersioning && key.get(width) != null) {
+                Object val = SymbolEvaluator.evaluate(txnCtx, functions, key.get(width), params, subQueryResults);
+                return Optional.of(LongType.INSTANCE.value(val));
+            }
+            return Optional.empty();
+        }
+
+        public Optional<Long> primaryTerm(TransactionContext txnCtx, Functions functions, Row params, SubQueryResults subQueryResults) {
+            if (withSequenceVersioning && key.get(width + 1) != null) {
+                Object val = SymbolEvaluator.evaluate(txnCtx, functions, key.get(width + 1), params, subQueryResults);
+                return Optional.of(LongType.INSTANCE.value(val));
+            }
+            return Optional.empty();
+        }
+
         public List<Symbol> values() {
             return key;
         }
@@ -99,16 +116,20 @@ public class DocKeys implements Iterable<DocKeys.DocKey> {
 
     public DocKeys(List<List<Symbol>> docKeys,
                    boolean withVersions,
+                   boolean withSequenceVersioning,
                    int clusteredByIdx,
                    @Nullable List<Integer> partitionIdx) {
         this.partitionIdx = partitionIdx;
         assert docKeys != null && !docKeys.isEmpty() : "docKeys must not be null nor empty";
         if (withVersions) {
             this.width = docKeys.get(0).size() - 1;
+        } else if (withSequenceVersioning) {
+            this.width = docKeys.get(0).size() - 2;
         } else {
             this.width = docKeys.get(0).size();
         }
         this.withVersions = withVersions;
+        this.withSequenceVersioning = withSequenceVersioning;
         this.docKeys = docKeys;
         this.clusteredByIdx = clusteredByIdx;
         this.idFunction = Id.compile(width, clusteredByIdx);

@@ -64,7 +64,8 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
                           "   \"col_float\" REAL,\n" +
                           "   \"col_double\" DOUBLE PRECISION,\n" +
                           "   \"col_str\" TEXT,\n" +
-                          "   \"col_ts\" TIMESTAMP WITH TIME ZONE,\n" +
+                          "   \"col_ts\" TIMESTAMP WITHOUT TIME ZONE,\n" +
+                          "   \"col_ts_z\" TIMESTAMP WITH TIME ZONE,\n" +
                           "   \"col_geo\" GEO_POINT\n" +
                           ")\n";
         execute("create table test (" +
@@ -76,7 +77,8 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
                 " col_float float," +
                 " col_double double," +
                 " col_str string," +
-                " col_ts timestamp with time zone," +
+                " col_ts timestamp without time zone," +
+                " col_ts_z timestamp with time zone," +
                 " col_geo geo_point" +
                 ")");
         execute("show create table test");

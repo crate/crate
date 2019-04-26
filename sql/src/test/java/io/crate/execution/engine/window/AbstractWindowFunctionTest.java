@@ -142,6 +142,8 @@ public abstract class AbstractWindowFunctionTest {
             createComparator(() -> inputFactory.ctxForRefs(txnCtx, referenceResolver), partitionOrderBy),
             createComparator(() -> inputFactory.ctxForRefs(txnCtx, referenceResolver), windowDef.orderBy()),
             numCellsInSourceRows,
+            () -> 1,
+            Runnable::run,
             List.of(windowFunctionImpl),
             argsCtx.expressions(),
             new Input[][]{argsCtx.topLevelInputs().toArray(new Input[0])}

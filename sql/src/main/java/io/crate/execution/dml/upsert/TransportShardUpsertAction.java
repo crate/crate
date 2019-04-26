@@ -58,6 +58,7 @@ import org.elasticsearch.index.engine.DocumentSourceMissingException;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.index.mapper.SourceToParse;
+import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.indices.IndicesService;
@@ -189,13 +190,12 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 }
                 continue;
             }
-            SourceToParse sourceToParse = SourceToParse.source(
+            SourceToParse sourceToParse = new SourceToParse(indexShard.shardId().getIndexName(),
                 Constants.DEFAULT_MAPPING_TYPE, item.id(), item.source(), XContentType.JSON);
 
             Engine.IndexResult indexResult = indexShard.applyIndexOperationOnReplica(
                 item.seqNo(),
                 item.version(),
-                VersionType.EXTERNAL,
                 Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
                 false,
                 sourceToParse
@@ -266,7 +266,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
     }
 
     @VisibleForTesting
-    @Nullable
     protected Translog.Location indexItem(ShardUpsertRequest request,
                                           ShardUpsertRequest.Item item,
                                           IndexShard indexShard,
@@ -274,44 +273,50 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                           UpdateSourceGen updateSourceGen,
                                           InsertSourceGen insertSourceGen,
                                           boolean isRetry) throws Exception {
-        long version;
-        // try insert first without fetching the document
+        final long seqNo;
+        final long primaryTerm;
+        final long version;
         if (tryInsertFirst) {
-            // set version so it will fail if already exists (will be overwritten for updates, see below)
-            version = Versions.MATCH_DELETED;
+            version = request.duplicateKeyAction() == DuplicateKeyAction.OVERWRITE
+                ? Versions.MATCH_ANY
+                : Versions.MATCH_DELETED;
+            seqNo = SequenceNumbers.UNASSIGNED_SEQ_NO;
+            primaryTerm = SequenceNumbers.UNASSIGNED_PRIMARY_TERM;
             try {
                 insertSourceGen.checkConstraints(item.insertValues());
                 item.source(insertSourceGen.generateSource(item.insertValues()));
             } catch (IOException e) {
                 throw ExceptionsHelper.convertToElastic(e);
             }
-            if (request.duplicateKeyAction() == DuplicateKeyAction.OVERWRITE) {
-                version = Versions.MATCH_ANY;
-            }
         } else {
-            Doc currentDoc = getDocument(indexShard, item.id(), item.version());
+            Doc currentDoc = getDocument(indexShard, item.id(), item.version(), item.seqNo(), item.primaryTerm());
             BytesReference updatedSource = updateSourceGen.generateSource(
                 currentDoc,
                 item.updateAssignments(),
                 item.insertValues()
             );
             item.source(updatedSource);
-            version = currentDoc.getVersion();
+            seqNo = item.seqNo();
+            primaryTerm = item.primaryTerm();
+            version = Versions.MATCH_ANY;
         }
-
-        long finalVersion = version;
-        SourceToParse sourceToParse = SourceToParse.source(
-            Constants.DEFAULT_MAPPING_TYPE, item.id(), item.source(), XContentType.JSON);
+        SourceToParse sourceToParse = new SourceToParse(indexShard.shardId().getIndexName(),
+                                                        Constants.DEFAULT_MAPPING_TYPE,
+                                                        item.id(),
+                                                        item.source(),
+                                                        XContentType.JSON);
         Engine.IndexResult indexResult = executeOnPrimaryHandlingMappingUpdate(
             indexShard.shardId(),
             () -> indexShard.applyIndexOperationOnPrimary(
-                finalVersion,
+                version,
                 VersionType.INTERNAL,
                 sourceToParse,
+                seqNo,
+                primaryTerm,
                 Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
                 isRetry
             ),
-            e -> indexShard.getFailedIndexResult(e, finalVersion)
+            e -> indexShard.getFailedIndexResult(e, Versions.MATCH_ANY)
         );
         switch (indexResult.getResultType()) {
             case SUCCESS:
@@ -331,8 +336,9 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         }
     }
 
-    private static Doc getDocument(IndexShard indexShard, String id, long version) {
-        Doc doc = PKLookupOperation.lookupDoc(indexShard, id, Versions.MATCH_ANY, VersionType.INTERNAL);
+    private static Doc getDocument(IndexShard indexShard, String id, long version, long seqNo, long primaryTerm) {
+        // when sequence versioning is used, this lookup will throw VersionConflictEngineException
+        Doc doc = PKLookupOperation.lookupDoc(indexShard, id, Versions.MATCH_ANY, VersionType.INTERNAL, seqNo, primaryTerm);
         if (doc == null) {
             throw new DocumentMissingException(indexShard.shardId(), Constants.DEFAULT_MAPPING_TYPE, id);
         }

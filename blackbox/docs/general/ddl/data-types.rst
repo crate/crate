@@ -42,7 +42,8 @@ or collections.
 * `double precision <numeric types_>`_
 * `text`_
 * `ip`_
-* `timestamp with time zone <date/time types_>`_
+* `timestamp with time zone <timestamp with time zone_>`_
+* `timestamp without time zone <timestamp without time zone_>`_
 
 .. _sql_ddl_datatypes_geographic:
 
@@ -202,59 +203,73 @@ Example::
 Date/Time Types
 ===============
 
-+------------------------------+---------+------------------------------+------------------------------------+
-| Name                         | Size    | Description                  | Range                              |
-+==============================+=========+==============================+====================================+
-| ``timestamp with time zone`` | 8 bytes | time and date with time zone | ``292275054BC`` to ``292278993AD`` |
-+------------------------------+---------+------------------------------+------------------------------------+
++---------------------------------+---------+-------------------------+--------------------+
+| Name                            | Size    | Description             | Range              |
++=================================+=========+=========================+====================+
+| ``timestamp with time zone``    | 8 bytes | time and date with time | ``292275054BC``    |
+|                                 |         | zone                    | to ``292278993AD`` |
++---------------------------------+---------+-------------------------+--------------------+
+| ``timestamp without time zone`` | 8 bytes | time and date without   | ``292275054BC``    |
+|                                 |         | time zone               | to ``292278993AD`` |
++---------------------------------+---------+-------------------------+--------------------+
+
+Timestamps
+----------
+
+The timestamp types consist of the concatenation of a date and time, followed
+by an optional time zone.
+
+Internally, timestamp values are mapped to the UTC milliseconds since
+``1970-01-01T00:00:00Z`` stored as ``bigint``.
+
+Timestamps are always returned as ``bigint`` values.
+
+The syntax for timestamp string literals is as follows:
+
+.. code-block:: text
+
+    date-element [time-separator [time-element [offset]]]
+
+    time-separator: 'T' | ' '
+    date-element:   yyyy-MM-dd
+    time-element:   HH:mm:ss [fraction]
+    fraction:       '.' digit+
+    offset:         {+ | -} HH [:mm] | 'Z'
+
+For more detailed information about the date and time elements, see
+`pattern letters and symbols`_.
+
+.. CAUTION::
+
+    When inserting timestamps smaller than ``-999999999999999`` (equals to
+    ``-29719-04-05T22:13:20.001Z``) or bigger than ``999999999999999`` (equals to
+    ``33658-09-27T01:46:39.999Z``) rounding issues may occur.
+
+.. NOTE::
+
+    Due to internal date parsing, not the full ``bigint`` range is supported for
+    timestamp values, but only dates between year ``292275054BC`` and
+    ``292278993AD``, which is slightly smaller.
 
 .. _datetime-with-time-zone:
 
 ``timestamp with time zone``
-----------------------------
+............................
 
-The timestamp type is a special type which maps to a formatted string.
-Internally it maps to the UTC milliseconds since ``1970-01-01T00:00:00Z``
-stored as ``bigint``. Timestamps are always returned as ``bigint`` values.
-
-The default timestamp format is dateOptionalTime_ and cannot be changed
-currently. Formatted string without timezone offset information will be treated
-as UTC.
+A string literal that contain a timestamp value with the time zone will be
+converted to UTC considering its offset for the time zone.
 
 ::
 
-    cr> create table ts_table (ts_zone timestamp with time zone);
-    CREATE OK, 1 row affected (... sec)
-
-::
-
-    cr> insert into ts_table (ts_zone) values ('1970-01-02T00:00:00');
-    INSERT OK, 1 row affected (... sec)
-
-.. Hidden:
-
-    cr> refresh table ts_table;
-    REFRESH OK, 1 row affected  (... sec)
-
-::
-
-    cr> select * from ts_table;
-    +----------+
-    |  ts_zone |
-    +----------+
-    | 86400000 |
-    +----------+
-    SELECT 1 row in set (... sec)
-
-Formatted date strings containing timezone offset information will be converted
-to UTC.::
-
-    cr> select '1970-01-02T00:00:00+0100'::timestamp with time zone;
-    +--------------------------------------------------------------+
-    | CAST('1970-01-02T00:00:00+0100' AS timestamp with time zone) |
-    +--------------------------------------------------------------+
-    |                                                     82800000 |
-    +--------------------------------------------------------------+
+    cr> select '1970-01-02T00:00:00+0100'::timestamp with time zone as ts_z,
+    ...        '1970-01-02T00:00:00Z'::timestamp with time zone ts_z,
+    ...        '1970-01-02T00:00:00'::timestamp with time zone ts_z,
+    ...        '1970-01-02 00:00:00'::timestamp with time zone ts_z_sql_format;
+    +----------+----------+----------+-----------------+
+    |     ts_z |     ts_z |     ts_z | ts_z_sql_format |
+    +----------+----------+----------+-----------------+
+    | 82800000 | 86400000 | 86400000 |        86400000 |
+    +----------+----------+----------+-----------------+
     SELECT 1 row in set (... sec)
 
 
@@ -272,21 +287,33 @@ the epoch with milliseconds as fractions.
     +---------------------------------------+
     SELECT 1 row in set (... sec)
 
-Due to internal date parsing, not the full ``bigint`` range is supported for
-timestamp values, but only dates between year ``292275054BC`` and
-``292278993AD``, which is slightly smaller.
 
+.. _datetime-without-time-zone:
 
-.. CAUTION::
+``timestamp without time zone``
+...............................
 
-    When inserting timestamps smaller than ``-999999999999999`` (equals to
-    ``-29719-04-05T22:13:20.001Z``) or bigger than ``999999999999999`` (equals to
-    ``33658-09-27T01:46:39.999Z``) rounding issues may occur.
+A string literal that contain a timestamp value with the time zone will be
+converted to UTC without considering the time zone indication.
+
+::
+
+    cr> select '1970-01-02T00:00:00+0200'::timestamp without time zone as ts,
+    ...        '1970-01-02T00:00:00+0400'::timestamp without time zone as ts,
+    ...        '1970-01-02T00:00:00Z'::timestamp without time zone as ts,
+    ...        '1970-01-02 00:00:00Z'::timestamp without time zone as ts_sql_format;
+    +----------+----------+----------+---------------+
+    |       ts |       ts |       ts | ts_sql_format |
+    +----------+----------+----------+---------------+
+    | 86400000 | 86400000 | 86400000 |      86400000 |
+    +----------+----------+----------+---------------+
+    SELECT 1 row in set (... sec)
+
 
 .. NOTE::
 
     If a column is dynamically created the type detection won't recognize
-    timestamps. That means columns of type timestamp must always be declared
+    date time types. That means date type columns must always be declared
     beforehand.
 
 .. _geo_point_data_type:
@@ -763,6 +790,8 @@ Special Character Types
 Type Conversion
 ===============
 
+.. _type_cast:
+
 ``CAST``
 --------
 
@@ -854,6 +883,42 @@ Trying to cast a ``text`` to ``integer``, will fail with ``cast`` if
     +---------------------------+
     SELECT 1 row in set (... sec)
 
+.. _type_cast_from_string_literal:
+
+``type 'string'``
+-----------------
+
+This cast operation is applied to a string literal and it effectively
+initializes a constant of an arbitrary type.
+
+Example usages, initializing an ``integer`` and a ``timestamp`` constant:
+
+::
+
+    cr> select integer '25';
+    +-----------------------+
+    | CAST('25' AS integer) |
+    +-----------------------+
+    |                    25 |
+    +-----------------------+
+    SELECT 1 row in set (... sec)
+
+::
+
+    cr> select timestamp with time zone '2029-12-12T11:44:00.24446';
+    +---------------------------------------------------------------+
+    | CAST('2029-12-12T11:44:00.24446' AS timestamp with time zone) |
+    +---------------------------------------------------------------+
+    |                                                 1891770240244 |
+    +---------------------------------------------------------------+
+    SELECT 1 row in set (... sec)
+
+.. NOTE::
+
+  This cast operation is limited to :ref:`sql_ddl_datatypes_primitives` only.
+  For complex types such as ``array`` or ``object`` use the
+  :ref:`type_cast` syntax.
+
 .. _data-type-aliases:
 
 Type aliases
@@ -905,7 +970,8 @@ See the table below for a full list of aliases:
 | timestamptz | timestamp with time zone |
 +-------------+--------------------------+
 
-.. _dateOptionalTime: http://joda-time.sourceforge.net/apidocs/org/joda/time/format/ISODateTimeFormat.html#dateOptionalTimeParser()
+.. _pattern letters and symbols:
+    https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/time/format/DateTimeFormatter.html
 .. _WKT: http://en.wikipedia.org/wiki/Well-known_text
 .. _GeoJSON: http://geojson.org/
 .. _GeoJSON geometry objects: https://tools.ietf.org/html/rfc7946#section-3.1

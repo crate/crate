@@ -111,7 +111,7 @@ public class IndexWriterProjector implements Projector {
             false);
 
         Function<String, ShardUpsertRequest.Item> itemFactory = id ->
-            new ShardUpsertRequest.Item(id, null, new Object[]{source.value()}, null);
+            new ShardUpsertRequest.Item(id, null, new Object[]{source.value()}, null, null, null);
 
         shardingUpsertExecutor = new ShardingUpsertExecutor(
             clusterService,

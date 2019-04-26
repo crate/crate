@@ -43,15 +43,12 @@ import org.elasticsearch.common.xcontent.XContentParser;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
 public class IndexTemplateMetaData extends AbstractDiffable<IndexTemplateMetaData> {
-
-    private static final DeprecationLogger DEPRECATION_LOGGER = new DeprecationLogger(LogManager.getLogger(IndexTemplateMetaData.class));
 
     private final String name;
 
@@ -400,7 +397,7 @@ public class IndexTemplateMetaData extends AbstractDiffable<IndexTemplateMetaDat
                             }
                         }
                     } else if ("aliases".equals(currentFieldName)) {
-                        while ((token = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
+                        while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
                             builder.putAlias(AliasMetaData.Builder.fromXContent(parser));
                         }
                     } else {
@@ -408,7 +405,7 @@ public class IndexTemplateMetaData extends AbstractDiffable<IndexTemplateMetaDat
                     }
                 } else if (token == XContentParser.Token.START_ARRAY) {
                     if ("mappings".equals(currentFieldName)) {
-                        while ((token = parser.nextToken()) != XContentParser.Token.END_ARRAY) {
+                        while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
                             Map<String, Object> mapping = parser.mapOrdered();
                             if (mapping.size() == 1) {
                                 String mappingType = mapping.keySet().iterator().next();
@@ -423,17 +420,13 @@ public class IndexTemplateMetaData extends AbstractDiffable<IndexTemplateMetaDat
                         }
                     } else if ("index_patterns".equals(currentFieldName)) {
                         List<String> index_patterns = new ArrayList<>();
-                        while ((token = parser.nextToken()) != XContentParser.Token.END_ARRAY) {
+                        while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
                             index_patterns.add(parser.text());
                         }
                         builder.patterns(index_patterns);
                     }
                 } else if (token.isValue()) {
-                    // Prior to 5.1.0, elasticsearch only supported a single index pattern called `template` (#21009)
-                    if("template".equals(currentFieldName)) {
-                        DEPRECATION_LOGGER.deprecated("Deprecated field [template] used, replaced by [index_patterns]");
-                        builder.patterns(Collections.singletonList(parser.text()));
-                    } else if ("order".equals(currentFieldName)) {
+                    if ("order".equals(currentFieldName)) {
                         builder.order(parser.intValue());
                     } else if ("version".equals(currentFieldName)) {
                         builder.version(parser.intValue());

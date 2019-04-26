@@ -25,10 +25,10 @@ import io.crate.blob.exceptions.IllegalBlobRecoveryStateException;
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.blob.v2.BlobShard;
 import io.crate.common.Hex;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.IndexShardClosedException;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportChannel;
@@ -44,7 +44,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 
-public class BlobRecoveryTarget extends AbstractComponent {
+public class BlobRecoveryTarget {
+
+    private static final Logger logger = LogManager.getLogger(BlobRecoveryTarget.class);
 
     /*
     * @startuml
@@ -88,10 +90,9 @@ public class BlobRecoveryTarget extends AbstractComponent {
     }
 
     @Inject
-    public BlobRecoveryTarget(Settings settings, BlobIndicesService blobIndicesService,
+    public BlobRecoveryTarget(BlobIndicesService blobIndicesService,
                               PeerRecoveryTargetService peerRecoveryTargetService,
                               TransportService transportService) {
-        super(settings);
         this.blobIndicesService = blobIndicesService;
         this.peerRecoveryTargetService = peerRecoveryTargetService;
 

@@ -60,7 +60,6 @@ import org.elasticsearch.http.HttpTransportSettings;
 import org.elasticsearch.index.IndexModule;
 import org.elasticsearch.indices.IndexingMemoryController;
 import org.elasticsearch.indices.IndicesQueryCache;
-import org.elasticsearch.indices.IndicesRequestCache;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.analysis.HunspellService;
 import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
@@ -174,7 +173,6 @@ public final class ClusterSettings extends AbstractScopedSettings {
                     MappingUpdatedAction.INDICES_MAPPING_DYNAMIC_TIMEOUT_SETTING,
                     MetaData.SETTING_READ_ONLY_SETTING,
                     MetaData.SETTING_READ_ONLY_ALLOW_DELETE_SETTING,
-                    MetaData.SETTING_CLUSTER_MAX_SHARDS_PER_NODE,
                     RecoverySettings.INDICES_RECOVERY_MAX_BYTES_PER_SEC_SETTING,
                     RecoverySettings.INDICES_RECOVERY_RETRY_DELAY_STATE_SYNC_SETTING,
                     RecoverySettings.INDICES_RECOVERY_RETRY_DELAY_NETWORK_SETTING,
@@ -296,8 +294,6 @@ public final class ClusterSettings extends AbstractScopedSettings {
                     NetworkService.TCP_CONNECT_TIMEOUT,
                     IndicesService.INDICES_CACHE_CLEAN_INTERVAL_SETTING,
                     IndicesFieldDataCache.INDICES_FIELDDATA_CACHE_SIZE_KEY,
-                    IndicesRequestCache.INDICES_CACHE_QUERY_SIZE,
-                    IndicesRequestCache.INDICES_CACHE_QUERY_EXPIRE,
                     HunspellService.HUNSPELL_LAZY_LOAD,
                     HunspellService.HUNSPELL_IGNORE_CASE,
                     HunspellService.HUNSPELL_DICTIONARY_OPTIONS,

@@ -107,10 +107,12 @@ public class LogicalPlanner {
     public LogicalPlan planSubSelect(SelectSymbol selectSymbol, PlannerContext plannerContext) {
         final int softLimit, fetchSize;
         if (selectSymbol.getResultType() == SINGLE_COLUMN_SINGLE_VALUE) {
+            // The reason why the soft limit equals 2 is because single value
+            // sub-queries need to have a validation that it only returns 1 row.
             softLimit = fetchSize = 2;
         } else {
-            softLimit = plannerContext.softLimit();
-            fetchSize = plannerContext.fetchSize();
+            softLimit = NO_LIMIT;
+            fetchSize = 0;
         }
         QueriedRelation relation = (QueriedRelation) relationNormalizer.normalize(
             selectSymbol.relation(), plannerContext.transactionContext());

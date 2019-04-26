@@ -30,11 +30,6 @@ dependencies {
     // time handling
     compile "joda-time:joda-time:${versions.jodatime}"
 
-    // percentiles aggregation
-    compile "com.tdunning:t-digest:3.2"
-    // percentil ranks aggregation
-    compile "org.hdrhistogram:HdrHistogram:2.1.9"
-
     // lucene spatial
     compile "org.locationtech.spatial4j:spatial4j:${versions.spatial4j}"
     compile "org.locationtech.jts:jts-core:${versions.jts}"
@@ -47,8 +42,10 @@ dependencies {
 
     compile "net.java.dev.jna:jna:${versions.jna}"
 
+    testCompile project(':es:es-testing')
     testCompile "junit:junit:${versions.junit}"
-    testCompile "org.hamcrest:hamcrest-all:${versions.hamcrest}"
+    testCompile "org.hamcrest:hamcrest:${versions.hamcrest}"
+    testCompile "org.apache.lucene:lucene-test-framework:${versions.lucene}"
 }
 
 task getVersion(dependsOn: 'classes') {

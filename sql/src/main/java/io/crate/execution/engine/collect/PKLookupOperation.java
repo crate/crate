@@ -40,7 +40,6 @@ import io.crate.expression.reference.doc.lucene.SourceFieldVisitor;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.PKAndVersion;
 import org.apache.lucene.index.Term;
-import org.elasticsearch.common.lucene.uid.VersionsAndSeqNoResolver;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexService;
@@ -96,7 +95,11 @@ public final class PKLookupOperation {
                     throw new ShardNotFoundException(shardId);
                 }
                 return entry.getValue().stream()
-                    .map(pkAndVersion -> lookupDoc(shard, pkAndVersion.id(), pkAndVersion.version()))
+                    .map(pkAndVersion -> lookupDoc(shard,
+                                                   pkAndVersion.id(),
+                                                   pkAndVersion.version(),
+                                                   pkAndVersion.seqNo(),
+                                                   pkAndVersion.primaryTerm()))
                     .filter(Objects::nonNull);
             });
         final Iterable<Doc> getResultIterable;
@@ -109,42 +112,40 @@ public final class PKLookupOperation {
     }
 
     @Nullable
-    public static Doc lookupDoc(IndexShard shard, String id, long version) {
-        return lookupDoc(shard, id, version, VersionType.EXTERNAL);
+    public static Doc lookupDoc(IndexShard shard, String id, long version, long seqNo, long primaryTerm) {
+        return lookupDoc(shard, id, version, VersionType.EXTERNAL, seqNo, primaryTerm);
     }
 
     @Nullable
-    public static Doc lookupDoc(IndexShard shard, String id, long version, VersionType versionType) {
+    public static Doc lookupDoc(IndexShard shard, String id, long version, VersionType versionType, long seqNo, long primaryTerm) {
         Term uidTerm = shard.mapperService().createUidTerm(Constants.DEFAULT_MAPPING_TYPE, id);
         Engine.Get get = new Engine.Get(true, true, Constants.DEFAULT_MAPPING_TYPE, id, uidTerm)
             .version(version)
-            .versionType(versionType);
+            .versionType(versionType)
+            .setIfSeqNo(seqNo)
+            .setIfPrimaryTerm(primaryTerm);
 
-        Engine.GetResult getResult = shard.get(get);
-        if (getResult.exists()) {
-            try {
-                VersionsAndSeqNoResolver.DocIdAndVersion docIdAndVersion = getResult.docIdAndVersion();
-                SourceFieldVisitor visitor = new SourceFieldVisitor();
-                try {
-                    docIdAndVersion.reader.document(docIdAndVersion.docId, visitor);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-                return new Doc(
-                    docIdAndVersion.docId,
-                    shard.shardId().getIndexName(),
-                    id,
-                    docIdAndVersion.version,
-                    docIdAndVersion.seqNo,
-                    docIdAndVersion.primaryTerm,
-                    convertToMap(visitor.source(), false, XContentType.JSON).v2(),
-                    () -> visitor.source().utf8ToString()
-                );
-            } finally {
-                getResult.release();
+        try (Engine.GetResult getResult = shard.get(get)) {
+            var docIdAndVersion = getResult.docIdAndVersion();
+            if (docIdAndVersion == null) {
+                return null;
             }
-        } else {
-            return null;
+            SourceFieldVisitor visitor = new SourceFieldVisitor();
+            try {
+                docIdAndVersion.reader.document(docIdAndVersion.docId, visitor);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            return new Doc(
+                docIdAndVersion.docId,
+                shard.shardId().getIndexName(),
+                id,
+                docIdAndVersion.version,
+                docIdAndVersion.seqNo,
+                docIdAndVersion.primaryTerm,
+                convertToMap(visitor.source(), false, XContentType.JSON).v2(),
+                () -> visitor.source().utf8ToString()
+            );
         }
     }
 
@@ -190,7 +191,11 @@ public final class PKLookupOperation {
         ArrayList<BatchIterator<Row>> iterators = new ArrayList<>(shardAndIdsList.size());
         for (ShardAndIds shardAndIds : shardAndIdsList) {
             Stream<Row> rowStream = shardAndIds.value.stream()
-                .map(pkAndVersion -> lookupDoc(shardAndIds.shard, pkAndVersion.id(), pkAndVersion.version()))
+                .map(pkAndVersion -> lookupDoc(shardAndIds.shard,
+                                               pkAndVersion.id(),
+                                               pkAndVersion.version(),
+                                               pkAndVersion.seqNo(),
+                                               pkAndVersion.primaryTerm()))
                 .map(resultToRow);
 
             Projectors projectors = new Projectors(

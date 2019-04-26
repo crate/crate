@@ -152,7 +152,6 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
                    Functions functions,
                    ScheduledExecutorService scheduledExecutorService,
                    CrateCircuitBreakerService breakerService) {
-        super(settings);
         scheduler = scheduledExecutorService;
         this.breakerService = breakerService;
         this.inputFactory = new InputFactory(functions);

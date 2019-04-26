@@ -35,8 +35,9 @@ import io.netty.handler.codec.dns.DnsRecordType;
 import io.netty.resolver.dns.DnsNameResolver;
 import io.netty.resolver.dns.DnsNameResolverBuilder;
 import io.netty.resolver.dns.SingletonDnsServerAddressStreamProvider;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Setting;
@@ -57,7 +58,9 @@ import java.util.concurrent.TimeoutException;
 import static org.elasticsearch.common.util.concurrent.EsExecutors.daemonThreadFactory;
 
 @Singleton
-public class SrvUnicastHostsProvider extends AbstractComponent implements UnicastHostsProvider, AutoCloseable {
+public class SrvUnicastHostsProvider implements UnicastHostsProvider, AutoCloseable {
+
+    private static final Logger logger = LogManager.getLogger(SrvUnicastHostsProvider.class);
 
     public static final Setting<String> DISCOVERY_SRV_QUERY = Setting.simpleString(
         "discovery.srv.query", Setting.Property.NodeScope);
@@ -74,7 +77,6 @@ public class SrvUnicastHostsProvider extends AbstractComponent implements Unicas
 
     @Inject
     public SrvUnicastHostsProvider(Settings settings, TransportService transportService) {
-        super(settings);
         this.transportService = transportService;
         this.query = DISCOVERY_SRV_QUERY.get(settings);
         this.resolveTimeout = DISCOVERY_SRV_RESOLVE_TIMEOUT.get(settings);

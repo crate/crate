@@ -28,6 +28,7 @@ import io.netty.buffer.Unpooled;
 import org.junit.Test;
 
 import java.nio.charset.StandardCharsets;
+import java.time.format.DateTimeParseException;
 
 import static org.hamcrest.Matchers.is;
 
@@ -62,8 +63,7 @@ public class TimestampTypeTest extends BasePGTypeTest<Long> {
 
     @Test
     public void testDecodeUTF8TextWithUnexpectedNumberOfFractionDigits() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot parse more than 9 digits for fraction of a second");
+        expectedException.expect(DateTimeParseException.class);
         TimestampType.INSTANCE.decodeUTF8Text("2016-06-28 00:00:00.0000000001+05:00".getBytes(Charsets.UTF_8));
     }
 }

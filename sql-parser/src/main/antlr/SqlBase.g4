@@ -215,6 +215,7 @@ valueExpression
     | left=valueExpression operator=(PLUS | MINUS) right=valueExpression             #arithmeticBinary
     | left=valueExpression CONCAT right=valueExpression                              #concatenation
     | valueExpression CAST_OPERATOR dataType                                         #doubleColonCast
+    | dataType stringLiteral                                                         #fromStringLiteralCast
     ;
 
 primaryExpression
@@ -267,7 +268,6 @@ identExpr
 
 parameterOrLiteral
     : parameterOrSimpleLiteral
-    | datetimeLiteral
     | arrayLiteral
     | objectLiteral
     ;
@@ -324,12 +324,6 @@ cmpOp
 
 setCmpQuantifier
     : ANY | SOME | ALL
-    ;
-
-datetimeLiteral
-    : DATE STRING                                                                    #dateLiteral
-    | TIME STRING                                                                    #timeLiteral
-    | TIMESTAMP STRING                                                               #timestampLiteral
     ;
 
 whenClause
@@ -533,7 +527,7 @@ rerouteOption
     ;
 
 dataType
-    : definedDataType           #defDataType
+    : definedDataType           #definedDataTypeDefault
     | ident                     #dataTypeIdent
     | objectTypeDefinition      #objectDataType
     | arrayTypeDefinition       #arrayDataType
@@ -542,6 +536,7 @@ dataType
 
 definedDataType
     : DOUBLE PRECISION
+    | TIMESTAMP WITHOUT TIME ZONE
     | TIMESTAMP WITH TIME ZONE
     ;
 
@@ -651,12 +646,12 @@ isolationLevel
 
 nonReserved
     : ALIAS | ANALYZE | ANALYZER | BERNOULLI | BLOB | CATALOGS | CHAR_FILTERS | CLUSTERED
-    | COLUMNS | COPY | CURRENT | DATE | DAY | DEALLOCATE | DISTRIBUTED | DUPLICATE | DYNAMIC | EXPLAIN
+    | COLUMNS | COPY | CURRENT |  DAY | DEALLOCATE | DISTRIBUTED | DUPLICATE | DYNAMIC | EXPLAIN
     | EXTENDS | FOLLOWING | FORMAT | FULLTEXT | FUNCTIONS | GEO_POINT | GEO_SHAPE | GLOBAL
     | GRAPHVIZ | HOUR | IGNORED | KEY | KILL | LICENSE | LOGICAL | LOCAL | MATERIALIZED | MINUTE
     | MONTH | OFF | ONLY | OVER | OPTIMIZE | PARTITION | PARTITIONED | PARTITIONS | PLAIN
     | PRECEDING | RANGE | REFRESH | ROW | ROWS | SCHEMAS | SECOND | SESSION
-    | SHARDS | SHOW | STORAGE | STRICT | SYSTEM | TABLES | TABLESAMPLE | TEXT | TIME | ZONE
+    | SHARDS | SHOW | STORAGE | STRICT | SYSTEM | TABLES | TABLESAMPLE | TEXT | TIME | ZONE | WITHOUT
     | TIMESTAMP | TO | TOKENIZER | TOKEN_FILTERS | TYPE | VALUES | VIEW | YEAR
     | REPOSITORY | SNAPSHOT | RESTORE | GENERATED | ALWAYS | BEGIN | COMMIT
     | ISOLATION | TRANSACTION | CHARACTERISTICS | LEVEL | LANGUAGE | OPEN | CLOSE | RENAME
@@ -708,7 +703,6 @@ LEADING: 'LEADING';
 TRAILING: 'TRAILING';
 BOTH: 'BOTH';
 FOR: 'FOR';
-DATE: 'DATE';
 TIME: 'TIME';
 ZONE: 'ZONE';
 YEAR: 'YEAR';
@@ -750,6 +744,7 @@ FOLLOWING: 'FOLLOWING';
 CURRENT: 'CURRENT';
 ROW: 'ROW';
 WITH: 'WITH';
+WITHOUT: 'WITHOUT';
 RECURSIVE: 'RECURSIVE';
 CREATE: 'CREATE';
 BLOB: 'BLOB';

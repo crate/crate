@@ -65,7 +65,7 @@ class EpochMillisDateFormatter implements DateFormatter {
                 if (inputs[1].length() > 6) {
                     throw new DateTimeParseException("too much granularity after dot [" + input + "]", input, 0);
                 }
-                Long nanos = new BigDecimal(inputs[1]).movePointRight(6 - inputs[1].length()).longValueExact();
+                long nanos = new BigDecimal(inputs[1]).movePointRight(6 - inputs[1].length()).longValueExact();
                 if (milliSeconds < 0) {
                     nanos = nanos * -1;
                 }

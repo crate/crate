@@ -130,6 +130,12 @@ Breaking Changes
 Deprecations
 ============
 
+- Deprecate the usage of the :ref:`_version 
+  <sql_administration_system_column_version>` column for :ref:`sql_occ` in
+  favour of the :ref:`_seq_no <sql_administration_system_columns_seq_no>` and
+  :ref:`_primary_term <sql_administration_system_columns_primary_term>`
+  columns.
+
 - Deprecate the usage of the :ref:`TIMESTAMP <data-type-aliases>` data type as
   a timestamp with time zone, use
   :ref:`TIMESTAMP WITH TIME ZONE <datetime-with-time-zone>` or
@@ -144,15 +150,30 @@ Deprecations
 Changes
 =======
 
+- Added support for `SQL Standard Timestamp Format
+  <https://crate.io/docs/sql-99/en/latest/chapters/08.html#timestamp-literal>`_
+  to the :ref:`date-time-types`.
+
+- Added `minimum_index_compatibility_version` and
+  `minimum_wire_compatibility_version` to  :ref:`sys.version <sys-versions>`
+  to expose the current state of the node's index and wire protocol version
+  as part of the :ref:`sys.nodes <sys-nodes>` table.
+
+- Added the :ref:`TIMESTAMP WITHOUT TIME ZONE <datetime-without-time-zone>` data
+  type.
+
+- Added support for the :ref:`type 'string' <type_cast_from_string_literal>`
+  cast operator, which is used to initialize a constant of an arbitrary type.
+
 - Enabled Scalar function evaluation when used :ref:`in the query FROM
-  clause <table-functions-scalar>`.
+  clause in place of a relation<table-functions-scalar>`.
 
 - Show the session setting description in the output of the ``SHOW ALL``
   statement.
 
 - Exposed the :ref:`_seq_no <sql_administration_system_columns_seq_no>` and
   :ref:`_primary_term <sql_administration_system_columns_primary_term>` system
-  columns.
+  columns which can be used for :ref:`sql_occ`.
 
 - Added information for the internal PostgreSQL data type: ``name`` in
   :ref:`pg_catalog.pg_type <postgres_pg_type>` for improved PostgreSQL

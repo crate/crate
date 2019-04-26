@@ -36,7 +36,6 @@ import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
@@ -47,13 +46,12 @@ public final class TransportDropViewAction extends TransportMasterNodeAction<Dro
     private final DDLClusterStateService ddlClusterStateService;
 
     @Inject
-    public TransportDropViewAction(Settings settings,
-                                   TransportService transportService,
+    public TransportDropViewAction(TransportService transportService,
                                    ClusterService clusterService,
                                    ThreadPool threadPool,
                                    IndexNameExpressionResolver indexNameExpressionResolver,
                                    DDLClusterStateService ddlClusterStateService) {
-        super(settings,
+        super(
             "internal:crate:sql/views/drop",
             transportService,
             clusterService,

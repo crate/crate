@@ -42,7 +42,7 @@ public class NGramTokenFilterFactory extends AbstractTokenFilterFactory {
         this.maxGram = settings.getAsInt("max_gram",2);
         int ngramDiff = maxGram - minGram;
         if (ngramDiff > maxAllowedNgramDiff) {
-            deprecationLogger.deprecated("Deprecated big difference between max_gram and min_gram in NGram Tokenizer,"
+            deprecationLogger.deprecated("Deprecated big difference between max_gram and min_gram in NGram Tokenizer, "
                 + "expected difference must be less than or equal to: [" + maxAllowedNgramDiff + "]");
         }
     }

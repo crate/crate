@@ -44,10 +44,13 @@ public class TransportPutIndexTemplateAction extends TransportMasterNodeAction<P
     private final IndexScopedSettings indexScopedSettings;
 
     @Inject
-    public TransportPutIndexTemplateAction(Settings settings, TransportService transportService, ClusterService clusterService,
-                                           ThreadPool threadPool, MetaDataIndexTemplateService indexTemplateService,
-                                           IndexNameExpressionResolver indexNameExpressionResolver, IndexScopedSettings indexScopedSettings) {
-        super(settings, PutIndexTemplateAction.NAME, transportService, clusterService, threadPool, indexNameExpressionResolver, PutIndexTemplateRequest::new);
+    public TransportPutIndexTemplateAction(TransportService transportService,
+                                           ClusterService clusterService,
+                                           ThreadPool threadPool,
+                                           MetaDataIndexTemplateService indexTemplateService,
+                                           IndexNameExpressionResolver indexNameExpressionResolver,
+                                           IndexScopedSettings indexScopedSettings) {
+        super(PutIndexTemplateAction.NAME, transportService, clusterService, threadPool, indexNameExpressionResolver, PutIndexTemplateRequest::new);
         this.indexTemplateService = indexTemplateService;
         this.indexScopedSettings = indexScopedSettings;
     }

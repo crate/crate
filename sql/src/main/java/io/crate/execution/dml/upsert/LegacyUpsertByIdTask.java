@@ -32,8 +32,8 @@ import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
 import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
 import io.crate.execution.support.RetryListener;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.IndexParts;
+import io.crate.metadata.TransactionContext;
 import io.crate.planner.node.dml.LegacyUpsertById;
 import io.crate.planner.node.dml.UpdateById;
 import org.apache.logging.log4j.LogManager;
@@ -316,7 +316,12 @@ public class LegacyUpsertByIdTask {
                 requestsByShard.put(shardId, request);
             }
             request.add(i,
-                new ShardUpsertRequest.Item(item.id(), item.updateAssignments(), item.insertValues(), item.version()));
+                        new ShardUpsertRequest.Item(item.id(),
+                                                    item.updateAssignments(),
+                                                    item.insertValues(),
+                                                    item.version(),
+                                                    item.seqNo(),
+                                                    item.primaryTerm()));
         }
         return requestsByShard;
     }

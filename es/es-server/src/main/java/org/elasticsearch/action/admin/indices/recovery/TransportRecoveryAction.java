@@ -30,7 +30,6 @@ import org.elasticsearch.cluster.routing.ShardsIterator;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.IndicesService;
@@ -53,10 +52,12 @@ public class TransportRecoveryAction extends TransportBroadcastByNodeAction<Reco
     private final IndicesService indicesService;
 
     @Inject
-    public TransportRecoveryAction(Settings settings, ThreadPool threadPool, ClusterService clusterService,
-                                   TransportService transportService, IndicesService indicesService,
+    public TransportRecoveryAction(ThreadPool threadPool,
+                                   ClusterService clusterService,
+                                   TransportService transportService,
+                                   IndicesService indicesService,
                                    IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(settings, RecoveryAction.NAME, threadPool, clusterService, transportService, indexNameExpressionResolver,
+        super(RecoveryAction.NAME, threadPool, clusterService, transportService, indexNameExpressionResolver,
                 RecoveryRequest::new, ThreadPool.Names.MANAGEMENT);
         this.indicesService = indicesService;
     }
@@ -65,7 +66,6 @@ public class TransportRecoveryAction extends TransportBroadcastByNodeAction<Reco
     protected RecoveryState readShardResult(StreamInput in) throws IOException {
         return RecoveryState.readRecoveryState(in);
     }
-
 
     @Override
     protected RecoveryResponse newResponse(RecoveryRequest request, int totalShards, int successfulShards, int failedShards, List<RecoveryState> responses, List<DefaultShardOperationFailedException> shardFailures, ClusterState clusterState) {

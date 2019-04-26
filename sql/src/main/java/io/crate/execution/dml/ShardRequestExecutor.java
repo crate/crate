@@ -30,10 +30,10 @@ import io.crate.data.RowConsumer;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.support.MultiActionListener;
 import io.crate.execution.support.OneRowActionListener;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.operators.SubQueryResults;
 import org.elasticsearch.action.ActionListener;
@@ -78,7 +78,7 @@ public class ShardRequestExecutor<Req> {
         /**
          * Creates and adds a new item to the request; This is called once per docKey per params.
          */
-        void addItem(R request, int location, String id, @Nullable Long version);
+        void addItem(R request, int location, String id, @Nullable Long version, @Nullable Long seqNo, @Nullable Long primaryTerm);
     }
 
     public ShardRequestExecutor(ClusterService clusterService,
@@ -163,7 +163,9 @@ public class ShardRequestExecutor<Req> {
                 requests.put(shardId, request);
             }
             Long version = docKey.version(txnCtx, functions, parameters, subQueryResults).orElse(null);
-            grouper.addItem(request, location, id, version);
+            Long seqNo = docKey.sequenceNo(txnCtx, functions, parameters, subQueryResults).orElse(null);
+            Long primaryTerm = docKey.primaryTerm(txnCtx, functions, parameters, subQueryResults).orElse(null);
+            grouper.addItem(request, location, id, version, seqNo, primaryTerm);
             location++;
         }
         return location;

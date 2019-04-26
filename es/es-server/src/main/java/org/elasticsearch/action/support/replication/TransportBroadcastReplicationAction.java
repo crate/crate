@@ -33,7 +33,6 @@ import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.CountDown;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.tasks.Task;
@@ -56,10 +55,14 @@ public abstract class TransportBroadcastReplicationAction<Request extends Broadc
     private final TransportReplicationAction replicatedBroadcastShardAction;
     private final ClusterService clusterService;
 
-    public TransportBroadcastReplicationAction(String name, Supplier<Request> request, Settings settings, ThreadPool threadPool, ClusterService clusterService,
+    public TransportBroadcastReplicationAction(String name,
+                                               Supplier<Request> request,
+                                               ThreadPool threadPool,
+                                               ClusterService clusterService,
                                                TransportService transportService,
-                                               IndexNameExpressionResolver indexNameExpressionResolver, TransportReplicationAction replicatedBroadcastShardAction) {
-        super(settings, name, threadPool, transportService, indexNameExpressionResolver, request);
+                                               IndexNameExpressionResolver indexNameExpressionResolver,
+                                               TransportReplicationAction replicatedBroadcastShardAction) {
+        super(name, threadPool, transportService, indexNameExpressionResolver, request);
         this.replicatedBroadcastShardAction = replicatedBroadcastShardAction;
         this.clusterService = clusterService;
     }

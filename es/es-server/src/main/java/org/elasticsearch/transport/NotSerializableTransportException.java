@@ -34,6 +34,7 @@ public class NotSerializableTransportException extends TransportException {
     }
 
     @Override
+    @SuppressWarnings("sync-override")
     public Throwable fillInStackTrace() {
         return null;
     }

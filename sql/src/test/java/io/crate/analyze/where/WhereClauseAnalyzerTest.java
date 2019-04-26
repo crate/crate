@@ -29,7 +29,7 @@ import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.data.Row;
-import io.crate.exceptions.VersionInvalidException;
+import io.crate.exceptions.VersioninigValidationException;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.any.AnyLikeOperator;
@@ -434,9 +434,36 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testVersionOnlySupportedWithEqualOperator() throws Exception {
-        expectedException.expect(VersionInvalidException.class);
-        expectedException.expectMessage(VersionInvalidException.ERROR_MSG);
+        expectedException.expect(VersioninigValidationException.class);
+        expectedException.expectMessage(VersioninigValidationException.VERSION_COLUMN_USAGE_MSG);
         analyzeSelectWhere("select * from users where _version > 1");
+    }
 
+    @Test
+    public void testSeqNoOnlySupportedWithEqualOperator() throws Exception {
+        expectedException.expect(VersioninigValidationException.class);
+        expectedException.expectMessage(VersioninigValidationException.SEQ_NO_AND_PRIMARY_TERM_USAGE_MSG);
+        analyzeSelectWhere("select * from users where _seq_no > 1");
+    }
+
+    @Test
+    public void testPrimaryTermOnlySupportedWithEqualOperator() throws Exception {
+        expectedException.expect(VersioninigValidationException.class);
+        expectedException.expectMessage(VersioninigValidationException.SEQ_NO_AND_PRIMARY_TERM_USAGE_MSG);
+        analyzeSelectWhere("select * from users where _primary_term > 1");
+    }
+
+    @Test
+    public void testSeqNoAndPrimaryTermAreRequired() {
+        expectedException.expect(VersioninigValidationException.class);
+        expectedException.expectMessage(VersioninigValidationException.SEQ_NO_AND_PRIMARY_TERM_USAGE_MSG);
+        analyzeSelectWhere("select * from users where id = 2 and _primary_term = 1");
+    }
+
+    @Test
+    public void testVersioningMechanismsCannotBeMixed() {
+        expectedException.expect(VersioninigValidationException.class);
+        expectedException.expectMessage(VersioninigValidationException.MIXED_VERSIONING_COLUMNS_USAGE_MSG);
+        analyzeSelectWhere("select * from users where id = 2 and _primary_term = 1 and _seq_no = 22 and _version = 1");
     }
 }

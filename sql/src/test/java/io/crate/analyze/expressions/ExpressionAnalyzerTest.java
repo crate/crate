@@ -336,7 +336,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         Function symbol2 = (Function) expressions.asSymbol("doc.t5.w = doc.t2.i + 1.2");
         assertThat(symbol2, isFunction(EqOperator.NAME));
         assertThat(symbol2.arguments().get(0), isField("w"));
-        assertThat(symbol2.arguments().get(1), isFunction("to_long"));
+        assertThat(symbol2.arguments().get(1), isFunction("to_bigint"));
         assertThat(symbol2.arguments().get(1).valueType(), is(DataTypes.LONG));
     }
 
@@ -345,7 +345,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         SqlExpressions expressions = new SqlExpressions(T3.SOURCES);
         Function symbol = (Function) expressions.asSymbol("doc.t5.i < doc.t5.w");
         assertThat(symbol, isFunction(LtOperator.NAME));
-        assertThat(symbol.arguments().get(0), isFunction("to_long"));
+        assertThat(symbol.arguments().get(0), isFunction("to_bigint"));
         assertThat(symbol.arguments().get(0).valueType(), is(DataTypes.LONG));
         assertThat(symbol.arguments().get(1).valueType(), is(DataTypes.LONG));
     }
@@ -361,9 +361,13 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testTimestampIsCastedToLong() {
+    public void testTimestampTypesCanBeCastedToLong() {
         SqlExpressions expressions = new SqlExpressions(T3.SOURCES);
-        Symbol symbol = expressions.asSymbol("doc.t5.ts :: long");
+
+        Symbol symbol = expressions.asSymbol("doc.t5.ts::long");
+        assertThat(symbol.valueType(), is(DataTypes.LONG));
+
+        symbol = expressions.asSymbol("doc.t5.ts_z::long");
         assertThat(symbol.valueType(), is(DataTypes.LONG));
     }
 

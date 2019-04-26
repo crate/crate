@@ -20,10 +20,11 @@
 package org.elasticsearch.snapshots;
 
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.util.SetOnce;
 import org.elasticsearch.ExceptionsHelper;
-import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequestValidationException;
 import org.elasticsearch.action.ActionResponse;
@@ -95,6 +96,8 @@ import static org.elasticsearch.transport.EmptyTransportResponseHandler.INSTANCE
  */
 public class SnapshotShardsService extends AbstractLifecycleComponent implements ClusterStateListener, IndexEventListener {
 
+    private static final Logger logger = LogManager.getLogger(SnapshotShardsService.class);
+
     public static final String UPDATE_SNAPSHOT_STATUS_ACTION_NAME_V6 = "internal:cluster/snapshot/update_snapshot";
     public static final String UPDATE_SNAPSHOT_STATUS_ACTION_NAME = "internal:cluster/snapshot/update_snapshot_status";
 
@@ -112,6 +115,7 @@ public class SnapshotShardsService extends AbstractLifecycleComponent implements
     private final Lock shutdownLock = new ReentrantLock();
 
     private final Condition shutdownCondition = shutdownLock.newCondition();
+    private final Settings settings;
 
     private volatile Map<Snapshot, SnapshotShards> shardSnapshots = emptyMap();
 
@@ -122,7 +126,7 @@ public class SnapshotShardsService extends AbstractLifecycleComponent implements
     public SnapshotShardsService(Settings settings, ClusterService clusterService, SnapshotsService snapshotsService, ThreadPool threadPool,
                                  TransportService transportService, IndicesService indicesService,
                                  IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(settings);
+        this.settings = settings;
         this.indicesService = indicesService;
         this.snapshotsService = snapshotsService;
         this.transportService = transportService;
@@ -134,8 +138,8 @@ public class SnapshotShardsService extends AbstractLifecycleComponent implements
         }
 
         // The constructor of UpdateSnapshotStatusAction will register itself to the TransportService.
-        this.updateSnapshotStatusHandler = new UpdateSnapshotStatusAction(settings, UPDATE_SNAPSHOT_STATUS_ACTION_NAME,
-            transportService, clusterService, threadPool, indexNameExpressionResolver);
+        this.updateSnapshotStatusHandler = new UpdateSnapshotStatusAction(
+            UPDATE_SNAPSHOT_STATUS_ACTION_NAME, transportService, clusterService, threadPool, indexNameExpressionResolver);
 
         if (DiscoveryNode.isMasterNode(settings)) {
             // This needs to run only on nodes that can become masters
@@ -645,9 +649,13 @@ public class SnapshotShardsService extends AbstractLifecycleComponent implements
     }
 
     class UpdateSnapshotStatusAction extends TransportMasterNodeAction<UpdateIndexShardSnapshotStatusRequest, UpdateIndexShardSnapshotStatusResponse> {
-        UpdateSnapshotStatusAction(Settings settings, String actionName, TransportService transportService, ClusterService clusterService,
-                                   ThreadPool threadPool, IndexNameExpressionResolver indexNameExpressionResolver) {
-            super(settings, actionName, transportService, clusterService, threadPool, indexNameExpressionResolver, UpdateIndexShardSnapshotStatusRequest::new);
+
+        UpdateSnapshotStatusAction(String actionName,
+                                   TransportService transportService,
+                                   ClusterService clusterService,
+                                   ThreadPool threadPool,
+                                   IndexNameExpressionResolver indexNameExpressionResolver) {
+            super(actionName, transportService, clusterService, threadPool, indexNameExpressionResolver, UpdateIndexShardSnapshotStatusRequest::new);
         }
 
         @Override

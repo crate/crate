@@ -249,7 +249,6 @@ public class SQLExecutor {
             udfService = new UserDefinedFunctionService(clusterService, functions);
 
             Schemas schemas = new Schemas(
-                Settings.EMPTY,
                 schemaInfoByName,
                 clusterService,
                 new DocSchemaInfoFactory(tableInfoFactory, testingViewInfoFactory, functions, udfService)
@@ -272,12 +271,10 @@ public class SQLExecutor {
                 new NumberOfShards(clusterService)
             );
             allocationService = new AllocationService(
-                Settings.EMPTY,
                 new AllocationDeciders(
-                    Settings.EMPTY,
                     Arrays.asList(
                         new SameShardAllocationDecider(Settings.EMPTY, clusterService.getClusterSettings()),
-                        new ReplicaAfterPrimaryActiveAllocationDecider(Settings.EMPTY)
+                        new ReplicaAfterPrimaryActiveAllocationDecider()
                     )
                 ),
                 new TestGatewayAllocator(),
@@ -375,7 +372,6 @@ public class SQLExecutor {
             // Can't use the schemas instance from the constructor because
             // schemaInfoByName can receive new items and Schemas creates a new map internally; so mutations are not visible
             Schemas schemas = new Schemas(
-                Settings.EMPTY,
                 schemaInfoByName,
                 clusterService,
                 new DocSchemaInfoFactory(tableInfoFactory, testingViewInfoFactory, functions, udfService)

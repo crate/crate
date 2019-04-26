@@ -22,6 +22,7 @@
 package io.crate.analyze;
 
 import com.google.common.base.MoreObjects;
+import io.crate.exceptions.VersioninigValidationException;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
@@ -52,6 +53,29 @@ public class WhereClause extends QueryClause {
         this.clusteredBy = clusteredBy;
         if (partitions != null) {
             this.partitions = partitions;
+        }
+        if (query != null) {
+            validateVersioningColumnsUsage();
+        }
+    }
+
+    private void validateVersioningColumnsUsage() {
+        if (Symbols.containsColumn(query, DocSysColumns.SEQ_NO)) {
+            if (!Symbols.containsColumn(query, DocSysColumns.PRIMARY_TERM)) {
+                throw VersioninigValidationException.seqNoAndPrimaryTermUsage();
+            } else {
+                if (Symbols.containsColumn(query, DocSysColumns.VERSION)) {
+                    throw VersioninigValidationException.mixedVersioningMeachanismsUsage();
+                }
+            }
+        } else if (Symbols.containsColumn(query, DocSysColumns.PRIMARY_TERM)) {
+            if (!Symbols.containsColumn(query, DocSysColumns.SEQ_NO)) {
+                throw VersioninigValidationException.seqNoAndPrimaryTermUsage();
+            } else {
+                if (Symbols.containsColumn(query, DocSysColumns.VERSION)) {
+                    throw VersioninigValidationException.mixedVersioningMeachanismsUsage();
+                }
+            }
         }
     }
 
@@ -106,6 +130,10 @@ public class WhereClause extends QueryClause {
         return query != null && Symbols.containsColumn(query, DocSysColumns.VERSION);
     }
 
+    public boolean hasSeqNoAndPrimaryTerm() {
+        return query != null && Symbols.containsColumn(query, DocSysColumns.SEQ_NO) &&
+               Symbols.containsColumn(query, DocSysColumns.PRIMARY_TERM);
+    }
 
     /**
      * Adds another query to this WhereClause.

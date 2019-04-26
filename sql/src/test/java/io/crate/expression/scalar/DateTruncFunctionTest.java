@@ -31,7 +31,7 @@ import static org.hamcrest.Matchers.not;
 public class DateTruncFunctionTest extends AbstractScalarFunctionsTest {
 
     // timestamp for Do Feb 25 12:38:01.123 UTC 1999
-    private static final Literal TIMESTAMP = Literal.of(DataTypes.TIMESTAMP, 919946281123L);
+    private static final Literal TIMESTAMP = Literal.of(DataTypes.TIMESTAMPZ, 919946281123L);
 
     @Test
     public void testDateTruncWithLongLiteral() {
@@ -62,9 +62,9 @@ public class DateTruncFunctionTest extends AbstractScalarFunctionsTest {
     }
 
     @Test
-    public void testNullTimestamp() throws Exception {
-        assertEvaluate("date_trunc('second', timestamp)", null, Literal.of(DataTypes.TIMESTAMP, null));
-        assertEvaluate("date_trunc('second', 'UTC', timestamp)", null, Literal.of(DataTypes.TIMESTAMP, null));
+    public void testNullTimestamp() {
+        assertEvaluate("date_trunc('second', timestamp)", null, Literal.of(DataTypes.TIMESTAMPZ, null));
+        assertEvaluate("date_trunc('second', 'UTC', timestamp)", null, Literal.of(DataTypes.TIMESTAMPZ, null));
     }
 
     @Test

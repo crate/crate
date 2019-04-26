@@ -24,7 +24,6 @@ package io.crate.lucene;
 
 import io.crate.data.Input;
 import io.crate.expression.InputCondition;
-import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.symbol.Function;
 import org.apache.lucene.index.LeafReader;
@@ -53,17 +52,14 @@ class GenericFunctionQuery extends Query {
 
     private final Function function;
     private final LuceneCollectorExpression[] expressions;
-    private final CollectorContext collectorContext;
     private final Input<Boolean> condition;
 
     GenericFunctionQuery(Function function,
                          Collection<? extends LuceneCollectorExpression<?>> expressions,
-                         CollectorContext collectorContext,
                          Input<Boolean> condition) {
         this.function = function;
         // inner loop iterates over expressions - call toArray to avoid iterator allocations
         this.expressions = expressions.toArray(new LuceneCollectorExpression[0]);
-        this.collectorContext = collectorContext;
         this.condition = condition;
     }
 

@@ -21,30 +21,28 @@
 
 package io.crate.types;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import io.crate.Streamer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.Nullable;
-import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static java.util.Map.entry;
+import static java.util.stream.Collectors.toSet;
 
 public final class DataTypes {
 
@@ -68,7 +66,9 @@ public final class DataTypes {
     public static final ShortType SHORT = ShortType.INSTANCE;
     public static final IntegerType INTEGER = IntegerType.INSTANCE;
     public static final LongType LONG = LongType.INSTANCE;
-    public static final TimestampType TIMESTAMP = TimestampType.INSTANCE;
+
+    public static final TimestampType TIMESTAMPZ = TimestampType.INSTANCE_WITH_TZ;
+    public static final TimestampType TIMESTAMP = TimestampType.INSTANCE_WITHOUT_TZ;
 
     public static final GeoPointType GEO_POINT = GeoPointType.INSTANCE;
     public static final GeoShapeType GEO_SHAPE = GeoShapeType.INSTANCE;
@@ -78,7 +78,7 @@ public final class DataTypes {
     public static final DataType INTEGER_ARRAY = new ArrayType(INTEGER);
     public static final DataType SHORT_ARRAY = new ArrayType(SHORT);
 
-    public static final ImmutableList<DataType> PRIMITIVE_TYPES = ImmutableList.of(
+    public static final List<DataType> PRIMITIVE_TYPES = List.of(
         BYTE,
         BOOLEAN,
         STRING,
@@ -88,10 +88,11 @@ public final class DataTypes {
         SHORT,
         INTEGER,
         LONG,
+        TIMESTAMPZ,
         TIMESTAMP
     );
 
-    public static final ImmutableList<DataType> NUMERIC_PRIMITIVE_TYPES = ImmutableList.of(
+    public static final List<DataType> NUMERIC_PRIMITIVE_TYPES = List.of(
         DOUBLE,
         FLOAT,
         BYTE,
@@ -103,70 +104,67 @@ public final class DataTypes {
     /**
      * Type registry mapping type ids to the according data type instance.
      */
-    private static final Map<Integer, Supplier<DataType>> TYPE_REGISTRY = new MapBuilder<Integer, Supplier<DataType>>()
-        .put(UndefinedType.ID, () -> UNDEFINED)
-        .put(NotSupportedType.ID, () -> NOT_SUPPORTED)
-        .put(ByteType.ID, () -> BYTE)
-        .put(BooleanType.ID, () -> BOOLEAN)
-        .put(StringType.ID, () -> STRING)
-        .put(IpType.ID, () -> IP)
-        .put(DoubleType.ID, () -> DOUBLE)
-        .put(FloatType.ID, () -> FLOAT)
-        .put(ShortType.ID, () -> SHORT)
-        .put(IntegerType.ID, () -> INTEGER)
-        .put(LongType.ID, () -> LONG)
-        .put(TimestampType.ID, () -> TIMESTAMP)
-        .put(ObjectType.ID, ObjectType::untyped)
-        .put(GeoPointType.ID, () -> GEO_POINT)
-        .put(GeoShapeType.ID, () -> GEO_SHAPE)
-        .put(ArrayType.ID, ArrayType::new)
-        .put(SetType.ID, SetType::new)
-        .map();
+    private static final Map<Integer, Supplier<DataType>> TYPE_REGISTRY = new HashMap<>(
+        Map.ofEntries(
+            entry(UndefinedType.ID, () -> UNDEFINED),
+            entry(NotSupportedType.ID, () -> NOT_SUPPORTED),
+            entry(ByteType.ID, () -> BYTE),
+            entry(BooleanType.ID, () -> BOOLEAN),
+            entry(StringType.ID, () -> STRING),
+            entry(IpType.ID, () -> IP),
+            entry(DoubleType.ID, () -> DOUBLE),
+            entry(FloatType.ID, () -> FLOAT),
+            entry(ShortType.ID, () -> SHORT),
+            entry(IntegerType.ID, () -> INTEGER),
+            entry(LongType.ID, () -> LONG),
+            entry(TimestampType.ID_WITH_TZ, () -> TIMESTAMPZ),
+            entry(TimestampType.ID_WITHOUT_TZ, () -> TIMESTAMP),
+            entry(ObjectType.ID, ObjectType::untyped),
+            entry(GeoPointType.ID, () -> GEO_POINT),
+            entry(GeoShapeType.ID, () -> GEO_SHAPE),
+            entry(ArrayType.ID, ArrayType::new),
+            entry(SetType.ID, SetType::new))
+    );
 
+    private static final Set<DataType> NUMBER_CONVERSIONS = Stream.concat(
+        Stream.of(BOOLEAN, STRING, TIMESTAMPZ, TIMESTAMP, IP),
+        NUMERIC_PRIMITIVE_TYPES.stream()
+    ).collect(toSet());
 
-    private static final Set<DataType> NUMBER_CONVERSIONS = ImmutableSet.<DataType>builder()
-        .addAll(NUMERIC_PRIMITIVE_TYPES)
-        .add(BOOLEAN)
-        .add(STRING, TIMESTAMP, IP)
-        .build();
     // allowed conversion from key to one of the value types
     // the key type itself does not need to be in the value set
-    static final ImmutableMap<Integer, Set<DataType>> ALLOWED_CONVERSIONS = ImmutableMap.<Integer, Set<DataType>>builder()
-        .put(BYTE.id(), NUMBER_CONVERSIONS)
-        .put(SHORT.id(), NUMBER_CONVERSIONS)
-        .put(INTEGER.id(), NUMBER_CONVERSIONS)
-        .put(LONG.id(), NUMBER_CONVERSIONS)
-        .put(FLOAT.id(), NUMBER_CONVERSIONS)
-        .put(DOUBLE.id(), NUMBER_CONVERSIONS)
-        .put(BOOLEAN.id(), ImmutableSet.of(STRING))
-        .put(STRING.id(), ImmutableSet.<DataType>builder()
-            .addAll(NUMBER_CONVERSIONS)
-            .add(GEO_SHAPE)
-            .add(GEO_POINT)
-            .add(BOOLEAN)
-            .add(ObjectType.untyped())
-            .build())
-        .put(IP.id(), ImmutableSet.of(STRING))
-        .put(TIMESTAMP.id(), ImmutableSet.of(DOUBLE, LONG, STRING))
-        .put(UNDEFINED.id(), ImmutableSet.of()) // actually convertible to every type, see NullType
-        .put(GEO_POINT.id(), ImmutableSet.of(new ArrayType(DOUBLE)))
-        .put(GEO_SHAPE.id(), ImmutableSet.of(ObjectType.untyped()))
-        .put(ObjectType.ID, ImmutableSet.of(GEO_SHAPE))
-        .put(ArrayType.ID, ImmutableSet.of()) // convertability handled in ArrayType
-        .put(SetType.ID, ImmutableSet.of()) // convertability handled in SetType
-        .build();
+    static final Map<Integer, Set<DataType>> ALLOWED_CONVERSIONS = Map.ofEntries(
+        entry(BYTE.id(), NUMBER_CONVERSIONS),
+        entry(SHORT.id(), NUMBER_CONVERSIONS),
+        entry(INTEGER.id(), NUMBER_CONVERSIONS),
+        entry(LONG.id(), NUMBER_CONVERSIONS),
+        entry(FLOAT.id(), NUMBER_CONVERSIONS),
+        entry(DOUBLE.id(), NUMBER_CONVERSIONS),
+        entry(BOOLEAN.id(), Set.of(STRING)),
+        entry(STRING.id(), Stream.concat(
+            Stream.of(GEO_SHAPE, GEO_POINT, ObjectType.untyped()),
+            NUMBER_CONVERSIONS.stream()
+        ).collect(toSet())),
+        entry(IP.id(), Set.of(STRING)),
+        entry(TIMESTAMPZ.id(), Set.of(DOUBLE, LONG, STRING)),
+        entry(TIMESTAMP.id(), Set.of(DOUBLE, LONG, STRING)),
+        entry(UNDEFINED.id(), Set.of()), // actually convertible to every type, see NullType
+        entry(GEO_POINT.id(), Set.of(new ArrayType(DOUBLE))),
+        entry(GEO_SHAPE.id(), Set.of(ObjectType.untyped())),
+        entry(ObjectType.ID, Set.of(GEO_SHAPE)),
+        entry(ArrayType.ID, Set.of()), // convertability handled in ArrayType
+        entry(SetType.ID, Set.of())); // convertability handled in SetType
 
     /**
      * Contains number conversions which are "safe" (= a conversion would not reduce the number of bytes
      * used to store the value)
      */
-    private static final ImmutableMap<Integer, Set<DataType>> SAFE_CONVERSIONS = ImmutableMap.<Integer, Set<DataType>>builder()
-        .put(BYTE.id(), ImmutableSet.of(SHORT, INTEGER, LONG, TIMESTAMP, FLOAT, DOUBLE))
-        .put(SHORT.id(), ImmutableSet.of(INTEGER, LONG, TIMESTAMP, FLOAT, DOUBLE))
-        .put(INTEGER.id(), ImmutableSet.of(LONG, TIMESTAMP, FLOAT, DOUBLE))
-        .put(LONG.id(), ImmutableSet.of(TIMESTAMP, DOUBLE))
-        .put(FLOAT.id(), ImmutableSet.of(DOUBLE))
-        .build();
+    private static final Map<Integer, Set<DataType>> SAFE_CONVERSIONS = Map.of(
+        BYTE.id(), Set.of(SHORT, INTEGER, LONG, TIMESTAMPZ, TIMESTAMP, FLOAT, DOUBLE),
+        SHORT.id(), Set.of(INTEGER, LONG, TIMESTAMPZ, TIMESTAMP, FLOAT, DOUBLE),
+        INTEGER.id(), Set.of(LONG, TIMESTAMPZ, TIMESTAMP, FLOAT, DOUBLE),
+        LONG.id(), Set.of(TIMESTAMPZ, TIMESTAMP, DOUBLE),
+        FLOAT.id(), Set.of(DOUBLE));
 
     public static boolean isCollectionType(DataType type) {
         return type.id() == ArrayType.ID || type.id() == SetType.ID;
@@ -200,19 +198,18 @@ public final class DataTypes {
         type.writeTo(out);
     }
 
-    private static final Map<Class<?>, DataType> POJO_TYPE_MAPPING = ImmutableMap.<Class<?>, DataType>builder()
-        .put(Double.class, DOUBLE)
-        .put(Float.class, FLOAT)
-        .put(Integer.class, INTEGER)
-        .put(Long.class, LONG)
-        .put(Short.class, SHORT)
-        .put(Byte.class, BYTE)
-        .put(Boolean.class, BOOLEAN)
-        .put(Map.class, ObjectType.untyped())
-        .put(String.class, STRING)
-        .put(BytesRef.class, STRING)
-        .put(Character.class, STRING)
-        .build();
+    private static final Map<Class<?>, DataType> POJO_TYPE_MAPPING = Map.ofEntries(
+        entry(Double.class, DOUBLE),
+        entry(Float.class, FLOAT),
+        entry(Integer.class, INTEGER),
+        entry(Long.class, LONG),
+        entry(Short.class, SHORT),
+        entry(Byte.class, BYTE),
+        entry(Boolean.class, BOOLEAN),
+        entry(Map.class, ObjectType.untyped()),
+        entry(String.class, STRING),
+        entry(BytesRef.class, STRING),
+        entry(Character.class, STRING));
 
     public static DataType<?> guessType(Object value) {
         if (value == null) {
@@ -285,33 +282,34 @@ public final class DataTypes {
         return conversions != null && conversions.contains(target);
     }
 
-    private static final ImmutableMap<String, DataType> TYPES_BY_NAME_OR_ALIAS = ImmutableMap.<String, DataType>builder()
-        .put(UNDEFINED.getName(), UNDEFINED)
-        .put(BYTE.getName(), BYTE)
-        .put(BOOLEAN.getName(), BOOLEAN)
-        .put(STRING.getName(), STRING)
-        .put(IP.getName(), IP)
-        .put(DOUBLE.getName(), DOUBLE)
-        .put(FLOAT.getName(), FLOAT)
-        .put(SHORT.getName(), SHORT)
-        .put(INTEGER.getName(), INTEGER)
-        .put(LONG.getName(), LONG)
-        .put(TIMESTAMP.getName(), TIMESTAMP)
-        .put(ObjectType.NAME, ObjectType.untyped())
-        .put(GEO_POINT.getName(), GEO_POINT)
-        .put(GEO_SHAPE.getName(), GEO_SHAPE)
-        .put("int2", SHORT)
-        .put("int", INTEGER)
-        .put("int4", INTEGER)
-        .put("int8", LONG)
-        .put("name", STRING)
-        .put("long", LONG)
-        .put("byte", BYTE)
-        .put("short", SHORT)
-        .put("float", FLOAT)
-        .put("double", DOUBLE)
-        .put("string", STRING)
-        .put("timestamptz", TIMESTAMP)
+    private static final Map<String, DataType> TYPES_BY_NAME_OR_ALIAS = Map.ofEntries(
+        entry(UNDEFINED.getName(), UNDEFINED),
+        entry(BYTE.getName(), BYTE),
+        entry(BOOLEAN.getName(), BOOLEAN),
+        entry(STRING.getName(), STRING),
+        entry(IP.getName(), IP),
+        entry(DOUBLE.getName(), DOUBLE),
+        entry(FLOAT.getName(), FLOAT),
+        entry(SHORT.getName(), SHORT),
+        entry(INTEGER.getName(), INTEGER),
+        entry(LONG.getName(), LONG),
+        entry(TIMESTAMPZ.getName(), TIMESTAMPZ),
+        entry(TIMESTAMP.getName(), TIMESTAMP),
+        entry(ObjectType.NAME, ObjectType.untyped()),
+        entry(GEO_POINT.getName(), GEO_POINT),
+        entry(GEO_SHAPE.getName(), GEO_SHAPE),
+        entry("int2", SHORT),
+        entry("int", INTEGER),
+        entry("int4", INTEGER),
+        entry("int8", LONG),
+        entry("name", STRING),
+        entry("long", LONG),
+        entry("byte", BYTE),
+        entry("short", SHORT),
+        entry("float", FLOAT),
+        entry("double", DOUBLE),
+        entry("string", STRING),
+        entry("timestamptz", TIMESTAMPZ),
         // The usage of the `timestamp` data type as a data type with time
         // zone is deprecate, use `timestamp with time zone` or `timestamptz`
         // instead. In future releases the `timestamp` data type will be changed
@@ -319,8 +317,7 @@ public final class DataTypes {
         // `timestamp` as an alias for the `timestamp with time zone` data type
         // to warn users about the data type semantic change and give a time
         // to adjust to the change.
-        .put("timestamp", TIMESTAMP)
-        .build();
+        entry("timestamp", TIMESTAMPZ));
 
     public static DataType ofName(String name) {
         DataType dataType = TYPES_BY_NAME_OR_ALIAS.get(name);
@@ -330,25 +327,27 @@ public final class DataTypes {
         return dataType;
     }
 
-    private static final ImmutableMap<String, DataType> MAPPING_NAMES_TO_TYPES = ImmutableMap.<String, DataType>builder()
-        .put("date", DataTypes.TIMESTAMP)
-        .put("string", DataTypes.STRING)
-        .put("keyword", DataTypes.STRING)
-        .put("text", DataTypes.STRING)
-        .put("boolean", DataTypes.BOOLEAN)
-        .put("byte", DataTypes.BYTE)
-        .put("short", DataTypes.SHORT)
-        .put("integer", DataTypes.INTEGER)
-        .put("long", DataTypes.LONG)
-        .put("float", DataTypes.FLOAT)
-        .put("double", DataTypes.DOUBLE)
-        .put("ip", DataTypes.IP)
-        .put("geo_point", DataTypes.GEO_POINT)
-        .put("geo_shape", DataTypes.GEO_SHAPE)
-        .put("object", ObjectType.untyped())
-        .put("nested", ObjectType.untyped()).build();
+    private static final Map<String, DataType> MAPPING_NAMES_TO_TYPES = Map.ofEntries(
+        entry("date", DataTypes.TIMESTAMPZ),
+        entry("string", DataTypes.STRING),
+        entry("keyword", DataTypes.STRING),
+        entry("text", DataTypes.STRING),
+        entry("boolean", DataTypes.BOOLEAN),
+        entry("byte", DataTypes.BYTE),
+        entry("short", DataTypes.SHORT),
+        entry("integer", DataTypes.INTEGER),
+        entry("long", DataTypes.LONG),
+        entry("float", DataTypes.FLOAT),
+        entry("double", DataTypes.DOUBLE),
+        entry("ip", DataTypes.IP),
+        entry("geo_point", DataTypes.GEO_POINT),
+        entry("geo_shape", DataTypes.GEO_SHAPE),
+        entry("object", ObjectType.untyped()),
+        entry("nested", ObjectType.untyped())
+    );
 
     private static final Map<Integer, String> TYPE_IDS_TO_MAPPINGS = Map.ofEntries(
+        entry(TIMESTAMPZ.id(), "date"),
         entry(TIMESTAMP.id(), "date"),
         entry(STRING.id(), "text"),
         entry(BYTE.id(), "byte"),
@@ -404,8 +403,10 @@ public final class DataTypes {
     /**
      * Returns the first data type that is not {@link UndefinedType}, or {@code UNDEFINED} if none found.
      */
-    public static DataType tryFindNotNullType(Iterable<? extends DataType> dataTypes) {
-        return Iterables.find(dataTypes, input -> input != UNDEFINED, UNDEFINED);
+    public static DataType tryFindNotNullType(List<DataType> dataTypes) {
+        return dataTypes.stream()
+            .filter(t -> t != UNDEFINED)
+            .findFirst().orElse(UNDEFINED);
     }
 
     public static DataType fromId(Integer id) {

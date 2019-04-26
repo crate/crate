@@ -24,7 +24,6 @@ package io.crate.execution.ddl;
 
 import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.cluster.action.index.MappingUpdatedAction;
-import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.ClusterSettings;
@@ -34,7 +33,7 @@ import org.elasticsearch.index.Index;
 import org.elasticsearch.index.mapper.Mapping;
 
 @Singleton
-public class SchemaUpdateClient extends AbstractComponent {
+public class SchemaUpdateClient {
 
     private final TransportSchemaUpdateAction schemaUpdateAction;
     private volatile TimeValue dynamicMappingUpdateTimeout;
@@ -43,7 +42,6 @@ public class SchemaUpdateClient extends AbstractComponent {
     public SchemaUpdateClient(Settings settings,
                               ClusterSettings clusterSettings,
                               TransportSchemaUpdateAction schemaUpdateAction) {
-        super(settings);
         this.schemaUpdateAction = schemaUpdateAction;
         this.dynamicMappingUpdateTimeout = MappingUpdatedAction.INDICES_MAPPING_DYNAMIC_TIMEOUT_SETTING.get(settings);
         clusterSettings.addSettingsUpdateConsumer(

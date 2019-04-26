@@ -71,6 +71,7 @@ public final class BufferedChecksumStreamInput extends FilterStreamInput {
     }
 
     @Override
+    @SuppressWarnings("sync-override")
     public void reset() throws IOException {
         delegate.reset();
         digest.reset();

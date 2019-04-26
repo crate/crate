@@ -42,7 +42,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.NodeShouldNotConnectException;
@@ -81,10 +80,9 @@ public abstract class TransportBroadcastByNodeAction<Request extends BroadcastRe
     private final ClusterService clusterService;
     private final TransportService transportService;
 
-    final String transportNodeBroadcastAction;
+    private final String transportNodeBroadcastAction;
 
     public TransportBroadcastByNodeAction(
-        Settings settings,
         String actionName,
         ThreadPool threadPool,
         ClusterService clusterService,
@@ -92,12 +90,10 @@ public abstract class TransportBroadcastByNodeAction<Request extends BroadcastRe
         IndexNameExpressionResolver indexNameExpressionResolver,
         Supplier<Request> request,
         String executor) {
-        this(settings, actionName, threadPool, clusterService, transportService, indexNameExpressionResolver, request,
-            executor, true);
+        this(actionName, threadPool, clusterService, transportService, indexNameExpressionResolver, request, executor, true);
     }
 
     public TransportBroadcastByNodeAction(
-            Settings settings,
             String actionName,
             ThreadPool threadPool,
             ClusterService clusterService,
@@ -106,8 +102,7 @@ public abstract class TransportBroadcastByNodeAction<Request extends BroadcastRe
             Supplier<Request> request,
             String executor,
             boolean canTripCircuitBreaker) {
-        super(settings, actionName, canTripCircuitBreaker, threadPool, transportService, indexNameExpressionResolver,
-            request);
+        super(actionName, canTripCircuitBreaker, threadPool, transportService, indexNameExpressionResolver, request);
 
         this.clusterService = clusterService;
         this.transportService = transportService;

@@ -42,7 +42,6 @@ public class TransportKillAllNodeActionTest extends CrateDummyClusterServiceUnit
         TasksService tasksService = mock(TasksService.class, Answers.RETURNS_MOCKS.get());
 
         TransportKillAllNodeAction transportKillAllNodeAction = new TransportKillAllNodeAction(
-            Settings.EMPTY,
             tasksService,
             clusterService,
             MockTransportService.createNewService(

@@ -25,11 +25,13 @@ package io.crate.planner;
 import com.carrotsearch.randomizedtesting.RandomizedTest;
 import io.crate.analyze.TableDefinitions;
 import io.crate.data.Row;
+import io.crate.exceptions.VersioninigValidationException;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.MergeCountProjection;
 import io.crate.execution.dsl.projection.UpdateProjection;
 import io.crate.expression.symbol.InputColumn;
+import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.TransactionContext;
@@ -37,6 +39,7 @@ import io.crate.metadata.Reference;
 import io.crate.planner.consumer.UpdatePlanner;
 import io.crate.planner.node.dml.UpdateById;
 import io.crate.planner.node.dql.Collect;
+import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -46,7 +49,10 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.Map;
 
+import static io.crate.expression.symbol.SelectSymbol.ResultType.SINGLE_COLUMN_MULTIPLE_VALUES;
+import static io.crate.expression.symbol.SelectSymbol.ResultType.SINGLE_COLUMN_SINGLE_VALUE;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.SymbolMatchers.isReference;
 import static io.crate.testing.TestingHelpers.isSQL;
@@ -130,5 +136,33 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
         Collect collect = (Collect) update.createExecutionPlan.create(
             e.getPlannerContext(clusterService.state()), Row.EMPTY, SubQueryResults.EMPTY);
         assertThat(((RoutedCollectPhase) collect.collectPhase()).routing().nodes(), Matchers.emptyIterable());
+    }
+
+    @Test
+    public void testUpdateUsingSeqNoRequiresPk() {
+        expectedException.expect(VersioninigValidationException.class);
+        expectedException.expectMessage(VersioninigValidationException.SEQ_NO_AND_PRIMARY_TERM_USAGE_MSG);
+        UpdatePlanner.Update plan = e.plan("update users set name = 'should not update' where _seq_no = 11 and _primary_term = 1");
+        plan.createExecutionPlan.create(
+            e.getPlannerContext(clusterService.state()), Row.EMPTY, SubQueryResults.EMPTY);
+    }
+
+    @Test
+    public void testMultiValueSubQueryWithinSingleValueSubQueryDoesNotInheritSoftLimit() {
+        MultiPhasePlan plan = e.plan(
+            "update users set ints = (" +
+                "   select count(id) from users where id in (select unnest([1, 2, 3, 4])))");
+        assertThat(plan.rootPlan, instanceOf(UpdatePlanner.Update.class));
+
+        Map<LogicalPlan, SelectSymbol> rootPlanDependencies = plan.dependencies;
+        LogicalPlan outerSubSelectPlan = rootPlanDependencies.keySet().iterator().next();
+        SelectSymbol outerSubSelectSymbol = rootPlanDependencies.values().iterator().next();
+        assertThat(outerSubSelectSymbol.getResultType(), is(SINGLE_COLUMN_SINGLE_VALUE));
+        assertThat(outerSubSelectPlan.numExpectedRows(), is(2L));
+
+        LogicalPlan innerSubSelectPlan = outerSubSelectPlan.dependencies().keySet().iterator().next();
+        SelectSymbol innerSubSelectSymbol = outerSubSelectPlan.dependencies().values().iterator().next();
+        assertThat(innerSubSelectSymbol.getResultType(), is(SINGLE_COLUMN_MULTIPLE_VALUES));
+        assertThat(innerSubSelectPlan.numExpectedRows(), is(-1L));
     }
 }

@@ -130,7 +130,7 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
             .startObject()
             .array("array_field", "a", "b", "c")
             .endObject());
-        SourceToParse sourceToParse = SourceToParse.source(TYPE, "abc", bytesReference, XContentType.JSON);
+        SourceToParse sourceToParse = new SourceToParse(INDEX, TYPE, "abc", bytesReference, XContentType.JSON);
         ParsedDocument doc = mapper.parse(sourceToParse);
         assertThat(doc.dynamicMappingsUpdate() == null, is(true));
         assertThat(doc.docs().size(), is(1));
@@ -195,7 +195,7 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
             .startObject()
             .array("array_field", true, false, true)
             .endObject());
-        SourceToParse sourceToParse = SourceToParse.source(TYPE, "abc", bytesReference, XContentType.JSON);
+        SourceToParse sourceToParse = new SourceToParse(INDEX, TYPE, "abc", bytesReference, XContentType.JSON);
         mapper.parse(sourceToParse);
     }
 
@@ -238,7 +238,7 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
             .endObject()
             .endArray()
             .endObject());
-        SourceToParse sourceToParse = SourceToParse.source(TYPE, "abc", bytesReference, XContentType.JSON);
+        SourceToParse sourceToParse = new SourceToParse(INDEX, TYPE, "abc", bytesReference, XContentType.JSON);
         ParsedDocument doc = mapper.parse(sourceToParse);
         // @formatter: off
         assertThat(doc.dynamicMappingsUpdate(), nullValue());
@@ -299,7 +299,7 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
             .endObject()
             .endArray()
             .endObject());
-        SourceToParse sourceToParse = SourceToParse.source(TYPE, "abc", bytesReference, XContentType.JSON);
+        SourceToParse sourceToParse = new SourceToParse(INDEX, TYPE, "abc", bytesReference, XContentType.JSON);
         ParsedDocument doc = mapper.parse(sourceToParse);
 
         Mapping mappingUpdate = doc.dynamicMappingsUpdate();
@@ -370,7 +370,7 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
             .startObject()
             .nullField("array_field")
             .endObject());
-        SourceToParse sourceToParse = SourceToParse.source(TYPE, "abc", bytesReference, XContentType.JSON);
+        SourceToParse sourceToParse = new SourceToParse(INDEX, TYPE, "abc", bytesReference, XContentType.JSON);
         ParsedDocument parsedDoc = mapper.parse(sourceToParse);
         assertThat(parsedDoc.docs().size(), is(1));
         assertThat(parsedDoc.docs().get(0).getField("array_field"), is(nullValue()));
@@ -400,7 +400,7 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
             .startObject()
             .nullField("array_field")
             .endObject());
-        SourceToParse sourceToParse = SourceToParse.source(TYPE, "abc", bytesReference, XContentType.JSON);
+        SourceToParse sourceToParse = new SourceToParse(INDEX, TYPE, "abc", bytesReference, XContentType.JSON);
         ParsedDocument parsedDoc = mapper.parse(sourceToParse);
         assertThat(parsedDoc.docs().size(), is(1));
         assertThat(parsedDoc.docs().get(0).getField("array_field"), is(nullValue()));
@@ -420,7 +420,7 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
             .startObject()
             .array("new_array_field")
             .endObject());
-        SourceToParse sourceToParse = SourceToParse.source(TYPE, "abc", bytesReference, XContentType.JSON);
+        SourceToParse sourceToParse = new SourceToParse(INDEX, TYPE, "abc", bytesReference, XContentType.JSON);
         ParsedDocument doc = mapper.parse(sourceToParse);
         assertThat(doc.docs().get(0).getField("new_array_field"), is(nullValue()));
         assertThat(mapper.mappers().getMapper("new_array_field"), is(nullValue()));
@@ -438,7 +438,7 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
             .startObject()
             .startArray("new_array_field").nullValue().endArray()
             .endObject());
-        SourceToParse sourceToParse = SourceToParse.source(TYPE, "abc", bytesReference, XContentType.JSON);
+        SourceToParse sourceToParse = new SourceToParse(INDEX, TYPE, "abc", bytesReference, XContentType.JSON);
         ParsedDocument doc = mapper.parse(sourceToParse);
         assertThat(doc.docs().get(0).getField("new_array_field"), is(nullValue()));
         assertThat(mapper.mappers().getMapper("new_array_field"), is(nullValue()));
@@ -473,7 +473,7 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
             .value("bar")
             .endArray()
             .endObject());
-        SourceToParse sourceToParse = SourceToParse.source(TYPE, "1", bytesReference, XContentType.JSON);
+        SourceToParse sourceToParse = new SourceToParse(INDEX, TYPE, "1", bytesReference, XContentType.JSON);
         ParsedDocument doc = mapper.parse(sourceToParse);
         // @formatter:off
 

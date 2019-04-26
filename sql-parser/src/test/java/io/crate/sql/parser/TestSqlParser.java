@@ -24,7 +24,21 @@ package io.crate.sql.parser;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
-import io.crate.sql.tree.*;
+import io.crate.sql.tree.Cast;
+import io.crate.sql.tree.ColumnType;
+import io.crate.sql.tree.CreateTable;
+import io.crate.sql.tree.CurrentTime;
+import io.crate.sql.tree.DoubleLiteral;
+import io.crate.sql.tree.Expression;
+import io.crate.sql.tree.FunctionCall;
+import io.crate.sql.tree.Node;
+import io.crate.sql.tree.ParameterExpression;
+import io.crate.sql.tree.QualifiedName;
+import io.crate.sql.tree.QualifiedNameReference;
+import io.crate.sql.tree.Query;
+import io.crate.sql.tree.QuerySpecification;
+import io.crate.sql.tree.Statement;
+import io.crate.sql.tree.StringLiteral;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -38,7 +52,6 @@ import static io.crate.sql.tree.QueryUtil.table;
 import static java.lang.String.format;
 import static java.util.Collections.nCopies;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.startsWith;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.assertEquals;
@@ -316,28 +329,12 @@ public class TestSqlParser {
     }
 
     @Test
-    public void testDate() throws Exception {
-        assertExpression("DATE '2012-03-22'", new DateLiteral("2012-03-22"));
-    }
-
-    @Test
-    public void testTime() throws Exception {
-        assertExpression("TIME '03:04:05'", new TimeLiteral("03:04:05"));
-    }
-
-    @Test
-    public void testTimestamp() throws Exception {
-        assertExpression("TIMESTAMP '2016-12-31 01:02:03.123'", new TimestampLiteral("2016-12-31 01:02:03.123"));
-    }
-
-    @Test
-    public void testCurrentTimestamp()
-        throws Exception {
+    public void testCurrentTimestamp() {
         assertExpression("CURRENT_TIMESTAMP", new CurrentTime(CurrentTime.Type.TIMESTAMP));
     }
 
     @Test
-    public void testCurrentSchemaFunction() throws Exception {
+    public void testCurrentSchemaFunction() {
         assertInstanceOf("CURRENT_SCHEMA", FunctionCall.class);
         assertInstanceOf("CURRENT_SCHEMA()", FunctionCall.class);
     }
@@ -401,13 +398,6 @@ public class TestSqlParser {
         assertInstanceOf("TRIM(' ' chars)", FunctionCall.class);
     }
 
-    @Test
-    public void testTrimFunctionInvalidTrimModeThrowsException() {
-        expectedException.expect(ParsingException.class);
-        expectedException.expectMessage("line 1:12: no viable alternative at input 'TRIM(BOTHH ' '");
-        assertInstanceOf("TRIM(BOTHH ' ' FROM chars)", FunctionCall.class);
-    }
-
     private void assertInstanceOf(String expr, Class<? extends Node> cls) {
         Expression expression = SqlParser.createExpression(expr);
         assertThat(expression, instanceOf(cls));
@@ -432,6 +422,26 @@ public class TestSqlParser {
         Cast cast = (Cast) SqlParser.createExpression("1::double precision");
         assertThat(cast.getType().type(), is(ColumnType.Type.PRIMITIVE));
         assertThat(cast.getType().name(), is("double precision"));
+    }
+
+    @Test
+    public void testFromStringLiteralCast() {
+        assertInstanceOf("TIMESTAMP '2016-12-31 01:02:03.123'", Cast.class);
+        assertInstanceOf("int2 '2016'", Cast.class);
+    }
+
+    @Test
+    public void testFromStringLiteralCastDoesNotSupportArrayType() {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("type 'string' cast notation only supports primitive types. Use '::' or cast() operator instead.");
+        SqlParser.createExpression("array(boolean) '[1,2,0]'");
+    }
+
+    @Test
+    public void testFromStringLiteralCastDoesNotSupportObjectType() {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("type 'string' cast notation only supports primitive types. Use '::' or cast() operator instead.");
+        SqlParser.createExpression("object '{\"x\": 10}'");
     }
 
     private static void assertStatement(String query, Statement expected) {

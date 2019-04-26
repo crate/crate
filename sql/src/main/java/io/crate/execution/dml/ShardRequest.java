@@ -127,7 +127,8 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
         protected long version = Versions.MATCH_ANY;
 
         private int location = -1;
-        private long seqNo = SequenceNumbers.UNASSIGNED_SEQ_NO;
+        protected long seqNo = SequenceNumbers.UNASSIGNED_SEQ_NO;
+        protected long primaryTerm = SequenceNumbers.UNASSIGNED_PRIMARY_TERM;
 
         public Item(String id) {
             this.id = id;
@@ -138,6 +139,7 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
             version = in.readLong();
             location = in.readInt();
             seqNo = in.readLong();
+            primaryTerm = in.readLong();
         }
 
         public String id() {
@@ -168,11 +170,20 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
             this.seqNo = seqNo;
         }
 
+        public long primaryTerm() {
+            return primaryTerm;
+        }
+
+        public void primaryTerm(long primaryTerm) {
+            this.primaryTerm = primaryTerm;
+        }
+
         public void writeTo(StreamOutput out) throws IOException {
             out.writeString(id);
             out.writeLong(version);
             out.writeInt(location);
             out.writeLong(seqNo);
+            out.writeLong(primaryTerm);
         }
 
         @Override
@@ -183,12 +194,13 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
             return version == item.version &&
                    location == item.location &&
                    seqNo == item.seqNo &&
+                   primaryTerm == item.primaryTerm &&
                    java.util.Objects.equals(id, item.id);
         }
 
         @Override
         public int hashCode() {
-            return java.util.Objects.hash(id, version, location, seqNo);
+            return java.util.Objects.hash(id, version, location, seqNo, primaryTerm);
         }
 
         @Override
@@ -198,6 +210,7 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
                    ", version=" + version +
                    ", location=" + location +
                    ", seqNo=" + seqNo +
+                   ", primaryTerm=" + primaryTerm +
                    '}';
         }
     }

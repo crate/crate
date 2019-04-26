@@ -19,10 +19,10 @@
 
 package org.elasticsearch.discovery.ec2;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.SuppressForbidden;
-import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.network.NetworkService.CustomNameResolver;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.core.internal.io.IOUtils;
 
 import java.io.BufferedReader;
@@ -51,7 +51,9 @@ import java.nio.charset.StandardCharsets;
  *
  * @author Paul_Loy (keteracel)
  */
-class Ec2NameResolver extends AbstractComponent implements CustomNameResolver {
+class Ec2NameResolver implements CustomNameResolver {
+
+    private static final Logger logger = LogManager.getLogger(Ec2NameResolver.class);
 
     /**
      * enum that can be added to over time with more meta-data types (such as ipv6 when this is available)
@@ -80,13 +82,6 @@ class Ec2NameResolver extends AbstractComponent implements CustomNameResolver {
     }
 
     /**
-     * Construct a {@link CustomNameResolver}.
-     */
-    Ec2NameResolver(Settings settings) {
-        super(settings);
-    }
-
-    /**
      * @param type the ec2 hostname type to discover.
      * @return the appropriate host resolved from ec2 meta-data, or null if it cannot be obtained.
      * @see CustomNameResolver#resolveIfPossible(String)
@@ -101,14 +96,14 @@ class Ec2NameResolver extends AbstractComponent implements CustomNameResolver {
             URLConnection urlConnection = url.openConnection();
             urlConnection.setConnectTimeout(2000);
             in = urlConnection.getInputStream();
-            BufferedReader urlReader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
-
-            String metadataResult = urlReader.readLine();
-            if (metadataResult == null || metadataResult.length() == 0) {
-                throw new IOException("no gce metadata returned from [" + url + "] for [" + type.configName + "]");
+            try(BufferedReader urlReader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
+                String metadataResult = urlReader.readLine();
+                if (metadataResult == null || metadataResult.length() == 0) {
+                    throw new IOException("no gce metadata returned from [" + url + "] for [" + type.configName + "]");
+                }
+                // only one address: because we explicitly ask for only one via the Ec2HostnameType
+                return new InetAddress[]{InetAddress.getByName(metadataResult)};
             }
-            // only one address: because we explicitly ask for only one via the Ec2HostnameType
-            return new InetAddress[] { InetAddress.getByName(metadataResult) };
         } catch (IOException e) {
             throw new IOException("IOException caught when fetching InetAddress from [" + metadataUrl + "]", e);
         } finally {

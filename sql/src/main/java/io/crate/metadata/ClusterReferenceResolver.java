@@ -29,15 +29,15 @@ import java.util.Map;
 
 public class ClusterReferenceResolver implements ReferenceResolver<NestableInput<?>> {
 
-    private final Map<ReferenceIdent, NestableInput> implementations;
+    private final Map<ColumnIdent, NestableInput> implementations;
 
     @Inject
-    public ClusterReferenceResolver(Map<ReferenceIdent, NestableInput> implementations) {
+    public ClusterReferenceResolver(Map<ColumnIdent, NestableInput> implementations) {
         this.implementations = implementations;
     }
 
     @Override
     public NestableInput<?> getImplementation(Reference ref) {
-        return MapBackedRefResolver.lookupMapWithChildTraversal(implementations, ref.ident());
+        return MapBackedRefResolver.lookupMapWithChildTraversal(implementations, ref.column());
     }
 }

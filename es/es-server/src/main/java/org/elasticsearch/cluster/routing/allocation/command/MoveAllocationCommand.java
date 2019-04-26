@@ -115,6 +115,7 @@ public class MoveAllocationCommand implements AllocationCommand {
                 + "] is not a data node.");
         }
 
+        assert fromRoutingNode != null;
         for (ShardRouting shardRouting : fromRoutingNode) {
             if (!shardRouting.shardId().getIndexName().equals(index)) {
                 continue;

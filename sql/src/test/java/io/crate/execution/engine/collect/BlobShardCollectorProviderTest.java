@@ -32,10 +32,10 @@ import io.crate.data.Row;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.integrationtests.SQLHttpIntegrationTest;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.TransactionContext;
 import io.crate.planner.distribution.DistributionInfo;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -106,9 +106,9 @@ public class BlobShardCollectorProviderTest extends SQLHttpIntegrationTest {
                 String indexUUID = metaData.index(".blob_b1").getIndexUUID();
                 BlobIndicesService blobIndicesService = internalCluster().getDataNodeInstance(BlobIndicesService.class);
                 BlobShard blobShard = blobIndicesService.blobShard(new ShardId(".blob_b1", indexUUID, 0));
-                Schemas schemas = new Schemas(Settings.EMPTY, Collections.emptyMap(), clusterService, null);
+                Schemas schemas = new Schemas(Collections.emptyMap(), clusterService, null);
                 assertNotNull(blobShard);
-                collectorProvider = new BlobShardCollectorProvider(blobShard, clusterService, schemas, null, null, null, null, null,
+                collectorProvider = new BlobShardCollectorProvider(blobShard, clusterService, schemas, null, null, null, Settings.EMPTY, null,
                     BigArrays.NON_RECYCLING_INSTANCE);
                 assertNotNull(collectorProvider);
             } catch (Exception e) {
