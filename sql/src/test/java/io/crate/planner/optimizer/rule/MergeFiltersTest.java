@@ -22,8 +22,6 @@
 
 package io.crate.planner.optimizer.rule;
 
-import io.crate.analyze.QueriedTable;
-import io.crate.analyze.QuerySpec;
 import io.crate.analyze.WhereClause;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.Filter;
@@ -51,8 +49,7 @@ public class MergeFiltersTest {
 
     @Test
     public void testMergeFiltersMatchesOnAFilterWithAnotherFilterAsChild() {
-        var table = new QueriedTable<>(false, T3.TR_1, new QuerySpec());
-        Collect source = new Collect(table, Collections.emptyList(), WhereClause.MATCH_ALL, 100, 10);
+        Collect source = new Collect(T3.TR_1, Collections.emptyList(), WhereClause.MATCH_ALL, 100, 10);
         Filter sourceFilter = new Filter(source, e.asSymbol("x > 10"));
         Filter parentFilter = new Filter(sourceFilter, e.asSymbol("y > 10"));
 

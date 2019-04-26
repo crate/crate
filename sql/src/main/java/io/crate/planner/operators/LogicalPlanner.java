@@ -302,13 +302,13 @@ public class LogicalPlanner {
                     return (tableStats, usedBeforeNextFetch) ->
                         new Get(queriedTable, docKeys.get(), toCollect, tableStats);
                 }
-                return Collect.create(queriedTable, toCollect, new WhereClause(
+                return Collect.create(queriedTable.tableRelation(), toCollect, new WhereClause(
                     detailedQuery.query(),
                     where.partitions(),
                     detailedQuery.clusteredBy()
                 ));
             }
-            return Collect.create(queriedTable, toCollect, where);
+            return Collect.create(queriedTable.tableRelation(), toCollect, where);
         }
         if (analyzedRelation instanceof MultiSourceSelect) {
             return JoinPlanBuilder.createNodes((MultiSourceSelect) analyzedRelation, where, subqueryPlanner, functions, txnCtx);

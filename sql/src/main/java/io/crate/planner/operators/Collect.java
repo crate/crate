@@ -24,7 +24,6 @@ package io.crate.planner.operators;
 
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.QueriedTable;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AbstractTableRelation;
@@ -89,7 +88,7 @@ import static io.crate.planner.operators.OperatorUtils.getUnusedColumns;
 public class Collect implements LogicalPlan {
 
     private static final String COLLECT_PHASE_NAME = "collect";
-    final QueriedTable relation;
+    final AbstractTableRelation relation;
     private final List<Symbol> outputs;
     private final List<AbstractTableRelation> baseTables;
     WhereClause where;
@@ -98,7 +97,7 @@ public class Collect implements LogicalPlan {
     private final long numExpectedRows;
     private final long estimatedRowSize;
 
-    public static LogicalPlan.Builder create(QueriedTable relation,
+    public static LogicalPlan.Builder create(AbstractTableRelation relation,
                                              List<Symbol> toCollect,
                                              WhereClause where) {
         return (tableStats, usedColumns) -> new Collect(
@@ -106,11 +105,11 @@ public class Collect implements LogicalPlan {
             toCollect,
             where,
             usedColumns,
-            tableStats.numDocs(relation.tableRelation().tableInfo().ident()),
-            tableStats.estimatedSizePerRow(relation.tableRelation().tableInfo().ident()));
+            tableStats.numDocs(relation.tableInfo().ident()),
+            tableStats.estimatedSizePerRow(relation.tableInfo().ident()));
     }
 
-    public Collect(QueriedTable relation,
+    public Collect(AbstractTableRelation relation,
                    List<Symbol> toCollect,
                    WhereClause where,
                    Set<Symbol> usedBeforeNextFetch,
@@ -118,20 +117,20 @@ public class Collect implements LogicalPlan {
                    long estimatedRowSize) {
         this(
             relation,
-            generateOutputs(toCollect, relation.tableRelation(), usedBeforeNextFetch, where),
+            generateOutputs(toCollect, relation, usedBeforeNextFetch, where),
             where,
             numExpectedRows,
             estimatedRowSize
         );
     }
 
-    public Collect(QueriedTable relation,
+    public Collect(AbstractTableRelation relation,
                    List<Symbol> outputs,
                    WhereClause where,
                    long numExpectedRows,
                    long estimatedRowSize) {
         this.outputs = outputs;
-        this.baseTables = List.of(relation.tableRelation());
+        this.baseTables = List.of(relation);
         this.numExpectedRows = numExpectedRows;
         this.estimatedRowSize = estimatedRowSize;
         if (where.hasVersions()) {
@@ -141,7 +140,7 @@ public class Collect implements LogicalPlan {
         }
         this.relation = relation;
         this.where = where;
-        this.tableInfo = relation.tableRelation().tableInfo();
+        this.tableInfo = relation.tableInfo();
     }
 
     private static List<Symbol> generateOutputs(List<Symbol> toCollect,
@@ -224,7 +223,7 @@ public class Collect implements LogicalPlan {
         return where;
     }
 
-    public QueriedTable relation() {
+    public AbstractTableRelation relation() {
         return relation;
     }
 
@@ -286,14 +285,14 @@ public class Collect implements LogicalPlan {
             where,
             params,
             subQueryResults,
-            relation.tableRelation(),
+            relation,
             plannerContext.functions(),
             plannerContext.transactionContext());
         SubQueryAndParamBinder binder = new SubQueryAndParamBinder(params, subQueryResults);
         List<Symbol> boundOutputs = Lists2.map(outputs, binder);
 
-        if (relation.tableRelation() instanceof TableFunctionRelation) {
-            TableFunctionRelation tableFunctionRelation = (TableFunctionRelation) relation.tableRelation();
+        if (relation instanceof TableFunctionRelation) {
+            TableFunctionRelation tableFunctionRelation = (TableFunctionRelation) relation;
             List<Symbol> args = tableFunctionRelation.function().arguments();
             ArrayList<Literal<?>> functionArguments = new ArrayList<>(args.size());
             for (Symbol arg : args) {
