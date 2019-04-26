@@ -65,12 +65,12 @@ public class StatementClassifierTest extends CrateDummyClusterServiceUnitTest {
         plan = e.logicalPlan("SELECT a.id, b.id FROM users a, users b WHERE a.id = b.id");
         classification = StatementClassifier.classify(plan);
         assertThat(classification.type(), is(Plan.StatementType.SELECT));
-        assertThat(classification.labels(), contains("Collect", "HashJoin"));
+        assertThat(classification.labels(), contains("Collect", "FetchOrEval", "HashJoin"));
 
         plan = e.logicalPlan("SELECT a.id, b.id FROM users a, users b WHERE a.id > b.id");
         classification = StatementClassifier.classify(plan);
         assertThat(classification.type(), is(Plan.StatementType.SELECT));
-        assertThat(classification.labels(), contains("Collect", "NestedLoopJoin"));
+        assertThat(classification.labels(), contains("Collect", "FetchOrEval", "NestedLoopJoin"));
 
         plan = e.logicalPlan("SELECT id FROM users UNION ALL SELECT id FROM users");
         classification = StatementClassifier.classify(plan);

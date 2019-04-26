@@ -30,6 +30,7 @@ import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.QueriedTable;
 import io.crate.analyze.WhereClause;
+import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedView;
 import io.crate.analyze.relations.OrderedLimitedRelation;
@@ -267,18 +268,21 @@ public class LogicalPlanner {
         return source;
     }
 
-    private static LogicalPlan.Builder collectAndFilter(AnalyzedRelation analyzedRelation,
+    private static LogicalPlan.Builder collectAndFilter(AnalyzedRelation relation,
                                                         List<Symbol> toCollect,
                                                         WhereClause where,
                                                         SubqueryPlanner subqueryPlanner,
                                                         FetchMode fetchMode,
                                                         Functions functions,
                                                         CoordinatorTxnCtx txnCtx) {
-        if (analyzedRelation instanceof AnalyzedView) {
-            return plan(((AnalyzedView) analyzedRelation).relation(), fetchMode, subqueryPlanner, false, functions, txnCtx);
+        if (relation instanceof AnalyzedView) {
+            return plan(((AnalyzedView) relation).relation(), fetchMode, subqueryPlanner, false, functions, txnCtx);
         }
-        if (analyzedRelation instanceof QueriedTable) {
-            QueriedTable queriedTable = (QueriedTable) analyzedRelation;
+        if (relation instanceof AbstractTableRelation) {
+            return Collect.create(((AbstractTableRelation) relation), toCollect, where);
+        }
+        if (relation instanceof QueriedTable) {
+            QueriedTable queriedTable = (QueriedTable) relation;
             TableInfo table = queriedTable.tableRelation().tableInfo();
             if (table instanceof DocTableInfo) {
                 EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
@@ -304,23 +308,23 @@ public class LogicalPlanner {
             }
             return Collect.create(queriedTable.tableRelation(), toCollect, where);
         }
-        if (analyzedRelation instanceof MultiSourceSelect) {
-            return JoinPlanBuilder.createNodes((MultiSourceSelect) analyzedRelation, where, subqueryPlanner, functions, txnCtx);
+        if (relation instanceof MultiSourceSelect) {
+            return JoinPlanBuilder.createNodes((MultiSourceSelect) relation, where, subqueryPlanner, functions, txnCtx);
         }
-        if (analyzedRelation instanceof UnionSelect) {
-            return Union.create((UnionSelect) analyzedRelation, subqueryPlanner, functions, txnCtx);
+        if (relation instanceof UnionSelect) {
+            return Union.create((UnionSelect) relation, subqueryPlanner, functions, txnCtx);
         }
-        if (analyzedRelation instanceof OrderedLimitedRelation) {
-            return plan(((OrderedLimitedRelation) analyzedRelation).childRelation(), fetchMode, subqueryPlanner, false, functions, txnCtx);
+        if (relation instanceof OrderedLimitedRelation) {
+            return plan(((OrderedLimitedRelation) relation).childRelation(), fetchMode, subqueryPlanner, false, functions, txnCtx);
         }
-        if (analyzedRelation instanceof QueriedSelectRelation) {
-            QueriedSelectRelation selectRelation = (QueriedSelectRelation) analyzedRelation;
+        if (relation instanceof QueriedSelectRelation) {
+            QueriedSelectRelation selectRelation = (QueriedSelectRelation) relation;
             return Filter.create(
                 plan(selectRelation.subRelation(), fetchMode, subqueryPlanner, false, functions, txnCtx),
                 where
             );
         }
-        throw new UnsupportedOperationException("Cannot create LogicalPlan from: " + analyzedRelation);
+        throw new UnsupportedOperationException("Cannot create LogicalPlan from: " + relation);
     }
 
     public static Set<Symbol> extractColumns(Symbol symbol) {

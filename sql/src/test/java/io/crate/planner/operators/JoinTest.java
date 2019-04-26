@@ -164,7 +164,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         Join nl = (Join) plan.build(
             context, projectionBuilder, -1, 0, null, null, Row.EMPTY, SubQueryResults.EMPTY);
 
-        assertThat(((Collect) nl.left()).collectPhase().toCollect(), isSQL("doc.users.id"));
+        assertThat(((Collect) nl.left()).collectPhase().toCollect(), isSQL("doc.users._fetchid, doc.users.id"));
         assertThat(nl.resultDescription().orderBy(), notNullValue());
     }
 
@@ -182,13 +182,13 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
         LogicalPlan operator = createLogicalPlan(mss, tableStats);
         assertThat(operator, instanceOf(HashJoin.class));
-        assertThat(((HashJoin) operator).concreteRelation.toString(), is("QueriedTable{DocTableRelation{doc.locations}}"));
+        assertThat(((HashJoin) operator).concreteRelation.toString(), is("DocTableRelation{doc.locations}"));
 
         Join join = buildJoin(operator);
         assertThat(join.joinPhase().leftMergePhase().inputTypes(), contains(DataTypes.LONG, DataTypes.LONG));
-        assertThat(join.joinPhase().rightMergePhase().inputTypes(), contains(DataTypes.LONG));
+        assertThat(join.joinPhase().rightMergePhase().inputTypes(), contains(DataTypes.LONG, DataTypes.LONG));
         assertThat(join.joinPhase().projections().get(0).outputs().toString(),
-            is("[IC{0, bigint}, IC{1, bigint}, IC{2, bigint}]"));
+            is("[IC{0, bigint}, IC{1, bigint}, IC{2, bigint}, IC{3, bigint}]"));
     }
 
     @Test
@@ -205,14 +205,14 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
         LogicalPlan operator = createLogicalPlan(mss, tableStats);
         assertThat(operator, instanceOf(HashJoin.class));
-        assertThat(((HashJoin) operator).concreteRelation.toString(), is("QueriedTable{DocTableRelation{doc.locations}}"));
+        assertThat(((HashJoin) operator).concreteRelation.toString(), is("DocTableRelation{doc.locations}"));
 
         Join join = buildJoin(operator);
         // Plans must be switched (left<->right)
-        assertThat(join.joinPhase().leftMergePhase().inputTypes(), Matchers.contains(DataTypes.LONG));
+        assertThat(join.joinPhase().leftMergePhase().inputTypes(), Matchers.contains(DataTypes.LONG, DataTypes.LONG));
         assertThat(join.joinPhase().rightMergePhase().inputTypes(), Matchers.contains(DataTypes.LONG, DataTypes.LONG));
         assertThat(join.joinPhase().projections().get(0).outputs().toString(),
-            is("[IC{1, bigint}, IC{2, bigint}, IC{0, bigint}]"));
+            is("[IC{2, bigint}, IC{3, bigint}, IC{0, bigint}, IC{1, bigint}]"));
     }
 
     @Test

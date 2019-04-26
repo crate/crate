@@ -24,8 +24,8 @@ package io.crate.analyze;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
-import io.crate.expression.symbol.Field;
 import io.crate.exceptions.AmbiguousColumnAliasException;
+import io.crate.expression.symbol.Field;
 import io.crate.metadata.Path;
 
 import java.util.ArrayList;

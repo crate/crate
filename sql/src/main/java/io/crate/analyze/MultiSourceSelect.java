@@ -24,13 +24,8 @@ package io.crate.analyze;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.JoinPair;
-import io.crate.analyze.relations.RelationNormalizer;
-import io.crate.analyze.relations.RelationSplitter;
 import io.crate.expression.symbol.Field;
-import io.crate.expression.symbol.FieldReplacer;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.Functions;
 import io.crate.metadata.Path;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
@@ -38,12 +33,9 @@ import io.crate.sql.tree.QualifiedName;
 import javax.annotation.Nonnull;
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 public class MultiSourceSelect implements AnalyzedRelation {
 
@@ -51,85 +43,8 @@ public class MultiSourceSelect implements AnalyzedRelation {
     private final Fields fields;
     private final List<JoinPair> joinPairs;
     private final boolean isDistinct;
+    private final QuerySpec querySpec;
     private QualifiedName qualifiedName;
-    private QuerySpec querySpec;
-
-    /**
-     * Create a new MultiSourceSelect which has it's sources transformed into subQueries which contain
-     * any expressions that only affect a single source.
-     * Example:
-     * <pre>
-     *     select t1.x, t2.y from t1, t2 where t1.x = 10
-     *
-     *     becomes
-     *
-     *     select t1.x, t2.y from
-     *          (select x from t1 where x = 10) t1,
-     *          (select y from t2)
-     * </pre>
-     */
-    public static MultiSourceSelect createWithPushDown(RelationNormalizer relationNormalizer,
-                                                       Functions functions,
-                                                       CoordinatorTxnCtx coordinatorTxnCtx,
-                                                       MultiSourceSelect mss,
-                                                       QuerySpec querySpec) {
-        RelationSplitter splitter = new RelationSplitter(
-            querySpec,
-            mss.sources.values(),
-            mss.joinPairs
-        );
-        splitter.process();
-
-        Function<Field, Field> convertFieldToPointToNewRelations = Function.identity();
-        for (Map.Entry<QualifiedName, AnalyzedRelation> entry : mss.sources.entrySet()) {
-            AnalyzedRelation relation = entry.getValue();
-            QuerySpec spec = splitter.getSpec(relation);
-            AnalyzedRelation analyzedRelation = Relations.applyQSToRelation(relationNormalizer, functions, coordinatorTxnCtx, relation, spec);
-            Function<Field, Field> convertField = f -> mapFieldToNewRelation(f, relation, analyzedRelation);
-            querySpec = querySpec.copyAndReplace(FieldReplacer.bind(convertField));
-            entry.setValue(analyzedRelation);
-
-            convertFieldToPointToNewRelations = convertFieldToPointToNewRelations.andThen(convertField);
-        }
-        Function<? super Symbol, ? extends Symbol> convertFieldInSymbolsToNewRelations =
-            FieldReplacer.bind(convertFieldToPointToNewRelations);
-
-        // remap the sources according to their QualifiedName which might have changed
-        Map<QualifiedName, AnalyzedRelation> newSources = new LinkedHashMap<>();
-        for (Map.Entry<QualifiedName, AnalyzedRelation> source : mss.sources.entrySet()) {
-            AnalyzedRelation analyzedRelation = source.getValue();
-            newSources.put(analyzedRelation.getQualifiedName(), analyzedRelation);
-        }
-
-        List<JoinPair> newJoinPairs = mss.joinPairs().stream().map(joinPair -> {
-            Map<QualifiedName, AnalyzedRelation> oldSources = mss.sources();
-            return JoinPair.of(
-                oldSources.get(joinPair.left()).getQualifiedName(),
-                oldSources.get(joinPair.right()).getQualifiedName(),
-                joinPair.joinType(),
-                convertFieldInSymbolsToNewRelations.apply(joinPair.condition())
-            );
-        }).collect(Collectors.toList());
-
-        return new MultiSourceSelect(
-            mss.isDistinct,
-            mss.qualifiedName,
-            newSources,
-            mss.fields(),
-            querySpec,
-            newJoinPairs
-        );
-    }
-
-
-    private static Field mapFieldToNewRelation(Field f, AnalyzedRelation oldRelation, AnalyzedRelation newRelation) {
-        if (f.relation().equals(oldRelation)) {
-            Field field = newRelation.getField(f.path(), Operation.READ);
-            assert field != null : "Must be able to resolve field from injected relation: " + f;
-            return field;
-        }
-        return f;
-    }
 
     public MultiSourceSelect(boolean isDistinct,
                              Map<QualifiedName, AnalyzedRelation> sources,
@@ -160,23 +75,6 @@ public class MultiSourceSelect implements AnalyzedRelation {
             sb.append(sourceName);
         }
         return new QualifiedName(sb.toString());
-    }
-
-    private MultiSourceSelect(boolean isDistinct,
-                              QualifiedName relName,
-                              Map<QualifiedName, AnalyzedRelation> sources,
-                              Collection<Field> fields,
-                              QuerySpec querySpec,
-                              List<JoinPair> joinPairs) {
-        this.isDistinct = isDistinct;
-        this.qualifiedName = relName;
-        this.sources = sources;
-        this.joinPairs = joinPairs;
-        this.querySpec = querySpec;
-        this.fields = new Fields(fields.size());
-        for (Field field : fields) {
-            this.fields.add(field.path(), new Field(this, field.path(), field.valueType()));
-        }
     }
 
     public Map<QualifiedName, AnalyzedRelation> sources() {

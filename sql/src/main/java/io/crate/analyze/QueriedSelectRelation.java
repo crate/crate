@@ -100,4 +100,12 @@ public class QueriedSelectRelation implements AnalyzedRelation {
     public void setQualifiedName(@Nonnull QualifiedName qualifiedName) {
         subRelation.setQualifiedName(qualifiedName);
     }
+
+    @Override
+    public String toString() {
+        return "QueriedSelectRelation{" +
+               "isDistinct=" + isDistinct +
+               ", subRelation=" + subRelation +
+               '}';
+    }
 }

@@ -28,16 +28,17 @@ import io.crate.planner.node.dql.join.JoinType;
 import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nullable;
+import java.util.function.Function;
 
 public class JoinPair {
 
-    private JoinType joinType;
+    private final JoinType joinType;
 
-    private QualifiedName left;
-    private QualifiedName right;
+    private final QualifiedName left;
+    private final QualifiedName right;
 
     @Nullable
-    private Symbol condition;
+    private final Symbol condition;
 
     public static JoinPair of(QualifiedName left, QualifiedName right, JoinType joinType, Symbol condition) {
         assert condition != null || joinType == JoinType.CROSS : "condition must be present unless it's a cross-join";
@@ -105,10 +106,6 @@ public class JoinPair {
         return false;
     }
 
-    public void joinType(JoinType joinType) {
-        this.joinType = joinType;
-    }
-
     public JoinPair reverse() {
         return of(
             right,
@@ -116,5 +113,12 @@ public class JoinPair {
             joinType.invert(),
             condition
         );
+    }
+
+    public JoinPair mapCondition(Function<? super Symbol,? extends Symbol> updateField) {
+        if (condition == null) {
+            return this;
+        }
+        return new JoinPair(left, right, joinType, updateField.apply(condition));
     }
 }

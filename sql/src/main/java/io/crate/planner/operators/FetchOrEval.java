@@ -459,9 +459,12 @@ public class FetchOrEval implements LogicalPlan {
                 return new InputColumn(idx, sourceOutputs.get(idx).valueType());
             }
             AnalyzedRelation relation = f.relation();
-            if (relation instanceof QueriedTable && ((QueriedTable) relation).tableRelation() instanceof DocTableRelation) {
-                DocTableRelation docTableRelation = ((DocTableRelation) ((QueriedTable) relation).tableRelation());
-
+            DocTableRelation docTableRelation = relation instanceof DocTableRelation
+                ? (DocTableRelation) relation
+                : (relation instanceof QueriedTable && ((QueriedTable) relation).tableRelation() instanceof DocTableRelation
+                    ? ((DocTableRelation) ((QueriedTable) relation).tableRelation())
+                    : null);
+            if (docTableRelation != null) {
                 Symbol symbol = expressionMapping.get(f);
                 return RefReplacer.replaceRefs(symbol, ref -> {
                     if (ref.granularity() == RowGranularity.DOC) {

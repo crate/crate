@@ -310,11 +310,12 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
             "insert into users (id, name) (select u1.id, u2.name from users u1 CROSS JOIN users u2)");
         assertThat(join.joinPhase().projections(), contains(
             instanceOf(EvalProjection.class),
+            instanceOf(EvalProjection.class),
             instanceOf(ColumnIndexWriterProjection.class)
         ));
 
-        assertThat(join.joinPhase().projections().get(1), instanceOf(ColumnIndexWriterProjection.class));
-        ColumnIndexWriterProjection projection = (ColumnIndexWriterProjection) join.joinPhase().projections().get(1);
+        assertThat(join.joinPhase().projections().get(2), instanceOf(ColumnIndexWriterProjection.class));
+        ColumnIndexWriterProjection projection = (ColumnIndexWriterProjection) join.joinPhase().projections().get(2);
 
         assertThat(projection.columnReferences().size(), is(2));
         assertThat(projection.columnReferences().get(0).column().fqn(), is("id"));
