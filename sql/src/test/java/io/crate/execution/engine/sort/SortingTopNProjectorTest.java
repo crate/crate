@@ -75,7 +75,6 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
         RamAccountingContext.FLUSH_BUFFER_SIZE = originalRamAccountingBufferSize;
     }
 
-
     private Projector getProjector(RowAccounting<Object[]> rowAccounting, int numOutputs, int limit, int offset, Comparator<Object[]> ordering) {
         int unboundedCollectorThreshold = 10_000;
         if (random().nextFloat() >= 0.5f) {

@@ -23,8 +23,12 @@
 package io.crate.execution.engine.sort;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.RowAccounting;
+import io.crate.breaker.RowCellsAccountingWithEstimators;
 import io.crate.data.BatchIterator;
 import io.crate.data.Bucket;
+import io.crate.data.Projector;
 import io.crate.data.Row;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.InputCollectExpression;
@@ -32,7 +36,17 @@ import io.crate.expression.symbol.Literal;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingBatchIterators;
 import io.crate.testing.TestingRowConsumer;
+import io.crate.types.DataTypes;
+import org.apache.logging.log4j.LogManager;
+import org.elasticsearch.common.breaker.CircuitBreakingException;
+import org.elasticsearch.common.breaker.MemoryCircuitBreaker;
+import org.elasticsearch.common.unit.ByteSizeUnit;
+import org.elasticsearch.common.unit.ByteSizeValue;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
+
+import java.util.List;
 
 import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.core.Is.is;
@@ -40,16 +54,33 @@ import static org.hamcrest.core.Is.is;
 public class SortingProjectorTest extends CrateUnitTest {
 
     private TestingRowConsumer consumer = new TestingRowConsumer();
+    private long originalRamAccountingBufferSize;
 
-    private SortingProjector createProjector(int numOutputs, int offset) {
+    @Before
+    public void reduceFlushBufferSize() throws Exception {
+        originalRamAccountingBufferSize = RamAccountingContext.FLUSH_BUFFER_SIZE;
+        RamAccountingContext.FLUSH_BUFFER_SIZE = 20;
+    }
+
+    @After
+    public void resetFlushBufferSize() throws Exception {
+        RamAccountingContext.FLUSH_BUFFER_SIZE = originalRamAccountingBufferSize;
+    }
+
+    private SortingProjector createProjector(RowAccounting<Object[]> rowAccounting, int numOutputs, int offset) {
         InputCollectExpression input = new InputCollectExpression(0);
         return new SortingProjector(
+            rowAccounting,
             ImmutableList.of(input, Literal.of(true)),
             ImmutableList.<CollectExpression<Row, ?>>of(input),
             numOutputs,
             OrderingByPosition.arrayOrdering(0, false, false),
             offset
         );
+    }
+
+    private SortingProjector createProjector(int numOutputs, int offset) {
+        return createProjector(new IgnoreRowCellsAccounting(), numOutputs, offset);
     }
 
     @Test
@@ -86,6 +117,24 @@ public class SortingProjectorTest extends CrateUnitTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("invalid offset -1");
 
-        new SortingProjector(null, null, 2, null, -1);
+        new SortingProjector(null, null, null, 2, null, -1);
+    }
+
+    @Test
+    public void testUsedMemoryIsAccountedFor() throws Exception {
+        MemoryCircuitBreaker circuitBreaker = new MemoryCircuitBreaker(new ByteSizeValue(30, ByteSizeUnit.BYTES),
+                                                                       1,
+                                                                       LogManager.getLogger(SortingTopNProjectorTest.class)
+        );
+        RowCellsAccountingWithEstimators rowAccounting =
+            new RowCellsAccountingWithEstimators(List.of(DataTypes.LONG, DataTypes.BOOLEAN),
+                                                 new RamAccountingContext("testContext", circuitBreaker),
+                                                 0);
+
+        Projector projector = createProjector(rowAccounting, 1, 0);
+        consumer.accept(projector.apply(TestingBatchIterators.range(1, 11)), null);
+
+        expectedException.expect(CircuitBreakingException.class);
+        consumer.getResult();
     }
 }
