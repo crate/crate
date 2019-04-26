@@ -25,7 +25,7 @@ package io.crate.planner.consumer;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.QueriedTable;
-import io.crate.analyze.relations.QueriedRelation;
+import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
@@ -102,14 +102,14 @@ public class SemiJoinsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testSemiJoinRewriteOfWhereClause() throws Exception {
-        QueriedRelation rel = executor.analyze("select * from t1 where a in (select 'foo') and x = 10");
+        AnalyzedRelation rel = executor.analyze("select * from t1 where a in (select 'foo') and x = 10");
         MultiSourceSelect semiJoin = (MultiSourceSelect) semiJoins.tryRewrite(
             rel, new CoordinatorTxnCtx(SessionContext.systemSessionContext()));
 
         assertThat(semiJoin.querySpec().where(), isSQL("true"));
-        assertThat(((QueriedRelation) semiJoin.sources().get(QualifiedName.of(T1.toString()))).querySpec(),
+        assertThat(semiJoin.sources().get(QualifiedName.of(T1.toString())).querySpec(),
             isSQL("SELECT doc.t1.a, doc.t1.x, doc.t1.i WHERE (doc.t1.x = 10)"));
-        assertThat(((QueriedRelation) semiJoin.sources().get(new QualifiedName(Arrays.asList("S0", "", "empty_row"))))
+        assertThat(semiJoin.sources().get(new QualifiedName(Arrays.asList("S0", "", "empty_row")))
             .querySpec(), isSQL("SELECT 'foo'"));
 
         assertThat(semiJoin.joinPairs().get(0).condition(), isSQL("(doc.t1.a = S0..empty_row.'foo')"));
@@ -118,14 +118,14 @@ public class SemiJoinsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testAntiJoinRewriteOfWhereClause() throws Exception {
-        QueriedRelation rel = executor.analyze("select * from t1 where a not in (select 'foo') and x = 10");
+        AnalyzedRelation rel = executor.analyze("select * from t1 where a not in (select 'foo') and x = 10");
         MultiSourceSelect antiJoin = (MultiSourceSelect) semiJoins.tryRewrite(
             rel, new CoordinatorTxnCtx(SessionContext.systemSessionContext()));
 
         assertThat(antiJoin.querySpec().where(), isSQL("true"));
-        assertThat(((QueriedRelation) antiJoin.sources().get(QualifiedName.of(T1.toString()))).querySpec(),
+        assertThat(antiJoin.sources().get(QualifiedName.of(T1.toString())).querySpec(),
             isSQL("SELECT doc.t1.a, doc.t1.x, doc.t1.i WHERE (doc.t1.x = 10)"));
-        assertThat(((QueriedRelation) antiJoin.sources().get(new QualifiedName(Arrays.asList("S0", "", "empty_row"))))
+        assertThat(antiJoin.sources().get(new QualifiedName(Arrays.asList("S0", "", "empty_row")))
             .querySpec(), isSQL("SELECT 'foo'"));
 
         assertThat(antiJoin.joinPairs().get(0).condition(), isSQL("(doc.t1.a = S0..empty_row.'foo')"));
@@ -134,8 +134,8 @@ public class SemiJoinsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testQueryWithOrIsNotRewritten() throws Exception {
-        QueriedRelation relation = executor.analyze("select * from t1 where a in (select 'foo') or a = '10'");
-        QueriedRelation semiJoin = semiJoins.tryRewrite(relation, new CoordinatorTxnCtx(SessionContext.systemSessionContext()));
+        AnalyzedRelation relation = executor.analyze("select * from t1 where a in (select 'foo') or a = '10'");
+        AnalyzedRelation semiJoin = semiJoins.tryRewrite(relation, new CoordinatorTxnCtx(SessionContext.systemSessionContext()));
 
         assertThat(semiJoin, nullValue());
     }
@@ -158,11 +158,11 @@ public class SemiJoinsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testWriteWithMultipleInClauses() throws Exception {
-        QueriedRelation relation = executor.analyze("select * from t1 " +
-                                                        "where " +
-                                                        "   x in (select * from unnest([1, 2])) " +
-                                                        "   and x not in (select 1)");
-        QueriedRelation semiJoins = this.semiJoins.tryRewrite(relation, new CoordinatorTxnCtx(SessionContext.systemSessionContext()));
+        AnalyzedRelation relation = executor.analyze("select * from t1 " +
+                                                     "where " +
+                                                     "   x in (select * from unnest([1, 2])) " +
+                                                     "   and x not in (select 1)");
+        AnalyzedRelation semiJoins = this.semiJoins.tryRewrite(relation, new CoordinatorTxnCtx(SessionContext.systemSessionContext()));
 
         assertThat(semiJoins, instanceOf(MultiSourceSelect.class));
         MultiSourceSelect mss = (MultiSourceSelect) semiJoins;

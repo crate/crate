@@ -26,7 +26,6 @@ import io.crate.analyze.QueriedTable;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.OrderedLimitedRelation;
-import io.crate.analyze.relations.QueriedRelation;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
 
@@ -41,11 +40,11 @@ public final class OptimizingRewriter {
     /**
      * Return the relation as is or a re-written relation
      */
-    public QueriedRelation optimize(QueriedRelation relation, CoordinatorTxnCtx coordinatorTxnCtx) {
+    public AnalyzedRelation optimize(AnalyzedRelation relation, CoordinatorTxnCtx coordinatorTxnCtx) {
         return new Visitor(new SemiJoins(functions), coordinatorTxnCtx).process(relation, null);
     }
 
-    private static class Visitor extends AnalyzedRelationVisitor<Void, QueriedRelation> {
+    private static class Visitor extends AnalyzedRelationVisitor<Void, AnalyzedRelation> {
 
         private final SemiJoins semiJoins;
         private final CoordinatorTxnCtx coordinatorTxnCtx;
@@ -56,32 +55,27 @@ public final class OptimizingRewriter {
         }
 
         @Override
-        protected QueriedRelation visitAnalyzedRelation(AnalyzedRelation relation, Void context) {
-            throw new UnsupportedOperationException("Cannot optimize relation: " + relation);
-        }
-
-        @Override
-        public QueriedRelation visitQueriedRelation(QueriedRelation relation, Void context) {
+        public AnalyzedRelation visitAnalyzedRelation(AnalyzedRelation relation, Void context) {
             return relation;
         }
 
         @Override
-        public QueriedRelation visitOrderedLimitedRelation(OrderedLimitedRelation relation, Void context) {
+        public AnalyzedRelation visitOrderedLimitedRelation(OrderedLimitedRelation relation, Void context) {
             return relation;
         }
 
         @Override
-        public QueriedRelation visitQueriedTable(QueriedTable<?> queriedTable, Void context) {
+        public AnalyzedRelation visitQueriedTable(QueriedTable<?> queriedTable, Void context) {
             return maybeApplySemiJoinRewrite(queriedTable);
         }
 
-        private QueriedRelation maybeApplySemiJoinRewrite(QueriedRelation queriedRelation) {
+        private AnalyzedRelation maybeApplySemiJoinRewrite(AnalyzedRelation analyzedRelation) {
             if (!coordinatorTxnCtx.sessionContext().getSemiJoinsRewriteEnabled()) {
-                return queriedRelation;
+                return analyzedRelation;
             }
-            QueriedRelation rewrite = semiJoins.tryRewrite(queriedRelation, coordinatorTxnCtx);
+            AnalyzedRelation rewrite = semiJoins.tryRewrite(analyzedRelation, coordinatorTxnCtx);
             if (rewrite == null) {
-                return queriedRelation;
+                return analyzedRelation;
             }
             return rewrite;
         }

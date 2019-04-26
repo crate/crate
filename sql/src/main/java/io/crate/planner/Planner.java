@@ -53,7 +53,7 @@ import io.crate.analyze.ResetAnalyzedStatement;
 import io.crate.analyze.SetAnalyzedStatement;
 import io.crate.analyze.SetLicenseAnalyzedStatement;
 import io.crate.analyze.ShowCreateTableAnalyzedStatement;
-import io.crate.analyze.relations.QueriedRelation;
+import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.exceptions.LicenseViolationException;
 import io.crate.expression.symbol.Symbol;
 import io.crate.license.LicenseService;
@@ -185,7 +185,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     }
 
     @Override
-    public Plan visitSelectStatement(QueriedRelation relation, PlannerContext context) {
+    public Plan visitSelectStatement(AnalyzedRelation relation, PlannerContext context) {
         return logicalPlanner.plan(relation, context);
     }
 

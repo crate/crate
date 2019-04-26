@@ -93,4 +93,14 @@ public class CopyFromReturnSummaryAnalyzedStatement extends CopyFromAnalyzedStat
     public void setQualifiedName(@Nonnull QualifiedName qualifiedName) {
         this.qualifiedName = qualifiedName;
     }
+
+    @Override
+    public QuerySpec querySpec() {
+        throw new UnsupportedOperationException("COPY FROM has no QuerySpec");
+    }
+
+    @Override
+    public boolean isDistinct() {
+        return false;
+    }
 }

@@ -64,7 +64,6 @@ import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.AnalyzedView;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.OrderedLimitedRelation;
-import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.relations.UnionSelect;
@@ -211,7 +210,7 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
         }
 
         @Override
-        public Void visitSelectStatement(QueriedRelation relation, User user) {
+        public Void visitSelectStatement(AnalyzedRelation relation, User user) {
             visitRelation(relation, user, Privilege.Type.DQL);
             return null;
         }

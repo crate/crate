@@ -22,7 +22,7 @@
 
 package io.crate.analyze;
 
-import io.crate.analyze.relations.QueriedRelation;
+import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.operator.EqOperator;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -49,14 +49,14 @@ public class SingleRowSubselectAnalyzerTest extends CrateDummyClusterServiceUnit
 
     @Test
     public void testSingleRowSubselectInWhereClause() throws Exception {
-        QueriedRelation relation = e.analyze("select * from t1 where x = (select y from t2)");
+        AnalyzedRelation relation = e.analyze("select * from t1 where x = (select y from t2)");
         assertThat(relation.where().query(),
             isSQL("(doc.t1.x = SelectSymbol{integer_array})"));
     }
 
     @Test
     public void testSingleRowSubselectInWhereClauseNested() throws Exception {
-        QueriedRelation relation = e.analyze(
+        AnalyzedRelation relation = e.analyze(
             "select a from t1 where x = (select y from t2 where y = (select z from t3))");
         assertThat(relation.where().query(),
             isSQL("(doc.t1.x = SelectSymbol{integer_array})"));
@@ -64,7 +64,7 @@ public class SingleRowSubselectAnalyzerTest extends CrateDummyClusterServiceUnit
 
     @Test
     public void testSingleRowSubselectInSelectList() {
-        QueriedRelation relation = e.analyze("select (select b from t2 limit 1) from t1");
+        AnalyzedRelation relation = e.analyze("select (select b from t2 limit 1) from t1");
         assertThat(relation.outputs(), isSQL("SelectSymbol{text_array}"));
     }
 
@@ -90,7 +90,7 @@ public class SingleRowSubselectAnalyzerTest extends CrateDummyClusterServiceUnit
 
     @Test
     public void testMatchPredicateWithSingleRowSubselect() throws Exception {
-        QueriedRelation relation = e.normalize(
+        AnalyzedRelation relation = e.normalize(
             "select * from users where match(shape 1.2, (select shape from users limit 1))");
         assertThat(relation.where().query(),
             isSQL("MATCH((shape 1.2), SelectSymbol{geo_shape_array}) USING intersects"));
@@ -98,14 +98,14 @@ public class SingleRowSubselectAnalyzerTest extends CrateDummyClusterServiceUnit
 
     @Test
     public void testLikeSupportsSubQueries() {
-        QueriedRelation relation = e.analyze("select * from users where name like (select 'foo')");
+        AnalyzedRelation relation = e.analyze("select * from users where name like (select 'foo')");
         assertThat(relation.where().query(),
             isSQL("(doc.users.name LIKE SelectSymbol{text_array})"));
     }
 
     @Test
     public void testAnySupportsSubQueries() {
-        QueriedRelation relation = e.analyze("select * from users where (select 'bar') = ANY (tags)");
+        AnalyzedRelation relation = e.analyze("select * from users where (select 'bar') = ANY (tags)");
         assertThat(relation.where().query(),
             isSQL("(SelectSymbol{text_array} = ANY(doc.users.tags))"));
 

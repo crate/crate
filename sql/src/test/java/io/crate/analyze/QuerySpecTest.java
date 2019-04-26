@@ -22,7 +22,7 @@
 
 package io.crate.analyze;
 
-import io.crate.analyze.relations.QueriedRelation;
+import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.junit.Before;
@@ -44,7 +44,7 @@ public class QuerySpecTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testVisitSymbolVisitsAllSymbols() throws Exception {
-        QueriedRelation relation = e.analyze(
+        AnalyzedRelation relation = e.analyze(
             "select " +
             "       x," +           // 1
             "       count(*) " +    // 2

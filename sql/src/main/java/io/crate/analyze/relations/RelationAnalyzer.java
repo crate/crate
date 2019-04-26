@@ -145,7 +145,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         // the `node` contains the ORDER BY and/or LIMIT and/or OFFSET and wraps the
         // actual operation (eg: UNION) which is parsed into the `queryBody` of the `node`.
         if (!node.getOrderBy().isEmpty() || node.getLimit().isPresent() || node.getOffset().isPresent()) {
-            QueriedRelation childRelation = (QueriedRelation) process(node.getQueryBody(), statementContext);
+            AnalyzedRelation childRelation = process(node.getQueryBody(), statementContext);
 
             // Use child relation to process expressions of the "root" Query node
             statementContext.startRelation();
@@ -193,8 +193,8 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         if (node.isDistinct()) {
             throw new UnsupportedFeatureException("UNION [DISTINCT] is not supported");
         }
-        QueriedRelation left = (QueriedRelation) process(node.getLeft(), context);
-        QueriedRelation right = (QueriedRelation) process(node.getRight(), context);
+        AnalyzedRelation left = process(node.getLeft(), context);
+        AnalyzedRelation right = process(node.getRight(), context);
 
         ensureUnionOutputsHaveTheSameSize(left, right);
         ensureUnionOutputsHaveCompatibleTypes(left, right);
@@ -202,13 +202,13 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         return new UnionSelect(left, right);
     }
 
-    private static void ensureUnionOutputsHaveTheSameSize(QueriedRelation left, QueriedRelation right) {
+    private static void ensureUnionOutputsHaveTheSameSize(AnalyzedRelation left, AnalyzedRelation right) {
         if (left.outputs().size() != right.outputs().size()) {
             throw new UnsupportedOperationException("Number of output columns must be the same for all parts of a UNION");
         }
     }
 
-    private static void ensureUnionOutputsHaveCompatibleTypes(QueriedRelation left, QueriedRelation right) {
+    private static void ensureUnionOutputsHaveCompatibleTypes(AnalyzedRelation left, AnalyzedRelation right) {
         List<Symbol> leftOutputs = left.outputs();
         List<Symbol> rightOutputs = right.outputs();
         for (int i = 0; i < leftOutputs.size(); i++) {
@@ -338,20 +338,20 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             .groupBy(groupBy)
             .hasAggregates(expressionAnalysisContext.hasAggregates());
 
-        QueriedRelation relation;
+        AnalyzedRelation relation;
         if (context.sources().size() == 1) {
             AnalyzedRelation source = Iterables.getOnlyElement(context.sources().values());
-            if (source instanceof QueriedRelation) {
-                relation = new QueriedSelectRelation(
+            if (source instanceof AbstractTableRelation<?>) {
+                relation = new QueriedTable<>(
                     isDistinct,
-                    (QueriedRelation) source,
+                    (AbstractTableRelation<?>) source,
                     selectAnalysis.outputNames(),
                     querySpec
                 );
             } else {
-                relation = new QueriedTable<>(
+                relation = new QueriedSelectRelation(
                     isDistinct,
-                    (AbstractTableRelation<?>) source,
+                    source,
                     selectAnalysis.outputNames(),
                     querySpec
                 );
@@ -621,10 +621,10 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             ViewMetaData view = viewMetaData.v1();
             relationName = viewMetaData.v2();
             AnalyzedRelation resolvedView = process(SqlParser.createStatement(view.stmt()), context);
-            if (!(resolvedView instanceof QueriedRelation)) {
+            if (!(resolvedView instanceof AnalyzedRelation)) {
                 throw new IllegalArgumentException("View must be a top-level SELECT statement, got: " + view.stmt());
             }
-            relation = new AnalyzedView(relationName, view.owner(), (QueriedRelation) resolvedView);
+            relation = new AnalyzedView(relationName, view.owner(), resolvedView);
         }
 
         context.currentRelationContext().addSourceRelation(relationName.schema(), relationName.name(), relation);

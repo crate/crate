@@ -28,7 +28,6 @@ import io.crate.analyze.QuerySpec;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.OrderedLimitedRelation;
-import io.crate.analyze.relations.QueriedRelation;
 import io.crate.planner.consumer.FetchMode;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LogicalPlanner;
@@ -42,7 +41,7 @@ public class SelectStatementPlanner {
         visitor = new Visitor(logicalPlanner);
     }
 
-    public LogicalPlan plan(QueriedRelation relation, PlannerContext context, SubqueryPlanner subqueryPlanner) {
+    public LogicalPlan plan(AnalyzedRelation relation, PlannerContext context, SubqueryPlanner subqueryPlanner) {
         return visitor.process(relation, new Context(context, subqueryPlanner));
     }
 
@@ -64,7 +63,7 @@ public class SelectStatementPlanner {
             this.logicalPlanner = logicalPlanner;
         }
 
-        private LogicalPlan invokeLogicalPlanner(QueriedRelation relation, Context context) {
+        private LogicalPlan invokeLogicalPlanner(AnalyzedRelation relation, Context context) {
             LogicalPlan logicalPlan = logicalPlanner.normalizeAndPlan(
                 relation, context.plannerContext, context.subqueryPlanner, FetchMode.MAYBE_CLEAR);
             if (logicalPlan == null) {
@@ -74,12 +73,7 @@ public class SelectStatementPlanner {
         }
 
         @Override
-        protected LogicalPlan visitAnalyzedRelation(AnalyzedRelation relation, Context context) {
-            throw new UnsupportedOperationException("Cannot create plan for: " + relation);
-        }
-
-        @Override
-        public LogicalPlan visitQueriedRelation(QueriedRelation relation, Context context) {
+        public LogicalPlan visitAnalyzedRelation(AnalyzedRelation relation, Context context) {
             return invokeLogicalPlanner(relation, context);
         }
 

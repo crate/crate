@@ -23,7 +23,6 @@
 package io.crate.analyze;
 
 import io.crate.action.sql.SessionContext;
-import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.sql.tree.AstVisitor;
@@ -118,14 +117,14 @@ class UnboundAnalyzer {
 
         @Override
         protected AnalyzedStatement visitQuery(Query node, Analysis context) {
-            return (QueriedRelation) relationAnalyzer.analyzeUnbound(
+            return relationAnalyzer.analyzeUnbound(
                 node, context.transactionContext(), context.paramTypeHints());
         }
 
         @Override
         public AnalyzedStatement visitShowTransaction(ShowTransaction showTransaction, Analysis context) {
             Query query = showStatementAnalyzer.rewriteShowTransaction();
-            return (QueriedRelation) relationAnalyzer.analyzeUnbound(
+            return relationAnalyzer.analyzeUnbound(
                 query, context.transactionContext(), ParamTypeHints.EMPTY);
         }
 
@@ -133,14 +132,14 @@ class UnboundAnalyzer {
         protected AnalyzedStatement visitShowTables(ShowTables node, Analysis context) {
             ParameterContext parameterContext = context.parameterContext();
             Query query = showStatementAnalyzer.rewriteShowTables(node);
-            return (QueriedRelation) relationAnalyzer.analyzeUnbound(
+            return relationAnalyzer.analyzeUnbound(
                 query, context.transactionContext(), parameterContext.typeHints());
         }
 
         @Override
         protected AnalyzedStatement visitShowSchemas(ShowSchemas node, Analysis context) {
             Query query = showStatementAnalyzer.rewriteShowSchemas(node);
-            return (QueriedRelation) relationAnalyzer.analyzeUnbound(query,
+            return relationAnalyzer.analyzeUnbound(query,
                 context.transactionContext(),
                 context.parameterContext().typeHints());
         }
@@ -150,7 +149,7 @@ class UnboundAnalyzer {
             CoordinatorTxnCtx coordinatorTxnCtx = context.transactionContext();
             Query query = showStatementAnalyzer.rewriteShowColumns(node,
                 coordinatorTxnCtx.sessionContext().searchPath().currentSchema());
-            return (QueriedRelation) relationAnalyzer.analyzeUnbound(
+            return relationAnalyzer.analyzeUnbound(
                 query, coordinatorTxnCtx, context.parameterContext().typeHints());
         }
 
@@ -163,7 +162,7 @@ class UnboundAnalyzer {
         public AnalyzedStatement visitShowSessionParameter(ShowSessionParameter node, Analysis context) {
             ShowStatementAnalyzer.validateSessionSetting(node.parameter());
             Query query = ShowStatementAnalyzer.rewriteShowSessionParameter(node);
-            return (QueriedRelation) relationAnalyzer.analyzeUnbound(query,
+            return relationAnalyzer.analyzeUnbound(query,
                 context.transactionContext(),
                 context.parameterContext().typeHints());
         }
