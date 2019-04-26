@@ -53,7 +53,7 @@ public class LimitTest extends CrateDummyClusterServiceUnitTest {
 
         LogicalPlan plan = Limit.create(
             Limit.create(
-                Collect.create(queriedDocTable, queriedDocTable.outputs(), queriedDocTable.where()),
+                Collect.create(queriedDocTable.tableRelation(), queriedDocTable.outputs(), queriedDocTable.where()),
                 Literal.of(10L),
                 Literal.of(5L)
             ),

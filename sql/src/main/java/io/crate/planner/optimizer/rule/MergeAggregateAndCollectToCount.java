@@ -45,7 +45,7 @@ public final class MergeAggregateAndCollectToCount implements Rule<HashAggregate
         this.collectCapture = new Capture<>();
         this.pattern = typeOf(HashAggregate.class)
             .with(source(), typeOf(Collect.class).capturedAs(collectCapture)
-                .with(collect -> collect.relation().tableRelation().tableInfo() instanceof DocTableInfo))
+                .with(collect -> collect.relation().tableInfo() instanceof DocTableInfo))
             .with(aggregate ->
                 aggregate.aggregates().size() == 1
                 && aggregate.aggregates().get(0).info().equals(CountAggregation.COUNT_STAR_FUNCTION));
@@ -59,10 +59,6 @@ public final class MergeAggregateAndCollectToCount implements Rule<HashAggregate
     @Override
     public Count apply(HashAggregate aggregate, Captures captures) {
         Collect collect = captures.get(collectCapture);
-        return new Count(
-            Lists2.getOnlyElement(aggregate.aggregates()),
-            collect.relation().tableRelation(),
-            collect.where()
-        );
+        return new Count(Lists2.getOnlyElement(aggregate.aggregates()), collect.relation(), collect.where());
     }
 }

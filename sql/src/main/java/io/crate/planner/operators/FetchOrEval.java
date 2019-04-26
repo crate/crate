@@ -432,6 +432,9 @@ public class FetchOrEval implements LogicalPlan {
                 } else {
                     relation = field.relation();
                 }
+                if (relation instanceof DocTableRelation) {
+                    return (DocTableRelation) relation;
+                }
                 if (relation instanceof QueriedTable
                     && ((QueriedTable) relation).tableRelation() instanceof DocTableRelation) {
                     return ((DocTableRelation) ((QueriedTable) relation).tableRelation());
