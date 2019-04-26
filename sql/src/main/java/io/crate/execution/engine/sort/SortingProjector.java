@@ -23,6 +23,7 @@
 package io.crate.execution.engine.sort;
 
 import com.google.common.base.Preconditions;
+import io.crate.breaker.RowAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.Bucket;
 import io.crate.data.CollectingBatchIterator;
@@ -52,20 +53,24 @@ public class SortingProjector implements Projector {
     private final Comparator<Object[]> comparator;
     private final int offset;
     private final int numOutputs;
+    private final RowAccounting<Object[]> rowAccounting;
 
     /**
+     * @param rowAccounting               sorting is a pipeline breaker so account for the used memory
      * @param inputs             contains output {@link Input}s and orderBy {@link Input}s
      * @param collectExpressions gathered from outputs and orderBy inputs
      * @param numOutputs         <code>inputs</code> contains this much output {@link Input}s starting form index 0
      * @param comparator         ordering that is used to compare the rows
      * @param offset             the initial offset, this number of rows are skipped
      */
-    public SortingProjector(Collection<? extends Input<?>> inputs,
+    public SortingProjector(RowAccounting<Object[]> rowAccounting,
+                            Collection<? extends Input<?>> inputs,
                             Iterable<? extends CollectExpression<Row, ?>> collectExpressions,
                             int numOutputs,
                             Comparator<Object[]> comparator,
                             int offset) {
         Preconditions.checkArgument(offset >= 0, "invalid offset %s", offset);
+        this.rowAccounting = rowAccounting;
         this.numOutputs = numOutputs;
         this.inputs = inputs;
         this.collectExpressions = collectExpressions;
@@ -96,6 +101,7 @@ public class SortingProjector implements Projector {
         for (Input<?> input : inputs) {
             newRow[i++] = input.value();
         }
+        rowAccounting.accountForAndMaybeBreak(newRow);
         return newRow;
     }
 

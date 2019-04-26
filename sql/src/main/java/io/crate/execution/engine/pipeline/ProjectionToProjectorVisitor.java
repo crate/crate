@@ -256,6 +256,7 @@ public class ProjectionToProjectorVisitor
             );
         }
         return new SortingProjector(
+            rowAccounting,
             inputs,
             ctx.expressions(),
             numOutputs,
