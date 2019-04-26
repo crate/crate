@@ -24,7 +24,7 @@ package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueryClause;
-import io.crate.analyze.relations.QueriedRelation;
+import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
@@ -310,7 +310,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                                    ClusterService clusterService,
                                    TableStats tableStats) {
         PlannerContext context = sqlExecutor.getPlannerContext(clusterService.state());
-        QueriedRelation relation = sqlExecutor.analyze(statement);
+        AnalyzedRelation relation = sqlExecutor.analyze(statement);
         LogicalPlanner logicalPlanner = new LogicalPlanner(getFunctions(), tableStats);
         SubqueryPlanner subqueryPlanner = new SubqueryPlanner((s) -> logicalPlanner.planSubSelect(s, context));
 

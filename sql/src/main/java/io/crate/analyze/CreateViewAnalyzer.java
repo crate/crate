@@ -22,7 +22,7 @@
 
 package io.crate.analyze;
 
-import io.crate.analyze.relations.QueriedRelation;
+import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -46,7 +46,7 @@ public final class CreateViewAnalyzer {
         if (BlobSchemaInfo.NAME.equals(name.schema())) {
             throw new UnsupportedOperationException("Creating a view in the \"blob\" schema is not supported");
         }
-        QueriedRelation query = (QueriedRelation) relationAnalyzer.analyzeUnbound(
+        AnalyzedRelation query = relationAnalyzer.analyzeUnbound(
             createView.query(), txnCtx, ParamTypeHints.EMPTY);
 
         // sqlPrinter isn't feature complete yet; so restrict CREATE VIEW to only support queries where the

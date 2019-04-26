@@ -39,7 +39,7 @@ import io.crate.metadata.table.Operation;
 import static com.google.common.collect.Lists.transform;
 
 /**
- * The RelationNormalizer tries to merge the tree of relations in a QueriedSelectRelation into a single QueriedRelation.
+ * The RelationNormalizer tries to merge the tree of relations in a QueriedSelectRelation into a single AnalyzedRelation.
  * The merge occurs from the top level to the deepest one. For each level, it verifies if the query is mergeable with
  * the next relation and proceed with the merge if positive. When it is not, the partially merged tree is returned.
  */
@@ -72,8 +72,8 @@ public final class RelationNormalizer {
 
         @Override
         public AnalyzedRelation visitQueriedSelectRelation(QueriedSelectRelation relation, CoordinatorTxnCtx context) {
-            QueriedRelation subRelation = relation.subRelation();
-            QueriedRelation normalizedSubRelation = (QueriedRelation) process(relation.subRelation(), context);
+            AnalyzedRelation subRelation = relation.subRelation();
+            AnalyzedRelation normalizedSubRelation = process(relation.subRelation(), context);
             if (subRelation == normalizedSubRelation) {
                 return relation;
             }
@@ -96,7 +96,7 @@ public final class RelationNormalizer {
             if (newSubRelation == view.relation()) {
                 return view;
             }
-            return new AnalyzedView(view.name(), view.owner(), (QueriedRelation) newSubRelation);
+            return new AnalyzedView(view.name(), view.owner(), newSubRelation);
         }
 
         @Override
@@ -128,8 +128,8 @@ public final class RelationNormalizer {
 
         @Override
         public AnalyzedRelation visitOrderedLimitedRelation(OrderedLimitedRelation relation, CoordinatorTxnCtx context) {
-            QueriedRelation childRelation = relation.childRelation();
-            QueriedRelation normalizedChild = (QueriedRelation) process(childRelation, context);
+            AnalyzedRelation childRelation = relation.childRelation();
+            AnalyzedRelation normalizedChild = process(childRelation, context);
             if (normalizedChild == childRelation) {
                 return relation;
             } else {
@@ -144,8 +144,8 @@ public final class RelationNormalizer {
 
         @Override
         public AnalyzedRelation visitUnionSelect(UnionSelect unionSelect, CoordinatorTxnCtx context) {
-            QueriedRelation left = (QueriedRelation) process(unionSelect.left(), context);
-            QueriedRelation right = (QueriedRelation) process(unionSelect.right(), context);
+            AnalyzedRelation left = process(unionSelect.left(), context);
+            AnalyzedRelation right = process(unionSelect.right(), context);
             if (left == unionSelect.left() && right == unionSelect.right()) {
                 return unionSelect;
             } else {

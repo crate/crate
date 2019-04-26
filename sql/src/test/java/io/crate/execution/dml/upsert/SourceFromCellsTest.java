@@ -23,7 +23,7 @@
 package io.crate.execution.dml.upsert;
 
 import io.crate.analyze.QueriedTable;
-import io.crate.analyze.relations.QueriedRelation;
+import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.common.collections.Maps;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.PartitionName;
@@ -47,7 +47,6 @@ import java.util.Map;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
-import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 
 public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
@@ -69,7 +68,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table t2 (obj object as (a int, c as obj['a'] + 3), b as obj['a'] + 1)")
             .addPartitionedTable("create table t3 (p int not null) partitioned by (p)")
             .build();
-        QueriedRelation relation = e.normalize("select x, y, z from t1");
+        AnalyzedRelation relation = e.normalize("select x, y, z from t1");
         t1 = (DocTableInfo) ((QueriedTable) relation).tableRelation().tableInfo();
         x = (Reference) relation.outputs().get(0);
         y = (Reference) relation.outputs().get(1);
@@ -114,7 +113,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testNullConstraintCheckCausesErrorIfRequiredPartitionedColumnValueIsNull() {
-        QueriedRelation relation = e.normalize("select p from t3");
+        AnalyzedRelation relation = e.normalize("select p from t3");
         DocTableInfo t3 = (DocTableInfo) ((QueriedTable) relation).tableRelation().tableInfo();
         PartitionName partitionName = new PartitionName(t3.ident(), singletonList(null));
 
@@ -127,7 +126,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testNullConstraintCheckPassesIfRequiredPartitionedColumnValueIsNotNull() {
-        QueriedRelation relation = e.normalize("select p from t3");
+        AnalyzedRelation relation = e.normalize("select p from t3");
         DocTableInfo t3 = (DocTableInfo) ((QueriedTable) relation).tableRelation().tableInfo();
         PartitionName partitionName = new PartitionName(t3.ident(), singletonList("10"));
 

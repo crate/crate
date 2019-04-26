@@ -27,7 +27,6 @@ import com.google.common.collect.Sets;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.JoinPair;
 import io.crate.analyze.relations.JoinPairs;
-import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.QuerySplitter;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.operator.AndOperator;
@@ -118,7 +117,7 @@ public class Rewriter {
                                    Map.Entry<QualifiedName, AnalyzedRelation> right,
                                    JoinPair joinPair,
                                    JoinType joinType) {
-        final Map<QualifiedName, QueriedRelation> outerRelations = groupOuterRelationQSByName(left, right, joinType);
+        final Map<QualifiedName, AnalyzedRelation> outerRelations = groupOuterRelationQSByName(left, right, joinType);
         Map<Set<QualifiedName>, Symbol> splitQueries = QuerySplitter.split(where.query());
         for (QualifiedName outerRelation : outerRelations.keySet()) {
             Symbol outerRelationQuery = splitQueries.remove(Sets.newHashSet(outerRelation));
@@ -128,7 +127,7 @@ public class Rewriter {
             if (couldMatchWithNullValues(normalizer, outerRelationQuery, outerRelation)) {
                 splitQueries.put(Sets.newHashSet(outerRelation), outerRelationQuery);
             } else {
-                QueriedRelation outerSubRelation = outerRelations.get(outerRelation);
+                AnalyzedRelation outerSubRelation = outerRelations.get(outerRelation);
                 applyOuterJoinRewrite(
                     joinPair,
                     mss.querySpec(),
@@ -155,18 +154,18 @@ public class Rewriter {
         };
     }
 
-    private static Map<QualifiedName, QueriedRelation> groupOuterRelationQSByName(Map.Entry<QualifiedName, AnalyzedRelation> left,
-                                                                                  Map.Entry<QualifiedName, AnalyzedRelation> right,
-                                                                                  JoinType joinType) {
+    private static Map<QualifiedName, AnalyzedRelation> groupOuterRelationQSByName(Map.Entry<QualifiedName, AnalyzedRelation> left,
+                                                                                   Map.Entry<QualifiedName, AnalyzedRelation> right,
+                                                                                   JoinType joinType) {
         switch (joinType) {
             case LEFT:
-                return Collections.singletonMap(right.getKey(), (QueriedRelation) right.getValue());
+                return Collections.singletonMap(right.getKey(), right.getValue());
             case RIGHT:
-                return Collections.singletonMap(left.getKey(), (QueriedRelation) left.getValue());
+                return Collections.singletonMap(left.getKey(), left.getValue());
             case FULL:
                 return ImmutableMap.of(
-                    left.getKey(), (QueriedRelation) left.getValue(),
-                    right.getKey(), (QueriedRelation) right.getValue()
+                    left.getKey(), left.getValue(),
+                    right.getKey(), right.getValue()
                 );
             default:
                 throw new AssertionError("Invalid joinType for outer-join -> inner-join rewrite: "
@@ -176,7 +175,7 @@ public class Rewriter {
 
     private static void applyOuterJoinRewrite(JoinPair joinPair,
                                               QuerySpec multiSourceQuerySpec,
-                                              QueriedRelation outerSubRelation,
+                                              AnalyzedRelation outerSubRelation,
                                               Map<Set<QualifiedName>, Symbol> splitQueries,
                                               Symbol outerRelationQuery) {
         CollectFieldsToRemoveFromOutputs collectFieldsToRemoveFromOutputs =
@@ -199,7 +198,7 @@ public class Rewriter {
         }
         for (Field fieldToRemove : collectFieldsToRemoveFromOutputs.fieldsToNotCollect()) {
             multiSourceQuerySpec.outputs().remove(fieldToRemove);
-            QueriedRelation relation = (QueriedRelation) fieldToRemove.relation();
+            AnalyzedRelation relation = fieldToRemove.relation();
 
             int index = fieldToRemove.index();
             relation.querySpec().outputs().remove(index);
@@ -224,12 +223,12 @@ public class Rewriter {
      * Collect fields which are being pushed down and otherwise not required.
      */
     private static class CollectFieldsToRemoveFromOutputs implements Function<Field, Symbol> {
-        private final QueriedRelation outerRelation;
+        private final AnalyzedRelation outerRelation;
         private final List<Symbol> mssOutputSymbols;
         private final Symbol joinCondition;
         private final Set<Field> fieldsToNotCollect;
 
-        CollectFieldsToRemoveFromOutputs(QueriedRelation outerRelation,
+        CollectFieldsToRemoveFromOutputs(AnalyzedRelation outerRelation,
                                          List<Symbol> mssOutputSymbols,
                                          Symbol joinCondition) {
             this.outerRelation = outerRelation;

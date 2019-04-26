@@ -22,6 +22,7 @@
 
 package io.crate.testing;
 
+import io.crate.analyze.QuerySpec;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.expression.symbol.Field;
@@ -76,5 +77,15 @@ public class DummyRelation implements AnalyzedRelation {
     @Override
     public void setQualifiedName(@Nonnull QualifiedName qualifiedName) {
         this.name = qualifiedName;
+    }
+
+    @Override
+    public QuerySpec querySpec() {
+        return new QuerySpec();
+    }
+
+    @Override
+    public boolean isDistinct() {
+        return false;
     }
 }

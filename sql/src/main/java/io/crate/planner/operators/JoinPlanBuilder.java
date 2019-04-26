@@ -25,8 +25,8 @@ package io.crate.planner.operators;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.WhereClause;
+import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.JoinPair;
-import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.QuerySplitter;
 import io.crate.execution.engine.join.JoinOperations;
 import io.crate.expression.operator.AndOperator;
@@ -114,8 +114,8 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
 
         final QualifiedName lhsName = it.next();
         final QualifiedName rhsName = it.next();
-        QueriedRelation lhs = (QueriedRelation) mss.sources().get(lhsName);
-        QueriedRelation rhs = (QueriedRelation) mss.sources().get(rhsName);
+        AnalyzedRelation lhs = mss.sources().get(lhsName);
+        AnalyzedRelation rhs = mss.sources().get(rhsName);
         Set<QualifiedName> joinNames = new HashSet<>();
         joinNames.add(lhsName);
         joinNames.add(rhsName);
@@ -165,7 +165,7 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
 
         joinPlan = Filter.create(joinPlan, query);
         while (it.hasNext()) {
-            QueriedRelation nextRel = (QueriedRelation) mss.sources().get(it.next());
+            AnalyzedRelation nextRel = mss.sources().get(it.next());
             joinPlan = joinWithNext(
                 tableStats,
                 joinPlan,
@@ -191,8 +191,8 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
                                               LogicalPlan rhsPlan,
                                               JoinType joinType,
                                               Symbol joinCondition,
-                                              QueriedRelation lhs,
-                                              QueriedRelation rhs,
+                                              AnalyzedRelation lhs,
+                                              AnalyzedRelation rhs,
                                               Symbol query,
                                               boolean orderByCanBePushedDown,
                                               SessionContext sessionContext,
@@ -233,14 +233,14 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
 
     private static LogicalPlan joinWithNext(TableStats tableStats,
                                             LogicalPlan source,
-                                            QueriedRelation nextRel,
+                                            AnalyzedRelation nextRel,
                                             Set<Symbol> usedColumns,
                                             Set<QualifiedName> joinNames,
                                             Map<Set<QualifiedName>, JoinPair> joinPairs,
                                             Map<Set<QualifiedName>, Symbol> queryParts,
                                             SubqueryPlanner subqueryPlanner,
                                             boolean orderByCanBePushedDown,
-                                            QueriedRelation leftRelation,
+                                            AnalyzedRelation leftRelation,
                                             Functions functions,
                                             CoordinatorTxnCtx txnCtx) {
         QualifiedName nextName = nextRel.getQualifiedName();
@@ -314,14 +314,14 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
 
     private static void addColumnsFrom(Iterable<? extends Symbol> symbols,
                                        Consumer<? super Symbol> consumer,
-                                       QueriedRelation rel) {
+                                       AnalyzedRelation rel) {
 
         for (Symbol symbol : symbols) {
             addColumnsFrom(symbol, consumer, rel);
         }
     }
 
-    private static void addColumnsFrom(@Nullable Symbol symbol, Consumer<? super Symbol> consumer, QueriedRelation rel) {
+    private static void addColumnsFrom(@Nullable Symbol symbol, Consumer<? super Symbol> consumer, AnalyzedRelation rel) {
         if (symbol == null) {
             return;
         }

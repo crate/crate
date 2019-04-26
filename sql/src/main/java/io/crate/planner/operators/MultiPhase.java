@@ -23,7 +23,7 @@
 package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.relations.QueriedRelation;
+import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.SelectSymbol;
@@ -42,7 +42,7 @@ import java.util.Map;
 public class MultiPhase extends OneInputPlan {
 
     public static LogicalPlan createIfNeeded(LogicalPlan source,
-                                             QueriedRelation relation,
+                                             AnalyzedRelation relation,
                                              SubqueryPlanner subqueryPlanner) {
         Map<LogicalPlan, SelectSymbol> subQueries = subqueryPlanner.planSubQueries(relation);
         if (subQueries.isEmpty()) {

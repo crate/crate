@@ -24,7 +24,6 @@ package io.crate.analyze;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.JoinPair;
-import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.RelationNormalizer;
 import io.crate.analyze.relations.RelationSplitter;
 import io.crate.expression.symbol.Field;
@@ -46,7 +45,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public class MultiSourceSelect implements QueriedRelation {
+public class MultiSourceSelect implements AnalyzedRelation {
 
     private final Map<QualifiedName, AnalyzedRelation> sources;
     private final Fields fields;
@@ -85,10 +84,10 @@ public class MultiSourceSelect implements QueriedRelation {
         for (Map.Entry<QualifiedName, AnalyzedRelation> entry : mss.sources.entrySet()) {
             AnalyzedRelation relation = entry.getValue();
             QuerySpec spec = splitter.getSpec(relation);
-            QueriedRelation queriedRelation = Relations.applyQSToRelation(relationNormalizer, functions, coordinatorTxnCtx, relation, spec);
-            Function<Field, Field> convertField = f -> mapFieldToNewRelation(f, relation, queriedRelation);
+            AnalyzedRelation analyzedRelation = Relations.applyQSToRelation(relationNormalizer, functions, coordinatorTxnCtx, relation, spec);
+            Function<Field, Field> convertField = f -> mapFieldToNewRelation(f, relation, analyzedRelation);
             querySpec = querySpec.copyAndReplace(FieldReplacer.bind(convertField));
-            entry.setValue(queriedRelation);
+            entry.setValue(analyzedRelation);
 
             convertFieldToPointToNewRelations = convertFieldToPointToNewRelations.andThen(convertField);
         }
@@ -123,7 +122,7 @@ public class MultiSourceSelect implements QueriedRelation {
     }
 
 
-    private static Field mapFieldToNewRelation(Field f, AnalyzedRelation oldRelation, QueriedRelation newRelation) {
+    private static Field mapFieldToNewRelation(Field f, AnalyzedRelation oldRelation, AnalyzedRelation newRelation) {
         if (f.relation().equals(oldRelation)) {
             Field field = newRelation.getField(f.path(), Operation.READ);
             assert field != null : "Must be able to resolve field from injected relation: " + f;

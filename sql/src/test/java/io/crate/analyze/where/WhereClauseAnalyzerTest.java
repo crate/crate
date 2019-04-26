@@ -26,8 +26,8 @@ import io.crate.action.sql.SessionContext;
 import io.crate.analyze.AnalyzedUpdateStatement;
 import io.crate.analyze.QueriedTable;
 import io.crate.analyze.WhereClause;
+import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
-import io.crate.analyze.relations.QueriedRelation;
 import io.crate.data.Row;
 import io.crate.exceptions.VersioninigValidationException;
 import io.crate.expression.eval.EvaluatingNormalizer;
@@ -142,7 +142,7 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     private WhereClause analyzeSelect(String stmt, Object... args) {
-        QueriedRelation rel = e.normalize(
+        AnalyzedRelation rel = e.normalize(
             e.analyze(stmt, args),
             new CoordinatorTxnCtx(SessionContext.systemSessionContext())
         );

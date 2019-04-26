@@ -21,6 +21,7 @@
 
 package io.crate.analyze.relations;
 
+import io.crate.analyze.QuerySpec;
 import io.crate.expression.symbol.Field;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Path;
@@ -48,14 +49,27 @@ public abstract class AbstractTableRelation<T extends TableInfo> implements Anal
         && input.valueType().id() == ArrayType.ID
         && ((ArrayType) input.valueType()).innerType().id() == ObjectType.ID;
 
-    protected T tableInfo;
+    private final QuerySpec querySpec;
+    protected final T tableInfo;
+    private final Map<Path, Reference> allocatedFields = new HashMap<>();
     private List<Field> outputs;
-    private Map<Path, Reference> allocatedFields = new HashMap<>();
     private QualifiedName qualifiedName;
 
     public AbstractTableRelation(T tableInfo) {
         this.tableInfo = tableInfo;
-        qualifiedName = new QualifiedName(Arrays.asList(tableInfo.ident().schema(), tableInfo.ident().name()));
+        this.qualifiedName = new QualifiedName(Arrays.asList(tableInfo.ident().schema(), tableInfo.ident().name()));
+        this.querySpec = new QuerySpec()
+            .outputs(new ArrayList<>(tableInfo.columns()));
+    }
+
+    @Override
+    public QuerySpec querySpec() {
+        return querySpec;
+    }
+
+    @Override
+    public boolean isDistinct() {
+        return false;
     }
 
     public T tableInfo() {

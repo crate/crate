@@ -23,7 +23,7 @@
 package io.crate.analyze;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.crate.analyze.relations.QueriedRelation;
+import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.metadata.RelationName;
 import io.crate.auth.user.User;
 
@@ -32,13 +32,13 @@ import javax.annotation.Nullable;
 public final class CreateViewStmt implements AnalyzedStatement {
 
     private final RelationName name;
-    private final QueriedRelation query;
+    private final AnalyzedRelation query;
     private final String formattedQuery;
     private final boolean replaceExisting;
     @Nullable
     private final User owner;
 
-    CreateViewStmt(RelationName name, QueriedRelation query, String formattedQuery, boolean replaceExisting, @Nullable User owner) {
+    CreateViewStmt(RelationName name, AnalyzedRelation query, String formattedQuery, boolean replaceExisting, @Nullable User owner) {
         this.name = name;
         this.query = query;
         this.formattedQuery = formattedQuery;
@@ -51,7 +51,7 @@ public final class CreateViewStmt implements AnalyzedStatement {
     }
 
     @VisibleForTesting
-    public QueriedRelation query() {
+    public AnalyzedRelation query() {
         return query;
     }
 

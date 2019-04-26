@@ -22,7 +22,7 @@
 
 package io.crate.analyze;
 
-import io.crate.analyze.relations.QueriedRelation;
+import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -50,7 +50,7 @@ public class ExplainAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testExplain() throws Exception {
         ExplainAnalyzedStatement stmt = e.analyze("explain select id from sys.cluster");
         assertNotNull(stmt.statement());
-        assertThat(stmt.statement(), instanceOf(QueriedRelation.class));
+        assertThat(stmt.statement(), instanceOf(AnalyzedRelation.class));
         assertThat(stmt.context(), nullValue());
     }
 
@@ -70,7 +70,7 @@ public class ExplainAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testExplainArrayComparison() throws Exception {
         ExplainAnalyzedStatement stmt = e.analyze("explain SELECT id from sys.cluster where id = any([1,2,3])");
         assertNotNull(stmt.statement());
-        assertThat(stmt.statement(), instanceOf(QueriedRelation.class));
+        assertThat(stmt.statement(), instanceOf(AnalyzedRelation.class));
         assertThat(stmt.fields(), Matchers.contains(isField("EXPLAIN")));
     }
 

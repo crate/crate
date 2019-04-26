@@ -40,15 +40,15 @@ public abstract class AnalyzedRelationVisitor<C, R> {
     }
 
     public R visitQueriedTable(QueriedTable<?> queriedTable, C context) {
-        return visitQueriedRelation(queriedTable, context);
+        return visitAnalyzedRelation(queriedTable, context);
     }
 
     public R visitMultiSourceSelect(MultiSourceSelect multiSourceSelect, C context) {
-        return visitQueriedRelation(multiSourceSelect, context);
+        return visitAnalyzedRelation(multiSourceSelect, context);
     }
 
     public R visitUnionSelect(UnionSelect unionSelect, C context) {
-        return visitQueriedRelation(unionSelect, context);
+        return visitAnalyzedRelation(unionSelect, context);
     }
 
     public R visitTableRelation(TableRelation tableRelation, C context) {
@@ -68,10 +68,6 @@ public abstract class AnalyzedRelationVisitor<C, R> {
     }
 
     public R visitQueriedSelectRelation(QueriedSelectRelation relation, C context) {
-        return visitQueriedRelation(relation, context);
-    }
-
-    public R visitQueriedRelation(QueriedRelation relation, C context) {
         return visitAnalyzedRelation(relation, context);
     }
 

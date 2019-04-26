@@ -23,8 +23,8 @@ package io.crate.analyze;
 
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
-import io.crate.expression.symbol.Field;
 import io.crate.exceptions.ColumnUnknownException;
+import io.crate.expression.symbol.Field;
 import io.crate.metadata.OutputName;
 import io.crate.metadata.Path;
 import io.crate.metadata.doc.DocTableInfo;
@@ -41,11 +41,13 @@ public class ShowCreateTableAnalyzedStatement implements AnalyzedStatement, Anal
 
     private final DocTableInfo tableInfo;
     private final List<Field> fields;
+    private final QuerySpec querySpec;
 
     public ShowCreateTableAnalyzedStatement(DocTableInfo tableInfo) {
         String columnName = String.format(Locale.ENGLISH, "SHOW CREATE TABLE %s", tableInfo.ident().fqn());
         this.fields = Collections.singletonList(new Field(this, new OutputName(columnName), DataTypes.STRING));
         this.tableInfo = tableInfo;
+        this.querySpec = new QuerySpec();
     }
 
     public DocTableInfo tableInfo() {
@@ -88,7 +90,17 @@ public class ShowCreateTableAnalyzedStatement implements AnalyzedStatement, Anal
     }
 
     @Override
+    public QuerySpec querySpec() {
+        return querySpec;
+    }
+
+    @Override
     public boolean isUnboundPlanningSupported() {
         return true;
+    }
+
+    @Override
+    public boolean isDistinct() {
+        return false;
     }
 }

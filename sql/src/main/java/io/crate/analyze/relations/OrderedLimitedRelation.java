@@ -60,14 +60,14 @@ import java.util.function.Function;
  *            UnionSelect        -> (Never contains an OrderBy or Limit/Offset)
  *                /     \
  *               /       \
- * QueriedRelation_t1  QueriedRelation_t2
+ * AnalyzedRelation_t1  AnalyzedRelation_t2
  */
-public class OrderedLimitedRelation implements QueriedRelation {
+public class OrderedLimitedRelation implements AnalyzedRelation {
 
-    private final QueriedRelation childRelation;
+    private final AnalyzedRelation childRelation;
     private final QuerySpec querySpec;
 
-    public OrderedLimitedRelation(QueriedRelation childRelation,
+    public OrderedLimitedRelation(AnalyzedRelation childRelation,
                                   OrderBy orderBy,
                                   @Nullable Symbol limit,
                                   @Nullable Symbol offset) {
@@ -103,7 +103,7 @@ public class OrderedLimitedRelation implements QueriedRelation {
         childRelation.setQualifiedName(qualifiedName);
     }
 
-    public QueriedRelation childRelation() {
+    public AnalyzedRelation childRelation() {
         return childRelation;
     }
 
@@ -162,7 +162,7 @@ public class OrderedLimitedRelation implements QueriedRelation {
         return false;
     }
 
-    public OrderedLimitedRelation map(QueriedRelation newChild, Function<? super Symbol,? extends Symbol> mapper) {
+    public OrderedLimitedRelation map(AnalyzedRelation newChild, Function<? super Symbol,? extends Symbol> mapper) {
         OrderBy orderBy = orderBy();
         Symbol limit = limit();
         Symbol offset = offset();

@@ -24,7 +24,7 @@ package io.crate.analyze;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
-import io.crate.analyze.relations.QueriedRelation;
+import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
@@ -50,7 +50,7 @@ import static java.util.Objects.requireNonNull;
 public class InsertFromSubQueryAnalyzedStatement implements AnalyzedStatement {
 
     private final DocTableInfo targetTable;
-    private final QueriedRelation subQueryRelation;
+    private final AnalyzedRelation subQueryRelation;
     private final boolean ignoreDuplicateKeys;
     @Nullable
     private final Map<Reference, Symbol> onDuplicateKeyAssignments;
@@ -60,7 +60,7 @@ public class InsertFromSubQueryAnalyzedStatement implements AnalyzedStatement {
     @Nullable
     private final Symbol clusteredBySymbol;
 
-    public InsertFromSubQueryAnalyzedStatement(QueriedRelation subQueryRelation,
+    public InsertFromSubQueryAnalyzedStatement(AnalyzedRelation subQueryRelation,
                                                DocTableInfo tableInfo,
                                                List<Reference> targetColumns,
                                                boolean ignoreDuplicateKeys,
@@ -144,7 +144,7 @@ public class InsertFromSubQueryAnalyzedStatement implements AnalyzedStatement {
         return targetTable;
     }
 
-    public QueriedRelation subQueryRelation() {
+    public AnalyzedRelation subQueryRelation() {
         return this.subQueryRelation;
     }
 
