@@ -34,7 +34,7 @@ import static org.hamcrest.Matchers.isOneOf;
 
 public class ArbitraryAggregationTest extends AggregationTest {
 
-    private Object[][] executeAggregation(DataType dataType, Object[][] data) throws Exception {
+    private Object executeAggregation(DataType dataType, Object[][] data) throws Exception {
         return executeAggregation("arbitrary", dataType, data);
     }
 
@@ -48,61 +48,61 @@ public class ArbitraryAggregationTest extends AggregationTest {
     @Test
     public void testDouble() throws Exception {
         Object[][] data = new Object[][]{{0.8d}, {0.3d}};
-        Object[][] result = executeAggregation(DataTypes.DOUBLE, data);
+        Object result = executeAggregation(DataTypes.DOUBLE, data);
 
-        assertThat(result[0][0], isOneOf(data[0][0], data[1][0]));
+        assertThat(result, isOneOf(data[0][0], data[1][0]));
     }
 
     @Test
     public void testFloat() throws Exception {
         Object[][] data = new Object[][]{{0.8f}, {0.3f}};
-        Object[][] result = executeAggregation(DataTypes.FLOAT, data);
+        Object result = executeAggregation(DataTypes.FLOAT, data);
 
-        assertThat(result[0][0], isOneOf(data[0][0], data[1][0]));
+        assertThat(result, isOneOf(data[0][0], data[1][0]));
     }
 
     @Test
     public void testInteger() throws Exception {
         Object[][] data = new Object[][]{{8}, {3}};
-        Object[][] result = executeAggregation(DataTypes.INTEGER, data);
+        Object result = executeAggregation(DataTypes.INTEGER, data);
 
-        assertThat(result[0][0], isOneOf(data[0][0], data[1][0]));
+        assertThat(result, isOneOf(data[0][0], data[1][0]));
     }
 
     @Test
     public void testLong() throws Exception {
         Object[][] data = new Object[][]{{8L}, {3L}};
-        Object[][] result = executeAggregation(DataTypes.LONG, data);
+        Object result = executeAggregation(DataTypes.LONG, data);
 
-        assertThat(result[0][0], isOneOf(data[0][0], data[1][0]));
+        assertThat(result, isOneOf(data[0][0], data[1][0]));
     }
 
     @Test
     public void testShort() throws Exception {
         Object[][] data = new Object[][]{{(short) 8}, {(short) 3}};
-        Object[][] result = executeAggregation(DataTypes.SHORT, data);
+        Object result = executeAggregation(DataTypes.SHORT, data);
 
-        assertThat(result[0][0], isOneOf(data[0][0], data[1][0]));
+        assertThat(result, isOneOf(data[0][0], data[1][0]));
     }
 
     @Test
     public void testString() throws Exception {
         Object[][] data = new Object[][]{{"Youri"}, {"Ruben"}};
-        Object[][] result = executeAggregation(DataTypes.STRING, data);
+        Object result = executeAggregation(DataTypes.STRING, data);
 
-        assertThat(result[0][0], isOneOf(data[0][0], data[1][0]));
+        assertThat(result, isOneOf(data[0][0], data[1][0]));
     }
 
     @Test
     public void testBoolean() throws Exception {
         Object[][] data = new Object[][]{{true}, {false}};
-        Object[][] result = executeAggregation(DataTypes.BOOLEAN, data);
+        Object result = executeAggregation(DataTypes.BOOLEAN, data);
 
-        assertThat(result[0][0], isOneOf(data[0][0], data[1][0]));
+        assertThat(result, isOneOf(data[0][0], data[1][0]));
     }
 
     @Test(expected = NullPointerException.class)
     public void testUnsupportedType() throws Exception {
-        Object[][] result = executeAggregation(DataTypes.OBJECT, new Object[][]{{new Object()}});
+        executeAggregation(DataTypes.OBJECT, new Object[][]{{new Object()}});
     }
 }

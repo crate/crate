@@ -32,7 +32,7 @@ import org.junit.Test;
 
 public class AverageAggregationTest extends AggregationTest {
 
-    private Object[][] executeAggregation(DataType dataType, Object[][] data) throws Exception {
+    private Object executeAggregation(DataType dataType, Object[][] data) throws Exception {
         return executeAggregation("avg", dataType, data);
     }
 
@@ -50,41 +50,39 @@ public class AverageAggregationTest extends AggregationTest {
 
     @Test
     public void testDouble() throws Exception {
-        Object[][] result = executeAggregation(DataTypes.DOUBLE, new Object[][]{{0.7d}, {0.3d}});
-
-        assertEquals(0.5d, result[0][0]);
+        Object result = executeAggregation(DataTypes.DOUBLE, new Object[][]{{0.7d}, {0.3d}});
+        assertEquals(0.5d, result);
     }
 
     @Test
     public void testFloat() throws Exception {
-        Object[][] result = executeAggregation(DataTypes.FLOAT, new Object[][]{{0.7f}, {0.3f}});
-
-        assertEquals(0.5d, result[0][0]);
+        Object result = executeAggregation(DataTypes.FLOAT, new Object[][]{{0.7f}, {0.3f}});
+        assertEquals(0.5d, result);
     }
 
     @Test
     public void testInteger() throws Exception {
-        Object[][] result = executeAggregation(DataTypes.INTEGER, new Object[][]{{7}, {3}});
+        Object result = executeAggregation(DataTypes.INTEGER, new Object[][]{{7}, {3}});
 
-        assertEquals(5d, result[0][0]);
+        assertEquals(5d, result);
     }
 
     @Test
     public void testLong() throws Exception {
-        Object[][] result = executeAggregation(DataTypes.LONG, new Object[][]{{7L}, {3L}});
+        Object result = executeAggregation(DataTypes.LONG, new Object[][]{{7L}, {3L}});
 
-        assertEquals(5d, result[0][0]);
+        assertEquals(5d, result);
     }
 
     @Test
     public void testShort() throws Exception {
-        Object[][] result = executeAggregation(DataTypes.SHORT, new Object[][]{{(short) 7}, {(short) 3}});
+        Object result = executeAggregation(DataTypes.SHORT, new Object[][]{{(short) 7}, {(short) 3}});
 
-        assertEquals(5d, result[0][0]);
+        assertEquals(5d, result);
     }
 
     @Test(expected = NullPointerException.class)
     public void testUnsupportedType() throws Exception {
-        Object[][] result = executeAggregation(DataTypes.STRING, new Object[][]{{"Youri"}, {"Ruben"}});
+        executeAggregation(DataTypes.STRING, new Object[][]{{"Youri"}, {"Ruben"}});
     }
 }
