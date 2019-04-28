@@ -46,12 +46,12 @@ public class PercentileAggregationTest extends AggregationTest {
 
     private static final String NAME = "percentile";
 
-    private Object[][] execSingleFractionPercentile(DataType valueType, Object[][] rows) throws Exception {
+    private Object execSingleFractionPercentile(DataType valueType, Object[][] rows) throws Exception {
         String name = "percentile";
         return executeAggregation(name, valueType, rows, ImmutableList.of(valueType, DataTypes.DOUBLE));
     }
 
-    private Object[][] execArrayFractionPercentile(DataType valueType, Object[][] rows) throws Exception {
+    private Object execArrayFractionPercentile(DataType valueType, Object[][] rows) throws Exception {
         String name = "percentile";
         return executeAggregation(name, valueType, rows, ImmutableList.of(valueType, new ArrayType(DataTypes.DOUBLE)));
     }
@@ -87,29 +87,29 @@ public class PercentileAggregationTest extends AggregationTest {
                     valueType.value(i), fractions
                 };
             }
-            Object[][] result = execSingleFractionPercentile(valueType, rowsWithSingleFraction);
-            assertEquals(4.5, result[0][0]);
+            Object result = execSingleFractionPercentile(valueType, rowsWithSingleFraction);
+            assertEquals(4.5, result);
             result = execArrayFractionPercentile(valueType, rowsWithFractionsArray);
-            assertTrue(result[0][0].getClass().isArray());
-            assertEquals(2, ((Object[]) result[0][0]).length);
-            assertEquals(4.5, ((Object[]) result[0][0])[0]);
-            assertEquals(7.5, ((Object[]) result[0][0])[1]);
+            assertTrue(result.getClass().isArray());
+            assertEquals(2, ((Object[]) result).length);
+            assertEquals(4.5, ((Object[]) result)[0]);
+            assertEquals(7.5, ((Object[]) result)[1]);
         }
     }
 
     @Test
     public void testNullPercentile() throws Exception {
-        Object[][] result = execSingleFractionPercentile(DataTypes.INTEGER, new Object[][]{
+        Object result = execSingleFractionPercentile(DataTypes.INTEGER, new Object[][]{
             {1, null},
             {10, null}
         });
 
-        assertTrue(result[0][0] == null);
+        assertTrue(result == null);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testEmptyPercentile() throws Exception {
-        Object[][] result = execSingleFractionPercentile(DataTypes.INTEGER, new Object[][]{
+        Object result = execSingleFractionPercentile(DataTypes.INTEGER, new Object[][]{
             {1, new Object[]{}},
             {10, new Object[]{}}
         });
@@ -118,7 +118,7 @@ public class PercentileAggregationTest extends AggregationTest {
     @Test(expected = IllegalArgumentException.class)
     public void testNullMultiplePercentiles() throws Exception {
         Double[] fractions = new Double[]{0.25, null};
-        Object[][] result = execSingleFractionPercentile(DataTypes.INTEGER, new Object[][]{
+        execSingleFractionPercentile(DataTypes.INTEGER, new Object[][]{
             {1, fractions},
             {10, fractions}
         });
@@ -126,7 +126,7 @@ public class PercentileAggregationTest extends AggregationTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testNegativePercentile() throws Exception {
-        Object[][] result = execSingleFractionPercentile(DataTypes.INTEGER, new Object[][]{
+        execSingleFractionPercentile(DataTypes.INTEGER, new Object[][]{
             {1, -1.2},
             {10, -1.2}
         });
@@ -134,7 +134,7 @@ public class PercentileAggregationTest extends AggregationTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testTooLargePercentile() throws Exception {
-        Object[][] result = execSingleFractionPercentile(DataTypes.INTEGER, new Object[][]{
+        execSingleFractionPercentile(DataTypes.INTEGER, new Object[][]{
             {1, 1.5},
             {10, 1.5}
         });
@@ -142,7 +142,7 @@ public class PercentileAggregationTest extends AggregationTest {
 
     @Test(expected = NullPointerException.class)
     public void testUnsupportedType() throws Exception {
-        Object[][] result = execSingleFractionPercentile(DataTypes.STRING, new Object[][]{
+        execSingleFractionPercentile(DataTypes.STRING, new Object[][]{
             {"Akira", 0.5},
             {"Tetsuo", 0.5}
         });
@@ -150,17 +150,17 @@ public class PercentileAggregationTest extends AggregationTest {
 
     @Test
     public void testNullInputValuesReturnNull() throws Exception {
-        Object[][] result = execSingleFractionPercentile(DataTypes.LONG, new Object[][]{
+        Object result = execSingleFractionPercentile(DataTypes.LONG, new Object[][]{
             {null, 0.5},
             {null, 0.5}
         });
-        assertEquals(result[0][0], null);
+        assertEquals(result, null);
     }
 
     @Test
     public void testEmptyPercentileFuncWithEmptyRows() throws Exception {
-        Object[][] result = execSingleFractionPercentile(DataTypes.INTEGER, new Object[][]{});
-        assertThat(result[0][0], is(nullValue()));
+        Object result = execSingleFractionPercentile(DataTypes.INTEGER, new Object[][]{});
+        assertThat(result, is(nullValue()));
     }
 
     public void testIterate() throws Exception {

@@ -38,7 +38,7 @@ import static io.crate.testing.SymbolMatchers.isLiteral;
 
 public class CountAggregationTest extends AggregationTest {
 
-    private Object[][] executeAggregation(DataType dataType, Object[][] data) throws Exception {
+    private Object executeAggregation(DataType dataType, Object[][] data) throws Exception {
         return executeAggregation("count", dataType, data);
     }
 
@@ -55,44 +55,44 @@ public class CountAggregationTest extends AggregationTest {
 
     @Test
     public void testDouble() throws Exception {
-        Object[][] result = executeAggregation(DataTypes.DOUBLE, new Object[][]{{0.7d}, {0.3d}});
+        Object result = executeAggregation(DataTypes.DOUBLE, new Object[][]{{0.7d}, {0.3d}});
 
-        assertEquals(2L, result[0][0]);
+        assertEquals(2L, result);
     }
 
     @Test
     public void testFloat() throws Exception {
-        Object[][] result = executeAggregation(DataTypes.FLOAT, new Object[][]{{0.7f}, {0.3f}});
+        Object result = executeAggregation(DataTypes.FLOAT, new Object[][]{{0.7f}, {0.3f}});
 
-        assertEquals(2L, result[0][0]);
+        assertEquals(2L, result);
     }
 
     @Test
     public void testInteger() throws Exception {
-        Object[][] result = executeAggregation(DataTypes.INTEGER, new Object[][]{{7}, {3}});
+        Object result = executeAggregation(DataTypes.INTEGER, new Object[][]{{7}, {3}});
 
-        assertEquals(2L, result[0][0]);
+        assertEquals(2L, result);
     }
 
     @Test
     public void testLong() throws Exception {
-        Object[][] result = executeAggregation(DataTypes.LONG, new Object[][]{{7L}, {3L}});
+        Object result = executeAggregation(DataTypes.LONG, new Object[][]{{7L}, {3L}});
 
-        assertEquals(2L, result[0][0]);
+        assertEquals(2L, result);
     }
 
     @Test
     public void testShort() throws Exception {
-        Object[][] result = executeAggregation(DataTypes.SHORT, new Object[][]{{(short) 7}, {(short) 3}});
+        Object result = executeAggregation(DataTypes.SHORT, new Object[][]{{(short) 7}, {(short) 3}});
 
-        assertEquals(2L, result[0][0]);
+        assertEquals(2L, result);
     }
 
     @Test
     public void testString() throws Exception {
-        Object[][] result = executeAggregation(DataTypes.STRING, new Object[][]{{"Youri"}, {"Ruben"}});
+        Object result = executeAggregation(DataTypes.STRING, new Object[][]{{"Youri"}, {"Ruben"}});
 
-        assertEquals(2L, result[0][0]);
+        assertEquals(2L, result);
     }
 
     @Test
@@ -104,8 +104,8 @@ public class CountAggregationTest extends AggregationTest {
     @Test
     public void testNoInput() throws Exception {
         // aka. COUNT(*)
-        Object[][] result = executeAggregation(null, new Object[][]{{}, {}});
-        assertEquals(2L, result[0][0]);
+        Object result = executeAggregation(null, new Object[][]{{}, {}});
+        assertEquals(2L, result);
     }
 
     @Test
