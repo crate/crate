@@ -41,7 +41,7 @@ import static org.hamcrest.core.IsInstanceOf.instanceOf;
 
 public class CollectSetAggregationTest extends AggregationTest {
 
-    private Object[][] executeAggregation(DataType dataType, Object[][] data) throws Exception {
+    private Object executeAggregation(DataType dataType, Object[][] data) throws Exception {
         return executeAggregation("collect_set", dataType, data);
     }
 

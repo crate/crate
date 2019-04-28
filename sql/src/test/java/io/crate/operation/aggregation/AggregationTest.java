@@ -60,7 +60,7 @@ public abstract class AggregationTest extends CrateUnitTest {
         functions = getFunctions();
     }
 
-    public Object[][] executeAggregation(String name, DataType dataType, Object[][] data) throws Exception {
+    public Object executeAggregation(String name, DataType dataType, Object[][] data) throws Exception {
         if (dataType == null) {
             return executeAggregation(name, dataType, data, ImmutableList.of());
         } else {
@@ -68,7 +68,7 @@ public abstract class AggregationTest extends CrateUnitTest {
         }
     }
 
-    public Object[][] executeAggregation(String name, DataType dataType, Object[][] data, List<DataType> argumentTypes) throws Exception {
+    public Object executeAggregation(String name, DataType dataType, Object[][] data, List<DataType> argumentTypes) throws Exception {
         FunctionIdent fi;
         InputCollectExpression[] inputs;
         if (dataType != null) {
@@ -93,8 +93,7 @@ public abstract class AggregationTest extends CrateUnitTest {
             state = impl.iterate(ramAccountingContext, state, inputs);
 
         }
-        state = impl.terminatePartial(ramAccountingContext, state);
-        return new Object[][]{{state}};
+        return impl.terminatePartial(ramAccountingContext, state);
     }
 
     protected Symbol normalize(String functionName, Object value, DataType type) {
