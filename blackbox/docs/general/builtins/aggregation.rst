@@ -297,6 +297,34 @@ number of distinct values in this column that are not ``NULL``::
     +------------------------+
     SELECT 1 row in set (... sec)
 
+
+.. _string_agg:
+
+``string_agg``
+==============
+
+::
+
+   string_agg(text, text) -> text
+   string_agg(expression, delimiter)
+
+The ``string_agg`` aggregation function concatenates the input values into a
+string, where each value is separated by a delimiter.
+
+If all input values are null, null is returned as a result.
+
+
+::
+
+   cr> select string_agg(col1, ', ') from unnest(['a', 'b', 'c']);
+   +------------------------+
+   | string_agg(col1, ', ') |
+   +------------------------+
+   | a, b, c                |
+   +------------------------+
+   SELECT 1 row in set (... sec)
+
+
 ``geometric_mean``
 ==================
 
