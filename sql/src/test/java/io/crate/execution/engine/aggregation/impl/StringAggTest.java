@@ -43,7 +43,7 @@ public class StringAggTest extends AggregationTest {
             new Object[] { null, null },
             new Object[] { null, null },
         }, List.of(DataTypes.STRING, DataTypes.STRING));
-        assertThat(result[0][0], Matchers.nullValue());
+        assertThat(result, Matchers.nullValue());
     }
 
     @Test
@@ -53,7 +53,7 @@ public class StringAggTest extends AggregationTest {
             new Object[] { "b", null },
             new Object[] { "c", "," },
         }, List.of(DataTypes.STRING, DataTypes.STRING));
-        assertThat(result[0][0], is("ab,c"));
+        assertThat(result, is("ab,c"));
     }
 
     @Test
@@ -63,7 +63,7 @@ public class StringAggTest extends AggregationTest {
             new Object[] { null, "," },
             new Object[] { "c", "," },
         }, List.of(DataTypes.STRING, DataTypes.STRING));
-        assertThat(result[0][0], is("a,c"));
+        assertThat(result, is("a,c"));
     }
 
     @Test
