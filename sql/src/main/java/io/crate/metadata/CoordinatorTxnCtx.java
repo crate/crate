@@ -63,7 +63,6 @@ public final class CoordinatorTxnCtx implements TransactionContext {
     public SessionSettings sessionSettings() {
         return new SessionSettings(sessionContext.user().name(),
                                    sessionContext.searchPath(),
-                                   sessionContext.getSemiJoinsRewriteEnabled(),
                                    sessionContext.isHashJoinEnabled());
     }
 

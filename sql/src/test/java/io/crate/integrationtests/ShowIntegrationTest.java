@@ -24,7 +24,6 @@ package io.crate.integrationtests;
 import io.crate.action.sql.SQLActionException;
 import io.crate.testing.UseHashJoins;
 import io.crate.testing.UseRandomizedSchema;
-import io.crate.testing.UseSemiJoins;
 import org.junit.Test;
 
 import java.util.Locale;
@@ -384,13 +383,6 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(printedTable(response.rows()), is("true\n"));
     }
 
-    @UseSemiJoins(1)
-    @Test
-    public void testShowEnableSemiJoin() {
-        execute("show enable_semijoin");
-        assertThat(printedTable(response.rows()), is("true\n"));
-    }
-
     @Test
     public void testShowUnknownSetting() {
         expectedException.expect(SQLActionException.class);
@@ -399,13 +391,11 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @UseHashJoins(1)
-    @UseSemiJoins(0)
     @Test
     public void testShowAll() {
         execute("show all");
         assertThat(printedTable(response.rows()), is(
             "search_path| pg_catalog, doc| Sets the schema search order.\n" +
-            "enable_semijoin| false| Considers rewriting a SemiJoin query into a conventional join query.\n" +
             "enable_hashjoin| true| Considers using the Hash Join instead of the Nested Loop Join implementation.\n" +
             "max_index_keys| 32| Shows the maximum number of index keys.\n")
         );

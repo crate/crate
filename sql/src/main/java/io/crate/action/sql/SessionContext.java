@@ -44,7 +44,6 @@ public class SessionContext implements StatementAuthorizedValidator, ExceptionAu
     private final ExceptionAuthorizedValidator exceptionAuthorizedValidator;
 
     private SearchPath searchPath;
-    private boolean semiJoinsRewriteEnabled = false;
     private boolean hashJoinEnabled = true;
 
     /**
@@ -91,14 +90,6 @@ public class SessionContext implements StatementAuthorizedValidator, ExceptionAu
         this.searchPath = createSearchPathFrom(schemas);
     }
 
-    public void setSemiJoinsRewriteEnabled(boolean flag) {
-        this.semiJoinsRewriteEnabled = flag;
-    }
-
-    public boolean getSemiJoinsRewriteEnabled() {
-        return semiJoinsRewriteEnabled;
-    }
-
     public boolean isHashJoinEnabled() {
         return hashJoinEnabled;
     }
@@ -127,7 +118,6 @@ public class SessionContext implements StatementAuthorizedValidator, ExceptionAu
 
     public void resetToDefaults() {
         resetSchema();
-        semiJoinsRewriteEnabled = false;
         hashJoinEnabled = true;
     }
 }

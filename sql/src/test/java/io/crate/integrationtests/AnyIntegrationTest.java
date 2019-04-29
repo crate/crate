@@ -22,13 +22,10 @@
 package io.crate.integrationtests;
 
 import io.crate.testing.TestingHelpers;
-import io.crate.testing.UseSemiJoins;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.Is;
 import org.junit.Test;
 
-import static io.crate.integrationtests.SubSelectIntegrationTest.NO_SESSION_SETTINGS_AND_SEMI_JOIN_ENABLED;
-import static io.crate.testing.TestingHelpers.isPrintedTable;
 import static org.hamcrest.Matchers.is;
 
 public class AnyIntegrationTest extends SQLTransportIntegrationTest {
@@ -103,41 +100,6 @@ public class AnyIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), Is.is(2L));
         assertThat((Byte) response.rows()[0][0], Is.is((byte) 2));
         assertThat((Byte) response.rows()[1][0], Is.is((byte) 1));
-    }
-
-    @Test
-    @UseSemiJoins(0) // Executed explicitly both with enable_semijoin enabled and disabled
-    public void testAnyWithSubselect() throws Exception {
-        execute("select 2 where 1 = ANY(select 2)");
-        assertThat(response.rowCount(), is(0L));
-
-        execute("select 2 where 1 = ANY(select null)");
-        assertThat(response.rowCount(), is(0L));
-
-        execute("select 2 where 1 = ANY(select 1)");
-        assertThat(response.rowCount(), is(1L));
-        assertThat(response.rows()[0][0], is(2L));
-
-        execute("create table t (id integer) clustered into 1 shards with (number_of_replicas=0)");
-        ensureYellow();
-        execute("insert into t values(1)");
-        execute("insert into t values(2)");
-        execute("insert into t values(3)");
-        execute("refresh table t");
-
-        executeWith(
-            NO_SESSION_SETTINGS_AND_SEMI_JOIN_ENABLED ,
-            "select 3 where 1 = ANY(select id from t order by id asc)",
-            isPrintedTable("3\n")
-        );
-
-        executeWith(
-            NO_SESSION_SETTINGS_AND_SEMI_JOIN_ENABLED,
-            "select id from t where id = ANY(select id from t order by id asc)",
-            isPrintedTable("1\n" +
-                           "2\n" +
-                           "3\n")
-        );
     }
 
     @Test
