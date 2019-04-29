@@ -35,7 +35,6 @@ public class CurrentSettingFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testNormalizeExistingSettingSingleArg() {
         assertNormalize("current_setting('search_path')", isLiteral("pg_catalog, doc"));
-        assertNormalize("current_setting('enable_semijoin')", isLiteral("false"));
         assertNormalize("current_setting('enable_hashjoin')", isLiteral("true"));
     }
 
@@ -70,7 +69,7 @@ public class CurrentSettingFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testNormalizeWithPgCatalogPrefix() {
-        assertNormalize("pg_catalog.current_setting('enable_semijoin')", isLiteral("false"));
+        assertNormalize("pg_catalog.current_setting('enable_hashjoin')", isLiteral("true"));
     }
 
     @Test

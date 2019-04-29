@@ -28,7 +28,6 @@ import io.crate.execution.engine.sort.OrderingByPosition;
 import io.crate.metadata.RelationName;
 import io.crate.planner.TableStats;
 import io.crate.testing.TestingHelpers;
-import io.crate.testing.UseSemiJoins;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -37,7 +36,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import static io.crate.testing.TestingHelpers.isPrintedTable;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.is;
 
@@ -45,9 +43,6 @@ import static org.hamcrest.Matchers.is;
 public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
 
     private Setup setup = new Setup(sqlExecutor);
-    static final List<List<String>> NO_SESSION_SETTINGS_AND_SEMI_JOIN_ENABLED = Arrays.asList(
-        Collections.emptyList(),
-        Collections.singletonList("set enable_semijoin = true"));
 
     @Test
     public void testSubSelectOrderBy() throws Exception {
@@ -217,7 +212,6 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    @UseSemiJoins(0) // Executed explicitly both with enable_semijoin enabled and disabled
     public void testNestedSubSelectWithOuterJoins() throws Exception {
         execute("create table t1 (a string, i integer, x integer)");
         execute("create table t2 (a string, i integer, y integer)");
@@ -236,30 +230,16 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(printedTable(response.rows()),
             is("aa| 58\n"));
 
-        executeWith(
-            NO_SESSION_SETTINGS_AND_SEMI_JOIN_ENABLED,
+        assertThat(printedTable(execute(
             "select aa, xyi from (" +
             "  select (xy + i) as xyi, aa from (" +
             "    select concat(t1.a, t2.a) as aa, t2.i, (t1.x + t2.y) as xy " +
             "    from t1 right join t2 on t1.a = t2.a where t1.a='a' or t2.a in ('aa', 'bb')) as t) as tt " +
-            "order by aa, xyi",
+            "order by aa, xyi").rows()),
 
-            isPrintedTable(
-                "aa| 58\n" +
-                "bb| NULL\n")
+            is("aa| 58\n" +
+               "bb| NULL\n")
         );
-
-        executeWith(
-            NO_SESSION_SETTINGS_AND_SEMI_JOIN_ENABLED,
-            "select aa, xyi from (" +
-            "  select (xy + i) as xyi, aa from (" +
-            "    select concat(t1.a, t2.a) as aa, t2.i, (t1.x + t2.y) as xy " +
-            "    from t1 full join t2 on t1.a = t2.a where t1.a='a' or t2.a in ('aa', 'bb')) as t) as tt " +
-            "order by aa, xyi",
-
-            isPrintedTable(
-                "aa| 58\n" +
-                "bb| NULL\n"));
     }
 
     @Test
@@ -595,14 +575,12 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testSubqueryExpressionWithInPredicateLeftFieldSymbol() throws Exception {
         setup.setUpCharacters();
-        executeWith(
-            NO_SESSION_SETTINGS_AND_SEMI_JOIN_ENABLED,
-            "select id, name from characters where id in (select col1 from unnest([1,2,3])) order by id",
-            isPrintedTable(
-                "1| Arthur\n" +
-                "2| Ford\n" +
-                "3| Trillian\n"
-            )
+        execute("select id, name from characters where id in (select col1 from unnest([1,2,3])) order by id");
+        assertThat(
+            printedTable(response.rows()),
+            is("1| Arthur\n" +
+               "2| Ford\n" +
+               "3| Trillian\n")
         );
     }
 
@@ -625,13 +603,11 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    @UseSemiJoins(0) // Executed explicitly both with enable_semijoin enabled and disabled
     public void testNestedSubqueryWithAggregatesInMultipleStages() throws Exception {
         setup.setUpJobs();
         setup.setUpEmployees();
 
-        executeWith(
-            NO_SESSION_SETTINGS_AND_SEMI_JOIN_ENABLED,
+        execute(
             "select department, avg(income) from employees" +
             "   where income <= ANY (" +
             "       select avg(min_salary) from jobs" +
@@ -640,10 +616,12 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
             "       )" +
             "   )" +
             "   group by department" +
-            "   order by avg(income) desc",
-            isPrintedTable(
-                "engineering| 5000.0\n" +
-                "HR| 0.5\n")
+            "   order by avg(income) desc"
+        );
+        assertThat(
+            printedTable(response.rows()),
+            is("engineering| 5000.0\n" +
+               "HR| 0.5\n")
         );
     }
 
@@ -668,13 +646,11 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    @UseSemiJoins(0) // Executed explicitly both with enable_semijoin enabled and disabled
     public void testSubqueryWithNestedEquiJoin() throws Exception {
         setup.setUpJobs();
         setup.setUpEmployees();
 
-        executeWith(
-            NO_SESSION_SETTINGS_AND_SEMI_JOIN_ENABLED,
+        execute(
             "select name, income from employees" +
             "   where hired <= ANY (" +
             "       select jh.from_ts from job_history jh" +
@@ -682,25 +658,29 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
             "       where j.department = 'HR'" +
             "   )" +
             "   and department = 'HR'" +
-            "   order by income desc",
-            isPrintedTable("catbert| 9.9999999999E8\n")
+            "   order by income desc"
+        );
+        assertThat(
+            printedTable(response.rows()),
+            is("catbert| 9.9999999999E8\n")
         );
     }
 
     @Test
-    @UseSemiJoins(0) // Executed explicitly both with enable_semijoin enabled and disabled
     public void testSelectWithTwoInOnSubQueryThatCanBeRewrittenToSemiJoins() throws Exception {
-        executeWith(
-            NO_SESSION_SETTINGS_AND_SEMI_JOIN_ENABLED,
+        execute(
             "select * from unnest([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]) t1 " +
             "where " +
             "   col1 in (select col1 from unnest([1, 2, 4, 5, 6])) " +
             "   and col1 in (select col1 from unnest([4, 5, 6])) " +
-            "order by col1 ",
-            isPrintedTable(
-                "4\n" +
-                "5\n" +
-                "6\n"));
+            "order by col1 "
+        );
+        assertThat(
+            printedTable(response.rows()),
+            is("4\n" +
+               "5\n" +
+               "6\n")
+        );
     }
 
     /**

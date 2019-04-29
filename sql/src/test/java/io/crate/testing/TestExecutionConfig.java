@@ -28,21 +28,15 @@ package io.crate.testing;
 public class TestExecutionConfig {
 
     private final boolean isJdbcEnabled;
-    private final boolean isSemiJoinsEnabled;
     private final boolean isHashJoinEnabled;
 
-    public TestExecutionConfig(boolean isJdbcEnabled, boolean isSemiJoinsEnabled, boolean isHashJoinEnabled) {
+    public TestExecutionConfig(boolean isJdbcEnabled, boolean isHashJoinEnabled) {
         this.isJdbcEnabled = isJdbcEnabled;
-        this.isSemiJoinsEnabled = isSemiJoinsEnabled;
         this.isHashJoinEnabled = isHashJoinEnabled;
     }
 
     public boolean isJdbcEnabled() {
         return isJdbcEnabled;
-    }
-
-    public boolean isSemiJoinsEnabled() {
-        return isSemiJoinsEnabled;
     }
 
     public boolean isHashJoinEnabled() {

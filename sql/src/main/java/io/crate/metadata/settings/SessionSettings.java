@@ -35,28 +35,22 @@ public final class SessionSettings implements Writeable {
 
     private final String userName;
     private final SearchPath searchPath;
-    private final boolean semiJoinsRewriteEnabled;
     private final boolean hashJoinsEnabled;
 
     public SessionSettings(StreamInput in) throws IOException {
         this.userName = in.readString();
         this.searchPath = SearchPath.createSearchPathFrom(in);
-        this.semiJoinsRewriteEnabled = in.readBoolean();
         this.hashJoinsEnabled = in.readBoolean();
     }
 
     @VisibleForTesting
     public SessionSettings(String userName, SearchPath searchPath) {
-        this(userName, searchPath, true, false);
+        this(userName, searchPath, true);
     }
 
-    public SessionSettings(String userName,
-                           SearchPath searchPath,
-                           boolean semiJoinsRewriteEnabled,
-                           boolean hashJoinsEnabled) {
+    public SessionSettings(String userName, SearchPath searchPath, boolean hashJoinsEnabled) {
         this.userName = userName;
         this.searchPath = searchPath;
-        this.semiJoinsRewriteEnabled = semiJoinsRewriteEnabled;
         this.hashJoinsEnabled = hashJoinsEnabled;
     }
 
@@ -72,10 +66,6 @@ public final class SessionSettings implements Writeable {
         return searchPath;
     }
 
-    public boolean semiJoinsRewriteEnabled() {
-        return semiJoinsRewriteEnabled;
-    }
-
     public boolean hashJoinsEnabled() {
         return hashJoinsEnabled;
     }
@@ -84,7 +74,6 @@ public final class SessionSettings implements Writeable {
     public void writeTo(StreamOutput out) throws IOException {
         out.writeString(userName);
         searchPath.writeTo(out);
-        out.writeBoolean(semiJoinsRewriteEnabled);
         out.writeBoolean(hashJoinsEnabled);
     }
 
@@ -99,12 +88,11 @@ public final class SessionSettings implements Writeable {
         SessionSettings that = (SessionSettings) o;
         return Objects.equals(userName, that.userName) &&
                Objects.equals(searchPath, that.searchPath) &&
-               Objects.equals(semiJoinsRewriteEnabled, that.semiJoinsRewriteEnabled) &&
                Objects.equals(hashJoinsEnabled, that.hashJoinsEnabled);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(userName, searchPath, semiJoinsRewriteEnabled, hashJoinsEnabled);
+        return Objects.hash(userName, searchPath, hashJoinsEnabled);
     }
 }
