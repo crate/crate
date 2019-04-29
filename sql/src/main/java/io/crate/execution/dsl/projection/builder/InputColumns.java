@@ -127,7 +127,7 @@ public final class InputColumns extends DefaultTraversalSymbolVisitor<InputColum
      * Same as {@link #create(Symbol, Collection)} but allows to re-use {@link SourceSymbols}
      */
     public static Symbol create(Symbol symbolTree, SourceSymbols sourceSymbols) {
-        return INSTANCE.process(symbolTree, sourceSymbols);
+        return symbolTree.accept(INSTANCE, sourceSymbols);
     }
 
     /**
@@ -141,7 +141,7 @@ public final class InputColumns extends DefaultTraversalSymbolVisitor<InputColum
     public static List<Symbol> create(Collection<? extends Symbol> symbols, SourceSymbols sourceSymbols) {
         List<Symbol> result = new ArrayList<>(symbols.size());
         for (Symbol symbol : symbols) {
-            result.add(INSTANCE.process(symbol, sourceSymbols));
+            result.add(symbol.accept(INSTANCE, sourceSymbols));
         }
         return result;
     }
@@ -168,7 +168,7 @@ public final class InputColumns extends DefaultTraversalSymbolVisitor<InputColum
     private ArrayList<Symbol> getProcessedArgs(List<Symbol> arguments, SourceSymbols sourceSymbols) {
         ArrayList<Symbol> args = new ArrayList<>(arguments.size());
         for (Symbol arg : arguments) {
-            args.add(process(arg, sourceSymbols));
+            args.add(arg.accept(this, sourceSymbols));
         }
         return args;
     }
@@ -202,7 +202,7 @@ public final class InputColumns extends DefaultTraversalSymbolVisitor<InputColum
         if (ref instanceof GeneratedReference) {
             return MoreObjects.firstNonNull(
                 sourceSymbols.inputs.get(ref),
-                process(((GeneratedReference) ref).generatedExpression(), sourceSymbols));
+                (((GeneratedReference) ref).generatedExpression().accept(this, sourceSymbols)));
         }
         InputColumn inputColumn = sourceSymbols.inputs.get(ref);
         if (inputColumn == null) {
