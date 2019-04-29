@@ -34,15 +34,15 @@ import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.List;
 
-public class UnionSelect implements QueriedRelation {
+public class UnionSelect implements AnalyzedRelation {
 
     private final QuerySpec querySpec = new QuerySpec();
     private final Fields fields;
-    private final QueriedRelation left;
-    private final QueriedRelation right;
+    private final AnalyzedRelation left;
+    private final AnalyzedRelation right;
     private QualifiedName name;
 
-    public UnionSelect(QueriedRelation left, QueriedRelation right) {
+    public UnionSelect(AnalyzedRelation left, AnalyzedRelation right) {
         this.left = left;
         this.right = right;
         this.name = left.getQualifiedName();
@@ -55,11 +55,11 @@ public class UnionSelect implements QueriedRelation {
         querySpec.outputs(new ArrayList<>(fields.asList()));
     }
 
-    public QueriedRelation left() {
+    public AnalyzedRelation left() {
         return left;
     }
 
-    public QueriedRelation right() {
+    public AnalyzedRelation right() {
         return right;
     }
 

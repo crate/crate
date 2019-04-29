@@ -40,7 +40,6 @@ import io.crate.analyze.expressions.SubqueryAnalyzer;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.FullQualifiedNameFieldProvider;
 import io.crate.analyze.relations.ParentRelations;
-import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.analyze.relations.RelationNormalizer;
 import io.crate.analyze.relations.StatementAnalysisContext;
@@ -200,12 +199,12 @@ public class SQLExecutor {
         );
     }
 
-    public <T extends AnalyzedRelation> T normalize(QueriedRelation relation, CoordinatorTxnCtx txnCtx) {
+    public <T extends AnalyzedRelation> T normalize(AnalyzedRelation relation, CoordinatorTxnCtx txnCtx) {
         //noinspection unchecked
         return (T) relationNormalizer.normalize(relation, txnCtx);
     }
 
-    public <T extends QueriedRelation> T normalize(String statement) {
+    public <T extends AnalyzedRelation> T normalize(String statement) {
         return normalize(
             analyze(statement),
             new CoordinatorTxnCtx(SessionContext.systemSessionContext())
@@ -684,7 +683,7 @@ public class SQLExecutor {
         AnalyzedStatement stmt = analyze(statement, ParameterContext.EMPTY);
         if (stmt instanceof AnalyzedRelation) {
             // unboundAnalyze currently doesn't normalize; which breaks LogicalPlan building for joins
-            // because the subRelations are not yet QueriedRelations.
+            // because the subRelations are not yet AnalyzedRelations.
             // we eventually should integrate normalize into unboundAnalyze.
             // But then we have to remove the whereClauseAnalyzer calls because they depend on all values being available
             stmt = (AnalyzedStatement) new RelationNormalizer(functions)

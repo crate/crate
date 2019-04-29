@@ -22,8 +22,8 @@
 package io.crate.analyze;
 
 import io.crate.analyze.relations.AbstractTableRelation;
+import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
-import io.crate.analyze.relations.QueriedRelation;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Path;
@@ -36,7 +36,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 
-public final class QueriedTable<TR extends AbstractTableRelation> implements QueriedRelation {
+public final class QueriedTable<TR extends AbstractTableRelation> implements AnalyzedRelation {
 
     private final boolean isDistinct;
     private final TR tableRelation;

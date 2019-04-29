@@ -23,7 +23,7 @@
 package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.relations.QueriedRelation;
+import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.UnionSelect;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.MergePhase;
@@ -67,8 +67,8 @@ public class Union extends TwoInputPlan {
     static Builder create(UnionSelect ttr, SubqueryPlanner subqueryPlanner, Functions functions, CoordinatorTxnCtx txnCtx) {
         return (tableStats, usedColsByParent) -> {
 
-            QueriedRelation left = ttr.left();
-            QueriedRelation right = ttr.right();
+            AnalyzedRelation left = ttr.left();
+            AnalyzedRelation right = ttr.right();
 
             Set<Symbol> usedFromLeft = new HashSet<>();
             Set<Symbol> usedFromRight = new HashSet<>();
@@ -93,14 +93,14 @@ public class Union extends TwoInputPlan {
 
     private static void addColumnsFrom(Iterable<? extends Symbol> symbols,
                                        Consumer<? super Symbol> consumer,
-                                       QueriedRelation rel) {
+                                       AnalyzedRelation rel) {
 
         for (Symbol symbol : symbols) {
             addColumnsFrom(symbol, consumer, rel);
         }
     }
 
-    private static void addColumnsFrom(@Nullable Symbol symbol, Consumer<? super Symbol> consumer, QueriedRelation rel) {
+    private static void addColumnsFrom(@Nullable Symbol symbol, Consumer<? super Symbol> consumer, AnalyzedRelation rel) {
         if (symbol == null) {
             return;
         }

@@ -22,8 +22,8 @@
 
 package io.crate.analyze;
 
+import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.OrderedLimitedRelation;
-import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.UnionSelect;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -48,17 +48,17 @@ public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             .build();
     }
 
-    private QueriedRelation analyze(String statement) {
+    private AnalyzedRelation analyze(String statement) {
         return sqlExecutor.analyze(statement);
     }
 
     @Test
     public void testUnion2Tables() {
-        QueriedRelation relation = analyze("select id, text from users " +
-                                           "union all " +
-                                           "select id, name from users_multi_pk " +
-                                           "order by id, 2 " +
-                                           "limit 10 offset 20");
+        AnalyzedRelation relation = analyze("select id, text from users " +
+                                            "union all " +
+                                            "select id, name from users_multi_pk " +
+                                            "order by id, 2 " +
+                                            "limit 10 offset 20");
         assertThat(relation, instanceOf(OrderedLimitedRelation.class));
         OrderedLimitedRelation orderedLimitedRelation = ((OrderedLimitedRelation) relation);
         assertThat(orderedLimitedRelation.orderBy(),
@@ -78,13 +78,13 @@ public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testUnion3Tables() {
-        QueriedRelation relation = analyze("select id, text from users u1 " +
-                                           "union all " +
-                                           "select id, name from users_multi_pk " +
-                                           "union all " +
-                                           "select id, name from users " +
-                                           "order by text " +
-                                           "limit 10 offset 20");
+        AnalyzedRelation relation = analyze("select id, text from users u1 " +
+                                            "union all " +
+                                            "select id, name from users_multi_pk " +
+                                            "union all " +
+                                            "select id, name from users " +
+                                            "order by text " +
+                                            "limit 10 offset 20");
         assertThat(relation, instanceOf(OrderedLimitedRelation.class));
         OrderedLimitedRelation orderedLimitedRelation = ((OrderedLimitedRelation) relation);
         assertThat(orderedLimitedRelation.orderBy(), isSQL("u1.text"));

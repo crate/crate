@@ -22,8 +22,8 @@
 
 package io.crate.analyze;
 
+import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
-import io.crate.analyze.relations.QueriedRelation;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Symbol;
@@ -37,15 +37,15 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 
-public class QueriedSelectRelation implements QueriedRelation {
+public class QueriedSelectRelation implements AnalyzedRelation {
 
     private final Fields fields;
     private final QuerySpec querySpec;
     private final boolean isDistinct;
-    private final QueriedRelation subRelation;
+    private final AnalyzedRelation subRelation;
 
     public QueriedSelectRelation(boolean isDistinct,
-                                 QueriedRelation subRelation,
+                                 AnalyzedRelation subRelation,
                                  Collection<? extends Path> outputNames,
                                  QuerySpec querySpec) {
         this.isDistinct = isDistinct;
@@ -58,7 +58,7 @@ public class QueriedSelectRelation implements QueriedRelation {
         }
     }
 
-    public QueriedRelation subRelation() {
+    public AnalyzedRelation subRelation() {
         return subRelation;
     }
 

@@ -29,7 +29,6 @@ import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.AnalyzedView;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.OrderedLimitedRelation;
-import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.RelationNormalizer;
 import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.analyze.relations.TableRelation;
@@ -54,7 +53,7 @@ public class Relations {
     }
 
     /**
-     * Promotes the relation to a QueriedRelation by applying the QuerySpec.
+     * Promotes the relation to a AnalyzedRelation by applying the QuerySpec.
      *
      * <pre>
      * TableRelation -> QueriedTable
@@ -64,12 +63,12 @@ public class Relations {
      *
      * If the result is a QueriedTable it is also normalized.
      */
-    static QueriedRelation applyQSToRelation(RelationNormalizer normalizer,
-                                             Functions functions,
-                                             CoordinatorTxnCtx coordinatorTxnCtx,
-                                             AnalyzedRelation relation,
-                                             QuerySpec querySpec) {
-        QueriedRelation newRelation;
+    static AnalyzedRelation applyQSToRelation(RelationNormalizer normalizer,
+                                              Functions functions,
+                                              CoordinatorTxnCtx coordinatorTxnCtx,
+                                              AnalyzedRelation relation,
+                                              QuerySpec querySpec) {
+        AnalyzedRelation newRelation;
         if (relation instanceof AbstractTableRelation) {
             AbstractTableRelation<?> tableRelation = (AbstractTableRelation<?>) relation;
             EvaluatingNormalizer evalNormalizer = new EvaluatingNormalizer(
@@ -80,14 +79,13 @@ public class Relations {
                 tableRelation,
                 querySpec.copyAndReplace(s -> evalNormalizer.normalize(s, coordinatorTxnCtx)));
         } else {
-            QueriedRelation queriedRelation = (QueriedRelation) relation;
             newRelation = new QueriedSelectRelation(
-                queriedRelation.isDistinct(),
-                queriedRelation,
+                relation.isDistinct(),
+                relation,
                 namesFromOutputs(querySpec.outputs()),
                 querySpec
             );
-            newRelation = (QueriedRelation) normalizer.normalize(newRelation, coordinatorTxnCtx);
+            newRelation = normalizer.normalize(newRelation, coordinatorTxnCtx);
         }
         if (newRelation.where().hasQuery() && newRelation.getQualifiedName().equals(relation.getQualifiedName())) {
             // This relation will be represented as a subquery and needs a proper QualifiedName.
@@ -133,7 +131,7 @@ public class Relations {
         }
 
         @Override
-        public Void visitSelectStatement(QueriedRelation relation, Consumer<? super Symbol> consumer) {
+        public Void visitSelectStatement(AnalyzedRelation relation, Consumer<? super Symbol> consumer) {
             TraverseDeepSymbolsRelations.traverse(relation, consumer);
             return null;
         }

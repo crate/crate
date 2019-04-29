@@ -35,15 +35,15 @@ import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.List;
 
-public final class AnalyzedView implements QueriedRelation {
+public final class AnalyzedView implements AnalyzedRelation {
 
     private final RelationName name;
     private final String owner;
-    private final QueriedRelation relation;
+    private final AnalyzedRelation relation;
     private final Fields fields;
     private final QuerySpec querySpec;
 
-    public AnalyzedView(RelationName name, String owner, QueriedRelation relation) {
+    public AnalyzedView(RelationName name, String owner, AnalyzedRelation relation) {
         this.name = name;
         this.owner = owner;
         this.fields = new Fields(relation.fields().size());
@@ -59,7 +59,7 @@ public final class AnalyzedView implements QueriedRelation {
         return owner;
     }
 
-    public QueriedRelation relation() {
+    public AnalyzedRelation relation() {
         return relation;
     }
 

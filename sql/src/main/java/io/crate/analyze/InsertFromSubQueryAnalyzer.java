@@ -24,11 +24,11 @@ package io.crate.analyze;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.ValueNormalizer;
+import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.ExcludedFieldProvider;
 import io.crate.analyze.relations.FieldProvider;
 import io.crate.analyze.relations.NameFieldProvider;
-import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.eval.EvaluatingNormalizer;
@@ -110,8 +110,8 @@ class InsertFromSubQueryAnalyzer {
             txnCtx.sessionContext().searchPath());
         DocTableRelation tableRelation = new DocTableRelation(targetTable);
 
-        QueriedRelation subQueryRelation =
-            (QueriedRelation) relationAnalyzer.analyzeUnbound(insert.subQuery(), txnCtx, typeHints);
+        AnalyzedRelation subQueryRelation =
+            relationAnalyzer.analyzeUnbound(insert.subQuery(), txnCtx, typeHints);
 
         List<Reference> targetColumns =
             new ArrayList<>(resolveTargetColumns(insert.columns(), targetTable, subQueryRelation.fields().size()));
@@ -136,7 +136,7 @@ class InsertFromSubQueryAnalyzer {
         DocTableRelation tableRelation = new DocTableRelation(tableInfo);
         FieldProvider fieldProvider = new NameFieldProvider(tableRelation);
 
-        QueriedRelation source = (QueriedRelation) relationAnalyzer.analyze(
+        AnalyzedRelation source = relationAnalyzer.analyze(
             node.subQuery(), analysis.transactionContext(), analysis.parameterContext());
 
         List<Reference> targetColumns = new ArrayList<>(resolveTargetColumns(node.columns(), tableInfo, source.fields().size()));

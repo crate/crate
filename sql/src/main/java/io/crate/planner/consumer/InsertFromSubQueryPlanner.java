@@ -28,7 +28,6 @@ import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.DocTableRelation;
-import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.RelationNormalizer;
 import io.crate.execution.dsl.projection.ColumnIndexWriterProjection;
 import io.crate.execution.dsl.projection.EvalProjection;
@@ -78,7 +77,7 @@ public final class InsertFromSubQueryPlanner {
             statement.tableInfo().isPartitioned()
         );
 
-        QueriedRelation subRelation = (QueriedRelation) relationNormalizer.normalize(
+        AnalyzedRelation subRelation = relationNormalizer.normalize(
             statement.subQueryRelation(), plannerContext.transactionContext());
 
         SOURCE_LOOKUP_CONVERTER.process(subRelation, null);

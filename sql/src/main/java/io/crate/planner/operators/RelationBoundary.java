@@ -23,7 +23,7 @@
 package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.relations.QueriedRelation;
+import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.Field;
@@ -52,13 +52,13 @@ import java.util.function.Function;
 public class RelationBoundary extends OneInputPlan {
 
     public static LogicalPlan.Builder create(LogicalPlan.Builder sourceBuilder,
-                                             QueriedRelation relation,
+                                             AnalyzedRelation relation,
                                              SubqueryPlanner subqueryPlanner) {
         return (tableStats, usedBeforeNextFetch) -> {
             HashMap<Symbol, Symbol> expressionMapping = new HashMap<>();
             HashMap<Symbol, Symbol> reverseMapping = new HashMap<>();
             for (Field field : relation.fields()) {
-                Symbol value = ((QueriedRelation) field.relation()).outputs().get(field.index());
+                Symbol value = field.relation().outputs().get(field.index());
                 expressionMapping.put(field, value);
                 reverseMapping.put(value, field);
             }
@@ -83,11 +83,11 @@ public class RelationBoundary extends OneInputPlan {
         };
     }
 
-    private final QueriedRelation relation;
+    private final AnalyzedRelation relation;
     private final Map<Symbol, Symbol> reverseMapping;
 
     private RelationBoundary(LogicalPlan source,
-                             QueriedRelation relation,
+                             AnalyzedRelation relation,
                              List<Symbol> outputs,
                              Map<Symbol, Symbol> expressionMapping,
                              Map<Symbol, Symbol> reverseMapping,

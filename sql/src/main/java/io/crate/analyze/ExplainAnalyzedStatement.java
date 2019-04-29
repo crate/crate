@@ -43,11 +43,15 @@ public class ExplainAnalyzedStatement implements AnalyzedStatement, AnalyzedRela
     final AnalyzedStatement statement;
     private final List<Field> fields;
     private final ProfilingContext context;
+    private final QuerySpec querySpec;
 
     ExplainAnalyzedStatement(String columnName, AnalyzedStatement statement, ProfilingContext context) {
+        Field field = new Field(this, new OutputName(columnName), ObjectType.untyped());
         this.statement = statement;
-        this.fields = Collections.singletonList(new Field(this, new OutputName(columnName), ObjectType.untyped()));
+        this.fields = Collections.singletonList(field);
         this.context = context;
+        this.querySpec = new QuerySpec()
+            .outputs(List.of(field));
     }
 
     @Override
@@ -95,7 +99,17 @@ public class ExplainAnalyzedStatement implements AnalyzedStatement, AnalyzedRela
     }
 
     @Override
+    public QuerySpec querySpec() {
+        return querySpec;
+    }
+
+    @Override
     public boolean isUnboundPlanningSupported() {
         return true;
+    }
+
+    @Override
+    public boolean isDistinct() {
+        return false;
     }
 }

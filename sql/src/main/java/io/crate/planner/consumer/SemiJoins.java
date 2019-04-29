@@ -30,7 +30,6 @@ import io.crate.analyze.QuerySpec;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.JoinPair;
-import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.RelationNormalizer;
 import io.crate.expression.operator.OrOperator;
 import io.crate.expression.operator.any.AnyOperator;
@@ -75,7 +74,7 @@ final class SemiJoins {
     }
 
     /**
-     * Try to rewrite a QueriedRelation into a SemiJoin:
+     * Try to rewrite a AnalyzedRelation into a SemiJoin:
      *
      * <pre>
      *
@@ -93,7 +92,7 @@ final class SemiJoins {
      * @return the rewritten relation or null if a rewrite wasn't possible.
      */
     @Nullable
-    QueriedRelation tryRewrite(QueriedRelation rel, CoordinatorTxnCtx transactionCtx) {
+    AnalyzedRelation tryRewrite(AnalyzedRelation rel, CoordinatorTxnCtx transactionCtx) {
         WhereClause where = rel.where();
         if (!where.hasQuery()) {
             return null;
@@ -139,7 +138,7 @@ final class SemiJoins {
         }
 
         // normalize is done to rewrite  SELECT * from t1, t2 to SELECT * from (select ... t1) t1, (select ... t2) t2
-        // because planner logic expects QueriedRelation in the sources
+        // because planner logic expects AnalyzedRelation in the sources
         MultiSourceSelect mss = new MultiSourceSelect(
             rel.isDistinct(),
             sources,
@@ -147,11 +146,11 @@ final class SemiJoins {
             newTopQS,
             semiJoinPairs
         );
-        return (QueriedRelation) relationNormalizer.normalize(mss, transactionCtx);
+        return relationNormalizer.normalize(mss, transactionCtx);
     }
 
     @Nullable
-    private static AnalyzedRelation getSource(QueriedRelation rel) {
+    private static AnalyzedRelation getSource(AnalyzedRelation rel) {
         if (rel instanceof QueriedTable) {
             return ((QueriedTable) rel).tableRelation();
         }
@@ -159,7 +158,7 @@ final class SemiJoins {
         return null;
     }
 
-    private static void removeRewriteCandidatesFromWhere(QueriedRelation rel, Collection<Candidate> rewriteCandidates) {
+    private static void removeRewriteCandidatesFromWhere(AnalyzedRelation rel, Collection<Candidate> rewriteCandidates) {
         rel.where().replace(FuncReplacer.mapNodes(f -> {
             for (Candidate rewriteCandidate : rewriteCandidates) {
                 if (rewriteCandidate.function.equals(f)) {

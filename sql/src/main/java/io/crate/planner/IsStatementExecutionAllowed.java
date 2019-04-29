@@ -34,7 +34,6 @@ import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.AnalyzedView;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.OrderedLimitedRelation;
-import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.relations.UnionSelect;
@@ -73,8 +72,8 @@ final class IsStatementExecutionAllowed implements Predicate<AnalyzedStatement> 
                     return false;
             }
         }
-        return (analyzedStatement instanceof QueriedRelation
-                && IS_READ_QUERY_ON_SYS_TABLE_OR_TABLE_FUNCTION.test((QueriedRelation) analyzedStatement));
+        return (analyzedStatement instanceof AnalyzedRelation
+                && IS_READ_QUERY_ON_SYS_TABLE_OR_TABLE_FUNCTION.test((AnalyzedRelation) analyzedStatement));
     }
 
     private static final class IsReadQueryOnTableRelationOrTableFunction extends AnalyzedRelationVisitor<Void, Boolean> implements Predicate<AnalyzedRelation> {
@@ -82,6 +81,11 @@ final class IsStatementExecutionAllowed implements Predicate<AnalyzedStatement> 
         @Override
         public boolean test(AnalyzedRelation relation) {
             return process(relation, null);
+        }
+
+        @Override
+        protected Boolean visitAnalyzedRelation(AnalyzedRelation relation, Void context) {
+            return false;
         }
 
         @Override

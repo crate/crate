@@ -198,7 +198,7 @@ public final class RelationSplitter {
 
             // Case of subselect
             if (!(relation instanceof AbstractTableRelation)) {
-                applyAsWhereOrHaving(qs, queryForRelation, (QueriedRelation) relation);
+                applyAsWhereOrHaving(qs, queryForRelation, relation);
             } else {
                 qs.where(qs.where().add(queryForRelation));
             }
@@ -212,7 +212,7 @@ public final class RelationSplitter {
         }
     }
 
-    private static void applyAsWhereOrHaving(QuerySpec qs, Symbol mergedQuery, QueriedRelation relation) {
+    private static void applyAsWhereOrHaving(QuerySpec qs, Symbol mergedQuery, AnalyzedRelation relation) {
         boolean[] hasAggregations = new boolean[] {false};
         FieldsVisitor.visitFields(mergedQuery, f -> {
             hasAggregations[0] |= Aggregations.containsAggregation(
