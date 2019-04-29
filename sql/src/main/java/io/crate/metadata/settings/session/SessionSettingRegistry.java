@@ -36,7 +36,6 @@ import static io.crate.metadata.SearchPath.createSearchPathFrom;
 public class SessionSettingRegistry {
 
     private static final String SEARCH_PATH_KEY = "search_path";
-    static final String SEMI_JOIN_KEY = "enable_semijoin";
     static final String HASH_JOIN_KEY = "enable_hashjoin";
     static final String MAX_INDEX_KEYS = "max_index_keys";
 
@@ -50,19 +49,6 @@ public class SessionSettingRegistry {
                     () -> iterableToString(SearchPath.pathWithPGCatalogAndDoc()),
                     "Sets the schema search order.",
                     DataTypes.STRING.getName()))
-            .put(SEMI_JOIN_KEY,
-                new SessionSetting<>(
-                    objects -> {
-                        if (objects.length != 1) {
-                            throw new IllegalArgumentException(SEMI_JOIN_KEY + " should have only one argument.");
-                        }
-                    },
-                    objects -> DataTypes.BOOLEAN.value(objects[0]),
-                    SessionContext::setSemiJoinsRewriteEnabled,
-                    s -> Boolean.toString(s.semiJoinsRewriteEnabled()),
-                    () -> String.valueOf(false),
-                    "Considers rewriting a SemiJoin query into a conventional join query.",
-                    DataTypes.BOOLEAN.getName()))
             .put(HASH_JOIN_KEY,
                 new SessionSetting<>(
                     objects -> {

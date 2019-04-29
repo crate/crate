@@ -61,23 +61,6 @@ Supported Session Settings
      includes it in the ``search_path`` *before* the configured schemas, unless
      it is already explicitly in the schema configuration.
 
-**enable_semijoin**
-  | *Default:* ``false``
-  | *Modifiable:* ``yes``
-
-  An :ref:`experimental <experimental-warning>` setting which enables CrateDB
-  to consider rewriting a ``SemiJoin`` query into a conventional join query,
-  if possible. For instance, a query in the form of:
-  ``select x from t1 where x in (select y from t2)``
-  will be rewritten as:
-  ``select t1.x from t1 SEMI JOIN (select y from t2) t2 on t1.x = t2.y``
-
-  .. NOTE::
-
-     It is not always possible to rewrite a ``SemiJoin`` as a conventional
-     Join. Having this setting enabled, will only trigger the attempt of a
-     rewrite but not guaranty it.
-
 .. _conf-session-enable-hashjoin:
 
 **enable_hashjoin**

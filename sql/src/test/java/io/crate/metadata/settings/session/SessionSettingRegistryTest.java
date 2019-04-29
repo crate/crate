@@ -46,12 +46,6 @@ public class SessionSettingRegistryTest {
     private SessionContext sessionContext = SessionContext.systemSessionContext();
 
     @Test
-    public void testSemiJoinSessionSetting() {
-        SessionSetting<?> setting = SessionSettingRegistry.SETTINGS.get(SessionSettingRegistry.SEMI_JOIN_KEY);
-        assertBooleanNonEmptySetting(sessionContext::getSemiJoinsRewriteEnabled, setting, false);
-    }
-
-    @Test
     public void testMaxIndexKeysSessionSettingCannotBeChanged() {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("\"max_index_keys\" cannot be changed.");

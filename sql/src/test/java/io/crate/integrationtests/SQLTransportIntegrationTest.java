@@ -30,7 +30,6 @@ import io.crate.action.sql.Option;
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
 import io.crate.action.sql.SessionContext;
-import io.crate.metadata.settings.SessionSettings;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParameterContext;
 import io.crate.auth.user.User;
@@ -54,6 +53,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.SearchPath;
+import io.crate.metadata.settings.SessionSettings;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
@@ -76,7 +76,6 @@ import io.crate.testing.TestingRowConsumer;
 import io.crate.testing.UseHashJoins;
 import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedSchema;
-import io.crate.testing.UseSemiJoins;
 import io.crate.types.DataType;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
@@ -137,7 +136,6 @@ import static org.hamcrest.Matchers.notNullValue;
 
 @Listeners({SystemPropsTestLoggingListener.class})
 @UseJdbc
-@UseSemiJoins
 @UseHashJoins
 @UseRandomizedSchema
 public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
@@ -359,7 +357,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
      * @return the SQLResponse
      */
     public SQLResponse execute(String stmt, Object[] args) {
-        response = sqlExecutor.exec(new TestExecutionConfig(isJdbcEnabled(), isSemiJoinsEnabled(), isHashJoinEnabled()), stmt, args);
+        response = sqlExecutor.exec(new TestExecutionConfig(isJdbcEnabled(), isHashJoinEnabled()), stmt, args);
         return response;
     }
 
@@ -372,7 +370,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
      * @return the SQLResponse
      */
     public SQLResponse execute(String stmt, Object[] args, TimeValue timeout) {
-        response = sqlExecutor.exec(new TestExecutionConfig(isJdbcEnabled(), isSemiJoinsEnabled(), isHashJoinEnabled()), stmt, args, timeout);
+        response = sqlExecutor.exec(new TestExecutionConfig(isJdbcEnabled(), isHashJoinEnabled()), stmt, args, timeout);
         return response;
     }
 
@@ -661,21 +659,6 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
             return false;
         }
         return isFeatureEnabled(useJdbc.value());
-    }
-
-    /**
-     * If the Test class or method is annotated with {@link UseSemiJoins} then,
-     * based on the provided ratio, a random value of true or false is returned.
-     * For more details on the ratio see {@link UseSemiJoins}
-     * <p>
-     * Method annotations have higher priority than class annotations.
-     */
-    private boolean isSemiJoinsEnabled() {
-        UseSemiJoins useSemiJoins= getTestAnnotation(UseSemiJoins.class);
-        if (useSemiJoins == null) {
-            return false;
-        }
-        return isFeatureEnabled(useSemiJoins.value());
     }
 
     /**

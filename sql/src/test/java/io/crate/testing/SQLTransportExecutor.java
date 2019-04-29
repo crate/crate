@@ -104,7 +104,7 @@ public class SQLTransportExecutor {
 
     private static final Logger LOGGER = LogManager.getLogger(SQLTransportExecutor.class);
 
-    private static final TestExecutionConfig EXECUTION_FEATURES_DISABLED = new TestExecutionConfig(false, false, false);
+    private static final TestExecutionConfig EXECUTION_FEATURES_DISABLED = new TestExecutionConfig(false, false);
 
     private final ClientProvider clientProvider;
 
@@ -162,11 +162,6 @@ public class SQLTransportExecutor {
                             .filter(s -> !s.equals(PgCatalogSchemaInfo.NAME))
                             .collect(Collectors.joining(", "))
         );
-
-        if (config.isSemiJoinsEnabled()) {
-            sessionList.add("set enable_semijoin=true");
-            LOGGER.trace("Executing with enable_semijoin=true: {}", stmt);
-        }
 
         if (!config.isHashJoinEnabled()) {
             sessionList.add("set enable_hashjoin=false");

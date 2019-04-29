@@ -41,6 +41,9 @@ Unreleased Changes
 Breaking Changes
 ================
 
+- Removed the experimental `enable_semijoin` session setting. As this defaulted
+  to false, this execution strategy cannot be used anymore.
+
 - Renamed column `information_schema.table_partitions.schema_name` to
   `table_schema`.
 

@@ -24,7 +24,6 @@ package io.crate.integrationtests;
 
 import io.crate.testing.UseHashJoins;
 import io.crate.testing.UseRandomizedSchema;
-import io.crate.testing.UseSemiJoins;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -97,15 +96,13 @@ public class PgCatalogITest extends SQLTransportIntegrationTest {
 
     @Test
     @UseRandomizedSchema(random = false)
-    @UseSemiJoins(1)
     @UseHashJoins(0)
     public void testPgSettingsTable() {
-        execute("select * from pg_catalog.pg_settings");
+        execute("select name, setting, short_desc, min_val, max_val from pg_catalog.pg_settings");
         assertThat(printedTable(response.rows()), is(
-            "pg_catalog, doc| NULL| NULL| NULL| NULL| NULL| NULL| search_path| NULL| pg_catalog, doc| pg_catalog, doc| Sets the schema search order.| NULL| NULL| NULL| NULL| text\n" +
-            "false| NULL| NULL| NULL| NULL| NULL| NULL| enable_semijoin| NULL| false| true| Considers rewriting a SemiJoin query into a conventional join query.| NULL| NULL| NULL| NULL| boolean\n" +
-            "true| NULL| NULL| NULL| NULL| NULL| NULL| enable_hashjoin| NULL| true| false| Considers using the Hash Join instead of the Nested Loop Join implementation.| NULL| NULL| NULL| NULL| boolean\n" +
-            "32| NULL| NULL| NULL| NULL| NULL| NULL| max_index_keys| NULL| 32| 32| Shows the maximum number of index keys.| NULL| NULL| NULL| NULL| integer\n")
-        );
+            "search_path| pg_catalog, doc| Sets the schema search order.| NULL| NULL\n" +
+            "enable_hashjoin| false| Considers using the Hash Join instead of the Nested Loop Join implementation.| NULL| NULL\n" +
+            "max_index_keys| 32| Shows the maximum number of index keys.| NULL| NULL\n"
+        ));
     }
 }

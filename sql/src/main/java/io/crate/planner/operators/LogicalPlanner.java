@@ -64,7 +64,6 @@ import io.crate.planner.TableStats;
 import io.crate.planner.WhereClauseOptimizer;
 import io.crate.planner.consumer.FetchMode;
 import io.crate.planner.consumer.InsertFromSubQueryPlanner;
-import io.crate.planner.consumer.OptimizingRewriter;
 import io.crate.planner.optimizer.Optimizer;
 import io.crate.planner.optimizer.rule.DeduplicateOrder;
 import io.crate.planner.optimizer.rule.MergeAggregateAndCollectToCount;
@@ -101,7 +100,6 @@ public class LogicalPlanner {
 
     public static final int NO_LIMIT = -1;
 
-    private final OptimizingRewriter optimizingRewriter;
     private final Optimizer optimizer;
     private final TableStats tableStats;
     private final SelectStatementPlanner selectStatementPlanner;
@@ -110,7 +108,6 @@ public class LogicalPlanner {
     private final RelationNormalizer relationNormalizer;
 
     public LogicalPlanner(Functions functions, TableStats tableStats) {
-        this.optimizingRewriter = new OptimizingRewriter(functions);
         this.optimizer = new Optimizer(List.of(
             new RemoveRedundantFetchOrEval(),
             new MergeAggregateAndCollectToCount(),
@@ -189,10 +186,7 @@ public class LogicalPlanner {
                                         SubqueryPlanner subqueryPlanner,
                                         FetchMode fetchMode) {
         CoordinatorTxnCtx coordinatorTxnCtx = plannerContext.transactionContext();
-        AnalyzedRelation relation = optimizingRewriter.optimize(
-            relationNormalizer.normalize(analyzedRelation, coordinatorTxnCtx),
-            coordinatorTxnCtx
-        );
+        AnalyzedRelation relation = relationNormalizer.normalize(analyzedRelation, coordinatorTxnCtx);
         LogicalPlan logicalPlan = plan(relation, fetchMode, subqueryPlanner, true, functions, coordinatorTxnCtx)
             .build(tableStats, new HashSet<>(relation.outputs()));
 
