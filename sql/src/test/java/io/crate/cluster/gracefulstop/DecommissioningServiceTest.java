@@ -66,9 +66,9 @@ public class DecommissioningServiceTest extends CrateDummyClusterServiceUnitTest
 
     @Before
     public void init() throws Exception {
-        executorService = mock(ScheduledExecutorService.class, Answers.RETURNS_MOCKS.get());
+        executorService = mock(ScheduledExecutorService.class, Answers.RETURNS_MOCKS);
         jobsLogs = new JobsLogs(() -> true);
-        sqlOperations = mock(SQLOperations.class, Answers.RETURNS_MOCKS.get());
+        sqlOperations = mock(SQLOperations.class, Answers.RETURNS_MOCKS);
         decommissioningService = new TestableDecommissioningService(
             Settings.EMPTY,
             clusterService,

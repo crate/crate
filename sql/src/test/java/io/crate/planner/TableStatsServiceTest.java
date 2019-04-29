@@ -46,8 +46,8 @@ import java.util.concurrent.TimeoutException;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.IsNull.notNullValue;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.anyObject;
@@ -71,7 +71,7 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
             THREAD_POOL,
             clusterService,
             new TableStats(),
-            mock(SQLOperations.class, Answers.RETURNS_MOCKS.get()));
+            mock(SQLOperations.class, Answers.RETURNS_MOCKS));
 
         assertThat(statsService.refreshInterval,
             is(TimeValue.timeValueMinutes(0)));
@@ -83,7 +83,7 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
             THREAD_POOL,
             clusterService,
             new TableStats(),
-            mock(SQLOperations.class, Answers.RETURNS_MOCKS.get()));
+            mock(SQLOperations.class, Answers.RETURNS_MOCKS));
 
         assertThat(statsService.refreshInterval,
             is(TableStatsService.STATS_SERVICE_REFRESH_INTERVAL_SETTING.getDefault()));
@@ -165,7 +165,7 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
         when(clusterService.getClusterSettings()).thenReturn(this.clusterService.getClusterSettings());
         SQLOperations sqlOperations = mock(SQLOperations.class);
         Session session = mock(Session.class);
-        when(sqlOperations.createSession(anyString(), anyObject(), any(), anyInt())).thenReturn(session);
+        when(sqlOperations.createSession(anyString(), any(), any(), anyInt())).thenReturn(session);
 
         TableStatsService statsService = new TableStatsService(
             Settings.EMPTY,

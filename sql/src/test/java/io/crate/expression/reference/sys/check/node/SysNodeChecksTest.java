@@ -94,7 +94,7 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testRecoveryAfterNodesCheckWithLessThanQuorum() {
-        ClusterService clusterService = mock(ClusterService.class, Answers.RETURNS_DEEP_STUBS.get());
+        ClusterService clusterService = mock(ClusterService.class, Answers.RETURNS_DEEP_STUBS);
 
         RecoveryAfterNodesSysCheck recoveryAfterNodesCheck =
             new RecoveryAfterNodesSysCheck(clusterService, Settings.EMPTY);
@@ -109,7 +109,7 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testRecoveryAfterNodesCheckWithCorrectSetting() {
-        ClusterService clusterService = mock(ClusterService.class, Answers.RETURNS_DEEP_STUBS.get());
+        ClusterService clusterService = mock(ClusterService.class, Answers.RETURNS_DEEP_STUBS);
 
         RecoveryAfterNodesSysCheck recoveryAfterNodesCheck =
             new RecoveryAfterNodesSysCheck(clusterService, Settings.EMPTY);
@@ -165,7 +165,7 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
         DiskWatermarkNodesSysCheck low = new LowDiskWatermarkNodesSysCheck(
             clusterService,
             Settings.EMPTY,
-            mock(NodeService.class, Answers.RETURNS_MOCKS.get())
+            mock(NodeService.class, Answers.RETURNS_MOCKS)
         );
 
         assertThat(low.id(), is(6));
@@ -181,7 +181,7 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
         DiskWatermarkNodesSysCheck high = new HighDiskWatermarkNodesSysCheck(
             clusterService,
             Settings.EMPTY,
-            mock(NodeService.class, Answers.RETURNS_MOCKS.get())
+            mock(NodeService.class, Answers.RETURNS_MOCKS)
         );
 
         assertThat(high.id(), is(5));
@@ -197,7 +197,7 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
         DiskWatermarkNodesSysCheck floodStage = new FloodStageDiskWatermarkNodesSysCheck(
             clusterService,
             Settings.EMPTY,
-            mock(NodeService.class, Answers.RETURNS_MOCKS.get())
+            mock(NodeService.class, Answers.RETURNS_MOCKS)
         );
 
         assertThat(floodStage.id(), is(7));
