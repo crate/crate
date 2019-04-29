@@ -33,7 +33,7 @@ import org.elasticsearch.indices.breaker.CircuitBreakerStats;
 import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Matchers;
+import org.mockito.ArgumentMatchers;
 
 import java.util.HashSet;
 import java.util.Locale;
@@ -111,7 +111,7 @@ public class CrateCircuitBreakerServiceTest extends CrateUnitTest {
         clusterSettings.applySettings(newSettings);
 
         // expecting 4 times because registerBreaker() is also called from constructor of CrateCircuitBreakerService 3 times
-        verify(esBreakerService, times(4)).registerBreaker(Matchers.any());
+        verify(esBreakerService, times(4)).registerBreaker(ArgumentMatchers.any());
 
         breaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY);
         assertThat(breaker.getLimit(), is(104_857_600L));
@@ -120,7 +120,7 @@ public class CrateCircuitBreakerServiceTest extends CrateUnitTest {
         // updating with same settings should not register a new breaker
         clusterSettings.applySettings(newSettings);
 
-        verify(esBreakerService, times(4)).registerBreaker(Matchers.any());
+        verify(esBreakerService, times(4)).registerBreaker(ArgumentMatchers.any());
     }
 
     @Test
@@ -146,7 +146,7 @@ public class CrateCircuitBreakerServiceTest extends CrateUnitTest {
 
         // expecting 5 times because registerBreaker() is also called from constructor of CrateCircuitBreakerService 3 times
         // and twice from the new settings
-        verify(esBreakerService, times(5)).registerBreaker(Matchers.any());
+        verify(esBreakerService, times(5)).registerBreaker(ArgumentMatchers.any());
 
         breaker = breakerService.getBreaker(CrateCircuitBreakerService.JOBS_LOG);
         assertThat(breaker.getLimit(), is(104_857_600L));
@@ -156,7 +156,7 @@ public class CrateCircuitBreakerServiceTest extends CrateUnitTest {
         // updating with same settings should not register a new breaker
         clusterSettings.applySettings(newSettings);
 
-        verify(esBreakerService, times(5)).registerBreaker(Matchers.any());
+        verify(esBreakerService, times(5)).registerBreaker(ArgumentMatchers.any());
     }
 
     @Test

@@ -68,7 +68,7 @@ import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 
 import static io.crate.testing.TestingHelpers.createReference;
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 

@@ -115,7 +115,7 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
             functions,
             threadPool,
             Settings.EMPTY,
-            mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
+            mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS),
             new InputFactory(functions),
             EvaluatingNormalizer.functionOnlyNormalizer(functions),
             t -> null,
