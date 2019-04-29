@@ -101,6 +101,14 @@ public final class InputColumns extends DefaultTraversalSymbolVisitor<InputColum
             }
             return inputColumn;
         }
+
+        @Override
+        public String toString() {
+            return "SourceSymbols{" +
+                   "inputs=" + inputs +
+                   ", nonDeterministicFunctions=" + nonDeterministicFunctions +
+                   '}';
+        }
     }
 
     /**
@@ -119,7 +127,7 @@ public final class InputColumns extends DefaultTraversalSymbolVisitor<InputColum
      * Same as {@link #create(Symbol, Collection)} but allows to re-use {@link SourceSymbols}
      */
     public static Symbol create(Symbol symbolTree, SourceSymbols sourceSymbols) {
-        return INSTANCE.process(symbolTree, sourceSymbols);
+        return symbolTree.accept(INSTANCE, sourceSymbols);
     }
 
     /**
@@ -133,7 +141,7 @@ public final class InputColumns extends DefaultTraversalSymbolVisitor<InputColum
     public static List<Symbol> create(Collection<? extends Symbol> symbols, SourceSymbols sourceSymbols) {
         List<Symbol> result = new ArrayList<>(symbols.size());
         for (Symbol symbol : symbols) {
-            result.add(INSTANCE.process(symbol, sourceSymbols));
+            result.add(symbol.accept(INSTANCE, sourceSymbols));
         }
         return result;
     }
@@ -149,21 +157,18 @@ public final class InputColumns extends DefaultTraversalSymbolVisitor<InputColum
     }
 
     @Nullable
-    private Symbol getFunctionReplacementOrNull(Function symbol, SourceSymbols sourceSymbols) {
-        Symbol replacement;
+    private static Symbol getFunctionReplacementOrNull(Function symbol, SourceSymbols sourceSymbols) {
         if (symbol.info().isDeterministic()) {
-            replacement = sourceSymbols.inputs.get(symbol);
+            return sourceSymbols.inputs.get(symbol);
         } else {
-            replacement = sourceSymbols.nonDeterministicFunctions.get(symbol);
+            return sourceSymbols.nonDeterministicFunctions.get(symbol);
         }
-
-        return replacement;
     }
 
     private ArrayList<Symbol> getProcessedArgs(List<Symbol> arguments, SourceSymbols sourceSymbols) {
         ArrayList<Symbol> args = new ArrayList<>(arguments.size());
         for (Symbol arg : arguments) {
-            args.add(process(arg, sourceSymbols));
+            args.add(arg.accept(this, sourceSymbols));
         }
         return args;
     }
@@ -180,7 +185,16 @@ public final class InputColumns extends DefaultTraversalSymbolVisitor<InputColum
 
     @Override
     protected Symbol visitSymbol(Symbol symbol, SourceSymbols sourceSymbols) {
-        return MoreObjects.firstNonNull(sourceSymbols.inputs.get(symbol), symbol);
+        InputColumn inputColumn = sourceSymbols.inputs.get(symbol);
+        if (inputColumn == null) {
+            throw new IllegalArgumentException("Couldn't find " + symbol + " in " + sourceSymbols);
+        }
+        return inputColumn;
+    }
+
+    @Override
+    public Symbol visitLiteral(Literal symbol, SourceSymbols context) {
+        return symbol;
     }
 
     @Override
@@ -188,7 +202,7 @@ public final class InputColumns extends DefaultTraversalSymbolVisitor<InputColum
         if (ref instanceof GeneratedReference) {
             return MoreObjects.firstNonNull(
                 sourceSymbols.inputs.get(ref),
-                visitSymbol(((GeneratedReference) ref).generatedExpression(), sourceSymbols));
+                (((GeneratedReference) ref).generatedExpression().accept(this, sourceSymbols)));
         }
         InputColumn inputColumn = sourceSymbols.inputs.get(ref);
         if (inputColumn == null) {
@@ -225,7 +239,7 @@ public final class InputColumns extends DefaultTraversalSymbolVisitor<InputColum
 
     @Override
     public Symbol visitFetchReference(FetchReference fetchReference, SourceSymbols sourceSymbols) {
-        return fetchReference;
+        throw new AssertionError("FetchReference symbols must not be visited with " + getClass().getSimpleName());
     }
 
     @Override

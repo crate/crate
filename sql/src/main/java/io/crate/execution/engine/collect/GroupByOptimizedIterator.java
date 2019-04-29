@@ -22,8 +22,8 @@
 
 package io.crate.execution.engine.collect;
 
-import io.crate.breaker.BytesRefSizeEstimator;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.StringSizeEstimator;
 import io.crate.data.BatchIterator;
 import io.crate.data.CollectingBatchIterator;
 import io.crate.data.Row;
@@ -316,7 +316,7 @@ final class GroupByOptimizedIterator {
                     if (prevStates == null) {
                         long hashMapEntryOverhead = 36L;
                         ramAccounting.addBytes(roundUp(
-                            BytesRefSizeEstimator.INSTANCE.estimateSize(sharedKey) + hashMapEntryOverhead));
+                            StringSizeEstimator.INSTANCE.estimateSize(sharedKey) + hashMapEntryOverhead));
                         statesByKey.put(BytesRef.deepCopyOf(sharedKey), states);
                     } else {
                         for (int i = 0; i < aggregations.size(); i++) {

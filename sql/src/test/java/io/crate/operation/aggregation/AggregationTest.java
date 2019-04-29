@@ -43,6 +43,7 @@ import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.util.BigArrays;
 import org.junit.Before;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -60,7 +61,7 @@ public abstract class AggregationTest extends CrateUnitTest {
         functions = getFunctions();
     }
 
-    public Object[][] executeAggregation(String name, DataType dataType, Object[][] data) throws Exception {
+    public Object executeAggregation(String name, DataType dataType, Object[][] data) throws Exception {
         if (dataType == null) {
             return executeAggregation(name, dataType, data, ImmutableList.of());
         } else {
@@ -68,7 +69,7 @@ public abstract class AggregationTest extends CrateUnitTest {
         }
     }
 
-    public Object[][] executeAggregation(String name, DataType dataType, Object[][] data, List<DataType> argumentTypes) throws Exception {
+    public Object executeAggregation(String name, DataType dataType, Object[][] data, List<DataType> argumentTypes) throws Exception {
         FunctionIdent fi;
         InputCollectExpression[] inputs;
         if (dataType != null) {
@@ -82,19 +83,23 @@ public abstract class AggregationTest extends CrateUnitTest {
             inputs = new InputCollectExpression[0];
         }
         AggregationFunction impl = (AggregationFunction) functions.getQualified(fi);
-        Object state = impl.newState(ramAccountingContext, Version.CURRENT, BigArrays.NON_RECYCLING_INSTANCE);
-
-        ArrayBucket bucket = new ArrayBucket(data);
-
-        for (Row row : bucket) {
-            for (InputCollectExpression i : inputs) {
-                i.setNextRow(row);
+        List<Object> states = new ArrayList<>();
+        states.add(impl.newState(ramAccountingContext, Version.CURRENT, BigArrays.NON_RECYCLING_INSTANCE));
+        for (Row row : new ArrayBucket(data)) {
+            for (InputCollectExpression input : inputs) {
+                input.setNextRow(row);
             }
-            state = impl.iterate(ramAccountingContext, state, inputs);
-
+            if (randomIntBetween(1, 4) == 1) {
+                states.add(impl.newState(ramAccountingContext, Version.CURRENT, BigArrays.NON_RECYCLING_INSTANCE));
+            }
+            int idx = states.size() - 1;
+            states.set(idx, impl.iterate(ramAccountingContext, states.get(idx), inputs));
         }
-        state = impl.terminatePartial(ramAccountingContext, state);
-        return new Object[][]{{state}};
+        Object state = states.get(0);
+        for (int i = 1; i < states.size(); i++) {
+            state = impl.reduce(ramAccountingContext, state, states.get(i));
+        }
+        return impl.terminatePartial(ramAccountingContext, state);
     }
 
     protected Symbol normalize(String functionName, Object value, DataType type) {

@@ -41,7 +41,7 @@ import static org.hamcrest.core.IsInstanceOf.instanceOf;
 
 public class CollectSetAggregationTest extends AggregationTest {
 
-    private Object[][] executeAggregation(DataType dataType, Object[][] data) throws Exception {
+    private Object executeAggregation(DataType dataType, Object[][] data) throws Exception {
         return executeAggregation("collect_set", dataType, data);
     }
 
@@ -54,11 +54,11 @@ public class CollectSetAggregationTest extends AggregationTest {
 
     @Test
     public void testDouble() throws Exception {
-        Object[][] result = executeAggregation(DataTypes.DOUBLE, new Object[][]{{0.7d}, {0.3d}, {0.3d}});
+        Object result = executeAggregation(DataTypes.DOUBLE, new Object[][]{{0.7d}, {0.3d}, {0.3d}});
 
-        assertThat(result[0][0], instanceOf(Set.class));
-        assertEquals(2, ((Set) result[0][0]).size());
-        assertTrue(((Set) result[0][0]).contains(0.7d));
+        assertThat(result, instanceOf(Set.class));
+        assertEquals(2, ((Set) result).size());
+        assertTrue(((Set) result).contains(0.7d));
     }
 
     @Test
@@ -77,66 +77,64 @@ public class CollectSetAggregationTest extends AggregationTest {
 
     @Test
     public void testFloat() throws Exception {
-        Object[][] result = executeAggregation(DataTypes.FLOAT, new Object[][]{{0.7f}, {0.3f}, {0.3f}});
+        Object result = executeAggregation(DataTypes.FLOAT, new Object[][]{{0.7f}, {0.3f}, {0.3f}});
 
-        assertThat(result[0][0], instanceOf(Set.class));
-        assertEquals(2, ((Set) result[0][0]).size());
-        assertTrue(((Set) result[0][0]).contains(0.7f));
+        assertThat(result, instanceOf(Set.class));
+        assertEquals(2, ((Set) result).size());
+        assertTrue(((Set) result).contains(0.7f));
     }
 
     @Test
     public void testInteger() throws Exception {
-        Object[][] result = executeAggregation(DataTypes.INTEGER, new Object[][]{{7}, {3}, {3}});
+        Object result = executeAggregation(DataTypes.INTEGER, new Object[][]{{7}, {3}, {3}});
 
-        assertThat(result[0][0], instanceOf(Set.class));
-        assertEquals(2, ((Set) result[0][0]).size());
-        assertTrue(((Set) result[0][0]).contains(7));
+        assertThat(result, instanceOf(Set.class));
+        assertEquals(2, ((Set) result).size());
+        assertTrue(((Set) result).contains(7));
     }
 
     @Test
     public void testLong() throws Exception {
-        Object[][] result = executeAggregation(DataTypes.LONG, new Object[][]{{7L}, {3L}, {3L}});
+        Object result = executeAggregation(DataTypes.LONG, new Object[][]{{7L}, {3L}, {3L}});
 
-        assertThat(result[0][0], instanceOf(Set.class));
-        assertEquals(2, ((Set) result[0][0]).size());
-        assertTrue(((Set) result[0][0]).contains(7L));
+        assertThat(result, instanceOf(Set.class));
+        assertEquals(2, ((Set) result).size());
+        assertTrue(((Set) result).contains(7L));
     }
 
     @Test
     public void testShort() throws Exception {
-        Object[][] result = executeAggregation(DataTypes.SHORT, new Object[][]{{(short) 7}, {(short) 3}, {(short) 3}});
+        Object result = executeAggregation(DataTypes.SHORT, new Object[][]{{(short) 7}, {(short) 3}, {(short) 3}});
 
-        assertThat(result[0][0], instanceOf(Set.class));
-        assertEquals(2, ((Set) result[0][0]).size());
-        assertTrue(((Set) result[0][0]).contains((short) 7));
+        assertThat(result, instanceOf(Set.class));
+        assertEquals(2, ((Set) result).size());
+        assertTrue(((Set) result).contains((short) 7));
     }
 
     @Test
     public void testString() throws Exception {
-        Object[][] result = executeAggregation(DataTypes.STRING,
-            new Object[][]{{"Youri"}, {"Ruben"}, {"Ruben"}});
+        Object result = executeAggregation(DataTypes.STRING, new Object[][]{{"Youri"}, {"Ruben"}, {"Ruben"}});
 
-        assertThat(result[0][0], instanceOf(Set.class));
-        assertEquals(2, ((Set) result[0][0]).size());
-        assertTrue(((Set) result[0][0]).contains("Youri"));
+        assertThat(result, instanceOf(Set.class));
+        assertEquals(2, ((Set) result).size());
+        assertTrue(((Set) result).contains("Youri"));
     }
 
     @Test
     public void testBoolean() throws Exception {
-        Object[][] result = executeAggregation(DataTypes.BOOLEAN, new Object[][]{{true}, {false}, {false}});
+        Object result = executeAggregation(DataTypes.BOOLEAN, new Object[][]{{true}, {false}, {false}});
 
-        assertThat(result[0][0], instanceOf(Set.class));
-        assertEquals(2, ((Set) result[0][0]).size());
-        assertTrue(((Set) result[0][0]).contains(true));
+        assertThat(result, instanceOf(Set.class));
+        assertEquals(2, ((Set) result).size());
+        assertTrue(((Set) result).contains(true));
     }
 
     @Test
     public void testNullValue() throws Exception {
-        Object[][] result = executeAggregation(DataTypes.STRING,
-            new Object[][]{{"Youri"}, {"Ruben"}, {null}});
+        Object result = executeAggregation(DataTypes.STRING, new Object[][]{{"Youri"}, {"Ruben"}, {null}});
         // null values currently ignored
-        assertThat(result[0][0], instanceOf(Set.class));
-        assertEquals(2, ((Set) result[0][0]).size());
-        assertFalse(((Set) result[0][0]).contains(null));
+        assertThat(result, instanceOf(Set.class));
+        assertEquals(2, ((Set) result).size());
+        assertFalse(((Set) result).contains(null));
     }
 }

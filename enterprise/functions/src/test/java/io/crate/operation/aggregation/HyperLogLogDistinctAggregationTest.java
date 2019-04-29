@@ -50,11 +50,11 @@ public class HyperLogLogDistinctAggregationTest extends AggregationTest {
             .createInjector().getInstance(Functions.class);
     }
 
-    private Object[][] executeAggregation(DataType dataType, Object[][] data) throws Exception {
+    private Object executeAggregation(DataType dataType, Object[][] data) throws Exception {
         return executeAggregation(HyperLogLogDistinctAggregation.NAME, dataType, data, Collections.singletonList(dataType));
     }
 
-    private Object[][] executeAggregationWithPrecision(DataType dataType, Object[][] data) throws Exception {
+    private Object executeAggregationWithPrecision(DataType dataType, Object[][] data) throws Exception {
         return executeAggregation(HyperLogLogDistinctAggregation.NAME, dataType, data,
             Arrays.asList(dataType, IntegerType.INSTANCE));
     }
@@ -91,14 +91,14 @@ public class HyperLogLogDistinctAggregationTest extends AggregationTest {
 
     @Test
     public void testWithoutPrecision() throws Exception {
-        Object[][] result = executeAggregation(DataTypes.DOUBLE, createTestData(10_000,null));
-        assertThat(result[0][0], is(9899L));
+        Object result = executeAggregation(DataTypes.DOUBLE, createTestData(10_000,null));
+        assertThat(result, is(9899L));
     }
 
     @Test
     public void testWithPrecision() throws Exception {
-        Object[][] result = executeAggregationWithPrecision(DataTypes.DOUBLE, createTestData(10_000,18));
-        assertThat(result[0][0], is(9997L));
+        Object result = executeAggregationWithPrecision(DataTypes.DOUBLE, createTestData(10_000,18));
+        assertThat(result, is(9997L));
     }
 
     @Test
@@ -114,9 +114,9 @@ public class HyperLogLogDistinctAggregationTest extends AggregationTest {
             is(-2508561340476696217L));
         assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.INTEGER).hash(1),
             is(-2508561340476696217L));
-        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.SHORT).hash(new Short("1")),
+        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.SHORT).hash(Short.valueOf("1")),
             is(-2508561340476696217L));
-        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.BYTE).hash(new Byte("1")),
+        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.BYTE).hash(Byte.valueOf("1")),
             is(-2508561340476696217L));
         assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.TIMESTAMPZ).hash(1512569562000L),
             is(-3066297687939346384L));

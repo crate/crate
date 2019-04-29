@@ -150,6 +150,8 @@ Deprecations
 Changes
 =======
 
+- Added the :ref:`string_agg` aggregation function.
+
 - Improved resiliency of the :ref:`ref-create-snapshot` operation.
 
 - Added support for `SQL Standard Timestamp Format
