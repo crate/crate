@@ -61,7 +61,6 @@ import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.CountPlan;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.join.Join;
-import io.crate.planner.node.dql.join.JoinType;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -573,28 +572,6 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(outerNl.joinPhase().projections().size(), is(2));
         assertThat(outerNl.joinPhase().projections().get(0), instanceOf(EvalProjection.class));
         assertThat(outerNl.joinPhase().projections().get(1), instanceOf(FetchProjection.class));
-    }
-
-    @Test
-    public void testOuterJoinToInnerJoinRewrite() throws Exception {
-        // disable hash joins otherwise it will be a distributed join and the plan differs
-        e.getSessionContext().setHashJoinEnabled(false);
-        QueryThenFetch qtf = e.plan("select u1.text, concat(u2.text, '_foo') " +
-                                    "from users u1 left join users u2 on u1.id = u2.id " +
-                                    "where u2.name = 'Arthur'" +
-                                    "and u2.id > 1 ");
-        Join nl = (Join) ((Merge) qtf.subPlan()).subPlan();
-        assertThat(nl.joinPhase().joinType(), is(JoinType.INNER));
-        Collect rightCM = (Collect) nl.right();
-        assertThat(((RoutedCollectPhase) rightCM.collectPhase()).where(),
-            isSQL("((doc.users.name = 'Arthur') AND (doc.users.id > 1))"));
-
-        // doesn't contain "name" because whereClause is pushed down,
-        // but still contains "id" because it is in the joinCondition
-        assertThat(rightCM.collectPhase().toCollect(), contains(isReference("_fetchid"), isReference("id")));
-
-        Collect left = (Collect) nl.left();
-        assertThat(left.collectPhase().toCollect(), contains(isReference("_fetchid"), isReference("id")));
     }
 
     @Test

@@ -26,7 +26,6 @@ import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.QueriedTable;
 import io.crate.analyze.QuerySpec;
-import io.crate.analyze.Rewriter;
 import io.crate.analyze.where.WhereClauseValidator;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.Field;
@@ -121,9 +120,7 @@ public final class RelationNormalizer {
             QuerySpec querySpec = mss.querySpec().copyAndReplace(s -> normalizer.normalize(s, context));
 
             // must create a new MultiSourceSelect because paths and query spec changed
-            mss = MultiSourceSelect.createWithPushDown(RelationNormalizer.this, functions, context, mss, querySpec);
-            Rewriter.tryRewriteOuterToInnerJoin(normalizer, mss);
-            return mss;
+            return MultiSourceSelect.createWithPushDown(RelationNormalizer.this, functions, context, mss, querySpec);
         }
 
         @Override
