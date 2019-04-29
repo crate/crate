@@ -56,8 +56,8 @@ public final class CompositeBytesReference extends BytesReference {
             ramBytesUsed += reference.ramBytesUsed();
         }
         this.ramBytesUsed = ramBytesUsed
-            + (Integer.BYTES * offsets.length + RamUsageEstimator.NUM_BYTES_ARRAY_HEADER) // offsets
-            + (references.length * RamUsageEstimator.NUM_BYTES_OBJECT_REF + RamUsageEstimator.NUM_BYTES_ARRAY_HEADER) // references
+            + (long) (Integer.BYTES * offsets.length + RamUsageEstimator.NUM_BYTES_ARRAY_HEADER) // offsets
+            + (long) (references.length * RamUsageEstimator.NUM_BYTES_OBJECT_REF + RamUsageEstimator.NUM_BYTES_ARRAY_HEADER) // references
             + Integer.BYTES // length
             + Long.BYTES; // ramBytesUsed
         length = offset;

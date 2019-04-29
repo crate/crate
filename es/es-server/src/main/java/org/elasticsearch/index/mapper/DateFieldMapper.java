@@ -171,6 +171,7 @@ public class DateFieldMapper extends FieldMapper {
                     builder.ignoreMalformed(nodeBooleanValue(propNode, name + ".ignore_malformed"));
                     iterator.remove();
                 } else if (propName.equals("locale")) {
+                    assert propNode != null;
                     Locale locale = LocaleUtils.parse(propNode.toString());
                     builder.locale(locale);
                     iterator.remove();

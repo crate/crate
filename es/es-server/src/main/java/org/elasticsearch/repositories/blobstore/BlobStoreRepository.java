@@ -1549,6 +1549,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
 
                 final Store.RecoveryDiff diff = sourceMetaData.recoveryDiff(recoveryTargetMetadata);
                 for (StoreFileMetaData md : diff.identical) {
+                    assert md != null;
                     BlobStoreIndexShardSnapshot.FileInfo fileInfo = fileInfos.get(md.name());
                     recoveryState.getIndex().addFileDetail(fileInfo.name(), fileInfo.length(), true);
                     if (logger.isTraceEnabled()) {

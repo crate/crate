@@ -118,6 +118,7 @@ public class RecoveriesCollection {
             }
         } catch (Exception e) {
             // fail shard to be safe
+            assert oldRecoveryTarget != null;
             oldRecoveryTarget.notifyListener(new RecoveryFailedException(oldRecoveryTarget.state(), "failed to retry recovery", e), true);
             return null;
         }

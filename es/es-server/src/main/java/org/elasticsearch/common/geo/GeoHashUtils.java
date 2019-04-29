@@ -84,10 +84,10 @@ public class GeoHashUtils {
     /**
      * Convert from a morton encoded long from a geohash encoded long
      */
-    public static long fromMorton(long morton, int level) {
+    public static long fromMorton(long morton, long level) {
         long mFlipped = BitUtil.flipFlop(morton);
-        mFlipped >>>= (((GeoHashUtils.PRECISION - level) * 5) + MORTON_OFFSET);
-        return (mFlipped << 4) | level;
+        mFlipped >>>= (((GeoHashUtils.PRECISION - level) * 5L) + MORTON_OFFSET);
+        return (mFlipped << 4L) | level;
     }
 
     /**

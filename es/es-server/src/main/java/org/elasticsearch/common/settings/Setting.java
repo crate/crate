@@ -1524,7 +1524,7 @@ public class Setting<T> implements ToXContentObject {
             assert prefix != null || suffix != null: "Either prefix or suffix must be non-null";
 
             this.prefix = prefix;
-            if (prefix.endsWith(".") == false) {
+            if (prefix != null && prefix.endsWith(".") == false) {
                 throw new IllegalArgumentException("prefix must end with a '.'");
             }
             this.suffix = suffix;

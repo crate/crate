@@ -87,12 +87,15 @@ public class NamedXContentRegistry {
                 currentCategory = entry.categoryClass;
             }
 
-            for (String name : entry.name.getAllNamesIncludedDeprecated()) {
-                Object old = parsers.put(name, entry);
-                if (old != null) {
-                    throw new IllegalArgumentException("NamedXContent [" + currentCategory.getName() + "][" + entry.name + "]" +
-                        " is already registered for [" + old.getClass().getName() + "]," +
-                        " cannot register [" + entry.parser.getClass().getName() + "]");
+            if (parsers != null && currentCategory != null) {
+                for (String name : entry.name.getAllNamesIncludedDeprecated()) {
+                    Object old = parsers.put(name, entry);
+                    if (old != null) {
+                        throw new IllegalArgumentException(
+                            "NamedXContent [" + currentCategory.getName() + "][" + entry.name + "]" +
+                            " is already registered for [" + old.getClass().getName() + "]," +
+                            " cannot register [" + entry.parser.getClass().getName() + "]");
+                    }
                 }
             }
         }

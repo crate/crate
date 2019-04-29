@@ -1145,7 +1145,7 @@ public class Translog extends AbstractIndexShardComponent implements IndexShardC
 
         @Override
         public long estimateSize() {
-            return ((id.length() + type.length()) * 2) + source.length() + 12;
+            return (((long) id.length() + (long) type.length()) * 2L) + (long) source.length() + 12L;
         }
 
         public String type() {
@@ -1309,7 +1309,7 @@ public class Translog extends AbstractIndexShardComponent implements IndexShardC
 
         @Override
         public long estimateSize() {
-            return ((uid.field().length() + uid.text().length()) * 2) + 20;
+            return (((long) uid.field().length() + (long) uid.text().length()) * 2L) + 20L;
         }
 
         public String type() {
@@ -1443,7 +1443,7 @@ public class Translog extends AbstractIndexShardComponent implements IndexShardC
 
         @Override
         public long estimateSize() {
-            return 2 * reason.length() + 2 * Long.BYTES;
+            return 2L * (long) reason.length() + 2L * Long.BYTES;
         }
 
         @Override

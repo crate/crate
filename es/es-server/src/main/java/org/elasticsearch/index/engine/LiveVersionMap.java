@@ -226,7 +226,7 @@ final class LiveVersionMap implements ReferenceManager.RefreshListener, Accounta
         // for each entry, we need two object refs, one for the entry itself
         // and one for the free space that is due to the fact hash tables can
         // not be fully loaded
-        BASE_BYTES_PER_CHM_ENTRY = chmEntryShallowSize + 2 * RamUsageEstimator.NUM_BYTES_OBJECT_REF;
+        BASE_BYTES_PER_CHM_ENTRY = chmEntryShallowSize + 2L * (long) RamUsageEstimator.NUM_BYTES_OBJECT_REF;
     }
 
     /**

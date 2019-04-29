@@ -229,7 +229,7 @@ public class HierarchyCircuitBreakerService extends CircuitBreakerService {
     public void checkParentLimit(String label) throws CircuitBreakingException {
         long totalUsed = 0;
         for (CircuitBreaker breaker : this.breakers.values()) {
-            totalUsed += (breaker.getUsed() * breaker.getOverhead());
+            totalUsed += (breaker.getUsed() * (long)breaker.getOverhead());
         }
 
         long parentLimit = this.parentSettings.getLimit();
