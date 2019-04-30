@@ -265,8 +265,8 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                                 "HashJoin[\n" +
                                 "    Boundary[i, a]\n" +
                                 "    FetchOrEval[i, a]\n" +
-                                "    Filter[(a > '50')]\n" +
                                 "    Boundary[a, i]\n" +
+                                "    Filter[(a > '50')]\n" +
                                 "    Limit[5;0]\n" +
                                 "    OrderBy[a ASC]\n" +
                                 "    Collect[doc.t1 | [a, i] | All]\n" +

@@ -216,6 +216,16 @@ public class WindowAgg extends OneInputPlan {
     }
 
     @Override
+    public List<LogicalPlan> sources() {
+        return List.of(source);
+    }
+
+    @Override
+    public LogicalPlan replaceSources(List<LogicalPlan> sources) {
+        return new WindowAgg(Lists2.getOnlyElement(sources), windowDefinition, windowFunctions, standalone);
+    }
+
+    @Override
     public String toString() {
         return "WindowAgg{[" + ExplainLeaf.printList(windowFunctions) + "]}";
     }

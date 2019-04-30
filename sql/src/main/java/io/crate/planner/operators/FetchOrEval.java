@@ -248,6 +248,16 @@ class FetchOrEval extends OneInputPlan {
         return planWithEvalProjection(plannerContext, executionPlan, sourceOutputs, params, subQueryResults);
     }
 
+    @Override
+    public List<LogicalPlan> sources() {
+        return List.of(source);
+    }
+
+    @Override
+    public LogicalPlan replaceSources(List<LogicalPlan> sources) {
+        return new FetchOrEval(Lists2.getOnlyElement(sources), outputs, fetchMode, doFetch);
+    }
+
     private ExecutionPlan planWithFetch(PlannerContext plannerContext,
                                         ExecutionPlan executionPlan,
                                         List<Symbol> sourceOutputs,

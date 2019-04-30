@@ -24,6 +24,7 @@ package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.Field;
@@ -86,27 +87,25 @@ public class RelationBoundary extends OneInputPlan {
     private final AnalyzedRelation relation;
     private final Map<Symbol, Symbol> reverseMapping;
 
-    private RelationBoundary(LogicalPlan source,
-                             AnalyzedRelation relation,
-                             List<Symbol> outputs,
-                             Map<Symbol, Symbol> expressionMapping,
-                             Map<Symbol, Symbol> reverseMapping,
-                             Map<LogicalPlan, SelectSymbol> subQueries) {
+    public RelationBoundary(LogicalPlan source,
+                            AnalyzedRelation relation,
+                            List<Symbol> outputs,
+                            Map<Symbol, Symbol> expressionMapping,
+                            Map<Symbol, Symbol> reverseMapping,
+                            Map<LogicalPlan, SelectSymbol> subQueries) {
         super(source, outputs, expressionMapping, source.baseTables(), subQueries);
         subQueries.putAll(source.dependencies());
         this.relation = relation;
         this.reverseMapping = reverseMapping;
     }
 
+    public LogicalPlan source() {
+        return source;
+    }
+
     @Override
     public LogicalPlan tryOptimize(@Nullable LogicalPlan ancestor, SymbolMapper mapper) {
         if (ancestor instanceof Order) {
-            LogicalPlan newSource = source.tryOptimize(ancestor, mapper.andThen(outputs, SymbolMapper.fromMap(expressionMapping)));
-            if (newSource != null && newSource != source) {
-                return updateSource(newSource, mapper);
-            }
-        }
-        if (ancestor instanceof Filter) {
             LogicalPlan newSource = source.tryOptimize(ancestor, mapper.andThen(outputs, SymbolMapper.fromMap(expressionMapping)));
             if (newSource != null && newSource != source) {
                 return updateSource(newSource, mapper);
@@ -126,6 +125,24 @@ public class RelationBoundary extends OneInputPlan {
                                SubQueryResults subQueryResults) {
         return source.build(
             plannerContext, projectionBuilder, limit, offset, order, pageSizeHint, params, subQueryResults);
+    }
+
+    @Override
+    public List<LogicalPlan> sources() {
+        return List.of(source);
+    }
+
+    @Override
+    public LogicalPlan replaceSources(List<LogicalPlan> sources) {
+        LogicalPlan newSource = Lists2.getOnlyElement(sources);
+        return new RelationBoundary(
+            newSource,
+            relation,
+            OperatorUtils.mappedSymbols(newSource.outputs(), reverseMapping),
+            expressionMapping,
+            reverseMapping,
+            dependencies
+        );
     }
 
     @Override

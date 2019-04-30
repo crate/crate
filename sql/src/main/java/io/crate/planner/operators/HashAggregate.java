@@ -23,6 +23,7 @@
 package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
+import io.crate.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.ExecutionPhases;
 import io.crate.execution.dsl.phases.MergePhase;
@@ -149,6 +150,16 @@ public class HashAggregate extends OneInputPlan {
     @Override
     public List<Symbol> outputs() {
         return new ArrayList<>(aggregates);
+    }
+
+    @Override
+    public List<LogicalPlan> sources() {
+        return List.of(source);
+    }
+
+    @Override
+    public LogicalPlan replaceSources(List<LogicalPlan> sources) {
+        return new HashAggregate(Lists2.getOnlyElement(sources), aggregates);
     }
 
     @Override

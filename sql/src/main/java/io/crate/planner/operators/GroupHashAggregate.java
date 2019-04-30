@@ -140,6 +140,16 @@ public class GroupHashAggregate extends OneInputPlan {
         );
     }
 
+    @Override
+    public List<LogicalPlan> sources() {
+        return List.of(source);
+    }
+
+    @Override
+    public LogicalPlan replaceSources(List<LogicalPlan> sources) {
+        return new GroupHashAggregate(Lists2.getOnlyElement(sources), groupKeys, aggregates);
+    }
+
     private ExecutionPlan createMerge(PlannerContext plannerContext,
                                       ExecutionPlan executionPlan,
                                       List<Projection> projections,

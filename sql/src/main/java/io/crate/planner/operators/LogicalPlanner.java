@@ -65,6 +65,10 @@ import io.crate.planner.WhereClauseOptimizer;
 import io.crate.planner.consumer.FetchMode;
 import io.crate.planner.consumer.InsertFromSubQueryPlanner;
 import io.crate.planner.consumer.OptimizingRewriter;
+import io.crate.planner.optimizer.Optimizer;
+import io.crate.planner.optimizer.rule.MergeFilterAndCollect;
+import io.crate.planner.optimizer.rule.MergeFilters;
+import io.crate.planner.optimizer.rule.MoveFilterBeneathBoundary;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -173,9 +177,15 @@ public class LogicalPlanner {
      * @return The optimized plan or the original if optimizing is not possible
      */
     private static LogicalPlan tryOptimize(LogicalPlan plan) {
-        LogicalPlan optimizedPlan = plan.tryOptimize(null, SymbolMapper.identity());
+        Optimizer optimizer = new Optimizer(List.of(
+            new MergeFilters(),
+            new MoveFilterBeneathBoundary(),
+            new MergeFilterAndCollect())
+        );
+        LogicalPlan logicalPlan = optimizer.optimize(plan);
+        LogicalPlan optimizedPlan = logicalPlan.tryOptimize(null, SymbolMapper.identity());
         if (optimizedPlan == null) {
-            return plan;
+            return logicalPlan;
         }
         return optimizedPlan;
     }
