@@ -51,4 +51,7 @@ None
 Fixes
 =====
 
+- Improve error message for the unsupported :ref:`window-definition` ordered or
+  partitioned by an array column type in the context of :ref:`window-functions`
+
 None

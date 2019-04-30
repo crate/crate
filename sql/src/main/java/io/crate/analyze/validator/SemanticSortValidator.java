@@ -41,13 +41,26 @@ public class SemanticSortValidator {
     private static final InnerValidator INNER_VALIDATOR = new InnerValidator();
 
     public static void validate(Symbol symbol) throws UnsupportedOperationException {
-        INNER_VALIDATOR.process(symbol, new SortContext());
+        INNER_VALIDATOR.process(symbol, new SortContext("ORDER BY"));
+    }
+
+    /**
+     * @param symbol
+     * @param operation there are operations other than the `ORDER BY` that will translate into a sorting operation.
+     *                  this represents the name of these possible operations and will be used to customise the error
+     *                  reporting message.
+     * @throws UnsupportedOperationException
+     */
+    public static void validate(Symbol symbol, String operation) throws UnsupportedOperationException {
+        INNER_VALIDATOR.process(symbol, new SortContext(operation));
     }
 
     static class SortContext {
+        private final String operation;
         private boolean inFunction;
 
-        SortContext() {
+        SortContext(String operation) {
+            this.operation = operation;
             this.inFunction = false;
         }
     }
@@ -59,9 +72,10 @@ public class SemanticSortValidator {
             if (!context.inFunction && !DataTypes.PRIMITIVE_TYPES.contains(symbol.valueType())) {
                 throw new UnsupportedOperationException(
                     String.format(Locale.ENGLISH,
-                        "Cannot ORDER BY '%s': invalid return type '%s'.",
-                        SymbolPrinter.INSTANCE.printUnqualified(symbol),
-                        symbol.valueType())
+                                  "Cannot %s '%s': invalid return type '%s'.",
+                                  context.operation,
+                                  SymbolPrinter.INSTANCE.printUnqualified(symbol),
+                                  symbol.valueType())
                 );
             }
             try {
@@ -77,7 +91,9 @@ public class SemanticSortValidator {
 
         public Void visitMatchPredicate(MatchPredicate matchPredicate, SortContext context) {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
-                "%s predicate cannot be used in an ORDER BY clause", io.crate.expression.predicate.MatchPredicate.NAME));
+                                                                  "%s predicate cannot be used in an %s clause",
+                                                                  io.crate.expression.predicate.MatchPredicate.NAME,
+                                                                  context.operation));
         }
 
         @Override
@@ -87,9 +103,10 @@ public class SemanticSortValidator {
             if (!context.inFunction && !DataTypes.PRIMITIVE_TYPES.contains(field.valueType())) {
                 throw new UnsupportedOperationException(
                     String.format(Locale.ENGLISH,
-                        "Cannot ORDER BY '%s': invalid data type '%s'.",
-                        SymbolPrinter.INSTANCE.printUnqualified(field),
-                        field.valueType())
+                                  "Cannot %s '%s': invalid data type '%s'.",
+                                  context.operation,
+                                  SymbolPrinter.INSTANCE.printUnqualified(field),
+                                  field.valueType())
                 );
             }
             return null;
