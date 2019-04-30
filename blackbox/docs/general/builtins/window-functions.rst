@@ -18,6 +18,8 @@ which are related to the current row. This is comparable to aggregation
 functions, but window functions do not cause multiple rows to be grouped
 into a single row.
 
+.. _window-definition:
+
 Window Definition
 =================
 
@@ -127,6 +129,11 @@ Example::
 
    :ref:`Aggregation functions <aggregation>` will be treated as
    ``window functions`` when used in conjuction with the ``OVER`` clause.
+
+.. note::
+
+   Window definitions order or partitioned by an array column type are
+   currently not supported.
 
 .. _over:
 

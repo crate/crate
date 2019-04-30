@@ -39,6 +39,7 @@ import io.crate.analyze.WindowFrameDefinition;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.FieldProvider;
 import io.crate.analyze.relations.OrderyByAnalyzer;
+import io.crate.analyze.validator.SemanticSortValidator;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ConversionException;
 import io.crate.exceptions.UnsupportedFeatureException;
@@ -276,10 +277,16 @@ public class ExpressionAnalyzer {
         Window window = maybeWindow.get();
         List<Symbol> partitionSymbols = new ArrayList<>(window.getPartitions().size());
         for (Expression partition : window.getPartitions()) {
-            partitionSymbols.add(convert(partition, context));
+            Symbol symbol = convert(partition, context);
+            SemanticSortValidator.validate(symbol, "PARTITION BY");
+            partitionSymbols.add(symbol);
         }
 
-        OrderBy orderBy = OrderyByAnalyzer.analyzeSortItems(window.getOrderBy(), sortKey -> convert(sortKey, context));
+        OrderBy orderBy = OrderyByAnalyzer.analyzeSortItems(window.getOrderBy(), sortKey -> {
+            Symbol symbol = convert(sortKey, context);
+            SemanticSortValidator.validate(symbol);
+            return symbol;
+        });
 
         WindowFrameDefinition windowFrameDefinition = WindowDefinition.DEFAULT_WINDOW_FRAME;
         if (window.getWindowFrame().isPresent()) {

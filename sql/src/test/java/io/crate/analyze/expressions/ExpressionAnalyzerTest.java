@@ -406,4 +406,18 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         Symbol symbol = executor.asSymbol(Collections.emptyMap(), "10::int2");
         assertThat(symbol.valueType(), is(DataTypes.SHORT));
     }
+
+    @Test
+    public void windowDefinitionOrderedByArrayTypeIsUnsupported() {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("Cannot ORDER BY 'xs': invalid data type 'integer_array'");
+        executor.analyze("select count(*) over(order by xs) from tarr");
+    }
+
+    @Test
+    public void windowDefinitionPartitionedByArrayTypeIsUnsupported() {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("Cannot PARTITION BY 'xs': invalid data type 'integer_array'");
+        executor.analyze("select count(*) over(partition by xs) from tarr");
+    }
 }
