@@ -698,21 +698,9 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     @Override
     public Node visitColumnDefinition(SqlBaseParser.ColumnDefinitionContext context) {
-        if (context.generatedColumnDefinition() != null) {
-            return visit(context.generatedColumnDefinition());
-        }
         return new ColumnDefinition(
             getIdentText(context.ident()),
-            null,
-            visitOptionalContext(context.dataType(), ColumnType.class),
-            visitCollection(context.columnConstraint(), ColumnConstraint.class));
-    }
-
-    @Override
-    public Node visitGeneratedColumnDefinition(SqlBaseParser.GeneratedColumnDefinitionContext context) {
-        return new ColumnDefinition(
-            getIdentText(context.ident()),
-            visitOptionalContext(context.generatedExpr, Expression.class),
+            visitOptionalContext(context.expr(), Expression.class),
             visitOptionalContext(context.dataType(), ColumnType.class),
             visitCollection(context.columnConstraint(), ColumnConstraint.class));
     }
@@ -855,21 +843,9 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     @Override
     public Node visitAddColumnDefinition(SqlBaseParser.AddColumnDefinitionContext context) {
-        if (context.addGeneratedColumnDefinition() != null) {
-            return visit(context.addGeneratedColumnDefinition());
-        }
         return new AddColumnDefinition(
             (Expression) visit(context.subscriptSafe()),
-            null,
-            visitOptionalContext(context.dataType(), ColumnType.class),
-            visitCollection(context.columnConstraint(), ColumnConstraint.class));
-    }
-
-    @Override
-    public Node visitAddGeneratedColumnDefinition(SqlBaseParser.AddGeneratedColumnDefinitionContext context) {
-        return new AddColumnDefinition(
-            (Expression) visit(context.subscriptSafe()),
-            visitOptionalContext(context.generatedExpr, Expression.class),
+            visitOptionalContext(context.expr(), Expression.class),
             visitOptionalContext(context.dataType(), ColumnType.class),
             visitCollection(context.columnConstraint(), ColumnConstraint.class));
     }
