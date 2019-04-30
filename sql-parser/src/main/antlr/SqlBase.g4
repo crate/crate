@@ -261,11 +261,6 @@ parenthesizedPrimaryExpression
     : '(' primaryExpression ')'
     ;
 
-identExpr
-    : parameterOrSimpleLiteral
-    | ident
-    ;
-
 parameterOrLiteral
     : parameterOrSimpleLiteral
     | arrayLiteral
@@ -501,23 +496,11 @@ tableElement
     ;
 
 columnDefinition
-    : generatedColumnDefinition
-    | ident dataType columnConstraint*
-    ;
-
-generatedColumnDefinition
-    : ident GENERATED ALWAYS AS generatedExpr=expr columnConstraint*
-    | ident (dataType GENERATED ALWAYS)? AS generatedExpr=expr columnConstraint*
+    : ident dataType? ((GENERATED ALWAYS)? AS expr)? columnConstraint*
     ;
 
 addColumnDefinition
-    : addGeneratedColumnDefinition
-    | subscriptSafe dataType columnConstraint*
-    ;
-
-addGeneratedColumnDefinition
-    : subscriptSafe GENERATED ALWAYS AS generatedExpr=expr columnConstraint*
-    | subscriptSafe (dataType GENERATED ALWAYS)? AS generatedExpr=expr columnConstraint*
+    : subscriptSafe dataType? ((GENERATED ALWAYS)? AS expr)? columnConstraint*
     ;
 
 rerouteOption
