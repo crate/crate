@@ -22,11 +22,9 @@
 package io.crate.sql.tree;
 
 import com.google.common.base.MoreObjects;
-import com.google.common.collect.ImmutableList;
 
+import java.util.Collections;
 import java.util.List;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 public class Select
     extends Node {
@@ -35,7 +33,7 @@ public class Select
 
     public Select(boolean distinct, List<SelectItem> selectItems) {
         this.distinct = distinct;
-        this.selectItems = ImmutableList.copyOf(checkNotNull(selectItems, "selectItems"));
+        this.selectItems = Collections.unmodifiableList(selectItems);
     }
 
     public boolean isDistinct() {

@@ -22,8 +22,8 @@
 package io.crate.sql.tree;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 
+import java.util.Collections;
 import java.util.List;
 
 public class SimpleCaseExpression
@@ -34,10 +34,8 @@ public class SimpleCaseExpression
 
     public SimpleCaseExpression(Expression operand, List<WhenClause> whenClauses, Expression defaultValue) {
         Preconditions.checkNotNull(operand, "operand is null");
-        Preconditions.checkNotNull(whenClauses, "whenClauses is null");
-
         this.operand = operand;
-        this.whenClauses = ImmutableList.copyOf(whenClauses);
+        this.whenClauses = Collections.unmodifiableList(whenClauses);
         this.defaultValue = defaultValue;
     }
 
