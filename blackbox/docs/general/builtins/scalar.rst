@@ -2104,6 +2104,28 @@ Examples::
     +------------------------------+
     SELECT 1 row in set (... sec)
 
+
+``pg_get_expr``
+---------------
+
+The function ``pg_get_expr`` is implemented to improve compatibility with
+clients that use the PostgreSQL wire protocol. The function always returns
+``null``.
+
+Synopsis::
+
+   pg_get_expr(expr text, relation_oid int)
+
+Example::
+
+    cr> select pg_get_expr('literal', 1);
+    +---------------------------+
+    | pg_get_expr('literal', 1) |
+    +---------------------------+
+    |                      NULL |
+    +---------------------------+
+    SELECT 1 row in set (... sec)
+
 Special Functions
 =================
 
