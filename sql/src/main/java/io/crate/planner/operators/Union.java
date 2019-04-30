@@ -166,6 +166,16 @@ public class Union extends TwoInputPlan {
     }
 
     @Override
+    public List<LogicalPlan> sources() {
+        return List.of(lhs, rhs);
+    }
+
+    @Override
+    public LogicalPlan replaceSources(List<LogicalPlan> sources) {
+        return new Union(sources.get(0), sources.get(1), outputs);
+    }
+
+    @Override
     public LogicalPlan tryOptimize(@Nullable LogicalPlan ancestor, SymbolMapper mapper) {
         if (ancestor instanceof Order) {
             SymbolMapper symbolMapper = (newOutputs, x) -> {

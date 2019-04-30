@@ -36,7 +36,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 
-final class OperatorUtils {
+public final class OperatorUtils {
 
     private OperatorUtils() {
     }
@@ -80,7 +80,7 @@ final class OperatorUtils {
     /**
      * @return a new list where all symbols are mapped using a mapping function created from {@code mapping}
      */
-    static List<Symbol> mappedSymbols(List<Symbol> sourceOutputs, Map<Symbol, Symbol> mapping) {
+    public static List<Symbol> mappedSymbols(List<Symbol> sourceOutputs, Map<Symbol, Symbol> mapping) {
         if (mapping.isEmpty()) {
             return sourceOutputs;
         }
@@ -102,7 +102,7 @@ final class OperatorUtils {
      *      f(xx)   -> f(add(x, x)
      * </pre>
      */
-    static Function<Symbol, Symbol> getMapper(Map<Symbol, Symbol> mapping) {
+    public static Function<Symbol, Symbol> getMapper(Map<Symbol, Symbol> mapping) {
         return s -> {
             Symbol mapped = mapping.get(s);
             if (mapped != null) {

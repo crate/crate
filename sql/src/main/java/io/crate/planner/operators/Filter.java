@@ -24,10 +24,10 @@ package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueryClause;
+import io.crate.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.FilterProjection;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
-import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RowGranularity;
@@ -37,11 +37,12 @@ import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 
 import static io.crate.planner.operators.LogicalPlanner.extractColumns;
 
-class Filter extends OneInputPlan {
+public class Filter extends OneInputPlan {
 
     final Symbol query;
 
@@ -75,9 +76,17 @@ class Filter extends OneInputPlan {
         return query instanceof Literal && ((Literal) query).value() == Boolean.TRUE;
     }
 
-    private Filter(LogicalPlan source, Symbol query) {
+    public Filter(LogicalPlan source, Symbol query) {
         super(source);
         this.query = query;
+    }
+
+    public Symbol query() {
+        return query;
+    }
+
+    public LogicalPlan source() {
+        return source;
     }
 
     @Override
@@ -101,25 +110,18 @@ class Filter extends OneInputPlan {
     }
 
     @Override
-    protected LogicalPlan updateSource(LogicalPlan newSource, SymbolMapper mapper) {
-        return new Filter(newSource, query);
+    public List<LogicalPlan> sources() {
+        return List.of(source);
     }
 
     @Override
-    public LogicalPlan tryOptimize(@Nullable LogicalPlan ancestor, SymbolMapper mapper) {
-        // OrderBy is not pushed-down through a Filter as the Filter can potentially shrink the
-        // data set and ordering a bigger data set before filtering can lead to worse performance.
+    public LogicalPlan replaceSources(List<LogicalPlan> sources) {
+        return new Filter(Lists2.getOnlyElement(sources), query);
+    }
 
-        Filter currentFilter = this;
-        if (ancestor instanceof Filter) {
-            Symbol ancestorQuery = mapper.apply(outputs, ((Filter) ancestor).query);
-            currentFilter = new Filter(source, AndOperator.of(ancestorQuery, query));
-        }
-        LogicalPlan newSourceWithFilter = source.tryOptimize(currentFilter, mapper);
-        if (newSourceWithFilter == null) {
-            return super.tryOptimize(ancestor, mapper);
-        }
-        return newSourceWithFilter;
+    @Override
+    protected LogicalPlan updateSource(LogicalPlan newSource, SymbolMapper mapper) {
+        return new Filter(newSource, query);
     }
 
     @Override

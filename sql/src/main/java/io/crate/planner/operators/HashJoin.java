@@ -198,6 +198,22 @@ class HashJoin extends TwoInputPlan {
         );
     }
 
+    @Override
+    public List<LogicalPlan> sources() {
+        return List.of(lhs, rhs);
+    }
+
+    @Override
+    public LogicalPlan replaceSources(List<LogicalPlan> sources) {
+        return new HashJoin(
+            sources.get(0),
+            sources.get(1),
+            joinCondition,
+            concreteRelation,
+            tableStats
+        );
+    }
+
     private Tuple<List<Symbol>, List<Symbol>> extractHashJoinSymbolsFromJoinSymbolsAndSplitPerSide(boolean switchedTables) {
         Map<AnalyzedRelation, List<Symbol>> hashJoinSymbols = HashJoinConditionSymbolsExtractor.extract(joinCondition);
 

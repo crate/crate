@@ -104,6 +104,16 @@ class Order extends OneInputPlan {
         return executionPlan;
     }
 
+    @Override
+    public List<LogicalPlan> sources() {
+        return List.of(source);
+    }
+
+    @Override
+    public LogicalPlan replaceSources(List<LogicalPlan> sources) {
+        return new Order(Lists2.getOnlyElement(sources), orderBy);
+    }
+
     private static void ensureOrderByColumnsArePresentInOutputs(List<Symbol> outputs, List<Symbol> orderBySymbols) {
         Set<Symbol> columnsInOutputs = extractColumns(outputs);
         for (Symbol columnInOrderBy : extractColumns(orderBySymbols)) {

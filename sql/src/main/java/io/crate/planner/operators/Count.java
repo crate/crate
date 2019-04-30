@@ -42,6 +42,7 @@ import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
+import java.util.List;
 
 /**
  * An optimized version for "select count(*) from t where ..."
@@ -102,6 +103,17 @@ public class Count extends ZeroInputPlan {
             null
         );
         return new CountPlan(countPhase, mergePhase);
+    }
+
+    @Override
+    public List<LogicalPlan> sources() {
+        return List.of();
+    }
+
+    @Override
+    public LogicalPlan replaceSources(List<LogicalPlan> sources) {
+        assert sources.isEmpty() : "Count has no sources, cannot replace them";
+        return this;
     }
 
     @Override

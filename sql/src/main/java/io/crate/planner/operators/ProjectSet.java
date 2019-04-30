@@ -118,6 +118,16 @@ public class ProjectSet extends OneInputPlan {
     }
 
     @Override
+    public List<LogicalPlan> sources() {
+        return List.of(source);
+    }
+
+    @Override
+    public LogicalPlan replaceSources(List<LogicalPlan> sources) {
+        return new ProjectSet(Lists2.getOnlyElement(sources), tableFunctions, standalone);
+    }
+
+    @Override
     public <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context) {
         return visitor.visitProjectSet(this, context);
     }

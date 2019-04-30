@@ -24,6 +24,7 @@ package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AbstractTableRelation;
+import io.crate.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.ColumnIndexWriterProjection;
 import io.crate.execution.dsl.projection.EvalProjection;
@@ -100,6 +101,16 @@ public class Insert extends OneInputPlan {
     @Override
     public List<AbstractTableRelation> baseTables() {
         return Collections.emptyList();
+    }
+
+    @Override
+    public List<LogicalPlan> sources() {
+        return List.of(source);
+    }
+
+    @Override
+    public LogicalPlan replaceSources(List<LogicalPlan> sources) {
+        return new Insert(Lists2.getOnlyElement(sources), writeToTable, applyCasts);
     }
 
     @Override

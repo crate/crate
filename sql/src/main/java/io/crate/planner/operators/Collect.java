@@ -40,7 +40,6 @@ import io.crate.execution.dsl.phases.TableFunctionCollectPhase;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.pipeline.TopN;
 import io.crate.expression.predicate.MatchPredicate;
-import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
@@ -85,7 +84,7 @@ import static io.crate.planner.operators.OperatorUtils.getUnusedColumns;
  *  {@link FetchOrEval} will then later use {@code fetchId} to fetch the values for the columns which are "unused".
  *  See also {@link LogicalPlan.Builder#build(TableStats, Set)}
  */
-class Collect extends ZeroInputPlan {
+public class Collect extends ZeroInputPlan {
 
     private static final String COLLECT_PHASE_NAME = "collect";
     final QueriedTable relation;
@@ -107,12 +106,12 @@ class Collect extends ZeroInputPlan {
             tableStats.estimatedSizePerRow(relation.tableRelation().tableInfo().ident()));
     }
 
-    private Collect(QueriedTable relation,
-                    List<Symbol> toCollect,
-                    WhereClause where,
-                    Set<Symbol> usedBeforeNextFetch,
-                    long numExpectedRows,
-                    long estimatedRowSize) {
+    public Collect(QueriedTable relation,
+                   List<Symbol> toCollect,
+                   WhereClause where,
+                   Set<Symbol> usedBeforeNextFetch,
+                   long numExpectedRows,
+                   long estimatedRowSize) {
         super(
             generateOutputs(toCollect, relation.tableRelation(), usedBeforeNextFetch, where),
             Collections.singletonList(relation.tableRelation()));
@@ -129,11 +128,11 @@ class Collect extends ZeroInputPlan {
         this.tableInfo = relation.tableRelation().tableInfo();
     }
 
-    private Collect(QueriedTable relation,
-                    List<Symbol> outputs,
-                    WhereClause where,
-                    long numExpectedRows,
-                    long estimatedRowSize) {
+    public Collect(QueriedTable relation,
+                   List<Symbol> outputs,
+                   WhereClause where,
+                   long numExpectedRows,
+                   long estimatedRowSize) {
         super(outputs, Collections.singletonList(relation.tableRelation()));
         this.numExpectedRows = numExpectedRows;
         this.estimatedRowSize = estimatedRowSize;
@@ -218,6 +217,14 @@ class Collect extends ZeroInputPlan {
             limitAndOffset,
             positionalOrderBy
         );
+    }
+
+    public WhereClause where() {
+        return where;
+    }
+
+    public QueriedTable relation() {
+        return relation;
     }
 
     private static boolean noLuceneSortSupport(OrderBy order) {
@@ -331,13 +338,6 @@ class Collect extends ZeroInputPlan {
         if (ancestor instanceof Order) {
             return ((Order) ancestor).updateSource(this, mapper);
         }
-        if (ancestor instanceof Filter) {
-            Symbol ancestorQuery = mapper.apply(outputs, ((Filter) ancestor).query);
-            assert !SymbolVisitors.any(s -> s instanceof Field, ancestorQuery)
-                : "mapped ancestorQuery must not have any Field but only Reference symbols: " + ancestorQuery;
-            return new Collect(
-                relation, outputs, where.add(ancestorQuery), numExpectedRows, estimatedRowSize);
-        }
         return super.tryOptimize(ancestor, mapper);
     }
 
@@ -347,6 +347,17 @@ class Collect extends ZeroInputPlan {
         // (Except tables like sys.shards, but in that case it's better to run operations per node as well,
         // because otherwise we'd use 1 thread per row which is unnecessary overhead and may use up all available threads)
         return tableInfo instanceof DocTableInfo;
+    }
+
+    @Override
+    public List<LogicalPlan> sources() {
+        return List.of();
+    }
+
+    @Override
+    public LogicalPlan replaceSources(List<LogicalPlan> sources) {
+        assert sources.isEmpty() : "Collect has no sources, cannot replace them";
+        return this;
     }
 
     @Override

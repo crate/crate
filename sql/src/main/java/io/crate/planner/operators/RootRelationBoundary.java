@@ -23,6 +23,7 @@
 package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
+import io.crate.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.planner.ExecutionPlan;
@@ -30,6 +31,7 @@ import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
 
 import javax.annotation.Nullable;
+import java.util.List;
 
 /**
  * An operator with the primary purpose to ensure that the result is on the handler and no longer distributed.
@@ -59,6 +61,16 @@ public class RootRelationBoundary extends OneInputPlan {
             params,
             subQueryResults
         ), plannerContext);
+    }
+
+    @Override
+    public List<LogicalPlan> sources() {
+        return List.of(source);
+    }
+
+    @Override
+    public LogicalPlan replaceSources(List<LogicalPlan> sources) {
+        return new RootRelationBoundary(Lists2.getOnlyElement(sources));
     }
 
     @Override
