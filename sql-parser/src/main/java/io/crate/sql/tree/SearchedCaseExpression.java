@@ -21,9 +21,7 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-
+import java.util.Collections;
 import java.util.List;
 
 public class SearchedCaseExpression
@@ -32,8 +30,7 @@ public class SearchedCaseExpression
     private final Expression defaultValue;
 
     public SearchedCaseExpression(List<WhenClause> whenClauses, Expression defaultValue) {
-        Preconditions.checkNotNull(whenClauses, "whenClauses is null");
-        this.whenClauses = ImmutableList.copyOf(whenClauses);
+        this.whenClauses = Collections.unmodifiableList(whenClauses);
         this.defaultValue = defaultValue;
     }
 
