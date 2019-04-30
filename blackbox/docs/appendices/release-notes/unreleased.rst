@@ -150,6 +150,9 @@ Deprecations
 Changes
 =======
 
+- Allow :ref:`sql_administration_udf` to be registered against the
+  ``pg_catalog`` schema.
+
 - Added the :ref:`string_agg` aggregation function.
 
 - Improved resiliency of the :ref:`ref-create-snapshot` operation.

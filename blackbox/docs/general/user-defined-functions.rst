@@ -89,6 +89,13 @@ You can explicitly assign a schema like this::
     ...  AS 'function log10(a) { return Math.log(a)/Math.log(10); }';
     CREATE OK, 1 row affected  (... sec)
 
+.. NOTE::
+
+   In order to improve the PostgreSQL server compatibility CrateDB allows the
+   creation of user defined functions against the :ref:`postgres_pg_catalog`
+   schema. However, the creation of user defined functions against the
+   read-only :ref:`system-information` and :ref:`information_schema` schemas is
+   prohibited.
 
 .. WARNING::
 

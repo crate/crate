@@ -23,10 +23,13 @@
 package io.crate.metadata.pgcatalog;
 
 import com.google.common.collect.ImmutableSortedMap;
+import io.crate.expression.udf.UserDefinedFunctionService;
+import io.crate.expression.udf.UserDefinedFunctionsMetaData;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.view.ViewInfo;
 import org.elasticsearch.cluster.ClusterChangedEvent;
+import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.inject.Inject;
 
 import javax.annotation.Nullable;
@@ -36,9 +39,11 @@ public class PgCatalogSchemaInfo implements SchemaInfo {
 
     public static final String NAME = "pg_catalog";
     private final ImmutableSortedMap<String, TableInfo> tableInfoMap;
+    private final UserDefinedFunctionService udfService;
 
     @Inject
-    public PgCatalogSchemaInfo() {
+    public PgCatalogSchemaInfo(UserDefinedFunctionService udfService) {
+        this.udfService = udfService;
         tableInfoMap = ImmutableSortedMap.<String, TableInfo>naturalOrder()
             .put(PgTypeTable.IDENT.name(), new PgTypeTable())
             .put(PgClassTable.IDENT.name(), new PgClassTable())
@@ -85,6 +90,14 @@ public class PgCatalogSchemaInfo implements SchemaInfo {
 
     @Override
     public void update(ClusterChangedEvent event) {
-
+        assert event.metaDataChanged() : "metaDataChanged must be true if update is called";
+        MetaData newMetaData = event.state().metaData();
+        // re register UDFs for this schema
+        UserDefinedFunctionsMetaData udfMetaData = newMetaData.custom(UserDefinedFunctionsMetaData.TYPE);
+        if (udfMetaData != null) {
+            udfService.updateImplementations(
+                NAME,
+                udfMetaData.functionsMetaData().stream().filter(f -> NAME.equals(f.schema())));
+        }
     }
 }
