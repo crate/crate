@@ -151,6 +151,15 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
     }
 
     @Test
+    public void testFunctionIsCreatedInThePgCatalogSchema() throws Exception {
+        execute("create function pg_catalog.udf(integer) returns string language dummy_lang as '42'");
+        assertFunctionIsCreatedOnAll("pg_catalog", "udf", ImmutableList.of(DataTypes.INTEGER));
+
+        execute("select udf(1::integer)");
+        assertThat(response.rows()[0][0], is("DUMMY EATS integer"));
+    }
+
+    @Test
     public void testDropFunction() throws Exception {
         execute("create function custom(string) returns string language dummy_lang as 'DUMMY DUMMY DUMMY'");
         assertFunctionIsCreatedOnAll(sqlExecutor.getCurrentSchema(), "custom", ImmutableList.of(DataTypes.STRING));
