@@ -32,7 +32,6 @@ import io.crate.types.ObjectType;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.isOneOf;
 import static org.hamcrest.Matchers.oneOf;
 
 public class ArbitraryAggregationTest extends AggregationTest {
