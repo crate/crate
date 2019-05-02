@@ -24,7 +24,6 @@ package io.crate.planner.operators;
 
 import io.crate.expression.symbol.Symbol;
 
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -47,32 +46,4 @@ abstract class TwoInputPlan extends LogicalPlanBase {
         this.expressionMapping.putAll(lhs.expressionMapping());
         this.expressionMapping.putAll(rhs.expressionMapping());
     }
-
-    @Override
-    public LogicalPlan tryOptimize(@Nullable LogicalPlan ancestor, SymbolMapper mapper) {
-        if (ancestor != null) {
-            return null;
-        }
-        LogicalPlan newLhs = lhs.tryOptimize(null, mapper);
-        LogicalPlan newRhs = rhs.tryOptimize(null, mapper);
-        if (newLhs != lhs || newRhs != rhs) {
-            return updateSources(newLhs, newRhs);
-        }
-        return this;
-    }
-
-    /**
-     * Creates a new LogicalPlan with an updated source. This is necessary
-     * when we collapse plans during plan building or "push down" plans
-     * later on to optimize their execution.
-     *
-     * {@link LogicalPlan}s should be immutable. Fields like sources may only
-     * be updated by creating a new instance of the plan. Since Java does not
-     * allow to copy an instance easily and also instances might apply a custom
-     * logic when they clone itself, this method has to be implemented.
-     * @param newLeftSource A new {@link} LogicalPlan as the left source.
-     * @param newRightSource A new {@link} LogicalPlan as the right source.
-     * @return A new copy of this {@link OneInputPlan} with the new sources.
-     */
-    protected abstract LogicalPlan updateSources(LogicalPlan newLeftSource, LogicalPlan newRightSource);
 }

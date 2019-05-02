@@ -232,11 +232,6 @@ class HashJoin extends TwoInputPlan {
     }
 
     @Override
-    protected LogicalPlan updateSources(LogicalPlan newLeftSource, LogicalPlan newRightSource) {
-        return new HashJoin(newLeftSource, newRightSource, joinCondition, concreteRelation, tableStats);
-    }
-
-    @Override
     public long numExpectedRows() {
         // We don't have any cardinality estimates, so just take the bigger table
         return Math.max(lhs.numExpectedRows(), rhs.numExpectedRows());

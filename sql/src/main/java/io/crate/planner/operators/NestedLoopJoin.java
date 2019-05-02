@@ -34,8 +34,6 @@ import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.join.JoinOperations;
 import io.crate.execution.engine.pipeline.TopN;
-import io.crate.expression.symbol.Field;
-import io.crate.expression.symbol.FieldsVisitor;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
@@ -54,16 +52,13 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.function.Consumer;
 
 import static io.crate.planner.operators.Limit.limitAndOffset;
 import static io.crate.planner.operators.LogicalPlanner.NO_LIMIT;
 
-class NestedLoopJoin extends TwoInputPlan {
+public class NestedLoopJoin extends TwoInputPlan {
 
     @Nullable
     private final Symbol joinCondition;
@@ -94,24 +89,36 @@ class NestedLoopJoin extends TwoInputPlan {
         this.noOuterJoin = noOuterJoin;
     }
 
-    private NestedLoopJoin(LogicalPlan lhs,
-                   LogicalPlan rhs,
-                   JoinType joinType,
-                   @Nullable Symbol joinCondition,
-                   boolean isFiltered,
-                   boolean noOuterJoin,
-                   AnalyzedRelation topMostLeftRelation,
-                   boolean orderByWasPushedDown) {
+    public NestedLoopJoin(LogicalPlan lhs,
+                          LogicalPlan rhs,
+                          JoinType joinType,
+                          @Nullable Symbol joinCondition,
+                          boolean isFiltered,
+                          boolean noOuterJoin,
+                          AnalyzedRelation topMostLeftRelation,
+                          boolean orderByWasPushedDown) {
         this(lhs, rhs, joinType, joinCondition, isFiltered, noOuterJoin, topMostLeftRelation);
         this.orderByWasPushedDown = orderByWasPushedDown;
     }
 
-    JoinType joinType() {
+    public boolean isNoOuterJoin() {
+        return noOuterJoin;
+    }
+
+    public boolean isFiltered() {
+        return true;
+    }
+
+    public AnalyzedRelation topMostLeftRelation() {
+        return topMostLeftRelation;
+    }
+
+    public JoinType joinType() {
         return joinType;
     }
 
     @Nullable
-    Symbol joinCondition() {
+    public Symbol joinCondition() {
         return joinCondition;
     }
 
@@ -271,19 +278,6 @@ class NestedLoopJoin extends TwoInputPlan {
     }
 
     @Override
-    protected LogicalPlan updateSources(LogicalPlan newLeftSource, LogicalPlan newRightSource) {
-        return new NestedLoopJoin(
-            newLeftSource,
-            newRightSource,
-            joinType,
-            joinCondition,
-            isFiltered,
-            noOuterJoin,
-            topMostLeftRelation,
-            orderByWasPushedDown);
-    }
-
-    @Override
     public long numExpectedRows() {
         if (joinType == JoinType.CROSS) {
             return lhs.numExpectedRows() * rhs.numExpectedRows();
@@ -296,41 +290,6 @@ class NestedLoopJoin extends TwoInputPlan {
     @Override
     public long estimatedRowSize() {
         return lhs.estimatedRowSize() + rhs.estimatedRowSize();
-    }
-
-    @Override
-    public LogicalPlan tryOptimize(@Nullable LogicalPlan ancestor, SymbolMapper mapper) {
-        if (ancestor instanceof Order) {
-            /* Move the orderBy expression to the sub-relation if possible.
-             *
-             * This is possible because a nested loop preserves the ordering of the input-relation
-             * IF:
-             *   - the order by expressions only operate using fields from a single relation
-             *   - that relation happens to be on the left-side of the join
-             *   - there is no outer join involved in the whole join (outer joins may create null rows - breaking the ordering)
-             */
-            if (noOuterJoin) {
-                Set<AnalyzedRelation> relationsInOrderBy =
-                    Collections.newSetFromMap(new IdentityHashMap<>());
-                Consumer<Field> gatherRelations = f -> relationsInOrderBy.add(f.relation());
-
-                OrderBy orderBy = ((Order) ancestor).orderBy;
-                for (Symbol orderExpr : orderBy.orderBySymbols()) {
-                    FieldsVisitor.visitFields(orderExpr, gatherRelations);
-                }
-                if (relationsInOrderBy.size() == 1) {
-                    AnalyzedRelation relationInOrderBy = relationsInOrderBy.iterator().next();
-                    if (relationInOrderBy == topMostLeftRelation) {
-                        LogicalPlan newLhs = lhs.tryOptimize(ancestor, SymbolMapper.fromMap(expressionMapping));
-                        if (newLhs != null) {
-                            orderByWasPushedDown = true;
-                            return updateSources(newLhs, rhs);
-                        }
-                    }
-                }
-            }
-        }
-        return super.tryOptimize(ancestor, mapper);
     }
 
     @Override

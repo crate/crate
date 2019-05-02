@@ -114,11 +114,6 @@ public class WindowAgg extends OneInputPlan {
     }
 
     @Override
-    protected LogicalPlan updateSource(LogicalPlan newSource, SymbolMapper mapper) {
-        return new WindowAgg(newSource, windowDefinition, windowFunctions, standalone);
-    }
-
-    @Override
     public ExecutionPlan build(PlannerContext plannerContext,
                                ProjectionBuilder projectionBuilder,
                                int limit,

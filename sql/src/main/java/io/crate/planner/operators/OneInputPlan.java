@@ -26,7 +26,6 @@ import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 
-import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
 
@@ -58,20 +57,6 @@ abstract class OneInputPlan extends LogicalPlanBase {
         this.source = source;
     }
 
-
-    @Override
-    public LogicalPlan tryOptimize(@Nullable LogicalPlan ancestor, SymbolMapper mapper) {
-        if (ancestor != null) {
-            // can't push down
-            return null;
-        }
-        LogicalPlan newPlan = source.tryOptimize(null, mapper);
-        if (newPlan != source) {
-            return updateSource(newPlan, mapper);
-        }
-        return this;
-    }
-
     /**
      * If no other information available, return the source's number of rows.
      * @return The number of rows of the source plan.
@@ -85,19 +70,4 @@ abstract class OneInputPlan extends LogicalPlanBase {
     public long estimatedRowSize() {
         return source.estimatedRowSize();
     }
-
-    /**
-     * Creates a new LogicalPlan with an updated source. This is necessary
-     * when we collapse plans during plan building or "push down" plans
-     * later on to optimize their execution.
-     *
-     * {@link LogicalPlan}s should be immutable. Fields like sources may only
-     * be updated by creating a new instance of the plan. Since Java does not
-     * allow to copy an instance easily and also instances might apply a custom
-     * logic when they clone itself, this method has to be implemented.
-     * @param newSource A new {@link LogicalPlan} as a source.
-     * @return A new copy of this {@link OneInputPlan} with the new source.
-     */
-    protected abstract LogicalPlan updateSource(LogicalPlan newSource, SymbolMapper mapper);
-
 }

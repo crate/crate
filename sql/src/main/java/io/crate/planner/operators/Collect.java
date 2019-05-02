@@ -334,14 +334,6 @@ public class Collect extends ZeroInputPlan {
     }
 
     @Override
-    public LogicalPlan tryOptimize(@Nullable LogicalPlan ancestor, SymbolMapper mapper) {
-        if (ancestor instanceof Order) {
-            return ((Order) ancestor).updateSource(this, mapper);
-        }
-        return super.tryOptimize(ancestor, mapper);
-    }
-
-    @Override
     public boolean preferShardProjections() {
         // Can't run on shard level for system tables
         // (Except tables like sys.shards, but in that case it's better to run operations per node as well,

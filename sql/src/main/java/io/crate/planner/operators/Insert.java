@@ -84,11 +84,6 @@ public class Insert extends OneInputPlan {
     }
 
     @Override
-    protected LogicalPlan updateSource(LogicalPlan newSource, SymbolMapper mapper) {
-        return new Insert(newSource, writeToTable, applyCasts);
-    }
-
-    @Override
     public List<Symbol> outputs() {
         return MergeCountProjection.OUTPUTS;
     }

@@ -42,7 +42,7 @@ import java.util.Set;
 
 import static io.crate.planner.operators.LogicalPlanner.extractColumns;
 
-class Order extends OneInputPlan {
+public class Order extends OneInputPlan {
 
     final OrderBy orderBy;
 
@@ -58,9 +58,13 @@ class Order extends OneInputPlan {
         };
     }
 
-    Order(LogicalPlan source, OrderBy orderBy) {
+    public Order(LogicalPlan source, OrderBy orderBy) {
         super(source, Lists2.concatUnique(source.outputs(), orderBy.orderBySymbols()));
         this.orderBy = orderBy;
+    }
+
+    public OrderBy orderBy() {
+        return orderBy;
     }
 
     @Override
@@ -93,8 +97,7 @@ class Order extends OneInputPlan {
             orderBy.reverseFlags(),
             orderBy.nullsFirst()
         );
-        PositionalOrderBy positionalOrderBy =
-            executionPlan.resultDescription().nodeIds().size() == 1 ? null : PositionalOrderBy.of(orderBy, outputs);
+        PositionalOrderBy positionalOrderBy = PositionalOrderBy.of(orderBy, outputs);
         executionPlan.addProjection(
             topNProjection,
             limit,
@@ -107,6 +110,10 @@ class Order extends OneInputPlan {
     @Override
     public List<LogicalPlan> sources() {
         return List.of(source);
+    }
+
+    public LogicalPlan source() {
+        return source;
     }
 
     @Override
@@ -123,31 +130,6 @@ class Order extends OneInputPlan {
                     columnInOrderBy));
             }
         }
-    }
-
-    @Override
-    public LogicalPlan tryOptimize(@Nullable LogicalPlan ancestor, SymbolMapper mapper) {
-        if (ancestor instanceof Order) {
-            // We can overwrite this Order with the Order being pushed down
-            // because the order of the results will be changed anyway further
-            // downstream.
-            return source.tryOptimize(ancestor, mapper);
-        }
-        if (ancestor != null) {
-            // already pushing down something else
-            return null;
-        }
-        // try pushing down this Order (if possible)
-        LogicalPlan optimize = source.tryOptimize(this, mapper);
-        if (optimize == null) {
-            return super.tryOptimize(null, mapper);
-        }
-        return optimize;
-    }
-
-    @Override
-    protected LogicalPlan updateSource(LogicalPlan newSource, SymbolMapper mapper) {
-        return new Order(newSource, orderBy.copyAndReplace(x -> mapper.apply(newSource.outputs(), x)));
     }
 
     @Override
