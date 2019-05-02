@@ -248,7 +248,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testSetStmtBuiler() throws Exception {
+    public void testSetStmtBuiler() {
         printStatement("set session some_setting = 1, ON");
         printStatement("set session some_setting = false");
         printStatement("set session some_setting = DEFAULT");
@@ -298,7 +298,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testKillAll() throws Exception {
+    public void testKillAll() {
         Statement stmt = SqlParser.createStatement("KILL ALL");
         assertTrue(stmt.equals(new KillStatement()));
     }
@@ -344,7 +344,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testOptimize() throws Exception {
+    public void testOptimize() {
         printStatement("optimize table t");
         printStatement("optimize table t1, t2");
         printStatement("optimize table schema.t");
@@ -359,14 +359,14 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testSetSessionInvalidSetting() throws Exception {
+    public void testSetSessionInvalidSetting() {
         expectedException.expect(ParsingException.class);
         expectedException.expectMessage(containsString("no viable alternative"));
         printStatement("set session 'some_setting' TO 1, ON");
     }
 
     @Test
-    public void testSetGlobal() throws Exception {
+    public void testSetGlobal() {
         printStatement("set global sys.cluster['some_settings']['3'] = '1'");
         printStatement("set global sys.cluster['some_settings'] = '1', other_setting = 2");
         printStatement("set global transient sys.cluster['some_settings'] = '1'");
@@ -374,7 +374,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testSetLicenseStmtBuilder() throws Exception {
+    public void testSetLicenseStmtBuilder() {
         printStatement("set license 'LICENSE_KEY'");
     }
 
@@ -522,7 +522,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testBlobTable() throws Exception {
+    public void testBlobTable() {
         printStatement("drop blob table screenshots");
 
         printStatement("create blob table screenshots");
@@ -739,7 +739,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testSelectStmtBuilder() throws Exception {
+    public void testSelectStmtBuilder() {
         printStatement("select ab" +
             " from (select (ii + y) as iiy, concat(a, b) as ab" +
                 " from (select t1.a, t2.b, t2.y, (t1.i + t2.i) as ii " +
@@ -787,14 +787,14 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testEscapedStringLiteralBuilder() throws Exception {
+    public void testEscapedStringLiteralBuilder() {
         printStatement("select E'aValue'");
         printStatement("select E'\\141Value'");
         printStatement("select e'aa\\\'bb'");
     }
 
     @Test
-    public void testThatEscapedStringLiteralContainingDoubleBackSlashAndSingleQuoteThrowsException() throws Exception {
+    public void testThatEscapedStringLiteralContainingDoubleBackSlashAndSingleQuoteThrowsException() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Invalid Escaped String Literal");
         printStatement("select e'aa\\\\\'bb' as col1");
@@ -854,7 +854,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testShowTransactionLevel() throws Exception {
+    public void testShowTransactionLevel() {
         printStatement("show transaction isolation level");
     }
 
@@ -875,7 +875,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testArrayConstructorSubSelectBuilder() throws Exception {
+    public void testArrayConstructorSubSelectBuilder() {
         printStatement("select array(select foo from f1) from f2");
         printStatement("select array(select * from f1) as array1 from f2");
         printStatement("select count(*) from f1 where f1.array1 = array(select foo from f2)");
@@ -883,34 +883,34 @@ public class TestStatementBuilder {
 
 
     @Test
-    public void testArrayConstructorSubSelectBuilderNoParenthesisThrowsParsingException() throws Exception {
+    public void testArrayConstructorSubSelectBuilderNoParenthesisThrowsParsingException() {
         expectedException.expect(ParsingException.class);
         expectedException.expectMessage(containsString("no viable alternative at input 'select array from'"));
         printStatement("select array from f2");
     }
 
    @Test
-    public void testArrayConstructorSubSelectBuilderNoSubQueryThrowsParsingException() throws Exception {
+    public void testArrayConstructorSubSelectBuilderNoSubQueryThrowsParsingException() {
         expectedException.expect(ParsingException.class);
         expectedException.expectMessage(containsString("no viable alternative at input 'select array()'"));
         printStatement("select array() as array1 from f2");
     }
 
     @Test
-    public void testTableFunctions() throws Exception {
+    public void testTableFunctions() {
         printStatement("select * from unnest([1, 2], ['Arthur', 'Marvin'])");
         printStatement("select * from unnest(?, ?)");
         printStatement("select * from open('/tmp/x')");
     }
 
     @Test
-    public void testStatementSubscript() throws Exception {
+    public void testStatementSubscript() {
         printStatement("select a['x'] from foo where a['x']['y']['z'] = 1");
         printStatement("select a['x'] from foo where a[1 + 2]['y'] = 1");
     }
 
     @Test
-    public void testCopy() throws Exception {
+    public void testCopy() {
         printStatement("copy foo partition (a='x') from ?");
         printStatement("copy foo partition (a={key='value'}) from ?");
         printStatement("copy foo from '/folder/file.extension'");
@@ -933,7 +933,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testInsertStmtBuilder() throws Exception {
+    public void testInsertStmtBuilder() {
         // insert from values
         printStatement("insert into foo (id, name) values ('string', 1.2)");
         printStatement("insert into foo values ('string', NULL)");
@@ -966,13 +966,13 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testParameterExpressionLimitOffset() throws Exception {
+    public void testParameterExpressionLimitOffset() {
         // ORMs like SQLAlchemy generate these kind of queries.
         printStatement("select * from foo limit ? offset ?");
     }
 
     @Test
-    public void testMatchPredicateStmtBuilder() throws Exception {
+    public void testMatchPredicateStmtBuilder() {
         printStatement("select * from foo where match (a['1']['2'], 'abc')");
         printStatement("select * from foo where match (a, 'abc')");
         printStatement("select * from foo where match ((a, b 2.0), 'abc')");
@@ -984,7 +984,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testRepositoryStmtBuilder() throws Exception {
+    public void testRepositoryStmtBuilder() {
         printStatement("create repository my_repo type hdfs");
         printStatement("CREATE REPOSITORY \"myRepo\" TYPE \"fs\"");
         printStatement("CREATE REPOSITORY \"myRepo\" TYPE \"fs\" with (location='/mount/backups/my_backup', compress=True)");
@@ -1001,7 +1001,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testSnapshotStmtBuilder() throws Exception {
+    public void testSnapshotStmtBuilder() {
         printStatement("CREATE SNAPSHOT my_repo.my_snapshot ALL");
         printStatement("CREATE SNAPSHOT my_repo.my_snapshot TABLE authors, books");
         printStatement("CREATE SNAPSHOT my_repo.my_snapshot TABLE authors, books with (wait_for_completion=True)");
@@ -1040,7 +1040,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testGeoShapeStmtBuilder() throws Exception {
+    public void testGeoShapeStmtBuilder() {
         printStatement("create table test (" +
                        "    col1 geo_shape," +
                        "    col2 geo_shape index using geohash" +
@@ -1083,7 +1083,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testSubscriptExpression() throws Exception {
+    public void testSubscriptExpression() {
         Expression expression = SqlParser.createExpression("a['sub']");
         assertThat(expression, instanceOf(SubscriptExpression.class));
         SubscriptExpression subscript = (SubscriptExpression) expression;
@@ -1113,7 +1113,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testCaseSensitivity() throws Exception {
+    public void testCaseSensitivity() {
         Expression expression = SqlParser.createExpression("\"firstName\" = 'myName'");
         QualifiedNameReference nameRef = (QualifiedNameReference) ((ComparisonExpression) expression).getLeft();
         StringLiteral myName = (StringLiteral) ((ComparisonExpression) expression).getRight();
@@ -1130,7 +1130,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testArrayComparison() throws Exception {
+    public void testArrayComparison() {
         Expression anyExpression = SqlParser.createExpression("1 = ANY (arrayColumnRef)");
         assertThat(anyExpression, instanceOf(ArrayComparisonExpression.class));
         ArrayComparisonExpression arrayComparisonExpression = (ArrayComparisonExpression) anyExpression;
@@ -1154,7 +1154,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testArrayComparisonSubselect() throws Exception {
+    public void testArrayComparisonSubselect() {
         Expression anyExpression = SqlParser.createExpression("1 = ANY ((SELECT 5))");
         assertThat(anyExpression, instanceOf(ArrayComparisonExpression.class));
         ArrayComparisonExpression arrayComparisonExpression = (ArrayComparisonExpression) anyExpression;
@@ -1191,7 +1191,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testStringLiteral() throws Exception {
+    public void testStringLiteral() {
         String[] testString = new String[]{
             "foo' or 1='1",
             "foo''bar",
@@ -1208,7 +1208,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testEscapedStringLiteral() throws Exception {
+    public void testEscapedStringLiteral() {
         String input = "this is a triple-a:\\141\\x61\\u0061";
         String expectedValue = "this is a triple-a:aaa";
         Expression expr = SqlParser.createExpression(Literals.quoteEscapedStringLiteral(input));
@@ -1218,7 +1218,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testObjectLiteral() throws Exception {
+    public void testObjectLiteral() {
         Expression emptyObjectLiteral = SqlParser.createExpression("{}");
         assertThat(emptyObjectLiteral, instanceOf(ObjectLiteral.class));
         assertThat(((ObjectLiteral) emptyObjectLiteral).values().size(), is(0));
@@ -1244,7 +1244,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testArrayLiteral() throws Exception {
+    public void testArrayLiteral() {
         ArrayLiteral emptyArrayLiteral = (ArrayLiteral) SqlParser.createExpression("[]");
         assertThat(emptyArrayLiteral.values().size(), is(0));
 
@@ -1262,13 +1262,13 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testParameterNode() throws Exception {
+    public void testParameterNode() {
         printStatement("select foo, $1 from foo where a = $2 or a = $3");
 
         final AtomicInteger counter = new AtomicInteger(0);
 
         Expression inExpression = SqlParser.createExpression("x in (?, ?, ?)");
-        inExpression.accept(new DefaultTraversalVisitor<Object, Object>() {
+        inExpression.accept(new DefaultTraversalVisitor<>() {
             @Override
             public Object visitParameterExpression(ParameterExpression node, Object context) {
                 assertEquals(counter.incrementAndGet(), node.position());
@@ -1280,7 +1280,7 @@ public class TestStatementBuilder {
         counter.set(0);
 
         Expression andExpression = SqlParser.createExpression("a = ? and b = ? and c = $3");
-        andExpression.accept(new DefaultTraversalVisitor<Object, Object>() {
+        andExpression.accept(new DefaultTraversalVisitor<>() {
             @Override
             public Object visitParameterExpression(ParameterExpression node, Object context) {
                 assertEquals(counter.incrementAndGet(), node.position());
@@ -1291,7 +1291,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testShowCreateTable() throws Exception {
+    public void testShowCreateTable() {
         Statement stmt = SqlParser.createStatement("SHOW CREATE TABLE foo");
         assertTrue(stmt instanceof ShowCreateTable);
         assertEquals(((ShowCreateTable) stmt).table().getName().toString(), "foo");
@@ -1300,7 +1300,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testCreateTableWithGeneratedColumn() throws Exception {
+    public void testCreateTableWithGeneratedColumn() {
         printStatement("create table test (col1 int, col2 AS date_trunc('day', col1))");
         printStatement("create table test (col1 int, col2 AS (date_trunc('day', col1)))");
         printStatement("create table test (col1 int, col2 AS date_trunc('day', col1) INDEX OFF)");
@@ -1320,7 +1320,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testAddGeneratedColumn() throws Exception {
+    public void testAddGeneratedColumn() {
         printStatement("alter table t add col2 AS date_trunc('day', col1)");
         printStatement("alter table t add col2 AS date_trunc('day', col1) INDEX USING PLAIN");
         printStatement("alter table t add col2 AS (date_trunc('day', col1))");
@@ -1340,7 +1340,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testAlterTableOpenClose() throws Exception {
+    public void testAlterTableOpenClose() {
         printStatement("alter table t close");
         printStatement("alter table t open");
 
@@ -1349,12 +1349,12 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testAlterTableRename() throws Exception {
+    public void testAlterTableRename() {
         printStatement("alter table t rename to t2");
     }
 
     @Test
-    public void testAlterTableReroute() throws Exception {
+    public void testAlterTableReroute() {
         printStatement("alter table t reroute move shard 1 from 'node1' to 'node2'");
         printStatement("alter table t partition (parted_col = ?) reroute move shard ? from ? to ?");
         printStatement("alter table t reroute allocate replica shard 1 on 'node1'");
@@ -1363,7 +1363,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testAlterUser() throws Exception {
+    public void testAlterUser() {
         printStatement("alter user crate set (password = 'password')");
         printStatement("alter user crate set (password = null)");
     }
@@ -1376,7 +1376,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testSubSelects() throws Exception {
+    public void testSubSelects() {
         printStatement("select * from (select * from foo) as f");
         printStatement("select * from (select * from (select * from foo) as f1) as f2");
         printStatement("select * from (select * from foo) f");
@@ -1384,7 +1384,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testJoins() throws Exception {
+    public void testJoins() {
         printStatement("select * from foo inner join bar on foo.id = bar.id");
 
         printStatement("select * from foo left outer join bar on foo.id = bar.id");
@@ -1396,7 +1396,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testConditionals() throws Exception {
+    public void testConditionals() {
         printStatement("SELECT a," +
                        "       CASE WHEN a=1 THEN 'one'" +
                        "            WHEN a=2 THEN 'two'" +
@@ -1413,7 +1413,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testUnions() throws Exception {
+    public void testUnions() {
         printStatement("select * from foo union select * from bar");
         printStatement("select * from foo union all select * from bar");
         printStatement("select * from foo union distinct select * from bar");
