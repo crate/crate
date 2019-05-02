@@ -386,7 +386,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                 indentation += 4;
                 startLine("subQueries[\n");
                 indentation += 4;
-                for (Map.Entry<LogicalPlan, SelectSymbol> entry : multiPhase.dependencies.entrySet()) {
+                for (Map.Entry<LogicalPlan, SelectSymbol> entry : multiPhase.dependencies().entrySet()) {
                     printPlan(entry.getKey());
                 }
                 indentation -= 4;
@@ -399,7 +399,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             if (plan instanceof FetchOrEval) {
                 FetchOrEval fetchOrEval = (FetchOrEval) plan;
                 startLine("FetchOrEval[");
-                addSymbolsList(fetchOrEval.outputs);
+                addSymbolsList(fetchOrEval.outputs());
                 sb.append("]\n");
                 plan = fetchOrEval.source;
             }
@@ -469,7 +469,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                 startLine("Collect[");
                 sb.append(collect.tableInfo.ident());
                 sb.append(" | [");
-                addSymbolsList(collect.outputs);
+                addSymbolsList(collect.outputs());
                 sb.append("] | ");
                 sb.append(printQueryClause(symbolPrinter, collect.where));
                 sb.append("]\n");

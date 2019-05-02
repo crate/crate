@@ -42,6 +42,7 @@ import io.crate.execution.engine.pipeline.TopN;
 import io.crate.expression.predicate.MatchPredicate;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.expression.symbol.SymbolVisitors;
@@ -65,6 +66,7 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static io.crate.planner.operators.Limit.limitAndOffset;
@@ -84,10 +86,12 @@ import static io.crate.planner.operators.OperatorUtils.getUnusedColumns;
  *  {@link FetchOrEval} will then later use {@code fetchId} to fetch the values for the columns which are "unused".
  *  See also {@link LogicalPlan.Builder#build(TableStats, Set)}
  */
-public class Collect extends ZeroInputPlan {
+public class Collect implements LogicalPlan {
 
     private static final String COLLECT_PHASE_NAME = "collect";
     final QueriedTable relation;
+    private final List<Symbol> outputs;
+    private final List<AbstractTableRelation> baseTables;
     WhereClause where;
 
     final TableInfo tableInfo;
@@ -112,20 +116,13 @@ public class Collect extends ZeroInputPlan {
                    Set<Symbol> usedBeforeNextFetch,
                    long numExpectedRows,
                    long estimatedRowSize) {
-        super(
+        this(
+            relation,
             generateOutputs(toCollect, relation.tableRelation(), usedBeforeNextFetch, where),
-            Collections.singletonList(relation.tableRelation()));
-
-        this.numExpectedRows = numExpectedRows;
-        this.estimatedRowSize = estimatedRowSize;
-        if (where.hasVersions()) {
-            throw VersioninigValidationException.versionInvalidUsage();
-        } else if (where.hasSeqNoAndPrimaryTerm()) {
-            throw VersioninigValidationException.seqNoAndPrimaryTermUsage();
-        }
-        this.relation = relation;
-        this.where = where;
-        this.tableInfo = relation.tableRelation().tableInfo();
+            where,
+            numExpectedRows,
+            estimatedRowSize
+        );
     }
 
     public Collect(QueriedTable relation,
@@ -133,7 +130,8 @@ public class Collect extends ZeroInputPlan {
                    WhereClause where,
                    long numExpectedRows,
                    long estimatedRowSize) {
-        super(outputs, Collections.singletonList(relation.tableRelation()));
+        this.outputs = outputs;
+        this.baseTables = List.of(relation.tableRelation());
         this.numExpectedRows = numExpectedRows;
         this.estimatedRowSize = estimatedRowSize;
         if (where.hasVersions()) {
@@ -145,8 +143,6 @@ public class Collect extends ZeroInputPlan {
         this.where = where;
         this.tableInfo = relation.tableRelation().tableInfo();
     }
-
-
 
     private static List<Symbol> generateOutputs(List<Symbol> toCollect,
                                                 AbstractTableRelation tableRelation,
@@ -217,6 +213,11 @@ public class Collect extends ZeroInputPlan {
             limitAndOffset,
             positionalOrderBy
         );
+    }
+
+    @Override
+    public List<Symbol> outputs() {
+        return outputs;
     }
 
     public WhereClause where() {
@@ -342,6 +343,16 @@ public class Collect extends ZeroInputPlan {
     }
 
     @Override
+    public Map<Symbol, Symbol> expressionMapping() {
+        return Map.of();
+    }
+
+    @Override
+    public List<AbstractTableRelation> baseTables() {
+        return baseTables;
+    }
+
+    @Override
     public List<LogicalPlan> sources() {
         return List.of();
     }
@@ -350,6 +361,11 @@ public class Collect extends ZeroInputPlan {
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
         assert sources.isEmpty() : "Collect has no sources, cannot replace them";
         return this;
+    }
+
+    @Override
+    public Map<LogicalPlan, SelectSymbol> dependencies() {
+        return Map.of();
     }
 
     @Override

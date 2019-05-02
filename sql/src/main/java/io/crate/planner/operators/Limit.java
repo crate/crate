@@ -23,6 +23,7 @@
 package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
+import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.ExecutionPhases;
@@ -30,6 +31,7 @@ import io.crate.execution.dsl.projection.TopNProjection;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.pipeline.TopN;
 import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.planner.ExecutionPlan;
@@ -41,15 +43,17 @@ import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
 import java.util.List;
+import java.util.Map;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
 import static io.crate.analyze.SymbolEvaluator.evaluate;
 import static io.crate.planner.operators.LogicalPlanner.NO_LIMIT;
 
-class Limit extends OneInputPlan {
+class Limit implements LogicalPlan {
 
     final Symbol limit;
     final Symbol offset;
+    final LogicalPlan source;
 
     static LogicalPlan.Builder create(LogicalPlan.Builder source, @Nullable Symbol limit, @Nullable Symbol offset) {
         if (limit == null && offset == null) {
@@ -63,7 +67,7 @@ class Limit extends OneInputPlan {
     }
 
     private Limit(LogicalPlan source, Symbol limit, Symbol offset) {
-        super(source);
+        this.source = source;
         this.limit = limit;
         this.offset = offset;
     }
@@ -115,6 +119,21 @@ class Limit extends OneInputPlan {
     }
 
     @Override
+    public List<Symbol> outputs() {
+        return source.outputs();
+    }
+
+    @Override
+    public Map<Symbol, Symbol> expressionMapping() {
+        return source.expressionMapping();
+    }
+
+    @Override
+    public List<AbstractTableRelation> baseTables() {
+        return source.baseTables();
+    }
+
+    @Override
     public List<LogicalPlan> sources() {
         return List.of(source);
     }
@@ -125,11 +144,21 @@ class Limit extends OneInputPlan {
     }
 
     @Override
+    public Map<LogicalPlan, SelectSymbol> dependencies() {
+        return source.dependencies();
+    }
+
+    @Override
     public long numExpectedRows() {
         if (limit instanceof Literal) {
             return DataTypes.LONG.value(((Literal) limit).value());
         }
         return source.numExpectedRows();
+    }
+
+    @Override
+    public long estimatedRowSize() {
+        return source.estimatedRowSize();
     }
 
     @Override

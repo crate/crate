@@ -24,6 +24,7 @@ package io.crate.common.collections;
 import io.crate.common.StringUtils;
 
 import javax.annotation.Nullable;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -32,6 +33,19 @@ import java.util.Objects;
 import java.util.RandomAccess;
 
 public final class Maps {
+
+    public static <K, V> Map<K, V> concat(Map<K, V> m1, Map<K, V> m2) {
+        if (m1.isEmpty()) {
+            return m2;
+        }
+        if (m2.isEmpty()) {
+            return m1;
+        }
+        HashMap<K, V> result = new HashMap<>();
+        result.putAll(m1);
+        result.putAll(m2);
+        return Collections.unmodifiableMap(result);
+    }
 
     @Nullable
     public static <K, V> Map<K, V> mapOrNullIfNullValues(Map<K, V> map) {

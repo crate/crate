@@ -23,11 +23,13 @@
 package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
+import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.OrderedTopNProjection;
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
+import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.format.SymbolFormatter;
 import io.crate.planner.ExecutionPlan;
@@ -38,13 +40,16 @@ import io.crate.planner.PositionalOrderBy;
 import javax.annotation.Nullable;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static io.crate.planner.operators.LogicalPlanner.extractColumns;
 
-public class Order extends OneInputPlan {
+public class Order implements LogicalPlan {
 
     final OrderBy orderBy;
+    final LogicalPlan source;
+    private final List<Symbol> outputs;
 
     static LogicalPlan.Builder create(LogicalPlan.Builder source, @Nullable OrderBy orderBy) {
         if (orderBy == null) {
@@ -59,7 +64,8 @@ public class Order extends OneInputPlan {
     }
 
     public Order(LogicalPlan source, OrderBy orderBy) {
-        super(source, Lists2.concatUnique(source.outputs(), orderBy.orderBySymbols()));
+        this.source = source;
+        this.outputs = Lists2.concatUnique(source.outputs(), orderBy.orderBySymbols());
         this.orderBy = orderBy;
     }
 
@@ -108,6 +114,21 @@ public class Order extends OneInputPlan {
     }
 
     @Override
+    public List<Symbol> outputs() {
+        return outputs;
+    }
+
+    @Override
+    public Map<Symbol, Symbol> expressionMapping() {
+        return source.expressionMapping();
+    }
+
+    @Override
+    public List<AbstractTableRelation> baseTables() {
+        return source.baseTables();
+    }
+
+    @Override
     public List<LogicalPlan> sources() {
         return List.of(source);
     }
@@ -119,6 +140,21 @@ public class Order extends OneInputPlan {
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
         return new Order(Lists2.getOnlyElement(sources), orderBy);
+    }
+
+    @Override
+    public Map<LogicalPlan, SelectSymbol> dependencies() {
+        return source.dependencies();
+    }
+
+    @Override
+    public long numExpectedRows() {
+        return source.numExpectedRows();
+    }
+
+    @Override
+    public long estimatedRowSize() {
+        return source.estimatedRowSize();
     }
 
     private static void ensureOrderByColumnsArePresentInOutputs(List<Symbol> outputs, List<Symbol> orderBySymbols) {

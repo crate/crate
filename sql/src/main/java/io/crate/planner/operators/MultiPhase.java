@@ -23,17 +23,21 @@
 package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
+import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.SelectSymbol;
+import io.crate.expression.symbol.Symbol;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.MultiPhasePlan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.SubqueryPlanner;
 
 import javax.annotation.Nullable;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -41,7 +45,10 @@ import java.util.Map;
  * This is the {@link LogicalPlan} equivalent of the {@link MultiPhasePlan} plan.
  * It's used to describe that other logical plans needed to be executed first.
   */
-public class MultiPhase extends OneInputPlan {
+public class MultiPhase implements LogicalPlan {
+
+    final LogicalPlan source;
+    private final Map<LogicalPlan, SelectSymbol> subQueries;
 
     public static LogicalPlan createIfNeeded(LogicalPlan source,
                                              AnalyzedRelation relation,
@@ -54,8 +61,10 @@ public class MultiPhase extends OneInputPlan {
     }
 
     private MultiPhase(LogicalPlan source, Map<LogicalPlan, SelectSymbol> subQueries) {
-        super(source, subQueries);
-        subQueries.putAll(source.dependencies());
+        this.source = source;
+        HashMap<LogicalPlan, SelectSymbol> allSubQueries = new HashMap<>(source.dependencies());
+        allSubQueries.putAll(subQueries);
+        this.subQueries = Collections.unmodifiableMap(allSubQueries);
     }
 
     @Override
@@ -72,18 +81,43 @@ public class MultiPhase extends OneInputPlan {
     }
 
     @Override
+    public List<Symbol> outputs() {
+        return source.outputs();
+    }
+
+    @Override
+    public Map<Symbol, Symbol> expressionMapping() {
+        return source.expressionMapping();
+    }
+
+    @Override
+    public List<AbstractTableRelation> baseTables() {
+        return source.baseTables();
+    }
+
+    @Override
     public List<LogicalPlan> sources() {
         return List.of(source);
     }
 
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
-        return new MultiPhase(Lists2.getOnlyElement(sources), dependencies);
+        return new MultiPhase(Lists2.getOnlyElement(sources), subQueries);
+    }
+
+    @Override
+    public Map<LogicalPlan, SelectSymbol> dependencies() {
+        return subQueries;
     }
 
     @Override
     public long numExpectedRows() {
         return source.numExpectedRows();
+    }
+
+    @Override
+    public long estimatedRowSize() {
+        return source.estimatedRowSize();
     }
 
     @Override

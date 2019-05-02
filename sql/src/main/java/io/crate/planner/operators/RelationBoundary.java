@@ -23,6 +23,7 @@
 package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
+import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.collections.Lists2;
 import io.crate.data.Row;
@@ -36,6 +37,7 @@ import io.crate.planner.PlannerContext;
 import io.crate.planner.SubqueryPlanner;
 
 import javax.annotation.Nullable;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -50,7 +52,12 @@ import java.util.function.Function;
  * It is used to take care of the field mapping (providing {@link LogicalPlan#expressionMapping()})
  * In addition it takes care of MultiPhase planning.
  */
-public class RelationBoundary extends OneInputPlan {
+public class RelationBoundary implements LogicalPlan {
+
+    final LogicalPlan source;
+    private final Map<LogicalPlan, SelectSymbol> dependencies;
+    private final List<Symbol> outputs;
+    private final Map<Symbol, Symbol> expressionMapping;
 
     public static LogicalPlan.Builder create(LogicalPlan.Builder sourceBuilder,
                                              AnalyzedRelation relation,
@@ -93,8 +100,13 @@ public class RelationBoundary extends OneInputPlan {
                             Map<Symbol, Symbol> expressionMapping,
                             Map<Symbol, Symbol> reverseMapping,
                             Map<LogicalPlan, SelectSymbol> subQueries) {
-        super(source, outputs, expressionMapping, source.baseTables(), subQueries);
-        subQueries.putAll(source.dependencies());
+        this.source = source;
+        this.outputs = outputs;
+        this.expressionMapping = expressionMapping;
+        Map<LogicalPlan, SelectSymbol> allSubQueries = new HashMap<>();
+        allSubQueries.putAll(subQueries);
+        allSubQueries.putAll(source.dependencies());
+        this.dependencies = Collections.unmodifiableMap(allSubQueries);
         this.relation = relation;
         this.reverseMapping = reverseMapping;
     }
@@ -117,6 +129,21 @@ public class RelationBoundary extends OneInputPlan {
     }
 
     @Override
+    public List<Symbol> outputs() {
+        return outputs;
+    }
+
+    @Override
+    public Map<Symbol, Symbol> expressionMapping() {
+        return expressionMapping;
+    }
+
+    @Override
+    public List<AbstractTableRelation> baseTables() {
+        return source.baseTables();
+    }
+
+    @Override
     public List<LogicalPlan> sources() {
         return List.of(source);
     }
@@ -135,8 +162,18 @@ public class RelationBoundary extends OneInputPlan {
     }
 
     @Override
+    public Map<LogicalPlan, SelectSymbol> dependencies() {
+        return dependencies;
+    }
+
+    @Override
     public long numExpectedRows() {
         return source.numExpectedRows();
+    }
+
+    @Override
+    public long estimatedRowSize() {
+        return source.estimatedRowSize();
     }
 
     @Override
