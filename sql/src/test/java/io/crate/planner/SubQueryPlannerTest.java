@@ -157,8 +157,8 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(projections, Matchers.contains(
             instanceOf(EvalProjection.class),
             isTopN(10, 0),
-            instanceOf(EvalProjection.class),
             instanceOf(OrderedTopNProjection.class),
+            instanceOf(EvalProjection.class),
             isTopN(3, 0),
             instanceOf(EvalProjection.class)
         ));

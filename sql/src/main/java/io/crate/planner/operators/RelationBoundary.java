@@ -104,17 +104,6 @@ public class RelationBoundary extends OneInputPlan {
     }
 
     @Override
-    public LogicalPlan tryOptimize(@Nullable LogicalPlan ancestor, SymbolMapper mapper) {
-        if (ancestor instanceof Order) {
-            LogicalPlan newSource = source.tryOptimize(ancestor, mapper.andThen(outputs, SymbolMapper.fromMap(expressionMapping)));
-            if (newSource != null && newSource != source) {
-                return updateSource(newSource, mapper);
-            }
-        }
-        return super.tryOptimize(ancestor, mapper);
-    }
-
-    @Override
     public ExecutionPlan build(PlannerContext plannerContext,
                                ProjectionBuilder projectionBuilder,
                                int limit,
@@ -153,17 +142,6 @@ public class RelationBoundary extends OneInputPlan {
     @Override
     public String toString() {
         return "Boundary{" + source + '}';
-    }
-
-    @Override
-    protected LogicalPlan updateSource(LogicalPlan newSource, SymbolMapper mapper) {
-        return new RelationBoundary(
-            newSource,
-            relation,
-            OperatorUtils.mappedSymbols(newSource.outputs(), reverseMapping),
-            expressionMapping,
-            reverseMapping,
-            dependencies);
     }
 
     @Override

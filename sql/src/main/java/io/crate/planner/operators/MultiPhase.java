@@ -82,11 +82,6 @@ public class MultiPhase extends OneInputPlan {
     }
 
     @Override
-    protected LogicalPlan updateSource(LogicalPlan newSource, SymbolMapper mapper) {
-        return new MultiPhase(newSource, dependencies);
-    }
-
-    @Override
     public long numExpectedRows() {
         return source.numExpectedRows();
     }

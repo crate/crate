@@ -190,11 +190,6 @@ public class GroupHashAggregate extends OneInputPlan {
     }
 
     @Override
-    protected LogicalPlan updateSource(LogicalPlan newSource, SymbolMapper mapper) {
-        return new GroupHashAggregate(newSource, groupKeys, aggregates);
-    }
-
-    @Override
     public long numExpectedRows() {
         // We don't have any cardinality estimates
         return source.numExpectedRows();

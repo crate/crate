@@ -74,11 +74,6 @@ public class RootRelationBoundary extends OneInputPlan {
     }
 
     @Override
-    protected LogicalPlan updateSource(LogicalPlan newSource, SymbolMapper mapper) {
-        return new RootRelationBoundary(newSource);
-    }
-
-    @Override
     public String toString() {
         return "RootBoundary{" + source + '}';
     }

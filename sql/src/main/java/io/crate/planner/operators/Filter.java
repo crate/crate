@@ -120,11 +120,6 @@ public class Filter extends OneInputPlan {
     }
 
     @Override
-    protected LogicalPlan updateSource(LogicalPlan newSource, SymbolMapper mapper) {
-        return new Filter(newSource, query);
-    }
-
-    @Override
     public <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context) {
         return visitor.visitFilter(this, context);
     }

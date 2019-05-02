@@ -44,13 +44,20 @@ public class Optimizer {
 
     private LogicalPlan tryApplyRules(LogicalPlan plan) {
         LogicalPlan node = plan;
-        for (Rule rule : rules) {
-            Match match = rule.pattern().accept(node, Captures.empty());
-            if (match.isPresent()) {
-                @SuppressWarnings("unchecked")
-                LogicalPlan transformedPlan = rule.apply(match.value(), match.captures());
-                if (transformedPlan != null) {
-                    node = transformedPlan;
+        // Some rules may only become applicable after another rule triggered, so we keep
+        // trying to re-apply the rules as long as at least one plan was transformed.
+        boolean done = false;
+        while (!done) {
+            done = true;
+            for (Rule rule : rules) {
+                Match match = rule.pattern().accept(node, Captures.empty());
+                if (match.isPresent()) {
+                    @SuppressWarnings("unchecked")
+                    LogicalPlan transformedPlan = rule.apply(match.value(), match.captures());
+                    if (transformedPlan != null) {
+                        node = transformedPlan;
+                        done = false;
+                    }
                 }
             }
         }

@@ -144,11 +144,6 @@ public class HashAggregate extends OneInputPlan {
     }
 
     @Override
-    protected LogicalPlan updateSource(LogicalPlan newSource, SymbolMapper mapper) {
-        return new HashAggregate(newSource, aggregates);
-    }
-
-    @Override
     public long numExpectedRows() {
         return 1L;
     }

@@ -106,7 +106,7 @@ import static io.crate.planner.operators.OperatorUtils.getUnusedColumns;
  *                Fetch 500
  * </pre>
  */
-class FetchOrEval extends OneInputPlan {
+public class FetchOrEval extends OneInputPlan {
 
     private final FetchMode fetchMode;
     private final boolean doFetch;
@@ -166,10 +166,14 @@ class FetchOrEval extends OneInputPlan {
         };
     }
 
-    private FetchOrEval(LogicalPlan source, List<Symbol> outputs, FetchMode fetchMode, boolean doFetch) {
+    public FetchOrEval(LogicalPlan source, List<Symbol> outputs, FetchMode fetchMode, boolean doFetch) {
         super(source, outputs);
         this.fetchMode = fetchMode;
         this.doFetch = doFetch;
+    }
+
+    public LogicalPlan source() {
+        return source;
     }
 
     /**
@@ -466,22 +470,6 @@ class FetchOrEval extends OneInputPlan {
             newOrderBy
         );
         return executionPlan;
-    }
-
-    @Override
-    public LogicalPlan tryOptimize(@Nullable LogicalPlan ancestor, SymbolMapper mapper) {
-        if (ancestor instanceof Order) {
-            LogicalPlan newPlan = source.tryOptimize(ancestor, mapper);
-            if (newPlan != null && newPlan != source) {
-                return updateSource(newPlan, mapper);
-            }
-        }
-        return super.tryOptimize(ancestor, mapper);
-    }
-
-    @Override
-    protected LogicalPlan updateSource(LogicalPlan newSource, SymbolMapper mapper) {
-        return new FetchOrEval(newSource, outputs, fetchMode, doFetch);
     }
 
     @Override

@@ -93,8 +93,6 @@ public class UnionPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(unionExecutionPlan.mergePhase().numInputs(), is(2));
         assertThat(unionExecutionPlan.orderBy(), is(nullValue()));
         assertThat(unionExecutionPlan.mergePhase().projections(), contains(
-            instanceOf(TopNProjection.class),
-            instanceOf(OrderedTopNProjection.class),
             instanceOf(TopNProjection.class)
         ));
         assertThat(unionExecutionPlan.left(), instanceOf(Merge.class));

@@ -20,33 +20,23 @@
  * agreement.
  */
 
-package io.crate.planner.operators;
+package io.crate.planner.optimizer.rule;
 
-import io.crate.expression.symbol.Symbol;
+import io.crate.planner.operators.LogicalPlan;
 
 import java.util.List;
-import java.util.Map;
-import java.util.function.BiFunction;
-import java.util.function.Function;
 
-/**
- * Used to map one symbol to another
- * The first argument of the function are the new outputs that the symbol will be "based on"
- *
- * See the usages ({@link LogicalPlan#tryOptimize(LogicalPlan, SymbolMapper)}).
- */
-interface SymbolMapper extends BiFunction<List<Symbol>, Symbol, Symbol> {
+public final class Util {
 
-    static SymbolMapper identity() {
-        return (newOutputs, x) -> x;
+    private Util() {
     }
 
-    static SymbolMapper fromMap(Map<Symbol, Symbol> mapping) {
-        Function<Symbol, Symbol> mapper = OperatorUtils.getMapper(mapping);
-        return (newOutputs, x) -> mapper.apply(x);
-    }
-
-    default SymbolMapper andThen(List<Symbol> outputs, SymbolMapper after) {
-        return (newOutputs, x) -> after.apply(newOutputs, apply(outputs, x));
+    /**
+     * @return a new Plan where parent-child (A-B-C) are exchanged to child-parent (B-A-C)
+     */
+    static LogicalPlan transpose(LogicalPlan parent, LogicalPlan child) {
+        return child.replaceSources(List.of(
+            parent.replaceSources(child.sources())
+        ));
     }
 }

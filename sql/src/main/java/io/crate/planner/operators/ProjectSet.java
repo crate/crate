@@ -83,15 +83,6 @@ public class ProjectSet extends OneInputPlan {
     }
 
     @Override
-    protected LogicalPlan updateSource(LogicalPlan newSource, SymbolMapper mapper) {
-        return new ProjectSet(
-            newSource,
-            Lists2.map(tableFunctions, s -> (Function) mapper.apply(newSource.outputs(), s)),
-            Lists2.map(standalone, s -> mapper.apply(newSource.outputs(), s))
-        );
-    }
-
-    @Override
     public ExecutionPlan build(PlannerContext plannerContext,
                                ProjectionBuilder projectionBuilder,
                                int limit,

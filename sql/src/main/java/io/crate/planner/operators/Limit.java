@@ -125,11 +125,6 @@ class Limit extends OneInputPlan {
     }
 
     @Override
-    protected LogicalPlan updateSource(LogicalPlan newSource, SymbolMapper mapper) {
-        return new Limit(newSource, limit, offset);
-    }
-
-    @Override
     public long numExpectedRows() {
         if (limit instanceof Literal) {
             return DataTypes.LONG.value(((Literal) limit).value());

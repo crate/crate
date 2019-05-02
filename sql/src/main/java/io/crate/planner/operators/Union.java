@@ -176,31 +176,6 @@ public class Union extends TwoInputPlan {
     }
 
     @Override
-    public LogicalPlan tryOptimize(@Nullable LogicalPlan ancestor, SymbolMapper mapper) {
-        if (ancestor instanceof Order) {
-            SymbolMapper symbolMapper = (newOutputs, x) -> {
-                x = mapper.apply(outputs, x);
-                int idx = outputs.indexOf(x);
-                if (idx < 0) {
-                    throw new IllegalArgumentException("Symbol " + x + " wasn't found in " + outputs);
-                }
-                return newOutputs.get(idx);
-            };
-            LogicalPlan newLhs = lhs.tryOptimize(ancestor, symbolMapper);
-            LogicalPlan newRhs = rhs.tryOptimize(ancestor, symbolMapper);
-            if (newLhs != null && newRhs != null) {
-                return updateSources(newLhs, newRhs);
-            }
-        }
-        return super.tryOptimize(ancestor, mapper);
-    }
-
-    @Override
-    protected LogicalPlan updateSources(LogicalPlan newLeftSource, LogicalPlan newRightSource) {
-        return new Union(newLeftSource, newRightSource, outputs);
-    }
-
-    @Override
     public Map<LogicalPlan, SelectSymbol> dependencies() {
         if (lhs.dependencies().isEmpty() && rhs.dependencies().isEmpty()) {
             return Collections.emptyMap();

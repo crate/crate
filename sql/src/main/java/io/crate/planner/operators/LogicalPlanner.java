@@ -66,10 +66,15 @@ import io.crate.planner.consumer.FetchMode;
 import io.crate.planner.consumer.InsertFromSubQueryPlanner;
 import io.crate.planner.consumer.OptimizingRewriter;
 import io.crate.planner.optimizer.Optimizer;
+import io.crate.planner.optimizer.rule.DeduplicateOrder;
 import io.crate.planner.optimizer.rule.MergeAggregateAndCollectToCount;
 import io.crate.planner.optimizer.rule.MergeFilterAndCollect;
 import io.crate.planner.optimizer.rule.MergeFilters;
 import io.crate.planner.optimizer.rule.MoveFilterBeneathBoundary;
+import io.crate.planner.optimizer.rule.MoveOrderBeneathBoundary;
+import io.crate.planner.optimizer.rule.MoveOrderBeneathFetchOrEval;
+import io.crate.planner.optimizer.rule.MoveOrderBeneathNestedLoop;
+import io.crate.planner.optimizer.rule.MoveOrderBeneathUnion;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -179,17 +184,17 @@ public class LogicalPlanner {
      */
     private static LogicalPlan tryOptimize(LogicalPlan plan) {
         Optimizer optimizer = new Optimizer(List.of(
+            new MergeAggregateAndCollectToCount(),
             new MergeFilters(),
             new MoveFilterBeneathBoundary(),
             new MergeFilterAndCollect(),
-            new MergeAggregateAndCollectToCount())
-        );
-        LogicalPlan logicalPlan = optimizer.optimize(plan);
-        LogicalPlan optimizedPlan = logicalPlan.tryOptimize(null, SymbolMapper.identity());
-        if (optimizedPlan == null) {
-            return logicalPlan;
-        }
-        return optimizedPlan;
+            new MoveOrderBeneathUnion(),
+            new MoveOrderBeneathNestedLoop(),
+            new MoveOrderBeneathBoundary(),
+            new MoveOrderBeneathFetchOrEval(),
+            new DeduplicateOrder()
+        ));
+        return optimizer.optimize(plan);
     }
 
     static LogicalPlan.Builder plan(AnalyzedRelation relation,
