@@ -24,6 +24,7 @@ package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.SelectSymbol;
@@ -33,6 +34,7 @@ import io.crate.planner.PlannerContext;
 import io.crate.planner.SubqueryPlanner;
 
 import javax.annotation.Nullable;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -67,6 +69,16 @@ public class MultiPhase extends OneInputPlan {
                                SubQueryResults subQueryResults) {
         return source.build(
             plannerContext, projectionBuilder, limit, offset, order, pageSizeHint, params, subQueryResults);
+    }
+
+    @Override
+    public List<LogicalPlan> sources() {
+        return List.of(source);
+    }
+
+    @Override
+    public LogicalPlan replaceSources(List<LogicalPlan> sources) {
+        return new MultiPhase(Lists2.getOnlyElement(sources), dependencies);
     }
 
     @Override

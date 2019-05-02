@@ -212,6 +212,25 @@ class NestedLoopJoin extends TwoInputPlan {
         );
     }
 
+    @Override
+    public List<LogicalPlan> sources() {
+        return List.of(lhs, rhs);
+    }
+
+    @Override
+    public LogicalPlan replaceSources(List<LogicalPlan> sources) {
+        return new NestedLoopJoin(
+            sources.get(0),
+            sources.get(1),
+            joinType,
+            joinCondition,
+            isFiltered,
+            noOuterJoin,
+            topMostLeftRelation,
+            orderByWasPushedDown
+        );
+    }
+
     private Tuple<Collection<String>, List<MergePhase>> configureExecution(ExecutionPlan left,
                                                                            ExecutionPlan right,
                                                                            PlannerContext plannerContext,

@@ -23,6 +23,7 @@
 package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
+import io.crate.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.ExecutionPhases;
 import io.crate.execution.dsl.projection.TopNProjection;
@@ -111,6 +112,16 @@ class Limit extends OneInputPlan {
                 new TopNProjection(limit + offset, 0, sourceTypes), limit, offset, resultDescription.orderBy());
         }
         return executionPlan;
+    }
+
+    @Override
+    public List<LogicalPlan> sources() {
+        return List.of(source);
+    }
+
+    @Override
+    public LogicalPlan replaceSources(List<LogicalPlan> sources) {
+        return new Limit(Lists2.getOnlyElement(sources), limit, offset);
     }
 
     @Override

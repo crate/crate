@@ -145,6 +145,17 @@ public class Get extends ZeroInputPlan {
     }
 
     @Override
+    public List<LogicalPlan> sources() {
+        return List.of();
+    }
+
+    @Override
+    public LogicalPlan replaceSources(List<LogicalPlan> sources) {
+        assert sources.isEmpty() : "Get has no sources, cannot replace them";
+        return this;
+    }
+
+    @Override
     public long estimatedRowSize() {
         return estimatedSizePerRow;
     }

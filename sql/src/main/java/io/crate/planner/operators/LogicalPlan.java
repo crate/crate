@@ -211,6 +211,10 @@ public interface LogicalPlan extends Plan {
 
     List<AbstractTableRelation> baseTables();
 
+    List<LogicalPlan> sources();
+
+    LogicalPlan replaceSources(List<LogicalPlan> sources);
+
     /**
      * SubQueries that this plan depends on to be able to execute it.
      *
