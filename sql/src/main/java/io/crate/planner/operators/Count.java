@@ -32,6 +32,8 @@ import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.projection.MergeCountProjection;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.SelectSymbol;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
 import io.crate.planner.ExecutionPlan;
@@ -43,19 +45,21 @@ import io.crate.types.DataTypes;
 import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 /**
  * An optimized version for "select count(*) from t where ..."
  */
-public class Count extends ZeroInputPlan {
+public class Count implements LogicalPlan {
 
     private static final String COUNT_PHASE_NAME = "count-merge";
 
     final AbstractTableRelation tableRelation;
     final WhereClause where;
+    private final List<Symbol> outputs;
 
     public Count(Function countFunction, AbstractTableRelation tableRelation, WhereClause where) {
-        super(Collections.singletonList(countFunction), Collections.singletonList(tableRelation));
+        this.outputs = List.of(countFunction);
         this.tableRelation = tableRelation;
         this.where = where;
     }
@@ -106,6 +110,21 @@ public class Count extends ZeroInputPlan {
     }
 
     @Override
+    public List<Symbol> outputs() {
+        return outputs;
+    }
+
+    @Override
+    public Map<Symbol, Symbol> expressionMapping() {
+        return Map.of();
+    }
+
+    @Override
+    public List<AbstractTableRelation> baseTables() {
+        return List.of(tableRelation);
+    }
+
+    @Override
     public List<LogicalPlan> sources() {
         return List.of();
     }
@@ -114,6 +133,11 @@ public class Count extends ZeroInputPlan {
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
         assert sources.isEmpty() : "Count has no sources, cannot replace them";
         return this;
+    }
+
+    @Override
+    public Map<LogicalPlan, SelectSymbol> dependencies() {
+        return Map.of();
     }
 
     @Override

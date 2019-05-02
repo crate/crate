@@ -24,6 +24,7 @@ package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedTable;
+import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.where.DocKeys;
 import io.crate.collections.Lists2;
@@ -31,6 +32,7 @@ import io.crate.data.Row;
 import io.crate.execution.dsl.phases.PKLookupPhase;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.pipeline.TopN;
+import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
@@ -49,19 +51,19 @@ import org.elasticsearch.index.shard.ShardNotFoundException;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class Get extends ZeroInputPlan {
+public class Get implements LogicalPlan {
 
     final DocTableRelation tableRelation;
     final DocKeys docKeys;
     final long estimatedSizePerRow;
+    private final List<Symbol> outputs;
 
     Get(QueriedTable<DocTableRelation> table, DocKeys docKeys, List<Symbol> outputs, TableStats tableStats) {
-        super(outputs, Collections.singletonList(table.tableRelation()));
+        this.outputs = outputs;
         this.tableRelation = table.tableRelation();
         this.docKeys = docKeys;
         this.estimatedSizePerRow = tableStats.estimatedSizePerRow(tableRelation.tableInfo().ident());
@@ -145,6 +147,21 @@ public class Get extends ZeroInputPlan {
     }
 
     @Override
+    public List<Symbol> outputs() {
+        return outputs;
+    }
+
+    @Override
+    public Map<Symbol, Symbol> expressionMapping() {
+        return Map.of();
+    }
+
+    @Override
+    public List<AbstractTableRelation> baseTables() {
+        return List.of(tableRelation);
+    }
+
+    @Override
     public List<LogicalPlan> sources() {
         return List.of();
     }
@@ -153,6 +170,11 @@ public class Get extends ZeroInputPlan {
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
         assert sources.isEmpty() : "Get has no sources, cannot replace them";
         return this;
+    }
+
+    @Override
+    public Map<LogicalPlan, SelectSymbol> dependencies() {
+        return Map.of();
     }
 
     @Override

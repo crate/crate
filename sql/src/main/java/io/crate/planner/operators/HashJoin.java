@@ -24,8 +24,10 @@ package io.crate.planner.operators;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.analyze.OrderBy;
+import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.collections.Lists2;
+import io.crate.common.collections.Maps;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.HashJoinPhase;
 import io.crate.execution.dsl.phases.MergePhase;
@@ -58,24 +60,29 @@ import java.util.stream.Collectors;
 
 import static io.crate.planner.operators.LogicalPlanner.NO_LIMIT;
 
-class HashJoin extends TwoInputPlan {
+class HashJoin implements LogicalPlan {
 
     private final Symbol joinCondition;
     private final TableStats tableStats;
     @VisibleForTesting
     final AnalyzedRelation concreteRelation;
+    private final List<Symbol> outputs;
+    final LogicalPlan rhs;
+    final LogicalPlan lhs;
+    private final Map<Symbol, Symbol> expressionMapping;
 
     HashJoin(LogicalPlan lhs,
              LogicalPlan rhs,
              Symbol joinCondition,
              AnalyzedRelation concreteRelation,
              TableStats tableStats) {
-        super(lhs, rhs, new ArrayList<>());
+        this.outputs = Lists2.concat(lhs.outputs(), rhs.outputs());
+        this.lhs = lhs;
+        this.rhs = rhs;
         this.concreteRelation = concreteRelation;
         this.joinCondition = joinCondition;
-        this.outputs.addAll(lhs.outputs());
-        this.outputs.addAll(rhs.outputs());
         this.tableStats = tableStats;
+        this.expressionMapping = Maps.concat(lhs.expressionMapping(), rhs.expressionMapping());
     }
 
     JoinType joinType() {
@@ -196,6 +203,21 @@ class HashJoin extends TwoInputPlan {
             outputs.size(),
             null
         );
+    }
+
+    @Override
+    public List<Symbol> outputs() {
+        return outputs;
+    }
+
+    @Override
+    public Map<Symbol, Symbol> expressionMapping() {
+        return expressionMapping;
+    }
+
+    @Override
+    public List<AbstractTableRelation> baseTables() {
+        return Lists2.concat(lhs.baseTables(), rhs.baseTables());
     }
 
     @Override

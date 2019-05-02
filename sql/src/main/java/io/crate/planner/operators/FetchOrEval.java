@@ -42,6 +42,7 @@ import io.crate.expression.symbol.FieldReplacer;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.RefReplacer;
+import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.DocReferences;
@@ -106,10 +107,12 @@ import static io.crate.planner.operators.OperatorUtils.getUnusedColumns;
  *                Fetch 500
  * </pre>
  */
-public class FetchOrEval extends OneInputPlan {
+public class FetchOrEval implements LogicalPlan {
 
     private final FetchMode fetchMode;
     private final boolean doFetch;
+    final LogicalPlan source;
+    private final List<Symbol> outputs;
 
     static LogicalPlan.Builder create(LogicalPlan.Builder sourceBuilder,
                                       List<Symbol> outputs,
@@ -167,7 +170,8 @@ public class FetchOrEval extends OneInputPlan {
     }
 
     public FetchOrEval(LogicalPlan source, List<Symbol> outputs, FetchMode fetchMode, boolean doFetch) {
-        super(source, outputs);
+        this.source = source;
+        this.outputs = outputs;
         this.fetchMode = fetchMode;
         this.doFetch = doFetch;
     }
@@ -253,6 +257,21 @@ public class FetchOrEval extends OneInputPlan {
     }
 
     @Override
+    public List<Symbol> outputs() {
+        return outputs;
+    }
+
+    @Override
+    public Map<Symbol, Symbol> expressionMapping() {
+        return source.expressionMapping();
+    }
+
+    @Override
+    public List<AbstractTableRelation> baseTables() {
+        return source.baseTables();
+    }
+
+    @Override
     public List<LogicalPlan> sources() {
         return List.of(source);
     }
@@ -260,6 +279,21 @@ public class FetchOrEval extends OneInputPlan {
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
         return new FetchOrEval(Lists2.getOnlyElement(sources), outputs, fetchMode, doFetch);
+    }
+
+    @Override
+    public Map<LogicalPlan, SelectSymbol> dependencies() {
+        return source.dependencies();
+    }
+
+    @Override
+    public long numExpectedRows() {
+        return source.numExpectedRows();
+    }
+
+    @Override
+    public long estimatedRowSize() {
+        return source.estimatedRowSize();
     }
 
     private ExecutionPlan planWithFetch(PlannerContext plannerContext,

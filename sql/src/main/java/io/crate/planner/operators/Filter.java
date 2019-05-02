@@ -24,11 +24,13 @@ package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueryClause;
+import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.FilterProjection;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RowGranularity;
 import io.crate.planner.ExecutionPlan;
@@ -38,13 +40,15 @@ import io.crate.types.DataTypes;
 import javax.annotation.Nullable;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static io.crate.planner.operators.LogicalPlanner.extractColumns;
 
-public class Filter extends OneInputPlan {
+public final class Filter implements LogicalPlan {
 
     final Symbol query;
+    final LogicalPlan source;
 
     static LogicalPlan.Builder create(LogicalPlan.Builder sourceBuilder, @Nullable QueryClause queryClause) {
         if (queryClause == null) {
@@ -77,7 +81,7 @@ public class Filter extends OneInputPlan {
     }
 
     public Filter(LogicalPlan source, Symbol query) {
-        super(source);
+        this.source = source;
         this.query = query;
     }
 
@@ -110,6 +114,21 @@ public class Filter extends OneInputPlan {
     }
 
     @Override
+    public List<Symbol> outputs() {
+        return source.outputs();
+    }
+
+    @Override
+    public Map<Symbol, Symbol> expressionMapping() {
+        return source.expressionMapping();
+    }
+
+    @Override
+    public List<AbstractTableRelation> baseTables() {
+        return source.baseTables();
+    }
+
+    @Override
     public List<LogicalPlan> sources() {
         return List.of(source);
     }
@@ -117,6 +136,21 @@ public class Filter extends OneInputPlan {
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
         return new Filter(Lists2.getOnlyElement(sources), query);
+    }
+
+    @Override
+    public Map<LogicalPlan, SelectSymbol> dependencies() {
+        return source.dependencies();
+    }
+
+    @Override
+    public long numExpectedRows() {
+        return source.numExpectedRows();
+    }
+
+    @Override
+    public long estimatedRowSize() {
+        return source.estimatedRowSize();
     }
 
     @Override

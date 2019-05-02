@@ -31,6 +31,7 @@ import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.MergeCountProjection;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
+import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
@@ -42,15 +43,16 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-public class Insert extends OneInputPlan {
+public class Insert implements LogicalPlan {
 
     private final ColumnIndexWriterProjection writeToTable;
 
     @Nullable
     private final EvalProjection applyCasts;
+    final LogicalPlan source;
 
     public Insert(LogicalPlan source, ColumnIndexWriterProjection writeToTable, @Nullable EvalProjection applyCasts) {
-        super(source);
+        this.source = source;
         this.writeToTable = writeToTable;
         this.applyCasts = applyCasts;
     }
@@ -109,8 +111,18 @@ public class Insert extends OneInputPlan {
     }
 
     @Override
+    public Map<LogicalPlan, SelectSymbol> dependencies() {
+        return source.dependencies();
+    }
+
+    @Override
     public long numExpectedRows() {
         return 1;
+    }
+
+    @Override
+    public long estimatedRowSize() {
+        return source.estimatedRowSize();
     }
 
     @Override

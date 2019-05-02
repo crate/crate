@@ -23,6 +23,7 @@
 package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
+import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.ExecutionPhases;
@@ -33,6 +34,7 @@ import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.pipeline.TopN;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
@@ -48,15 +50,18 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 
 import static io.crate.planner.operators.LogicalPlanner.NO_LIMIT;
 import static io.crate.planner.operators.LogicalPlanner.extractColumns;
 
-public class GroupHashAggregate extends OneInputPlan {
+public class GroupHashAggregate implements LogicalPlan {
 
     private static final String DISTRIBUTED_MERGE_PHASE_NAME = "distributed merge";
     final List<Function> aggregates;
     final List<Symbol> groupKeys;
+    final LogicalPlan source;
+    private final List<Symbol> outputs;
 
     public static Builder create(Builder source, List<Symbol> groupKeys, List<Function> aggregates) {
         return (tableStats, parentUsedCols) -> {
@@ -68,10 +73,11 @@ public class GroupHashAggregate extends OneInputPlan {
     }
 
     GroupHashAggregate(LogicalPlan source, List<Symbol> groupKeys, List<Function> aggregates) {
-        super(source, Lists2.concat(groupKeys, aggregates));
-        GroupByConsumer.validateGroupBySymbols(groupKeys);
+        this.source = source;
+        this.outputs = Lists2.concat(groupKeys, aggregates);
         this.groupKeys = groupKeys;
         this.aggregates = aggregates;
+        GroupByConsumer.validateGroupBySymbols(groupKeys);
     }
 
     @Override
@@ -141,6 +147,21 @@ public class GroupHashAggregate extends OneInputPlan {
     }
 
     @Override
+    public List<Symbol> outputs() {
+        return outputs;
+    }
+
+    @Override
+    public Map<Symbol, Symbol> expressionMapping() {
+        return source.expressionMapping();
+    }
+
+    @Override
+    public List<AbstractTableRelation> baseTables() {
+        return source.baseTables();
+    }
+
+    @Override
     public List<LogicalPlan> sources() {
         return List.of(source);
     }
@@ -148,6 +169,11 @@ public class GroupHashAggregate extends OneInputPlan {
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
         return new GroupHashAggregate(Lists2.getOnlyElement(sources), groupKeys, aggregates);
+    }
+
+    @Override
+    public Map<LogicalPlan, SelectSymbol> dependencies() {
+        return source.dependencies();
     }
 
     private ExecutionPlan createMerge(PlannerContext plannerContext,
@@ -193,6 +219,11 @@ public class GroupHashAggregate extends OneInputPlan {
     public long numExpectedRows() {
         // We don't have any cardinality estimates
         return source.numExpectedRows();
+    }
+
+    @Override
+    public long estimatedRowSize() {
+        return source.estimatedRowSize();
     }
 
     @Override

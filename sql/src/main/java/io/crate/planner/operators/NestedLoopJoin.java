@@ -24,9 +24,11 @@ package io.crate.planner.operators;
 
 import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.OrderBy;
+import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.collections.Lists2;
+import io.crate.common.collections.Maps;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.phases.NestedLoopPhase;
@@ -47,18 +49,16 @@ import io.crate.planner.node.dql.join.JoinType;
 import org.elasticsearch.common.collect.Tuple;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import static io.crate.planner.operators.Limit.limitAndOffset;
 import static io.crate.planner.operators.LogicalPlanner.NO_LIMIT;
 
-public class NestedLoopJoin extends TwoInputPlan {
+public class NestedLoopJoin implements LogicalPlan {
 
     @Nullable
     private final Symbol joinCondition;
@@ -66,6 +66,12 @@ public class NestedLoopJoin extends TwoInputPlan {
     private final JoinType joinType;
     private final boolean noOuterJoin;
     private final boolean isFiltered;
+    final LogicalPlan lhs;
+    final LogicalPlan rhs;
+    private final List<Symbol> outputs;
+    private final List<AbstractTableRelation> baseTables;
+    private final Map<Symbol, Symbol> expressionMapping;
+    private final Map<LogicalPlan, SelectSymbol> dependencies;
     private boolean orderByWasPushedDown = false;
 
     NestedLoopJoin(LogicalPlan lhs,
@@ -75,18 +81,21 @@ public class NestedLoopJoin extends TwoInputPlan {
                    boolean isFiltered,
                    boolean noOuterJoin,
                    AnalyzedRelation topMostLeftRelation) {
-        super(lhs, rhs, new ArrayList<>());
         this.joinType = joinType;
         this.isFiltered = isFiltered || joinCondition != null;
+        this.lhs = lhs;
+        this.rhs = rhs;
         if (joinType == JoinType.SEMI) {
-            this.outputs.addAll(lhs.outputs());
+            this.outputs = lhs.outputs();
         } else {
-            this.outputs.addAll(lhs.outputs());
-            this.outputs.addAll(rhs.outputs());
+            this.outputs = Lists2.concat(lhs.outputs(), rhs.outputs());
         }
+        this.baseTables = Lists2.concat(lhs.baseTables(), rhs.baseTables());
         this.topMostLeftRelation = topMostLeftRelation;
         this.joinCondition = joinCondition;
         this.noOuterJoin = noOuterJoin;
+        this.expressionMapping = Maps.concat(lhs.expressionMapping(), rhs.expressionMapping());
+        this.dependencies = Maps.concat(lhs.dependencies(), rhs.dependencies());
     }
 
     public NestedLoopJoin(LogicalPlan lhs,
@@ -124,10 +133,7 @@ public class NestedLoopJoin extends TwoInputPlan {
 
     @Override
     public Map<LogicalPlan, SelectSymbol> dependencies() {
-        HashMap<LogicalPlan, SelectSymbol> deps = new HashMap<>(lhs.dependencies().size() + rhs.dependencies().size());
-        deps.putAll(lhs.dependencies());
-        deps.putAll(rhs.dependencies());
-        return deps;
+        return dependencies;
     }
 
     @Override
@@ -217,6 +223,21 @@ public class NestedLoopJoin extends TwoInputPlan {
             outputs.size(),
             orderByFromLeft
         );
+    }
+
+    @Override
+    public List<Symbol> outputs() {
+        return outputs;
+    }
+
+    @Override
+    public Map<Symbol, Symbol> expressionMapping() {
+        return expressionMapping;
+    }
+
+    @Override
+    public List<AbstractTableRelation> baseTables() {
+        return baseTables;
     }
 
     @Override

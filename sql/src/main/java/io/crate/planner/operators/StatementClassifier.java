@@ -123,19 +123,19 @@ public final class StatementClassifier {
 
         @Override
         public Void visitRelationBoundary(RelationBoundary logicalPlan, Set<String> context) {
-            process(logicalPlan.source, context);
+            process(logicalPlan.source(), context);
             return null;
         }
 
         @Override
         public Void visitFetchOrEval(FetchOrEval logicalPlan, Set<String> context) {
-            process(logicalPlan.source, context);
+            process(logicalPlan.source(), context);
             return visitPlan(logicalPlan, context);
         }
 
         @Override
-        public Void visitLimit(Limit logicalPlan, Set<String> context) {
-            process(logicalPlan.source, context);
+        public Void visitLimit(Limit limit, Set<String> context) {
+            process(limit.source, context);
             return null;
         }
 

@@ -23,8 +23,11 @@
 package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
+import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.UnionSelect;
+import io.crate.collections.Lists2;
+import io.crate.common.collections.Maps;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
@@ -45,7 +48,6 @@ import io.crate.planner.distribution.DistributionInfo;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -62,7 +64,13 @@ import static io.crate.planner.operators.Limit.limitAndOffset;
  * intermediate fetches occur by passing all columns to the nested plans
  * and setting {@code FetchMode.NEVER_CLEAR}.
  */
-public class Union extends TwoInputPlan {
+public class Union implements LogicalPlan {
+
+    private final List<Symbol> outputs;
+    final LogicalPlan lhs;
+    final LogicalPlan rhs;
+    private final Map<Symbol, Symbol> expressionMapping;
+    private final Map<LogicalPlan, SelectSymbol> dependencies;
 
     static Builder create(UnionSelect ttr, SubqueryPlanner subqueryPlanner, Functions functions, CoordinatorTxnCtx txnCtx) {
         return (tableStats, usedColsByParent) -> {
@@ -112,7 +120,11 @@ public class Union extends TwoInputPlan {
     }
 
     Union(LogicalPlan lhs, LogicalPlan rhs, List<Symbol> outputs) {
-        super(lhs, rhs, outputs);
+        this.lhs = lhs;
+        this.rhs = rhs;
+        this.outputs = outputs;
+        this.expressionMapping = Maps.concat(lhs.expressionMapping(), rhs.expressionMapping());
+        this.dependencies = Maps.concat(lhs.dependencies(), rhs.dependencies());
     }
 
     @Override
@@ -166,6 +178,21 @@ public class Union extends TwoInputPlan {
     }
 
     @Override
+    public List<Symbol> outputs() {
+        return outputs;
+    }
+
+    @Override
+    public Map<Symbol, Symbol> expressionMapping() {
+        return expressionMapping;
+    }
+
+    @Override
+    public List<AbstractTableRelation> baseTables() {
+        return Lists2.concat(lhs.baseTables(), rhs.baseTables());
+    }
+
+    @Override
     public List<LogicalPlan> sources() {
         return List.of(lhs, rhs);
     }
@@ -177,12 +204,6 @@ public class Union extends TwoInputPlan {
 
     @Override
     public Map<LogicalPlan, SelectSymbol> dependencies() {
-        if (lhs.dependencies().isEmpty() && rhs.dependencies().isEmpty()) {
-            return Collections.emptyMap();
-        }
-        HashMap<LogicalPlan, SelectSymbol> dependencies = new HashMap<>();
-        dependencies.putAll(lhs.dependencies());
-        dependencies.putAll(rhs.dependencies());
         return dependencies;
     }
 

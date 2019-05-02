@@ -23,12 +23,14 @@
 package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
+import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.ProjectSetProjection;
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
@@ -37,14 +39,17 @@ import io.crate.types.ObjectType;
 import javax.annotation.Nullable;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static io.crate.planner.operators.LogicalPlanner.extractColumns;
 
-public class ProjectSet extends OneInputPlan {
+public class ProjectSet implements LogicalPlan {
 
     final List<Function> tableFunctions;
     final List<Symbol> standalone;
+    final LogicalPlan source;
+    private final List<Symbol> outputs;
 
     static LogicalPlan.Builder create(LogicalPlan.Builder source, List<Function> tableFunctions) {
         if (tableFunctions.isEmpty()) {
@@ -69,7 +74,8 @@ public class ProjectSet extends OneInputPlan {
     }
 
     private ProjectSet(LogicalPlan source, List<Function> tableFunctions, List<Symbol> standalone) {
-        super(source, Lists2.concat(tableFunctions, standalone));
+        this.source = source;
+        this.outputs = Lists2.concat(tableFunctions, standalone);
         this.tableFunctions = tableFunctions;
         this.standalone = standalone;
         for (Function tableFunction : tableFunctions) {
@@ -109,6 +115,21 @@ public class ProjectSet extends OneInputPlan {
     }
 
     @Override
+    public List<Symbol> outputs() {
+        return outputs;
+    }
+
+    @Override
+    public Map<Symbol, Symbol> expressionMapping() {
+        return source.expressionMapping();
+    }
+
+    @Override
+    public List<AbstractTableRelation> baseTables() {
+        return source.baseTables();
+    }
+
+    @Override
     public List<LogicalPlan> sources() {
         return List.of(source);
     }
@@ -116,6 +137,21 @@ public class ProjectSet extends OneInputPlan {
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
         return new ProjectSet(Lists2.getOnlyElement(sources), tableFunctions, standalone);
+    }
+
+    @Override
+    public Map<LogicalPlan, SelectSymbol> dependencies() {
+        return source.dependencies();
+    }
+
+    @Override
+    public long numExpectedRows() {
+        return source.numExpectedRows();
+    }
+
+    @Override
+    public long estimatedRowSize() {
+        return source.estimatedRowSize();
     }
 
     @Override
