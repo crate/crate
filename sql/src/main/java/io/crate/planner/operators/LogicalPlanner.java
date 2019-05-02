@@ -66,6 +66,7 @@ import io.crate.planner.consumer.FetchMode;
 import io.crate.planner.consumer.InsertFromSubQueryPlanner;
 import io.crate.planner.consumer.OptimizingRewriter;
 import io.crate.planner.optimizer.Optimizer;
+import io.crate.planner.optimizer.rule.MergeAggregateAndCollectToCount;
 import io.crate.planner.optimizer.rule.MergeFilterAndCollect;
 import io.crate.planner.optimizer.rule.MergeFilters;
 import io.crate.planner.optimizer.rule.MoveFilterBeneathBoundary;
@@ -180,7 +181,8 @@ public class LogicalPlanner {
         Optimizer optimizer = new Optimizer(List.of(
             new MergeFilters(),
             new MoveFilterBeneathBoundary(),
-            new MergeFilterAndCollect())
+            new MergeFilterAndCollect(),
+            new MergeAggregateAndCollectToCount())
         );
         LogicalPlan logicalPlan = optimizer.optimize(plan);
         LogicalPlan optimizedPlan = logicalPlan.tryOptimize(null, SymbolMapper.identity());

@@ -54,7 +54,7 @@ public class Count extends ZeroInputPlan {
     final AbstractTableRelation tableRelation;
     final WhereClause where;
 
-    Count(Function countFunction, AbstractTableRelation tableRelation, WhereClause where) {
+    public Count(Function countFunction, AbstractTableRelation tableRelation, WhereClause where) {
         super(Collections.singletonList(countFunction), Collections.singletonList(tableRelation));
         this.tableRelation = tableRelation;
         this.where = where;

@@ -22,27 +22,27 @@
 
 package io.crate.planner.optimizer.matcher;
 
-import java.util.Optional;
-import java.util.function.Function;
 import java.util.function.Predicate;
 
-public abstract class Pattern<T> {
+public class WithPropertyPattern<T> extends Pattern<T> {
 
-    public static <T> Pattern<T> typeOf(Class<T> expectedClass) {
-        return new TypeOfPattern<>(expectedClass);
+    private final Pattern<T> pattern;
+    private final Predicate<? super T> propertyPredicate;
+
+    WithPropertyPattern(Pattern<T> pattern, Predicate<? super T> propertyPredicate) {
+        this.pattern = pattern;
+        this.propertyPredicate = propertyPredicate;
     }
 
-    public <U, V> Pattern<T> with(Function<? super T, Optional<U>> getProperty, Pattern<V> propertyPattern) {
-        return new WithPattern<>(this, getProperty, propertyPattern);
+    @Override
+    public Match<T> accept(Object object, Captures captures) {
+        Match<T> match = pattern.accept(object, captures);
+        return match.flatMap(matchedValue -> {
+            if (propertyPredicate.test(matchedValue)) {
+                return match;
+            } else {
+                return Match.empty();
+            }
+        });
     }
-
-    public Pattern<T> with(Predicate<? super T> propertyPredicate) {
-        return new WithPropertyPattern<>(this, propertyPredicate);
-    }
-
-    public Pattern<T> capturedAs(Capture<T> capture) {
-        return new CapturePattern<>(capture, this);
-    }
-
-    public abstract Match<T> accept(Object object, Captures captures);
 }
