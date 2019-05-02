@@ -29,7 +29,6 @@ import io.crate.execution.dsl.phases.ExecutionPhases;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.projection.AggregationProjection;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
-import io.crate.execution.engine.aggregation.impl.CountAggregation;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
@@ -38,7 +37,6 @@ import io.crate.expression.symbol.format.SymbolFormatter;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
@@ -126,25 +124,8 @@ public class HashAggregate extends OneInputPlan {
         );
     }
 
-    @Override
-    public LogicalPlan tryOptimize(@Nullable LogicalPlan ancestor, SymbolMapper mapper) {
-        if (ancestor != null) {
-            // can't push down anything
-            return null;
-        }
-        LogicalPlan collapsed = source.tryOptimize(null, mapper);
-        if (collapsed instanceof Collect &&
-            ((Collect) collapsed).tableInfo instanceof DocTableInfo &&
-            aggregates.size() == 1 &&
-            aggregates.get(0).info().equals(CountAggregation.COUNT_STAR_FUNCTION)) {
-
-            Collect collect = (Collect) collapsed;
-            return new Count(aggregates.get(0), collect.relation.tableRelation(), collect.where);
-        }
-        if (collapsed == source) {
-            return this;
-        }
-        return updateSource(collapsed, mapper);
+    public List<Function> aggregates() {
+        return aggregates;
     }
 
     @Override
