@@ -260,4 +260,55 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
                 "Boundary[id, name]\n" +
                 "Collect[sys.nodes | [id, name] | (id = 'nodeName')]\n"));
     }
+
+    @Test
+    public void testFilterOnSubQueryWithJoinIsPushedBeneathJoin() {
+        sqlExecutor.getSessionContext().setHashJoinEnabled(true);
+        var plan = sqlExecutor.logicalPlan(
+            "SELECT * FROM " +
+            "   (SELECT * FROM t1 INNER JOIN t2 on t1.x = t2.y) tjoin " +
+            "WHERE tjoin.x = 10 "
+        );
+        var expectedPlan =
+            "RootBoundary[a, x, i, b, y, i]\n" +
+            "FetchOrEval[a, x, i, b, y, i]\n" +
+            "Boundary[_fetchid, _fetchid, x, y]\n" +
+            "FetchOrEval[_fetchid, _fetchid, x, y]\n" +
+            "HashJoin[\n" +
+            "    Boundary[_fetchid, x]\n" +
+            "    Boundary[_fetchid, x]\n" +
+            "    Collect[doc.t1 | [_fetchid, x] | (x = 10)]\n" +
+            "    --- INNER ---\n" +
+            "    Boundary[_fetchid, y]\n" +
+            "    Boundary[_fetchid, y]\n" +
+            "    Collect[doc.t2 | [_fetchid, y] | All]\n" +
+            "]\n";
+        assertThat(plan, isPlan(sqlExecutor.functions(), expectedPlan));
+    }
+
+    @Test
+    public void testFilterOnSubQueryWithJoinIsSplitAndPartiallyPushedBeneathJoin() {
+        sqlExecutor.getSessionContext().setHashJoinEnabled(true);
+        var plan = sqlExecutor.logicalPlan(
+            "SELECT * FROM " +
+            "   (SELECT * FROM t1 INNER JOIN t2 on t1.x = t2.y) tjoin " +
+            "WHERE tjoin.x = 10 AND tjoin.y = 20 AND (tjoin.a || tjoin.b = '')"
+        );
+        var expectedPlan =
+            "RootBoundary[a, x, i, b, y, i]\n" +
+            "FetchOrEval[a, x, i, b, y, i]\n" +
+            "Boundary[_fetchid, _fetchid, a, x, b, y]\n" +
+            "FetchOrEval[_fetchid, _fetchid, a, x, b, y]\n" +
+            "Filter[(concat(a, b) = '')]\n" +
+            "HashJoin[\n" +
+            "    Boundary[_fetchid, x, a]\n" +
+            "    Boundary[_fetchid, x, a]\n" +
+            "    Collect[doc.t1 | [_fetchid, x, a] | (x = 10)]\n" +
+            "    --- INNER ---\n" +
+            "    Boundary[_fetchid, y, b]\n" +
+            "    Boundary[_fetchid, y, b]\n" +
+            "    Collect[doc.t2 | [_fetchid, y, b] | (y = 20)]\n" +
+            "]\n";
+        assertThat(plan, isPlan(sqlExecutor.functions(), expectedPlan));
+    }
 }
