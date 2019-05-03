@@ -686,7 +686,7 @@ public class SQLExecutor {
             // because the subRelations are not yet AnalyzedRelations.
             // we eventually should integrate normalize into unboundAnalyze.
             // But then we have to remove the whereClauseAnalyzer calls because they depend on all values being available
-            stmt = (AnalyzedStatement) new RelationNormalizer(functions)
+            stmt = new RelationNormalizer(functions)
                 .normalize((AnalyzedRelation) stmt, coordinatorTxnCtx);
         }
         return (T) planner.plan(stmt, getPlannerContext(planner.currentClusterState()));

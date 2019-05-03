@@ -150,6 +150,9 @@ Deprecations
 Changes
 =======
 
+- Added a new optimization that allows to run predicates on top of views or
+  sub-queries more efficiently in some cases.
+
 - Allow :ref:`sql_administration_udf` to be registered against the
   ``pg_catalog`` schema.
 
