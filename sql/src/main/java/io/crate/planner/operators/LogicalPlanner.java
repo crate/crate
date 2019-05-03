@@ -71,6 +71,7 @@ import io.crate.planner.optimizer.rule.MergeAggregateAndCollectToCount;
 import io.crate.planner.optimizer.rule.MergeFilterAndCollect;
 import io.crate.planner.optimizer.rule.MergeFilters;
 import io.crate.planner.optimizer.rule.MoveFilterBeneathBoundary;
+import io.crate.planner.optimizer.rule.MoveFilterBeneathFetchOrEval;
 import io.crate.planner.optimizer.rule.MoveOrderBeneathBoundary;
 import io.crate.planner.optimizer.rule.MoveOrderBeneathFetchOrEval;
 import io.crate.planner.optimizer.rule.MoveOrderBeneathNestedLoop;
@@ -94,6 +95,18 @@ import static io.crate.expression.symbol.SelectSymbol.ResultType.SINGLE_COLUMN_S
 public class LogicalPlanner {
 
     public static final int NO_LIMIT = -1;
+    private static final Optimizer OPTIMIZER = new Optimizer(List.of(
+        new MergeAggregateAndCollectToCount(),
+        new MergeFilters(),
+        new MoveFilterBeneathBoundary(),
+        new MoveFilterBeneathFetchOrEval(),
+        new MergeFilterAndCollect(),
+        new MoveOrderBeneathUnion(),
+        new MoveOrderBeneathNestedLoop(),
+        new MoveOrderBeneathBoundary(),
+        new MoveOrderBeneathFetchOrEval(),
+        new DeduplicateOrder()
+    ));
 
     private final OptimizingRewriter optimizingRewriter;
     private final TableStats tableStats;
@@ -183,18 +196,7 @@ public class LogicalPlanner {
      * @return The optimized plan or the original if optimizing is not possible
      */
     private static LogicalPlan tryOptimize(LogicalPlan plan) {
-        Optimizer optimizer = new Optimizer(List.of(
-            new MergeAggregateAndCollectToCount(),
-            new MergeFilters(),
-            new MoveFilterBeneathBoundary(),
-            new MergeFilterAndCollect(),
-            new MoveOrderBeneathUnion(),
-            new MoveOrderBeneathNestedLoop(),
-            new MoveOrderBeneathBoundary(),
-            new MoveOrderBeneathFetchOrEval(),
-            new DeduplicateOrder()
-        ));
-        return optimizer.optimize(plan);
+        return OPTIMIZER.optimize(plan);
     }
 
     static LogicalPlan.Builder plan(AnalyzedRelation relation,
@@ -327,7 +329,7 @@ public class LogicalPlanner {
         throw new UnsupportedOperationException("Cannot create LogicalPlan from: " + analyzedRelation);
     }
 
-    static Set<Symbol> extractColumns(Symbol symbol) {
+    public static Set<Symbol> extractColumns(Symbol symbol) {
         LinkedHashSet<Symbol> columns = new LinkedHashSet<>();
         RefVisitor.visitRefs(symbol, columns::add);
         FieldsVisitor.visitFields(symbol, columns::add);

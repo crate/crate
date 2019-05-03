@@ -125,16 +125,16 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
         List<Projection> projections = collect.collectPhase().projections();
         assertThat(projections, Matchers.contains(
             instanceOf(TopNProjection.class),
-            instanceOf(EvalProjection.class),
             instanceOf(FilterProjection.class),
+            instanceOf(EvalProjection.class),
             instanceOf(OrderedTopNProjection.class),
             instanceOf(TopNProjection.class),
             instanceOf(FetchProjection.class)
         ));
-        assertThat(projections.get(1).outputs(), isSQL("INPUT(0), add(INPUT(1), INPUT(1))"));
-        FilterProjection filterProjection = (FilterProjection) projections.get(2);
+        assertThat(projections.get(2).outputs(), isSQL("INPUT(0), add(INPUT(1), INPUT(1))"));
+        FilterProjection filterProjection = (FilterProjection) projections.get(1);
         // filter is before fetch; preFetchOutputs: [_fetchId, add(x, x)]
-        assertThat(filterProjection.query(), isSQL("(INPUT(1) = 10)"));
+        assertThat(filterProjection.query(), isSQL("(add(INPUT(1), INPUT(1)) = 10)"));
     }
 
     @Test

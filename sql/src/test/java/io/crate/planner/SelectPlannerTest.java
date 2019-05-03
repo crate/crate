@@ -39,7 +39,6 @@ import io.crate.execution.dsl.projection.FetchProjection;
 import io.crate.execution.dsl.projection.FilterProjection;
 import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.execution.dsl.projection.MergeCountProjection;
-import io.crate.execution.dsl.projection.OrderedTopNProjection;
 import io.crate.execution.dsl.projection.ProjectSetProjection;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.TopNProjection;
@@ -128,7 +127,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
                 "   name string," +
                 "   date timestamp without time zone," +
                 "   obj object" +
-                ") partitioned by (date) ",
+                ") partitioned by (date) clustered into 1 shards ",
                 new PartitionName(new RelationName("doc", "parted"), singletonList("1395874800000")).asIndexName(),
                 new PartitionName(new RelationName("doc", "parted"), singletonList("1395961200000")).asIndexName(),
                 new PartitionName(new RelationName("doc", "parted"), singletonList(null)).asIndexName()
@@ -448,9 +447,14 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGlobalAggregateWithWhereOnPartitionColumn() throws Exception {
-        Merge merge = e.plan(
+        ExecutionPlan plan = e.plan(
             "select min(name) from parted where date >= 1395961200000");
-        Collect collect = (Collect) merge.subPlan();
+        Collect collect;
+        if (plan instanceof Merge) {
+            collect = ((Collect) ((Merge) plan).subPlan());
+        } else {
+            collect = (Collect) plan;
+        }
         Routing routing = ((RoutedCollectPhase) collect.collectPhase()).routing();
 
         assertThat(
@@ -539,8 +543,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(projections, contains(
             instanceOf(GroupProjection.class), // parallel on shard-level
             instanceOf(GroupProjection.class), // node-level
-            instanceOf(EvalProjection.class),
-            instanceOf(FilterProjection.class)
+            instanceOf(FilterProjection.class),
+            instanceOf(EvalProjection.class)
         ));
     }
 
@@ -845,5 +849,28 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         expectedException.expect(VersioninigValidationException.class);
         expectedException.expectMessage(VersioninigValidationException.SEQ_NO_AND_PRIMARY_TERM_USAGE_MSG);
         e.plan("select * from users where _seq_no = 2 and _primary_term = 1");
+    }
+
+
+    @Test
+    public void testTablePartitionsAreNarrowedToMatchWhereClauseOfParentQuery() {
+        String statement = "select * from (select * from parted) t where date is null";
+        LogicalPlan logicalPlan = e.logicalPlan(statement);
+        assertThat(logicalPlan, isPlan(e.functions(),
+            "RootBoundary[id, name, date, obj]\n" +
+            "FetchOrEval[id, name, date, obj]\n" +
+            "Boundary[_fetchid, date]\n" +
+            "FetchOrEval[_fetchid, date]\n" +
+            "Collect[doc.parted | [_fetchid, date] | date IS NULL]\n"
+        ));
+        QueryThenFetch qtf = e.plan(statement);
+        Collect collect = ((Collect) qtf.subPlan());
+        RoutedCollectPhase routedCollectPhase = (RoutedCollectPhase) collect.collectPhase();
+
+        int numShards = 0;
+        for (String node : routedCollectPhase.routing().nodes()) {
+            numShards += routedCollectPhase.routing().numShards(node);
+        }
+        assertThat(numShards, is(1));
     }
 }
