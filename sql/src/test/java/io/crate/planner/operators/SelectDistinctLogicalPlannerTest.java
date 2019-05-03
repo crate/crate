@@ -111,7 +111,6 @@ public class SelectDistinctLogicalPlannerTest extends CrateDummyClusterServiceUn
             "GroupBy[name | ]\n" +
             "HashJoin[\n" +
             "    Boundary[_fetchid, department_id]\n" +
-            "    FetchOrEval[_fetchid, department_id]\n" +
             "    Collect[doc.users | [_fetchid, department_id] | All]\n" +
             "    --- INNER ---\n" +
             "    Boundary[id, name]\n" +

@@ -89,19 +89,147 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void testOrderByOnJoinPushedDown() {
+        LogicalPlan plan = plan("select t1.a, t2.b from t1 inner join t2 on t1.a = t2.b order by t1.a");
+        assertThat(plan, isPlan(sqlExecutor.functions(), "FetchOrEval[a, b]\n" +
+                                                         "NestedLoopJoin[\n" +
+                                                         "    Boundary[_fetchid, a]\n" +
+                                                         "    OrderBy[a ASC]\n" +
+                                                         "    Collect[doc.t1 | [_fetchid, a] | All]\n" +
+                                                         "    --- INNER ---\n" +
+                                                         "    Boundary[_fetchid, b]\n" +
+                                                         "    Collect[doc.t2 | [_fetchid, b] | All]\n" +
+                                                         "]\n"));
+    }
+
+    @Test
+    public void testOrderByOnJoinWithMultipleRelationsPushedDown() {
+        LogicalPlan plan = plan("select t1.a, t2.b, t3.a from t1 " +
+                                "inner join t2 on t1.a = t2.b " +
+                                "inner join t1 as t3 on t3.a = t2.b " +
+                                "order by t2.b");
+        assertThat(plan, isPlan(sqlExecutor.functions(), "FetchOrEval[a, b, a]\n" +
+                                                         "NestedLoopJoin[\n" +
+                                                         "    NestedLoopJoin[\n" +
+                                                         "        Boundary[_fetchid, b]\n" +
+                                                         "        OrderBy[b ASC]\n" +
+                                                         "        Collect[doc.t2 | [_fetchid, b] | All]\n" +
+                                                         "        --- INNER ---\n" +
+                                                         "        Boundary[_fetchid, a]\n" +
+                                                         "        Collect[doc.t1 | [_fetchid, a] | All]\n" +
+                                                         "]\n" +
+                                                         "    --- INNER ---\n" +
+                                                         "    Boundary[_fetchid, a]\n" +
+                                                         "    Collect[doc.t1 | [_fetchid, a] | All]\n" +
+                                                         "]\n"));
+    }
+
+    @Test
     public void testOrderByOnJoinWithUncollectedColumnPushedDown() {
         LogicalPlan plan = plan("select t2.y, t2.b, t1.i from t1 inner join t2 on t1.a = t2.b order by t1.x desc");
         assertThat(plan, isPlan(sqlExecutor.functions(), "FetchOrEval[y, b, i]\n" +
                                                          "NestedLoopJoin[\n" +
                                                          "    Boundary[_fetchid, a, x]\n" +
-                                                         "    FetchOrEval[_fetchid, a, x]\n" +
                                                          "    OrderBy[x DESC]\n" +
                                                          "    Collect[doc.t1 | [_fetchid, a, x] | All]\n" +
                                                          "    --- INNER ---\n" +
                                                          "    Boundary[_fetchid, b]\n" +
-                                                         "    FetchOrEval[_fetchid, b]\n" +
                                                          "    Collect[doc.t2 | [_fetchid, b] | All]\n]" +
                                                          "\n"));
+    }
+
+    @Test
+    public void testOrderByOnJoinOrderOnRightTableNotPushedDown() {
+        LogicalPlan plan = plan("select t1.a, t2.b from t1 inner join t2 on t1.a = t2.b order by t2.b");
+        assertThat(plan, isPlan(sqlExecutor.functions(), "FetchOrEval[a, b]\n" +
+                                                         "OrderBy[b ASC]\n" +
+                                                         "NestedLoopJoin[\n" +
+                                                         "    Boundary[_fetchid, a]\n" +
+                                                         "    Collect[doc.t1 | [_fetchid, a] | All]\n" +
+                                                         "    --- INNER ---\n" +
+                                                         "    Boundary[_fetchid, b]\n" +
+                                                         "    Collect[doc.t2 | [_fetchid, b] | All]\n" +
+                                                         "]\n"));
+    }
+
+    @Test
+    public void testOrderByOnJoinOrderOnMultipleTablesNotPushedDown() {
+        LogicalPlan plan = plan("select t1.a, t2.b from t1 inner join t2 on t1.a = t2.b order by t1.a || t2.b");
+        assertThat(plan, isPlan(sqlExecutor.functions(), "FetchOrEval[a, b]\n" +
+                                                         "OrderBy[concat(a, b) ASC]\n" +
+                                                         "NestedLoopJoin[\n" +
+                                                         "    Boundary[_fetchid, a]\n" +
+                                                         "    Collect[doc.t1 | [_fetchid, a] | All]\n" +
+                                                         "    --- INNER ---\n" +
+                                                         "    Boundary[_fetchid, b]\n" +
+                                                         "    Collect[doc.t2 | [_fetchid, b] | All]\n" +
+                                                         "]\n"));
+    }
+
+    @Test
+    public void testOrderByOnJoinOuterJoinInvolvedNotPushedDown() {
+        LogicalPlan plan = plan("select t1.a, t2.b, t3.a from t1 " +
+                                "inner join t2 on t1.a = t2.b " +
+                                "left join t1 as t3 on t3.a = t1.a " +
+                                "order by t1.a");
+        assertThat(plan, isPlan(sqlExecutor.functions(), "FetchOrEval[a, b, a]\n" +
+                                                         "OrderBy[a ASC]\n" +
+                                                         "NestedLoopJoin[\n" +
+                                                         "    NestedLoopJoin[\n" +
+                                                         "        Boundary[_fetchid, b]\n" +
+                                                         "        Collect[doc.t2 | [_fetchid, b] | All]\n" +
+                                                         "        --- INNER ---\n" +
+                                                         "        Boundary[_fetchid, a]\n" +
+                                                         "        Collect[doc.t1 | [_fetchid, a] | All]\n" +
+                                                         "]\n" +
+                                                         "    --- LEFT ---\n" +
+                                                         "    Boundary[_fetchid, a]\n" +
+                                                         "    Collect[doc.t1 | [_fetchid, a] | All]\n" +
+                                                         "]\n"));
+    }
+
+    @Test
+    public void testOrderByWithHashJoinNotPushedDown() {
+        sqlExecutor.getSessionContext().setHashJoinEnabled(true);
+        LogicalPlan plan = LogicalPlannerTest.plan("select t1.a, t2.b " +
+                                                   "from t1 inner join t2 on t1.a = t2.b " +
+                                                   "order by t1.a",
+            sqlExecutor, clusterService, tableStats);
+        sqlExecutor.getSessionContext().setHashJoinEnabled(false);
+        assertThat(plan, isPlan(sqlExecutor.functions(),
+            "FetchOrEval[a, b]\n" +
+            "OrderBy[a ASC]\n" +
+            "HashJoin[\n" +
+            "    Boundary[_fetchid, a]\n" +
+            "    Collect[doc.t1 | [_fetchid, a] | All]\n" +
+            "    --- INNER ---\n" +
+            "    Boundary[_fetchid, b]\n" +
+            "    Collect[doc.t2 | [_fetchid, b] | All]\n" +
+            "]\n"));
+    }
+
+    @Test
+    public void testOrderByIsPushedDownToLeftSide() {
+        sqlExecutor.getSessionContext().setHashJoinEnabled(false);
+        // differs from testOrderByOnJoinPushedDown in that here the ORDER BY expression is not part of the outputs
+        LogicalPlan plan = sqlExecutor.logicalPlan(
+            "SELECT t1.i, t2.i FROM t2 INNER JOIN t1 ON t1.x = t2.y ORDER BY lower(t2.b)");
+
+        assertThat(
+            plan,
+            LogicalPlannerTest.isPlan(sqlExecutor.functions(),
+                "RootBoundary[i, i]\n" +
+                "FetchOrEval[i, i]\n" +
+                "NestedLoopJoin[\n" +
+                "    Boundary[_fetchid, b, y]\n" +
+                "    FetchOrEval[_fetchid, b, y]\n" +
+                "    OrderBy[lower(b) ASC]\n" +
+                "    Collect[doc.t2 | [_fetchid, y, b] | All]\n" +
+                "    --- INNER ---\n" +
+                "    Boundary[_fetchid, x]\n" +
+                "    Collect[doc.t1 | [_fetchid, x] | All]\n" +
+                "]\n")
+        );
     }
 
 

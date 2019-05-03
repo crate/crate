@@ -837,11 +837,11 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             "RootBoundary[id, name, date, obj]\n" +
             "FetchOrEval[id, name, date, obj]\n" +
             "Boundary[_fetchid, date]\n" +
-            "FetchOrEval[_fetchid, date]\n" +
             "Collect[doc.parted | [_fetchid, date] | date IS NULL]\n"
         ));
         QueryThenFetch qtf = e.plan(statement);
-        Collect collect = ((Collect) qtf.subPlan());
+        ExecutionPlan subPlan = qtf.subPlan();
+        Collect collect = subPlan instanceof Collect ? (Collect) subPlan : ((Collect) ((Merge) subPlan).subPlan());
         RoutedCollectPhase routedCollectPhase = (RoutedCollectPhase) collect.collectPhase();
 
         int numShards = 0;

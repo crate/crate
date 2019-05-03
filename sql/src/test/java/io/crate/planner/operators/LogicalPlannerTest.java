@@ -201,11 +201,9 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                                 "OrderBy[x ASC]\n" +
                                 "HashJoin[\n" +
                                 "    Boundary[_fetchid, x]\n" +
-                                "    FetchOrEval[_fetchid, x]\n" +
                                 "    Collect[doc.t1 | [_fetchid, x] | All]\n" +
                                 "    --- INNER ---\n" +
                                 "    Boundary[_fetchid, y]\n" +
-                                "    FetchOrEval[_fetchid, y]\n" +
                                 "    Collect[doc.t2 | [_fetchid, y] | All]\n" +
                                 "]\n"));
     }
@@ -252,6 +250,27 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void testParentQueryIsPushedDownAndMergedIntoSubRelationWhereClause() {
+        LogicalPlan plan = plan("select * from " +
+                                " (select a, i from t1 order by a limit 5) t1 " +
+                                "inner join" +
+                                " (select b, i from t2 where b > 10) t2 " +
+                                "on t1.i = t2.i where t1.a > 50 and t2.b > 100 " +
+                                "limit 10");
+        assertThat(plan, isPlan("Limit[10;0]\n" +
+                                "HashJoin[\n" +
+                                "    Boundary[a, i]\n" +
+                                "    Filter[(a > '50')]\n" +
+                                "    Limit[5;0]\n" +
+                                "    OrderBy[a ASC]\n" +
+                                "    Collect[doc.t1 | [a, i] | All]\n" +
+                                "    --- INNER ---\n" +
+                                "    Boundary[b, i]\n" +
+                                "    Collect[doc.t2 | [b, i] | ((b > '10') AND (b > '100'))]\n" +
+                                "]\n"));
+    }
+
+    @Test
     public void testPlanOfJoinedViewsHasBoundaryWithViewOutputs() {
         LogicalPlan plan = plan("SELECT v2.x, v2.a, v3.x, v3.a " +
                               "FROM v2 " +
@@ -260,15 +279,11 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan, isPlan("FetchOrEval[x, a, x, a]\n" +
                                 "HashJoin[\n" +
                                 "    Boundary[_fetchid, x]\n" +
-                                "    FetchOrEval[_fetchid, x]\n" +
                                 "    Boundary[_fetchid, x]\n" +
-                                "    FetchOrEval[_fetchid, x]\n" +
                                 "    Collect[doc.t1 | [_fetchid, x] | All]\n" +
                                 "    --- INNER ---\n" +
                                 "    Boundary[_fetchid, x]\n" +
-                                "    FetchOrEval[_fetchid, x]\n" +
                                 "    Boundary[_fetchid, x]\n" +
-                                "    FetchOrEval[_fetchid, x]\n" +
                                 "    Collect[doc.t1 | [_fetchid, x] | All]\n" +
                                 "]\n"));
     }

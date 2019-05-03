@@ -67,11 +67,13 @@ import io.crate.planner.consumer.FetchMode;
 import io.crate.planner.consumer.InsertFromSubQueryPlanner;
 import io.crate.planner.optimizer.Optimizer;
 import io.crate.planner.optimizer.rule.DeduplicateOrder;
+import io.crate.planner.optimizer.rule.EliminateFetchOrEval;
 import io.crate.planner.optimizer.rule.MergeAggregateAndCollectToCount;
 import io.crate.planner.optimizer.rule.MergeFilterAndCollect;
 import io.crate.planner.optimizer.rule.MergeFilters;
 import io.crate.planner.optimizer.rule.MoveFilterBeneathBoundary;
 import io.crate.planner.optimizer.rule.MoveFilterBeneathFetchOrEval;
+import io.crate.planner.optimizer.rule.MoveFilterBeneathHashJoin;
 import io.crate.planner.optimizer.rule.MoveOrderBeneathBoundary;
 import io.crate.planner.optimizer.rule.MoveOrderBeneathFetchOrEval;
 import io.crate.planner.optimizer.rule.MoveOrderBeneathNestedLoop;
@@ -105,7 +107,9 @@ public class LogicalPlanner {
         new MoveOrderBeneathNestedLoop(),
         new MoveOrderBeneathBoundary(),
         new MoveOrderBeneathFetchOrEval(),
-        new DeduplicateOrder()
+        new DeduplicateOrder(),
+        new MoveFilterBeneathHashJoin(),
+        new EliminateFetchOrEval()
     ));
 
     private final TableStats tableStats;
