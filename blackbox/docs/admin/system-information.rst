@@ -1449,27 +1449,6 @@ severity level:
 Current Checks
 --------------
 
-Minimum Master Nodes
-....................
-
-The check for the :ref:`discovery.zen.minimum_master_nodes
-<discovery.zen.minimum_master_nodes>` setting verifies that the minimum number
-of nodes is equal/greater than the half of maximum number of nodes in the
-cluster.
-
-::
-
-  (N / 2) + 1 <= M
-
-where ``N`` is the number of nodes in the cluster, and ``M`` is the value of
-the setting :ref:`discovery.zen.minimum_master_nodes
-<discovery.zen.minimum_master_nodes>`.
-
-You can change the value (via :ref:`ref-set`) permanently by issuing the
-following SQL statement::
-
-  SET GLOBAL PERSISTENT discovery.zen.minimum_master_nodes = M;
-
 Number of Partitions
 ....................
 
