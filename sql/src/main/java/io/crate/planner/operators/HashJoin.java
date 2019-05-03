@@ -60,7 +60,7 @@ import java.util.stream.Collectors;
 
 import static io.crate.planner.operators.LogicalPlanner.NO_LIMIT;
 
-class HashJoin implements LogicalPlan {
+public class HashJoin implements LogicalPlan {
 
     private final Symbol joinCondition;
     private final TableStats tableStats;
@@ -71,11 +71,11 @@ class HashJoin implements LogicalPlan {
     final LogicalPlan lhs;
     private final Map<Symbol, Symbol> expressionMapping;
 
-    HashJoin(LogicalPlan lhs,
-             LogicalPlan rhs,
-             Symbol joinCondition,
-             AnalyzedRelation concreteRelation,
-             TableStats tableStats) {
+    public HashJoin(LogicalPlan lhs,
+                    LogicalPlan rhs,
+                    Symbol joinCondition,
+                    AnalyzedRelation concreteRelation,
+                    TableStats tableStats) {
         this.outputs = Lists2.concat(lhs.outputs(), rhs.outputs());
         this.lhs = lhs;
         this.rhs = rhs;
@@ -85,12 +85,20 @@ class HashJoin implements LogicalPlan {
         this.expressionMapping = Maps.concat(lhs.expressionMapping(), rhs.expressionMapping());
     }
 
-    JoinType joinType() {
+    public JoinType joinType() {
         return JoinType.INNER;
     }
 
-    Symbol joinCondition() {
+    public Symbol joinCondition() {
         return joinCondition;
+    }
+
+    public LogicalPlan lhs() {
+        return lhs;
+    }
+
+    public LogicalPlan rhs() {
+        return rhs;
     }
 
     @Override
