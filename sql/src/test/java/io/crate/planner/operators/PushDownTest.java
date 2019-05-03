@@ -169,6 +169,17 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void testFilterIsMovedBeneathOrder() {
+        LogicalPlan plan = plan("select * from (select * from t1 order by a) tt where a > 10");
+        assertThat(plan, isPlan(sqlExecutor.functions(),
+            "FetchOrEval[a, x, i]\n" +
+            "Boundary[_fetchid, a]\n" +
+            "OrderBy[a ASC]\n" +
+            "Collect[doc.t1 | [_fetchid, a] | (a > '10')]\n"
+        ));
+    }
+
+    @Test
     public void testOrderByOnJoinOuterJoinInvolvedNotPushedDown() {
         LogicalPlan plan = plan("select t1.a, t2.b, t3.a from t1 " +
                                 "inner join t2 on t1.a = t2.b " +

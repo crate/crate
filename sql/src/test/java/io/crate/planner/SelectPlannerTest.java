@@ -24,6 +24,7 @@ package io.crate.planner;
 
 import com.carrotsearch.hppc.IntIndexedContainer;
 import com.carrotsearch.randomizedtesting.RandomizedTest;
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import com.google.common.collect.Iterables;
 import io.crate.analyze.TableDefinitions;
 import io.crate.exceptions.UnsupportedFeatureException;
