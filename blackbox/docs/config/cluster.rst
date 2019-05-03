@@ -309,74 +309,63 @@ resources. The following settings change the behaviour of those queries.
 Discovery
 ---------
 
-.. _discovery.zen.minimum_master_nodes:
+Data sharding and work splitting are at the core of CrateDB. This is how we
+manage to execute very fast queries over incredibly large datasets. In order
+for multiple CrateDB nodes to work together a cluster needs to be formed. The
+process of finding other nodes with which to form a cluster is called
+discovery. Discovery runs when a CrateDB node starts and when a node is not
+able to reach the master node and continues until a master node is found or a
+new master node is elected.
 
-**discovery.zen.minimum_master_nodes**
-  | *Default:*   ``1``
-  | *Runtime:*  ``yes``
+.. _discovery_seed_hosts:
 
-  Set to ensure a node sees N other master eligible nodes to be considered
-  operational within the cluster. It's recommended to set it to a higher value
-  than 1 when running more than 2 nodes in the cluster.
+**discovery.seed_hosts**
+   | *Default:* ``127.0.0.1``
+   | *Runtime:* ``no``
 
-.. _discovery.zen.ping_interval:
-
-**discovery.zen.ping_interval**
-  | *Default:*   ``1s``
-  | *Runtime:*  ``yes``
-
-  How often to ping other nodes.
-
-  Nodes must remain responsive to pings or they will be marked as failed and
-  removed from the cluster.
-
-.. _discovery.zen.ping_timeout:
-
-**discovery.zen.ping_timeout**
-  | *Default:*   ``3s``
-  | *Runtime:*  ``yes``
-
-  The time to wait for ping responses from other nodes when discovering.
-  Set this option to a higher value on a slow or congested network to minimize
-  discovery failures.
-
-.. _discovery.zen.ping_retries:
-
-**discovery.zen.ping_retries**
-  | *Default:*   ``3``
-  | *Runtime:*  ``yes``
-
-  How many ping failures (network timeouts) indicate that a node has failed.
-
-.. _discovery.zen.publish_timeout:
-
-**discovery.zen.publish_timeout**
-  | *Default:*   ``30s``
-  | *Runtime:*  ``yes``
-
-  Time a node is waiting for responses from other nodes to a published cluster
-  state.
-
+   In order to form a cluster with CrateDB instances running on other nodes a
+   list of seed master-eligible nodes needs to be provided. This setting should
+   normally contain the addresses of all the master-eligible nodes in the
+   cluster. In order to seed the discovery process the nodes listed here must
+   be live and contactable. This setting contains either an array of hosts or a
+   comma-delimited string.
+   By default a node will bind to the available loopback and scan for local
+   ports between ``4300`` and ``4400`` to try to connect to other nodes running
+   on the same server. This default behaviour provides local auto clustering
+   without any configuration.
+   Each value should be in the form of host:port or host (where port defaults
+   to the setting ``transport.tcp.port``).
+ 
 .. NOTE::
 
-   Multicast used to be an option for node discovery, but was deprecated in
-   CrateDB 1.0.3 and removed in CrateDB 1.1.
+   IPv6 hosts must be bracketed.
+
+**cluster.initial_master_nodes**
+   | *Default:* ``not set``
+   | *Runtime:* ``no``
+
+   Contains a list of names or IP addresses of the master-eligible nodes which
+   will vote in the very first election of a cluster that's bootstrapping for
+   the first time. By default this is not set, meaning it expects this node to
+   join an already formed cluster.
+   In development mode, with no discovery settings configured, this step is
+   performed by the nodes themselves, but this auto-bootstrapping is designed
+   to aim development and is not safe for production. In production you must
+   explicitly list the names or IP addresses of the master-eligible nodes whose
+   votes should be counted in the very first election.
 
 .. _conf_host_discovery:
 
 Unicast Host Discovery
-......................
+.......................
 
-CrateDB has built-in support for several different mechanisms of node
-discovery. The simplest mechanism is to specify a list of hosts in the
-configuration file.
+As described above, CrateDB has built-in support for statically specifying a
+list of addresses that will act as the seed nodes in the discovery process
+using the `discovery_seed_hosts`_ setting.
 
-**discovery.zen.ping.unicast.hosts**
-  | *Default:*  ``not set``
-  | *Runtime:*  ``no``
-
-Currently there are three other discovery types: via DNS, via EC2 API and via
-Microsoft Azure mechanisms.
+CrateDB also has support for several different mechanisms of seed nodes
+discovery. Currently there are three other discovery types: via DNS, via EC2
+API and via Microsoft Azure mechanisms.
 
 When a node starts up with one of these discovery types enabled, it performs a
 lookup using the settings for the specified mechanism listed below. The hosts
@@ -386,7 +375,7 @@ unicast hosts for node discovery.
 The same lookup is also performed by all nodes in a cluster whenever the master
 is re-elected (see `Cluster Meta Data`).
 
-**discovery.zen.hosts_provider**
+**discovery.seed_providers**
   | *Default:*   ``not set``
   | *Runtime:*   ``no``
   | *Allowed Values:* ``srv``, ``ec2``, ``azure``
@@ -399,7 +388,7 @@ Discovery via DNS
 `````````````````
 
 Crate has built-in support for discovery via DNS. To enable DNS discovery the
-``discovery.zen.hosts_provider`` setting needs to be set to ``srv``.
+``discovery.seed_providers`` setting needs to be set to ``srv``.
 
 The order of the unicast hosts is defined by the priority, weight and name of
 each host defined in the SRV record. For example::
@@ -434,7 +423,7 @@ Discovery on Amazon EC2
 ```````````````````````
 
 CrateDB has built-in support for discovery via the EC2 API. To enable EC2
-discovery the ``discovery.zen.hosts_provider`` settings needs to be set to
+discovery the ``discovery.seed_providers`` settings needs to be set to
 ``ec2``.
 
 **discovery.ec2.access_key**
@@ -504,7 +493,7 @@ Discovery on Microsoft Azure
 ````````````````````````````
 
 CrateDB has built-in support for discovery via the Azure Virtual Machine API.
-To enable Azure discovery set the ``discovery.zen.hosts_provider`` setting to
+To enable Azure discovery set the ``discovery.seed_providers`` setting to
 ``azure``.
 
 **cloud.azure.management.resourcegroup.name**

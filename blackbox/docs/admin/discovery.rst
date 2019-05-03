@@ -109,10 +109,10 @@ Running ``gradle azureLibs`` will fetch the required jars and put them into the
 Basic Configuration
 -------------------
 
-To enable Azure discovery simply change the ``discovery.zen.hosts_provider``
+To enable Azure discovery simply change the ``discovery.seed_providers``
 setting to ``azure``::
 
-    discovery.zen.hosts_provider: azure
+    discovery.seed_providers: azure
 
 The discovery mechanism can discover CrateDB instances within the same **vnet**
 or the same **subnet** of the same **resource group**. By default it will the
