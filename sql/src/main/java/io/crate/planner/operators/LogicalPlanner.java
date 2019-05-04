@@ -76,6 +76,7 @@ import io.crate.planner.optimizer.rule.MoveOrderBeneathBoundary;
 import io.crate.planner.optimizer.rule.MoveOrderBeneathFetchOrEval;
 import io.crate.planner.optimizer.rule.MoveOrderBeneathNestedLoop;
 import io.crate.planner.optimizer.rule.MoveOrderBeneathUnion;
+import io.crate.planner.optimizer.rule.RemoveRedundantFetchOrEval;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -96,6 +97,7 @@ public class LogicalPlanner {
 
     public static final int NO_LIMIT = -1;
     private static final Optimizer OPTIMIZER = new Optimizer(List.of(
+        new RemoveRedundantFetchOrEval(),
         new MergeAggregateAndCollectToCount(),
         new MergeFilters(),
         new MoveFilterBeneathBoundary(),

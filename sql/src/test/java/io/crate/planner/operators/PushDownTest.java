@@ -133,12 +133,10 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan, isPlan(sqlExecutor.functions(), "FetchOrEval[y, b, i]\n" +
                                                          "NestedLoopJoin[\n" +
                                                          "    Boundary[_fetchid, a, x]\n" +
-                                                         "    FetchOrEval[_fetchid, a, x]\n" +
                                                          "    OrderBy[x DESC]\n" +
                                                          "    Collect[doc.t1 | [_fetchid, a, x] | All]\n" +
                                                          "    --- INNER ---\n" +
                                                          "    Boundary[_fetchid, b]\n" +
-                                                         "    FetchOrEval[_fetchid, b]\n" +
                                                          "    Collect[doc.t2 | [_fetchid, b] | All]\n]" +
                                                          "\n"));
     }
@@ -231,9 +229,7 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
                 "    Collect[doc.t2 | [_fetchid, y, b] | All]\n" +
                 "    --- INNER ---\n" +
                 "    Boundary[_fetchid, x]\n" +
-                "    FetchOrEval[_fetchid, x]\n" +
                 "    Boundary[_fetchid, x]\n" +
-                "    FetchOrEval[_fetchid, x]\n" +
                 "    Collect[doc.t1 | [_fetchid, x] | All]\n" +
                 "]\n")
         );

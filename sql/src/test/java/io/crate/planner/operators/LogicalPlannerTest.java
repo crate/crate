@@ -203,7 +203,6 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                                 "OrderBy[x ASC]\n" +
                                 "HashJoin[\n" +
                                 "    Boundary[_fetchid, x]\n" +
-                                "    FetchOrEval[_fetchid, x]\n" +
                                 "    Collect[doc.t1 | [_fetchid, x] | All]\n" +
                                 "    --- INNER ---\n" +
                                 "    Boundary[y]\n" +
@@ -288,19 +287,13 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan, isPlan("FetchOrEval[x, a, x, a]\n" +
                                 "HashJoin[\n" +
                                 "    Boundary[_fetchid, x]\n" +
-                                "    FetchOrEval[_fetchid, x]\n" +
                                 "    Boundary[_fetchid, x]\n" +
-                                "    FetchOrEval[_fetchid, x]\n" +
                                 "    Boundary[_fetchid, x]\n" +
-                                "    FetchOrEval[_fetchid, x]\n" +
                                 "    Collect[doc.t1 | [_fetchid, x] | All]\n" +
                                 "    --- INNER ---\n" +
                                 "    Boundary[_fetchid, x]\n" +
-                                "    FetchOrEval[_fetchid, x]\n" +
                                 "    Boundary[_fetchid, x]\n" +
-                                "    FetchOrEval[_fetchid, x]\n" +
                                 "    Boundary[_fetchid, x]\n" +
-                                "    FetchOrEval[_fetchid, x]\n" +
                                 "    Collect[doc.t1 | [_fetchid, x] | All]\n" +
                                 "]\n"));
     }

@@ -154,9 +154,6 @@ public class FetchOrEval implements LogicalPlan {
                     source = sourceBuilder.build(tableStats, usedBeforeNextFetch);
                 }
             }
-            if (source.outputs().equals(outputs)) {
-                return source;
-            }
             if (!doFetch && Symbols.containsColumn(source.outputs(), DocSysColumns.FETCHID)) {
                 if (usedBeforeNextFetch.isEmpty()) {
                     return new FetchOrEval(source, source.outputs(), fetchMode, false);
@@ -246,10 +243,6 @@ public class FetchOrEval implements LogicalPlan {
         ExecutionPlan executionPlan = source.build(
             plannerContext, projectionBuilder, limit, offset, null, pageSizeHint, params, subQueryResults);
         List<Symbol> sourceOutputs = source.outputs();
-        if (sourceOutputs.equals(outputs)) {
-            return executionPlan;
-        }
-
         if (doFetch && Symbols.containsColumn(sourceOutputs, DocSysColumns.FETCHID)) {
             return planWithFetch(plannerContext, executionPlan, sourceOutputs, params, subQueryResults);
         }
