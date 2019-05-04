@@ -244,8 +244,7 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testWhereClauseIsPushedDown() {
-        sqlExecutor.getSessionContext().setHashJoinEnabled(false);
+    public void testWhereClauseIsPushedDownIntoSubQuery() {
         LogicalPlan plan = sqlExecutor.logicalPlan("SELECT name FROM (SELECT id, name FROM sys.nodes) t " +
                                                    "WHERE id = 'nodeName'");
 
@@ -327,5 +326,27 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
             "    Collect[doc.t2 | [_fetchid, y, b] | (y = 20)]\n" +
             "]\n";
         assertThat(plan, isPlan(sqlExecutor.functions(), expectedPlan));
+    }
+
+    @Test
+    public void testWhereClauseIsPushedDownIntoSubRelationOfUnion() {
+        LogicalPlan plan = sqlExecutor.logicalPlan("SELECT * FROM (" +
+                                                   "    SELECT name FROM sys.nodes " +
+                                                   "    WHERE name like 'b%' " +
+                                                   "    UNION ALL " +
+                                                   "    SELECT substr(name, 0, 1) as n from sys.cluster " +
+                                                   "    WHERE name like 'a%' ) u " +
+                                                   "WHERE u.name like 'c%' ");
+        assertThat(
+            plan,
+            LogicalPlannerTest.isPlan(sqlExecutor.functions(),
+                "RootBoundary[name]\n" +
+                "Boundary[name]\n" +
+                "Union[\n" +
+                "Collect[sys.nodes | [name] | ((name LIKE 'b%') AND (name LIKE 'c%'))]\n" +
+                "---\n" +
+                "Collect[sys.cluster | [substr(name, 0, 1)] | ((name LIKE 'a%') AND (substr(name, 0, 1) LIKE 'c%'))]\n]\n"
+            )
+        );
     }
 }
