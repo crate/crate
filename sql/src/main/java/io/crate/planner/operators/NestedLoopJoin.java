@@ -323,4 +323,8 @@ public class NestedLoopJoin implements LogicalPlan {
                left.resultDescription().nodeIds().size() <= 1 &&
                left.resultDescription().nodeIds().equals(right.resultDescription().nodeIds());
     }
+
+    public boolean orderByWasPushedDown() {
+        return orderByWasPushedDown;
+    }
 }

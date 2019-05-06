@@ -24,7 +24,6 @@ package io.crate.planner;
 
 import com.carrotsearch.hppc.IntIndexedContainer;
 import com.carrotsearch.randomizedtesting.RandomizedTest;
-import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import com.google.common.collect.Iterables;
 import io.crate.analyze.TableDefinitions;
 import io.crate.exceptions.UnsupportedFeatureException;
@@ -605,9 +604,10 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(((RoutedCollectPhase) rightCM.collectPhase()).where(),
             isSQL("((doc.users.name = 'Arthur') AND (doc.users.id > 1))"));
 
-        // doesn't contain "name" because whereClause is pushed down,
-        // but still contains "id" because it is in the joinCondition
-        assertThat(rightCM.collectPhase().toCollect(), contains(isReference("_fetchid"), isReference("id")));
+        // still contains "name" because we don't prune columns / re-run fetch optimization' after rule applications
+        assertThat(
+            rightCM.collectPhase().toCollect(),
+            contains(isReference("_fetchid"), isReference("id"), isReference("name")));
 
         Collect left = (Collect) nl.left();
         assertThat(left.collectPhase().toCollect(), contains(isReference("_fetchid"), isReference("id")));

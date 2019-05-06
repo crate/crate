@@ -22,52 +22,11 @@
 
 package io.crate.analyze.relations;
 
-import io.crate.planner.node.dql.join.JoinType;
 import io.crate.sql.tree.QualifiedName;
 
-import javax.annotation.Nullable;
-import java.util.Collection;
 import java.util.List;
-import java.util.ListIterator;
 
 public final class JoinPairs {
-
-    /**
-     * Finds a JoinPair within pair where pair.left = lhs and pair.right = rhs
-     */
-    @Nullable
-    public static JoinPair exactFindPair(Collection<JoinPair> pairs, QualifiedName lhs, QualifiedName rhs) {
-        for (JoinPair pair : pairs) {
-            if (pair.equalsNames(lhs, rhs)) {
-                return pair;
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Finds a JoinPair within pairs where either
-     *
-     *  - pair.left = lhs and pair.right = rhs
-     *  - or pair.left = rhs and pair.right = lhs, in which case a reversed pair is returned (and the original pair in the list is replaced)
-     */
-    @Nullable
-    public static JoinPair fuzzyFindPair(List<JoinPair> pairs, QualifiedName lhs, QualifiedName rhs) {
-        JoinPair exactMatch = exactFindPair(pairs, lhs, rhs);
-        if (exactMatch == null) {
-            ListIterator<JoinPair> it = pairs.listIterator();
-            while (it.hasNext()) {
-                JoinPair pair = it.next();
-                JoinType joinType = pair.joinType();
-                if (joinType.supportsInversion() && pair.equalsNames(rhs, lhs)) {
-                    JoinPair reversed = pair.reverse();
-                    it.set(reversed); // change list entry so that the found entry can be removed from pairs
-                    return reversed;
-                }
-            }
-        }
-        return exactMatch;
-    }
 
     /**
      * Returns true if relation name is part of an outer join and on the outer side.

@@ -31,13 +31,12 @@ import javax.annotation.Nullable;
 
 public class JoinPair {
 
-    private JoinType joinType;
-
-    private QualifiedName left;
-    private QualifiedName right;
+    private final JoinType joinType;
+    private final QualifiedName left;
+    private final QualifiedName right;
 
     @Nullable
-    private Symbol condition;
+    private final Symbol condition;
 
     public static JoinPair of(QualifiedName left, QualifiedName right, JoinType joinType, Symbol condition) {
         assert condition != null || joinType == JoinType.CROSS : "condition must be present unless it's a cross-join";
@@ -89,10 +88,6 @@ public class JoinPair {
         return Objects.hashCode(left, right, joinType, condition);
     }
 
-    boolean equalsNames(QualifiedName left, QualifiedName right) {
-        return this.left.equals(left) && this.right.equals(right);
-    }
-
     boolean isOuterRelation(QualifiedName name) {
         if (joinType.isOuter()) {
             if (left.equals(name) && (joinType == JoinType.RIGHT || joinType == JoinType.FULL)) {
@@ -103,10 +98,6 @@ public class JoinPair {
             }
         }
         return false;
-    }
-
-    public void joinType(JoinType joinType) {
-        this.joinType = joinType;
     }
 
     public JoinPair reverse() {

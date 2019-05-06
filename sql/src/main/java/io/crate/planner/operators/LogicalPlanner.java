@@ -80,6 +80,7 @@ import io.crate.planner.optimizer.rule.MoveOrderBeneathFetchOrEval;
 import io.crate.planner.optimizer.rule.MoveOrderBeneathNestedLoop;
 import io.crate.planner.optimizer.rule.MoveOrderBeneathUnion;
 import io.crate.planner.optimizer.rule.RemoveRedundantFetchOrEval;
+import io.crate.planner.optimizer.rule.RewriteFilterOnOuterJoinToInnerJoin;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -99,24 +100,9 @@ import static io.crate.expression.symbol.SelectSymbol.ResultType.SINGLE_COLUMN_S
 public class LogicalPlanner {
 
     public static final int NO_LIMIT = -1;
-    private static final Optimizer OPTIMIZER = new Optimizer(List.of(
-        new RemoveRedundantFetchOrEval(),
-        new MergeAggregateAndCollectToCount(),
-        new MergeFilters(),
-        new MoveFilterBeneathBoundary(),
-        new MoveFilterBeneathFetchOrEval(),
-        new MoveFilterBeneathOrder(),
-        new MoveFilterBeneathHashJoin(),
-        new MoveFilterBeneathNestedLoop(),
-        new MergeFilterAndCollect(),
-        new MoveOrderBeneathUnion(),
-        new MoveOrderBeneathNestedLoop(),
-        new MoveOrderBeneathBoundary(),
-        new MoveOrderBeneathFetchOrEval(),
-        new DeduplicateOrder()
-    ));
 
     private final OptimizingRewriter optimizingRewriter;
+    private final Optimizer optimizer;
     private final TableStats tableStats;
     private final SelectStatementPlanner selectStatementPlanner;
     private final Visitor statementVisitor = new Visitor();
@@ -125,6 +111,23 @@ public class LogicalPlanner {
 
     public LogicalPlanner(Functions functions, TableStats tableStats) {
         this.optimizingRewriter = new OptimizingRewriter(functions);
+        this.optimizer = new Optimizer(List.of(
+            new RemoveRedundantFetchOrEval(),
+            new MergeAggregateAndCollectToCount(),
+            new MergeFilters(),
+            new MoveFilterBeneathBoundary(),
+            new MoveFilterBeneathFetchOrEval(),
+            new MoveFilterBeneathOrder(),
+            new MoveFilterBeneathHashJoin(),
+            new MoveFilterBeneathNestedLoop(),
+            new MergeFilterAndCollect(),
+            new RewriteFilterOnOuterJoinToInnerJoin(functions),
+            new MoveOrderBeneathUnion(),
+            new MoveOrderBeneathNestedLoop(),
+            new MoveOrderBeneathBoundary(),
+            new MoveOrderBeneathFetchOrEval(),
+            new DeduplicateOrder()
+        ));
         this.tableStats = tableStats;
         this.functions = functions;
         this.relationNormalizer = new RelationNormalizer(functions);
@@ -203,8 +206,8 @@ public class LogicalPlanner {
      * @param plan The original plan
      * @return The optimized plan or the original if optimizing is not possible
      */
-    private static LogicalPlan tryOptimize(LogicalPlan plan) {
-        return OPTIMIZER.optimize(plan);
+    private LogicalPlan tryOptimize(LogicalPlan plan) {
+        return optimizer.optimize(plan);
     }
 
     static LogicalPlan.Builder plan(AnalyzedRelation relation,
