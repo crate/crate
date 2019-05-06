@@ -21,26 +21,23 @@
 
 package io.crate.analyze;
 
-import com.google.common.collect.ImmutableMap;
 import io.crate.data.Row;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.Routing;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.table.TestingTableInfo;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.QualifiedNameReference;
 import io.crate.sql.tree.StringLiteral;
-import io.crate.test.integration.CrateUnitTest;
-import io.crate.types.DataTypes;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
 import org.junit.Test;
 
 import java.util.Arrays;
 
 import static org.hamcrest.Matchers.is;
 
-public class PartitionPropertiesAnalyzerTest extends CrateUnitTest {
+public class PartitionPropertiesAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     private PartitionName getPartitionName(DocTableInfo tableInfo) {
         return PartitionPropertiesAnalyzer.toPartitionName(
@@ -52,25 +49,25 @@ public class PartitionPropertiesAnalyzerTest extends CrateUnitTest {
     }
 
     @Test
-    public void testPartitionNameFromAssignmentWithBytesRef() throws Exception {
-        DocTableInfo tableInfo = TestingTableInfo.builder(new RelationName("doc", "users"),
-            new Routing(ImmutableMap.of()))
-            .add("name", DataTypes.STRING, null, true)
-            .addPrimaryKey("name").build();
+    public void testPartitionNameFromAssignmentWithBytesRef() {
+        DocTableInfo tableInfo = SQLExecutor.partitionedTableInfo(
+            new RelationName("doc", "users"),
+            "create table doc.users (name text primary key) partitioned by (name)",
+            clusterService);
 
         PartitionName partitionName = getPartitionName(tableInfo);
         assertThat(partitionName.asIndexName(), is(".partitioned.users.0426crrf"));
     }
 
     @Test
-    public void testPartitionNameOnRegularTable() throws Exception {
+    public void testPartitionNameOnRegularTable() {
+        DocTableInfo tableInfo = SQLExecutor.tableInfo(
+            new RelationName("doc", "users"),
+            "create table doc.users (name text primary key)",
+            clusterService);
+
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("table 'doc.users' is not partitioned");
-        DocTableInfo tableInfo = TestingTableInfo.builder(new RelationName("doc", "users"),
-            new Routing(ImmutableMap.of()))
-            .add("name", DataTypes.STRING, null, false)
-            .addPrimaryKey("name").build();
-
         getPartitionName(tableInfo);
     }
 }

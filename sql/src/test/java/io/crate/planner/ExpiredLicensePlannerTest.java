@@ -47,8 +47,8 @@ public class ExpiredLicensePlannerTest extends CrateDummyClusterServiceUnitTest 
     public void prepare() throws IOException {
         e = SQLExecutor.builder(clusterService)
             .addTable(USER_TABLE_DEFINITION)
-            .addDocTable(T3.T1_INFO)
-            .addDocTable(T3.T2_INFO)
+            .addTable(T3.T1_DEFINITION)
+            .addTable(T3.T2_DEFINITION)
             .addView(new RelationName("doc", "v1"), "select * from users")
             .setHasValidLicense(false)
             .build();

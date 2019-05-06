@@ -65,7 +65,7 @@ public class PlanPrinterTest extends CrateDummyClusterServiceUnitTest {
                            "Fetch{IC{0, bigint}, Ref{doc.t1._doc['i'], integer}}, fetchSize="));
         // fetchSize depends on machine's heap size
         assertThat(mapStr, containsString("}], " +
-               "routing={n1={t1=[0]}}, where=Ref{doc.t1.x, integer} > 10}}}}, " +
+               "routing={n1={t1=[0, 1, 2, 3]}}, where=Ref{doc.t1.x, integer} > 10}}}}, " +
                "fetchPhase={FETCH={type=executionPhase, id=1, executionNodes=[n1], " +
                    "fetchRefs=Ref{doc.t1._doc['x'], integer}, Ref{doc.t1._doc['i'], integer}}}}}"));
     }
@@ -86,7 +86,7 @@ public class PlanPrinterTest extends CrateDummyClusterServiceUnitTest {
                        "{type=HashAggregation, keys=IC{0, text}, aggregations=Aggregation{max, args=[IC{1, integer}]}}, " +
                        "{type=Filter, filter=IC{1, integer} > 10}, " +
                        "{type=OrderByTopN, limit=-1, offset=0, outputs=IC{0, text}, IC{1, integer}, orderBy=[IC{0, text} ASC]}], " +
-                    "routing={n1={t1=[0]}}, where=true}}}}"));
+                    "routing={n1={t1=[0, 1, 2, 3]}}, where=true}}}}"));
     }
 
     @Test
@@ -101,11 +101,11 @@ public class PlanPrinterTest extends CrateDummyClusterServiceUnitTest {
                "left={Collect={type=executionPlan, " +
                    "collectPhase={COLLECT={type=executionPhase, id=0, executionNodes=[n1], " +
                        "distribution={distributedByColumn=0, type=SAME_NODE}, toCollect=Ref{doc.t1.x, integer}, " +
-                       "routing={n1={t1=[0]}}, where=Ref{doc.t1.x, integer} > 10}}}}, " +
+                       "routing={n1={t1=[0, 1, 2, 3]}}, where=Ref{doc.t1.x, integer} > 10}}}}, " +
                "right={Collect={type=executionPlan, " +
                    "collectPhase={COLLECT={type=executionPhase, id=1, executionNodes=[n1], " +
                        "distribution={distributedByColumn=0, type=SAME_NODE}, toCollect=Ref{doc.t2._fetchid, bigint}, " +
-                       "routing={n1={t2=[0, 1]}}, where=Ref{doc.t2.y, integer} < 10}}}}, " +
+                       "routing={n1={t2=[0, 1, 2, 3]}}, where=Ref{doc.t2.y, integer} < 10}}}}, " +
                "joinPhase={NESTED_LOOP={type=executionPhase, id=2, executionNodes=[n1], " +
                    "joinType=CROSS, distribution={distributedByColumn=0, type=BROADCAST}, " +
                    "projections=[" +
@@ -127,11 +127,11 @@ public class PlanPrinterTest extends CrateDummyClusterServiceUnitTest {
                "left={Collect={type=executionPlan, " +
                    "collectPhase={COLLECT={type=executionPhase, id=0, executionNodes=[n1], " +
                        "distribution={distributedByColumn=0, type=SAME_NODE}, toCollect=Ref{doc.t1.x, integer}, " +
-                       "routing={n1={t1=[0]}}, where=true}}}}, " +
+                       "routing={n1={t1=[0, 1, 2, 3]}}, where=true}}}}, " +
                "right={Collect={type=executionPlan, " +
                     "collectPhase={COLLECT={type=executionPhase, id=1, executionNodes=[n1], " +
                      "distribution={distributedByColumn=0, type=SAME_NODE}, toCollect=Ref{doc.t2.y, integer}, " +
-                     "routing={n1={t2=[0, 1]}}, where=true}}}}, " +
+                     "routing={n1={t2=[0, 1, 2, 3]}}, where=true}}}}, " +
                "joinPhase={HASH_JOIN={type=executionPhase, id=2, executionNodes=[n1], " +
                    "joinType=INNER, distribution={distributedByColumn=0, type=BROADCAST}, " +
                    "projections=[" +
@@ -151,11 +151,11 @@ public class PlanPrinterTest extends CrateDummyClusterServiceUnitTest {
                "left={Collect={type=executionPlan, " +
                    "collectPhase={COLLECT={type=executionPhase, id=0, executionNodes=[n1], " +
                        "distribution={distributedByColumn=0, type=BROADCAST}, toCollect=Ref{doc.t1.x, integer}, " +
-                       "routing={n1={t1=[0]}}, where=true}}}}, " +
+                       "routing={n1={t1=[0, 1, 2, 3]}}, where=true}}}}, " +
                "right={Collect={type=executionPlan, " +
                    "collectPhase={COLLECT={type=executionPhase, id=1, executionNodes=[n1], " +
                    "distribution={distributedByColumn=0, type=BROADCAST}, toCollect=Ref{doc.t2.y, integer}, " +
-                   "routing={n1={t2=[0, 1]}}, where=true}}}}, " +
+                   "routing={n1={t2=[0, 1, 2, 3]}}, where=true}}}}, " +
                "mergePhase={MERGE={type=executionPhase, id=2, executionNodes=[n1], " +
                    "distribution={distributedByColumn=0, type=BROADCAST}, " +
                    "projections=[{type=TopN, limit=10, offset=0, outputs=IC{0, integer}}]}}}}"));
@@ -170,7 +170,7 @@ public class PlanPrinterTest extends CrateDummyClusterServiceUnitTest {
             is("{CountPlan={type=executionPlan}, " +
                "countPhase={COUNT={type=executionPhase, id=0, executionNodes=[n1]}, " +
                    "distribution={distributedByColumn=0, type=BROADCAST}, " +
-                   "routing={n1={t1=[0]}}, " +
+                   "routing={n1={t1=[0, 1, 2, 3]}}, " +
                    "where=Ref{doc.t1.x, integer} > 10}, " +
                "mergePhase={MERGE={type=executionPhase, id=1, executionNodes=[n1], " +
                    "distribution={distributedByColumn=0, type=BROADCAST}, " +

@@ -49,8 +49,7 @@ public class FullQualifiedNameFieldProvider implements FieldProvider<Field> {
     private final ParentRelations parents;
     private final String defaultSchema;
 
-    public FullQualifiedNameFieldProvider(Map<QualifiedName,
-                                          AnalyzedRelation> sources,
+    public FullQualifiedNameFieldProvider(Map<QualifiedName, AnalyzedRelation> sources,
                                           ParentRelations parents,
                                           String defaultSchema) {
         this.sources = Objects.requireNonNull(sources, "Please provide a source map.");

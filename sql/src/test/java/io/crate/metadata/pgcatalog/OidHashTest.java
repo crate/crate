@@ -26,7 +26,9 @@ import io.crate.metadata.RelationInfo;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.table.ConstraintInfo;
 import io.crate.metadata.view.ViewInfo;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Collections;
@@ -34,18 +36,24 @@ import java.util.Collections;
 import static io.crate.metadata.pgcatalog.OidHash.constraintOid;
 import static io.crate.metadata.pgcatalog.OidHash.relationOid;
 import static io.crate.metadata.pgcatalog.OidHash.schemaOid;
-import static io.crate.testing.T3.T1_INFO;
+import static io.crate.testing.T3.T1_DEFINITION;
+import static io.crate.testing.T3.T1_RN;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 
-public class OidHashTest extends CrateUnitTest {
+public class OidHashTest extends CrateDummyClusterServiceUnitTest {
 
-    private static final RelationInfo TABLE_INFO = T1_INFO;
-    private static final RelationInfo VIEW_INFO =  new ViewInfo(T1_INFO.ident(), "", Collections.emptyList(), null);
+    private static final RelationInfo VIEW_INFO =  new ViewInfo(T1_RN, "", Collections.emptyList(), null);
+    private RelationInfo t1Info;
+
+    @Before
+    public void prepare() throws Exception {
+        t1Info = SQLExecutor.tableInfo(T1_RN, T1_DEFINITION, clusterService);
+    }
 
     @Test
     public void testRelationOid() {
-        int tableOid = relationOid(TABLE_INFO);
+        int tableOid = relationOid(t1Info);
         int viewOid = relationOid(VIEW_INFO);
         assertThat(tableOid, not(viewOid));
         assertThat(tableOid, is(728874843));
@@ -59,7 +67,7 @@ public class OidHashTest extends CrateUnitTest {
 
     @Test
     public void testConstraintOid() {
-        assertThat(constraintOid(TABLE_INFO.ident().fqn(), "id_pk", ConstraintInfo.Type.PRIMARY_KEY.toString()),
+        assertThat(constraintOid(T1_RN.fqn(), "id_pk", ConstraintInfo.Type.PRIMARY_KEY.toString()),
             is(279835673));
     }
 }

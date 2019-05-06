@@ -22,18 +22,22 @@
 package io.crate.analyze.where;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
+import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.DocTableRelation;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.sql.tree.QualifiedName;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.List;
+import java.util.Map;
 
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.TestingHelpers.getFunctions;
@@ -44,14 +48,22 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 
 @SuppressWarnings("unchecked")
-public class EqualityExtractorTest extends CrateUnitTest {
+public class EqualityExtractorTest extends CrateDummyClusterServiceUnitTest {
 
     private CoordinatorTxnCtx coordinatorTxnCtx = new CoordinatorTxnCtx(SessionContext.systemSessionContext());
-    private SqlExpressions expressions = new SqlExpressions(ImmutableMap.of(T3.T1, T3.TR_1), T3.TR_1);
+    private SqlExpressions expressions;
     private EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(getFunctions());
     private EqualityExtractor ee = new EqualityExtractor(normalizer);
     private ColumnIdent x = new ColumnIdent("x");
     private ColumnIdent i = new ColumnIdent("i");
+
+    @Before
+    public void prepare() throws Exception {
+        Map<QualifiedName, AnalyzedRelation> sources = T3.sources(List.of(T3.T1_RN), clusterService);
+
+        DocTableRelation tr1 = (DocTableRelation) T3.fromSource(T3.T1_RN, sources);
+        expressions = new SqlExpressions(sources, tr1);
+    }
 
     private List<List<Symbol>> analyzeParentX(Symbol query) {
         return ee.extractParentMatches(ImmutableList.of(x), query, coordinatorTxnCtx);

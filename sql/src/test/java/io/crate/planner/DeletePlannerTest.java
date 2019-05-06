@@ -29,6 +29,8 @@ import io.crate.exceptions.VersioninigValidationException;
 import io.crate.expression.symbol.ParameterSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.node.ddl.DeletePartitions;
 import io.crate.planner.node.dml.DeleteById;
@@ -44,6 +46,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import static io.crate.testing.TestingHelpers.isDocKey;
+import static java.util.Collections.singletonList;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -57,7 +60,10 @@ public class DeletePlannerTest extends CrateDummyClusterServiceUnitTest {
     public void prepare() throws IOException {
         e = SQLExecutor.builder(clusterService)
             .enableDefaultTables()
-            .addDocTable(TableDefinitions.PARTED_PKS_TI)
+            .addPartitionedTable(
+                TableDefinitions.PARTED_PKS_TABLE_DEFINITION,
+                new PartitionName(new RelationName("doc", "parted_pks"), singletonList("1395874800000")).asIndexName(),
+                new PartitionName(new RelationName("doc", "parted_pks"), singletonList("1395961200000")).asIndexName())
             .build();
     }
 

@@ -43,12 +43,11 @@ import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.table.TestingTableInfo;
 import io.crate.sql.tree.QualifiedName;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
 import io.crate.testing.SqlExpressions;
-import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.hamcrest.Matcher;
 import org.junit.Before;
@@ -64,11 +63,10 @@ import java.util.stream.Collectors;
 
 import static io.crate.data.SentinelRow.SENTINEL;
 import static io.crate.execution.engine.sort.Comparators.createComparator;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 
 
-public abstract class AbstractWindowFunctionTest {
+public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServiceUnitTest {
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
@@ -86,10 +84,10 @@ public abstract class AbstractWindowFunctionTest {
     @Before
     public void prepareFunctions() throws Exception {
         final String tableName = "t1";
-        DocTableInfo tableInfo = TestingTableInfo.builder(new RelationName(DocSchemaInfo.NAME, tableName), null)
-            .add("x", DataTypes.INTEGER)
-            .add("y", DataTypes.LONG)
-            .build();
+        DocTableInfo tableInfo = SQLExecutor.tableInfo(
+            new RelationName("doc", "t1"),
+            "create table doc.t1 (x int, y bigint)",
+            clusterService);
         DocTableRelation tableRelation = new DocTableRelation(tableInfo);
         Map<QualifiedName, AnalyzedRelation> tableSources = ImmutableMap.of(new QualifiedName(tableName), tableRelation);
         sqlExpressions = new SqlExpressions(tableSources, tableRelation,

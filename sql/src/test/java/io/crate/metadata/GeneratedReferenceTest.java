@@ -24,31 +24,45 @@ package io.crate.metadata;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.DocTableRelation;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.QualifiedName;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
 import io.crate.types.StringType;
-import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
+import org.junit.Before;
 import org.junit.Test;
 
+import java.util.List;
+import java.util.Map;
+
+import static io.crate.testing.T3.T1_DEFINITION;
+import static io.crate.testing.T3.T1_RN;
 import static org.hamcrest.Matchers.is;
 
-public class GeneratedReferenceTest extends CrateUnitTest {
+public class GeneratedReferenceTest extends CrateDummyClusterServiceUnitTest {
 
-    private static final SqlExpressions SQL_EXPRESSIONS = new SqlExpressions(
-        MapBuilder.<QualifiedName, AnalyzedRelation>newMapBuilder()
-            .put(new QualifiedName(T3.T1_INFO.ident().fqn()), T3.TR_1)
-            .map(),
-        T3.TR_1
-    );
+    private Map<QualifiedName, AnalyzedRelation> sources;
+    private SqlExpressions expressions;
+    private DocTableInfo t1Info;
+
+    @Before
+    public void prepare() throws Exception {
+        sources = T3.sources(List.of(T3.T1_RN), clusterService);
+        t1Info = SQLExecutor.tableInfo(T1_RN, T1_DEFINITION, clusterService);
+
+        DocTableRelation tr1 = (DocTableRelation) T3.fromSource(T3.T1_RN, sources);
+        expressions = new SqlExpressions(sources, tr1);
+    }
 
     @Test
     public void testStreaming() throws Exception {
-        ReferenceIdent referenceIdent = new ReferenceIdent(T3.T1_INFO.ident(), "generated_column");
+        ReferenceIdent referenceIdent = new ReferenceIdent(t1Info.ident(), "generated_column");
         String formattedGeneratedExpression = "concat(a, 'bar')";
         GeneratedReference generatedReferenceInfo = new GeneratedReference(null,
             referenceIdent,
@@ -56,8 +70,8 @@ public class GeneratedReferenceTest extends CrateUnitTest {
             StringType.INSTANCE, ColumnPolicy.STRICT, Reference.IndexType.ANALYZED,
             formattedGeneratedExpression, false);
 
-        generatedReferenceInfo.generatedExpression(SQL_EXPRESSIONS.normalize(SQL_EXPRESSIONS.asSymbol(formattedGeneratedExpression)));
-        generatedReferenceInfo.referencedReferences(ImmutableList.of(T3.T1_INFO.getReference(new ColumnIdent("a"))));
+        generatedReferenceInfo.generatedExpression(expressions.normalize(expressions.asSymbol(formattedGeneratedExpression)));
+        generatedReferenceInfo.referencedReferences(ImmutableList.of(t1Info.getReference(new ColumnIdent("a"))));
 
         BytesStreamOutput out = new BytesStreamOutput();
         Reference.toStream(generatedReferenceInfo, out);

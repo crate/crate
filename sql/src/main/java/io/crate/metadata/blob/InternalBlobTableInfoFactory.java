@@ -46,16 +46,22 @@ public class InternalBlobTableInfoFactory implements BlobTableInfoFactory {
 
     private static final Logger LOGGER = LogManager.getLogger(InternalBlobTableInfoFactory.class);
     private final IndexNameExpressionResolver indexNameExpressionResolver;
-    private final Environment environment;
+    private final Path[] dataFiles;
     private final Path globalBlobPath;
 
     @Inject
     public InternalBlobTableInfoFactory(Settings settings,
                                         IndexNameExpressionResolver indexNameExpressionResolver,
                                         Environment environment) {
-        this.globalBlobPath = BlobIndicesService.getGlobalBlobPath(settings);
+        this(settings, indexNameExpressionResolver, environment.dataFiles());
+    }
+
+    public InternalBlobTableInfoFactory(Settings settings,
+                                        IndexNameExpressionResolver indexNameExpressionResolver,
+                                        Path[] dataFiles) {
         this.indexNameExpressionResolver = indexNameExpressionResolver;
-        this.environment = environment;
+        this.dataFiles = dataFiles;
+        this.globalBlobPath = BlobIndicesService.getGlobalBlobPath(settings);;
     }
 
     private IndexMetaData resolveIndexMetaData(String tableName, ClusterState state) {
@@ -96,7 +102,6 @@ public class InternalBlobTableInfoFactory implements BlobTableInfoFactory {
                 blobsPath = path.toString();
             } else {
                 // TODO: should we set this to null because there is no special blobPath?
-                Path[] dataFiles = environment.dataFiles();
                 blobsPath = dataFiles[0].toString();
             }
         }

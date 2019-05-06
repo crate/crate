@@ -21,7 +21,6 @@
 
 package io.crate.analyze.relations;
 
-import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.HavingClause;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QuerySpec;
@@ -30,9 +29,10 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.sql.tree.QualifiedName;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -45,22 +45,29 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.core.Is.is;
 
-public class RelationSplitterTest extends CrateUnitTest {
+public class RelationSplitterTest extends CrateDummyClusterServiceUnitTest {
 
-    private static final Map<QualifiedName, AnalyzedRelation> sources = ImmutableMap.<QualifiedName, AnalyzedRelation>of(
-        new QualifiedName(T3.T1_INFO.ident().name()), T3.TR_1,
-        new QualifiedName(T3.T2_INFO.ident().name()), T3.TR_2,
-        new QualifiedName(T3.T3_INFO.ident().name()), T3.TR_3
-    );
+    private Map<QualifiedName, AnalyzedRelation> sources;
+    private SqlExpressions expressions;
+    private AnalyzedRelation tr1;
+    private AnalyzedRelation tr2;
+    private AnalyzedRelation tr3;
 
-    private static final SqlExpressions expressions = new SqlExpressions(sources);
+    @Before
+    public void prepare() throws Exception {
+        sources = T3.sources(List.of(T3.T1_RN, T3.T2_RN, T3.T3_RN), clusterService);
+        tr1 = T3.fromSource(T3.T1_RN, sources);
+        tr2 = T3.fromSource(T3.T2_RN, sources);
+        tr3 = T3.fromSource(T3.T3_RN, sources);
+        expressions = new SqlExpressions(sources);
+    }
 
     private RelationSplitter split(QuerySpec querySpec) {
         return split(querySpec, Collections.emptyList());
     }
 
     private RelationSplitter split(QuerySpec querySpec, List<JoinPair> joinPairs) {
-        RelationSplitter splitter = new RelationSplitter(querySpec, T3.RELATIONS, joinPairs);
+        RelationSplitter splitter = new RelationSplitter(querySpec, sources.values(), joinPairs);
         splitter.process();
         return splitter;
     }
@@ -85,13 +92,13 @@ public class RelationSplitterTest extends CrateUnitTest {
         QuerySpec querySpec = fromQuery("match (a, 'search term') and b=1");
 
         RelationSplitter splitter = split(querySpec);
-        QuerySpec splitQuerySpec = splitter.getSpec(T3.TR_1);
+        QuerySpec splitQuerySpec = splitter.getSpec(tr1);
 
         assertThat(querySpec.where().hasQuery(), is(false));
 
         assertThat(splitQuerySpec.where().query(), instanceOf(io.crate.expression.symbol.MatchPredicate.class));
 
-        splitQuerySpec = splitter.getSpec(T3.TR_2);
+        splitQuerySpec = splitter.getSpec(tr2);
         assertThat(splitQuerySpec.where().query(), isSQL("(doc.t2.b = '1')"));
     }
 
@@ -110,8 +117,8 @@ public class RelationSplitterTest extends CrateUnitTest {
         RelationSplitter splitter = split(querySpec);
 
         assertThat(querySpec, isSQL("SELECT true WHERE (add(doc.t1.x, doc.t2.y) = 4)"));
-        assertThat(splitter.getSpec(T3.TR_1), isSQL("SELECT doc.t1.x WHERE (doc.t1.x = 1)"));
-        assertThat(splitter.getSpec(T3.TR_2), isSQL("SELECT doc.t2.y WHERE (doc.t2.y = 3)"));
+        assertThat(splitter.getSpec(tr1), isSQL("SELECT doc.t1.x WHERE (doc.t1.x = 1)"));
+        assertThat(splitter.getSpec(tr2), isSQL("SELECT doc.t2.y WHERE (doc.t2.y = 3)"));
     }
 
 
@@ -121,9 +128,9 @@ public class RelationSplitterTest extends CrateUnitTest {
         RelationSplitter splitter = split(querySpec);
 
         assertThat(querySpec, isSQL("SELECT true WHERE (add(add(doc.t1.x, doc.t2.y), doc.t3.z) = 5) LIMIT 30"));
-        assertThat(splitter.getSpec(T3.TR_1), isSQL("SELECT doc.t1.x"));
-        assertThat(splitter.getSpec(T3.TR_2), isSQL("SELECT doc.t2.y"));
-        assertThat(splitter.getSpec(T3.TR_3), isSQL("SELECT doc.t3.z"));
+        assertThat(splitter.getSpec(tr1), isSQL("SELECT doc.t1.x"));
+        assertThat(splitter.getSpec(tr2), isSQL("SELECT doc.t2.y"));
+        assertThat(splitter.getSpec(tr3), isSQL("SELECT doc.t3.z"));
     }
 
     @Test
@@ -132,20 +139,20 @@ public class RelationSplitterTest extends CrateUnitTest {
         RelationSplitter splitter = split(querySpec);
 
         assertThat(querySpec, isSQL("SELECT doc.t1.x, doc.t2.y"));
-        assertThat(splitter.getSpec(T3.TR_1), isSQL("SELECT doc.t1.x"));
-        assertThat(splitter.getSpec(T3.TR_2), isSQL("SELECT doc.t2.y"));
+        assertThat(splitter.getSpec(tr1), isSQL("SELECT doc.t1.x"));
+        assertThat(splitter.getSpec(tr2), isSQL("SELECT doc.t2.y"));
 
         querySpec.limit(Literal.of(10));
         splitter = split(querySpec);
         assertThat(querySpec, isSQL("SELECT doc.t1.x, doc.t2.y LIMIT 10"));
-        assertThat(splitter.getSpec(T3.TR_1), isSQL("SELECT doc.t1.x LIMIT 10"));
-        assertThat(splitter.getSpec(T3.TR_2), isSQL("SELECT doc.t2.y LIMIT 10"));
+        assertThat(splitter.getSpec(tr1), isSQL("SELECT doc.t1.x LIMIT 10"));
+        assertThat(splitter.getSpec(tr2), isSQL("SELECT doc.t2.y LIMIT 10"));
 
         querySpec.offset(Literal.of(10));
         splitter = split(querySpec);
         assertThat(querySpec, isSQL("SELECT doc.t1.x, doc.t2.y LIMIT 10 OFFSET 10"));
-        assertThat(splitter.getSpec(T3.TR_1), isSQL("SELECT doc.t1.x LIMIT add(10, 10)"));
-        assertThat(splitter.getSpec(T3.TR_2), isSQL("SELECT doc.t2.y LIMIT add(10, 10)"));
+        assertThat(splitter.getSpec(tr1), isSQL("SELECT doc.t1.x LIMIT add(10, 10)"));
+        assertThat(splitter.getSpec(tr2), isSQL("SELECT doc.t2.y LIMIT add(10, 10)"));
     }
 
     @Test
@@ -163,8 +170,8 @@ public class RelationSplitterTest extends CrateUnitTest {
         assertThat(querySpec, isSQL("SELECT true ORDER BY doc.t1.a DESC, add(doc.t1.x, doc.t2.y)"));
         assertThat(querySpec.orderBy(), notNullValue());
         assertThat(querySpec.orderBy(), isSQL("doc.t1.a DESC, add(doc.t1.x, doc.t2.y)"));
-        assertThat(splitter.getSpec(T3.TR_1), isSQL("SELECT doc.t1.a, doc.t1.x"));
-        assertThat(splitter.getSpec(T3.TR_2), isSQL("SELECT doc.t2.y"));
+        assertThat(splitter.getSpec(tr1), isSQL("SELECT doc.t1.a, doc.t1.x"));
+        assertThat(splitter.getSpec(tr2), isSQL("SELECT doc.t2.y"));
     }
 
     @Test
@@ -178,9 +185,9 @@ public class RelationSplitterTest extends CrateUnitTest {
 
         assertThat(querySpec, isSQL("SELECT doc.t1.x, doc.t2.y ORDER BY doc.t1.x, doc.t2.y, doc.t3.z LIMIT 20"));
 
-        assertThat(splitter.getSpec(T3.TR_1), isSQL("SELECT doc.t1.x WHERE (doc.t1.x = 1)"));
-        assertThat(splitter.getSpec(T3.TR_2), isSQL("SELECT doc.t2.y WHERE (doc.t2.y = 2)"));
-        assertThat(splitter.getSpec(T3.TR_3), isSQL("SELECT doc.t3.z WHERE (doc.t3.z = 3)"));
+        assertThat(splitter.getSpec(tr1), isSQL("SELECT doc.t1.x WHERE (doc.t1.x = 1)"));
+        assertThat(splitter.getSpec(tr2), isSQL("SELECT doc.t2.y WHERE (doc.t2.y = 2)"));
+        assertThat(splitter.getSpec(tr3), isSQL("SELECT doc.t3.z WHERE (doc.t3.z = 3)"));
     }
 
     @Test
@@ -199,9 +206,9 @@ public class RelationSplitterTest extends CrateUnitTest {
         assertThat(querySpec, isSQL("SELECT doc.t1.a, doc.t2.b " +
                                     "ORDER BY doc.t1.x, add(subtract(doc.t1.x, doc.t2.y), doc.t3.z), " +
                                     "doc.t2.y, add(doc.t1.x, doc.t2.y)"));
-        assertThat(splitter.getSpec(T3.TR_1), isSQL("SELECT doc.t1.a, doc.t1.x"));
-        assertThat(splitter.getSpec(T3.TR_2), isSQL("SELECT doc.t2.b, doc.t2.y"));
-        assertThat(splitter.getSpec(T3.TR_3), isSQL("SELECT doc.t3.z"));
+        assertThat(splitter.getSpec(tr1), isSQL("SELECT doc.t1.a, doc.t1.x"));
+        assertThat(splitter.getSpec(tr2), isSQL("SELECT doc.t2.b, doc.t2.y"));
+        assertThat(splitter.getSpec(tr3), isSQL("SELECT doc.t3.z"));
 
         assertThat(querySpec.orderBy(), notNullValue());
         assertThat(querySpec.orderBy(),
@@ -215,8 +222,8 @@ public class RelationSplitterTest extends CrateUnitTest {
         RelationSplitter splitter = split(querySpec);
 
         assertThat(querySpec, isSQL("SELECT true"));
-        assertThat(splitter.getSpec(T3.TR_1), isSQL("SELECT  WHERE (NOT ((doc.t1.a = '1') AND (doc.t1.x = 2)))"));
-        assertThat(splitter.getSpec(T3.TR_2), isSQL("SELECT  WHERE (doc.t2.b = '2')"));
+        assertThat(splitter.getSpec(tr1), isSQL("SELECT  WHERE (NOT ((doc.t1.a = '1') AND (doc.t1.x = 2)))"));
+        assertThat(splitter.getSpec(tr2), isSQL("SELECT  WHERE (doc.t2.b = '2')"));
     }
 
     @Test
@@ -226,8 +233,8 @@ public class RelationSplitterTest extends CrateUnitTest {
         RelationSplitter splitter = split(querySpec);
 
         assertThat(querySpec, isSQL("SELECT true WHERE (NOT ((doc.t1.a = '1') AND (doc.t2.b = '2')))"));
-        assertThat(splitter.getSpec(T3.TR_1), isSQL("SELECT doc.t1.a"));
-        assertThat(splitter.getSpec(T3.TR_2), isSQL("SELECT doc.t2.b"));
+        assertThat(splitter.getSpec(tr1), isSQL("SELECT doc.t1.a"));
+        assertThat(splitter.getSpec(tr2), isSQL("SELECT doc.t2.b"));
     }
 
     @Test
@@ -236,8 +243,8 @@ public class RelationSplitterTest extends CrateUnitTest {
         RelationSplitter splitter = split(querySpec);
 
         assertThat(querySpec, isSQL("SELECT true WHERE (doc.t1.a = doc.t2.b)"));
-        assertThat(splitter.getSpec(T3.TR_1), isSQL("SELECT doc.t1.a WHERE (doc.t1.a = 'employees')"));
-        assertThat(splitter.getSpec(T3.TR_2), isSQL("SELECT doc.t2.b"));
+        assertThat(splitter.getSpec(tr1), isSQL("SELECT doc.t1.a WHERE (doc.t1.a = 'employees')"));
+        assertThat(splitter.getSpec(tr2), isSQL("SELECT doc.t2.b"));
     }
 
     @Test
@@ -247,8 +254,8 @@ public class RelationSplitterTest extends CrateUnitTest {
         RelationSplitter splitter = split(querySpec, Collections.singletonList(joinPair));
 
         assertThat(querySpec, isSQL("SELECT true WHERE (doc.t2.y < 10)"));
-        assertThat(splitter.getSpec(T3.TR_1), isSQL("SELECT doc.t1.a"));
-        assertThat(splitter.getSpec(T3.TR_2), isSQL("SELECT doc.t2.y, doc.t2.b"));
+        assertThat(splitter.getSpec(tr1), isSQL("SELECT doc.t1.a"));
+        assertThat(splitter.getSpec(tr2), isSQL("SELECT doc.t2.y, doc.t2.b"));
     }
 
     @Test
@@ -258,7 +265,7 @@ public class RelationSplitterTest extends CrateUnitTest {
             .groupBy(Collections.singletonList(asSymbol("t1.x")));
         RelationSplitter splitter = split(qs);
 
-        assertThat(splitter.getSpec(T3.TR_1), isSQL("SELECT doc.t1.x, doc.t1.a"));
+        assertThat(splitter.getSpec(tr1), isSQL("SELECT doc.t1.x, doc.t1.a"));
     }
 
     @Test
@@ -267,7 +274,7 @@ public class RelationSplitterTest extends CrateUnitTest {
             .outputs(Collections.singletonList(asSymbol("max(t1.a)")))
             .having(new HavingClause(asSymbol("t1.x = 10")));
         RelationSplitter splitter = split(qs);
-        assertThat(splitter.getSpec(T3.TR_1), isSQL("SELECT doc.t1.x, doc.t1.a"));
+        assertThat(splitter.getSpec(tr1), isSQL("SELECT doc.t1.x, doc.t1.a"));
     }
 
     @Test
@@ -276,7 +283,7 @@ public class RelationSplitterTest extends CrateUnitTest {
             .outputs(Arrays.asList(asSymbol("t1.a"), asSymbol("t2.b")))
             .where(WhereClause.NO_MATCH);
         RelationSplitter splitter = split(qs);
-        assertThat(splitter.getSpec(T3.TR_1).where().noMatch(), is(true));
-        assertThat(splitter.getSpec(T3.TR_2).where().noMatch(), is(true));
+        assertThat(splitter.getSpec(tr1).where().noMatch(), is(true));
+        assertThat(splitter.getSpec(tr2).where().noMatch(), is(true));
     }
 }

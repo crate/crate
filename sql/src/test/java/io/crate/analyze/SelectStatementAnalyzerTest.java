@@ -22,7 +22,6 @@
 package io.crate.analyze;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -51,17 +50,9 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
-import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.Functions;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.doc.DocSchemaInfo;
-import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.doc.DocTableInfoFactory;
-import io.crate.metadata.doc.TestingDocTableInfoFactory;
 import io.crate.metadata.sys.SysNodesTableInfo;
-import io.crate.metadata.table.TestingTableInfo;
 import io.crate.sql.parser.ParsingException;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -69,7 +60,6 @@ import io.crate.testing.SQLExecutor;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.IntegerType;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.lucene.BytesRefs;
@@ -85,12 +75,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import static io.crate.analyze.TableDefinitions.SHARD_ROUTING;
 import static io.crate.testing.SymbolMatchers.isField;
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.SymbolMatchers.isReference;
-import static io.crate.testing.TestingHelpers.getFunctions;
 import static io.crate.testing.TestingHelpers.isSQL;
 import static io.crate.testing.TestingHelpers.mapToSortedString;
 import static java.util.Collections.singletonList;
@@ -113,18 +101,9 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
     @Before
     public void prepare() throws IOException {
-        DocTableInfo fooUserTableInfo = TestingTableInfo.builder(new RelationName("foo", "users"), SHARD_ROUTING)
-            .add("id", DataTypes.LONG, null)
-            .add("name", DataTypes.STRING, null)
-            .addPrimaryKey("id")
-            .build();
-        DocTableInfoFactory fooTableFactory = new TestingDocTableInfoFactory(
-            ImmutableMap.of(fooUserTableInfo.ident(), fooUserTableInfo));
-        Functions functions = getFunctions();
-        UserDefinedFunctionService udfService = new UserDefinedFunctionService(clusterService, functions);
         sqlExecutor = SQLExecutor.builder(clusterService)
             .enableDefaultTables()
-            .addSchema(new DocSchemaInfo("foo", clusterService, functions, udfService, (ident, state) -> null, fooTableFactory))
+            .addTable("create table foo.users (id bigint primary key, name text)")
             .build();
     }
 
@@ -158,14 +137,8 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     public void testQueryUsesSearchPath() throws IOException {
         SQLExecutor executor = SQLExecutor.builder(clusterService)
             .setSearchPath("first", "second", "third")
-            .addDocTable(TestingTableInfo
-                .builder(new RelationName("first", "t"), SHARD_ROUTING)
-                .add("id", IntegerType.INSTANCE)
-                .build())
-            .addDocTable(TestingTableInfo
-                .builder(new RelationName("third", "t1"), SHARD_ROUTING)
-                .add("id", IntegerType.INSTANCE)
-                .build())
+            .addTable("create table \"first\".t (id int)")
+            .addTable("create table third.t1 (id int)")
             .build();
 
         QueriedTable queriedTable = executor.analyze("select * from t");
@@ -1920,19 +1893,9 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void testCustomSchemaSubSelectWithAccessToParentRelation() throws Exception {
-        DocTableInfo fooTableInfo = TestingTableInfo.builder(new RelationName("foo", "t1"), SHARD_ROUTING)
-            .add("id", DataTypes.LONG, null)
-            .add("name", DataTypes.STRING, null)
-            .addPrimaryKey("id")
-            .build();
-        DocTableInfoFactory fooTableFactory = new TestingDocTableInfoFactory(
-            ImmutableMap.of(fooTableInfo.ident(), fooTableInfo));
-        Functions functions = getFunctions();
-        UserDefinedFunctionService udfService = new UserDefinedFunctionService(clusterService, functions);
         SQLExecutor sqlExecutor2 = SQLExecutor.builder(clusterService)
             .setSearchPath("foo")
-            .addSchema(new DocSchemaInfo("foo", clusterService, functions, udfService, (ident, state) -> null, fooTableFactory))
-            .addDocTable(fooTableInfo)
+            .addTable("create table foo.t1 (id bigint primary key, name text)")
             .build();
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Cannot use relation \"foo.t1\" in this context. It is only accessible in the parent context");

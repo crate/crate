@@ -34,6 +34,8 @@ import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Reference;
 import io.crate.planner.consumer.UpdatePlanner;
@@ -56,6 +58,7 @@ import static io.crate.expression.symbol.SelectSymbol.ResultType.SINGLE_COLUMN_S
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.SymbolMatchers.isReference;
 import static io.crate.testing.TestingHelpers.isSQL;
+import static java.util.Collections.singletonList;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
@@ -69,8 +72,11 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
     public void prepare() throws IOException {
         e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom())
             .enableDefaultTables()
-            .addDocTable(TableDefinitions.PARTED_PKS_TI)
-            .addDocTable(TableDefinitions.TEST_EMPTY_PARTITIONED_TABLE_INFO)
+            .addPartitionedTable(
+                TableDefinitions.PARTED_PKS_TABLE_DEFINITION,
+                new PartitionName(new RelationName("doc", "parted_pks"), singletonList("1395874800000")).asIndexName(),
+                new PartitionName(new RelationName("doc", "parted_pks"), singletonList("1395961200000")).asIndexName())
+            .addPartitionedTable(TableDefinitions.TEST_EMPTY_PARTITIONED_TABLE_DEFINITION)
             .build();
     }
 

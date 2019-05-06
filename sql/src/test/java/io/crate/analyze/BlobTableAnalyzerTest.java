@@ -26,13 +26,14 @@ import io.crate.exceptions.InvalidRelationName;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.exceptions.RelationUnknown;
-import io.crate.metadata.RelationName;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.io.IOException;
 
 import static org.hamcrest.Matchers.is;
 
@@ -41,10 +42,8 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     private SQLExecutor e;
 
     @Before
-    public void prepare() {
-        RelationName myBlobsIdent = new RelationName(BlobSchemaInfo.NAME, "blobs");
-        TestingBlobTableInfo myBlobsTableInfo = TableDefinitions.createBlobTable(myBlobsIdent);
-        e = SQLExecutor.builder(clusterService).addBlobTable(myBlobsTableInfo).build();
+    public void prepare() throws IOException {
+        e = SQLExecutor.builder(clusterService).addBlobTable("create blob table blobs").build();
     }
 
     @Test(expected = IllegalArgumentException.class)

@@ -43,8 +43,8 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
     public void setup() throws IOException {
         tableStats = new TableStats();
         sqlExecutor = SQLExecutor.builder(clusterService)
-            .addDocTable(T3.T1_INFO)
-            .addDocTable(T3.T2_INFO)
+            .addTable(T3.T1_DEFINITION)
+            .addTable(T3.T2_DEFINITION)
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .build();
 

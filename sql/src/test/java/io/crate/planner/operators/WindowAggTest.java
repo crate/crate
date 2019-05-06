@@ -49,7 +49,7 @@ public class WindowAggTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void init() throws Exception {
-        expressions = new SqlExpressions(T3.SOURCES);
+        expressions = new SqlExpressions(T3.sources(clusterService));
         e = SQLExecutor.builder(clusterService)
             .addTable("create table t1 (x int, y int)")
             .build();

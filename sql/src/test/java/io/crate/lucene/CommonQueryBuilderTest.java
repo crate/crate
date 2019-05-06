@@ -29,10 +29,10 @@ import io.crate.auth.user.User;
 import io.crate.exceptions.ConversionException;
 import io.crate.lucene.match.CrateRegexQuery;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.Schemas;
+import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.table.TestingTableInfo;
 import io.crate.sql.tree.QualifiedName;
+import io.crate.testing.SQLExecutor;
 import io.crate.testing.SqlExpressions;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -71,9 +71,13 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     @Test
     public void testWhereRefEqNullWithDifferentTypes() throws Exception {
         for (DataType type : DataTypes.PRIMITIVE_TYPES) {
-            DocTableInfo tableInfo = TestingTableInfo.builder(new RelationName(Schemas.DOC_SCHEMA_NAME, "test_primitive"), null)
-                .add("x", type)
-                .build();
+            DocTableInfo tableInfo = SQLExecutor.tableInfo(
+                new RelationName(DocSchemaInfo.NAME, "test_primitive"),
+                "create table doc.test_primitive (" +
+                "  x " + type.getName() +
+                ")",
+                clusterService);
+
             TableRelation tableRelation = new TableRelation(tableInfo);
             Map<QualifiedName, AnalyzedRelation> tableSources = ImmutableMap.of(new QualifiedName(tableInfo.ident().name()), tableRelation);
             SqlExpressions sqlExpressions = new SqlExpressions(tableSources, tableRelation, new Object[]{null}, User.CRATE_USER);

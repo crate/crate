@@ -23,10 +23,15 @@
 package io.crate.planner.optimizer.rule;
 
 import io.crate.analyze.WhereClause;
+import io.crate.analyze.relations.AbstractTableRelation;
+import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.TableRelation;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Match;
+import io.crate.sql.tree.QualifiedName;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
 import org.hamcrest.Matchers;
@@ -34,22 +39,26 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Collections;
+import java.util.Map;
 
 import static io.crate.testing.TestingHelpers.isSQL;
-import static org.hamcrest.MatcherAssert.assertThat;
 
-public class MergeFiltersTest {
+public class MergeFiltersTest extends CrateDummyClusterServiceUnitTest {
 
     private SqlExpressions e;
+    private AbstractTableRelation tr1;
 
     @Before
     public void setUp() throws Exception {
-        e = new SqlExpressions(T3.SOURCES);
+        super.setUp();
+        Map<QualifiedName, AnalyzedRelation> sources = T3.sources(clusterService);
+        e = new SqlExpressions(sources);
+        tr1 = T3.fromSource(T3.T1_RN, sources);
     }
 
     @Test
     public void testMergeFiltersMatchesOnAFilterWithAnotherFilterAsChild() {
-        Collect source = new Collect(T3.TR_1, Collections.emptyList(), WhereClause.MATCH_ALL, 100, 10);
+        Collect source = new Collect(tr1, Collections.emptyList(), WhereClause.MATCH_ALL, 100, 10);
         Filter sourceFilter = new Filter(source, e.asSymbol("x > 10"));
         Filter parentFilter = new Filter(sourceFilter, e.asSymbol("y > 10"));
 

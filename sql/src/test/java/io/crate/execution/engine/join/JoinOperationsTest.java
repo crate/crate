@@ -22,16 +22,16 @@
 
 package io.crate.execution.engine.join;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.JoinPair;
 import io.crate.expression.symbol.Symbol;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.sql.tree.QualifiedName;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -45,15 +45,16 @@ import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 
-public class JoinOperationsTest extends CrateUnitTest {
+public class JoinOperationsTest extends CrateDummyClusterServiceUnitTest {
 
-    private static final Map<QualifiedName, AnalyzedRelation> sources = ImmutableMap.of(
-        new QualifiedName(T3.T1_INFO.ident().name()), T3.TR_1,
-        new QualifiedName(T3.T2_INFO.ident().name()), T3.TR_2,
-        new QualifiedName(T3.T3_INFO.ident().name()), T3.TR_3
-    );
+    private SqlExpressions expressions;
 
-    private static final SqlExpressions expressions = new SqlExpressions(sources);
+    @Before
+    public void prepare() throws Exception {
+        Map<QualifiedName, AnalyzedRelation> sources =
+            T3.sources(List.of(T3.T1_RN, T3.T2_RN, T3.T3_RN), clusterService);
+        expressions = new SqlExpressions(sources);
+    }
 
     private Symbol asSymbol(String expression) {
         return expressions.asSymbol(expression);

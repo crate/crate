@@ -42,9 +42,10 @@ public class AlterTableRerouteAnalyzerTest extends CrateDummyClusterServiceUnitT
 
     @Before
     public void prepare() throws IOException {
-        RelationName myBlobsIdent = new RelationName(BlobSchemaInfo.NAME, "blobs");
-        TestingBlobTableInfo myBlobsTableInfo = TableDefinitions.createBlobTable(myBlobsIdent);
-        e = SQLExecutor.builder(clusterService).addBlobTable(myBlobsTableInfo).enableDefaultTables().build();
+        e = SQLExecutor.builder(clusterService)
+            .addBlobTable("create blob table blobs;")
+            .enableDefaultTables()
+            .build();
     }
 
     @Test

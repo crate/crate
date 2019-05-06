@@ -22,103 +22,126 @@
 
 package io.crate.testing;
 
-import com.carrotsearch.hppc.IntArrayList;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
-import io.crate.analyze.relations.TableRelation;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.Routing;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.table.TestingTableInfo;
 import io.crate.sql.tree.QualifiedName;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.types.ArrayType;
-import io.crate.types.DataTypes;
-import io.crate.types.ObjectType;
+import org.elasticsearch.cluster.service.ClusterService;
 
+import java.io.IOException;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class T3 {
 
-    private static final Routing t1Routing = new Routing(
-        ImmutableMap.of(CrateDummyClusterServiceUnitTest.NODE_ID,
-            ImmutableMap.of("t1", IntArrayList.from(0))));
+    public static final String T1_DEFINITION =
+        "create table doc.t1 (" +
+        "  a text," +
+        "  x int," +
+        "  i int" +
+        ")";
 
-    private static final Routing t2Routing = new Routing(
-        ImmutableMap.of(CrateDummyClusterServiceUnitTest.NODE_ID,
-            ImmutableMap.of("t2", IntArrayList.from(0, 1))));
+    public static final String T2_DEFINITION =
+        "create table doc.t2 (" +
+        "  b text," +
+        "  y int," +
+        "  i int" +
+        ")";
 
-    private static final Routing t3Routing = new Routing(
-        ImmutableMap.of(CrateDummyClusterServiceUnitTest.NODE_ID,
-            ImmutableMap.of("t3", IntArrayList.from(0, 1, 2))));
+    public static final String T3_DEFINITION =
+        "create table doc.t3 (" +
+        "  c text," +
+        "  z int" +
+        ")";
 
-    private static final Routing t4Routing = new Routing(
-        ImmutableMap.of(CrateDummyClusterServiceUnitTest.NODE_ID,
-            ImmutableMap.of("t4", IntArrayList.from(0))));
+    public static final String T4_DEFINITION =
+        "create table doc.t4 (" +
+        "  id int," +
+        "  obj object as (" +
+        "    i int" +
+        "  )," +
+        "  obj_array array(object as (" +
+        "    i int" +
+        "  ))" +
+        ")";
 
-    private static final Routing t5Routing = new Routing(
-        ImmutableMap.of(CrateDummyClusterServiceUnitTest.NODE_ID,
-            ImmutableMap.of("t5", IntArrayList.from(0))));
-
-    public static final DocTableInfo T1_INFO =
-        new TestingTableInfo.Builder(new RelationName(Schemas.DOC_SCHEMA_NAME, "t1"), t1Routing)
-        .add("a", DataTypes.STRING)
-        .add("x", DataTypes.INTEGER)
-        .add("i", DataTypes.INTEGER)
-        .build();
-    public static final DocTableRelation TR_1 = new DocTableRelation(T1_INFO);
-
-    public static final DocTableInfo T2_INFO = new TestingTableInfo.Builder(
-        new RelationName(Schemas.DOC_SCHEMA_NAME, "t2"), t2Routing)
-        .add("b", DataTypes.STRING)
-        .add("y", DataTypes.INTEGER)
-        .add("i", DataTypes.INTEGER)
-        .build();
-    public static final DocTableRelation TR_2 = new DocTableRelation(T2_INFO);
-
-    public static final DocTableInfo T3_INFO = new TestingTableInfo.Builder(
-        new RelationName(Schemas.DOC_SCHEMA_NAME, "t3"), t3Routing)
-        .add("c", DataTypes.STRING)
-        .add("z", DataTypes.INTEGER)
-        .build();
-    public static final TableRelation TR_3 = new TableRelation(T3_INFO);
-
-    public static final DocTableInfo T4_INFO = new TestingTableInfo.Builder(
-        new RelationName(Schemas.DOC_SCHEMA_NAME, "t4"), t4Routing)
-        .add("id", DataTypes.INTEGER)
-        .add("obj", ObjectType.builder()
-            .setInnerType("i", DataTypes.INTEGER)
-            .build())
-        .add("obj_array", new ArrayType(ObjectType.builder()
-            .setInnerType("i", DataTypes.INTEGER)
-            .build()))
-        .build();
-    public static final TableRelation TR_4 = new TableRelation(T4_INFO);
-
-    public static final DocTableInfo T5_INFO =
-        new TestingTableInfo.Builder(new RelationName(Schemas.DOC_SCHEMA_NAME, "t5"), t5Routing)
-            .add("i", DataTypes.INTEGER)
-            .add("w", DataTypes.LONG)
-            .add("ts_z", DataTypes.TIMESTAMPZ)
-            .add("ts", DataTypes.TIMESTAMP)
-            .build();
-    public static final DocTableRelation TR_5 = new DocTableRelation(T5_INFO);
+    public static final String T5_DEFINITION =
+        "create table t5 (" +
+        "  i int," +
+        "  w bigint," +
+        "  ts_z timestamp with time zone," +
+        "  ts timestamp without time zone" +
+        ")";
 
     public static final QualifiedName T1 = new QualifiedName(Arrays.asList(Schemas.DOC_SCHEMA_NAME, "t1"));
     public static final QualifiedName T2 = new QualifiedName(Arrays.asList(Schemas.DOC_SCHEMA_NAME, "t2"));
     public static final QualifiedName T3 = new QualifiedName(Arrays.asList(Schemas.DOC_SCHEMA_NAME, "t3"));
     public static final QualifiedName T4 = new QualifiedName(Arrays.asList(Schemas.DOC_SCHEMA_NAME, "t4"));
-    public static final QualifiedName T5 = new QualifiedName(Arrays.asList(Schemas.DOC_SCHEMA_NAME, "t5"));
 
-    public static final ImmutableList<AnalyzedRelation> RELATIONS = ImmutableList.of(TR_1, TR_2, TR_3, TR_4, TR_5);
-    public static final Map<QualifiedName, AnalyzedRelation> SOURCES = ImmutableMap.of(
-        T1, TR_1,
-        T2, TR_2,
-        T3, TR_3,
-        T4, TR_4,
-        T5, TR_5);
+    public static final RelationName T1_RN = new RelationName(Schemas.DOC_SCHEMA_NAME, "t1");
+    public static final RelationName T2_RN = new RelationName(Schemas.DOC_SCHEMA_NAME, "t2");
+    public static final RelationName T3_RN = new RelationName(Schemas.DOC_SCHEMA_NAME, "t3");
+    public static final RelationName T4_RN = new RelationName(Schemas.DOC_SCHEMA_NAME, "t4");
+    public static final RelationName T5_RN = new RelationName(Schemas.DOC_SCHEMA_NAME, "t5");
+
+    private static final Map<RelationName, String> RELATION_DEFINITIONS = ImmutableMap.of(
+        T1_RN, T1_DEFINITION,
+        T2_RN, T2_DEFINITION,
+        T3_RN, T3_DEFINITION,
+        T4_RN, T4_DEFINITION,
+        T5_RN, T5_DEFINITION);
+
+    public static List<AnalyzedRelation> relations(ClusterService clusterService) {
+        SQLExecutor.Builder executorBuilder = SQLExecutor.builder(clusterService);
+        RELATION_DEFINITIONS.forEach((key, value) -> {
+            try {
+                executorBuilder.addTable(value);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
+        SQLExecutor executor = executorBuilder.build();
+        Schemas schemas = executor.schemas();
+
+        return RELATION_DEFINITIONS.keySet().stream()
+            .map(rn -> new DocTableRelation(schemas.getTableInfo(rn)))
+            .collect(Collectors.toList());
+    }
+
+    public static Map<QualifiedName, AnalyzedRelation> sources(ClusterService clusterService) {
+        return sources(RELATION_DEFINITIONS.keySet(), clusterService);
+    }
+
+    public static Map<QualifiedName, AnalyzedRelation> sources(Iterable<RelationName> relations, ClusterService clusterService) {
+        SQLExecutor.Builder executorBuilder = SQLExecutor.builder(clusterService);
+        relations.forEach(rn -> {
+            String tableDefinition = RELATION_DEFINITIONS.get(rn);
+            if (tableDefinition == null) {
+                throw new RuntimeException("Unknown relation " + rn);
+            }
+            try {
+                executorBuilder.addTable(tableDefinition);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
+        SQLExecutor executor = executorBuilder.build();
+        Schemas schemas = executor.schemas();
+
+        ImmutableMap.Builder<QualifiedName, AnalyzedRelation> builder = ImmutableMap.builder();
+        for (RelationName relationName : relations) {
+            builder.put(
+                new QualifiedName(Arrays.asList(relationName.schema(), relationName.name())),
+                new DocTableRelation(schemas.getTableInfo(relationName)));
+        }
+        return builder.build();
+    }
+
+    public static <R> R fromSource(RelationName relationName, Map<QualifiedName, AnalyzedRelation> sources) {
+        return (R) sources.get(new QualifiedName(Arrays.asList(relationName.schema(), relationName.name())));
+    }
 }

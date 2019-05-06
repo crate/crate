@@ -32,7 +32,6 @@ import io.crate.exceptions.SchemaUnknownException;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.elasticsearch.cluster.ClusterName;
@@ -48,8 +47,9 @@ import org.junit.Test;
 import java.io.IOException;
 import java.util.Collections;
 
-import static io.crate.analyze.TableDefinitions.TEST_DOC_LOCATIONS_TABLE_INFO;
-import static io.crate.analyze.TableDefinitions.TEST_PARTITIONED_TABLE_INFO;
+import static io.crate.analyze.TableDefinitions.TEST_DOC_LOCATIONS_TABLE_DEFINITION;
+import static io.crate.analyze.TableDefinitions.TEST_PARTITIONED_TABLE_DEFINITION;
+import static io.crate.analyze.TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS;
 import static io.crate.analyze.TableDefinitions.USER_TABLE_DEFINITION;
 import static io.crate.testing.SettingMatcher.hasEntry;
 import static org.hamcrest.Matchers.allOf;
@@ -77,13 +77,11 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
                 .putCustom(RepositoriesMetaData.TYPE, repositoriesMetaData))
             .build();
         ClusterServiceUtils.setState(clusterService, clusterState);
-        RelationName myBlobsIdent = new RelationName(BlobSchemaInfo.NAME, "my_blobs");
-        TestingBlobTableInfo myBlobsTableInfo = TableDefinitions.createBlobTable(myBlobsIdent);
         executor = SQLExecutor.builder(clusterService)
             .addTable(USER_TABLE_DEFINITION)
-            .addDocTable(TEST_DOC_LOCATIONS_TABLE_INFO)
-            .addDocTable(TEST_PARTITIONED_TABLE_INFO)
-            .addBlobTable(myBlobsTableInfo)
+            .addTable(TEST_DOC_LOCATIONS_TABLE_DEFINITION)
+            .addPartitionedTable(TEST_PARTITIONED_TABLE_DEFINITION, TEST_PARTITIONED_TABLE_PARTITIONS)
+            .addBlobTable("create blob table my_blobs")
             .build();
     }
 

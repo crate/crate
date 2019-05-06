@@ -108,8 +108,8 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         context = new ExpressionAnalysisContext();
         functions = getFunctions();
         executor = SQLExecutor.builder(clusterService)
-            .addDocTable(T3.T1_INFO)
-            .addDocTable(T3.T2_INFO)
+            .addTable(T3.T1_DEFINITION)
+            .addTable(T3.T2_DEFINITION)
             .addTable("create table tarr (xs array(integer))")
             .build();
         expressions = new SqlExpressions(Collections.emptyMap());
@@ -234,7 +234,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testSwapFunctionLeftSide() throws Exception {
-        SqlExpressions expressions = new SqlExpressions(T3.SOURCES);
+        SqlExpressions expressions = new SqlExpressions(T3.sources(clusterService));
         Function cmp = (Function) expressions.normalize(expressions.asSymbol("8 + 5 > t1.x"));
         // the comparison was swapped so the field is on the left side
         assertThat(cmp.info().ident().name(), is("op_<"));
@@ -243,14 +243,14 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testBetweenIsRewrittenToLteAndGte() throws Exception {
-        SqlExpressions expressions = new SqlExpressions(T3.SOURCES);
+        SqlExpressions expressions = new SqlExpressions(T3.sources(clusterService));
         Symbol symbol = expressions.asSymbol("10 between 1 and 10");
         assertThat(symbol, isSQL("true"));
     }
 
     @Test
     public void testBetweenNullIsRewrittenToLteAndGte() throws Exception {
-        SqlExpressions expressions = new SqlExpressions(T3.SOURCES);
+        SqlExpressions expressions = new SqlExpressions(T3.sources(clusterService));
         Symbol symbol = expressions.asSymbol("10 between 1 and NULL");
         assertThat(symbol, isSQL("NULL"));
     }
@@ -291,7 +291,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testInPredicateWithSubqueryIsRewrittenToAnyEq() {
-        Symbol symbol = executor.asSymbol(T3.SOURCES, "t1.x in (select t2.y from t2)");
+        Symbol symbol = executor.asSymbol(T3.sources(clusterService), "t1.x in (select t2.y from t2)");
         assertThat(symbol, isSQL("(doc.t1.x = ANY(SelectSymbol{integer_array}))"));
     }
 
@@ -308,7 +308,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testParameterSymbolCastsAreFlattened() {
-        SqlExpressions expressions = new SqlExpressions(T3.SOURCES);
+        SqlExpressions expressions = new SqlExpressions(T3.sources(clusterService));
         Function comparisonFunction = (Function) expressions.asSymbol("doc.t2.i = $1");
         assertThat(comparisonFunction.arguments().get(1), is(instanceOf(ParameterSymbol.class)));
         assertThat(comparisonFunction.arguments().get(1).valueType(), is(DataTypes.INTEGER));
@@ -316,7 +316,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testColumnsCannotBeCastedToLiteralType() {
-        SqlExpressions expressions = new SqlExpressions(T3.SOURCES);
+        SqlExpressions expressions = new SqlExpressions(T3.sources(clusterService));
         Function symbol = (Function) expressions.asSymbol("doc.t2.i = 1.1");
         assertThat(symbol.arguments().get(0), isField("i"));
         assertThat(symbol.arguments().get(0).valueType(), is(DataTypes.INTEGER));
@@ -324,7 +324,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testIncompatibleLiteralThrowsException() {
-        SqlExpressions expressions = new SqlExpressions(T3.SOURCES);
+        SqlExpressions expressions = new SqlExpressions(T3.sources(clusterService));
         expectedException.expect(ConversionException.class);
         expectedException.expectMessage("Cannot cast 2147483648 to type integer");
         expressions.asSymbol("doc.t2.i = 1 + " + Integer.MAX_VALUE);
@@ -332,7 +332,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testFunctionsCanBeCasted() {
-        SqlExpressions expressions = new SqlExpressions(T3.SOURCES);
+        SqlExpressions expressions = new SqlExpressions(T3.sources(clusterService));
         Function symbol2 = (Function) expressions.asSymbol("doc.t5.w = doc.t2.i + 1.2");
         assertThat(symbol2, isFunction(EqOperator.NAME));
         assertThat(symbol2.arguments().get(0), isField("w"));
@@ -342,7 +342,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testColumnsCanBeCastedWhenOnBothSidesOfOperator() {
-        SqlExpressions expressions = new SqlExpressions(T3.SOURCES);
+        SqlExpressions expressions = new SqlExpressions(T3.sources(clusterService));
         Function symbol = (Function) expressions.asSymbol("doc.t5.i < doc.t5.w");
         assertThat(symbol, isFunction(LtOperator.NAME));
         assertThat(symbol.arguments().get(0), isFunction("to_bigint"));
@@ -352,7 +352,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testLiteralIsCastedToColumnValue() {
-        SqlExpressions expressions = new SqlExpressions(T3.SOURCES);
+        SqlExpressions expressions = new SqlExpressions(T3.sources(clusterService));
         Function symbol = (Function) expressions.asSymbol("5::long < doc.t1.i");
         assertThat(symbol, isFunction(GtOperator.NAME));
         assertThat(symbol.arguments().get(0).valueType(), is(DataTypes.INTEGER));
@@ -362,7 +362,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testTimestampTypesCanBeCastedToLong() {
-        SqlExpressions expressions = new SqlExpressions(T3.SOURCES);
+        SqlExpressions expressions = new SqlExpressions(T3.sources(clusterService));
 
         Symbol symbol = expressions.asSymbol("doc.t5.ts::long");
         assertThat(symbol.valueType(), is(DataTypes.LONG));

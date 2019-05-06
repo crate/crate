@@ -107,9 +107,8 @@ public class StatementPrivilegeValidatorTest extends CrateDummyClusterServiceUni
             }
         };
 
-        RelationName myBlobsIdent = new RelationName(BlobSchemaInfo.NAME, "blobs");
         e = SQLExecutor.builder(clusterService)
-            .addBlobTable(TableDefinitions.createBlobTable(myBlobsIdent))
+            .addBlobTable("create blob table blobs")
             .enableDefaultTables()
             .setUser(superUser)
             .addView(new RelationName("doc", "v1"), "select * from users")

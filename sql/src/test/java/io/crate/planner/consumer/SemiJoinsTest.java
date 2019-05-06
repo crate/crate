@@ -41,6 +41,7 @@ import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 import static io.crate.planner.operators.LogicalPlannerTest.isPlan;
 import static io.crate.testing.T3.T1;
@@ -54,19 +55,21 @@ public class SemiJoinsTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLExecutor executor;
     private SemiJoins semiJoins = new SemiJoins(getFunctions());
+    private Map<QualifiedName, AnalyzedRelation> sources;
 
     @Before
     public void initExecutor() throws Exception {
         executor = SQLExecutor.builder(clusterService)
-            .addDocTable(T3.T1_INFO)
-            .addDocTable(T3.T2_INFO)
-            .addDocTable(T3.T3_INFO)
+            .addTable(T3.T1_DEFINITION)
+            .addTable(T3.T2_DEFINITION)
+            .addTable(T3.T3_DEFINITION)
             .build();
+        sources = T3.sources(clusterService);
     }
 
     private <T extends Symbol> T asSymbol(String expression) {
         //noinspection unchecked - for tests it's okay to do nasty casts
-        return (T) executor.asSymbol(T3.SOURCES, expression);
+        return (T) executor.asSymbol(sources, expression);
     }
 
     @Test

@@ -42,11 +42,10 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.table.TestingTableInfo;
 import io.crate.sql.tree.QualifiedName;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
 import io.crate.testing.SqlExpressions;
-import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import org.junit.Before;
 import org.junit.Test;
@@ -58,7 +57,7 @@ import java.util.Map;
 
 import static org.hamcrest.Matchers.is;
 
-public class SymbolPrinterTest extends CrateUnitTest {
+public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
 
     private SqlExpressions sqlExpressions;
     private SymbolPrinter printer;
@@ -67,15 +66,21 @@ public class SymbolPrinterTest extends CrateUnitTest {
 
     @Before
     public void prepare() throws Exception {
-        DocTableInfo tableInfo = TestingTableInfo.builder(new RelationName(DocSchemaInfo.NAME, TABLE_NAME), null)
-            .add("foo", DataTypes.STRING)
-            .add("bar", DataTypes.LONG)
-            .add("CraZy", DataTypes.IP)
-            .add("1a", DataTypes.INTEGER)
-            .add("select", DataTypes.BYTE)
-            .add("idx", DataTypes.INTEGER)
-            .add("s_arr", new ArrayType(DataTypes.STRING))
-            .build();
+        String createTableStmt =
+            "create table doc.formatter (" +
+            "  foo text," +
+            "  bar bigint," +
+            "  \"CraZy\" ip," +
+            "  \"1a\" int," +
+            "  \"select\" char," +
+            "  idx int," +
+            "  s_arr array(text)" +
+            ")";
+        DocTableInfo tableInfo = SQLExecutor.tableInfo(
+            new RelationName(DocSchemaInfo.NAME, TABLE_NAME),
+            createTableStmt,
+            clusterService);
+
         Map<QualifiedName, AnalyzedRelation> sources = ImmutableMap.<QualifiedName, AnalyzedRelation>builder()
             .put(QualifiedName.of(TABLE_NAME), new TableRelation(tableInfo))
             .build();

@@ -22,8 +22,6 @@
 
 package io.crate.analyze;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.user.Privilege;
@@ -31,23 +29,15 @@ import io.crate.auth.user.User;
 import io.crate.auth.user.UserManager;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.UnsupportedFeatureException;
-import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.doc.DocSchemaInfo;
-import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.doc.DocTableInfoFactory;
-import io.crate.metadata.doc.TestingDocTableInfoFactory;
-import io.crate.metadata.table.TestingTableInfo;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import io.crate.types.DataTypes;
 import io.crate.user.StubUserManager;
 import org.junit.Before;
 import org.junit.Test;
 
-import static io.crate.analyze.TableDefinitions.SHARD_ROUTING;
 import static io.crate.analyze.user.Privilege.Clazz.CLUSTER;
 import static io.crate.analyze.user.Privilege.Clazz.SCHEMA;
 import static io.crate.analyze.user.Privilege.Clazz.TABLE;
@@ -58,7 +48,6 @@ import static io.crate.analyze.user.Privilege.State.REVOKE;
 import static io.crate.analyze.user.Privilege.Type.DDL;
 import static io.crate.analyze.user.Privilege.Type.DML;
 import static io.crate.analyze.user.Privilege.Type.DQL;
-import static io.crate.testing.TestingHelpers.getFunctions;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -66,15 +55,6 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     private static final User GRANTOR_TEST_USER = User.of("test");
-
-    private static final RelationName CUSTOM_SCHEMA_IDENT = new RelationName("my_schema", "locations");
-    private static final DocTableInfo CUSTOM_SCHEMA_INFO = TestingTableInfo.builder(CUSTOM_SCHEMA_IDENT, SHARD_ROUTING)
-        .add("id", DataTypes.INTEGER, ImmutableList.<String>of())
-        .build();
-    private static final DocTableInfoFactory CUSTOM_SCHEMA_TABLE_FACTORY = new TestingDocTableInfoFactory(
-        ImmutableMap.of(CUSTOM_SCHEMA_IDENT, CUSTOM_SCHEMA_INFO));
-
-    private static final RelationName CUSTOM_SCHEMA_VIEW = new RelationName("my_schema", "locations_view");
 
     private static final UserManager USER_MANAGER = new StubUserManager() {
         @Override
@@ -88,9 +68,9 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
     @Before
     public void setUpSQLExecutor() throws Exception {
         e = SQLExecutor.builder(clusterService).enableDefaultTables()
-            .addSchema(new DocSchemaInfo(CUSTOM_SCHEMA_IDENT.schema(), clusterService, getFunctions(),
-                new UserDefinedFunctionService(clusterService, getFunctions()), (ident, state) -> null, CUSTOM_SCHEMA_TABLE_FACTORY))
-            .addView(CUSTOM_SCHEMA_VIEW, "Select * from my_schema.locations limit 2")
+            .addTable("create table my_schema.locations (id int)")
+            .addView(new RelationName("my_schema", "locations_view"),
+                     "select * from my_schema.locations limit 2")
             .setUserManager(USER_MANAGER)
             .build();
     }

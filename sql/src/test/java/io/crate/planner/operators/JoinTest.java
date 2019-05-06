@@ -24,7 +24,6 @@ package io.crate.planner.operators;
 
 import com.carrotsearch.hppc.ObjectObjectHashMap;
 import io.crate.analyze.MultiSourceSelect;
-import io.crate.analyze.TableDefinitions;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.HashJoinPhase;
 import io.crate.execution.dsl.phases.NestedLoopPhase;
@@ -33,7 +32,9 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.Schemas;
 import io.crate.planner.ExecutionPlan;
+import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.SubqueryPlanner;
 import io.crate.planner.TableStats;
@@ -44,6 +45,7 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
 import io.crate.types.DataTypes;
+import org.elasticsearch.common.Randomness;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
@@ -52,6 +54,9 @@ import org.junit.Test;
 import java.io.IOException;
 import java.util.Collections;
 
+import static io.crate.analyze.TableDefinitions.TEST_DOC_LOCATIONS_TABLE_DEFINITION;
+import static io.crate.analyze.TableDefinitions.USER_TABLE_DEFINITION;
+import static io.crate.analyze.TableDefinitions.USER_TABLE_IDENT;
 import static io.crate.testing.TestingHelpers.getFunctions;
 import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.Matchers.hasItem;
@@ -62,6 +67,8 @@ import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
 
 public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
+    private static final RelationName TEST_DOC_LOCATIONS_TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "locations");
+
     private SQLExecutor e;
     private Functions functions = getFunctions();
     private ProjectionBuilder projectionBuilder = new ProjectionBuilder(functions);
@@ -70,13 +77,13 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void setUpExecutor() throws IOException {
-        e = SQLExecutor.builder(clusterService)
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .addDocTable(TableDefinitions.TEST_DOC_LOCATIONS_TABLE_INFO)
-            .addDocTable(T3.T1_INFO)
-            .addDocTable(T3.T2_INFO)
-            .addDocTable(T3.T3_INFO)
-            .addDocTable(T3.T4_INFO)
+        e = SQLExecutor.builder(clusterService, 2, Randomness.get())
+            .addTable(USER_TABLE_DEFINITION)
+            .addTable(TEST_DOC_LOCATIONS_TABLE_DEFINITION)
+            .addTable(T3.T1_DEFINITION)
+            .addTable(T3.T2_DEFINITION)
+            .addTable(T3.T3_DEFINITION)
+            .addTable(T3.T4_DEFINITION)
             .build();
         plannerCtx = e.getPlannerContext(clusterService.state());
     }
@@ -108,15 +115,15 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
         TableStats tableStats = new TableStats();
         ObjectObjectHashMap<RelationName, TableStats.Stats> rowCountByTable = new ObjectObjectHashMap<>();
-        rowCountByTable.put(TableDefinitions.USER_TABLE_IDENT, new TableStats.Stats(10, 0));
-        rowCountByTable.put(TableDefinitions.TEST_DOC_LOCATIONS_TABLE_IDENT, new TableStats.Stats(10_000, 0));
+        rowCountByTable.put(USER_TABLE_IDENT, new TableStats.Stats(10, 0));
+        rowCountByTable.put(TEST_DOC_LOCATIONS_TABLE_IDENT, new TableStats.Stats(10_000, 0));
         tableStats.updateTableStats(rowCountByTable);
 
         Join nl = plan(mss, tableStats);
         assertThat(((Reference) ((Collect) nl.left()).collectPhase().toCollect().get(0)).ident().tableIdent().name(), is("locations"));
 
-        rowCountByTable.put(TableDefinitions.USER_TABLE_IDENT, new TableStats.Stats(10_000, 0));
-        rowCountByTable.put(TableDefinitions.TEST_DOC_LOCATIONS_TABLE_IDENT, new TableStats.Stats(10, 0));
+        rowCountByTable.put(USER_TABLE_IDENT, new TableStats.Stats(10_000, 0));
+        rowCountByTable.put(TEST_DOC_LOCATIONS_TABLE_IDENT, new TableStats.Stats(10, 0));
         tableStats.updateTableStats(rowCountByTable);
 
         nl = plan(mss, tableStats);
@@ -132,8 +139,8 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
         TableStats tableStats = new TableStats();
         ObjectObjectHashMap<RelationName, TableStats.Stats> rowCountByTable = new ObjectObjectHashMap<>();
-        rowCountByTable.put(TableDefinitions.USER_TABLE_IDENT, new TableStats.Stats(10, 0));
-        rowCountByTable.put(TableDefinitions.TEST_DOC_LOCATIONS_TABLE_IDENT, new TableStats.Stats(10_0000, 0));
+        rowCountByTable.put(USER_TABLE_IDENT, new TableStats.Stats(10, 0));
+        rowCountByTable.put(TEST_DOC_LOCATIONS_TABLE_IDENT, new TableStats.Stats(10_0000, 0));
         tableStats.updateTableStats(rowCountByTable);
 
         PlannerContext context = e.getPlannerContext(clusterService.state());
@@ -152,8 +159,8 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
     public void testNestedLoop_TablesAreNotSwitchedAfterOrderByPushDown() {
         TableStats tableStats = new TableStats();
         ObjectObjectHashMap<RelationName, TableStats.Stats> rowCountByTable = new ObjectObjectHashMap<>();
-        rowCountByTable.put(TableDefinitions.USER_TABLE_IDENT, new TableStats.Stats(10, 0));
-        rowCountByTable.put(TableDefinitions.TEST_DOC_LOCATIONS_TABLE_IDENT, new TableStats.Stats(10_0000, 0));
+        rowCountByTable.put(USER_TABLE_IDENT, new TableStats.Stats(10, 0));
+        rowCountByTable.put(TEST_DOC_LOCATIONS_TABLE_IDENT, new TableStats.Stats(10_0000, 0));
         tableStats.updateTableStats(rowCountByTable);
 
         PlannerContext context = e.getPlannerContext(clusterService.state());
@@ -161,8 +168,9 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         LogicalPlanner logicalPlanner = new LogicalPlanner(functions, tableStats);
         LogicalPlan plan = logicalPlanner.plan(e.analyze("select users.id from users, locations " +
                                                          "where users.id = locations.id order by users.id"), context);
-        Join nl = (Join) plan.build(
-            context, projectionBuilder, -1, 0, null, null, Row.EMPTY, SubQueryResults.EMPTY);
+        Join nl = (Join) ((Merge) plan.build(
+            context, projectionBuilder, -1, 0, null, null, Row.EMPTY, SubQueryResults.EMPTY))
+            .subPlan();
 
         assertThat(((Collect) nl.left()).collectPhase().toCollect(), isSQL("doc.users.id"));
         assertThat(nl.resultDescription().orderBy(), notNullValue());
@@ -176,8 +184,8 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
         TableStats tableStats = new TableStats();
         ObjectObjectHashMap<RelationName, TableStats.Stats> rowCountByTable = new ObjectObjectHashMap<>();
-        rowCountByTable.put(TableDefinitions.USER_TABLE_IDENT, new TableStats.Stats(100, 0));
-        rowCountByTable.put(TableDefinitions.TEST_DOC_LOCATIONS_TABLE_IDENT, new TableStats.Stats(10, 0));
+        rowCountByTable.put(USER_TABLE_IDENT, new TableStats.Stats(100, 0));
+        rowCountByTable.put(TEST_DOC_LOCATIONS_TABLE_IDENT, new TableStats.Stats(10, 0));
         tableStats.updateTableStats(rowCountByTable);
 
         LogicalPlan operator = createLogicalPlan(mss, tableStats);
@@ -199,8 +207,8 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
         TableStats tableStats = new TableStats();
         ObjectObjectHashMap<RelationName, TableStats.Stats> rowCountByTable = new ObjectObjectHashMap<>();
-        rowCountByTable.put(TableDefinitions.USER_TABLE_IDENT, new TableStats.Stats(10, 0));
-        rowCountByTable.put(TableDefinitions.TEST_DOC_LOCATIONS_TABLE_IDENT, new TableStats.Stats(100, 0));
+        rowCountByTable.put(USER_TABLE_IDENT, new TableStats.Stats(10, 0));
+        rowCountByTable.put(TEST_DOC_LOCATIONS_TABLE_IDENT, new TableStats.Stats(100, 0));
         tableStats.updateTableStats(rowCountByTable);
 
         LogicalPlan operator = createLogicalPlan(mss, tableStats);
@@ -250,7 +258,15 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testBlockNestedLoopWhenTableSizeUnknownAndOneExecutionNode() {
+    public void testBlockNestedLoopWhenTableSizeUnknownAndOneExecutionNode() throws IOException {
+        // rebuild executor + cluster state with 1 node
+        resetClusterService();
+        e = SQLExecutor.builder(clusterService)
+            .addTable(T3.T1_DEFINITION)
+            .addTable(T3.T4_DEFINITION)
+            .build();
+        plannerCtx = e.getPlannerContext(clusterService.state());
+
         MultiSourceSelect mss = e.normalize("select * from t1, t4");
 
         LogicalPlan operator = createLogicalPlan(mss, new TableStats());
@@ -263,17 +279,21 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testBlockNestedLoopWhenLeftSideIsSmallerAndOneExecutionNode() {
+    public void testBlockNestedLoopWhenLeftSideIsSmallerAndOneExecutionNode() throws IOException {
         TableStats tableStats = new TableStats();
         ObjectObjectHashMap<RelationName, TableStats.Stats> stats = new ObjectObjectHashMap<>();
-        stats.put(T3.T1_INFO.ident(), new TableStats.Stats(23, 64));
-        stats.put(T3.T4_INFO.ident(), new TableStats.Stats(42, 64));
+        stats.put(T3.T1_RN, new TableStats.Stats(23, 64));
+        stats.put(T3.T4_RN, new TableStats.Stats(42, 64));
         tableStats.updateTableStats(stats);
+
+        // rebuild executor + cluster state with 1 node
+        resetClusterService();
         e = SQLExecutor.builder(clusterService)
-            .addDocTable(T3.T1_INFO)
-            .addDocTable(T3.T4_INFO)
+            .addTable(T3.T1_DEFINITION)
+            .addTable(T3.T4_DEFINITION)
             .setTableStats(tableStats)
             .build();
+        plannerCtx = e.getPlannerContext(clusterService.state());
 
         MultiSourceSelect mss = e.normalize("select * from t1, t4");
 
@@ -288,21 +308,26 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         assertThat(join.left(), instanceOf(Collect.class));
         // no table switch should have been made
         assertThat(((Reference) ((Collect) join.left()).collectPhase().toCollect().get(0)).ident().tableIdent(),
-            is(T3.T1_INFO.ident()));
+            is(T3.T1_RN));
     }
 
     @Test
-    public void testBlockNestedLoopWhenRightSideIsSmallerAndOneExecutionNode() {
+    public void testBlockNestedLoopWhenRightSideIsSmallerAndOneExecutionNode() throws IOException {
         TableStats tableStats = new TableStats();
         ObjectObjectHashMap<RelationName, TableStats.Stats> stats = new ObjectObjectHashMap<>();
-        stats.put(T3.T1_INFO.ident(), new TableStats.Stats(23, 64));
-        stats.put(T3.T4_INFO.ident(), new TableStats.Stats(42, 64));
+        stats.put(T3.T1_RN, new TableStats.Stats(23, 64));
+        stats.put(T3.T4_RN, new TableStats.Stats(42, 64));
         tableStats.updateTableStats(stats);
+
+        // rebuild executor + cluster state with 1 node
+        resetClusterService();
         e = SQLExecutor.builder(clusterService)
-            .addDocTable(T3.T1_INFO)
-            .addDocTable(T3.T4_INFO)
+            .addTable(T3.T1_DEFINITION)
+            .addTable(T3.T4_DEFINITION)
             .setTableStats(tableStats)
             .build();
+        plannerCtx = e.getPlannerContext(clusterService.state());
+
         MultiSourceSelect mss = e.normalize("select * from t4, t1");
 
         LogicalPlan operator = createLogicalPlan(mss, tableStats);
@@ -316,21 +341,26 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         assertThat(join.left(), instanceOf(Collect.class));
         // right side will be flipped to the left
         assertThat(((Reference) ((Collect) join.left()).collectPhase().toCollect().get(0)).ident().tableIdent(),
-            is(T3.T1_INFO.ident()));
+            is(T3.T1_RN));
     }
 
     @Test
-    public void testNoBlockNestedLoopWithOrderBy() {
+    public void testNoBlockNestedLoopWithOrderBy() throws IOException {
         TableStats tableStats = new TableStats();
         ObjectObjectHashMap<RelationName, TableStats.Stats> stats = new ObjectObjectHashMap<>();
-        stats.put(T3.T1_INFO.ident(), new TableStats.Stats(23, 64));
-        stats.put(T3.T4_INFO.ident(), new TableStats.Stats(42, 64));
+        stats.put(T3.T1_RN, new TableStats.Stats(23, 64));
+        stats.put(T3.T4_RN, new TableStats.Stats(42, 64));
         tableStats.updateTableStats(stats);
+
+        // rebuild executor + cluster state with 1 node
+        resetClusterService();
         e = SQLExecutor.builder(clusterService)
-            .addDocTable(T3.T1_INFO)
-            .addDocTable(T3.T4_INFO)
+            .addTable(T3.T1_DEFINITION)
+            .addTable(T3.T4_DEFINITION)
             .setTableStats(tableStats)
             .build();
+        plannerCtx = e.getPlannerContext(clusterService.state());
+
         MultiSourceSelect mss = e.normalize("select * from t1, t4 order by t1.x");
 
         LogicalPlanner logicalPlanner = new LogicalPlanner(functions, tableStats);

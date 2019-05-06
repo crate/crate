@@ -25,10 +25,8 @@ package io.crate.execution.ddl;
 import io.crate.analyze.RerouteAllocateReplicaShardAnalyzedStatement;
 import io.crate.analyze.RerouteCancelShardAnalyzedStatement;
 import io.crate.analyze.RerouteMoveShardAnalyzedStatement;
-import io.crate.analyze.TableDefinitions;
 import io.crate.data.Row;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.blob.BlobTableInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.sql.parser.SqlParser;
@@ -52,27 +50,34 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static io.crate.analyze.TableDefinitions.TEST_PARTITIONED_TABLE_DEFINITION;
+import static io.crate.analyze.TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS;
+import static io.crate.analyze.TableDefinitions.USER_TABLE_DEFINITION;
 import static org.hamcrest.Matchers.is;
 
 public class RerouteActionsTest extends CrateDummyClusterServiceUnitTest {
 
-    public static final BlobTableInfo BLOB_TABLE_INFO = TableDefinitions.createBlobTable(
-        new RelationName(BlobSchemaInfo.NAME, "screenshots"));
+    private BlobTableInfo blobTable;
     private DocTableInfo userTable;
+    private DocTableInfo partedTable;
 
     @Before
     public void setupTable() throws Exception {
         SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService)
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
+            .addTable(USER_TABLE_DEFINITION)
+            .addPartitionedTable(TEST_PARTITIONED_TABLE_DEFINITION, TEST_PARTITIONED_TABLE_PARTITIONS)
+            .addBlobTable("create blob table screenshots")
             .build();
 
         userTable = sqlExecutor.schemas().getTableInfo(new RelationName("doc", "users"));
+        partedTable = sqlExecutor.schemas().getTableInfo(new RelationName("doc", "parted"));
+        blobTable = sqlExecutor.schemas().getTableInfo(new RelationName("blob", "screenshots"));
     }
 
     @Test
     public void testRerouteIndexOfBlobTable() throws Exception {
         RerouteMoveShardAnalyzedStatement statement = new RerouteMoveShardAnalyzedStatement(
-            BLOB_TABLE_INFO,
+            blobTable,
             Collections.emptyList(),
             SqlParser.createExpression("0"),
             SqlParser.createExpression("node1"),
@@ -85,7 +90,7 @@ public class RerouteActionsTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testRerouteIndexOfPartedDocTable() throws Exception {
         RerouteMoveShardAnalyzedStatement statement = new RerouteMoveShardAnalyzedStatement(
-            TableDefinitions.TEST_PARTITIONED_TABLE_INFO,
+            partedTable,
             Arrays.asList(new Assignment(
                 new QualifiedNameReference(new QualifiedName("date")), new StringLiteral("1395874800000"))),
             SqlParser.createExpression("0"),
@@ -101,7 +106,7 @@ public class RerouteActionsTest extends CrateDummyClusterServiceUnitTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("table is partitioned however no partition clause has been specified");
         RerouteMoveShardAnalyzedStatement statement = new RerouteMoveShardAnalyzedStatement(
-            TableDefinitions.TEST_PARTITIONED_TABLE_INFO,
+            partedTable,
             Collections.emptyList(),
             SqlParser.createExpression("0"),
             SqlParser.createExpression("node1"),
@@ -115,7 +120,7 @@ public class RerouteActionsTest extends CrateDummyClusterServiceUnitTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Referenced partition \".partitioned.parted.04132\" does not exist.");
         RerouteMoveShardAnalyzedStatement statement = new RerouteMoveShardAnalyzedStatement(
-            TableDefinitions.TEST_PARTITIONED_TABLE_INFO,
+            partedTable,
             Arrays.asList(new Assignment(
                 new QualifiedNameReference(new QualifiedName("date")), new StringLiteral("1"))),
             SqlParser.createExpression("0"),

@@ -25,7 +25,6 @@ import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.hamcrest.Matchers;
@@ -40,13 +39,14 @@ import static org.hamcrest.Matchers.is;
 
 public class RefreshAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
-    private RelationName myBlobsIdent = new RelationName(BlobSchemaInfo.NAME, "blobs");
     private SQLExecutor e;
 
     @Before
     public void prepare() throws IOException {
-        TestingBlobTableInfo myBlobsTableInfo = TableDefinitions.createBlobTable(myBlobsIdent);
-        e = SQLExecutor.builder(clusterService).enableDefaultTables().addBlobTable(myBlobsTableInfo).build();
+        e = SQLExecutor.builder(clusterService)
+            .enableDefaultTables()
+            .addBlobTable("create blob table blobs")
+            .build();
     }
 
     @Test

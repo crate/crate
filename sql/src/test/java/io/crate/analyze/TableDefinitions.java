@@ -21,40 +21,13 @@
 
 package io.crate.analyze;
 
-import com.carrotsearch.hppc.IntArrayList;
-import com.carrotsearch.hppc.IntIndexedContainer;
-import com.google.common.collect.ImmutableMap;
-import io.crate.common.collections.TreeMapBuilder;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.Routing;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.table.TestingTableInfo;
-import io.crate.sql.tree.ColumnPolicy;
-import io.crate.types.ArrayType;
-import io.crate.types.DataTypes;
-import io.crate.types.ObjectType;
-
-import java.util.Map;
 
 import static java.util.Collections.singletonList;
 
 public final class TableDefinitions {
-
-    static final Routing SHARD_ROUTING = shardRouting("t1");
-
-    private static final Routing PARTED_ROUTING = new Routing(TreeMapBuilder.<String, Map<String, IntIndexedContainer>>newMapBuilder()
-        .put("n1", TreeMapBuilder.<String, IntIndexedContainer>newMapBuilder().put(".partitioned.parted.04232chj", IntArrayList.from(1, 2)).map())
-        .put("n2", TreeMapBuilder.<String, IntIndexedContainer>newMapBuilder().map())
-        .map());
-
-    public static Routing shardRouting(String tableName) {
-        return new Routing(TreeMapBuilder.<String, Map<String, IntIndexedContainer>>newMapBuilder()
-            .put("n1", TreeMapBuilder.<String, IntIndexedContainer>newMapBuilder().put(tableName, IntArrayList.from(1, 2)).map())
-            .put("n2", TreeMapBuilder.<String, IntIndexedContainer>newMapBuilder().put(tableName, IntArrayList.from(3, 4)).map())
-            .map());
-    }
 
     public static final RelationName USER_TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "users");
 
@@ -84,140 +57,114 @@ public final class TableDefinitions {
          "  floats float," +
          "  index name_text_ft using fulltext (name, text)" +
          ") clustered by (id) with (column_policy = 'dynamic')";
-    private static final RelationName USER_TABLE_IDENT_MULTI_PK = new RelationName(Schemas.DOC_SCHEMA_NAME, "users_multi_pk");
-    public static final DocTableInfo USER_TABLE_INFO_MULTI_PK = TestingTableInfo.builder(USER_TABLE_IDENT_MULTI_PK, SHARD_ROUTING)
-        .add("id", DataTypes.LONG)
-        .add("name", DataTypes.STRING)
-        .add("details", ObjectType.untyped())
-        .add("awesome", DataTypes.BOOLEAN)
-        .add("friends", new ArrayType(ObjectType.untyped()))
-        .addPrimaryKey("id")
-        .addPrimaryKey("name")
-        .clusteredBy("id")
-        .build();
-    private static final RelationName USER_TABLE_IDENT_CLUSTERED_BY_ONLY = new RelationName(Schemas.DOC_SCHEMA_NAME, "users_clustered_by_only");
-    public static final DocTableInfo USER_TABLE_INFO_CLUSTERED_BY_ONLY = TestingTableInfo.builder(USER_TABLE_IDENT_CLUSTERED_BY_ONLY, SHARD_ROUTING)
-        .add("id", DataTypes.LONG)
-        .add("name", DataTypes.STRING)
-        .add("details", ObjectType.untyped())
-        .add("awesome", DataTypes.BOOLEAN)
-        .add("friends", new ArrayType(ObjectType.untyped()))
-        .clusteredBy("id")
-        .build();
-    private static final RelationName USER_TABLE_REFRESH_INTERVAL_BY_ONLY = new RelationName(Schemas.DOC_SCHEMA_NAME, "user_refresh_interval");
-    public static final DocTableInfo USER_TABLE_INFO_REFRESH_INTERVAL_BY_ONLY = TestingTableInfo.builder(USER_TABLE_REFRESH_INTERVAL_BY_ONLY, SHARD_ROUTING)
-        .add("id", DataTypes.LONG)
-        .add("content", DataTypes.STRING)
-        .clusteredBy("id")
-        .build();
-    private static final RelationName NESTED_PK_TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "nested_pk");
-    public static final DocTableInfo NESTED_PK_TABLE_INFO = TestingTableInfo.builder(NESTED_PK_TABLE_IDENT, SHARD_ROUTING)
-        .add("id", DataTypes.LONG)
-        .add("o",
-            ObjectType.builder()
-                .setInnerType("b", DataTypes.BYTE)
-                .build())
-        .addPrimaryKey("id")
-        .addPrimaryKey("o.b")
-        .clusteredBy("o.b")
-        .build();
+    public static final String USER_TABLE_MULTI_PK_DEFINITION =
+        "create table users_multi_pk (" +
+        "  id bigint," +
+        "  name text," +
+        "  details object," +
+        "  awesome boolean," +
+        "  friends array(object)," +
+        "  primary key (id, name)" +
+        ")" +
+        " clustered by (id)";
+    public static final String USER_TABLE_CLUSTERED_BY_ONLY_DEFINITION =
+        "create table doc.users_clustered_by_only (" +
+        "  id bigint," +
+        "  name text," +
+        "  details object," +
+        "  awesome boolean," +
+        "  friends array(object)" +
+        ")" +
+        " clustered by (id)";
+    public static final String USER_TABLE_REFRESH_INTERVAL_BY_ONLY_DEFINITION =
+        "create table doc.user_refresh_interval (" +
+        "  id bigint," +
+        "  content text" +
+        ")" +
+        " clustered by (id)";
+    public static final String NESTED_PK_TABLE_DEFINITION =
+        "create table doc.nested_pk (" +
+        "  id bigint," +
+        "  o object as (" +
+        "    b char" +
+        "  )," +
+        "  primary key (id, o['b'])" +
+        ")" +
+        " clustered by (o['b'])";
     static final RelationName TEST_PARTITIONED_TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "parted");
 
-    public static final DocTableInfo TEST_PARTITIONED_TABLE_INFO = new TestingTableInfo.Builder(
-        TEST_PARTITIONED_TABLE_IDENT, new Routing(ImmutableMap.of()))
-        .add("id", DataTypes.INTEGER)
-        .add("name", DataTypes.STRING)
-        .add("date", DataTypes.TIMESTAMPZ, null, true)
-        .add("obj", ObjectType.untyped())
-        // add 3 partitions/simulate already done inserts
-        .addPartitions(
-            new PartitionName(new RelationName("doc", "parted"), singletonList("1395874800000")).asIndexName(),
-            new PartitionName(new RelationName("doc", "parted"), singletonList("1395961200000")).asIndexName(),
-            new PartitionName(new RelationName("doc", "parted"), singletonList(null)).asIndexName())
-        .build();
-    private static final RelationName TEST_EMPTY_PARTITIONED_TABLE_IDENT =
-        new RelationName(Schemas.DOC_SCHEMA_NAME, "empty_parted");
-    public static final DocTableInfo TEST_EMPTY_PARTITIONED_TABLE_INFO = new TestingTableInfo.Builder(
-        TEST_EMPTY_PARTITIONED_TABLE_IDENT, new Routing(ImmutableMap.of()))
-        .add("name", DataTypes.STRING)
-        .add("date", DataTypes.TIMESTAMPZ, null, true)
-        .build();
-    public static final RelationName PARTED_PKS_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "parted_pks");
-    public static final DocTableInfo PARTED_PKS_TI = new TestingTableInfo.Builder(
-        PARTED_PKS_IDENT, PARTED_ROUTING)
-        .add("id", DataTypes.INTEGER)
-        .add("name", DataTypes.STRING)
-        .add("date", DataTypes.TIMESTAMPZ, null, true)
-        .add("obj", ObjectType.untyped())
-        // add 3 partitions/simulate already done inserts
-        .addPartitions(
-            new PartitionName(new RelationName("doc", "parted"), singletonList("1395874800000")).asIndexName(),
-            new PartitionName(new RelationName("doc", "parted"), singletonList("1395961200000")).asIndexName()
-        )
-        .addPrimaryKey("id")
-        .addPrimaryKey("date")
-        .clusteredBy("id")
-        .build();
-    private static final RelationName TEST_DOC_TRANSACTIONS_TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "transactions");
-    public static final DocTableInfo TEST_DOC_TRANSACTIONS_TABLE_INFO = new TestingTableInfo.Builder(
-        TEST_DOC_TRANSACTIONS_TABLE_IDENT, new Routing(ImmutableMap.of()))
-        .add("id", DataTypes.LONG)
-        .add("sender", DataTypes.STRING)
-        .add("recipient", DataTypes.STRING)
-        .add("amount", DataTypes.DOUBLE)
-        .add("timestamp", DataTypes.TIMESTAMPZ)
-        .build();
-    private static final RelationName DEEPLY_NESTED_TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "deeply_nested");
-    public static final DocTableInfo DEEPLY_NESTED_TABLE_INFO = new TestingTableInfo.Builder(
-        DEEPLY_NESTED_TABLE_IDENT, new Routing(ImmutableMap.of()))
-        .add("details",
-            ObjectType.builder()
-                .setInnerType("awesome", DataTypes.BOOLEAN)
-                .setInnerType("stuff", ObjectType.builder()
-                    .setInnerType("name", DataTypes.STRING)
-                    .build())
-                .setInnerType("arguments", new ArrayType(ObjectType.builder()
-                    .setInnerType("quality", DataTypes.DOUBLE)
-                    .setInnerType("name", DataTypes.STRING)
-                    .build()))
-                .build())
-        .add("tags", new ArrayType(ObjectType.builder()
-            .setInnerType("name", DataTypes.STRING)
-            .setInnerType("metadata", new ArrayType(ObjectType.builder()
-                .setInnerType("id", DataTypes.LONG)
-                .build()))
-            .build()))
-        .build();
+    public static final String TEST_PARTITIONED_TABLE_DEFINITION =
+        "create table doc.parted (" +
+        "  id int," +
+        "  name text," +
+        "  date timestamp with time zone," +
+        "  obj object" +
+        ")" +
+        " partitioned by (date)";
+    public static final String[] TEST_PARTITIONED_TABLE_PARTITIONS = new String[] {
+        new PartitionName(new RelationName("doc", "parted"), singletonList("1395874800000")).asIndexName(),
+        new PartitionName(new RelationName("doc", "parted"), singletonList("1395961200000")).asIndexName(),
+        new PartitionName(new RelationName("doc", "parted"), singletonList(null)).asIndexName()
+    };
 
-    private static final RelationName IGNORED_NESTED_TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "ignored_nested");
-    public static final DocTableInfo IGNORED_NESTED_TABLE_INFO = new TestingTableInfo.Builder(
-        IGNORED_NESTED_TABLE_IDENT, new Routing(ImmutableMap.of()))
-        .add("details", ObjectType.untyped(), null, ColumnPolicy.IGNORED)
-        .build();
+    public static final String TEST_EMPTY_PARTITIONED_TABLE_DEFINITION =
+        "create table doc.empty_parted (" +
+        "  name text," +
+        "  date timestamp with time zone" +
+        ")" +
+        " partitioned by (date)";
+    public static final String PARTED_PKS_TABLE_DEFINITION =
+        "create table doc.parted_pks (" +
+        "  id integer," +
+        "  name text," +
+        "  date timestamp with time zone," +
+        "  obj object," +
+        "  primary key(id, date)" +
+        ")" +
+        " clustered by (id)" +
+        " partitioned by (date)";
+    public static final String TEST_DOC_TRANSACTIONS_TABLE_DEFINITION =
+        "create table doc.transactions (" +
+        "  id bigint," +
+        "  sender text," +
+        "  recipient text," +
+        "  amount double precision," +
+        "  timestamp timestamp with time zone" +
+        ")";
+    public static final String DEEPLY_NESTED_TABLE_DEFINITION =
+        "create table doc.deeply_nested (" +
+        "  details object as (" +
+        "    awesome boolean," +
+        "    stuff object as (" +
+        "      name text" +
+        "    )," +
+        "    arguments array(object as (" +
+        "      quality double precision," +
+        "      name text" +
+        "    ))" +
+        "  )," +
+        "  tags array(object as (" +
+        "    name text," +
+        "    metadata array(object as (" +
+        "      id bigint" +
+        "    ))" +
+        "  ))" +
+        ")";
 
-    public static final RelationName TEST_DOC_LOCATIONS_TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "locations");
-    public static final DocTableInfo TEST_DOC_LOCATIONS_TABLE_INFO = TestingTableInfo.builder(TEST_DOC_LOCATIONS_TABLE_IDENT, SHARD_ROUTING)
-        .add("id", DataTypes.LONG)
-        .add("loc", DataTypes.GEO_POINT)
-        .build();
+    public static final String IGNORED_NESTED_TABLE_DEFINITION =
+        "create table doc.ignored_nested (" +
+        "  details object(ignored)" +
+        ")";
 
-    public static final DocTableInfo TEST_CLUSTER_BY_STRING_TABLE_INFO = TestingTableInfo.builder(new RelationName(Schemas.DOC_SCHEMA_NAME, "bystring"), SHARD_ROUTING)
-        .add("name", DataTypes.STRING)
-        .add("score", DataTypes.DOUBLE)
-        .addPrimaryKey("name")
-        .clusteredBy("name")
-        .build();
+    public static final String TEST_DOC_LOCATIONS_TABLE_DEFINITION =
+        "create table doc.locations (" +
+        "  id bigint," +
+        "  loc geo_point" +
+        ")";
 
-
-    public static TestingBlobTableInfo createBlobTable(RelationName ident) {
-        return new TestingBlobTableInfo(
-            ident,
-            ident.indexNameOrAlias(),
-            5,
-            "0",
-            ImmutableMap.of(),
-            null,
-            SHARD_ROUTING
-        );
-    }
+    public static final String TEST_CLUSTER_BY_STRING_TABLE_DEFINITION =
+        "create table doc.bystring (" +
+        "  name text primary key," +
+        "  score double precision" +
+        ")";
 }
