@@ -49,7 +49,7 @@ import static com.google.common.base.MoreObjects.firstNonNull;
 import static io.crate.analyze.SymbolEvaluator.evaluate;
 import static io.crate.planner.operators.LogicalPlanner.NO_LIMIT;
 
-class Limit implements LogicalPlan {
+public class Limit implements LogicalPlan {
 
     final Symbol limit;
     final Symbol offset;
@@ -66,7 +66,7 @@ class Limit implements LogicalPlan {
         );
     }
 
-    private Limit(LogicalPlan source, Symbol limit, Symbol offset) {
+    public Limit(LogicalPlan source, Symbol limit, Symbol offset) {
         this.source = source;
         this.limit = limit;
         this.offset = offset;

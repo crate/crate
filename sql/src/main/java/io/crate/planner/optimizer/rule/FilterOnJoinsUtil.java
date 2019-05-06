@@ -30,6 +30,7 @@ import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.sql.tree.QualifiedName;
 
+import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -40,11 +41,11 @@ final class FilterOnJoinsUtil {
     private FilterOnJoinsUtil() {
     }
 
-    private static Set<QualifiedName> getRelationNames(LogicalPlan plan) {
+    static Set<QualifiedName> getRelationNames(LogicalPlan plan) {
         return plan.baseTables().stream().map(AnalyzedRelation::getQualifiedName).collect(Collectors.toSet());
     }
 
-    private static LogicalPlan getNewSource(Symbol splitQuery, LogicalPlan source) {
+    static LogicalPlan getNewSource(@Nullable Symbol splitQuery, LogicalPlan source) {
         return splitQuery == null ? source : new Filter(source, splitQuery);
     }
 
