@@ -30,6 +30,7 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
+import io.crate.types.SetType;
 
 import java.util.Locale;
 
@@ -64,10 +65,10 @@ public final class DataTypeAnalyzer extends DefaultTraversalVisitor<DataType, Vo
 
     @Override
     public DataType visitCollectionColumnType(CollectionColumnType node, Void context) {
-        if (node.type() == ColumnType.Type.SET) {
-            throw new UnsupportedOperationException("the SET dataType is currently not supported");
-        }
         DataType innerType = process(node.innerType(), context);
+        if (node.type() == ColumnType.Type.SET) {
+            return new SetType(innerType);
+        }
         return new ArrayType(innerType);
     }
 }

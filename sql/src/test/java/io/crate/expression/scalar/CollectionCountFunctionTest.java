@@ -32,7 +32,7 @@ public class CollectionCountFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testEvaluate() throws Exception {
-        assertEvaluate("collection_count(long_set)", 2L,
+        assertEvaluate("collection_count(cast(long_array as set(bigint)))", 2L,
             Literal.of(new HashSet<Long>() {{ add(3L); add(7L);}}, new SetType(LongType.INSTANCE)));
     }
 

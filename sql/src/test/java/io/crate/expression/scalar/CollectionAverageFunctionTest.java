@@ -32,7 +32,7 @@ public class CollectionAverageFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testEvaluate() throws Exception {
-        assertEvaluate("collection_avg(long_set)", 5d,
+        assertEvaluate("collection_avg(cast(long_array as set(bigint)))", 5d,
             Literal.of(new HashSet<Long>() {{ add(3L); add(7L);}}, new SetType(LongType.INSTANCE)));
     }
 
