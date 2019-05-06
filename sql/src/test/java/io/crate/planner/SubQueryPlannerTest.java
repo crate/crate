@@ -58,7 +58,10 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void setUpExecutor() throws Exception {
-        e = SQLExecutor.builder(clusterService).addDocTable(T3.T1_INFO).addDocTable(T3.T2_INFO).build();
+        e = SQLExecutor.builder(clusterService)
+            .addTable(T3.T1_DEFINITION)
+            .addTable(T3.T2_DEFINITION)
+            .build();
     }
 
     @Test

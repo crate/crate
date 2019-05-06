@@ -26,9 +26,10 @@ import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.eval.NullEliminator;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.function.Function;
@@ -36,9 +37,14 @@ import java.util.function.Function;
 import static io.crate.testing.TestingHelpers.getFunctions;
 import static org.hamcrest.Matchers.is;
 
-public class NullEliminatorTest extends CrateUnitTest {
+public class NullEliminatorTest extends CrateDummyClusterServiceUnitTest {
 
-    private SqlExpressions sqlExpressions = new SqlExpressions(T3.SOURCES);
+    private SqlExpressions sqlExpressions;
+
+    @Before
+    public void prepare() throws Exception {
+        sqlExpressions = new SqlExpressions(T3.sources(clusterService));
+    }
 
     private void assertReplaced(String expression, String expectedString) {
         assertReplaced(expression, expectedString,  s -> s);

@@ -32,18 +32,11 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.Reference.IndexType;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.Routing;
-import io.crate.metadata.Schemas;
-import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.table.TestingTableInfo;
 import io.crate.sql.parser.ParsingException;
-import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
-import io.crate.types.ObjectType;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
@@ -57,13 +50,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static io.crate.analyze.TableDefinitions.SHARD_ROUTING;
 import static io.crate.analyze.TableDefinitions.USER_TABLE_IDENT;
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.SymbolMatchers.isReference;
 import static org.hamcrest.Matchers.arrayContaining;
+import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasSize;
@@ -73,105 +67,72 @@ import static org.hamcrest.core.Is.is;
 
 public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
-    private static final RelationName NESTED_CLUSTERED_TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "nested_clustered");
-    private static final DocTableInfo NESTED_CLUSTERED_TABLE_INFO = new TestingTableInfo.Builder(
-        NESTED_CLUSTERED_TABLE_IDENT, new Routing(ImmutableMap.of()))
-        .add("o",
-            ObjectType.builder()
-                .setInnerType("c", DataTypes.STRING)
-                .build(),
-            null)
-        .add("o2",
-            ObjectType.builder()
-                .setInnerType("p", DataTypes.STRING)
-                .build(),
-            null)
-        .add("k", DataTypes.INTEGER, null)
-        .clusteredBy("o.c")
-        .addPrimaryKey("o2.p")
-        .build();
-
-    private static final RelationName THREE_PK_TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "three_pk");
-    private static final DocTableInfo THREE_PK_TABLE_INFO = new TestingTableInfo.Builder(
-        THREE_PK_TABLE_IDENT, new Routing(ImmutableMap.of()))
-        .add("a", DataTypes.INTEGER)
-        .add("b", DataTypes.INTEGER)
-        .add("c", DataTypes.INTEGER)
-        .add("d", DataTypes.INTEGER)
-        .addPrimaryKey("a")
-        .addPrimaryKey("b")
-        .addPrimaryKey("c")
-        .build();
-
     private SQLExecutor e;
 
     @Before
     public void prepare() throws IOException {
         SQLExecutor.Builder executorBuilder = SQLExecutor.builder(clusterService)
             .enableDefaultTables()
-            .addDocTable(NESTED_CLUSTERED_TABLE_INFO)
-            .addDocTable(THREE_PK_TABLE_INFO);
-
-        RelationName notNullColumnRelationName = new RelationName(Schemas.DOC_SCHEMA_NAME, "not_null_column");
-        TestingTableInfo.Builder notNullColumnTable = new TestingTableInfo.Builder(
-            notNullColumnRelationName, new Routing(ImmutableMap.of()))
-            .add("id", DataTypes.INTEGER, null)
-            .add("name", DataTypes.STRING, null, ColumnPolicy.DYNAMIC, IndexType.NOT_ANALYZED, false, false);
-        executorBuilder.addDocTable(notNullColumnTable);
-
-        RelationName generatedColumnRelationName = new RelationName(Schemas.DOC_SCHEMA_NAME, "generated_column");
-        TestingTableInfo.Builder generatedColumnTable = new TestingTableInfo.Builder(
-            generatedColumnRelationName, new Routing(ImmutableMap.of()))
-            .add("ts", DataTypes.TIMESTAMPZ, null)
-            .add("user",
-                ObjectType.builder().setInnerType("name", DataTypes.STRING).build(),
-                null)
-            .addGeneratedColumn("day", DataTypes.TIMESTAMPZ, "date_trunc('day', ts)", false)
-            .addGeneratedColumn("name", DataTypes.STRING, "concat(\"user\"['name'], 'bar')", false);
-        executorBuilder.addDocTable(generatedColumnTable);
-
-        RelationName generatedPkColumnRelationName = new RelationName(Schemas.DOC_SCHEMA_NAME, "generated_pk_column");
-        TestingTableInfo.Builder generatedPkColumnTable = new TestingTableInfo.Builder(
-            generatedPkColumnRelationName, SHARD_ROUTING)
-            .add("serial_no", DataTypes.INTEGER, null)
-            .add("product_no", DataTypes.INTEGER, null)
-            .add("color", DataTypes.STRING, null)
-            .addGeneratedColumn("id", DataTypes.INTEGER, "serial_no + 1", false)
-            .addGeneratedColumn("id2", DataTypes.INTEGER, "product_no + 1", false)
-            .addPrimaryKey("id")
-            .addPrimaryKey("id2");
-        executorBuilder.addDocTable(generatedPkColumnTable);
-
-        RelationName generatedPkAndPartedColumnRelationName =
-            new RelationName(Schemas.DOC_SCHEMA_NAME, "generated_pk_parted_column");
-        TestingTableInfo.Builder generatedPkAndPartedColumnTable = new TestingTableInfo.Builder(
-            generatedPkAndPartedColumnRelationName, SHARD_ROUTING)
-            .add("ts", DataTypes.TIMESTAMPZ, null, true)
-            .add("value", DataTypes.INTEGER, null)
-            .addGeneratedColumn("part_key__generated", DataTypes.INTEGER, "date_trunc('day', ts)", true)
-            .addPrimaryKey("value")
-            .addPrimaryKey("part_key__generated");
-        executorBuilder.addDocTable(generatedPkAndPartedColumnTable);
-
-        RelationName generatedClusteredByRelationName = new RelationName(Schemas.DOC_SCHEMA_NAME, "generated_clustered_by_column");
-        TestingTableInfo.Builder clusteredByGeneratedTable = new TestingTableInfo.Builder(
-            generatedClusteredByRelationName, SHARD_ROUTING)
-            .add("serial_no", DataTypes.INTEGER, null)
-            .add("color", DataTypes.STRING, null)
-            .addGeneratedColumn("routing_col", DataTypes.INTEGER, "serial_no + 1", false)
-            .clusteredBy("routing_col");
-        executorBuilder.addDocTable(clusteredByGeneratedTable);
-
-        RelationName generatedNestedClusteredByRelationName = new RelationName(Schemas.DOC_SCHEMA_NAME, "generated_nested_clustered_by");
-        TestingTableInfo.Builder generatedNestedClusteredByInfo = new TestingTableInfo.Builder(
-            generatedNestedClusteredByRelationName, SHARD_ROUTING)
-            .add("o",
-                ObjectType.builder().setInnerType("serial_number", DataTypes.INTEGER).build(),
-                null,
-                ColumnPolicy.DYNAMIC)
-            .addGeneratedColumn("routing_col", DataTypes.INTEGER, "o['serial_number'] + 1", false)
-            .clusteredBy("routing_col");
-        executorBuilder.addDocTable(generatedNestedClusteredByInfo);
+            .addTable(
+                "create table doc.nested_clustered (" +
+                "  o object as (c text)," +
+                "  o2 object as (p text)," +
+                "  k integer" +
+                ")" +
+                " clustered by (o['c'])")
+            .addTable(
+                "create table doc.three_pk (" +
+                "  a int," +
+                "  b int," +
+                "  c int," +
+                "  d int," +
+                "  primary key (a, b, c)" +
+                ")")
+            .addTable(
+                "create table doc.not_null_column (" +
+                "  id int," +
+                "  name text not null" +
+                ")")
+            .addTable(
+                "create table doc.generated_column (" +
+                "  ts timestamp with time zone," +
+                "  \"user\" object as (name text)," +
+                "  day timestamp with time zone generated always as date_trunc('day', ts)," +
+                "  name text generated always as concat(\"user\"['name'], 'bar')" +
+                ")")
+            .addTable(
+                "create table generated_pk_column (" +
+                "  serial_no int," +
+                "  product_no int," +
+                "  color text," +
+                "  id int generated always as serial_no + 1," +
+                "  id2 int generated always as product_no + 1," +
+                "  primary key(id, id2)" +
+                ")")
+            .addPartitionedTable(
+                "create table generated_pk_parted_column (" +
+                "  ts timestamp with time zone," +
+                "  value int," +
+                "  part_key__generated long generated always as date_trunc('day', ts)," +
+                "  primary key (value, part_key__generated)" +
+                ")" +
+                " partitioned by (part_key__generated)")
+            .addTable(
+                "create table generated_clustered_by_column(" +
+                "  serial_no int," +
+                "  color text," +
+                "  routing_col int generated always as serial_no + 1" +
+                ")" +
+                " clustered by (routing_col)")
+            .addTable(
+                "create table generated_nested_clustered_by (" +
+                "  o object as (" +
+                "    serial_number int" +
+                "  )," +
+                "  color text," +
+                "  routing_col int generated always as o['serial_number'] + 1" +
+                ")" +
+                " clustered by (routing_col)");
 
         e = executorBuilder.build();
     }
@@ -948,7 +909,15 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
     }
 
     @Test
-    public void testInsertFromValuesWithOnConflictAndNestedColumn() {
+    public void testInsertFromValuesWithOnConflictAndNestedColumn() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("create table doc.nested_clustered (" +
+                      "  o object as (c text)," +
+                      "  o2 object as (p text)," +
+                      "  k integer," +
+                      "  primary key (o2['p'])" +
+                      ")")
+            .build();
         String insertStatement = "insert into nested_clustered (o, o2) values ({c=1}, {p=1}) on conflict (o2.p) do update set k = 1";
         InsertFromValuesAnalyzedStatement statement = e.analyze(insertStatement);
         assertThat(statement.onDuplicateKeyAssignments().size(), is(1));
@@ -1152,8 +1121,8 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
             new Object[]{"2015-11-18T11:11:00"});
         assertThat(analysis.sourceMaps().size(), is(1));
 
-        assertThat((Long) analysis.sourceMaps().get(0)[0], is(1447845060000L));
-        assertThat((Long) analysis.sourceMaps().get(0)[1], is(1447804800000L));
+        assertThat(analysis.sourceMaps().get(0)[0], is(1447845060000L));
+        assertThat(analysis.sourceMaps().get(0)[2], is(1447804800000L));
     }
 
     @Test
@@ -1167,10 +1136,10 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
         assertThat(values.length, is(3));
 
         assertThat(values[0], nullValue());
-        // generated column 'day'
-        assertThat(values[1], nullValue());
         // generated column 'name'
-        assertThat(values[2], is("bar"));
+        assertThat(values[1], is("bar"));
+        // generated column 'day'
+        assertThat(values[2], nullValue());
     }
 
     @Test
@@ -1206,10 +1175,10 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
         InsertFromValuesAnalyzedStatement analysis = e.analyze(
             "INSERT INTO generated_column (ts, \"user\") values ('1970-01-01', {name='Johnny'}), ('1989-11-09T08:30:00', {name='Egon'})");
         assertThat(analysis.columns(), hasSize(4));
-        assertThat(analysis.columns(), contains(isReference("ts"), isReference("user"), isReference("day"), isReference("name")));
+        assertThat(analysis.columns(), containsInAnyOrder(isReference("ts"), isReference("user"), isReference("day"), isReference("name")));
         assertThat(analysis.sourceMaps(), hasSize(2));
-        Matcher<Object[]> firstRow = arrayContaining(0L, ImmutableMap.<String, Object>of("name", "Johnny"), 0L, "Johnnybar");
-        Matcher<Object[]> secondRow = arrayContaining(626603400000L, ImmutableMap.<String, Object>of("name", "Egon"), 626572800000L, "Egonbar");
+        Matcher<Object[]> firstRow = arrayContainingInAnyOrder(0L, ImmutableMap.<String, Object>of("name", "Johnny"), 0L, "Johnnybar");
+        Matcher<Object[]> secondRow = arrayContainingInAnyOrder(626603400000L, ImmutableMap.<String, Object>of("name", "Egon"), 626572800000L, "Egonbar");
         assertThat(analysis.sourceMaps(), contains(firstRow, secondRow));
     }
 
@@ -1275,7 +1244,7 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
     public void testInsertMultipleValuesWithGeneratedColumnAndTooFewValuesInSecondValues() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Invalid number of values: Got 2 columns specified but 1 values");
-        e.analyze("INSERT INTO generated_column (ts, username) values ('1970-01-01', {name='Johnny'}), ('1989-11-09T08:30:00')");
+        e.analyze("INSERT INTO generated_column (ts, \"user\") values ('1970-01-01', {name='Johnny'}), ('1989-11-09T08:30:00')");
     }
 
     @Test
@@ -1303,7 +1272,7 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
     public void testNestedGeneratedClusteredByMissing() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Clustered by value is required but is missing from the insert statement");
-        e.analyze("INSERT INTO generated_nested_clustered_by (name) values ('kill-o-zap blaster pistol')");
+        e.analyze("INSERT INTO generated_nested_clustered_by (color) values ('kill-o-zap blaster pistol')");
     }
 
     @Test

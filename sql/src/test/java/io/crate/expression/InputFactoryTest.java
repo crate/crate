@@ -22,7 +22,8 @@
 
 package io.crate.expression;
 
-import com.google.common.collect.ImmutableMap;
+import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.DocTableRelation;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.RowN;
@@ -39,25 +40,37 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.TransactionContext;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.sql.tree.QualifiedName;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
 import io.crate.types.DataTypes;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.hamcrest.core.Is.is;
 
-public class InputFactoryTest extends CrateUnitTest {
+public class InputFactoryTest extends CrateDummyClusterServiceUnitTest {
 
-    private SqlExpressions expressions = new SqlExpressions(ImmutableMap.of(T3.T1, T3.TR_1), T3.TR_1);
-    private InputFactory factory = new InputFactory(expressions.functions());
+    private SqlExpressions expressions;
+    private InputFactory factory;
     private TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
+
+    @Before
+    public void prepare() throws Exception {
+        Map<QualifiedName, AnalyzedRelation> sources = T3.sources(List.of(T3.T1_RN), clusterService);
+
+        DocTableRelation tr1 = (DocTableRelation) T3.fromSource(T3.T1_RN, sources);
+        expressions = new SqlExpressions(sources, tr1);
+        factory = new InputFactory(expressions.functions());
+    }
 
     @Test
     public void testAggregationSymbolsInputReuse() throws Exception {

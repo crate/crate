@@ -37,7 +37,7 @@ public class SplitPointsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testSplitPointsCreationWithFunctionInAggregation() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService).addDocTable(T3.T1_INFO).build();
+        SQLExecutor e = SQLExecutor.builder(clusterService).addTable(T3.T1_DEFINITION).build();
 
         AnalyzedRelation relation = e.normalize("select sum(coalesce(x, 0::integer)) + 10 from t1");
 
@@ -49,7 +49,7 @@ public class SplitPointsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testSplitPointsCreationSelectItemAggregationsAreAlwaysAdded() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService).addDocTable(T3.T1_INFO).build();
+        SQLExecutor e = SQLExecutor.builder(clusterService).addTable(T3.T1_DEFINITION).build();
 
         AnalyzedRelation relation = e.normalize("select sum(coalesce(x, 0::integer)), sum(coalesce(x, 0::integer)) + 10 from t1");
 
@@ -62,7 +62,7 @@ public class SplitPointsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testScalarIsNotCollectedEarly() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService).addDocTable(T3.T1_INFO).build();
+        SQLExecutor e = SQLExecutor.builder(clusterService).addTable(T3.T1_DEFINITION).build();
         AnalyzedRelation relation = e.normalize("select x + 1 from t1 group by x");
 
         SplitPoints splitPoints = SplitPointsBuilder.create(relation);

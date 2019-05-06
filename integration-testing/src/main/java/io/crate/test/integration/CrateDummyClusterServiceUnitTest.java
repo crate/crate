@@ -82,6 +82,14 @@ public class CrateDummyClusterServiceUnitTest extends CrateUnitTest {
     }
 
     /**
+     * Reset the current cluster service (state) to be able to re-build existing tables.
+     */
+    public void resetClusterService() {
+        cleanup();
+        setupDummyClusterService();
+    }
+
+    /**
      * Override this method to provide additional cluster settings.
      */
     protected Collection<Setting<?>> additionalClusterSettings() {

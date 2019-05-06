@@ -26,23 +26,42 @@ import io.crate.exceptions.RelationUnknown;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.blob.BlobTableInfo;
 import io.crate.metadata.blob.BlobTableInfoFactory;
+import io.crate.metadata.blob.InternalBlobTableInfoFactory;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.common.settings.Settings;
 
+import java.io.File;
+import java.nio.file.Path;
 import java.util.Map;
 
 class TestingBlobTableInfoFactory implements BlobTableInfoFactory {
 
     private final Map<RelationName, BlobTableInfo> tables;
+    private final InternalBlobTableInfoFactory internalFactory;
 
     TestingBlobTableInfoFactory(Map<RelationName, BlobTableInfo> blobTables) {
         this.tables = blobTables;
+        this.internalFactory = null;
     }
+
+    TestingBlobTableInfoFactory(Map<RelationName, BlobTableInfo> blobTables,
+                                IndexNameExpressionResolver indexNameExpressionResolver,
+                                File dataPath) {
+        this.tables = blobTables;
+        internalFactory = new InternalBlobTableInfoFactory(
+            Settings.EMPTY, indexNameExpressionResolver, new Path[]{Path.of(dataPath.toURI())});
+    }
+
 
     @Override
     public BlobTableInfo create(RelationName ident, ClusterState state) {
         BlobTableInfo blobTableInfo = tables.get(ident);
         if (blobTableInfo == null) {
-            throw new RelationUnknown(ident);
+            if (internalFactory == null) {
+                throw new RelationUnknown(ident);
+            }
+            return internalFactory.create(ident, state);
         }
         return blobTableInfo;
     }

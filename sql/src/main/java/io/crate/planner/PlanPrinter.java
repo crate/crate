@@ -262,6 +262,8 @@ public final class PlanPrinter {
                 for (IntCursor cursor : tableEntry.getValue()) {
                     shardList.add(cursor.value);
                 }
+                // ensure a deterministic shard list by sorting it (important for test assertions but maybe also for apps)
+                shardList.sort(Integer::compareTo);
                 tableShards.put(tableEntry.getKey(), shardList);
             }
             safeLocations.put(nodeEntry.getKey(), tableShards);

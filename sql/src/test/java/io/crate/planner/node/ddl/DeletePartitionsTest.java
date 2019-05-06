@@ -25,12 +25,16 @@ package io.crate.planner.node.ddl;
 import io.crate.analyze.TableDefinitions;
 import io.crate.data.RowN;
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.hamcrest.Matchers;
 import org.junit.Test;
+
+import static java.util.Collections.singletonList;
 
 public class DeletePartitionsTest extends CrateDummyClusterServiceUnitTest {
 
@@ -39,7 +43,10 @@ public class DeletePartitionsTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testIndexNameGeneration() throws Exception {
         SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addDocTable(TableDefinitions.PARTED_PKS_TI)
+            .addPartitionedTable(
+                TableDefinitions.PARTED_PKS_TABLE_DEFINITION,
+                new PartitionName(new RelationName("doc", "parted_pks"), singletonList("1395874800000")).asIndexName(),
+                new PartitionName(new RelationName("doc", "parted_pks"), singletonList("1395961200000")).asIndexName())
             .build();
         DeletePartitions plan = e.plan("delete from parted_pks where date = ?");
 

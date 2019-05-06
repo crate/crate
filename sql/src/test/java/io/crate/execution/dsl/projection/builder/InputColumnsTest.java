@@ -21,27 +21,41 @@
 
 package io.crate.execution.dsl.projection.builder;
 
+import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.DocTableRelation;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.sql.tree.QualifiedName;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 
-public class InputColumnsTest extends CrateUnitTest {
+public class InputColumnsTest extends CrateDummyClusterServiceUnitTest {
+
+    private SqlExpressions sqlExpressions;
+
+    @Before
+    public void prepare() throws Exception {
+        Map<QualifiedName, AnalyzedRelation> sources = T3.sources(List.of(T3.T1_RN), clusterService);
+
+        DocTableRelation tr1 = (DocTableRelation) T3.fromSource(T3.T1_RN, sources);
+        sqlExpressions = new SqlExpressions(sources, tr1);
+    }
 
     @Test
     public void testNonDeterministicFunctionsReplacement() throws Exception {
-        SqlExpressions sqlExpressions = new SqlExpressions(T3.SOURCES, T3.TR_1);
         Function fn1 = (Function) sqlExpressions.asSymbol("random()");
         Function fn2 = (Function) sqlExpressions.asSymbol("random()");
 

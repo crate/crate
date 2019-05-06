@@ -21,7 +21,6 @@
 
 package io.crate.analyze;
 
-import com.google.common.collect.ImmutableMap;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.expression.scalar.SubstrFunction;
@@ -29,15 +28,9 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Reference;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.Routing;
-import io.crate.metadata.Schemas;
-import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.table.TestingTableInfo;
 import io.crate.sql.parser.ParsingException;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import io.crate.types.DataTypes;
 import io.crate.types.StringType;
 import org.hamcrest.core.Is;
 import org.junit.Assert;
@@ -48,7 +41,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-import static io.crate.analyze.TableDefinitions.SHARD_ROUTING;
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.SymbolMatchers.isReference;
@@ -63,42 +55,25 @@ public class InsertFromSubQueryAnalyzerTest extends CrateDummyClusterServiceUnit
 
     @Before
     public void prepare() throws IOException {
-        SQLExecutor.Builder builder = SQLExecutor.builder(clusterService).enableDefaultTables();
-
-        RelationName usersGeneratedIdent = new RelationName(Schemas.DOC_SCHEMA_NAME, "users_generated");
-        TestingTableInfo.Builder usersGenerated = new TestingTableInfo.Builder(usersGeneratedIdent, SHARD_ROUTING)
-            .add("id", DataTypes.LONG)
-            .add("firstname", DataTypes.STRING)
-            .add("lastname", DataTypes.STRING)
-            .addGeneratedColumn("name", DataTypes.STRING, "firstname || ' ' || lastname", false)
-            .addPrimaryKey("id");
-
-        RelationName threePksIdent = new RelationName(Schemas.DOC_SCHEMA_NAME, "three_pk");
-        TestingTableInfo.Builder threePks = new TestingTableInfo.Builder(threePksIdent, SHARD_ROUTING)
-            .add("a", DataTypes.INTEGER)
-            .add("b", DataTypes.INTEGER)
-            .add("c", DataTypes.INTEGER)
-            .add("d", DataTypes.INTEGER)
-            .addPrimaryKey("a")
-            .addPrimaryKey("b")
-            .addPrimaryKey("c");
-
-        builder.addDocTable(usersGenerated);
-        builder.addDocTable(threePks);
-        e = builder.build();
+        e = SQLExecutor.builder(clusterService)
+            .enableDefaultTables()
+            .addTable(
+                "create table doc.users_generated (" +
+                "  id bigint primary key," +
+                "  firstname text," +
+                "  lastname text," +
+                "  name text generated always as firstname || ' ' || lastname" +
+                ")")
+            .addTable(
+                "create table doc.three_pk (" +
+                "  a int," +
+                "  b int," +
+                "  c int," +
+                "  d int," +
+                "  primary key (a, b, c)" +
+                ")")
+            .build();
     }
-
-    private static final RelationName THREE_PK_TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "three_pk");
-    private static final DocTableInfo THREE_PK_TABLE_INFO = new TestingTableInfo.Builder(
-        THREE_PK_TABLE_IDENT, new Routing(ImmutableMap.of()))
-        .add("a", DataTypes.INTEGER)
-        .add("b", DataTypes.INTEGER)
-        .add("c", DataTypes.INTEGER)
-        .add("d", DataTypes.INTEGER)
-        .addPrimaryKey("a")
-        .addPrimaryKey("b")
-        .addPrimaryKey("c")
-        .build();
 
     private void assertCompatibleColumns(InsertFromSubQueryAnalyzedStatement statement) {
         List<Symbol> outputSymbols = statement.subQueryRelation().querySpec().outputs();

@@ -22,7 +22,6 @@
 
 package io.crate.analyze;
 
-import io.crate.metadata.RelationName;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.junit.Before;
@@ -38,7 +37,7 @@ public class IsWriteOperationTest extends CrateDummyClusterServiceUnitTest {
     public void setUpExecutor() throws Exception {
         e = SQLExecutor.builder(clusterService)
             .addTable("create table t1 (x int)")
-            .addBlobTable(TableDefinitions.createBlobTable(new RelationName("blob", "blobs")))
+            .addBlobTable("create blob table blobs")
             .build();
     }
 

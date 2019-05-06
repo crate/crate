@@ -176,10 +176,9 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testExtractTypesFromInsertFromQuery() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService).
-            addTable(TableDefinitions.USER_TABLE_DEFINITION).
-            addDocTable(TableDefinitions.USER_TABLE_INFO_CLUSTERED_BY_ONLY).
-            build();
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .enableDefaultTables()
+            .build();
         AnalyzedStatement analyzedStatement = e.analyzer.unboundAnalyze(
             SqlParser.createStatement("INSERT INTO users (id, name) (SELECT id, name FROM users_clustered_by_only " +
                                       "WHERE name = ?)"),
@@ -194,10 +193,9 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testExtractTypesFromInsertWithOnDuplicateKey() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService).
-            addTable(TableDefinitions.USER_TABLE_DEFINITION).
-            addDocTable(TableDefinitions.USER_TABLE_INFO_CLUSTERED_BY_ONLY).
-            build();
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .enableDefaultTables()
+            .build();
         AnalyzedStatement analyzedStatement = e.analyzer.unboundAnalyze(
             SqlParser.createStatement("INSERT INTO users (id, name) values (?, ?) " +
                                       "ON CONFLICT (id) DO UPDATE SET name = ?"),

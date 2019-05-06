@@ -21,7 +21,7 @@
 
 package io.crate.analyze;
 
-abstract class AbstractDDLAnalyzedStatement implements DDLStatement {
+public abstract class AbstractDDLAnalyzedStatement implements DDLStatement {
 
     protected final TableParameter tableParameter = new TableParameter();
 

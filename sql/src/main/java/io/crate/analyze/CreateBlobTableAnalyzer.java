@@ -29,12 +29,12 @@ import org.elasticsearch.cluster.metadata.IndexMetaData;
 
 import java.util.Optional;
 
-class CreateBlobTableAnalyzer {
+public class CreateBlobTableAnalyzer {
 
     private final Schemas schemas;
     private final NumberOfShards numberOfShards;
 
-    CreateBlobTableAnalyzer(Schemas schemas, NumberOfShards numberOfShards) {
+    public CreateBlobTableAnalyzer(Schemas schemas, NumberOfShards numberOfShards) {
         this.schemas = schemas;
         this.numberOfShards = numberOfShards;
     }

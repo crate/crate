@@ -25,20 +25,20 @@ package io.crate.analyze.relations;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.table.TestingTableInfo;
-import io.crate.test.integration.CrateUnitTest;
-import io.crate.types.DataTypes;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
+import org.junit.Test;
 
 
-public class DocTableRelationTest extends CrateUnitTest {
+public class DocTableRelationTest extends CrateDummyClusterServiceUnitTest {
 
+    @Test
     public void testUpdatingPrimaryKeyThrowsCorrectException() {
-        DocTableInfo tableInfo = TestingTableInfo.builder(new RelationName(DocSchemaInfo.NAME, "t1"), null)
-            .add("i", DataTypes.INTEGER)
-            .addPrimaryKey("i")
-            .build();
+        DocTableInfo tableInfo = SQLExecutor.tableInfo(
+            new RelationName("doc", "t1"),
+            "create table doc.t1 (i int primary key)",
+            clusterService);
         DocTableRelation rel = new DocTableRelation(tableInfo);
 
         expectedException.expect(ColumnValidationException.class);
@@ -46,13 +46,12 @@ public class DocTableRelationTest extends CrateUnitTest {
         rel.ensureColumnCanBeUpdated(new ColumnIdent("i"));
     }
 
+    @Test
     public void testUpdatingCompoundPrimaryKeyThrowsCorrectException() {
-        DocTableInfo tableInfo = TestingTableInfo.builder(new RelationName(DocSchemaInfo.NAME, "t1"), null)
-            .add("i", DataTypes.INTEGER)
-            .addPrimaryKey("i")
-            .add("j", DataTypes.INTEGER)
-            .addPrimaryKey("j")
-            .build();
+        DocTableInfo tableInfo = SQLExecutor.tableInfo(
+            new RelationName("doc", "t1"),
+            "create table doc.t1 (i int, j int, primary key (i, j))",
+            clusterService);
         DocTableRelation rel = new DocTableRelation(tableInfo);
 
         expectedException.expect(ColumnValidationException.class);
@@ -60,11 +59,12 @@ public class DocTableRelationTest extends CrateUnitTest {
         rel.ensureColumnCanBeUpdated(new ColumnIdent("i"));
     }
 
+    @Test
     public void testUpdatingClusteredByColumnThrowsCorrectException() {
-        DocTableInfo tableInfo = TestingTableInfo.builder(new RelationName(DocSchemaInfo.NAME, "t1"), null)
-            .add("i", DataTypes.INTEGER)
-            .clusteredBy("i")
-            .build();
+        DocTableInfo tableInfo = SQLExecutor.tableInfo(
+            new RelationName("doc", "t1"),
+            "create table doc.t1 (i int) clustered by (i)",
+            clusterService);
         DocTableRelation rel = new DocTableRelation(tableInfo);
 
         expectedException.expect(ColumnValidationException.class);

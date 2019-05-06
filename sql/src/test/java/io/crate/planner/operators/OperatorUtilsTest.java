@@ -23,9 +23,11 @@
 package io.crate.planner.operators;
 
 import io.crate.expression.symbol.Symbol;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
 import org.hamcrest.Matchers;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -33,13 +35,17 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
-import static org.junit.Assert.assertThat;
+public class OperatorUtilsTest extends CrateDummyClusterServiceUnitTest {
 
-public class OperatorUtilsTest {
+    private SqlExpressions sqlExpressions;
+
+    @Before
+    public void prepare() throws Exception {
+        sqlExpressions = new SqlExpressions(T3.sources(clusterService));
+    }
 
     @Test
     public void testGetUnusedColsWithNoUnused() throws Exception {
-        SqlExpressions sqlExpressions = new SqlExpressions(T3.SOURCES);
         Symbol x = sqlExpressions.asSymbol("x");
         Symbol xAdd1 = sqlExpressions.asSymbol("x + 1");
 

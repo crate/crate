@@ -24,16 +24,22 @@ package io.crate.analyze;
 
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
+import org.junit.Before;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 
-public class WhereClauseTest {
+public class WhereClauseTest extends CrateDummyClusterServiceUnitTest {
 
-    private SqlExpressions sqlExpressions = new SqlExpressions(T3.SOURCES);
+    private SqlExpressions sqlExpressions;
+
+    @Before
+    public void prepare() {
+        sqlExpressions = new SqlExpressions(T3.sources(clusterService));
+    }
 
     @Test
     public void testReplaceWithLiteralTrueSemantics() throws Exception {

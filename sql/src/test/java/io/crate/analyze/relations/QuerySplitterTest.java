@@ -25,6 +25,7 @@ package io.crate.analyze.relations;
 import com.google.common.collect.Sets;
 import io.crate.expression.symbol.Symbol;
 import io.crate.sql.tree.QualifiedName;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
 import org.junit.Before;
@@ -36,10 +37,9 @@ import java.util.Set;
 
 import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 
 
-public class QuerySplitterTest {
+public class QuerySplitterTest extends CrateDummyClusterServiceUnitTest {
 
     private SqlExpressions expressions;
     private QualifiedName tr1 = new QualifiedName(Arrays.asList("doc", "t1"));
@@ -47,8 +47,8 @@ public class QuerySplitterTest {
     private QualifiedName tr3 = new QualifiedName(Arrays.asList("doc", "t3"));
 
     @Before
-    public void setUp() throws Exception {
-        expressions = new SqlExpressions(T3.SOURCES);
+    public void prepare() throws Exception {
+        expressions = new SqlExpressions(T3.sources(clusterService));
     }
 
     private Symbol asSymbol(String expression) {

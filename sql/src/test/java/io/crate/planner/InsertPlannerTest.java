@@ -22,7 +22,6 @@
 
 package io.crate.planner;
 
-import io.crate.analyze.TableDefinitions;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.phases.PKLookupPhase;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
@@ -42,6 +41,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.Schemas;
 import io.crate.planner.node.dml.LegacyUpsertById;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.join.Join;
@@ -447,7 +447,7 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(toCollect.size(), is(2));
         assertThat(toCollect.get(0), isReference("_doc['id']"));
         assertThat(toCollect.get(1), equalTo(new Reference(
-            new ReferenceIdent(TableDefinitions.PARTED_PKS_IDENT, "date"),
+            new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, "parted_pks"), "date"),
             RowGranularity.PARTITION,
             DataTypes.TIMESTAMPZ,
             3)));

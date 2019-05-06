@@ -52,8 +52,8 @@ public class SubscriptFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testNotRegisteredForSets() throws Exception {
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast long_set to type undefined_array");
-        assertEvaluate("subscript(long_set, a)", 3L,
+        expectedException.expectMessage("Cannot cast to_bigint_set(long_array) to type undefined_array");
+        assertEvaluate("subscript(cast(long_array as set(bigint)), a)", 3L,
             Literal.of(ImmutableSet.of(3L, 7L), new SetType(DataTypes.LONG)),
             Literal.of(DataTypes.INTEGER, 1)
         );

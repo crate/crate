@@ -74,10 +74,11 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -104,12 +105,11 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void prepare() throws IOException {
         e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom())
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .addDocTable(TableDefinitions.TEST_CLUSTER_BY_STRING_TABLE_INFO)
-            .addDocTable(TableDefinitions.USER_TABLE_INFO_CLUSTERED_BY_ONLY)
-            .addDocTable(TableDefinitions.PARTED_PKS_TI)
-            .addDocTable(TableDefinitions.IGNORED_NESTED_TABLE_INFO)
-            .addDocTable(T3.T1_INFO)
-            .addDocTable(T3.T2_INFO)
+            .addTable(TableDefinitions.TEST_CLUSTER_BY_STRING_TABLE_DEFINITION)
+            .addTable(TableDefinitions.USER_TABLE_CLUSTERED_BY_ONLY_DEFINITION)
+            .addTable(TableDefinitions.IGNORED_NESTED_TABLE_DEFINITION)
+            .addTable(T3.T1_DEFINITION)
+            .addTable(T3.T2_DEFINITION)
             .addTable(
                 "create table doc.gc_table (" +
                 "   revenue integer," +
@@ -133,6 +133,14 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
                 new PartitionName(new RelationName("doc", "parted"), singletonList("1395961200000")).asIndexName(),
                 new PartitionName(new RelationName("doc", "parted"), singletonList(null)).asIndexName()
             )
+            .addPartitionedTable(
+                TableDefinitions.PARTED_PKS_TABLE_DEFINITION,
+                new PartitionName(new RelationName("doc", "parted_pks"), singletonList("1395874800000")).asIndexName(),
+                new PartitionName(new RelationName("doc", "parted_pks"), singletonList("1395961200000")).asIndexName())
+            .addTable(
+                "create table doc.ignored_nested (" +
+                "  details object(ignored)" +
+                ")")
             .build();
     }
 
@@ -314,13 +322,14 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         Merge merge = (Merge) qtf.subPlan();
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) ((Collect) merge.subPlan()).collectPhase());
 
-        List<String> indices = new ArrayList<>();
+        Set<String> indices = new HashSet<>();
         Map<String, Map<String, IntIndexedContainer>> locations = collectPhase.routing().locations();
         for (Map.Entry<String, Map<String, IntIndexedContainer>> entry : locations.entrySet()) {
             indices.addAll(entry.getValue().keySet());
         }
-        assertThat(indices, Matchers.contains(
-            new PartitionName(new RelationName("doc", "parted"), Arrays.asList("123")).asIndexName()));
+        assertThat(indices, Matchers.containsInAnyOrder(
+            new PartitionName(new RelationName("doc", "parted_pks"), Arrays.asList("1395874800000")).asIndexName(),
+            new PartitionName(new RelationName("doc", "parted_pks"), Arrays.asList("1395961200000")).asIndexName()));
 
         assertThat(collectPhase.where().representation(), is("Ref{doc.parted_pks.name, text} = x"));
 
@@ -535,6 +544,12 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testReferenceToNestedAggregatedField() throws Exception {
+        // rebuild executor + cluster state with 1 node
+        resetClusterService();
+        e = SQLExecutor.builder(clusterService)
+            .addTable(T3.T1_DEFINITION)
+            .build();
+
         Collect collect = e.plan("select ii, xx from ( " +
                                  "  select i + i as ii, xx from (" +
                                  "    select i, sum(x) as xx from t1 group by i) as t) as tt " +
@@ -744,7 +759,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testInnerJoinResultsInHashJoinIfHashJoinIsEnabled() {
         e.getSessionContext().setHashJoinEnabled(true);
-        Join join = e.plan("select t2.b, t1.a from t1 inner join t2 on t1.i = t2.i order by 1, 2");
+        Merge merge = e.plan("select t2.b, t1.a from t1 inner join t2 on t1.i = t2.i order by 1, 2");
+        Join join = (Join) merge.subPlan();
         assertThat(join.joinPhase().type(), is(ExecutionPhase.Type.HASH_JOIN));
     }
 

@@ -26,7 +26,7 @@ import io.crate.exceptions.ConversionException;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
 import io.crate.types.ArrayType;
@@ -47,13 +47,13 @@ import static io.crate.testing.SymbolMatchers.isFunction;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 
-public class CompoundLiteralTest extends CrateUnitTest {
+public class CompoundLiteralTest extends CrateDummyClusterServiceUnitTest {
 
     private SqlExpressions expressions;
 
     @Before
     public void prepare() {
-        expressions = new SqlExpressions(T3.SOURCES);
+        expressions = new SqlExpressions(T3.sources(clusterService));
     }
 
     @SuppressWarnings("ConstantConditions")

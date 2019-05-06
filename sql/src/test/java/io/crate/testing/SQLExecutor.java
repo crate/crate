@@ -26,9 +26,12 @@ import com.google.common.base.Preconditions;
 import io.crate.Constants;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.SessionContext;
+import io.crate.analyze.AbstractDDLAnalyzedStatement;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.Analyzer;
+import io.crate.analyze.CreateBlobTableAnalyzedStatement;
+import io.crate.analyze.CreateBlobTableAnalyzer;
 import io.crate.analyze.CreateTableAnalyzedStatement;
 import io.crate.analyze.CreateTableStatementAnalyzer;
 import io.crate.analyze.NumberOfShards;
@@ -66,7 +69,6 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.blob.BlobSchemaInfo;
-import io.crate.metadata.blob.BlobTableInfo;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocSchemaInfoFactory;
 import io.crate.metadata.doc.DocTableInfo;
@@ -76,7 +78,6 @@ import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.SchemaInfo;
-import io.crate.metadata.table.TestingTableInfo;
 import io.crate.metadata.view.ViewInfoFactory;
 import io.crate.metadata.view.ViewsMetaData;
 import io.crate.planner.Plan;
@@ -86,6 +87,7 @@ import io.crate.planner.TableStats;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.parser.SqlParser;
+import io.crate.sql.tree.CreateBlobTable;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.user.StubUserManager;
@@ -138,16 +140,18 @@ import java.util.Objects;
 import java.util.Random;
 import java.util.UUID;
 
-import static io.crate.analyze.TableDefinitions.DEEPLY_NESTED_TABLE_INFO;
-import static io.crate.analyze.TableDefinitions.NESTED_PK_TABLE_INFO;
-import static io.crate.analyze.TableDefinitions.TEST_CLUSTER_BY_STRING_TABLE_INFO;
-import static io.crate.analyze.TableDefinitions.TEST_DOC_LOCATIONS_TABLE_INFO;
-import static io.crate.analyze.TableDefinitions.TEST_DOC_TRANSACTIONS_TABLE_INFO;
-import static io.crate.analyze.TableDefinitions.TEST_PARTITIONED_TABLE_INFO;
+import static io.crate.analyze.TableDefinitions.DEEPLY_NESTED_TABLE_DEFINITION;
+import static io.crate.analyze.TableDefinitions.NESTED_PK_TABLE_DEFINITION;
+import static io.crate.analyze.TableDefinitions.TEST_CLUSTER_BY_STRING_TABLE_DEFINITION;
+import static io.crate.analyze.TableDefinitions.TEST_DOC_LOCATIONS_TABLE_DEFINITION;
+import static io.crate.analyze.TableDefinitions.TEST_DOC_TRANSACTIONS_TABLE_DEFINITION;
+import static io.crate.analyze.TableDefinitions.TEST_PARTITIONED_TABLE_DEFINITION;
+import static io.crate.analyze.TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS;
+import static io.crate.analyze.TableDefinitions.USER_TABLE_CLUSTERED_BY_ONLY_DEFINITION;
 import static io.crate.analyze.TableDefinitions.USER_TABLE_DEFINITION;
-import static io.crate.analyze.TableDefinitions.USER_TABLE_INFO_CLUSTERED_BY_ONLY;
-import static io.crate.analyze.TableDefinitions.USER_TABLE_INFO_MULTI_PK;
-import static io.crate.analyze.TableDefinitions.USER_TABLE_INFO_REFRESH_INTERVAL_BY_ONLY;
+import static io.crate.analyze.TableDefinitions.USER_TABLE_MULTI_PK_DEFINITION;
+import static io.crate.analyze.TableDefinitions.USER_TABLE_REFRESH_INTERVAL_BY_ONLY_DEFINITION;
+import static io.crate.blob.v2.BlobIndex.fullIndexName;
 import static io.crate.testing.DiscoveryNodes.newFakeAddress;
 import static io.crate.testing.TestingHelpers.getFunctions;
 import static java.util.Collections.emptyList;
@@ -216,12 +220,12 @@ public class SQLExecutor {
         private final ClusterService clusterService;
         private final Map<String, SchemaInfo> schemaInfoByName = new HashMap<>();
         private final Map<RelationName, DocTableInfo> docTables = new HashMap<>();
-        private final Map<RelationName, BlobTableInfo> blobTables = new HashMap<>();
         private final Functions functions;
         private final DocTableInfoFactory tableInfoFactory;
         private final ViewInfoFactory testingViewInfoFactory;
         private final AnalysisRegistry analysisRegistry;
         private final CreateTableStatementAnalyzer createTableStatementAnalyzer;
+        private final CreateBlobTableAnalyzer createBlobTableAnalyzer;
         private final AllocationService allocationService;
         private final UserDefinedFunctionService udfService;
         private final Random random;
@@ -232,6 +236,7 @@ public class SQLExecutor {
         private TableStats tableStats = new TableStats();
         private Settings settings = Settings.EMPTY;
         private boolean hasValidLicense = true;
+        private boolean hasBlobTables = false;
 
         private Builder(ClusterService clusterService, int numNodes, Random random) {
             this.random = random;
@@ -267,6 +272,10 @@ public class SQLExecutor {
                 schemas,
                 new FulltextAnalyzerResolver(clusterService, analysisRegistry),
                 functions,
+                new NumberOfShards(clusterService)
+            );
+            createBlobTableAnalyzer = new CreateBlobTableAnalyzer(
+                schemas,
                 new NumberOfShards(clusterService)
             );
             allocationService = new AllocationService(
@@ -327,18 +336,18 @@ public class SQLExecutor {
         public Builder enableDefaultTables() throws IOException {
             // we should try to reduce the number of tables here eventually...
             addTable(USER_TABLE_DEFINITION);
-            addDocTable(USER_TABLE_INFO_CLUSTERED_BY_ONLY);
-            addDocTable(USER_TABLE_INFO_MULTI_PK);
-            addDocTable(DEEPLY_NESTED_TABLE_INFO);
-            addDocTable(NESTED_PK_TABLE_INFO);
-            addDocTable(TEST_PARTITIONED_TABLE_INFO);
-            addDocTable(TEST_DOC_TRANSACTIONS_TABLE_INFO);
-            addDocTable(TEST_DOC_LOCATIONS_TABLE_INFO);
-            addDocTable(TEST_CLUSTER_BY_STRING_TABLE_INFO);
-            addDocTable(USER_TABLE_INFO_REFRESH_INTERVAL_BY_ONLY);
-            addDocTable(T3.T1_INFO);
-            addDocTable(T3.T2_INFO);
-            addDocTable(T3.T3_INFO);
+            addTable(USER_TABLE_CLUSTERED_BY_ONLY_DEFINITION);
+            addTable(USER_TABLE_MULTI_PK_DEFINITION);
+            addTable(DEEPLY_NESTED_TABLE_DEFINITION);
+            addTable(NESTED_PK_TABLE_DEFINITION);
+            addPartitionedTable(TEST_PARTITIONED_TABLE_DEFINITION, TEST_PARTITIONED_TABLE_PARTITIONS);
+            addTable(TEST_DOC_TRANSACTIONS_TABLE_DEFINITION);
+            addTable(TEST_DOC_LOCATIONS_TABLE_DEFINITION);
+            addTable(TEST_CLUSTER_BY_STRING_TABLE_DEFINITION);
+            addTable(USER_TABLE_REFRESH_INTERVAL_BY_ONLY_DEFINITION);
+            addTable(T3.T1_DEFINITION);
+            addTable(T3.T2_DEFINITION);
+            addTable(T3.T3_DEFINITION);
 
             RelationName multiPartName = new RelationName("doc", "multi_parted");
             addPartitionedTable(
@@ -356,10 +365,12 @@ public class SQLExecutor {
         }
 
         public SQLExecutor build() {
-            if (!blobTables.isEmpty()) {
+            if (hasBlobTables) {
                 schemaInfoByName.put(
                     BlobSchemaInfo.NAME,
-                    new BlobSchemaInfo(clusterService, new TestingBlobTableInfoFactory(blobTables)));
+                    new BlobSchemaInfo(
+                        clusterService,
+                        new TestingBlobTableInfoFactory(Collections.emptyMap(), new IndexNameExpressionResolver(Settings.EMPTY), createTempDir())));
             }
 
             for (String schema : searchPath) {
@@ -423,22 +434,6 @@ public class SQLExecutor {
                 }
             }
             throw new IllegalStateException("Cannot create temp dir");
-        }
-
-        public Builder addSchema(SchemaInfo schema) {
-            schemaInfoByName.put(schema.name(), schema);
-            return this;
-        }
-
-        /**
-         * Adds a table to the schemas.
-         * Note that these tables won't be part of the clusterState.
-         * Using {@link #addTable(String)} is preferred for this reason
-         */
-        @Deprecated
-        public Builder addDocTable(DocTableInfo table) {
-            docTables.put(table.ident(), table);
-            return this;
         }
 
         public Builder addPartitionedTable(String createTableStmt, String... partitions) throws IOException {
@@ -509,7 +504,7 @@ public class SQLExecutor {
         }
 
         private static IndexMetaData.Builder getIndexMetaData(String indexName,
-                                                              CreateTableAnalyzedStatement analyzedStmt,
+                                                              AbstractDDLAnalyzedStatement analyzedStmt,
                                                               Version smallestNodeVersion) throws IOException {
             Settings.Builder builder = Settings.builder()
                 .put(analyzedStmt.tableParameter().settings())
@@ -518,9 +513,15 @@ public class SQLExecutor {
                 .put(SETTING_INDEX_UUID, UUIDs.randomBase64UUID());
 
             Settings indexSettings = builder.build();
-            return IndexMetaData.builder(indexName)
-                .settings(indexSettings)
-                .putMapping(new MappingMetaData(Constants.DEFAULT_MAPPING_TYPE, analyzedStmt.mapping()));
+            IndexMetaData.Builder metaBuilder = IndexMetaData.builder(indexName)
+                .settings(indexSettings);
+            if (analyzedStmt instanceof CreateTableAnalyzedStatement) {
+                metaBuilder.putMapping(new MappingMetaData(
+                    Constants.DEFAULT_MAPPING_TYPE,
+                    ((CreateTableAnalyzedStatement) analyzedStmt).mapping()));
+            }
+
+            return metaBuilder;
         }
 
         /**
@@ -542,12 +543,23 @@ public class SQLExecutor {
             return this;
         }
 
-        public Builder addDocTable(TestingTableInfo.Builder builder) {
-            return addDocTable(builder.build(functions));
-        }
+        public Builder addBlobTable(String createBlobTableStmt) throws IOException {
+            hasBlobTables = true;
+            CreateBlobTable stmt = (CreateBlobTable) SqlParser.createStatement(createBlobTableStmt);
+            CreateBlobTableAnalyzedStatement analyzedStmt = createBlobTableAnalyzer.analyze(
+                stmt, ParameterContext.EMPTY);
 
-        public Builder addBlobTable(BlobTableInfo tableInfo) {
-            blobTables.put(tableInfo.ident(), tableInfo);
+            ClusterState prevState = clusterService.state();
+            IndexMetaData indexMetaData = getIndexMetaData(
+                fullIndexName(analyzedStmt.tableName()), analyzedStmt, prevState.nodes().getSmallestNonClientNodeVersion())
+                .build();
+
+            ClusterState state = ClusterState.builder(prevState)
+                .metaData(MetaData.builder(prevState.metaData()).put(indexMetaData, true))
+                .routingTable(RoutingTable.builder(prevState.routingTable()).addAsNew(indexMetaData).build())
+                .build();
+
+            ClusterServiceUtils.setState(clusterService, allocationService.reroute(state, "assign shards"));
             return this;
         }
 
@@ -568,6 +580,39 @@ public class SQLExecutor {
 
     public static Builder builder(ClusterService clusterService, int numNodes, Random random) {
         return new Builder(clusterService, numNodes, random);
+    }
+
+    /**
+     * This will build a cluster state containing the given table definition before returning a fully resolved
+     * {@link DocTableInfo}.
+     *
+     * <p>Building a cluster state is a rather expensive operation thus this method should NOT be used when multiple
+     * tables are needed (e.g. inside a loop) but instead building the cluster state once containing all tables
+     * using {@link #builder(ClusterService)} and afterwards resolve all table infos manually.</p>
+     */
+    public static DocTableInfo tableInfo(RelationName name, String stmt, ClusterService clusterService) {
+        try {
+            SQLExecutor executor = builder(clusterService)
+                .addTable(stmt)
+                .build();
+            return executor.schemas().getTableInfo(name);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * Variant of {@link #tableInfo(RelationName, String, ClusterService)} for partitioned tables.
+     */
+    public static DocTableInfo partitionedTableInfo(RelationName name, String stmt, ClusterService clusterService) {
+        try {
+            SQLExecutor executor = builder(clusterService)
+                .addPartitionedTable(stmt)
+                .build();
+            return executor.schemas().getTableInfo(name);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private SQLExecutor(Functions functions,
@@ -624,7 +669,7 @@ public class SQLExecutor {
      *
      * @param sources The relations which are accessible in the expression.
      *                Think of this as the FROM clause.
-     *                If tables are used here they must also be registered in the SQLExecutor having used {@link Builder#addDocTable(DocTableInfo)}
+     *                If tables are used here they must also be registered in the SQLExecutor having used {@link Builder#addTable(String)}
      */
     public Symbol asSymbol(Map<QualifiedName, AnalyzedRelation> sources, String expression) {
         CoordinatorTxnCtx coordinatorTxnCtx = new CoordinatorTxnCtx(sessionContext);

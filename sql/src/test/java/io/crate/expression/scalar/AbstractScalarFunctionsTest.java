@@ -45,15 +45,11 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.SessionSettings;
-import io.crate.metadata.table.TestingTableInfo;
 import io.crate.sql.tree.QualifiedName;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
 import io.crate.testing.SqlExpressions;
-import io.crate.types.ArrayType;
 import io.crate.types.DataType;
-import io.crate.types.DataTypes;
-import io.crate.types.ObjectType;
-import io.crate.types.SetType;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 import org.junit.Before;
@@ -69,7 +65,7 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 
-public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
+public abstract class AbstractScalarFunctionsTest extends CrateDummyClusterServiceUnitTest {
 
     protected SqlExpressions sqlExpressions;
     protected Functions functions;
@@ -83,32 +79,37 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
 
     @Before
     public void prepareFunctions() {
-        DocTableInfo tableInfo = TestingTableInfo.builder(new RelationName(DocSchemaInfo.NAME, "users"), null)
-            .add("id", DataTypes.INTEGER)
-            .add("name", DataTypes.STRING)
-            .add("tags", new ArrayType(DataTypes.STRING))
-            .add("age", DataTypes.INTEGER)
-            .add("a", DataTypes.INTEGER)
-            .add("x", DataTypes.LONG)
-            .add("shape", DataTypes.GEO_SHAPE)
-            .add("timestamp", DataTypes.TIMESTAMPZ)
-            .add("timezone", DataTypes.STRING)
-            .add("interval", DataTypes.STRING)
-            .add("time_format", DataTypes.STRING)
-            .add("long_array", new ArrayType(DataTypes.LONG))
-            .add("int_array", new ArrayType(DataTypes.INTEGER))
-            .add("array_string_array", new ArrayType(new ArrayType(DataTypes.STRING)))
-            .add("long_set", new SetType(DataTypes.LONG))
-            .add("regex_pattern", DataTypes.STRING)
-            .add("geoshape", DataTypes.GEO_SHAPE)
-            .add("geopoint", DataTypes.GEO_POINT)
-            .add("geostring", DataTypes.STRING)
-            .add("is_awesome", DataTypes.BOOLEAN)
-            .add("double_val", DataTypes.DOUBLE)
-            .add("float_val", DataTypes.DOUBLE)
-            .add("short_val", DataTypes.SHORT)
-            .add("obj", ObjectType.untyped())
-            .build();
+        String createTableStmt =
+            "create table doc.users (" +
+            "  id int," +
+            "  name text," +
+            "  tags array(text)," +
+            "  age int," +
+            "  a int," +
+            "  x bigint," +
+            "  shape geo_shape," +
+            "  timestamp timestamp with time zone," +
+            "  timezone text," +
+            "  interval text," +
+            "  time_format text," +
+            "  long_array array(bigint)," +
+            "  int_array array(int)," +
+            "  regex_pattern text," +
+            "  geoshape geo_shape," +
+            "  geopoint geo_point," +
+            "  geostring text," +
+            "  is_awesome boolean," +
+            "  double_val double precision," +
+            "  float_val real," +
+            "  short_val smallint," +
+            "  obj object" +
+            ")";
+
+        DocTableInfo tableInfo = SQLExecutor.tableInfo(
+            new RelationName(DocSchemaInfo.NAME, "users"),
+            createTableStmt,
+            clusterService);
+
         DocTableRelation tableRelation = new DocTableRelation(tableInfo);
         tableSources = ImmutableMap.of(new QualifiedName("users"), tableRelation);
         sqlExpressions = new SqlExpressions(tableSources);
