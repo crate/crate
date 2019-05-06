@@ -226,7 +226,6 @@ public final class RewriteFilterOnOuterJoinToInnerJoin implements Rule<Filter> {
             newJoinIsInnerJoin ? JoinType.INNER : nl.joinType(),
             nl.joinCondition(),
             nl.isFiltered(),
-            true,
             nl.topMostLeftRelation(),
             nl.orderByWasPushedDown()
         );
