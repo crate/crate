@@ -32,8 +32,8 @@ import io.crate.execution.engine.join.JoinOperations;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.FieldsVisitor;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.Functions;
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.Functions;
 import io.crate.planner.SubqueryPlanner;
 import io.crate.planner.TableStats;
 import io.crate.planner.consumer.FetchMode;
@@ -97,8 +97,6 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
             JoinOperations.buildRelationsToJoinPairsMap(
                 JoinOperations.convertImplicitJoinConditionsToJoinPairs(mss.joinPairs(), queryParts));
 
-        final boolean noOuterJoin = joinPairs.values().stream().noneMatch(p -> p.joinType().isOuter());
-
         Collection<QualifiedName> orderedRelationNames;
         if (mss.sources().size() > 2) {
             orderedRelationNames = JoinOrdering.getOrderedRelationNames(
@@ -159,7 +157,6 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
             lhs,
             rhs,
             query,
-            noOuterJoin,
             txnCtx.sessionContext(),
             tableStats);
 
@@ -175,7 +172,6 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
                 joinPairs,
                 queryParts,
                 subqueryPlanner,
-                noOuterJoin,
                 lhs,
                 functions,
                 txnCtx);
@@ -194,7 +190,6 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
                                               AnalyzedRelation lhs,
                                               AnalyzedRelation rhs,
                                               Symbol query,
-                                              boolean orderByCanBePushedDown,
                                               SessionContext sessionContext,
                                               TableStats tableStats) {
         if (isHashJoinPossible(joinType, joinCondition, sessionContext)) {
@@ -211,7 +206,6 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
                 joinType,
                 joinCondition,
                 !query.symbolType().isValueSymbol(),
-                orderByCanBePushedDown,
                 lhs);
         }
     }
@@ -239,7 +233,6 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
                                             Map<Set<QualifiedName>, JoinPair> joinPairs,
                                             Map<Set<QualifiedName>, Symbol> queryParts,
                                             SubqueryPlanner subqueryPlanner,
-                                            boolean orderByCanBePushedDown,
                                             AnalyzedRelation leftRelation,
                                             Functions functions,
                                             CoordinatorTxnCtx txnCtx) {
@@ -284,7 +277,6 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
                 leftRelation,
                 nextRel,
                 query,
-                orderByCanBePushedDown,
                 txnCtx.sessionContext(),
                 tableStats),
             query
