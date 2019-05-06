@@ -23,8 +23,8 @@
 package io.crate.planner.optimizer.rule;
 
 import io.crate.planner.operators.Filter;
-import io.crate.planner.operators.HashJoin;
 import io.crate.planner.operators.LogicalPlan;
+import io.crate.planner.operators.NestedLoopJoin;
 import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
@@ -34,15 +34,21 @@ import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 import static io.crate.planner.optimizer.matcher.Patterns.source;
 import static io.crate.planner.optimizer.rule.FilterOnJoinsUtil.moveQueryBelowJoin;
 
-public final class MoveFilterBeneathHashJoin implements Rule<Filter> {
+public final class MoveFilterBeneathNestedLoop implements Rule<Filter> {
 
-    private final Capture<HashJoin> joinCapture;
+    private final Capture<NestedLoopJoin> joinCapture;
     private final Pattern<Filter> pattern;
 
-    public MoveFilterBeneathHashJoin() {
+    public MoveFilterBeneathNestedLoop() {
         this.joinCapture = new Capture<>();
         this.pattern = typeOf(Filter.class)
-            .with(source(), typeOf(HashJoin.class).capturedAs(joinCapture));
+            .with(source(),
+                  typeOf(NestedLoopJoin.class)
+                      .capturedAs(joinCapture)
+                      // Can't apply this on OUTER JOINs as outer join actively produce new null rows
+                      // We need to run the filter on top of these null rows to produce the correct results
+                      .with(join -> !join.joinType().isOuter())
+            );
     }
 
     @Override
@@ -52,7 +58,7 @@ public final class MoveFilterBeneathHashJoin implements Rule<Filter> {
 
     @Override
     public LogicalPlan apply(Filter filter, Captures captures) {
-        HashJoin hashJoin = captures.get(joinCapture);
-        return moveQueryBelowJoin(filter.query(), hashJoin);
+        NestedLoopJoin join = captures.get(joinCapture);
+        return moveQueryBelowJoin(filter.query(), join);
     }
 }
