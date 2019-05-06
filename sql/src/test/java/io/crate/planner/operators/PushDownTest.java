@@ -287,6 +287,30 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void testFilterOnSubQueryWithJoinIsPushedBeneathNestedLoopJoin() {
+        var plan = sqlExecutor.logicalPlan(
+            "SELECT * FROM " +
+            "   (SELECT * FROM t1, t2) tjoin " +
+            "WHERE tjoin.x = 10 "
+        );
+        var expectedPlan =
+            "RootBoundary[a, x, i, b, y, i]\n" +
+            "FetchOrEval[a, x, i, b, y, i]\n" +
+            "Boundary[_fetchid, _fetchid, x]\n" +
+            "FetchOrEval[_fetchid, _fetchid, x]\n" +
+            "NestedLoopJoin[\n" +
+            "    Boundary[_fetchid, x]\n" +
+            "    Boundary[_fetchid, x]\n" +
+            "    Collect[doc.t1 | [_fetchid, x] | (x = 10)]\n" +
+            "    --- CROSS ---\n" +
+            "    Boundary[_fetchid]\n" +
+            "    Boundary[_fetchid]\n" +
+            "    Collect[doc.t2 | [_fetchid] | All]\n" +
+            "]\n";
+        assertThat(plan, isPlan(sqlExecutor.functions(), expectedPlan));
+    }
+
+    @Test
     public void testFilterOnSubQueryWithJoinIsSplitAndPartiallyPushedBeneathJoin() {
         sqlExecutor.getSessionContext().setHashJoinEnabled(true);
         var plan = sqlExecutor.logicalPlan(
