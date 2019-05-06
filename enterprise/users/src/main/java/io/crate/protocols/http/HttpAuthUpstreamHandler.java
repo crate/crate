@@ -116,6 +116,10 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
                 authorizedUser = username;
                 ctx.fireChannelRead(request);
             } catch (Exception e) {
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info("Password authentication failed for user={} from connection={}",
+                                username, connectionProperties.address());
+                }
                 sendUnauthorized(ctx.channel(), e.getMessage());
             }
         }
@@ -133,7 +137,6 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
 
     @VisibleForTesting
     static void sendUnauthorized(Channel channel, @Nullable String body) {
-        LOGGER.warn(body == null ? "unauthorized http chunk" : body);
         HttpResponse response;
         if (body != null) {
             if (!body.endsWith("\n")) {
