@@ -165,8 +165,8 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
             isTopN(3, 0),
             instanceOf(EvalProjection.class)
         ));
-        assertThat(projections.get(0).outputs(), isSQL("INPUT(0), INPUT(1)"));
-        assertThat(projections.get(5).outputs(), isSQL("INPUT(1)"));
+        assertThat(projections.get(0).outputs(), isSQL("INPUT(0), INPUT(1), INPUT(2)"));
+        assertThat(projections.get(5).outputs(), isSQL("INPUT(2)"));
     }
 
     @Test
@@ -223,8 +223,7 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat("1 node, otherwise mergePhases would be required", left.nodeIds().size(), is(1));
         assertThat(((RoutedCollectPhase) left.collectPhase()).orderBy(), isSQL("doc.t1.a"));
         assertThat(left.collectPhase().projections(), contains(
-            isTopN(10, 2),
-            instanceOf(EvalProjection.class)
+            isTopN(10, 2)
         ));
         assertThat(left.collectPhase().toCollect(), isSQL("doc.t1.i, doc.t1.a"));
 
@@ -258,8 +257,7 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(left.collectPhase().toCollect(), isSQL("doc.t1.i, doc.t1.a"));
         assertThat(((RoutedCollectPhase) left.collectPhase()).orderBy(), isSQL("doc.t1.a"));
         assertThat(left.collectPhase().projections(), contains(
-            isTopN(10, 2),
-            instanceOf(EvalProjection.class)
+            isTopN(10, 2)
         ));
 
         Collect right = (Collect) join.right();
@@ -297,7 +295,6 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(leftPlan.collectPhase().projections().get(1).requiredGranularity(), is(RowGranularity.NODE));
         Collect rightPlan = (Collect) nl.right();
         assertThat(rightPlan.collectPhase().projections(), contains(
-            instanceOf(GroupProjection.class),
             instanceOf(GroupProjection.class),
             instanceOf(GroupProjection.class)
         ));

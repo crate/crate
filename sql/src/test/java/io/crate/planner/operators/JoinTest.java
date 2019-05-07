@@ -168,11 +168,11 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         LogicalPlanner logicalPlanner = new LogicalPlanner(functions, tableStats);
         LogicalPlan plan = logicalPlanner.plan(e.analyze("select users.id from users, locations " +
                                                          "where users.id = locations.id order by users.id"), context);
-        Join nl = (Join) ((Merge) plan.build(
-            context, projectionBuilder, -1, 0, null, null, Row.EMPTY, SubQueryResults.EMPTY))
-            .subPlan();
+        Merge merge = (Merge) plan.build(
+            context, projectionBuilder, -1, 0, null, null, Row.EMPTY, SubQueryResults.EMPTY);
+        Join nl = (Join) merge.subPlan();
 
-        assertThat(((Collect) nl.left()).collectPhase().toCollect(), isSQL("doc.users.id"));
+        assertThat(((Collect) nl.left()).collectPhase().toCollect(), isSQL("doc.users._fetchid, doc.users.id"));
         assertThat(nl.resultDescription().orderBy(), notNullValue());
     }
 
@@ -190,13 +190,13 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
         LogicalPlan operator = createLogicalPlan(mss, tableStats);
         assertThat(operator, instanceOf(HashJoin.class));
-        assertThat(((HashJoin) operator).concreteRelation.toString(), is("QueriedTable{DocTableRelation{doc.locations}}"));
+        assertThat(((HashJoin) operator).concreteRelation.toString(), is("DocTableRelation{doc.locations}"));
 
         Join join = buildJoin(operator);
         assertThat(join.joinPhase().leftMergePhase().inputTypes(), contains(DataTypes.LONG, DataTypes.LONG));
-        assertThat(join.joinPhase().rightMergePhase().inputTypes(), contains(DataTypes.LONG));
+        assertThat(join.joinPhase().rightMergePhase().inputTypes(), contains(DataTypes.LONG, DataTypes.LONG));
         assertThat(join.joinPhase().projections().get(0).outputs().toString(),
-            is("[IC{0, bigint}, IC{1, bigint}, IC{2, bigint}]"));
+            is("[IC{0, bigint}, IC{1, bigint}, IC{2, bigint}, IC{3, bigint}]"));
     }
 
     @Test
@@ -213,14 +213,14 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
         LogicalPlan operator = createLogicalPlan(mss, tableStats);
         assertThat(operator, instanceOf(HashJoin.class));
-        assertThat(((HashJoin) operator).concreteRelation.toString(), is("QueriedTable{DocTableRelation{doc.locations}}"));
+        assertThat(((HashJoin) operator).concreteRelation.toString(), is("DocTableRelation{doc.locations}"));
 
         Join join = buildJoin(operator);
         // Plans must be switched (left<->right)
-        assertThat(join.joinPhase().leftMergePhase().inputTypes(), Matchers.contains(DataTypes.LONG));
+        assertThat(join.joinPhase().leftMergePhase().inputTypes(), Matchers.contains(DataTypes.LONG, DataTypes.LONG));
         assertThat(join.joinPhase().rightMergePhase().inputTypes(), Matchers.contains(DataTypes.LONG, DataTypes.LONG));
         assertThat(join.joinPhase().projections().get(0).outputs().toString(),
-            is("[IC{1, bigint}, IC{2, bigint}, IC{0, bigint}]"));
+            is("[IC{2, bigint}, IC{3, bigint}, IC{0, bigint}, IC{1, bigint}]"));
     }
 
     @Test
@@ -385,4 +385,14 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         WindowAgg windowAggOperator = (WindowAgg) ((FetchOrEval) ((RootRelationBoundary) join).source).source;
         assertThat(join.outputs(), hasItem(windowAggOperator.windowFunctions().get(0)));
     }
+
+    @Test
+    public void testForbidJoinWhereMatchOnBothTables() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage(
+            "Using constructs like `match(r1.c) OR match(r2.c)` is not supported");
+        e.plan("select * from t1, t2 " +
+               "where match(t1.a, 'Lanistas experimentum!') or match(t2.b, 'Rationes ridetis!')");
+    }
+
 }

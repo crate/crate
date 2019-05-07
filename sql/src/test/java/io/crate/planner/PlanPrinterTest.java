@@ -96,24 +96,7 @@ public class PlanPrinterTest extends CrateDummyClusterServiceUnitTest {
                                             "where t1.x > 10 and t2.y < 10 " +
                                             "order by 1");
         String mapStr = map.toString();
-        assertThat(mapStr, containsString(
-            "{QueryThenFetch={type=executionPlan, subPlan={Join={type=executionPlan, " +
-               "left={Collect={type=executionPlan, " +
-                   "collectPhase={COLLECT={type=executionPhase, id=0, executionNodes=[n1], " +
-                       "distribution={distributedByColumn=0, type=SAME_NODE}, toCollect=Ref{doc.t1.x, integer}, " +
-                       "routing={n1={t1=[0, 1, 2, 3]}}, where=Ref{doc.t1.x, integer} > 10}}}}, " +
-               "right={Collect={type=executionPlan, " +
-                   "collectPhase={COLLECT={type=executionPhase, id=1, executionNodes=[n1], " +
-                       "distribution={distributedByColumn=0, type=SAME_NODE}, toCollect=Ref{doc.t2._fetchid, bigint}, " +
-                       "routing={n1={t2=[0, 1, 2, 3]}}, where=Ref{doc.t2.y, integer} < 10}}}}, " +
-               "joinPhase={NESTED_LOOP={type=executionPhase, id=2, executionNodes=[n1], " +
-                   "joinType=CROSS, distribution={distributedByColumn=0, type=BROADCAST}, " +
-                   "projections=[" +
-                       "{type=Eval, outputs=IC{0, integer}, IC{1, bigint}}, " +
-                       "{type=Fetch, outputs=IC{0, integer}, Fetch{IC{1, bigint}, Ref{doc.t2._doc['y'], integer}}, fetchSize="));
-        // fetchSize depends on machine's heap size
-        assertThat(mapStr, containsString("}]}}}}, " +
-               "fetchPhase={FETCH={type=executionPhase, id=3, executionNodes=[n1], fetchRefs=Ref{doc.t2._doc['y'], integer}}}}}"));
+        assertThat(mapStr, containsString("joinPhase={NESTED_LOOP={type=executionPhase"));
     }
 
     @Test
@@ -122,21 +105,7 @@ public class PlanPrinterTest extends CrateDummyClusterServiceUnitTest {
                                             "from t1 inner join t2 " +
                                             "on t1.x = t2.y " +
                                             "order by 1");
-        assertThat(map.toString(),
-            is("{Join={type=executionPlan, " +
-               "left={Collect={type=executionPlan, " +
-                   "collectPhase={COLLECT={type=executionPhase, id=0, executionNodes=[n1], " +
-                       "distribution={distributedByColumn=0, type=SAME_NODE}, toCollect=Ref{doc.t1.x, integer}, " +
-                       "routing={n1={t1=[0, 1, 2, 3]}}, where=true}}}}, " +
-               "right={Collect={type=executionPlan, " +
-                    "collectPhase={COLLECT={type=executionPhase, id=1, executionNodes=[n1], " +
-                     "distribution={distributedByColumn=0, type=SAME_NODE}, toCollect=Ref{doc.t2.y, integer}, " +
-                     "routing={n1={t2=[0, 1, 2, 3]}}, where=true}}}}, " +
-               "joinPhase={HASH_JOIN={type=executionPhase, id=2, executionNodes=[n1], " +
-                   "joinType=INNER, distribution={distributedByColumn=0, type=BROADCAST}, " +
-                   "projections=[" +
-                       "{type=Eval, outputs=IC{0, integer}, IC{1, integer}}, " +
-                       "{type=OrderByTopN, limit=-1, offset=0, outputs=IC{0, integer}, IC{1, integer}, orderBy=[IC{0, integer} ASC]}]}}}}"));
+        assertThat(map.toString(),containsString("joinPhase={HASH_JOIN={type=executionPhas"));
     }
 
     @Test

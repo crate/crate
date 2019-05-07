@@ -90,13 +90,12 @@ public class SelectDistinctLogicalPlannerTest extends CrateDummyClusterServiceUn
             "GroupBy[count(id) | ]\n" +
             "GroupBy[name | count(id)]\n" +
             "HashJoin[\n" +
-            "    Boundary[department_id, id]\n" +
-            "    Boundary[department_id, id]\n" +
-            "    Collect[doc.users | [department_id, id] | All]\n" +
+            "    Boundary[_fetchid, id, department_id]\n" +
+            "    FetchOrEval[_fetchid, id, department_id]\n" +
+            "    Collect[doc.users | [_fetchid, department_id, id] | All]\n" +
             "    --- INNER ---\n" +
-            "    Boundary[name, id]\n" +
-            "    Boundary[name, id]\n" +
-            "    Collect[doc.departments | [name, id] | All]\n" +
+            "    Boundary[id, name]\n" +
+            "    Collect[doc.departments | [id, name] | All]\n" +
             "]\n"));
     }
 
@@ -111,11 +110,9 @@ public class SelectDistinctLogicalPlannerTest extends CrateDummyClusterServiceUn
             "OrderBy[name ASC]\n" +
             "GroupBy[name | ]\n" +
             "HashJoin[\n" +
-            "    Boundary[department_id]\n" +
-            "    Boundary[department_id]\n" +
-            "    Collect[doc.users | [department_id] | All]\n" +
+            "    Boundary[_fetchid, department_id]\n" +
+            "    Collect[doc.users | [_fetchid, department_id] | All]\n" +
             "    --- INNER ---\n" +
-            "    Boundary[id, name]\n" +
             "    Boundary[id, name]\n" +
             "    Collect[doc.departments | [id, name] | All]\n" +
             "]\n"));

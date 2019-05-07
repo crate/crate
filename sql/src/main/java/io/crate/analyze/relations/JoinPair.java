@@ -28,10 +28,12 @@ import io.crate.planner.node.dql.join.JoinType;
 import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nullable;
+import java.util.function.Function;
 
 public class JoinPair {
 
     private final JoinType joinType;
+
     private final QualifiedName left;
     private final QualifiedName right;
 
@@ -88,6 +90,10 @@ public class JoinPair {
         return Objects.hashCode(left, right, joinType, condition);
     }
 
+    boolean equalsNames(QualifiedName left, QualifiedName right) {
+        return this.left.equals(left) && this.right.equals(right);
+    }
+
     boolean isOuterRelation(QualifiedName name) {
         if (joinType.isOuter()) {
             if (left.equals(name) && (joinType == JoinType.RIGHT || joinType == JoinType.FULL)) {
@@ -107,5 +113,12 @@ public class JoinPair {
             joinType.invert(),
             condition
         );
+    }
+
+    public JoinPair mapCondition(Function<? super Symbol,? extends Symbol> updateField) {
+        if (condition == null) {
+            return this;
+        }
+        return new JoinPair(left, right, joinType, updateField.apply(condition));
     }
 }

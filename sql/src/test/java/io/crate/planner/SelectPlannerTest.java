@@ -580,7 +580,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         Join outerNl = (Join) qtf.subPlan();
         Join innerNl = (Join) outerNl.left();
 
-        assertThat(innerNl.joinPhase().joinCondition(), isSQL("((INPUT(0) = INPUT(2)) AND (INPUT(1) = INPUT(3)))"));
+        assertThat(innerNl.joinPhase().joinCondition(), isSQL("((INPUT(1) = INPUT(4)) AND (INPUT(2) = INPUT(5)))"));
         assertThat(innerNl.joinPhase().projections().size(), is(1));
         assertThat(innerNl.joinPhase().projections().get(0), instanceOf(EvalProjection.class));
 
@@ -675,7 +675,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
                             "where t1.id = t2.id and t2.id = t3.id");
         assertThat(plan.subPlan(), instanceOf(Join.class));
         Join outerNL = (Join)plan.subPlan();
-        assertThat(outerNL.joinPhase().joinCondition(), isSQL("(INPUT(1) = INPUT(2))"));
+        assertThat(outerNL.joinPhase().joinCondition(), isSQL("(INPUT(3) = INPUT(5))"));
         assertThat(outerNL.joinPhase().projections().size(), is(2));
         assertThat(outerNL.joinPhase().projections().get(0), instanceOf(EvalProjection.class));
         assertThat(outerNL.joinPhase().projections().get(1), instanceOf(AggregationProjection.class));
@@ -683,17 +683,17 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(outerNL.joinPhase().outputTypes().get(0), is(CountAggregation.LongStateType.INSTANCE));
 
         Join innerNL = (Join) outerNL.left();
-        assertThat(innerNL.joinPhase().joinCondition(), isSQL("(INPUT(0) = INPUT(1))"));
+        assertThat(innerNL.joinPhase().joinCondition(), isSQL("(INPUT(1) = INPUT(3))"));
         assertThat(innerNL.joinPhase().projections().size(), is(1));
         assertThat(innerNL.joinPhase().projections().get(0), instanceOf(EvalProjection.class));
-        assertThat(innerNL.joinPhase().outputTypes().size(), is(2));
+        assertThat(innerNL.joinPhase().outputTypes().size(), is(4));
         assertThat(innerNL.joinPhase().outputTypes().get(0), is(DataTypes.LONG));
 
         plan = e.plan("select count(t1.other_id) from users t1, users t2, users t3 " +
                       "where t1.id = t2.id and t2.id = t3.id");
         assertThat(plan.subPlan(), instanceOf(Join.class));
         outerNL = (Join)plan.subPlan();
-        assertThat(outerNL.joinPhase().joinCondition(), isSQL("(INPUT(2) = INPUT(3))"));
+        assertThat(outerNL.joinPhase().joinCondition(), isSQL("(INPUT(4) = INPUT(6))"));
         assertThat(outerNL.joinPhase().projections().size(), is(2));
         assertThat(outerNL.joinPhase().projections().get(0), instanceOf(EvalProjection.class));
         assertThat(outerNL.joinPhase().projections().get(1), instanceOf(AggregationProjection.class));
@@ -701,10 +701,10 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(outerNL.joinPhase().outputTypes().get(0), is(CountAggregation.LongStateType.INSTANCE));
 
         innerNL = (Join) outerNL.left();
-        assertThat(innerNL.joinPhase().joinCondition(), isSQL("(INPUT(0) = INPUT(2))"));
+        assertThat(innerNL.joinPhase().joinCondition(), isSQL("(INPUT(1) = INPUT(4))"));
         assertThat(innerNL.joinPhase().projections().size(), is(1));
         assertThat(innerNL.joinPhase().projections().get(0), instanceOf(EvalProjection.class));
-        assertThat(innerNL.joinPhase().outputTypes().size(), is(3));
+        assertThat(innerNL.joinPhase().outputTypes().size(), is(5));
         assertThat(innerNL.joinPhase().outputTypes().get(0), is(DataTypes.LONG));
         assertThat(innerNL.joinPhase().outputTypes().get(1), is(DataTypes.LONG));
     }
@@ -715,18 +715,18 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         Join nl = (Join) qtf.subPlan();
         assertThat(nl.left(), instanceOf(Collect.class));
         assertThat(nl.right(), instanceOf(Collect.class));
-        assertThat(((RoutedCollectPhase)((Collect)nl.left()).collectPhase()).where(), isSQL("false"));
-        assertThat(((RoutedCollectPhase)((Collect)nl.right()).collectPhase()).where(), isSQL("false"));
+        assertThat(((RoutedCollectPhase)((Collect)nl.left()).collectPhase()).where(), isSQL("true"));
+        assertThat(((RoutedCollectPhase)((Collect)nl.right()).collectPhase()).where(), isSQL("true"));
     }
 
     @Test
     public void test3TableJoinWithNoMatch() throws Exception {
         QueryThenFetch qtf = e.plan("select * from users t1, users t2, users t3 WHERE 1=2");
         Join outer = (Join) qtf.subPlan();
-        assertThat(((RoutedCollectPhase)((Collect)outer.right()).collectPhase()).where(), isSQL("false"));
+        assertThat(((RoutedCollectPhase)((Collect)outer.right()).collectPhase()).where(), isSQL("true"));
         Join inner = (Join) outer.left();
-        assertThat(((RoutedCollectPhase)((Collect)inner.left()).collectPhase()).where(), isLiteral(false));
-        assertThat(((RoutedCollectPhase)((Collect)inner.right()).collectPhase()).where(), isLiteral(false));
+        assertThat(((RoutedCollectPhase)((Collect)inner.left()).collectPhase()).where(), isLiteral(true));
+        assertThat(((RoutedCollectPhase)((Collect)inner.right()).collectPhase()).where(), isLiteral(true));
     }
 
     @Test
@@ -734,17 +734,17 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         Join nl = e.plan("select count(*) from users t1, users t2 WHERE 1=2");
         assertThat(nl.left(), instanceOf(Collect.class));
         assertThat(nl.right(), instanceOf(Collect.class));
-        assertThat(((RoutedCollectPhase)((Collect)nl.left()).collectPhase()).where(), isLiteral(false));
-        assertThat(((RoutedCollectPhase)((Collect)nl.right()).collectPhase()).where(), isLiteral(false));
+        assertThat(((RoutedCollectPhase)((Collect)nl.left()).collectPhase()).where(), isLiteral(true));
+        assertThat(((RoutedCollectPhase)((Collect)nl.right()).collectPhase()).where(), isLiteral(true));
     }
 
     @Test
     public void testGlobalAggregateOn3TableJoinWithNoMatch() throws Exception {
         Join outer = e.plan("select count(*) from users t1, users t2, users t3 WHERE 1=2");
         Join inner = (Join) outer.left();
-        assertThat(((RoutedCollectPhase)((Collect)outer.right()).collectPhase()).where(), isLiteral(false));
-        assertThat(((RoutedCollectPhase)((Collect)inner.left()).collectPhase()).where(), isLiteral(false));
-        assertThat(((RoutedCollectPhase)((Collect)inner.right()).collectPhase()).where(), isLiteral(false));
+        assertThat(((RoutedCollectPhase)((Collect)outer.right()).collectPhase()).where(), isLiteral(true));
+        assertThat(((RoutedCollectPhase)((Collect)inner.left()).collectPhase()).where(), isLiteral(true));
+        assertThat(((RoutedCollectPhase)((Collect)inner.right()).collectPhase()).where(), isLiteral(true));
     }
 
     @Test
@@ -881,7 +881,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         ));
         QueryThenFetch qtf = e.plan(statement);
         ExecutionPlan subPlan = qtf.subPlan();
-        Collect collect = subPlan instanceof Collect ? (Collect) subPlan : (Collect) ((Merge) subPlan).subPlan();
+        Collect collect = subPlan instanceof Collect ? (Collect) subPlan : ((Collect) ((Merge) subPlan).subPlan());
         RoutedCollectPhase routedCollectPhase = (RoutedCollectPhase) collect.collectPhase();
 
         int numShards = 0;

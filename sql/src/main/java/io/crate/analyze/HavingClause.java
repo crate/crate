@@ -22,7 +22,6 @@
 package io.crate.analyze;
 
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.operator.AndOperator;
 
 import javax.annotation.Nullable;
 
@@ -30,10 +29,5 @@ public class HavingClause extends QueryClause {
 
     public HavingClause(@Nullable Symbol query) {
         super(query);
-    }
-
-    public HavingClause add(Symbol otherQuery) {
-        this.query = AndOperator.of(this.query, otherQuery);
-        return this;
     }
 }

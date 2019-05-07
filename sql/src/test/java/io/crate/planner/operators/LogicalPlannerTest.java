@@ -179,10 +179,8 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan, isPlan("FetchOrEval[i, cnt]\n" +
                                 "HashJoin[\n" +
                                 "    Boundary[cnt]\n" +
-                                "    Boundary[cnt]\n" +
                                 "    Count[doc.t1 | All]\n" +
                                 "    --- INNER ---\n" +
-                                "    Boundary[i]\n" +
                                 "    Boundary[i]\n" +
                                 "    Limit[1;0]\n" +
                                 "    Collect[doc.t2 | [i] | All]\n" +
@@ -205,8 +203,8 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                                 "    Boundary[_fetchid, x]\n" +
                                 "    Collect[doc.t1 | [_fetchid, x] | All]\n" +
                                 "    --- INNER ---\n" +
-                                "    Boundary[y]\n" +
-                                "    Collect[doc.t2 | [y] | All]\n" +
+                                "    Boundary[_fetchid, y]\n" +
+                                "    Collect[doc.t2 | [_fetchid, y] | All]\n" +
                                 "]\n"));
     }
 
@@ -259,23 +257,17 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                                 " (select b, i from t2 where b > 10) t2 " +
                                 "on t1.i = t2.i where t1.a > 50 and t2.b > 100 " +
                                 "limit 10");
-        assertThat(plan, isPlan("FetchOrEval[a, i, b, i]\n" +
-                                "Limit[10;0]\n" +
+        assertThat(plan, isPlan("Limit[10;0]\n" +
                                 "HashJoin[\n" +
-                                "    Boundary[i, a]\n" +
-                                "    FetchOrEval[i, a]\n" +
                                 "    Boundary[a, i]\n" +
                                 "    Filter[(a > '50')]\n" +
                                 "    Limit[5;0]\n" +
                                 "    OrderBy[a ASC]\n" +
                                 "    Collect[doc.t1 | [a, i] | All]\n" +
                                 "    --- INNER ---\n" +
-                                "    Boundary[i, b]\n" +
-                                "    FetchOrEval[i, b]\n" +
                                 "    Boundary[b, i]\n" +
                                 "    Collect[doc.t2 | [b, i] | ((b > '10') AND (b > '100'))]\n" +
                                 "]\n"));
-
     }
 
     @Test
@@ -288,10 +280,8 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                                 "HashJoin[\n" +
                                 "    Boundary[_fetchid, x]\n" +
                                 "    Boundary[_fetchid, x]\n" +
-                                "    Boundary[_fetchid, x]\n" +
                                 "    Collect[doc.t1 | [_fetchid, x] | All]\n" +
                                 "    --- INNER ---\n" +
-                                "    Boundary[_fetchid, x]\n" +
                                 "    Boundary[_fetchid, x]\n" +
                                 "    Boundary[_fetchid, x]\n" +
                                 "    Collect[doc.t1 | [_fetchid, x] | All]\n" +

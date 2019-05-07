@@ -710,9 +710,9 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat(relation.querySpec().where().query(), isSQL("null"));
 
         assertThat(relation.joinPairs().get(0).condition(),
-            isSQL("(u1.id = u2.id)"));
+            isSQL("(doc.users.id = doc.users_multi_pk.id)"));
         assertThat(relation.joinPairs().get(1).condition(),
-            isSQL("(u2.id = u3.id)"));
+            isSQL("(doc.users_multi_pk.id = doc.users_clustered_by_only.id)"));
     }
 
     @Test
@@ -742,25 +742,24 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat(relation.joinPairs().get(0).condition(),
             isSQL("(doc.users.id = doc.users_multi_pk.id)"));
 
-        // make sure that where clause was pushed down and didn't disappear somehow
-        assertThat(relation.querySpec().where().query(), isSQL("null"));
-        AnalyzedRelation users =
-            relation.sources().get(QualifiedName.of("doc.users"));
-        assertThat(users.querySpec().where().query(), isSQL("(doc.users.name = 'Arthur')"));
+        assertThat(relation.querySpec().where().query(), isSQL("(doc.users.name = 'Arthur')"));
+        AnalyzedRelation users = relation.sources().get(QualifiedName.of("doc", "users"));
+        assertThat(users.where(), is(WhereClause.MATCH_ALL));
     }
 
     public void testSelfJoinSyntaxWithWhereClause() throws Exception {
         AnalyzedRelation relation = analyze("select t2.id from users as t1 join users as t2 on t1.id = t2.id " +
                                             "where t1.name = 'foo' and t2.name = 'bar'");
 
-        assertThat(relation.querySpec().where(), is(WhereClause.MATCH_ALL));
+        assertThat(relation.where().queryOrFallback(),
+                   isSQL("((doc.users.name = 'foo') AND (doc.users.name = 'bar'))"));
         assertThat(relation, instanceOf(MultiSourceSelect.class));
 
         AnalyzedRelation subRel1 = ((MultiSourceSelect) relation).sources().get(QualifiedName.of("t1"));
         AnalyzedRelation subRel2 = ((MultiSourceSelect) relation).sources().get(QualifiedName.of("t2"));
 
-        assertThat(subRel1.querySpec().where().query(), isSQL("(doc.users.name = 'foo')"));
-        assertThat(subRel2.querySpec().where().query(), isSQL("(doc.users.name = 'bar')"));
+        assertThat(subRel1.where().queryOrFallback(), isSQL("true"));
+        assertThat(subRel2.where().queryOrFallback(), isSQL("true"));
     }
 
     @Test
@@ -792,7 +791,10 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
         MultiSourceSelect mss = (MultiSourceSelect) relation;
         AnalyzedRelation u1 = mss.sources().values().iterator().next();
-        assertThat(u1.querySpec(), isSQL("SELECT doc.users.id, doc.users.name"));
+        assertThat(u1.querySpec().outputs(), allOf(
+            hasItem(isReference("name")),
+            hasItem(isReference("id")))
+        );
     }
 
     @Test
@@ -1089,15 +1091,6 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         Literal<Map<String, Object>> options = (Literal<Map<String, Object>>) query.arguments().get(3);
         assertThat(options.value(), Matchers.instanceOf(Map.class));
         assertThat(options.value().size(), is(0));
-    }
-
-    @Test
-    public void testForbidJoinWhereMatchOnBothTables() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot use MATCH predicates on columns of 2 different relations " +
-                                        "if it cannot be logically applied on each of them separately");
-        analyze("select * from users u1, users_multi_pk u2 " +
-                "where match(u1.name, 'Lanistas experimentum!') or match(u2.name, 'Rationes ridetis!')");
     }
 
     @Test
