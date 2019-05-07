@@ -940,6 +940,7 @@ public class ExpressionAnalyzer {
         public Symbol visitMatchPredicate(MatchPredicate node, ExpressionAnalysisContext context) {
             Map<Field, Symbol> identBoostMap = new HashMap<>(node.idents().size());
             DataType columnType = null;
+            HashSet<QualifiedName> relationsInColumns = new HashSet<>();
             for (MatchPredicateColumnIdent ident : node.idents()) {
                 Symbol column = process(ident.columnIdent(), context);
                 if (columnType == null) {
@@ -949,7 +950,12 @@ public class ExpressionAnalyzer {
                     column instanceof Field,
                     SymbolFormatter.format("can only MATCH on columns, not on %s", column));
                 Symbol boost = process(ident.boost(), context);
-                identBoostMap.put(((Field) column), boost);
+                Field field = (Field) column;
+                identBoostMap.put(field, boost);
+                relationsInColumns.add(field.relation().getQualifiedName());
+            }
+            if (relationsInColumns.size() > 1) {
+                throw new IllegalArgumentException("Cannot use MATCH predicates on columns of 2 different relations");
             }
             assert columnType != null : "columnType must not be null";
             verifyTypesForMatch(identBoostMap.keySet(), columnType);

@@ -40,6 +40,7 @@ import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
 import io.crate.sql.tree.QualifiedName;
 
+import javax.annotation.Nullable;
 import java.util.Map;
 import java.util.Set;
 
@@ -149,9 +150,13 @@ public final class RewriteFilterOnOuterJoinToInnerJoin implements Rule<Filter> {
                  * +-----+------+
                  */
                 newLhs = getNewSource(leftQuery, lhs);
-                if (couldMatchOnNull(rightQuery)) {
+                if (rightQuery == null) {
                     newRhs = rhs;
                     newJoinIsInnerJoin = false;
+                } else if (couldMatchOnNull(rightQuery)) {
+                    newRhs = rhs;
+                    newJoinIsInnerJoin = false;
+                    splitQueries.put(rightName, rightQuery);
                 } else {
                     newRhs = getNewSource(rightQuery, rhs);
                     newJoinIsInnerJoin = true;
@@ -169,9 +174,13 @@ public final class RewriteFilterOnOuterJoinToInnerJoin implements Rule<Filter> {
                  * | NULL |   4 |
                  * +------+-----+
                  */
-                if (couldMatchOnNull(leftQuery)) {
+                if (leftQuery == null) {
                     newLhs = lhs;
                     newJoinIsInnerJoin = false;
+                } else if (couldMatchOnNull(leftQuery)) {
+                    newLhs = lhs;
+                    newJoinIsInnerJoin = false;
+                    splitQueries.put(leftName, leftQuery);
                 } else {
                     newLhs = getNewSource(leftQuery, lhs);
                     newJoinIsInnerJoin = true;
@@ -190,8 +199,18 @@ public final class RewriteFilterOnOuterJoinToInnerJoin implements Rule<Filter> {
                  * | NULL |    4 |
                  * +------+------+
                  */
-                newLhs = couldMatchOnNull(leftQuery) ? lhs : getNewSource(leftQuery, lhs);
-                newRhs = couldMatchOnNull(rightQuery) ? rhs : getNewSource(rightQuery, rhs);
+                if (couldMatchOnNull(leftQuery)) {
+                    newLhs = lhs;
+                    splitQueries.put(leftName, leftQuery);
+                } else {
+                    newLhs = getNewSource(leftQuery, lhs);
+                }
+                if (couldMatchOnNull(rightQuery)) {
+                    newRhs = rhs;
+                    splitQueries.put(rightName, rightQuery);
+                } else {
+                    newRhs = getNewSource(rightQuery, rhs);
+                }
                 newJoinIsInnerJoin = newLhs != lhs && newRhs != rhs;
                 break;
             default:
@@ -215,7 +234,10 @@ public final class RewriteFilterOnOuterJoinToInnerJoin implements Rule<Filter> {
         return splitQueries.isEmpty() ? newJoin : new Filter(newJoin, AndOperator.join(splitQueries.values()));
     }
 
-    private boolean couldMatchOnNull(Symbol query) {
+    private boolean couldMatchOnNull(@Nullable Symbol query) {
+        if (query == null) {
+            return false;
+        }
         return WhereClause.canMatch(
             normalizer.normalize(FieldReplacer.replaceFields(query, ignored -> Literal.NULL), null));
     }

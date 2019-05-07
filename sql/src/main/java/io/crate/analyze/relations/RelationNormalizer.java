@@ -27,13 +27,19 @@ import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.QueriedTable;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.where.WhereClauseValidator;
+import io.crate.collections.Lists2;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.FieldReplacer;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.table.Operation;
+import io.crate.sql.tree.QualifiedName;
+
+import java.util.LinkedHashMap;
+import java.util.function.Function;
 
 import static com.google.common.collect.Lists.transform;
 
@@ -117,10 +123,26 @@ public final class RelationNormalizer {
 
         @Override
         public AnalyzedRelation visitMultiSourceSelect(MultiSourceSelect mss, CoordinatorTxnCtx context) {
-            QuerySpec querySpec = mss.querySpec().copyAndReplace(s -> normalizer.normalize(s, context));
-
-            // must create a new MultiSourceSelect because paths and query spec changed
-            return MultiSourceSelect.createWithPushDown(RelationNormalizer.this, functions, context, mss, querySpec);
+            LinkedHashMap<QualifiedName, AnalyzedRelation> normalizedSources = new LinkedHashMap<>();
+            for (var entry : mss.sources().entrySet()) {
+                normalizedSources.put(entry.getKey(), entry.getValue().accept(this, context));
+            }
+            Function<? super Symbol, ? extends Symbol> updateField = FieldReplacer.bind(f -> {
+                QualifiedName name = f.relation().getQualifiedName();
+                if (normalizedSources.containsKey(name)) {
+                    return normalizedSources.get(name).getField(f.path(), Operation.READ);
+                }
+                return f;
+            });
+            Function<Symbol, Symbol> updateSymbol = s -> updateField.apply(normalizer.normalize(s, context));
+            QuerySpec querySpec = mss.querySpec().copyAndReplace(updateSymbol);
+            return new MultiSourceSelect(
+                mss.isDistinct(),
+                normalizedSources,
+                transform(mss.fields(), Field::path),
+                querySpec,
+                Lists2.map(mss.joinPairs(), joinPair -> joinPair.mapCondition(updateSymbol))
+            );
         }
 
         @Override

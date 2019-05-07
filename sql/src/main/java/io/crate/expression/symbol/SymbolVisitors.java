@@ -28,15 +28,6 @@ public class SymbolVisitors {
 
     private static final AnyPredicateVisitor ANY_VISITOR = new AnyPredicateVisitor();
 
-    public static boolean any(Predicate<? super Symbol> symbolPredicate, Iterable<? extends Symbol> symbols) {
-        for (Symbol symbol : symbols) {
-            if (any(symbolPredicate, symbol)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     public static boolean any(Predicate<? super Symbol> symbolPredicate, Symbol symbol) {
         return ANY_VISITOR.process(symbol, symbolPredicate);
     }

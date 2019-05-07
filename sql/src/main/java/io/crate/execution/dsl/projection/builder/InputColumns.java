@@ -28,6 +28,7 @@ import io.crate.expression.symbol.FetchReference;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.MatchPredicate;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.Symbols;
@@ -240,6 +241,13 @@ public final class InputColumns extends DefaultTraversalSymbolVisitor<InputColum
     @Override
     public Symbol visitFetchReference(FetchReference fetchReference, SourceSymbols sourceSymbols) {
         throw new AssertionError("FetchReference symbols must not be visited with " + getClass().getSimpleName());
+    }
+
+    @Override
+    public Symbol visitMatchPredicate(MatchPredicate matchPredicate, SourceSymbols context) {
+        throw new UnsupportedOperationException(
+            "A match predicate can only be evaluated if it can be linked to a single relation." +
+            "Using constructs like `match(r1.c) OR match(r2.c)` is not supported.");
     }
 
     @Override

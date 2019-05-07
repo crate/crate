@@ -88,11 +88,11 @@ public class Union implements LogicalPlan {
             usedFromRight.addAll(right.outputs());
 
             LogicalPlan lhsPlan = LogicalPlanner
-                .plan(left, FetchMode.NEVER_CLEAR, subqueryPlanner, false, functions, txnCtx)
+                .plan(left, FetchMode.NEVER_CLEAR, subqueryPlanner, true, functions, txnCtx)
                 .build(tableStats, usedFromLeft);
 
             LogicalPlan rhsPlan = LogicalPlanner
-                .plan(right, FetchMode.NEVER_CLEAR, subqueryPlanner, false, functions, txnCtx)
+                .plan(right, FetchMode.NEVER_CLEAR, subqueryPlanner, true, functions, txnCtx)
                 .build(tableStats, usedFromRight);
 
             return new Union(lhsPlan, rhsPlan, ttr.outputs());
@@ -151,6 +151,9 @@ public class Union implements LogicalPlan {
 
         ResultDescription leftResultDesc = left.resultDescription();
         ResultDescription rightResultDesc = right.resultDescription();
+        assert leftResultDesc.streamOutputs().equals(rightResultDesc.streamOutputs())
+            : "Left and right must output the same types, got " +
+              "lhs=" + leftResultDesc.streamOutputs() + ", rhs=" + rightResultDesc.streamOutputs();
 
         MergePhase mergePhase = new MergePhase(
             plannerContext.jobId(),

@@ -23,24 +23,17 @@
 package io.crate.analyze;
 
 import com.google.common.collect.Lists;
-import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.AnalyzedView;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.OrderedLimitedRelation;
-import io.crate.analyze.relations.RelationNormalizer;
 import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.relations.UnionSelect;
-import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
-import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.Functions;
 import io.crate.metadata.Path;
-import io.crate.metadata.RowGranularity;
-import io.crate.sql.tree.QualifiedName;
 
 import java.util.Collection;
 import java.util.List;
@@ -50,52 +43,6 @@ public class Relations {
 
     static Collection<? extends Path> namesFromOutputs(List<Symbol> outputs) {
         return Lists.transform(outputs, Symbols::pathFromSymbol);
-    }
-
-    /**
-     * Promotes the relation to a AnalyzedRelation by applying the QuerySpec.
-     *
-     * <pre>
-     * TableRelation -> QueriedTable
-     * QueriedTable  -> QueriedSelect
-     * QueriedSelect -> nested QueriedSelect
-     * </pre>
-     *
-     * If the result is a QueriedTable it is also normalized.
-     */
-    static AnalyzedRelation applyQSToRelation(RelationNormalizer normalizer,
-                                              Functions functions,
-                                              CoordinatorTxnCtx coordinatorTxnCtx,
-                                              AnalyzedRelation relation,
-                                              QuerySpec querySpec) {
-        AnalyzedRelation newRelation;
-        if (relation instanceof AbstractTableRelation) {
-            AbstractTableRelation<?> tableRelation = (AbstractTableRelation<?>) relation;
-            EvaluatingNormalizer evalNormalizer = new EvaluatingNormalizer(
-                functions, RowGranularity.CLUSTER, null, tableRelation);
-
-            newRelation = new QueriedTable<>(
-                false,
-                tableRelation,
-                querySpec.copyAndReplace(s -> evalNormalizer.normalize(s, coordinatorTxnCtx)));
-        } else {
-            newRelation = new QueriedSelectRelation(
-                relation.isDistinct(),
-                relation,
-                namesFromOutputs(querySpec.outputs()),
-                querySpec
-            );
-            newRelation = normalizer.normalize(newRelation, coordinatorTxnCtx);
-        }
-        if (newRelation.where().hasQuery() && newRelation.getQualifiedName().equals(relation.getQualifiedName())) {
-            // This relation will be represented as a subquery and needs a proper QualifiedName.
-            // If there is no distinct QualifiedName, create one by merging all parts of the old QualifiedName
-            // e.g. "doc"."users" -> "doc.users"
-            newRelation.setQualifiedName(QualifiedName.of(relation.getQualifiedName().toString()));
-        } else {
-            newRelation.setQualifiedName(relation.getQualifiedName());
-        }
-        return newRelation;
     }
 
     /**

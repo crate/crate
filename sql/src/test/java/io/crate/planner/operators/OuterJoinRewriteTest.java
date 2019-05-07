@@ -53,10 +53,8 @@ public class OuterJoinRewriteTest extends CrateDummyClusterServiceUnitTest {
             "RootBoundary[x, x]\n" +
             "NestedLoopJoin[\n" +
             "    Boundary[x]\n" +
-            "    Boundary[x]\n" +
             "    Collect[doc.t1 | [x] | All]\n" +
             "    --- INNER ---\n" +
-            "    Boundary[x]\n" +
             "    Boundary[x]\n" +
             "    Collect[doc.t2 | [x] | (x = 10)]\n" +
             "]\n";
@@ -74,10 +72,8 @@ public class OuterJoinRewriteTest extends CrateDummyClusterServiceUnitTest {
             "Filter[(coalesce(x, 10) = 10)]\n" +
             "NestedLoopJoin[\n" +
             "    Boundary[x]\n" +
-            "    Boundary[x]\n" +
             "    Collect[doc.t1 | [x] | All]\n" +
             "    --- LEFT ---\n" +
-            "    Boundary[x]\n" +
             "    Boundary[x]\n" +
             "    Collect[doc.t2 | [x] | All]\n" +
             "]\n";
@@ -85,7 +81,7 @@ public class OuterJoinRewriteTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testFilterOnOuterJoinIsPartiallyPushedDownToTheLeftSide() {
+    public void testFilterOnLeftOuterJoinIsPartiallyPushedDownToTheLeftSide() {
         var plan = sqlExecutor.logicalPlan(
             "SELECT * FROM t1 LEFT JOIN t2 ON t1.x = t2.x " +
             "WHERE coalesce(t2.x, 10) = 10 AND t1.x > 5"
@@ -95,12 +91,48 @@ public class OuterJoinRewriteTest extends CrateDummyClusterServiceUnitTest {
             "Filter[(coalesce(x, 10) = 10)]\n" +
             "NestedLoopJoin[\n" +
             "    Boundary[x]\n" +
-            "    Boundary[x]\n" +
             "    Collect[doc.t1 | [x] | (x > 5)]\n" +
             "    --- LEFT ---\n" +
             "    Boundary[x]\n" +
-            "    Boundary[x]\n" +
             "    Collect[doc.t2 | [x] | All]\n" +
+            "]\n";
+        assertThat(plan, isPlan(sqlExecutor.functions(), expectedPlan));
+    }
+
+    @Test
+    public void testFilterOnRightOuterJoinIsPartiallyPushedDownToTheRightSide() {
+        var plan = sqlExecutor.logicalPlan(
+            "SELECT * FROM t1 RIGHT JOIN t2 ON t1.x = t2.x " +
+            "WHERE coalesce(t1.x, 10) = 10 AND t2.x > 5"
+        );
+        var expectedPlan =
+            "RootBoundary[x, x]\n" +
+            "Filter[(coalesce(x, 10) = 10)]\n" +
+            "NestedLoopJoin[\n" +
+            "    Boundary[x]\n" +
+            "    Collect[doc.t1 | [x] | All]\n" +
+            "    --- RIGHT ---\n" +
+            "    Boundary[x]\n" +
+            "    Collect[doc.t2 | [x] | (x > 5)]\n" +
+            "]\n";
+        assertThat(plan, isPlan(sqlExecutor.functions(), expectedPlan));
+    }
+
+    @Test
+    public void testFilterOnFullOuterJoinIsPartiallyPushedDownToTheRightSide() {
+        var plan = sqlExecutor.logicalPlan(
+            "SELECT * FROM t1 FULL OUTER JOIN t2 ON t1.x = t2.x " +
+            "WHERE coalesce(t1.x, 10) = 10 AND t2.x > 5"
+        );
+        var expectedPlan =
+            "RootBoundary[x, x]\n" +
+            "Filter[(coalesce(x, 10) = 10)]\n" +
+            "NestedLoopJoin[\n" +
+            "    Boundary[x]\n" +
+            "    Collect[doc.t1 | [x] | All]\n" +
+            "    --- FULL ---\n" +
+            "    Boundary[x]\n" +
+            "    Collect[doc.t2 | [x] | (x > 5)]\n" +
             "]\n";
         assertThat(plan, isPlan(sqlExecutor.functions(), expectedPlan));
     }
