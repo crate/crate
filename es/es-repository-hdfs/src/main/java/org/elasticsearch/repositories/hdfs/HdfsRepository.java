@@ -134,7 +134,7 @@ public final class HdfsRepository extends BlobStoreRepository {
             }
         });
 
-        logger.debug("Using file-system [{}] for URI [{}], path [{}]", fileContext.getDefaultFileSystem(),
+        LOGGER.debug("Using file-system [{}] for URI [{}], path [{}]", fileContext.getDefaultFileSystem(),
                 fileContext.getDefaultFileSystem().getUri(), path);
 
         try {
