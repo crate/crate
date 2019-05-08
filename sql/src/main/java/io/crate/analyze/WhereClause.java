@@ -155,7 +155,7 @@ public class WhereClause extends QueryClause {
         return this;
     }
 
-    WhereClause copyAndReplace(Function<? super Symbol, ? extends Symbol> replaceFunction) {
+    WhereClause map(Function<? super Symbol, ? extends Symbol> replaceFunction) {
         if (!hasQuery()) {
             return this;
         }

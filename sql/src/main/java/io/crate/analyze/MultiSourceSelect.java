@@ -192,7 +192,7 @@ public class MultiSourceSelect implements AnalyzedRelation {
             isDistinct,
             mappedSources,
             transform(fields.asList(), Field::path),
-            querySpec.copyAndReplace(mapSymbol),
+            querySpec.map(mapSymbol),
             Lists2.map(joinPairs, joinPair -> joinPair.mapCondition(mapSymbol))
         );
     }

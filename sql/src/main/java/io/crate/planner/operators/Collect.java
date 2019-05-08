@@ -200,7 +200,7 @@ public class Collect implements LogicalPlan {
         RoutedCollectPhase collectPhase = createPhase(plannerContext, params, subQueryResults);
         PositionalOrderBy positionalOrderBy = getPositionalOrderBy(order, outputs);
         if (positionalOrderBy != null) {
-            collectPhase.orderBy(order.copyAndReplace(s -> SubQueryAndParamBinder.convert(s, params, subQueryResults)));
+            collectPhase.orderBy(order.map(s -> SubQueryAndParamBinder.convert(s, params, subQueryResults)));
         }
         int limitAndOffset = limitAndOffset(limit, offset);
         maybeApplyPageSize(limitAndOffset, pageSizeHint, collectPhase);

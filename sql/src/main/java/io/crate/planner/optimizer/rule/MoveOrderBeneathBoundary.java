@@ -58,7 +58,7 @@ public final class MoveOrderBeneathBoundary implements Rule<Order> {
     public LogicalPlan apply(Order plan, Captures captures) {
         RelationBoundary relationBoundary = captures.get(boundary);
         Function<Symbol, Symbol> mapper = OperatorUtils.getMapper(relationBoundary.expressionMapping());
-        Order newOrder = new Order(relationBoundary.source(), plan.orderBy().copyAndReplace(mapper));
+        Order newOrder = new Order(relationBoundary.source(), plan.orderBy().map(mapper));
         return relationBoundary.replaceSources(List.of(newOrder));
     }
 }

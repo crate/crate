@@ -24,10 +24,19 @@ package io.crate.analyze;
 import io.crate.expression.symbol.Symbol;
 
 import javax.annotation.Nullable;
+import java.util.function.Function;
 
 public class HavingClause extends QueryClause {
 
     public HavingClause(@Nullable Symbol query) {
         super(query);
+    }
+
+    public HavingClause map(Function<? super Symbol, ? extends Symbol> mapper) {
+        if (hasQuery()) {
+            return new HavingClause(mapper.apply(query));
+        } else {
+            return this;
+        }
     }
 }

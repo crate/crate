@@ -247,7 +247,7 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
         Symbol newWhereClause = normalizer.normalize(where, coordinatorTxnCtx);
         OrderBy orderBy = this.orderBy;
         if (orderBy != null) {
-            orderBy = orderBy.copyAndReplace(normalize);
+            orderBy = orderBy.map(normalize);
         }
         changed = changed || newWhereClause != where;
         if (changed) {

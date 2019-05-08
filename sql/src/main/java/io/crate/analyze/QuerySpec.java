@@ -22,36 +22,49 @@
 package io.crate.analyze;
 
 import io.crate.collections.Lists2;
-import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 
 import javax.annotation.Nullable;
-import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.Function;
 
-import static com.google.common.base.MoreObjects.firstNonNull;
+public final class QuerySpec {
 
-public class QuerySpec {
-
-    private List<Symbol> outputs = Collections.emptyList();
-    private WhereClause where = WhereClause.MATCH_ALL;
-    private List<Symbol> groupBy = Collections.emptyList();
-    private HavingClause having = null;
-    private OrderBy orderBy = null;
+    private final List<Symbol> outputs;
+    private final WhereClause where;
+    private final List<Symbol> groupBy;
 
     @Nullable
-    private Symbol limit = null;
+    private final HavingClause having;
 
     @Nullable
-    private Symbol offset = null;
+    private final OrderBy orderBy;
 
-    private boolean hasAggregates = false;
+    @Nullable
+    private final Symbol limit;
 
-    public QuerySpec groupBy(@Nullable List<Symbol> groupBy) {
-        this.groupBy = firstNonNull(groupBy, Collections.emptyList());
-        return this;
+    @Nullable
+    private final Symbol offset;
+
+    private final boolean hasAggregates;
+
+    public QuerySpec(List<Symbol> outputs,
+                     WhereClause where,
+                     List<Symbol> groupBy,
+                     HavingClause having,
+                     @Nullable OrderBy orderBy,
+                     @Nullable Symbol limit,
+                     @Nullable Symbol offset,
+                     boolean hasAggregates) {
+        this.outputs = outputs;
+        this.where = where;
+        this.groupBy = groupBy;
+        this.having = having;
+        this.orderBy = orderBy;
+        this.limit = limit;
+        this.offset = offset;
+        this.hasAggregates = hasAggregates;
     }
 
     public List<Symbol> groupBy() {
@@ -62,23 +75,9 @@ public class QuerySpec {
         return where;
     }
 
-    public QuerySpec where(@Nullable WhereClause where) {
-        if (where == null) {
-            this.where = WhereClause.MATCH_ALL;
-        } else {
-            this.where = where;
-        }
-        return this;
-    }
-
     @Nullable
     public Symbol limit() {
         return limit;
-    }
-
-    public QuerySpec limit(@Nullable Symbol limit) {
-        this.limit = limit;
-        return this;
     }
 
     @Nullable
@@ -86,23 +85,9 @@ public class QuerySpec {
         return offset;
     }
 
-    public QuerySpec offset(@Nullable Symbol offset) {
-        this.offset = offset;
-        return this;
-    }
-
     @Nullable
     public HavingClause having() {
         return having;
-    }
-
-    public QuerySpec having(@Nullable HavingClause having) {
-        if (having == null || !having.hasQuery() && !having.noMatch()) {
-            this.having = null;
-        } else {
-            this.having = having;
-        }
-        return this;
     }
 
     @Nullable
@@ -110,50 +95,25 @@ public class QuerySpec {
         return orderBy;
     }
 
-    public QuerySpec orderBy(@Nullable OrderBy orderBy) {
-        this.orderBy = orderBy;
-        return this;
-    }
-
     public List<Symbol> outputs() {
         return outputs;
-    }
-
-    public QuerySpec outputs(List<Symbol> outputs) {
-        this.outputs = outputs;
-        return this;
     }
 
     public boolean hasAggregates() {
         return hasAggregates;
     }
 
-    public QuerySpec hasAggregates(boolean hasAggregates) {
-        this.hasAggregates = hasAggregates;
-        return this;
-    }
-
-    public QuerySpec copyAndReplace(Function<? super Symbol, ? extends Symbol> replaceFunction) {
-        QuerySpec newSpec = new QuerySpec()
-            .limit(limit)
-            .offset(offset)
-            .hasAggregates(hasAggregates)
-            .outputs(Lists2.map(outputs, replaceFunction));
-        newSpec.where(where.copyAndReplace(replaceFunction));
-        if (orderBy != null) {
-            newSpec.orderBy(orderBy.copyAndReplace(replaceFunction));
-        }
-        if (having != null) {
-            if (having.hasQuery()) {
-                newSpec.having(new HavingClause(replaceFunction.apply(having.query)));
-            } else {
-                newSpec.having(new HavingClause(Literal.BOOLEAN_FALSE));
-            }
-        }
-        if (!groupBy.isEmpty()) {
-            newSpec.groupBy(Lists2.map(groupBy, replaceFunction));
-        }
-        return newSpec;
+    public QuerySpec map(Function<? super Symbol, ? extends Symbol> mapper) {
+        return new QuerySpec(
+            Lists2.map(outputs, mapper),
+            where.map(mapper),
+            Lists2.map(groupBy, mapper),
+            having == null ? null : having.map(mapper),
+            orderBy == null ? null : orderBy.map(mapper),
+            limit == null ? null : mapper.apply(limit),
+            offset == null ? null : mapper.apply(offset),
+            hasAggregates
+        );
     }
 
     @Override

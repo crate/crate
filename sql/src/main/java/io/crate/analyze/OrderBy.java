@@ -173,7 +173,7 @@ public class OrderBy implements Writeable {
         }
     }
 
-    public OrderBy copyAndReplace(Function<? super Symbol, ? extends Symbol> replaceFunction) {
+    public OrderBy map(Function<? super Symbol, ? extends Symbol> replaceFunction) {
         return new OrderBy(Lists2.map(orderBySymbols, replaceFunction), reverseFlags, nullsFirst);
     }
 
