@@ -19,6 +19,8 @@
 
 package org.elasticsearch.repositories.fs;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.metadata.RepositoryMetaData;
 import org.elasticsearch.common.blobstore.BlobPath;
 import org.elasticsearch.common.blobstore.BlobStore;
@@ -46,6 +48,8 @@ import java.util.function.Function;
  * </dl>
  */
 public class FsRepository extends BlobStoreRepository {
+
+    private static final Logger LOGGER = LogManager.getLogger(FsRepository.class);
 
     public static final String TYPE = "fs";
 
@@ -77,19 +81,19 @@ public class FsRepository extends BlobStoreRepository {
         this.environment = environment;
         String location = REPOSITORIES_LOCATION_SETTING.get(metadata.settings());
         if (location.isEmpty()) {
-            logger.warn("the repository location is missing, it should point to a shared file system location"
+            LOGGER.warn("the repository location is missing, it should point to a shared file system location"
                 + " that is available on all master and data nodes");
             throw new RepositoryException(metadata.name(), "missing location");
         }
         Path locationFile = environment.resolveRepoFile(location);
         if (locationFile == null) {
             if (environment.repoFiles().length > 0) {
-                logger.warn("The specified location [{}] doesn't start with any "
+                LOGGER.warn("The specified location [{}] doesn't start with any "
                     + "repository paths specified by the path.repo setting: [{}] ", location, environment.repoFiles());
                 throw new RepositoryException(metadata.name(), "location [" + location
                     + "] doesn't match any of the locations specified by path.repo");
             } else {
-                logger.warn("The specified location [{}] should start with a repository path specified by"
+                LOGGER.warn("The specified location [{}] should start with a repository path specified by"
                     + " the path.repo setting, but the path.repo setting was not set on this node", location);
                 throw new RepositoryException(metadata.name(), "location [" + location
                     + "] doesn't match any of the locations specified by path.repo because this setting is empty");

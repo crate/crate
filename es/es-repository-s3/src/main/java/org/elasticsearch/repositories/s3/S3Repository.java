@@ -55,8 +55,8 @@ import java.util.function.Function;
  */
 class S3Repository extends BlobStoreRepository {
 
-    private static final Logger logger = LogManager.getLogger(S3Repository.class);
-    private static final DeprecationLogger deprecationLogger = new DeprecationLogger(logger);
+    private static final Logger LOGGER = LogManager.getLogger(S3Repository.class);
+    private static final DeprecationLogger DEPRECATION_LOGGER = new DeprecationLogger(LOGGER);
 
     static final String TYPE = "s3";
 
@@ -212,7 +212,7 @@ class S3Repository extends BlobStoreRepository {
         this.clientName = CLIENT_NAME.get(metadata.settings());
 
         if (CLIENT_NAME.exists(metadata.settings()) && S3ClientSettings.checkDeprecatedCredentials(metadata.settings())) {
-            logger.warn(
+            LOGGER.warn(
                     "ignoring use of named client [{}] for repository [{}] as insecure credentials were specified",
                     clientName,
                     metadata.name());
@@ -220,7 +220,7 @@ class S3Repository extends BlobStoreRepository {
 
         if (S3ClientSettings.checkDeprecatedCredentials(metadata.settings())) {
             // provided repository settings
-            deprecationLogger.deprecated("Using s3 access/secret key from repository settings. Instead "
+            DEPRECATION_LOGGER.deprecated("Using s3 access/secret key from repository settings. Instead "
                     + "store these in named clients and the CrateDB keystore for secure settings.");
             final BasicAWSCredentials insecureCredentials = S3ClientSettings.loadDeprecatedCredentials(metadata.settings());
             final S3ClientSettings s3ClientSettings = S3ClientSettings.getClientSettings(metadata, insecureCredentials);
@@ -229,7 +229,7 @@ class S3Repository extends BlobStoreRepository {
             reference = null;
         }
 
-        logger.debug(
+        LOGGER.debug(
                 "using bucket [{}], chunk_size [{}], server_side_encryption [{}], buffer_size [{}], cannedACL [{}], storageClass [{}]",
                 bucket,
                 chunkSize,
