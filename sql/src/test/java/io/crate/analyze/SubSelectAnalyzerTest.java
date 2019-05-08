@@ -135,13 +135,13 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                                              " (select b, i from t2 where b > 10) t2 " +
                                              "on t1.i = t2.i where t1.a > 50 and t2.b > 100 " +
                                              "limit 10");
-        assertThat(relation.querySpec(),
+        assertThat(relation,
                    isSQL("SELECT t1.a, t1.i, t2.b, t2.i WHERE ((t1.a > '50') AND (t2.b > '100')) LIMIT 10"));
         assertThat(relation.joinPairs().get(0).condition(),
                    isSQL("(t1.i = t2.i)"));
-        assertThat(relation.sources().get(new QualifiedName("t1")).querySpec(),
+        assertThat(relation.sources().get(new QualifiedName("t1")),
                    isSQL("SELECT doc.t1.a, doc.t1.i ORDER BY doc.t1.a LIMIT 5"));
-        assertThat(relation.sources().get(new QualifiedName("t2")).querySpec(),
+        assertThat(relation.sources().get(new QualifiedName("t2")),
                    isSQL("SELECT doc.t2.b, doc.t2.i WHERE (doc.t2.b > '10')"));
     }
 
@@ -153,13 +153,13 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                                              " (select b, i from t2 where b > 10) t2 " +
                                              "on t1.i = t2.i where t1.a > 50 and t2.b > 100 " +
                                              "order by 2 limit 10");
-        assertThat(relation.querySpec(),
+        assertThat(relation,
             isSQL("SELECT t1.a, t1.i, t2.b, t2.i WHERE ((t1.a > '50') AND (t2.b > '100')) ORDER BY t1.i LIMIT 10"));
         assertThat(relation.joinPairs().get(0).condition(),
             isSQL("(t1.i = t2.i)"));
-        assertThat(relation.sources().get(new QualifiedName("t1")).querySpec(),
+        assertThat(relation.sources().get(new QualifiedName("t1")),
             isSQL("SELECT doc.t1.a, doc.t1.i ORDER BY doc.t1.a LIMIT 5"));
-        assertThat(relation.sources().get(new QualifiedName("t2")).querySpec(),
+        assertThat(relation.sources().get(new QualifiedName("t2")),
             isSQL("SELECT doc.t2.b, doc.t2.i WHERE (doc.t2.b > '10')"));
     }
 

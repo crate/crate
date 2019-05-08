@@ -294,7 +294,7 @@ public class TestingHelpers {
     }
 
     public static <T> Matcher<T> isSQL(final String stmt) {
-        return new BaseMatcher<T>() {
+        return new BaseMatcher<>() {
             @Override
             public boolean matches(Object item) {
                 return SQLPrinter.print(item).equals(stmt);

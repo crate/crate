@@ -108,11 +108,6 @@ public class OrderedLimitedRelation implements AnalyzedRelation {
     }
 
     @Override
-    public QuerySpec querySpec() {
-        return this.querySpec;
-    }
-
-    @Override
     public List<Symbol> outputs() {
         return childRelation.outputs();
     }

@@ -62,7 +62,7 @@ public class SymbolMatchers {
     }
 
     private static Matcher<Symbol> hasValue(Object expectedValue) {
-        return new FeatureMatcher<Symbol, Object>(equalTo(expectedValue), "value", "value") {
+        return new FeatureMatcher<>(equalTo(expectedValue), "value", "value") {
             @Override
             protected Object featureValueOf(Symbol actual) {
                 return ((Input) actual).value();
@@ -149,8 +149,8 @@ public class SymbolMatchers {
     }
 
     @SafeVarargs
-    public static Matcher<Symbol> isFunction(final String name, Matcher<Symbol>... argMatchers) {
-        FeatureMatcher<Symbol, Collection<Symbol>> ma = new FeatureMatcher<Symbol, Collection<Symbol>>(
+    public static Matcher<Symbol> isFunction(final String name, Matcher<? super Symbol>... argMatchers) {
+        FeatureMatcher<Symbol, Collection<Symbol>> ma = new FeatureMatcher<>(
             contains(argMatchers), "args", "args") {
             @Override
             protected Collection<Symbol> featureValueOf(Symbol actual) {

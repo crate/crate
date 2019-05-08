@@ -95,8 +95,47 @@ public class CopyFromReturnSummaryAnalyzedStatement extends CopyFromAnalyzedStat
     }
 
     @Override
-    public QuerySpec querySpec() {
-        throw new UnsupportedOperationException("COPY FROM has no QuerySpec");
+    public List<Symbol> outputs() {
+        return List.copyOf(fields);
+    }
+
+    @Override
+    public WhereClause where() {
+        return WhereClause.MATCH_ALL;
+    }
+
+    @Override
+    public List<Symbol> groupBy() {
+        return List.of();
+    }
+
+    @Nullable
+    @Override
+    public HavingClause having() {
+        return null;
+    }
+
+    @Nullable
+    @Override
+    public OrderBy orderBy() {
+        return null;
+    }
+
+    @Nullable
+    @Override
+    public Symbol limit() {
+        return null;
+    }
+
+    @Nullable
+    @Override
+    public Symbol offset() {
+        return null;
+    }
+
+    @Override
+    public boolean hasAggregates() {
+        return false;
     }
 
     @Override

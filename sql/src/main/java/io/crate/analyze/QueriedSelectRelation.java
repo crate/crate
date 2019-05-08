@@ -26,6 +26,7 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.Field;
+import io.crate.expression.symbol.FieldReplacer;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Path;
 import io.crate.metadata.table.Operation;
@@ -36,6 +37,8 @@ import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+
+import static com.google.common.collect.Lists.transform;
 
 public class QueriedSelectRelation implements AnalyzedRelation {
 
@@ -60,11 +63,6 @@ public class QueriedSelectRelation implements AnalyzedRelation {
 
     public AnalyzedRelation subRelation() {
         return subRelation;
-    }
-
-    @Override
-    public QuerySpec querySpec() {
-        return querySpec;
     }
 
     @Override
@@ -99,5 +97,63 @@ public class QueriedSelectRelation implements AnalyzedRelation {
     @Override
     public void setQualifiedName(@Nonnull QualifiedName qualifiedName) {
         subRelation.setQualifiedName(qualifiedName);
+    }
+
+    @Override
+    public List<Symbol> outputs() {
+        return querySpec.outputs();
+    }
+
+    @Override
+    public WhereClause where() {
+        return querySpec.where();
+    }
+
+    @Override
+    public List<Symbol> groupBy() {
+        return querySpec.groupBy();
+    }
+
+    @Nullable
+    @Override
+    public HavingClause having() {
+        return querySpec.having();
+    }
+
+    @Nullable
+    @Override
+    public OrderBy orderBy() {
+        return querySpec.orderBy();
+    }
+
+    @Nullable
+    @Override
+    public Symbol limit() {
+        return querySpec.limit();
+    }
+
+    @Nullable
+    @Override
+    public Symbol offset() {
+        return querySpec.offset();
+    }
+
+    @Override
+    public boolean hasAggregates() {
+        return querySpec.hasAggregates();
+    }
+
+    public AnalyzedRelation replaceSubRelation(AnalyzedRelation newSubRelation) {
+        var mapFieldsToNewRelation = FieldReplacer.bind(
+            f -> f.relation().equals(subRelation)
+                ? newSubRelation.getField(f.path(), Operation.READ)
+                : f
+        );
+        return new QueriedSelectRelation(
+            isDistinct,
+            newSubRelation,
+            transform(fields.asList(), Field::path),
+            querySpec.copyAndReplace(mapFieldsToNewRelation)
+        );
     }
 }

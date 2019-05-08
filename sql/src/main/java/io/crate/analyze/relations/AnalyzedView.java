@@ -23,15 +23,20 @@
 package io.crate.analyze.relations;
 
 import io.crate.analyze.Fields;
+import io.crate.analyze.HavingClause;
+import io.crate.analyze.OrderBy;
 import io.crate.analyze.QuerySpec;
+import io.crate.analyze.WhereClause;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.Field;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Path;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -68,11 +73,6 @@ public final class AnalyzedView implements AnalyzedRelation {
     }
 
     @Override
-    public QuerySpec querySpec() {
-        return this.querySpec;
-    }
-
-    @Override
     public boolean isDistinct() {
         return false;
     }
@@ -103,5 +103,49 @@ public final class AnalyzedView implements AnalyzedRelation {
     @Override
     public void setQualifiedName(@Nonnull QualifiedName qualifiedName) {
         relation.setQualifiedName(qualifiedName);
+    }
+
+    @Override
+    public List<Symbol> outputs() {
+        return querySpec.outputs();
+    }
+
+    @Override
+    public WhereClause where() {
+        return querySpec.where();
+    }
+
+    @Override
+    public List<Symbol> groupBy() {
+        return querySpec.groupBy();
+    }
+
+    @Nullable
+    @Override
+    public HavingClause having() {
+        return querySpec.having();
+    }
+
+    @Nullable
+    @Override
+    public OrderBy orderBy() {
+        return querySpec.orderBy();
+    }
+
+    @Nullable
+    @Override
+    public Symbol limit() {
+        return querySpec.limit();
+    }
+
+    @Nullable
+    @Override
+    public Symbol offset() {
+        return querySpec.offset();
+    }
+
+    @Override
+    public boolean hasAggregates() {
+        return querySpec.hasAggregates();
     }
 }

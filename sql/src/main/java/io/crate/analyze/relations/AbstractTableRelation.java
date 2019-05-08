@@ -21,8 +21,11 @@
 
 package io.crate.analyze.relations;
 
-import io.crate.analyze.QuerySpec;
+import io.crate.analyze.HavingClause;
+import io.crate.analyze.OrderBy;
+import io.crate.analyze.WhereClause;
 import io.crate.expression.symbol.Field;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Path;
 import io.crate.metadata.Reference;
@@ -49,22 +52,16 @@ public abstract class AbstractTableRelation<T extends TableInfo> implements Anal
         && input.valueType().id() == ArrayType.ID
         && ((ArrayType) input.valueType()).innerType().id() == ObjectType.ID;
 
-    private final QuerySpec querySpec;
     protected final T tableInfo;
     private final Map<Path, Reference> allocatedFields = new HashMap<>();
+    private final List<Symbol> outputSymbols;
     private List<Field> outputs;
     private QualifiedName qualifiedName;
 
     public AbstractTableRelation(T tableInfo) {
         this.tableInfo = tableInfo;
         this.qualifiedName = new QualifiedName(Arrays.asList(tableInfo.ident().schema(), tableInfo.ident().name()));
-        this.querySpec = new QuerySpec()
-            .outputs(new ArrayList<>(tableInfo.columns()));
-    }
-
-    @Override
-    public QuerySpec querySpec() {
-        return querySpec;
+        this.outputSymbols = List.copyOf(tableInfo.columns());
     }
 
     @Override
@@ -76,6 +73,50 @@ public abstract class AbstractTableRelation<T extends TableInfo> implements Anal
         return tableInfo;
     }
 
+    @Override
+    public List<Symbol> outputs() {
+        return outputSymbols;
+    }
+
+    @Override
+    public WhereClause where() {
+        return WhereClause.MATCH_ALL;
+    }
+
+    @Override
+    public List<Symbol> groupBy() {
+        return List.of();
+    }
+
+    @Nullable
+    @Override
+    public HavingClause having() {
+        return null;
+    }
+
+    @Nullable
+    @Override
+    public OrderBy orderBy() {
+        return null;
+    }
+
+    @Nullable
+    @Override
+    public Symbol limit() {
+        return null;
+    }
+
+    @Nullable
+    @Override
+    public Symbol offset() {
+        return null;
+    }
+
+    @Override
+    public boolean hasAggregates() {
+        return false;
+    }
+
     @Nullable
     public Field getField(Path path) {
         Reference reference = tableInfo.getReference(toColumnIdent(path));
@@ -83,7 +124,6 @@ public abstract class AbstractTableRelation<T extends TableInfo> implements Anal
             return null;
         }
         return allocate(path, makeArrayIfContainedInObjectArray(reference));
-
     }
 
     /**

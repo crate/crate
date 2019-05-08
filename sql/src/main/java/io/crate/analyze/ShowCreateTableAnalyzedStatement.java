@@ -25,6 +25,7 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.Field;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.OutputName;
 import io.crate.metadata.Path;
 import io.crate.metadata.doc.DocTableInfo;
@@ -33,6 +34,7 @@ import io.crate.sql.tree.QualifiedName;
 import io.crate.types.DataTypes;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
@@ -41,13 +43,11 @@ public class ShowCreateTableAnalyzedStatement implements AnalyzedStatement, Anal
 
     private final DocTableInfo tableInfo;
     private final List<Field> fields;
-    private final QuerySpec querySpec;
 
     public ShowCreateTableAnalyzedStatement(DocTableInfo tableInfo) {
         String columnName = String.format(Locale.ENGLISH, "SHOW CREATE TABLE %s", tableInfo.ident().fqn());
         this.fields = Collections.singletonList(new Field(this, new OutputName(columnName), DataTypes.STRING));
         this.tableInfo = tableInfo;
-        this.querySpec = new QuerySpec();
     }
 
     public DocTableInfo tableInfo() {
@@ -90,8 +90,47 @@ public class ShowCreateTableAnalyzedStatement implements AnalyzedStatement, Anal
     }
 
     @Override
-    public QuerySpec querySpec() {
-        return querySpec;
+    public List<Symbol> outputs() {
+        return List.copyOf(fields);
+    }
+
+    @Override
+    public WhereClause where() {
+        return WhereClause.MATCH_ALL;
+    }
+
+    @Override
+    public List<Symbol> groupBy() {
+        return List.of();
+    }
+
+    @Nullable
+    @Override
+    public HavingClause having() {
+        return null;
+    }
+
+    @Nullable
+    @Override
+    public OrderBy orderBy() {
+        return null;
+    }
+
+    @Nullable
+    @Override
+    public Symbol limit() {
+        return null;
+    }
+
+    @Nullable
+    @Override
+    public Symbol offset() {
+        return null;
+    }
+
+    @Override
+    public boolean hasAggregates() {
+        return false;
     }
 
     @Override

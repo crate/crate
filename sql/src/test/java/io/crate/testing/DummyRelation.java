@@ -22,10 +22,13 @@
 
 package io.crate.testing;
 
-import io.crate.analyze.QuerySpec;
+import io.crate.analyze.HavingClause;
+import io.crate.analyze.OrderBy;
+import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.expression.symbol.Field;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Path;
 import io.crate.metadata.table.Operation;
@@ -33,6 +36,7 @@ import io.crate.sql.tree.QualifiedName;
 import io.crate.types.DataTypes;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -80,8 +84,47 @@ public class DummyRelation implements AnalyzedRelation {
     }
 
     @Override
-    public QuerySpec querySpec() {
-        return new QuerySpec();
+    public List<Symbol> outputs() {
+        return null;
+    }
+
+    @Override
+    public WhereClause where() {
+        return null;
+    }
+
+    @Override
+    public List<Symbol> groupBy() {
+        return null;
+    }
+
+    @Nullable
+    @Override
+    public HavingClause having() {
+        return null;
+    }
+
+    @Nullable
+    @Override
+    public OrderBy orderBy() {
+        return null;
+    }
+
+    @Nullable
+    @Override
+    public Symbol limit() {
+        return null;
+    }
+
+    @Nullable
+    @Override
+    public Symbol offset() {
+        return null;
+    }
+
+    @Override
+    public boolean hasAggregates() {
+        return false;
     }
 
     @Override

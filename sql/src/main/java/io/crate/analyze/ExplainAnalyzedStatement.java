@@ -26,6 +26,7 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.Field;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.OutputName;
 import io.crate.metadata.Path;
 import io.crate.metadata.table.Operation;
@@ -43,15 +44,14 @@ public class ExplainAnalyzedStatement implements AnalyzedStatement, AnalyzedRela
     final AnalyzedStatement statement;
     private final List<Field> fields;
     private final ProfilingContext context;
-    private final QuerySpec querySpec;
+    private final List<Symbol> outputs;
 
     ExplainAnalyzedStatement(String columnName, AnalyzedStatement statement, ProfilingContext context) {
         Field field = new Field(this, new OutputName(columnName), ObjectType.untyped());
         this.statement = statement;
         this.fields = Collections.singletonList(field);
         this.context = context;
-        this.querySpec = new QuerySpec()
-            .outputs(List.of(field));
+        this.outputs = List.of(field);
     }
 
     @Override
@@ -99,8 +99,47 @@ public class ExplainAnalyzedStatement implements AnalyzedStatement, AnalyzedRela
     }
 
     @Override
-    public QuerySpec querySpec() {
-        return querySpec;
+    public List<Symbol> outputs() {
+        return outputs;
+    }
+
+    @Override
+    public WhereClause where() {
+        return WhereClause.MATCH_ALL;
+    }
+
+    @Override
+    public List<Symbol> groupBy() {
+        return List.of();
+    }
+
+    @Nullable
+    @Override
+    public HavingClause having() {
+        return null;
+    }
+
+    @Nullable
+    @Override
+    public OrderBy orderBy() {
+        return null;
+    }
+
+    @Nullable
+    @Override
+    public Symbol limit() {
+        return null;
+    }
+
+    @Nullable
+    @Override
+    public Symbol offset() {
+        return null;
+    }
+
+    @Override
+    public boolean hasAggregates() {
+        return false;
     }
 
     @Override

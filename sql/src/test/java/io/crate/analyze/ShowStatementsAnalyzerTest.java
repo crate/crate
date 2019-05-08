@@ -52,14 +52,14 @@ public class ShowStatementsAnalyzerTest extends CrateDummyClusterServiceUnitTest
         AnalyzedRelation relation = analyze("show tables in QNAME");
 
         assertThat(relation.isDistinct(), is(true));
-        assertThat(relation.querySpec(), isSQL(
+        assertThat(relation, isSQL(
             "SELECT information_schema.tables.table_name " +
             "WHERE ((information_schema.tables.table_type = 'BASE TABLE') AND (information_schema.tables.table_schema = 'qname')) " +
             "ORDER BY information_schema.tables.table_name"));
 
         relation = analyze("show tables");
         assertThat(relation.isDistinct(), is(true));
-        assertThat(relation.querySpec(), isSQL(
+        assertThat(relation, isSQL(
             "SELECT information_schema.tables.table_name " +
             "WHERE ((information_schema.tables.table_type = 'BASE TABLE') " +
             "AND (NOT (information_schema.tables.table_schema = ANY(['information_schema', 'sys', 'pg_catalog'])))) " +
@@ -71,7 +71,7 @@ public class ShowStatementsAnalyzerTest extends CrateDummyClusterServiceUnitTest
         AnalyzedRelation relation = analyze("show tables in QNAME like 'likePattern'");
 
         assertThat(relation.isDistinct(), is(true));
-        assertThat(relation.querySpec(), isSQL(
+        assertThat(relation, isSQL(
             "SELECT information_schema.tables.table_name " +
             "WHERE (((information_schema.tables.table_type = 'BASE TABLE') AND (information_schema.tables.table_schema = 'qname')) " +
             "AND (information_schema.tables.table_name LIKE 'likePattern')) " +
@@ -79,7 +79,7 @@ public class ShowStatementsAnalyzerTest extends CrateDummyClusterServiceUnitTest
 
         relation = analyze("show tables like '%'");
         assertThat(relation.isDistinct(), is(true));
-        assertThat(relation.querySpec(), isSQL(
+        assertThat(relation, isSQL(
             "SELECT information_schema.tables.table_name " +
             "WHERE (((information_schema.tables.table_type = 'BASE TABLE') AND " +
             "(NOT (information_schema.tables.table_schema = ANY(['information_schema', 'sys', 'pg_catalog'])))) " +
@@ -92,7 +92,7 @@ public class ShowStatementsAnalyzerTest extends CrateDummyClusterServiceUnitTest
         AnalyzedRelation relation =
             analyze("show tables in QNAME where table_name = 'foo' or table_name like '%bar%'");
         assertThat(relation.isDistinct(), is(true));
-        assertThat(relation.querySpec(), isSQL(
+        assertThat(relation, isSQL(
             "SELECT information_schema.tables.table_name " +
             "WHERE (((information_schema.tables.table_type = 'BASE TABLE') AND (information_schema.tables.table_schema = 'qname')) " +
             "AND ((information_schema.tables.table_name = 'foo') OR (information_schema.tables.table_name LIKE '%bar%'))) " +
@@ -100,7 +100,7 @@ public class ShowStatementsAnalyzerTest extends CrateDummyClusterServiceUnitTest
 
         relation = analyze("show tables where table_name like '%'");
         assertThat(relation.isDistinct(), is(true));
-        assertThat(relation.querySpec(), isSQL(
+        assertThat(relation, isSQL(
             "SELECT information_schema.tables.table_name " +
             "WHERE (((information_schema.tables.table_type = 'BASE TABLE') " +
             "AND (NOT (information_schema.tables.table_schema = ANY(['information_schema', 'sys', 'pg_catalog'])))) " +
@@ -111,9 +111,7 @@ public class ShowStatementsAnalyzerTest extends CrateDummyClusterServiceUnitTest
     @Test
     public void testShowSchemasLike() throws Exception {
         AnalyzedRelation relation = analyze("show schemas like '%'");
-
-        QuerySpec querySpec = relation.querySpec();
-        assertThat(querySpec, isSQL("SELECT information_schema.schemata.schema_name " +
+        assertThat(relation, isSQL("SELECT information_schema.schemata.schema_name " +
                                     "WHERE (information_schema.schemata.schema_name LIKE '%') " +
                                     "ORDER BY information_schema.schemata.schema_name"));
     }
@@ -121,9 +119,7 @@ public class ShowStatementsAnalyzerTest extends CrateDummyClusterServiceUnitTest
     @Test
     public void testShowSchemasWhere() throws Exception {
         AnalyzedRelation relation = analyze("show schemas where schema_name = 'doc'");
-
-        QuerySpec querySpec = relation.querySpec();
-        assertThat(querySpec, isSQL("SELECT information_schema.schemata.schema_name " +
+        assertThat(relation, isSQL("SELECT information_schema.schemata.schema_name " +
                                     "WHERE (information_schema.schemata.schema_name = 'doc') " +
                                     "ORDER BY information_schema.schemata.schema_name"));
     }
@@ -131,17 +127,14 @@ public class ShowStatementsAnalyzerTest extends CrateDummyClusterServiceUnitTest
     @Test
     public void testShowSchemas() throws Exception {
         AnalyzedRelation relation = analyze("show schemas");
-
-        QuerySpec querySpec = relation.querySpec();
-        assertThat(querySpec, isSQL("SELECT information_schema.schemata.schema_name " +
+        assertThat(relation, isSQL("SELECT information_schema.schemata.schema_name " +
                                     "ORDER BY information_schema.schemata.schema_name"));
     }
 
     @Test
     public void testShowColumnsLike() throws Exception {
         AnalyzedRelation relation = analyze("show columns from schemata in information_schema like '%'");
-        QuerySpec querySpec = relation.querySpec();
-        assertThat(querySpec, isSQL(
+        assertThat(relation, isSQL(
             "SELECT information_schema.columns.column_name, information_schema.columns.data_type" +
             " WHERE (((information_schema.columns.table_name = 'schemata')" +
             " AND (information_schema.columns.table_schema = 'information_schema'))" +
@@ -153,9 +146,7 @@ public class ShowStatementsAnalyzerTest extends CrateDummyClusterServiceUnitTest
     public void testShowColumnsWhere() throws Exception {
         AnalyzedRelation relation = analyze("show columns in schemata from information_schema"
                                             + " where column_name = 'id'");
-
-        QuerySpec querySpec = relation.querySpec();
-        assertThat(querySpec, isSQL(
+        assertThat(relation, isSQL(
             "SELECT information_schema.columns.column_name, information_schema.columns.data_type" +
             " WHERE (((information_schema.columns.table_name = 'schemata')" +
             " AND (information_schema.columns.table_schema = 'information_schema'))" +
@@ -166,9 +157,7 @@ public class ShowStatementsAnalyzerTest extends CrateDummyClusterServiceUnitTest
     @Test
     public void testShowColumnsLikeWithoutSpecifiedSchema() throws Exception {
         AnalyzedRelation relation = analyze("show columns in schemata like '%'");
-
-        QuerySpec querySpec = relation.querySpec();
-        assertThat(querySpec, isSQL(
+        assertThat(relation, isSQL(
             "SELECT information_schema.columns.column_name, information_schema.columns.data_type" +
             " WHERE (((information_schema.columns.table_name = 'schemata')" +
             " AND (information_schema.columns.table_schema = 'doc'))" +
@@ -179,9 +168,7 @@ public class ShowStatementsAnalyzerTest extends CrateDummyClusterServiceUnitTest
     @Test
     public void testShowColumnsFromOneTable() throws Exception {
         AnalyzedRelation relation = analyze("show columns in schemata");
-
-        QuerySpec querySpec = relation.querySpec();
-        assertThat(querySpec, isSQL(
+        assertThat(relation, isSQL(
             "SELECT information_schema.columns.column_name, information_schema.columns.data_type" +
             " WHERE ((information_schema.columns.table_name = 'schemata')" +
             " AND (information_schema.columns.table_schema = 'doc'))" +
@@ -190,7 +177,7 @@ public class ShowStatementsAnalyzerTest extends CrateDummyClusterServiceUnitTest
 
     @Test
     public void testRewriteOfTransactionIsolation() {
-        QueriedTable stmt = analyze("show transaction isolation level");
+        QueriedTable<?> stmt = analyze("show transaction isolation level");
         assertThat(stmt.tableRelation().tableInfo().ident(), is(SysClusterTableInfo.IDENT));
         assertThat(stmt.outputs(), contains(isLiteral("read uncommitted")));
 

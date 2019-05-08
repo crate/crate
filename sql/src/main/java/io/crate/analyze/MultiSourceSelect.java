@@ -24,18 +24,25 @@ package io.crate.analyze;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.JoinPair;
+import io.crate.collections.Lists2;
 import io.crate.expression.symbol.Field;
+import io.crate.expression.symbol.FieldReplacer;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Path;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
+
+import static com.google.common.collect.Lists.transform;
 
 public class MultiSourceSelect implements AnalyzedRelation {
 
@@ -114,8 +121,47 @@ public class MultiSourceSelect implements AnalyzedRelation {
     }
 
     @Override
-    public QuerySpec querySpec() {
-        return querySpec;
+    public List<Symbol> outputs() {
+        return querySpec.outputs();
+    }
+
+    @Override
+    public WhereClause where() {
+        return querySpec.where();
+    }
+
+    @Override
+    public List<Symbol> groupBy() {
+        return querySpec.groupBy();
+    }
+
+    @Nullable
+    @Override
+    public HavingClause having() {
+        return querySpec.having();
+    }
+
+    @Nullable
+    @Override
+    public OrderBy orderBy() {
+        return querySpec.orderBy();
+    }
+
+    @Nullable
+    @Override
+    public Symbol limit() {
+        return querySpec.limit();
+    }
+
+    @Nullable
+    @Override
+    public Symbol offset() {
+        return querySpec.offset();
+    }
+
+    @Override
+    public boolean hasAggregates() {
+        return querySpec.hasAggregates();
     }
 
     @Override
@@ -126,5 +172,28 @@ public class MultiSourceSelect implements AnalyzedRelation {
     @Override
     public String toString() {
         return "MSS{" + sources.keySet() + '}';
+    }
+
+    public MultiSourceSelect mapSubRelations(Function<? super AnalyzedRelation, ? extends AnalyzedRelation> mapper,
+                                             Function<? super Symbol, ? extends Symbol> symbolMapper) {
+        LinkedHashMap<QualifiedName, AnalyzedRelation> mappedSources = new LinkedHashMap<>();
+        for (var entry : sources.entrySet()) {
+            mappedSources.put(entry.getKey(), mapper.apply(entry.getValue()));
+        }
+        Function<? super Symbol, ? extends Symbol> updateField = FieldReplacer.bind(f -> {
+            QualifiedName name = f.relation().getQualifiedName();
+            if (mappedSources.containsKey(name)) {
+                return mappedSources.get(name).getField(f.path(), Operation.READ);
+            }
+            return f;
+        });
+        Function<? super Symbol, ? extends Symbol> mapSymbol = updateField.andThen(symbolMapper);
+        return new MultiSourceSelect(
+            isDistinct,
+            mappedSources,
+            transform(fields.asList(), Field::path),
+            querySpec.copyAndReplace(mapSymbol),
+            Lists2.map(joinPairs, joinPair -> joinPair.mapCondition(mapSymbol))
+        );
     }
 }

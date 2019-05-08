@@ -25,10 +25,9 @@ import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.AnalyzedStatementVisitor;
 import io.crate.analyze.HavingClause;
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.QuerySpec;
 import io.crate.analyze.WhereClause;
-import io.crate.expression.symbol.Field;
 import io.crate.exceptions.ColumnUnknownException;
+import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Path;
 import io.crate.metadata.table.Operation;
@@ -51,62 +50,40 @@ public interface AnalyzedRelation extends AnalyzedStatement {
 
     void setQualifiedName(@Nonnull QualifiedName qualifiedName);
 
-    /**
-     * The long-/midterm goal is to deprecate the QuerySpec;
-     *
-     * The other properties should be used instead.
-     */
-    QuerySpec querySpec();
 
     /** * @return The outputs of the relation */
-    default List<Symbol> outputs() {
-        return querySpec().outputs();
-    }
+    List<Symbol> outputs();
 
     /**
      * @return WHERE clause of the relation.
      *         This is {@link WhereClause#MATCH_ALL} if there was no WhereClause in the statement
      */
-    default WhereClause where() {
-        return querySpec().where();
-    }
+    WhereClause where();
 
     /**
      * @return The GROUP BY keys. Empty if there are none.
      */
-    default List<Symbol> groupBy() {
-        return querySpec().groupBy();
-    }
+    List<Symbol> groupBy();
 
     /**
      * @return The HAVING clause or null
      */
     @Nullable
-    default HavingClause having() {
-        return querySpec().having();
-    }
+    HavingClause having();
 
     /**
      * @return ORDER BY clause or null if not present
      */
     @Nullable
-    default OrderBy orderBy() {
-        return querySpec().orderBy();
-    }
+    OrderBy orderBy();
 
     @Nullable
-    default Symbol limit() {
-        return querySpec().limit();
-    }
+    Symbol limit();
 
     @Nullable
-    default Symbol offset() {
-        return querySpec().offset();
-    }
+    Symbol offset();
 
-    default boolean hasAggregates() {
-        return querySpec().hasAggregates();
-    }
+    boolean hasAggregates();
 
     /**
      * Calls the consumer for each top-level symbol in the relation
