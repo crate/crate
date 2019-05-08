@@ -129,7 +129,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static io.crate.protocols.postgres.PostgresNetty.PSQL_PORT_SETTING;
-import static io.crate.testing.SQLTransportExecutor.DEFAULT_SOFT_LIMIT;
 import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_COMPRESSION;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
@@ -435,7 +434,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
 
         ParameterContext parameterContext = new ParameterContext(Row.EMPTY, Collections.<Row>emptyList());
         SessionContext sessionContext = new SessionContext(
-            0, Option.NONE, User.CRATE_USER, x -> {}, x -> {}, sqlExecutor.getCurrentSchema());
+            Option.NONE, User.CRATE_USER, x -> {}, x -> {}, sqlExecutor.getCurrentSchema());
         CoordinatorTxnCtx coordinatorTxnCtx = new CoordinatorTxnCtx(sessionContext);
         RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), planner.getAwarenessAttributes());
         PlannerContext plannerContext = new PlannerContext(
@@ -444,7 +443,6 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
             UUID.randomUUID(),
             planner.functions(),
             coordinatorTxnCtx,
-            0,
             0
         );
         Plan plan = planner.plan(
@@ -629,7 +627,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
     Session createSessionOnNode(String nodeName) {
         SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class, nodeName);
         return sqlOperations.createSession(
-            sqlExecutor.getCurrentSchema(), User.CRATE_USER, Option.NONE, DEFAULT_SOFT_LIMIT);
+            sqlExecutor.getCurrentSchema(), User.CRATE_USER, Option.NONE);
     }
 
     /**
@@ -643,7 +641,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
      */
     Session createSession(@Nullable String defaultSchema, Set<Option> options) {
         SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class);
-        return sqlOperations.createSession(defaultSchema, User.CRATE_USER, options, DEFAULT_SOFT_LIMIT);
+        return sqlOperations.createSession(defaultSchema, User.CRATE_USER, options);
     }
 
     /**

@@ -621,26 +621,6 @@ for operators
     larger arrays the :ref:`indices.query.bool.max_clause_count <conf-indices-query-bool.max_clause_count>`
     setting must be changed appropriately on each node.
 
-Limits
-======
-
-As unlimited SELECT queries could break your cluster if the matching rows
-exceed your node's RAM, SELECT statements are limited by default to **10000**
-rows.
-
-You can expand this limit by using an explicit LIMIT-clause.
-
-But you are encouraged to make use of a windowing using LIMIT and OFFSET to
-iterate through all the results of a potentially large resultset instead of
-expanding the default limit.
-
-When using the PostgreSQL wire protocol, there is no implicit **10000** row
-limit on SELECT statements.
-
-.. NOTE::
-
-    The sum of ``LIMIT`` and ``OFFSET`` may not exceed 2147483630
-    (which is Lucene's ``MAX_ARRAY_LENGTH``).
 
 .. _sql_dql_objects:
 

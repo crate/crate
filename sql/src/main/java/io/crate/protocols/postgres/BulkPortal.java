@@ -157,7 +157,6 @@ class BulkPortal extends AbstractPortal {
             jobId,
             planner.functions(),
             coordinatorTxnCtx,
-            0,
             maxRows
         );
         Plan plan;

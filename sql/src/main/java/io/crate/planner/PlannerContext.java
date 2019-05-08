@@ -23,9 +23,7 @@
 package io.crate.planner;
 
 import io.crate.action.sql.SessionContext;
-import io.crate.analyze.QuerySpec;
 import io.crate.analyze.WhereClause;
-import io.crate.expression.symbol.Literal;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Routing;
@@ -40,24 +38,22 @@ import java.util.UUID;
 public class PlannerContext {
 
     public static PlannerContext forSubPlan(PlannerContext context) {
-        return forSubPlan(context, context.softLimit, context.fetchSize);
+        return forSubPlan(context, context.fetchSize);
     }
 
-    public static PlannerContext forSubPlan(PlannerContext context, int softLimit, int fetchSize) {
+    public static PlannerContext forSubPlan(PlannerContext context, int fetchSize) {
         return new PlannerContext(
             context.clusterState,
             context.routingProvider,
             UUID.randomUUID(),
             context.functions,
             context.coordinatorTxnCtx,
-            softLimit,
             fetchSize
         );
     }
 
     private final UUID jobId;
     private final CoordinatorTxnCtx coordinatorTxnCtx;
-    private final int softLimit;
     private final int fetchSize;
     private final RoutingBuilder routingBuilder;
     private final RoutingProvider routingProvider;
@@ -71,7 +67,6 @@ public class PlannerContext {
                           UUID jobId,
                           Functions functions,
                           CoordinatorTxnCtx coordinatorTxnCtx,
-                          int softLimit,
                           int fetchSize) {
         this.routingProvider = routingProvider;
         this.functions = functions;
@@ -79,7 +74,6 @@ public class PlannerContext {
         this.clusterState = clusterState;
         this.jobId = jobId;
         this.coordinatorTxnCtx = coordinatorTxnCtx;
-        this.softLimit = softLimit;
         this.fetchSize = fetchSize;
         this.handlerNode = clusterState.getNodes().getLocalNodeId();
     }
@@ -90,12 +84,6 @@ public class PlannerContext {
 
     public CoordinatorTxnCtx transactionContext() {
         return coordinatorTxnCtx;
-    }
-
-    public void applySoftLimit(QuerySpec querySpec) {
-        if (softLimit > 0 && querySpec.limit() == null) {
-            querySpec.limit(Literal.of((long) softLimit));
-        }
     }
 
     public String handlerNode() {

@@ -47,6 +47,7 @@ import io.crate.execution.engine.NodeOperationTreeGenerator;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.FieldsVisitor;
 import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
@@ -59,7 +60,6 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
-import io.crate.planner.SelectStatementPlanner;
 import io.crate.planner.SubqueryPlanner;
 import io.crate.planner.TableStats;
 import io.crate.planner.WhereClauseOptimizer;
@@ -103,7 +103,6 @@ public class LogicalPlanner {
 
     private final Optimizer optimizer;
     private final TableStats tableStats;
-    private final SelectStatementPlanner selectStatementPlanner;
     private final Visitor statementVisitor = new Visitor();
     private final Functions functions;
     private final RelationNormalizer relationNormalizer;
@@ -129,7 +128,6 @@ public class LogicalPlanner {
         this.tableStats = tableStats;
         this.functions = functions;
         this.relationNormalizer = new RelationNormalizer(functions);
-        selectStatementPlanner = new SelectStatementPlanner(this);
     }
 
     public LogicalPlan plan(AnalyzedStatement statement, PlannerContext plannerContext) {
@@ -137,22 +135,26 @@ public class LogicalPlanner {
     }
 
     public LogicalPlan planSubSelect(SelectSymbol selectSymbol, PlannerContext plannerContext) {
-        final int softLimit, fetchSize;
-        if (selectSymbol.getResultType() == SINGLE_COLUMN_SINGLE_VALUE) {
-            // The reason why the soft limit equals 2 is because single value
-            // sub-queries need to have a validation that it only returns 1 row.
-            softLimit = fetchSize = 2;
-        } else {
-            softLimit = NO_LIMIT;
-            fetchSize = 0;
-        }
         AnalyzedRelation relation = relationNormalizer.normalize(
             selectSymbol.relation(), plannerContext.transactionContext());
 
-        PlannerContext subSelectPlannerContext = PlannerContext.forSubPlan(plannerContext, softLimit, fetchSize);
-        subSelectPlannerContext.applySoftLimit(relation.querySpec());
+        final int fetchSize;
+        final java.util.function.Function<LogicalPlan, LogicalPlan> maybeApplySoftLimit;
+        if (selectSymbol.getResultType() == SINGLE_COLUMN_SINGLE_VALUE) {
+            // SELECT (SELECT foo FROM t)
+            //         ^^^^^^^^^^^^^^^^^
+            // The subquery must return at most 1 row, if more than 1 row is returned semantics require us to throw an error.
+            // So we limit the query to 2 if there is no limit to avoid retrieval of many rows while being able to validate max1row
+            fetchSize = 2;
+            maybeApplySoftLimit = relation.limit() == null
+                ? plan -> new Limit(plan, Literal.of(2L), Literal.of(0L))
+                : plan -> plan;
+        } else {
+            fetchSize = 0;
+            maybeApplySoftLimit = plan -> plan;
+        }
+        PlannerContext subSelectPlannerContext = PlannerContext.forSubPlan(plannerContext, fetchSize);
         SubqueryPlanner subqueryPlanner = new SubqueryPlanner(s -> planSubSelect(s, subSelectPlannerContext));
-
         LogicalPlan.Builder planBuilder = prePlan(
             relation,
             FetchMode.NEVER_CLEAR,
@@ -162,7 +164,7 @@ public class LogicalPlanner {
             plannerContext.transactionContext());
 
         planBuilder = tryOptimizeForInSubquery(selectSymbol, relation, planBuilder);
-        LogicalPlan optimizedPlan = tryOptimize(planBuilder.build(tableStats, Collections.emptySet()));
+        LogicalPlan optimizedPlan = tryOptimize(maybeApplySoftLimit.apply(planBuilder.build(tableStats, Collections.emptySet())));
         return new RootRelationBoundary(MultiPhase.createIfNeeded(optimizedPlan, relation, subqueryPlanner));
     }
 
@@ -425,7 +427,12 @@ public class LogicalPlanner {
         @Override
         public LogicalPlan visitSelectStatement(AnalyzedRelation relation, PlannerContext context) {
             SubqueryPlanner subqueryPlanner = new SubqueryPlanner((s) -> planSubSelect(s, context));
-            return selectStatementPlanner.plan(relation, context, subqueryPlanner);
+            LogicalPlan logicalPlan = normalizeAndPlan(
+                relation, context, subqueryPlanner, FetchMode.MAYBE_CLEAR);
+            if (logicalPlan == null) {
+                throw new UnsupportedOperationException("Cannot create plan for: " + relation);
+            }
+            return new RootRelationBoundary(logicalPlan);
         }
 
         @Override

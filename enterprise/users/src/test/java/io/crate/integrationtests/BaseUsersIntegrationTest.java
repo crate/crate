@@ -25,8 +25,6 @@ import io.crate.auth.user.User;
 import io.crate.testing.SQLResponse;
 import org.junit.Before;
 
-import static io.crate.testing.SQLTransportExecutor.DEFAULT_SOFT_LIMIT;
-
 public abstract class BaseUsersIntegrationTest extends SQLTransportIntegrationTest {
 
     private Session superUserSession;
@@ -34,12 +32,12 @@ public abstract class BaseUsersIntegrationTest extends SQLTransportIntegrationTe
 
     private Session createSuperUserSession() {
         SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class);
-        return sqlOperations.createSession(null, User.CRATE_USER, Option.NONE, DEFAULT_SOFT_LIMIT);
+        return sqlOperations.createSession(null, User.CRATE_USER, Option.NONE);
     }
 
     private Session createUserSession() {
         SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class);
-        return sqlOperations.createSession(null, User.of("normal"), Option.NONE, DEFAULT_SOFT_LIMIT);
+        return sqlOperations.createSession(null, User.of("normal"), Option.NONE);
     }
 
     @Before

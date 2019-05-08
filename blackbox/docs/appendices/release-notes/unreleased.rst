@@ -41,6 +41,9 @@ Unreleased Changes
 Breaking Changes
 ================
 
+- Removed the implicit soft limit of 10000 that was applied for clients using
+  ``HTTP``.
+
 - Removed the experimental `enable_semijoin` session setting. As this defaulted
   to false, this execution strategy cannot be used anymore.
 

@@ -78,7 +78,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static io.crate.planner.operators.LogicalPlannerTest.isPlan;
@@ -523,22 +522,6 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         Collect collect = e.plan("select * from unnest([1, 2], ['Arthur', 'Trillian'])");
         assertNotNull(collect);
         assertThat(collect.collectPhase().toCollect(), contains(isReference("col1"), isReference("col2")));
-    }
-
-    @Test
-    public void testSoftLimitIsApplied() throws Exception {
-        QueryThenFetch qtf = e.plan("select * from users", UUID.randomUUID(), 10, 0);
-        Merge merge = (Merge) qtf.subPlan();
-        assertThat(merge.mergePhase().projections(),
-            contains(instanceOf(TopNProjection.class), instanceOf(FetchProjection.class)));
-        TopNProjection topNProjection = (TopNProjection) merge.mergePhase().projections().get(0);
-        assertThat(topNProjection.limit(), is(10));
-
-        qtf = e.plan("select * from users limit 5", UUID.randomUUID(), 10, 0);
-        merge = (Merge) qtf.subPlan();
-        assertThat(merge.mergePhase().projections(), contains(instanceOf(TopNProjection.class), instanceOf(FetchProjection.class)));
-        topNProjection = (TopNProjection) merge.mergePhase().projections().get(0);
-        assertThat(topNProjection.limit(), is(5));
     }
 
     @Test

@@ -97,8 +97,6 @@ public class SQLTransportExecutor {
 
     private static final String SQL_REQUEST_TIMEOUT = "CRATE_TESTS_SQL_REQUEST_TIMEOUT";
 
-    public final static int DEFAULT_SOFT_LIMIT = 10_000;
-
     public static final TimeValue REQUEST_TIMEOUT = new TimeValue(Long.parseLong(
         MoreObjects.firstNonNull(System.getenv(SQL_REQUEST_TIMEOUT), "5")), TimeUnit.SECONDS);
 
@@ -202,8 +200,7 @@ public class SQLTransportExecutor {
         return clientProvider.sqlOperations().createSession(
             searchPath.currentSchema(),
             User.CRATE_USER,
-            Option.NONE,
-            DEFAULT_SOFT_LIMIT
+            Option.NONE
         );
     }
 

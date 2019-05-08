@@ -198,7 +198,6 @@ public class SQLExecutor {
             UUID.randomUUID(),
             functions,
             new CoordinatorTxnCtx(sessionContext),
-            -1,
             -1
         );
     }
@@ -415,7 +414,7 @@ public class SQLExecutor {
                     () -> hasValidLicense
                 ),
                 relationAnalyzer,
-                new SessionContext(0, Option.NONE, user, s -> {}, t -> {}, searchPath),
+                new SessionContext(Option.NONE, user, s -> {}, t -> {}, searchPath),
                 schemas,
                 random
             );
@@ -687,12 +686,12 @@ public class SQLExecutor {
             SqlParser.createExpression(expression), new ExpressionAnalysisContext());
     }
 
-    public <T> T plan(String statement, UUID jobId, int softLimit, int fetchSize) {
+    public <T> T plan(String statement, UUID jobId, int fetchSize) {
         AnalyzedStatement analyzedStatement = analyze(statement, ParameterContext.EMPTY);
-        return planInternal(analyzedStatement, jobId, softLimit, fetchSize);
+        return planInternal(analyzedStatement, jobId, fetchSize);
     }
 
-    private <T> T planInternal(AnalyzedStatement analyzedStatement, UUID jobId, int softLimit, int fetchSize) {
+    private <T> T planInternal(AnalyzedStatement analyzedStatement, UUID jobId, int fetchSize) {
         RoutingProvider routingProvider = new RoutingProvider(random.nextInt(), emptyList());
         PlannerContext plannerContext = new PlannerContext(
             planner.currentClusterState(),
@@ -700,7 +699,6 @@ public class SQLExecutor {
             jobId,
             functions,
             coordinatorTxnCtx,
-            softLimit,
             fetchSize
         );
         Plan plan = planner.plan(analyzedStatement, plannerContext);
@@ -738,7 +736,7 @@ public class SQLExecutor {
     }
 
     public <T> T plan(String statement) {
-        return plan(statement, UUID.randomUUID(), 0, 0);
+        return plan(statement, UUID.randomUUID(), 0);
     }
 
     public Schemas schemas() {
