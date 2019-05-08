@@ -318,26 +318,28 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         boolean isDistinct = node.getSelect().isDistinct();
         Symbol querySymbol = expressionAnalyzer.generateQuerySymbol(node.getWhere(), expressionAnalysisContext);
         WhereClause whereClause = new WhereClause(querySymbol);
-        QuerySpec querySpec = new QuerySpec()
-            .orderBy(analyzeOrderBy(
+        QuerySpec querySpec = new QuerySpec(
+            selectAnalysis.outputSymbols(),
+            whereClause,
+            groupBy,
+            analyzeHaving(
+                node.getHaving(),
+                groupBy,
+                expressionAnalyzer,
+                context.expressionAnalysisContext()
+            ),
+            analyzeOrderBy(
                 selectAnalysis,
                 node.getOrderBy(),
                 expressionAnalyzer,
                 expressionAnalysisContext,
                 expressionAnalysisContext.hasAggregates() || ((groupBy != null && !groupBy.isEmpty())),
-                isDistinct))
-            .having(analyzeHaving(
-                node.getHaving(),
-                groupBy,
-                expressionAnalyzer,
-                context.expressionAnalysisContext()))
-            .limit(longSymbolOrNull(node.getLimit(), expressionAnalyzer, expressionAnalysisContext))
-            .offset(longSymbolOrNull(node.getOffset(), expressionAnalyzer, expressionAnalysisContext))
-            .outputs(selectAnalysis.outputSymbols())
-            .where(whereClause)
-            .groupBy(groupBy)
-            .hasAggregates(expressionAnalysisContext.hasAggregates());
-
+                isDistinct
+            ),
+            longSymbolOrNull(node.getLimit(), expressionAnalyzer, expressionAnalysisContext),
+            longSymbolOrNull(node.getOffset(), expressionAnalyzer, expressionAnalysisContext),
+            expressionAnalysisContext.hasAggregates()
+        );
         AnalyzedRelation relation;
         if (context.sources().size() == 1) {
             AnalyzedRelation source = Iterables.getOnlyElement(context.sources().values());

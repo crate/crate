@@ -24,7 +24,6 @@ package io.crate.analyze.relations;
 
 import io.crate.analyze.HavingClause;
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.QuerySpec;
 import io.crate.analyze.WhereClause;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.Field;
@@ -65,17 +64,20 @@ import java.util.function.Function;
 public class OrderedLimitedRelation implements AnalyzedRelation {
 
     private final AnalyzedRelation childRelation;
-    private final QuerySpec querySpec;
+    private final OrderBy orderBy;
+    @Nullable
+    private final Symbol limit;
+    @Nullable
+    private final Symbol offset;
 
     public OrderedLimitedRelation(AnalyzedRelation childRelation,
                                   OrderBy orderBy,
                                   @Nullable Symbol limit,
                                   @Nullable Symbol offset) {
         this.childRelation = childRelation;
-        this.querySpec = new QuerySpec();
-        querySpec.limit(limit);
-        querySpec.orderBy(orderBy);
-        querySpec.offset(offset);
+        this.orderBy = orderBy;
+        this.limit = limit;
+        this.offset = offset;
     }
 
     @Override
@@ -129,17 +131,17 @@ public class OrderedLimitedRelation implements AnalyzedRelation {
     }
 
     public OrderBy orderBy() {
-        return querySpec.orderBy();
+        return orderBy;
     }
 
     @Nullable
     public Symbol limit() {
-        return querySpec.limit();
+        return limit;
     }
 
     @Nullable
     public Symbol offset() {
-        return querySpec.offset();
+        return offset;
     }
 
     @Override
@@ -163,7 +165,7 @@ public class OrderedLimitedRelation implements AnalyzedRelation {
         Symbol offset = offset();
         return new OrderedLimitedRelation(
             newChild,
-            orderBy == null ? null : orderBy.copyAndReplace(mapper),
+            orderBy == null ? null : orderBy.map(mapper),
             limit == null ? null : mapper.apply(limit),
             offset == null ? null : mapper.apply(offset)
         );

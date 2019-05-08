@@ -240,16 +240,23 @@ class CopyAnalyzer {
             throw new UnsupportedFeatureException("Output format not supported without specifying columns.");
         }
 
-        QuerySpec querySpec = new QuerySpec()
-            .outputs(outputs)
-            .where(createWhereClause(
+        QuerySpec querySpec = new QuerySpec(
+            outputs,
+            createWhereClause(
                 node.whereClause(),
                 partitions,
                 normalizer,
                 expressionAnalyzer,
                 expressionAnalysisContext,
-                analysis.transactionContext())
-            );
+                analysis.transactionContext()
+            ),
+            List.of(),
+            null,
+            null,
+            null,
+            null,
+            false
+        );
         QueriedTable<DocTableRelation> subRelation = new QueriedTable<>(false, tableRelation, querySpec);
         return new CopyToAnalyzedStatement(
             subRelation, settings, uri, compressionType, outputFormat, outputNames, columnsDefined, overwrites);

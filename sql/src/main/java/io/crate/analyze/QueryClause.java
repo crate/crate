@@ -34,9 +34,6 @@ public abstract class QueryClause {
     protected Symbol query;
     protected boolean noMatch = false;
 
-    protected QueryClause() {
-    }
-
     protected QueryClause(@Nullable Symbol normalizedQuery) {
         if (normalizedQuery == null) {
             return;

@@ -79,7 +79,7 @@ public class WindowDefinition implements Writeable {
         if (!partitions.isEmpty() || orderBy != null) {
             return new WindowDefinition(
                 Lists2.map(partitions, mapSymbolsFunction),
-                orderBy != null ? orderBy.copyAndReplace(mapSymbolsFunction) : null,
+                orderBy != null ? orderBy.map(mapSymbolsFunction) : null,
                 windowFrameDefinition
             );
         } else {

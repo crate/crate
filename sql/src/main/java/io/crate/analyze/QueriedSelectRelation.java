@@ -153,7 +153,7 @@ public class QueriedSelectRelation implements AnalyzedRelation {
             isDistinct,
             newSubRelation,
             transform(fields.asList(), Field::path),
-            querySpec.copyAndReplace(mapFieldsToNewRelation)
+            querySpec.map(mapFieldsToNewRelation)
         );
     }
 }

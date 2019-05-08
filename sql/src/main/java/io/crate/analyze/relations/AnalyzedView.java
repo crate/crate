@@ -25,7 +25,6 @@ package io.crate.analyze.relations;
 import io.crate.analyze.Fields;
 import io.crate.analyze.HavingClause;
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.QuerySpec;
 import io.crate.analyze.WhereClause;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.Field;
@@ -37,7 +36,6 @@ import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.ArrayList;
 import java.util.List;
 
 public final class AnalyzedView implements AnalyzedRelation {
@@ -46,7 +44,7 @@ public final class AnalyzedView implements AnalyzedRelation {
     private final String owner;
     private final AnalyzedRelation relation;
     private final Fields fields;
-    private final QuerySpec querySpec;
+    private final List<Symbol> outputSymbols;
 
     public AnalyzedView(RelationName name, String owner, AnalyzedRelation relation) {
         this.name = name;
@@ -56,8 +54,7 @@ public final class AnalyzedView implements AnalyzedRelation {
         for (Field field : relation.fields()) {
             fields.add(field.path(), new Field(this, field.path(), field.valueType()));
         }
-        querySpec = new QuerySpec()
-            .outputs(new ArrayList<>(relation.fields()));
+        this.outputSymbols = List.copyOf(relation.fields());
     }
 
     public String owner() {
@@ -107,45 +104,45 @@ public final class AnalyzedView implements AnalyzedRelation {
 
     @Override
     public List<Symbol> outputs() {
-        return querySpec.outputs();
+        return outputSymbols;
     }
 
     @Override
     public WhereClause where() {
-        return querySpec.where();
+        return WhereClause.MATCH_ALL;
     }
 
     @Override
     public List<Symbol> groupBy() {
-        return querySpec.groupBy();
+        return List.of();
     }
 
     @Nullable
     @Override
     public HavingClause having() {
-        return querySpec.having();
+        return null;
     }
 
     @Nullable
     @Override
     public OrderBy orderBy() {
-        return querySpec.orderBy();
+        return null;
     }
 
     @Nullable
     @Override
     public Symbol limit() {
-        return querySpec.limit();
+        return null;
     }
 
     @Nullable
     @Override
     public Symbol offset() {
-        return querySpec.offset();
+        return null;
     }
 
     @Override
     public boolean hasAggregates() {
-        return querySpec.hasAggregates();
+        return false;
     }
 }

@@ -69,7 +69,7 @@ public final class QueriedTable<TR extends AbstractTableRelation> implements Ana
             isDistinct,
             tableRelation,
             transform(fields.asList(), Field::path),
-            querySpec.copyAndReplace(mapper)
+            querySpec.map(mapper)
         );
     }
 
