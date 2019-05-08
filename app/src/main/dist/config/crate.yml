@@ -26,7 +26,6 @@
 # Clustering: To avoid split-brain situations and data loss on recovery
 #gateway.expected_nodes: 5              # Total amount of nodes
 #gateway.recover_after_nodes: 3         # More than half of the nodes
-#discovery.zen.minimum_master_nodes: 3  # More than half of the nodes
 
 # Networking: Bind to an IP address or interface other than localhost.
 # Be careful! Never expose an unprotected node to the internet.
@@ -34,10 +33,18 @@
 #network.host: _site_
 
 # Cluster discovery: Specify the hosts which will form the CrateDB cluster
-#discovery.zen.ping:
-#  unicast.hosts:
-#    - host1:4300
-#    - host2:4300
+#discovery.seed_hosts:
+#    - host1
+#    - host2
+
+# Bootstrap the cluster using an initial set of master-eligible nodes. All
+# master-eligible nodes must be set here for new (or upgraded from CrateDB < 4.x)
+# production (non loop-back bound) clusters otherwise the cluster is not able to
+# initially vote an initial master node:
+#
+#cluster.initial_master_nodes:
+#    - host1
+#    - host2
 
 
 ################################# Full Settings ##############################
@@ -451,35 +458,19 @@ auth:
 #
 # Unicast discovery allows to explicitly control which nodes will be used
 # to discover the cluster by pinging them.
-#discovery.zen.ping.unicast.hosts:
+#discovery.seed_hosts:
 #  - host1:port
 #  - host2:port
 #
 # If you want to debug the discovery process, you can set a logger in
 # 'config/log4j2.properties' to help you doing so.
 
-# Set to ensure a node sees M other master eligible nodes to be considered
-# operational within the cluster. It's recommended to set it to a higher value
-# than 1 when running more than 2 nodes in the cluster.
+# Bootstrap the cluster using an initial set of master-eligible nodes. All
+# master-eligible nodes must be set here for new (or upgraded from CrateDB < 4.x)
+# production (non loop-back bound) clusters otherwise the cluster is not able to
+# initially vote an initial master node:
 #
-# We highly recommend to set the minimum master nodes as follows:
-#   minimum_master_nodes: (N / 2) + 1 where N is the cluster size
-# That will ensure a full recovery of the cluster state.
-#discovery.zen.minimum_master_nodes: 1
-
-# Set the time to wait for ping responses from other nodes when discovering.
-# Set this option to a higher value on a slow or congested network to minimize
-# discovery failures:
-#discovery.zen.ping.timeout: 3s
-
-# Time a node is waiting for responses from other nodes to a published
-# cluster state.
-#discovery.zen.publish_timeout: 30s
-
-# Ping configuration
-#discovery.zen.fd.ping_timeout: 30s
-#discovery.zen.fd.ping_retries: 3
-#discovery.zen.fd.ping_interval: 1s
+#cluster.initial_master_nodes: ["host1", "host2"]
 
 #/////////////////////////// Discovery via DNS ///////////////////////////////
 
@@ -487,7 +478,7 @@ auth:
 # SRV DNS records.
 
 # To enable SRV discovery you need to set the discovery type to 'srv'.
-#discovery.zen.hosts_provider: srv
+#discovery.seed_providers: srv
 
 # Service discovery requires a query that is used to look up SRV records,
 # this is usually in the format _service._protocol.fqdn
@@ -499,7 +490,7 @@ auth:
 # AWS EC2 API.
 
 # To enable EC2 discovery you need to set the discovery type to 'ec2'.
-#discovery.zen.hosts_provider: ec2
+#discovery.seed_providers: ec2
 
 # There are multiple ways to filter EC2 instances:
 #
@@ -542,7 +533,7 @@ auth:
 # the Azure API.
 
 # To enable Azure discovery you need to set the discovery type to 'azure'.
-#discovery.zen.hosts_provider: azure
+#discovery.seed_providers: azure
 
 # You should provide resource group name of your instances
 #cloud.azure.management.resourcegroup.name: myrg
