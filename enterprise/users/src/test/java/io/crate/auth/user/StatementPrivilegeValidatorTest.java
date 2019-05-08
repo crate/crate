@@ -23,14 +23,12 @@ import com.google.common.collect.Lists;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.ParameterContext;
-import io.crate.analyze.TableDefinitions;
 import io.crate.analyze.user.Privilege;
 import io.crate.exceptions.UnauthorizedException;
 import io.crate.execution.engine.collect.sources.SysTableRegistry;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.cluster.DDLClusterStateService;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -126,7 +124,7 @@ public class StatementPrivilegeValidatorTest extends CrateDummyClusterServiceUni
 
     private void analyze(String stmt, User user) {
         e.analyzer.boundAnalyze(SqlParser.createStatement(stmt),
-            new CoordinatorTxnCtx(new SessionContext(0, Option.NONE, user,
+            new CoordinatorTxnCtx(new SessionContext(Option.NONE, user,
                 userManager.getStatementValidator(user, Schemas.DOC_SCHEMA_NAME),
                 userManager.getExceptionValidator(user, Schemas.DOC_SCHEMA_NAME))), ParameterContext.EMPTY);
     }

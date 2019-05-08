@@ -37,7 +37,6 @@ import static java.util.Objects.requireNonNull;
 
 public class SessionContext implements StatementAuthorizedValidator, ExceptionAuthorizedValidator {
 
-    private final int defaultLimit;
     private final Set<Option> options;
     private final User user;
     private final StatementAuthorizedValidator statementAuthorizedValidator;
@@ -50,16 +49,14 @@ public class SessionContext implements StatementAuthorizedValidator, ExceptionAu
      * Creates a new SessionContext suitable to use as system SessionContext
      */
     public static SessionContext systemSessionContext() {
-        return new SessionContext(0, Option.NONE, User.CRATE_USER, s -> { }, e -> { });
+        return new SessionContext(Option.NONE, User.CRATE_USER, s -> { }, e -> { });
     }
 
-    public SessionContext(int defaultLimit,
-                          Set<Option> options,
+    public SessionContext(Set<Option> options,
                           User user,
                           StatementAuthorizedValidator statementAuthorizedValidator,
                           ExceptionAuthorizedValidator exceptionAuthorizedValidator,
                           String... searchPath) {
-        this.defaultLimit = defaultLimit;
         this.options = options;
         this.user = requireNonNull(user, "User is required");
         this.statementAuthorizedValidator = statementAuthorizedValidator;
@@ -100,10 +97,6 @@ public class SessionContext implements StatementAuthorizedValidator, ExceptionAu
 
     public User user() {
         return user;
-    }
-
-    public int defaultLimit() {
-        return defaultLimit;
     }
 
     @Override

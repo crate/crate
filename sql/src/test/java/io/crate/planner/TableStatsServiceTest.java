@@ -49,8 +49,6 @@ import static org.hamcrest.core.IsNull.notNullValue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.anyInt;
-import static org.mockito.Mockito.anyObject;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -165,7 +163,7 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
         when(clusterService.getClusterSettings()).thenReturn(this.clusterService.getClusterSettings());
         SQLOperations sqlOperations = mock(SQLOperations.class);
         Session session = mock(Session.class);
-        when(sqlOperations.createSession(anyString(), any(), any(), anyInt())).thenReturn(session);
+        when(sqlOperations.createSession(anyString(), any(), any())).thenReturn(session);
 
         TableStatsService statsService = new TableStatsService(
             Settings.EMPTY,

@@ -93,7 +93,7 @@ public class SqlExpressions {
         }
         injector = modulesBuilder.createInjector();
         functions = injector.getInstance(Functions.class);
-        coordinatorTxnCtx = new CoordinatorTxnCtx(new SessionContext(0, Option.NONE, user, s -> {}, e -> {}));
+        coordinatorTxnCtx = new CoordinatorTxnCtx(new SessionContext(Option.NONE, user, s -> {}, e -> {}));
         expressionAnalyzer = new ExpressionAnalyzer(
             functions,
             coordinatorTxnCtx,

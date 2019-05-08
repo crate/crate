@@ -345,9 +345,6 @@ The optional LIMIT Clause allows to limit the number or retured result rows::
 :num_results:
   Specifies the maximum number of result rows to return.
 
-  If a client using the ``HTTP`` or ``Transport`` protocol is used a
-  default limit of 10000 is implicitly added.
-
 .. NOTE::
 
    It is possible for repeated executions of the same LIMIT query to return

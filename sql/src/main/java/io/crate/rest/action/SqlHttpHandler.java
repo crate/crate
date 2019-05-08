@@ -214,10 +214,10 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         User user = userFromAuthHeader(request.headers().get(HttpHeaderNames.AUTHORIZATION));
         Set<Option> options = optionsFromUserHeader(request.headers().get(REQUEST_HEADER_USER));
         if (session == null) {
-            session = sqlOperations.createSession(defaultSchema, user, options, DEFAULT_SOFT_LIMIT);
+            session = sqlOperations.createSession(defaultSchema, user, options);
         } else if (optionsChanged(user, options, session.sessionContext())) {
             session.close();
-            session = sqlOperations.createSession(defaultSchema, user, options, DEFAULT_SOFT_LIMIT);
+            session = sqlOperations.createSession(defaultSchema, user, options);
         } else {
             // We don't want to keep "set session" settings across requests yet to not mess with clients doing
             // per request round-robin

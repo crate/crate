@@ -37,8 +37,8 @@ import io.crate.exceptions.ReadOnlyException;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.expression.symbol.Field;
-import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.RoutingProvider;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
@@ -47,10 +47,10 @@ import io.crate.planner.operators.StatementClassifier;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.Statement;
 import io.crate.types.DataType;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.common.Randomness;
-import org.apache.logging.log4j.LogManager;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
@@ -73,7 +73,6 @@ public class SimplePortal extends AbstractPortal {
     private ResultReceiver<?> resultReceiver;
     private RowConsumerToResultReceiver consumer = null;
     private int maxRows = 0;
-    private int defaultLimit;
     private Row rowParams;
     private CoordinatorTxnCtx coordinatorTxnCtx;
 
@@ -83,7 +82,6 @@ public class SimplePortal extends AbstractPortal {
                         boolean isReadOnly,
                         SessionContext sessionContext) {
         super(name, analyzer, executor, isReadOnly, sessionContext);
-        this.defaultLimit = sessionContext.defaultLimit();
     }
 
     @Override
@@ -194,7 +192,6 @@ public class SimplePortal extends AbstractPortal {
             jobId,
             planner.functions(),
             coordinatorTxnCtx,
-            defaultLimit,
             maxRows
         );
         Plan plan;
@@ -251,7 +248,6 @@ public class SimplePortal extends AbstractPortal {
             jobId,
             planner.functions(),
             coordinatorTxnCtx,
-            defaultLimit,
             maxRows
         );
         Plan plan = planner.plan(analysis.analyzedStatement(), plannerContext);

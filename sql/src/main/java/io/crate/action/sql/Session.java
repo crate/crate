@@ -176,7 +176,6 @@ public class Session implements AutoCloseable {
             jobId,
             planner.functions(),
             txnCtx,
-            0,
             0
         );
         Plan plan;
@@ -226,7 +225,6 @@ public class Session implements AutoCloseable {
             jobId,
             planner.functions(),
             txnCtx,
-            0,
             0
         );
         Plan plan = planner.plan(stmt, plannerContext);

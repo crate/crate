@@ -94,18 +94,17 @@ public class SQLOperations {
     }
 
     public Session createSession(@Nullable String defaultSchema, User user) {
-        return createSession(defaultSchema, user, Option.NONE, 0);
+        return createSession(defaultSchema, user, Option.NONE);
     }
 
-    public Session createSession(@Nullable String defaultSchema, User user, Set<Option> options, int defaultLimit) {
+    public Session createSession(@Nullable String defaultSchema, User user, Set<Option> options) {
         StatementAuthorizedValidator statementValidator = userManager.getStatementValidator(user, defaultSchema);
         ExceptionAuthorizedValidator exceptionValidator = userManager.getExceptionValidator(user, defaultSchema);
         SessionContext sessionContext;
         if (defaultSchema == null) {
-            sessionContext = new SessionContext(defaultLimit, options, user, statementValidator, exceptionValidator);
+            sessionContext = new SessionContext(options, user, statementValidator, exceptionValidator);
         } else {
-            sessionContext = new SessionContext(defaultLimit, options, user, statementValidator, exceptionValidator,
-                defaultSchema);
+            sessionContext = new SessionContext(options, user, statementValidator, exceptionValidator, defaultSchema);
         }
 
         return createSession(sessionContext);
