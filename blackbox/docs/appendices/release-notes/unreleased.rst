@@ -156,6 +156,10 @@ Deprecations
 Changes
 =======
 
+- Changed the default value of the ``fs`` repository type setting
+  ``compress``, to ``true``. See
+  :ref:`fs repository parameters<ref-create-repository-types-fs>`.
+
 - Added a new optimization that allows to run predicates on top of views or
   sub-queries more efficiently in some cases.
 
