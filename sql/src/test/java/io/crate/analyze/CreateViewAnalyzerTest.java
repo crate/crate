@@ -57,7 +57,7 @@ public class CreateViewAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         CreateViewStmt createView = e.analyze("create view v1 as select * from t1");
 
         assertThat(createView.name(), is(new RelationName(e.getSessionContext().searchPath().currentSchema(), "v1")));
-        assertThat(createView.query(), isSQL("QueriedTable{DocTableRelation{doc.t1}}"));
+        assertThat(createView.query(), isSQL("SELECT doc.t1.x"));
         assertThat(createView.owner(), is(testUser));
     }
 

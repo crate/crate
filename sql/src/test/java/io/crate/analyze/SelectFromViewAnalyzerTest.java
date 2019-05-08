@@ -53,7 +53,7 @@ public class SelectFromViewAnalyzerTest extends CrateDummyClusterServiceUnitTest
         assertThat(query.outputs(), Matchers.contains(isField("name"), isField("count(*)")));
         assertThat(query.groupBy(), Matchers.empty());
         assertThat(query.subRelation(), instanceOf(AnalyzedView.class));
-        QueriedTable queriedDocTable = (QueriedTable) ((AnalyzedView) query.subRelation()).relation();
+        QueriedTable<?> queriedDocTable = (QueriedTable) ((AnalyzedView) query.subRelation()).relation();
         assertThat(queriedDocTable.groupBy(), Matchers.contains(isReference("name")));
         assertThat(queriedDocTable.tableRelation().tableInfo().ident(), is(new RelationName("doc", "t1")));
     }

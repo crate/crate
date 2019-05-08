@@ -76,7 +76,7 @@ public class InsertFromSubQueryAnalyzerTest extends CrateDummyClusterServiceUnit
     }
 
     private void assertCompatibleColumns(InsertFromSubQueryAnalyzedStatement statement) {
-        List<Symbol> outputSymbols = statement.subQueryRelation().querySpec().outputs();
+        List<Symbol> outputSymbols = statement.subQueryRelation().outputs();
         assertThat(statement.columns().size(), is(outputSymbols.size()));
 
         for (int i = 0; i < statement.columns().size(); i++) {

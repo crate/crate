@@ -35,6 +35,9 @@ import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.function.Function;
+
+import static com.google.common.collect.Lists.transform;
 
 public final class QueriedTable<TR extends AbstractTableRelation> implements AnalyzedRelation {
 
@@ -61,8 +64,13 @@ public final class QueriedTable<TR extends AbstractTableRelation> implements Ana
         this(isDistinct, tableRelation, Relations.namesFromOutputs(querySpec.outputs()), querySpec);
     }
 
-    public QuerySpec querySpec() {
-        return querySpec;
+    public QueriedTable<TR> map(Function<? super Symbol, ? extends Symbol> mapper) {
+        return new QueriedTable<>(
+            isDistinct,
+            tableRelation,
+            transform(fields.asList(), Field::path),
+            querySpec.copyAndReplace(mapper)
+        );
     }
 
     @Override
@@ -101,6 +109,50 @@ public final class QueriedTable<TR extends AbstractTableRelation> implements Ana
     @Override
     public void setQualifiedName(@Nonnull QualifiedName qualifiedName) {
         tableRelation.setQualifiedName(qualifiedName);
+    }
+
+    @Override
+    public List<Symbol> outputs() {
+        return querySpec.outputs();
+    }
+
+    @Override
+    public WhereClause where() {
+        return querySpec.where();
+    }
+
+    @Override
+    public List<Symbol> groupBy() {
+        return querySpec.groupBy();
+    }
+
+    @Nullable
+    @Override
+    public HavingClause having() {
+        return querySpec.having();
+    }
+
+    @Nullable
+    @Override
+    public OrderBy orderBy() {
+        return querySpec.orderBy();
+    }
+
+    @Nullable
+    @Override
+    public Symbol limit() {
+        return querySpec.limit();
+    }
+
+    @Nullable
+    @Override
+    public Symbol offset() {
+        return querySpec.offset();
+    }
+
+    @Override
+    public boolean hasAggregates() {
+        return querySpec.hasAggregates();
     }
 
     @Override

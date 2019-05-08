@@ -29,6 +29,7 @@ import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.execution.dsl.phases.FileUriCollectPhase;
 import io.crate.execution.dsl.projection.WriterProjection;
 import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.TableInfo;
@@ -42,6 +43,7 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.List;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.analyze.TableDefinitions.TEST_PARTITIONED_TABLE_IDENT;
@@ -163,10 +165,10 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testCopyToWithColumnList() throws Exception {
         CopyToAnalyzedStatement analysis = e.analyze("copy users (id, name) to DIRECTORY '/tmp'");
         assertThat(analysis.subQueryRelation(), instanceOf(QueriedTable.class));
-        QuerySpec querySpec = analysis.subQueryRelation().querySpec();
-        assertThat(querySpec.outputs().size(), is(2));
-        assertThat(querySpec.outputs().get(0), isReference("_doc['id']"));
-        assertThat(querySpec.outputs().get(1), isReference("_doc['name']"));
+        List<Symbol> outputs = analysis.subQueryRelation().outputs();
+        assertThat(outputs.size(), is(2));
+        assertThat(outputs.get(0), isReference("_doc['id']"));
+        assertThat(outputs.get(1), isReference("_doc['name']"));
     }
 
     @Test
@@ -199,8 +201,7 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         CopyToAnalyzedStatement analysis = e.analyze("copy parted partition (date=1395874800000) to directory '/blah'");
         String parted = new PartitionName(
             new RelationName("doc", "parted"), Collections.singletonList("1395874800000")).asIndexName();
-        QuerySpec querySpec = analysis.subQueryRelation().querySpec();
-        assertThat(querySpec.where().partitions(), contains(parted));
+        assertThat(analysis.subQueryRelation().where().partitions(), contains(parted));
     }
 
     @Test
@@ -208,8 +209,7 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         CopyToAnalyzedStatement analysis = e.analyze("copy parted partition (date=1395874800000) to directory '/tmp'");
         String parted = new PartitionName(
             new RelationName("doc", "parted"), Collections.singletonList("1395874800000")).asIndexName();
-        QuerySpec querySpec = analysis.subQueryRelation().querySpec();
-        assertThat(querySpec.where().partitions(), contains(parted));
+        assertThat(analysis.subQueryRelation().where().partitions(), contains(parted));
         assertThat(analysis.overwrites().size(), is(0));
     }
 
@@ -223,8 +223,7 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testCopyToWithWhereClause() throws Exception {
         CopyToAnalyzedStatement analysis = e.analyze("copy parted where id = 1 to directory '/tmp/foo'");
-        QuerySpec querySpec = analysis.subQueryRelation().querySpec();
-        assertThat(querySpec.where().query(), isFunction("op_="));
+        assertThat(analysis.subQueryRelation().where().query(), isFunction("op_="));
     }
 
     @Test
@@ -233,8 +232,7 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             "copy parted partition (date=1395874800000) where date = 1395874800000 to directory '/tmp/foo'");
         String parted = new PartitionName(
             new RelationName("doc", "parted"), Collections.singletonList("1395874800000")).asIndexName();
-        QuerySpec querySpec = analysis.subQueryRelation().querySpec();
-        assertThat(querySpec.where().partitions(), contains(parted));
+        assertThat(analysis.subQueryRelation().where().partitions(), contains(parted));
     }
 
 
@@ -244,9 +242,9 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             "copy parted partition (date=1395874800000) where id = 1 to directory '/tmp/foo'");
         String parted = new PartitionName(
             new RelationName("doc", "parted"), Collections.singletonList("1395874800000")).asIndexName();
-        QuerySpec querySpec = analysis.subQueryRelation().querySpec();
-        assertThat(querySpec.where().partitions(), contains(parted));
-        assertThat(querySpec.where().query(), isFunction("op_="));
+        WhereClause where = analysis.subQueryRelation().where();
+        assertThat(where.partitions(), contains(parted));
+        assertThat(where.query(), isFunction("op_="));
     }
 
     @Test

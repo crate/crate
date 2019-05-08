@@ -25,23 +25,13 @@ package io.crate.analyze.relations;
 import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.QueriedTable;
-import io.crate.analyze.QuerySpec;
 import io.crate.analyze.where.WhereClauseValidator;
-import io.crate.collections.Lists2;
 import io.crate.expression.eval.EvaluatingNormalizer;
-import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.FieldReplacer;
-import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.table.Operation;
-import io.crate.sql.tree.QualifiedName;
-
-import java.util.LinkedHashMap;
-import java.util.function.Function;
-
-import static com.google.common.collect.Lists.transform;
 
 /**
  * The RelationNormalizer tries to merge the tree of relations in a QueriedSelectRelation into a single AnalyzedRelation.
@@ -82,17 +72,7 @@ public final class RelationNormalizer {
             if (subRelation == normalizedSubRelation) {
                 return relation;
             }
-            return new QueriedSelectRelation(
-                relation.isDistinct(),
-                normalizedSubRelation,
-                transform(relation.fields(), Field::path),
-                relation.querySpec().copyAndReplace(FieldReplacer.bind(f -> {
-                    if (f.relation().equals(subRelation)) {
-                        return normalizedSubRelation.getField(f.path(), Operation.READ);
-                    }
-                    return f;
-                }))
-            );
+            return relation.replaceSubRelation(normalizedSubRelation);
         }
 
         @Override
@@ -110,38 +90,16 @@ public final class RelationNormalizer {
             AbstractTableRelation<?> tableRelation = queriedTable.tableRelation();
             EvaluatingNormalizer evalNormalizer = new EvaluatingNormalizer(
                 functions, RowGranularity.CLUSTER, null, tableRelation);
-
-            QueriedTable<? extends AbstractTableRelation<?>> table = new QueriedTable<>(
-                queriedTable.isDistinct(),
-                tableRelation,
-                transform(queriedTable.fields(), Field::path),
-                queriedTable.querySpec().copyAndReplace(s -> evalNormalizer.normalize(s, tnxCtx))
-            );
+            QueriedTable<?> table = queriedTable.map(s -> evalNormalizer.normalize(s, tnxCtx));
             WhereClauseValidator.validate(table.where().queryOrFallback());
             return table;
         }
 
         @Override
         public AnalyzedRelation visitMultiSourceSelect(MultiSourceSelect mss, CoordinatorTxnCtx context) {
-            LinkedHashMap<QualifiedName, AnalyzedRelation> normalizedSources = new LinkedHashMap<>();
-            for (var entry : mss.sources().entrySet()) {
-                normalizedSources.put(entry.getKey(), entry.getValue().accept(this, context));
-            }
-            Function<? super Symbol, ? extends Symbol> updateField = FieldReplacer.bind(f -> {
-                QualifiedName name = f.relation().getQualifiedName();
-                if (normalizedSources.containsKey(name)) {
-                    return normalizedSources.get(name).getField(f.path(), Operation.READ);
-                }
-                return f;
-            });
-            Function<Symbol, Symbol> updateSymbol = s -> updateField.apply(normalizer.normalize(s, context));
-            QuerySpec querySpec = mss.querySpec().copyAndReplace(updateSymbol);
-            return new MultiSourceSelect(
-                mss.isDistinct(),
-                normalizedSources,
-                transform(mss.fields(), Field::path),
-                querySpec,
-                Lists2.map(mss.joinPairs(), joinPair -> joinPair.mapCondition(updateSymbol))
+            return mss.mapSubRelations(
+                rel -> rel.accept(this, context),
+                s -> normalizer.normalize(s, context)
             );
         }
 

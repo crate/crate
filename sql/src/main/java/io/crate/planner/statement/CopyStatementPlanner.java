@@ -374,7 +374,7 @@ public final class CopyStatementPlanner {
         }
 
         WriterProjection projection = ProjectionBuilder.writerProjection(
-            statement.subQueryRelation().querySpec().outputs(),
+            statement.subQueryRelation().outputs(),
             statement.uri(),
             statement.compressionType(),
             statement.overwrites(),

@@ -52,9 +52,9 @@ public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUn
 
     @Test
     public void testEmptyOverClause() {
-        QueriedTable analysis = e.analyze("select avg(x) OVER () from t");
+        QueriedTable<?> analysis = e.analyze("select avg(x) OVER () from t");
 
-        List<Symbol> outputSymbols = analysis.querySpec().outputs();
+        List<Symbol> outputSymbols = analysis.outputs();
         assertThat(outputSymbols.size(), is(1));
         assertThat(outputSymbols.get(0), instanceOf(WindowFunction.class));
         WindowFunction windowFunction = (WindowFunction) outputSymbols.get(0);
@@ -67,9 +67,9 @@ public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUn
 
     @Test
     public void testOverWithPartitionByClause() {
-        QueriedTable analysis = e.analyze("select avg(x) OVER (PARTITION BY x) from t");
+        QueriedTable<?> analysis = e.analyze("select avg(x) OVER (PARTITION BY x) from t");
 
-        List<Symbol> outputSymbols = analysis.querySpec().outputs();
+        List<Symbol> outputSymbols = analysis.outputs();
         assertThat(outputSymbols.size(), is(1));
         assertThat(outputSymbols.get(0), instanceOf(WindowFunction.class));
         WindowFunction windowFunction = (WindowFunction) outputSymbols.get(0);
@@ -101,9 +101,9 @@ public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUn
 
     @Test
     public void testOverWithOrderByClause() {
-        QueriedTable analysis = e.analyze("select avg(x) OVER (ORDER BY x) from t");
+        QueriedTable<?> analysis = e.analyze("select avg(x) OVER (ORDER BY x) from t");
 
-        List<Symbol> outputSymbols = analysis.querySpec().outputs();
+        List<Symbol> outputSymbols = analysis.outputs();
         assertThat(outputSymbols.size(), is(1));
         assertThat(outputSymbols.get(0), instanceOf(WindowFunction.class));
         WindowFunction windowFunction = (WindowFunction) outputSymbols.get(0);
@@ -114,9 +114,9 @@ public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUn
 
     @Test
     public void testOverWithPartitionAndOrderByClauses() {
-        QueriedTable analysis = e.analyze("select avg(x) OVER (PARTITION BY x ORDER BY x) from t");
+        QueriedTable<?> analysis = e.analyze("select avg(x) OVER (PARTITION BY x ORDER BY x) from t");
 
-        List<Symbol> outputSymbols = analysis.querySpec().outputs();
+        List<Symbol> outputSymbols = analysis.outputs();
         assertThat(outputSymbols.size(), is(1));
         assertThat(outputSymbols.get(0), instanceOf(WindowFunction.class));
         WindowFunction windowFunction = (WindowFunction) outputSymbols.get(0);
@@ -128,10 +128,10 @@ public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUn
 
     @Test
     public void testOverWithFrameDefinition() {
-        QueriedTable analysis = e.analyze("select avg(x) OVER (PARTITION BY x ORDER BY x " +
-                                          "RANGE BETWEEN 5 PRECEDING AND 6 FOLLOWING) from t");
+        QueriedTable<?> analysis = e.analyze("select avg(x) OVER (PARTITION BY x ORDER BY x " +
+                                             "RANGE BETWEEN 5 PRECEDING AND 6 FOLLOWING) from t");
 
-        List<Symbol> outputSymbols = analysis.querySpec().outputs();
+        List<Symbol> outputSymbols = analysis.outputs();
         assertThat(outputSymbols.size(), is(1));
         assertThat(outputSymbols.get(0), instanceOf(WindowFunction.class));
         WindowFunction windowFunction = (WindowFunction) outputSymbols.get(0);

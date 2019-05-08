@@ -26,7 +26,7 @@ import com.google.common.collect.Ordering;
 import io.crate.analyze.HavingClause;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueryClause;
-import io.crate.analyze.QuerySpec;
+import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.format.SymbolPrinter;
 
@@ -38,8 +38,8 @@ public class SQLPrinter {
     private static final TestingSymbolPrinter TESTING_SYMBOL_PRINTER = new TestingSymbolPrinter();
 
     public static String print(Object o) {
-        if (o instanceof QuerySpec) {
-            return print((QuerySpec) o);
+        if (o instanceof AnalyzedRelation) {
+            return print((AnalyzedRelation) o);
         } else if (o instanceof OrderBy) {
             return print((OrderBy) o);
         } else if (o instanceof Symbol) {
@@ -81,42 +81,43 @@ public class SQLPrinter {
         return sb.toString();
     }
 
-    public static String print(QuerySpec spec) {
+    public static String print(AnalyzedRelation relation) {
         StringBuilder sb = new StringBuilder();
 
         sb.append("SELECT ");
-        TESTING_SYMBOL_PRINTER.process(spec.outputs(), sb);
+        TESTING_SYMBOL_PRINTER.process(relation.outputs(), sb);
 
-        if (spec.where().hasQuery()) {
+        if (relation.where().hasQuery()) {
             sb.append(" WHERE ");
-            TESTING_SYMBOL_PRINTER.process(spec.where().query(), sb);
+            TESTING_SYMBOL_PRINTER.process(relation.where().query(), sb);
         }
-        if (!spec.groupBy().isEmpty()) {
+        if (!relation.groupBy().isEmpty()) {
             sb.append(" GROUP BY ");
-            TESTING_SYMBOL_PRINTER.process(spec.groupBy(), sb);
+            TESTING_SYMBOL_PRINTER.process(relation.groupBy(), sb);
         }
-        HavingClause having = spec.having();
+        HavingClause having = relation.having();
         if (having != null) {
             sb.append(" HAVING ");
             TESTING_SYMBOL_PRINTER.process(having.query(), sb);
         }
-        OrderBy orderBy = spec.orderBy();
+        OrderBy orderBy = relation.orderBy();
         if (orderBy != null) {
             sb.append(" ORDER BY ");
             TESTING_SYMBOL_PRINTER.process(orderBy, sb);
         }
-        Symbol limit = spec.limit();
+        Symbol limit = relation.limit();
         if (limit != null) {
             sb.append(" LIMIT ");
             sb.append(print(limit));
         }
-        Symbol offset = spec.offset();
+        Symbol offset = relation.offset();
         if (offset != null) {
             sb.append(" OFFSET ");
             sb.append(print(offset));
         }
         return sb.toString();
     }
+
 
     /**
      * produces same results as with {@link SymbolPrinter#printQualified(Symbol)} but is

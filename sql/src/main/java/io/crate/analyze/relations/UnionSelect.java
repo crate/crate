@@ -23,23 +23,26 @@
 package io.crate.analyze.relations;
 
 import io.crate.analyze.Fields;
-import io.crate.analyze.QuerySpec;
+import io.crate.analyze.HavingClause;
+import io.crate.analyze.OrderBy;
+import io.crate.analyze.WhereClause;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.Field;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Path;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nonnull;
-import java.util.ArrayList;
+import javax.annotation.Nullable;
 import java.util.List;
 
 public class UnionSelect implements AnalyzedRelation {
 
-    private final QuerySpec querySpec = new QuerySpec();
     private final Fields fields;
     private final AnalyzedRelation left;
     private final AnalyzedRelation right;
+    private final List<Symbol> outputs;
     private QualifiedName name;
 
     public UnionSelect(AnalyzedRelation left, AnalyzedRelation right) {
@@ -52,7 +55,7 @@ public class UnionSelect implements AnalyzedRelation {
         for (Field field : fieldsFromLeft) {
             fields.add(field.path(), new Field(this, field.path(), field.valueType()));
         }
-        querySpec.outputs(new ArrayList<>(fields.asList()));
+        this.outputs = List.copyOf(fields.asList());
     }
 
     public AnalyzedRelation left() {
@@ -92,8 +95,47 @@ public class UnionSelect implements AnalyzedRelation {
     }
 
     @Override
-    public QuerySpec querySpec() {
-        return querySpec;
+    public List<Symbol> outputs() {
+        return outputs;
+    }
+
+    @Override
+    public WhereClause where() {
+        return WhereClause.MATCH_ALL;
+    }
+
+    @Override
+    public List<Symbol> groupBy() {
+        return List.of();
+    }
+
+    @Nullable
+    @Override
+    public HavingClause having() {
+        return null;
+    }
+
+    @Nullable
+    @Override
+    public OrderBy orderBy() {
+        return null;
+    }
+
+    @Nullable
+    @Override
+    public Symbol limit() {
+        return null;
+    }
+
+    @Nullable
+    @Override
+    public Symbol offset() {
+        return null;
+    }
+
+    @Override
+    public boolean hasAggregates() {
+        return false;
     }
 
     @Override
