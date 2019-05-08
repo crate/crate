@@ -335,10 +335,12 @@ new master node is elected.
    without any configuration.
    Each value should be in the form of host:port or host (where port defaults
    to the setting ``transport.tcp.port``).
- 
+
 .. NOTE::
 
    IPv6 hosts must be bracketed.
+
+.. _cluster_initial_master_nodes:
 
 **cluster.initial_master_nodes**
    | *Default:* ``not set``
