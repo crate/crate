@@ -30,7 +30,9 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 import io.crate.types.DataType;
 import org.hamcrest.FeatureMatcher;
 import org.hamcrest.Matcher;
@@ -53,7 +55,7 @@ public class SymbolMatchers {
     }
 
     private static Matcher<Symbol> hasDataType(DataType type) {
-        return new FeatureMatcher<Symbol, DataType>(equalTo(type), "valueType", "valueType") {
+        return new FeatureMatcher<>(equalTo(type), "valueType", "valueType") {
             @Override
             protected DataType featureValueOf(Symbol actual) {
                 return actual.valueType();
@@ -108,7 +110,7 @@ public class SymbolMatchers {
         return isFetchRef(isInputColumn(docIdIdx), isReference(ref));
     }
 
-    private static Matcher<Symbol> isFetchRef(Matcher<Symbol> docIdMatcher, Matcher<Symbol> refMatcher) {
+    public static Matcher<Symbol> isFetchRef(Matcher<Symbol> docIdMatcher, Matcher<Symbol> refMatcher) {
 
         FeatureMatcher<Symbol, Symbol> m1 = new FeatureMatcher<Symbol, Symbol>(
             docIdMatcher, "docId", "docId"
@@ -135,17 +137,40 @@ public class SymbolMatchers {
         return isReference(expectedName, null);
     }
 
+    public static Matcher<Symbol> isReference(Matcher<ColumnIdent> column,
+                                              Matcher<RelationName> relName,
+                                              Matcher<DataType> type) {
+        return allOf(
+            Matchers.instanceOf(Reference.class),
+            withFeature(s -> ((Reference) s).column(), "name", column),
+            withFeature(s -> ((Reference) s).ident().tableIdent(), "relationName", relName),
+            withFeature(Symbol::valueType, "valueType", type)
+        );
+    }
+
+    private static <T> Matcher<Symbol> withFeature(java.util.function.Function<? super Symbol, T> getFeature,
+                                                   String featureName,
+                                                   Matcher<T> featureMatcher) {
+        return new FeatureMatcher<>(featureMatcher, featureName, featureName) {
+
+            @Override
+            protected T featureValueOf(Symbol actual) {
+                return getFeature.apply(actual);
+            }
+        };
+    }
+
     public static Matcher<Symbol> isReference(final String expectedName, @Nullable final DataType dataType) {
-        FeatureMatcher<Symbol, String> fm = new FeatureMatcher<Symbol, String>(equalTo(expectedName), "name", "name") {
+        FeatureMatcher<Symbol, String> fm = new FeatureMatcher<>(equalTo(expectedName), "name", "name") {
             @Override
             protected String featureValueOf(Symbol actual) {
                 return ((Reference) actual).column().outputName();
             }
         };
         if (dataType == null) {
-            return allOf(Matchers.<Symbol>instanceOf(Reference.class), fm);
+            return allOf(Matchers.instanceOf(Reference.class), fm);
         }
-        return allOf(Matchers.<Symbol>instanceOf(Reference.class), hasDataType(dataType), fm);
+        return allOf(Matchers.instanceOf(Reference.class), hasDataType(dataType), fm);
     }
 
     @SafeVarargs

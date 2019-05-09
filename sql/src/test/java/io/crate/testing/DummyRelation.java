@@ -28,6 +28,7 @@ import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.expression.symbol.Field;
+import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Path;
@@ -63,7 +64,7 @@ public class DummyRelation implements AnalyzedRelation {
     @Override
     public Field getField(Path path, Operation operation) throws UnsupportedOperationException {
         if (columnReferences.contains(path)) {
-            return new Field(this, path, DataTypes.STRING);
+            return new Field(this, path, new InputColumn(0, DataTypes.STRING));
         }
         return null;
     }
