@@ -234,7 +234,9 @@ Changes
 Fixes
 =====
 
+- Fixed a race condition when setting an enterprise license very early on node
+  startup while a trial license is generated concurrently and such may used
+  instead of the user given license.
+
 - Improve error message for the unsupported :ref:`window-definition` ordered or
   partitioned by an array column type in the context of :ref:`window-functions`
-
-None
