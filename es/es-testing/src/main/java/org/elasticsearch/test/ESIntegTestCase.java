@@ -29,6 +29,7 @@ import org.apache.lucene.util.LuceneTestCase;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
+import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksResponse;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequestBuilder;
 import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
@@ -84,6 +85,7 @@ import org.elasticsearch.indices.store.IndicesStore;
 import org.elasticsearch.node.NodeMocksPlugin;
 import org.elasticsearch.plugins.NetworkPlugin;
 import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.test.disruption.NetworkDisruption;
 import org.elasticsearch.test.disruption.ServiceDisruptionScheme;
 import org.elasticsearch.test.store.MockFSIndexStore;
 import org.elasticsearch.test.transport.MockTransportService;
@@ -881,6 +883,47 @@ public abstract class ESIntegTestCase extends ESTestCase {
         builder.metaData(mdBuilder);
         return builder.build();
     }
+
+    protected void ensureStableCluster(int nodeCount) {
+        ensureStableCluster(nodeCount, TimeValue.timeValueSeconds(30));
+    }
+
+    protected void ensureStableCluster(int nodeCount, TimeValue timeValue) {
+        ensureStableCluster(nodeCount, timeValue, false, null);
+    }
+
+    protected void ensureStableCluster(int nodeCount, @Nullable String viaNode) {
+        ensureStableCluster(nodeCount, TimeValue.timeValueSeconds(30), false, viaNode);
+    }
+
+    protected void ensureStableCluster(int nodeCount, TimeValue timeValue, boolean local, @Nullable String viaNode) {
+        if (viaNode == null) {
+            viaNode = randomFrom(internalCluster().getNodeNames());
+        }
+        logger.debug("ensuring cluster is stable with [{}] nodes. access node: [{}]. timeout: [{}]", nodeCount, viaNode, timeValue);
+        ClusterHealthResponse clusterHealthResponse = client(viaNode).admin().cluster().prepareHealth()
+            .setWaitForEvents(Priority.LANGUID)
+            .setWaitForNodes(Integer.toString(nodeCount))
+            .setTimeout(timeValue)
+            .setLocal(local)
+            .setWaitForNoRelocatingShards(true)
+            .get();
+        if (clusterHealthResponse.isTimedOut()) {
+            ClusterStateResponse stateResponse = client(viaNode).admin().cluster().prepareState().get();
+            fail("failed to reach a stable cluster of [" + nodeCount + "] nodes. Tried via [" + viaNode + "]. last cluster state:\n"
+                 + stateResponse.getState());
+        }
+        assertThat(clusterHealthResponse.isTimedOut(), is(false));
+        ensureFullyConnectedCluster();
+    }
+
+    /**
+     * See {@link NetworkDisruption#ensureFullyConnectedCluster(InternalTestCluster)}
+     */
+    protected void ensureFullyConnectedCluster() {
+        NetworkDisruption.ensureFullyConnectedCluster(internalCluster());
+    }
+
 
     /**
      * Waits for relocations and refreshes all indices in the cluster.
