@@ -26,6 +26,7 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.exceptions.ConversionException;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.FuncArg;
+import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Path;
@@ -142,7 +143,7 @@ public class FuncParamsTest extends CrateUnitTest {
     @Test
     public void testFieldsAreNotCastable() {
         Path path = new ColumnIdent("test");
-        Field field = new Field(Mockito.mock(AnalyzedRelation.class), path, DataTypes.INTEGER);
+        Field field = new Field(Mockito.mock(AnalyzedRelation.class), path, new InputColumn(0, DataTypes.INTEGER));
         FuncParams params = FuncParams.builder(Param.LONG).build();
         expectedException.expect(ConversionException.class);
         expectedException.expectMessage("Cannot cast test to type long");

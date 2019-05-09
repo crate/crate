@@ -27,6 +27,7 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.Field;
+import io.crate.expression.symbol.InputColumn;
 import io.crate.metadata.OutputName;
 import io.crate.metadata.Path;
 import io.crate.metadata.settings.session.SessionSetting;
@@ -50,8 +51,8 @@ public class ShowSessionParameterAnalyzedStatement implements AnalyzedStatement,
         if (parameter == null) {
             parameterName = null;
             fields = ImmutableList.of(
-                new Field(this, new OutputName("setting"), DataTypes.STRING),
-                new Field(this, new OutputName("value"), DataTypes.STRING));
+                new Field(this, new OutputName("setting"), new InputColumn(0, DataTypes.STRING)),
+                new Field(this, new OutputName("value"), new InputColumn(1, DataTypes.STRING)));
         } else {
             parameterName = parameter.toString();
             SessionSetting<?> sessionSetting = SessionSettingRegistry.SETTINGS.get(parameterName);
@@ -59,7 +60,7 @@ public class ShowSessionParameterAnalyzedStatement implements AnalyzedStatement,
                 throw new IllegalArgumentException("Unknown session setting name '" + parameterName + "'.");
             }
             fields = Collections.singletonList(
-                new Field(this, new OutputName("SHOW " + parameterName), DataTypes.STRING));
+                new Field(this, new OutputName("SHOW " + parameterName), new InputColumn(0, DataTypes.STRING)));
         }
     }
 

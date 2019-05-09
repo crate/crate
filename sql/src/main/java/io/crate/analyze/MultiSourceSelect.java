@@ -150,7 +150,7 @@ public class MultiSourceSelect implements QueriedRelation {
         fields = new Fields(outputNames.size());
         Iterator<Symbol> outputsIterator = querySpec.outputs().iterator();
         for (Path path : outputNames) {
-            fields.add(path, new Field(this, path, outputsIterator.next().valueType()));
+            fields.add(path, new Field(this, path, outputsIterator.next()));
         }
     }
 
@@ -176,7 +176,7 @@ public class MultiSourceSelect implements QueriedRelation {
         this.querySpec = querySpec;
         this.fields = new Fields(fields.size());
         for (Field field : fields) {
-            this.fields.add(field.path(), new Field(this, field.path(), field.valueType()));
+            this.fields.add(field.path(), new Field(this, field.path(), field));
         }
     }
 

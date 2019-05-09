@@ -54,7 +54,7 @@ public class QueriedSelectRelation implements QueriedRelation {
         this.fields = new Fields(outputNames.size());
         Iterator<Symbol> outputsIterator = querySpec.outputs().iterator();
         for (Path path : outputNames) {
-            fields.add(path, new Field(this, path, outputsIterator.next().valueType()));
+            fields.add(path, new Field(this, path, outputsIterator.next()));
         }
     }
 
@@ -99,5 +99,49 @@ public class QueriedSelectRelation implements QueriedRelation {
     @Override
     public void setQualifiedName(@Nonnull QualifiedName qualifiedName) {
         subRelation.setQualifiedName(qualifiedName);
+    }
+
+    @Override
+    public List<Symbol> outputs() {
+        return querySpec.outputs();
+    }
+
+    @Override
+    public WhereClause where() {
+        return querySpec.where();
+    }
+
+    @Override
+    public List<Symbol> groupBy() {
+        return querySpec.groupBy();
+    }
+
+    @Nullable
+    @Override
+    public HavingClause having() {
+        return querySpec.having();
+    }
+
+    @Nullable
+    @Override
+    public OrderBy orderBy() {
+        return querySpec.orderBy();
+    }
+
+    @Nullable
+    @Override
+    public Symbol limit() {
+        return querySpec.limit();
+    }
+
+    @Nullable
+    @Override
+    public Symbol offset() {
+        return querySpec.offset();
+    }
+
+    @Override
+    public boolean hasAggregates() {
+        return querySpec.hasAggregates();
     }
 }

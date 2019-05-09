@@ -50,7 +50,12 @@ public class UnionSelect implements QueriedRelation {
         List<Field> fieldsFromLeft = left.fields();
         fields = new Fields(fieldsFromLeft.size());
         for (Field field : fieldsFromLeft) {
-            fields.add(field.path(), new Field(this, field.path(), field.valueType()));
+            // Creating a field that points to the field of the left relation isn't 100% accurate.
+            // We're pointing to *two* symbols (both left AND right).
+            // We could either use a `InputColumn` to do that (by pointing to a position) - (but might be confusing to have InputColumns in the analysis already)
+            // Or introduce a `UnionSymbol` or `UnionField` which would take two symbols it is pointing to
+            // Since this currently has no effect we go with the left symbol until there is a good reason to change it.
+            fields.add(field.path(), new Field(this, field.path(), field));
         }
         querySpec.outputs(new ArrayList<>(fields.asList()));
     }
