@@ -114,7 +114,7 @@ accessible by all master and data nodes in the cluster.
 
 **compress**
   | *Type:*    ``boolean``
-  | *Default:* ``true``
+  | *Default:* ``false``
 
   Whether the metadata part of the snapshot should be compressed or not.
 
