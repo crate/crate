@@ -28,6 +28,7 @@ import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.execution.dsl.phases.FileUriCollectPhase;
 import io.crate.expression.symbol.Field;
+import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Path;
@@ -47,14 +48,14 @@ import java.util.function.Predicate;
 public class CopyFromReturnSummaryAnalyzedStatement extends CopyFromAnalyzedStatement implements AnalyzedRelation {
 
     private final List<Field> fields = ImmutableList.of(
-        new Field(this, new ColumnIdent("node"), ObjectType.builder()
+        new Field(this, new ColumnIdent("node"), new InputColumn(0, ObjectType.builder()
             .setInnerType("id", DataTypes.STRING)
             .setInnerType("name", DataTypes.STRING)
-            .build()),
-        new Field(this, new ColumnIdent("uri"), DataTypes.STRING),
-        new Field(this, new ColumnIdent("success_count"), DataTypes.LONG),
-        new Field(this, new ColumnIdent("error_count"), DataTypes.LONG),
-        new Field(this, new ColumnIdent("errors"), ObjectType.untyped())
+            .build())),
+        new Field(this, new ColumnIdent("uri"), new InputColumn(1, DataTypes.STRING)),
+        new Field(this, new ColumnIdent("success_count"), new InputColumn(2, DataTypes.LONG)),
+        new Field(this, new ColumnIdent("error_count"), new InputColumn(3, DataTypes.LONG)),
+        new Field(this, new ColumnIdent("errors"), new InputColumn(4, ObjectType.untyped()))
     );
 
     private QualifiedName qualifiedName;

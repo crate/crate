@@ -52,7 +52,7 @@ public final class AnalyzedView implements AnalyzedRelation {
         this.fields = new Fields(relation.fields().size());
         this.relation = relation;
         for (Field field : relation.fields()) {
-            fields.add(field.path(), new Field(this, field.path(), field.valueType()));
+            fields.add(field.path(), new Field(this, field.path(), field));
         }
         this.outputSymbols = List.copyOf(relation.fields());
     }

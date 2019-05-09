@@ -26,6 +26,7 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.Field;
+import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.OutputName;
 import io.crate.metadata.Path;
@@ -47,7 +48,7 @@ public class ExplainAnalyzedStatement implements AnalyzedStatement, AnalyzedRela
     private final List<Symbol> outputs;
 
     ExplainAnalyzedStatement(String columnName, AnalyzedStatement statement, ProfilingContext context) {
-        Field field = new Field(this, new OutputName(columnName), ObjectType.untyped());
+        Field field = new Field(this, new OutputName(columnName), new InputColumn(0, ObjectType.untyped()));
         this.statement = statement;
         this.fields = Collections.singletonList(field);
         this.context = context;
