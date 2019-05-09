@@ -29,6 +29,7 @@ import io.crate.data.Row;
 import io.crate.execution.dsl.phases.HashJoinPhase;
 import io.crate.execution.dsl.phases.NestedLoopPhase;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
@@ -52,6 +53,10 @@ import org.junit.Test;
 import java.io.IOException;
 import java.util.Collections;
 
+import static io.crate.planner.operators.LogicalPlannerTest.isPlan;
+import static io.crate.testing.SymbolMatchers.isFetchRef;
+import static io.crate.testing.SymbolMatchers.isInputColumn;
+import static io.crate.testing.SymbolMatchers.isReference;
 import static io.crate.testing.TestingHelpers.getFunctions;
 import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.Matchers.hasItem;
@@ -354,5 +359,43 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
         WindowAgg windowAggOperator = (WindowAgg) ((FetchOrEval) ((RootRelationBoundary) join).source).source;
         assertThat(join.outputs(), hasItem(windowAggOperator.windowFunctions().get(0)));
+    }
+
+    @Test
+    public void testSameOutputIsNotDeDuplicated() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("create table t1 (x int)")
+            .addTable("create table t2 (x int)")
+            .build();
+        String statement = "select * from (select * from t1, t2) tjoin";
+        LogicalPlan logicalPlan = e.logicalPlan(statement);
+        String expectedPlan =
+            "RootBoundary[x, x]\n" +
+            "FetchOrEval[x, x]\n" +
+            "Boundary[_fetchid, _fetchid]\n" +
+            "FetchOrEval[_fetchid, _fetchid]\n" +
+            "NestedLoopJoin[\n" +
+            "    Boundary[_fetchid]\n" +
+            "    FetchOrEval[_fetchid]\n" +
+            "    Boundary[_fetchid]\n" +
+            "    FetchOrEval[_fetchid]\n" +
+            "    Collect[doc.t1 | [_fetchid] | All]\n" +
+            "    --- CROSS ---\n" +
+            "    Boundary[_fetchid]\n" +
+            "    FetchOrEval[_fetchid]\n" +
+            "    Boundary[_fetchid]\n" +
+            "    FetchOrEval[_fetchid]\n" +
+            "    Collect[doc.t2 | [_fetchid] | All]\n" +
+            "]\n";
+        assertThat(logicalPlan, isPlan(e.functions(), expectedPlan));
+
+        ExecutionPlan plan = e.plan(statement);
+        QueryThenFetch qtf = (QueryThenFetch) plan;
+        Join join = (Join) qtf.subPlan();
+        ColumnIdent column = new ColumnIdent("_doc", "x");
+        assertThat(join.joinPhase().projections().get(1).outputs(), contains(
+            isFetchRef(isInputColumn(0), isReference(is(column), is(new RelationName("doc", "t1")), is(DataTypes.INTEGER))),
+            isFetchRef(isInputColumn(1), isReference(is(column), is(new RelationName("doc", "t2")), is(DataTypes.INTEGER)))
+        ));
     }
 }

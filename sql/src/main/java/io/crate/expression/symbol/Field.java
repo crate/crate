@@ -60,15 +60,14 @@ public class Field extends Symbol {
 
     private final AnalyzedRelation relation;
     private final Path path;
-    private final DataType valueType;
+    private final Symbol pointer;
 
-    public Field(AnalyzedRelation relation, Path path, DataType valueType) {
+    public Field(AnalyzedRelation relation, Path path, Symbol pointer) {
         assert path != null : "path must not be null";
         assert relation != null : "relation must not be null";
-
         this.relation = relation;
         this.path = path;
-        this.valueType = valueType;
+        this.pointer = pointer;
     }
 
     public Path path() {
@@ -91,7 +90,7 @@ public class Field extends Symbol {
 
     @Override
     public DataType valueType() {
-        return valueType;
+        return pointer.valueType();
     }
 
     @Override
@@ -107,7 +106,7 @@ public class Field extends Symbol {
     @Override
     public String representation() {
         return "Field{" + relation + "." + path +
-               ", type=" + valueType +
+               ", pointer=" + pointer +
                '}';
     }
 
@@ -120,7 +119,7 @@ public class Field extends Symbol {
 
         if (!relation.equals(that.relation)) return false;
         if (!path.equals(that.path)) return false;
-        if (!valueType.equals(that.valueType)) return false;
+        if (!pointer.equals(that.pointer)) return false;
 
         return true;
     }
@@ -129,7 +128,7 @@ public class Field extends Symbol {
     public int hashCode() {
         int result = Objects.hashCode(relation.getQualifiedName());
         result = 31 * result + path.hashCode();
-        result = 31 * result + valueType.hashCode();
+        result = 31 * result + pointer.hashCode();
         return result;
     }
 

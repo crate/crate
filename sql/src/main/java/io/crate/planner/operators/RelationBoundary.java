@@ -70,7 +70,7 @@ public class RelationBoundary extends OneInputPlan {
             LogicalPlan source = sourceBuilder.build(tableStats, mappedUsedColumns);
             for (Symbol symbol : source.outputs()) {
                 RefVisitor.visitRefs(symbol, r -> {
-                    Field field = new Field(relation, r.column(), r.valueType());
+                    Field field = new Field(relation, r.column(), r);
                     if (reverseMapping.putIfAbsent(r, field) == null) {
                         expressionMapping.put(field, r);
                     }

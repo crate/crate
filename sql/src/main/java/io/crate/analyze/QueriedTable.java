@@ -53,7 +53,7 @@ public final class QueriedTable<TR extends AbstractTableRelation> implements Que
         this.fields = new Fields(outputNames.size());
         Iterator<Symbol> outputsIterator = querySpec.outputs().iterator();
         for (Path path : outputNames) {
-            fields.add(path, new Field(this, path, outputsIterator.next().valueType()));
+            fields.add(path, new Field(this, path, outputsIterator.next()));
         }
     }
 

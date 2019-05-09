@@ -49,7 +49,7 @@ public final class AnalyzedView implements QueriedRelation {
         this.fields = new Fields(relation.fields().size());
         this.relation = relation;
         for (Field field : relation.fields()) {
-            fields.add(field.path(), new Field(this, field.path(), field.valueType()));
+            fields.add(field.path(), new Field(this, field.path(), field));
         }
         querySpec = new QuerySpec()
             .outputs(new ArrayList<>(relation.fields()));

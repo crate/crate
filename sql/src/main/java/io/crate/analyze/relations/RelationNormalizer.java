@@ -83,7 +83,10 @@ public final class RelationNormalizer {
                 transform(relation.fields(), Field::path),
                 relation.querySpec().copyAndReplace(FieldReplacer.bind(f -> {
                     if (f.relation().equals(subRelation)) {
-                        return normalizedSubRelation.getField(f.path(), Operation.READ);
+                        int idx = subRelation.fields().indexOf(f);
+                        if (idx >= 0) {
+                            return normalizedSubRelation.fields().get(idx);
+                        }
                     }
                     return f;
                 }))
