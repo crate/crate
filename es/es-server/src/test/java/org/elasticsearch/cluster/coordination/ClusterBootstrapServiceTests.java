@@ -411,6 +411,18 @@ public class ClusterBootstrapServiceTests extends ESTestCase {
         assertTrue(bootstrapped.get());
     }
 
+    public void testMatchesOnHostName() {
+        final AtomicBoolean bootstrapped = new AtomicBoolean();
+        ClusterBootstrapService clusterBootstrapService = new ClusterBootstrapService(
+            Settings.builder().putList(INITIAL_MASTER_NODES_SETTING.getKey(), localNode.getHostName()).build(), transportService,
+            Collections::emptyList, () -> false, vc -> assertTrue(bootstrapped.compareAndSet(false, true)));
+
+        transportService.start();
+        clusterBootstrapService.onFoundPeersUpdated();
+        deterministicTaskQueue.runAllTasks();
+        assertTrue(bootstrapped.get());
+    }
+
     public void testMatchesOnNodeAddress() {
         final AtomicBoolean bootstrapped = new AtomicBoolean();
         ClusterBootstrapService clusterBootstrapService = new ClusterBootstrapService(

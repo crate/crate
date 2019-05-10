@@ -214,6 +214,7 @@ public class ClusterBootstrapService {
 
     private static boolean matchesRequirement(DiscoveryNode discoveryNode, String requirement) {
         return discoveryNode.getName().equals(requirement)
+            || discoveryNode.getHostName().equals(requirement)
             || discoveryNode.getAddress().toString().equals(requirement)
             || discoveryNode.getAddress().getAddress().equals(requirement);
     }
