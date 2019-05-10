@@ -244,11 +244,11 @@ into your geographic data::
 
     cr> SELECT distance(capital_location, 'POINT(0.0 90.0)') as from_northpole
     ... FROM country ORDER BY country_code;
-    +--------------------+
-    |     from_northpole |
-    +--------------------+
-    | 4646930.6709925765 |
-    +--------------------+
+    +-------------------+
+    |    from_northpole |
+    +-------------------+
+    | 4646930.675034644 |
+    +-------------------+
     SELECT 1 row in set (... sec)
 
 ::

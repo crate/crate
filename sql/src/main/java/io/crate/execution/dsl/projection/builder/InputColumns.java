@@ -26,6 +26,7 @@ import io.crate.expression.scalar.SubscriptObjectFunction;
 import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.expression.symbol.FetchReference;
+import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
@@ -206,6 +207,19 @@ public final class InputColumns extends DefaultTraversalSymbolVisitor<InputColum
     }
 
     @Override
+    public Symbol visitField(Field field, SourceSymbols sourceSymbols) {
+        InputColumn inputColumn = sourceSymbols.inputs.get(field);
+        if (inputColumn == null) {
+            Symbol subscriptOnRoot = tryCreateSubscriptOnRoot(field, field.path(), sourceSymbols.inputs);
+            if (subscriptOnRoot == null) {
+                throw new IllegalArgumentException("Couldn't find " + field + " in " + sourceSymbols);
+            }
+            return subscriptOnRoot;
+        }
+        return inputColumn;
+    }
+
+    @Override
     public Symbol visitLiteral(Literal symbol, SourceSymbols context) {
         return symbol;
     }
@@ -219,25 +233,25 @@ public final class InputColumns extends DefaultTraversalSymbolVisitor<InputColum
         }
         InputColumn inputColumn = sourceSymbols.inputs.get(ref);
         if (inputColumn == null) {
-            Symbol subscriptOnRoot = tryCreateSubscriptOnRoot(ref, sourceSymbols.inputs);
+            Symbol subscriptOnRoot = tryCreateSubscriptOnRoot(ref, ref.column(), sourceSymbols.inputs);
             return subscriptOnRoot == null ? ref : subscriptOnRoot;
         }
-        return visitSymbol(ref, sourceSymbols);
+        return inputColumn;
     }
 
     @Nullable
-    private static Symbol tryCreateSubscriptOnRoot(Reference ref, HashMap<Symbol, InputColumn> inputs) {
-        if (ref.column().isTopLevel()) {
+    private static Symbol tryCreateSubscriptOnRoot(Symbol symbol, ColumnIdent columnIdent, HashMap<Symbol, InputColumn> inputs) {
+        if (columnIdent.isTopLevel()) {
             return null;
         }
-        ColumnIdent root = ref.column().getRoot();
+        ColumnIdent root = columnIdent.getRoot();
         InputColumn rootIC = lookupValueByColumn(inputs, root);
         if (rootIC == null) {
-            return ref;
+            return symbol;
         }
 
-        DataType returnType = ref.valueType();
-        List<String> path = ref.column().path();
+        DataType returnType = symbol.valueType();
+        List<String> path = columnIdent.path();
 
         List<Symbol> arguments = mapTail(rootIC, path, Literal::of);
         List<DataType> argumentTypes = Symbols.typeView(arguments);

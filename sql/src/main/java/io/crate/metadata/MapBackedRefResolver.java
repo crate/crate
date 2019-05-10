@@ -45,7 +45,7 @@ public final class MapBackedRefResolver implements ReferenceResolver<NestableInp
         }
         NestableInput<?> rootImpl = implByColumn.get(column.getRoot());
         if (rootImpl == null) {
-            return null;
+            return implByColumn.get(column);
         }
         return NestableInput.getChildByPath(rootImpl, column.path());
     }

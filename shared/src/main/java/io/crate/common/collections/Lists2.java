@@ -27,7 +27,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.NoSuchElementException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -101,21 +100,6 @@ public final class Lists2 {
         return columns;
     }
 
-    /**
-     * Apply the replace function on each item of the list and replaces the item.
-     *
-     * This is similar to Guava's com.google.common.collect.Lists#transform(List, com.google.common.base.Function),
-     * but instead of creating a view on a backing list this function is actually mutating the provided list
-     */
-    public static <T> void mutate(@Nullable List<T> list, Function<? super T, ? extends T> mapper) {
-        if (list == null || list.isEmpty()) {
-            return;
-        }
-        ListIterator<T> it = list.listIterator();
-        while (it.hasNext()) {
-            it.set(mapper.apply(it.next()));
-        }
-    }
 
     /**
      * Create a copy of the given list with {@code mapper} applied on each item.

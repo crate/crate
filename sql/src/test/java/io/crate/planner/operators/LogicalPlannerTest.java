@@ -34,7 +34,6 @@ import io.crate.metadata.RelationName;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.SubqueryPlanner;
 import io.crate.planner.TableStats;
-import io.crate.planner.consumer.FetchMode;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -75,7 +74,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testAvgWindowFunction() {
         LogicalPlan plan = plan("select avg(x) OVER() from t1");
-        assertThat(plan, isPlan("FetchOrEval[avg(x)]\n" +
+        assertThat(plan, isPlan("Eval[avg(x)]\n" +
                                 "WindowAgg[avg(x)]\n" +
                                 "Collect[doc.t1 | [x] | All]\n"));
     }
@@ -90,25 +89,22 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testQTFWithOrderBy() throws Exception {
         LogicalPlan plan = plan("select a, x from t1 order by a");
-        assertThat(plan, isPlan("FetchOrEval[a, x]\n" +
-                                "OrderBy[a ASC]\n" +
-                                "Collect[doc.t1 | [_fetchid, a] | All]\n"));
+        assertThat(plan, isPlan("OrderBy[a ASC]\n" +
+                                "Collect[doc.t1 | [a, x] | All]\n"));
     }
 
     @Test
     public void testQTFWithOrderByAndAlias() throws Exception {
         LogicalPlan plan = plan("select a, x from t1 as t order by a");
-        assertThat(plan, isPlan("FetchOrEval[a, x]\n" +
-                                "Boundary[_fetchid, a]\n" +
+        assertThat(plan, isPlan("Boundary[a, x]\n" +
                                 "OrderBy[a ASC]\n" +
-                                "Collect[doc.t1 | [_fetchid, a] | All]\n"));
+                                "Collect[doc.t1 | [a, x] | All]\n"));
     }
 
     @Test
     public void testQTFWithoutOrderBy() throws Exception {
         LogicalPlan plan = plan("select a, x from t1");
-        assertThat(plan, isPlan("FetchOrEval[a, x]\n" +
-                                "Collect[doc.t1 | [_fetchid] | All]\n"));
+        assertThat(plan, isPlan("Collect[doc.t1 | [a, x] | All]\n"));
     }
 
     @Test
@@ -139,15 +135,14 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan, isPlan("Aggregate[sum(x)]\n" +
                                 "Boundary[x]\n" +       // Aliased relation boundary
                                 "Boundary[x]\n" +
-                                "FetchOrEval[x]\n" +
                                 "Limit[10;0]\n" +
-                                "Collect[doc.t1 | [_fetchid] | All]\n"));
+                                "Collect[doc.t1 | [x] | All]\n"));
     }
 
     @Test
     public void testHavingGlobalAggregation() throws Exception {
         LogicalPlan plan = plan("select min(a), min(x) from t1 having min(x) < 33 and max(x) > 100");
-        assertThat(plan, isPlan("FetchOrEval[min(a), min(x)]\n" +
+        assertThat(plan, isPlan("Eval[min(a), min(x)]\n" +
                                 "Filter[((min(x) < 33) AND (max(x) > 100))]\n" +
                                 "Aggregate[min(a), min(x), max(x)]\n" +
                                 "Collect[doc.t1 | [a, x] | All]\n"));
@@ -157,7 +152,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testHavingGlobalAggregationAndRelationAlias() throws Exception {
         LogicalPlan plan = plan("select min(a), min(x) from t1 as tt having min(tt.x) < 33 and max(tt.x) > 100");
         assertThat(plan, isPlan("Boundary[\"min(a)\", \"min(x)\"]\n" +
-                                "FetchOrEval[min(a), min(x)]\n" +
+                                "Eval[min(a), min(x)]\n" +
                                 "Filter[((min(x) < 33) AND (max(x) > 100))]\n" +
                                 "Aggregate[min(a), min(x), max(x)]\n" +
                                 "Collect[doc.t1 | [a, x] | All]\n"));
@@ -193,8 +188,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                                 "            Collect[doc.t1 | [1] | (x > cast(SelectSymbol{bigint_array} AS integer))]\n" +
                                 "        ]\n" +
                                 "    ]\n" +
-                                "    FetchOrEval[a, x, i]\n" +
-                                "    Collect[doc.t1 | [_fetchid] | (x > cast(SelectSymbol{bigint_array} AS integer))]\n" +
+                                "    Collect[doc.t1 | [a, x, i] | (x > cast(SelectSymbol{bigint_array} AS integer))]\n" +
                                 "]\n"));
     }
 
@@ -205,7 +199,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                                "join" +
                                " (select i from t2 limit 1) t2 " +
                                "on t1.cnt = t2.i::long ");
-        assertThat(plan, isPlan("FetchOrEval[i, cnt]\n" +
+        assertThat(plan, isPlan("Eval[i, cnt]\n" +
                                 "HashJoin[\n" +
                                 "    Boundary[cnt]\n" +     // Aliased relation boundary
                                 "    Boundary[cnt]\n" +
@@ -227,23 +221,22 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                                 "   inner join t2 on t1.x = t2.y " +
                                 "order by t1.x " +
                                 "limit 10");
-        assertThat(plan, isPlan("FetchOrEval[x, a, y]\n" +
+        assertThat(plan, isPlan("Eval[x, a, y]\n" +
                                 "Limit[10;0]\n" +
                                 "OrderBy[x ASC]\n" +
                                 "HashJoin[\n" +
-                                "    Boundary[_fetchid, x]\n" +
-                                "    Collect[doc.t1 | [_fetchid, x] | All]\n" +
+                                "    Boundary[a, x, i]\n" +
+                                "    Collect[doc.t1 | [a, x, i] | All]\n" +
                                 "    --- INNER ---\n" +
-                                "    Boundary[_fetchid, y]\n" +
-                                "    Collect[doc.t2 | [_fetchid, y] | All]\n" +
+                                "    Boundary[b, y, i]\n" +
+                                "    Collect[doc.t2 | [b, y, i] | All]\n" +
                                 "]\n"));
     }
 
     @Test
     public void testScoreColumnIsCollectedNotFetched() throws Exception {
         LogicalPlan plan = plan("select x, _score from t1");
-        assertThat(plan, isPlan("FetchOrEval[x, _score]\n" +
-                                "Collect[doc.t1 | [_fetchid, _score] | All]\n"));
+        assertThat(plan, isPlan("Collect[doc.t1 | [x, _score] | All]\n"));
     }
 
     @Test
@@ -273,7 +266,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan.dependencies().entrySet().size(), is(1));
         LogicalPlan subPlan = plan.dependencies().keySet().iterator().next();
         assertThat(subPlan, isPlan("RootBoundary[x]\n" +
-                                   "FetchOrEval[x]\n" +
+                                   "Eval[x]\n" +
                                    "OrderBy[x ASC]\n" +
                                    "Limit[10;0]\n" +
                                    "OrderBy[a DESC]\n" +
@@ -309,15 +302,15 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                               "FROM v2 " +
                               "  INNER JOIN v3 " +
                               "  ON v2.x= v3.x");
-        assertThat(plan, isPlan("FetchOrEval[x, a, x, a]\n" +
+        assertThat(plan, isPlan("Eval[x, a, x, a]\n" +
                                 "HashJoin[\n" +
-                                "    Boundary[_fetchid, x]\n" +
-                                "    Boundary[_fetchid, x]\n" +
-                                "    Collect[doc.t1 | [_fetchid, x] | All]\n" +
+                                "    Boundary[a, x]\n" +
+                                "    Boundary[a, x]\n" +
+                                "    Collect[doc.t1 | [a, x] | All]\n" +
                                 "    --- INNER ---\n" +
-                                "    Boundary[_fetchid, x]\n" +
-                                "    Boundary[_fetchid, x]\n" +
-                                "    Collect[doc.t1 | [_fetchid, x] | All]\n" +
+                                "    Boundary[a, x]\n" +
+                                "    Boundary[a, x]\n" +
+                                "    Collect[doc.t1 | [a, x] | All]\n" +
                                 "]\n"));
     }
 
@@ -337,11 +330,11 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         LogicalPlanner logicalPlanner = new LogicalPlanner(getFunctions(), tableStats);
         SubqueryPlanner subqueryPlanner = new SubqueryPlanner((s) -> logicalPlanner.planSubSelect(s, context));
 
-        return logicalPlanner.normalizeAndPlan(relation, context, subqueryPlanner, FetchMode.MAYBE_CLEAR, Set.of());
+        return logicalPlanner.normalizeAndPlan(relation, context, subqueryPlanner, Set.of());
     }
 
     public static Matcher<LogicalPlan> isPlan(Functions functions, String expectedPlan) {
-        return new FeatureMatcher<LogicalPlan, String>(equalTo(expectedPlan), "same output", "output ") {
+        return new FeatureMatcher<>(equalTo(expectedPlan), "same output", "output ") {
 
             @Override
             protected String featureValueOf(LogicalPlan actual) {
@@ -418,12 +411,12 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                 startLine("]\n");
                 return sb.toString();
             }
-            if (plan instanceof FetchOrEval) {
-                FetchOrEval fetchOrEval = (FetchOrEval) plan;
-                startLine("FetchOrEval[");
-                addSymbolsList(fetchOrEval.outputs());
+            if (plan instanceof Eval) {
+                Eval eval = (Eval) plan;
+                startLine("Eval[");
+                addSymbolsList(eval.outputs());
                 sb.append("]\n");
-                plan = fetchOrEval.source;
+                plan = eval.source;
             }
             if (plan instanceof Limit) {
                 Limit limit = (Limit) plan;

@@ -44,7 +44,7 @@ public class LogicalPlanVisitor<C, R> {
         return visitPlan(logicalPlan, context);
     }
 
-    public R visitFetchOrEval(FetchOrEval logicalPlan, C context) {
+    public R visitEval(Eval logicalPlan, C context) {
         return visitPlan(logicalPlan, context);
     }
 

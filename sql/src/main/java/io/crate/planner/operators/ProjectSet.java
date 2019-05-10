@@ -35,11 +35,7 @@ import io.crate.planner.PlannerContext;
 import io.crate.types.ObjectType;
 
 import javax.annotation.Nullable;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
-
-import static io.crate.planner.operators.LogicalPlanner.extractColumns;
 
 public class ProjectSet extends ForwardingLogicalPlan {
 
@@ -51,11 +47,8 @@ public class ProjectSet extends ForwardingLogicalPlan {
         if (tableFunctions.isEmpty()) {
             return source;
         }
-        return (tableStats, hints, usedBeforeNextFetch) -> {
-            HashSet<Symbol> allUsedColumns = new HashSet<>(usedBeforeNextFetch);
-            Set<Symbol> columnsUsedInTableFunctions = extractColumns(tableFunctions);
-            allUsedColumns.addAll(columnsUsedInTableFunctions);
-            LogicalPlan sourcePlan = source.build(tableStats, hints, allUsedColumns);
+        return (tableStats, hints) -> {
+            LogicalPlan sourcePlan = source.build(tableStats, hints);
 
             // Use sourcePlan.outputs() as standalone to simply pass along all source outputs as well;
             // Parent operators will discard them if not required
