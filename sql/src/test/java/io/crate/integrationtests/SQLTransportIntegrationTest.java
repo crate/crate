@@ -512,6 +512,14 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
         return response;
     }
 
+    public SQLResponse execute(String stmt, Object[] args, String node) {
+        SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class, node);
+        Session session = sqlOperations.createSession(sqlExecutor.getCurrentSchema(), User.CRATE_USER);
+        response = SQLTransportExecutor.execute(stmt, args, session)
+            .actionGet(SQLTransportExecutor.REQUEST_TIMEOUT);
+        return response;
+    }
+
     /**
      * Get all mappings from an index as JSON String
      *
