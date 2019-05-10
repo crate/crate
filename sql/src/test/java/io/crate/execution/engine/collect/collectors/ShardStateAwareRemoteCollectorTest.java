@@ -113,7 +113,7 @@ public class ShardStateAwareRemoteCollectorTest extends CrateDummyClusterService
 
         // add 2 nodes and the table to the cluster state
         SQLExecutor.builder(clusterService, 2, Randomness.get())
-            .addTable("create table t (id long primary key)")
+            .addTable("create table t (id long primary key) clustered into 1 shards with (number_of_replicas=0)")
             .build();
     }
 
