@@ -57,10 +57,8 @@ public class Limit extends ForwardingLogicalPlan {
         if (limit == null && offset == null) {
             return source;
         }
-        return (tableStats, hints, usedColumns) -> new Limit(
-            source.build(tableStats, hints, usedColumns),
-            firstNonNull(limit, Literal.of(-1L)),
-            firstNonNull(offset, Literal.of(0L))
+        return (tableStats, hints) -> new Limit(
+            source.build(tableStats, hints), firstNonNull(limit, Literal.of(-1L)), firstNonNull(offset, Literal.of(0L))
         );
     }
 

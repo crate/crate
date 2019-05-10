@@ -62,7 +62,7 @@ public class ExplainAnalyzeIntegrationTest extends SQLTransportIntegrationTest {
 
         Map<String, Map<String, Object>> phasesAnalysis = (Map<String, Map<String, Object>>) executeAnalysis.get("Phases");
         assertThat(phasesAnalysis, is(notNullValue()));
-        assertThat(phasesAnalysis.size(), is(3));
+        assertThat(phasesAnalysis.size(), is(2));
 
         DiscoveryNodes nodes = clusterService().state().nodes();
         for (DiscoveryNode discoveryNode : nodes) {

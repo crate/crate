@@ -61,17 +61,17 @@ public class StatementClassifierTest extends CrateDummyClusterServiceUnitTest {
         plan = e.logicalPlan("SELECT * FROM users ORDER BY id");
         classification = StatementClassifier.classify(plan);
         assertThat(classification.type(), is(Plan.StatementType.SELECT));
-        assertThat(classification.labels(), contains("Collect", "FetchOrEval", "Order"));
+        assertThat(classification.labels(), contains("Collect", "Order"));
 
         plan = e.logicalPlan("SELECT a.id, b.id FROM users a, users b WHERE a.id = b.id");
         classification = StatementClassifier.classify(plan);
         assertThat(classification.type(), is(Plan.StatementType.SELECT));
-        assertThat(classification.labels(), contains("Collect", "FetchOrEval", "HashJoin"));
+        assertThat(classification.labels(), contains("Collect", "Eval", "HashJoin"));
 
         plan = e.logicalPlan("SELECT a.id, b.id FROM users a, users b WHERE a.id > b.id");
         classification = StatementClassifier.classify(plan);
         assertThat(classification.type(), is(Plan.StatementType.SELECT));
-        assertThat(classification.labels(), contains("Collect", "FetchOrEval", "NestedLoopJoin"));
+        assertThat(classification.labels(), contains("Collect", "Eval", "NestedLoopJoin"));
 
         plan = e.logicalPlan("SELECT id FROM users UNION ALL SELECT id FROM users");
         classification = StatementClassifier.classify(plan);
@@ -86,7 +86,7 @@ public class StatementClassifierTest extends CrateDummyClusterServiceUnitTest {
         plan = e.logicalPlan("SELECT count(*), name FROM users GROUP BY 2");
         classification = StatementClassifier.classify(plan);
         assertThat(classification.type(), is(Plan.StatementType.SELECT));
-        assertThat(classification.labels(), contains("Collect", "FetchOrEval", "GroupHashAggregate"));
+        assertThat(classification.labels(), contains("Collect", "Eval", "GroupHashAggregate"));
 
         plan = e.logicalPlan("SELECT * FROM users WHERE id = (SELECT 1) OR name = (SELECT 'Arthur')");
         classification = StatementClassifier.classify(plan);
@@ -106,7 +106,7 @@ public class StatementClassifierTest extends CrateDummyClusterServiceUnitTest {
             "WHERE y >= 2");
         var classification = StatementClassifier.classify(plan);
         assertThat(classification.type(), is(Plan.StatementType.SELECT));
-        assertThat(classification.labels(), contains("Collect", "FetchOrEval", "Filter", "ProjectSet", "WindowAgg"));
+        assertThat(classification.labels(), contains("Collect", "Eval", "Filter", "ProjectSet", "WindowAgg"));
     }
 
     @Test

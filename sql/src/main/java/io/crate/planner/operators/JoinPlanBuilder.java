@@ -36,7 +36,6 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
 import io.crate.planner.SubqueryPlanner;
 import io.crate.planner.TableStats;
-import io.crate.planner.consumer.FetchMode;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.sql.tree.QualifiedName;
 import org.elasticsearch.common.util.set.Sets;
@@ -47,7 +46,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -91,7 +89,7 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
     }
 
     @Override
-    public LogicalPlan build(TableStats tableStats, Set<PlanHint> hints, Set<Symbol> usedBeforeNextFetch) {
+    public LogicalPlan build(TableStats tableStats, Set<PlanHint> hints) {
         Map<Set<QualifiedName>, Symbol> queryParts = getQueryParts(where);
         LinkedHashMap<Set<QualifiedName>, JoinPair> joinPairs =
             JoinOperations.buildRelationsToJoinPairsMap(
@@ -112,8 +110,6 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
 
         final QualifiedName lhsName = it.next();
         final QualifiedName rhsName = it.next();
-        AnalyzedRelation lhs = mss.sources().get(lhsName);
-        AnalyzedRelation rhs = mss.sources().get(rhsName);
         Set<QualifiedName> joinNames = new HashSet<>();
         joinNames.add(lhsName);
         joinNames.add(rhsName);
@@ -129,25 +125,15 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
             joinCondition = joinLhsRhs.condition();
         }
 
-        Set<Symbol> usedFromLeft = new LinkedHashSet<>();
-        Set<Symbol> usedFromRight = new LinkedHashSet<>();
-        for (JoinPair joinPair : mss.joinPairs()) {
-            addColumnsFrom(joinPair.condition(), usedFromLeft::add, lhs);
-            addColumnsFrom(joinPair.condition(), usedFromRight::add, rhs);
-        }
-        addColumnsFrom(where.query(), usedFromLeft::add, lhs);
-        addColumnsFrom(where.query(), usedFromRight::add, rhs);
-
-        addColumnsFrom(usedBeforeNextFetch, usedFromLeft::add, lhs);
-        addColumnsFrom(usedBeforeNextFetch, usedFromRight::add, rhs);
-
         // use NEVER_CLEAR as fetchMode to prevent intermediate fetches
         // This is necessary; because due to how the fetch-reader-allocation works it's not possible to
         // have more than 1 fetchProjection within a single execution
-        LogicalPlan lhsPlan = LogicalPlanner.plan(lhs, FetchMode.NEVER_CLEAR, subqueryPlanner, false, functions, txnCtx)
-            .build(tableStats, hints, usedFromLeft);
-        LogicalPlan rhsPlan = LogicalPlanner.plan(rhs, FetchMode.NEVER_CLEAR, subqueryPlanner, false, functions, txnCtx)
-            .build(tableStats, hints, usedFromRight);
+        AnalyzedRelation lhs = mss.sources().get(lhsName);
+        AnalyzedRelation rhs = mss.sources().get(rhsName);
+        LogicalPlan lhsPlan = LogicalPlanner.plan(lhs, subqueryPlanner, false, functions, txnCtx)
+            .build(tableStats, hints);
+        LogicalPlan rhsPlan = LogicalPlanner.plan(rhs, subqueryPlanner, false, functions, txnCtx)
+            .build(tableStats, hints);
         Symbol query = removeParts(queryParts, lhsName, rhsName);
         LogicalPlan joinPlan = createJoinPlan(
             lhsPlan,
@@ -168,7 +154,6 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
                 hints,
                 joinPlan,
                 nextRel,
-                usedBeforeNextFetch,
                 joinNames,
                 joinPairs,
                 queryParts,
@@ -230,7 +215,6 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
                                             Set<PlanHint> hints,
                                             LogicalPlan source,
                                             AnalyzedRelation nextRel,
-                                            Set<Symbol> usedColumns,
                                             Set<QualifiedName> joinNames,
                                             Map<Set<QualifiedName>, JoinPair> joinPairs,
                                             Map<Set<QualifiedName>, Symbol> queryParts,
@@ -240,8 +224,6 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
                                             CoordinatorTxnCtx txnCtx) {
         QualifiedName nextName = nextRel.getQualifiedName();
 
-        Set<Symbol> usedFromNext = new LinkedHashSet<>();
-        Consumer<Symbol> addToUsedColumns = usedFromNext::add;
         JoinPair joinPair = removeMatch(joinPairs, joinNames, nextName);
         final JoinType type;
         final Symbol condition;
@@ -251,18 +233,10 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
         } else {
             type = maybeInvertPair(nextName, joinPair);
             condition = joinPair.condition();
-            addColumnsFrom(condition, addToUsedColumns, nextRel);
         }
-        for (JoinPair pair : joinPairs.values()) {
-            addColumnsFrom(pair.condition(), addToUsedColumns, nextRel);
-        }
-        for (Symbol queryPart : queryParts.values()) {
-            addColumnsFrom(queryPart, addToUsedColumns, nextRel);
-        }
-        addColumnsFrom(usedColumns, addToUsedColumns, nextRel);
 
-        LogicalPlan nextPlan = LogicalPlanner.plan(nextRel, FetchMode.NEVER_CLEAR, subqueryPlanner, false, functions, txnCtx)
-            .build(tableStats, hints, usedFromNext);
+        LogicalPlan nextPlan = LogicalPlanner.plan(nextRel, subqueryPlanner, false, functions, txnCtx)
+            .build(tableStats, hints);
 
         Symbol query = AndOperator.join(
             Stream.of(

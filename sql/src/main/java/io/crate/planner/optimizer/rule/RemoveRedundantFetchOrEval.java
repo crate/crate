@@ -22,7 +22,7 @@
 
 package io.crate.planner.optimizer.rule;
 
-import io.crate.planner.operators.FetchOrEval;
+import io.crate.planner.operators.Eval;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.matcher.Captures;
@@ -31,24 +31,24 @@ import io.crate.planner.optimizer.matcher.Pattern;
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 
 /**
- * Eliminates any FetchOrEval nodes that have the same output as their source
+ * Eliminates any Eval nodes that have the same output as their source
  */
-public final class RemoveRedundantFetchOrEval implements Rule<FetchOrEval> {
+public final class RemoveRedundantFetchOrEval implements Rule<Eval> {
 
-    private final Pattern<FetchOrEval> pattern;
+    private final Pattern<Eval> pattern;
 
     public RemoveRedundantFetchOrEval() {
-        this.pattern = typeOf(FetchOrEval.class)
+        this.pattern = typeOf(Eval.class)
             .with(fetchOrEval -> fetchOrEval.outputs().equals(fetchOrEval.source().outputs()));
     }
 
     @Override
-    public Pattern<FetchOrEval> pattern() {
+    public Pattern<Eval> pattern() {
         return pattern;
     }
 
     @Override
-    public LogicalPlan apply(FetchOrEval plan, Captures captures) {
+    public LogicalPlan apply(Eval plan, Captures captures) {
         return plan.source();
     }
 }
