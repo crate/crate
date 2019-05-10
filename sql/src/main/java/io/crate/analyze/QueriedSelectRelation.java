@@ -57,7 +57,7 @@ public class QueriedSelectRelation implements AnalyzedRelation {
         this.fields = new Fields(outputNames.size());
         Iterator<Symbol> outputsIterator = querySpec.outputs().iterator();
         for (Path path : outputNames) {
-            fields.add(path, new Field(this, path, outputsIterator.next().valueType()));
+            fields.add(path, new Field(this, path, outputsIterator.next()));
         }
     }
 
@@ -143,11 +143,22 @@ public class QueriedSelectRelation implements AnalyzedRelation {
         return querySpec.hasAggregates();
     }
 
+    /**
+     * Creates a new relation with the newSubrelation as child.
+     * Fields will be re-mapped (They contain a hard-reference to a relation),
+     * but for this to work the new relation must have semantically equal outputs to the old relation.
+     */
     public AnalyzedRelation replaceSubRelation(AnalyzedRelation newSubRelation) {
         var mapFieldsToNewRelation = FieldReplacer.bind(
-            f -> f.relation().equals(subRelation)
-                ? newSubRelation.getField(f.path(), Operation.READ)
-                : f
+            f -> {
+                if (f.relation().equals(subRelation)) {
+                    int idx = subRelation.fields().indexOf(f);
+                    if (idx >= 0) {
+                        return newSubRelation.fields().get(idx);
+                    }
+                }
+                return f;
+            }
         );
         return new QueriedSelectRelation(
             isDistinct,

@@ -137,7 +137,7 @@ public final class IndexEnv implements AutoCloseable {
         );
         IndexModule indexModule = new IndexModule(idxSettings, analysisRegistry, new InternalEngineFactory(), Collections.emptyMap());
         NamedWriteableRegistry namedWriteableRegistry = new NamedWriteableRegistry(ClusterModule.getNamedWriteables());
-        nodeEnvironment = new NodeEnvironment(Settings.EMPTY, env, nodeId -> {});
+        nodeEnvironment = new NodeEnvironment(Settings.EMPTY, env);
         luceneReferenceResolver = new LuceneReferenceResolver(mapperService::fullName);
         indexService = indexModule.newIndexService(
             nodeEnvironment,

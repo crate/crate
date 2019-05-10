@@ -30,7 +30,6 @@ import io.crate.plugin.PluginLoaderPlugin;
 import io.crate.plugin.SrvPlugin;
 import io.crate.udc.plugin.UDCPlugin;
 import org.elasticsearch.analysis.common.CommonAnalysisPlugin;
-import org.elasticsearch.common.logging.LogConfigurator;
 import org.elasticsearch.discovery.ec2.Ec2DiscoveryPlugin;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.node.Node;
@@ -58,11 +57,6 @@ public class CrateNode extends Node {
 
     protected CrateNode(Environment environment) {
         super(environment, CLASSPATH_PLUGINS, true);
-    }
-
-    @Override
-    protected void registerDerivedNodeNameWithLogger(String nodeName) {
-        LogConfigurator.setNodeName(nodeName);
     }
 }
 

@@ -22,15 +22,24 @@
 
 package io.crate.breaker;
 
+import io.crate.plugin.SQLPlugin;
 import io.crate.test.integration.CrateUnitTest;
 import org.apache.logging.log4j.LogManager;
-import org.elasticsearch.common.breaker.MemoryCircuitBreaker;
-import org.elasticsearch.common.unit.ByteSizeUnit;
-import org.elasticsearch.common.unit.ByteSizeValue;
+import org.elasticsearch.common.breaker.ChildMemoryCircuitBreaker;
+import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.elasticsearch.common.settings.ClusterSettings;
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.indices.breaker.BreakerSettings;
+import org.elasticsearch.indices.breaker.CircuitBreakerService;
+import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 
 import static org.hamcrest.Matchers.is;
 
@@ -38,15 +47,27 @@ public class RamAccountingContextTest extends CrateUnitTest {
 
     private long originalBufferSize;
     private RamAccountingContext ramAccountingContext;
-    private MemoryCircuitBreaker breaker;
+    private ChildMemoryCircuitBreaker breaker;
 
     @Before
     public void reduceFlushBufferSize() {
         originalBufferSize = RamAccountingContext.FLUSH_BUFFER_SIZE;
         RamAccountingContext.FLUSH_BUFFER_SIZE = 20;
 
-        breaker = new MemoryCircuitBreaker(
-            new ByteSizeValue(40, ByteSizeUnit.BYTES), 1.01, LogManager.getLogger(RamAccountingContextTest.class));
+        SQLPlugin sqlPlugin = new SQLPlugin(Settings.EMPTY);
+        Set<Setting<?>> settings = new HashSet<>();
+        settings.addAll(ClusterSettings.BUILT_IN_CLUSTER_SETTINGS);
+        settings.addAll(sqlPlugin.getSettings());
+        ClusterSettings clusterSettings = new ClusterSettings(Settings.EMPTY, settings);
+
+        CircuitBreakerService esBreakerService = new HierarchyCircuitBreakerService(
+            Settings.EMPTY, clusterSettings);
+        CrateCircuitBreakerService breakerService = new CrateCircuitBreakerService(
+            Settings.EMPTY, clusterSettings, esBreakerService);        BreakerSettings breakerSettings = new BreakerSettings(
+            "query", 40, 1.01f, CircuitBreaker.Type.MEMORY);
+
+        breaker = new ChildMemoryCircuitBreaker(
+            breakerSettings, LogManager.getLogger(RamAccountingContextTest.class), breakerService, breakerSettings.getName());
         ramAccountingContext = new RamAccountingContext("test", breaker);
     }
 

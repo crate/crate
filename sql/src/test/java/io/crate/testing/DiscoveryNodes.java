@@ -32,7 +32,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class DiscoveryNodes {
 
-    private static final AtomicInteger PORT_GENERATOR = new AtomicInteger();
+    // Use high initial value to avoid conflict with ESTestCase#portGenerator
+    private static final AtomicInteger PORT_GENERATOR = new AtomicInteger(100);
 
     public static DiscoveryNode newNode(String nodeId) {
         return new DiscoveryNode(

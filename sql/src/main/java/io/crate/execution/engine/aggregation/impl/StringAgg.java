@@ -80,7 +80,7 @@ public final class StringAgg extends AggregationFunction<StringAgg.StringAggStat
 
         @Override
         public void writeTo(StreamOutput out) throws IOException {
-            out.writeStringList(values);
+            out.writeStringCollection(values);
             out.writeOptionalString(firstDelimiter);
         }
     }

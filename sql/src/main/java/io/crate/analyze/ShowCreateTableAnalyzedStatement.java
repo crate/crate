@@ -25,6 +25,7 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.Field;
+import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.OutputName;
 import io.crate.metadata.Path;
@@ -46,7 +47,7 @@ public class ShowCreateTableAnalyzedStatement implements AnalyzedStatement, Anal
 
     public ShowCreateTableAnalyzedStatement(DocTableInfo tableInfo) {
         String columnName = String.format(Locale.ENGLISH, "SHOW CREATE TABLE %s", tableInfo.ident().fqn());
-        this.fields = Collections.singletonList(new Field(this, new OutputName(columnName), DataTypes.STRING));
+        this.fields = Collections.singletonList(new Field(this, new OutputName(columnName), new InputColumn(0, DataTypes.STRING)));
         this.tableInfo = tableInfo;
     }
 

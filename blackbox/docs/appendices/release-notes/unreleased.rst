@@ -156,6 +156,10 @@ Deprecations
 Changes
 =======
 
+- Changed the default value of the ``fs`` repository type setting
+  ``compress``, to ``true``. See
+  :ref:`fs repository parameters<ref-create-repository-types-fs>`.
+
 - Added a new optimization that allows to run predicates on top of views or
   sub-queries more efficiently in some cases.
 
@@ -234,7 +238,15 @@ Changes
 Fixes
 =====
 
+- Fixed an issue were a query on a sub-query with ambiguous columns would
+  return the same values for all of the ambiguous columns. An example is
+  ``SELECT * FROM (SELECT * FROM t1, t2) AS tjoin`` where both ``t1`` and
+  ``t2`` have a column named ``x``. In this case the value for ``t1.x`` would
+  be output twice.
+
+- Fixed a race condition when setting an enterprise license very early on node
+  startup while a trial license is generated concurrently and such may used
+  instead of the user given license.
+
 - Improve error message for the unsupported :ref:`window-definition` ordered or
   partitioned by an array column type in the context of :ref:`window-functions`
-
-None

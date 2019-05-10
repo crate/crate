@@ -18,6 +18,7 @@
 
 package io.crate.license;
 
+import io.crate.exceptions.LicenseViolationException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
@@ -34,9 +35,10 @@ import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
+import static io.crate.license.LicenseKey.decode;
+
 @Singleton
-public class TransportSetLicenseAction
-    extends TransportMasterNodeAction<SetLicenseRequest, AcknowledgedResponse> {
+public class TransportSetLicenseAction extends TransportMasterNodeAction<SetLicenseRequest, AcknowledgedResponse> {
 
     @Inject
     public TransportSetLicenseAction(TransportService transportService,
@@ -65,8 +67,10 @@ public class TransportSetLicenseAction
         clusterService.submitStateUpdateTask("register license with key [" + metaData.licenseKey() + "]",
             new ClusterStateUpdateTask() {
                 @Override
-                public ClusterState execute(ClusterState currentState) {
-                    MetaData.Builder mdBuilder = MetaData.builder(currentState.metaData());
+                public ClusterState execute(ClusterState currentState) throws Exception {
+                    MetaData currentMetaData = currentState.metaData();
+                    validateTrialLicenseDoNotOverrideExistingLicense(metaData, currentMetaData);
+                    MetaData.Builder mdBuilder = MetaData.builder(currentMetaData);
                     mdBuilder.putCustom(LicenseKey.WRITEABLE_TYPE, metaData);
                     return ClusterState.builder(currentState).metaData(mdBuilder).build();
                 }
@@ -91,5 +95,16 @@ public class TransportSetLicenseAction
     @Override
     protected ClusterBlockException checkBlock(SetLicenseRequest request, ClusterState state) {
         return state.blocks().globalBlockedException(ClusterBlockLevel.METADATA_READ);
+    }
+
+    static void validateTrialLicenseDoNotOverrideExistingLicense(LicenseKey newLicenseKey,
+                                                                 MetaData currentMetaData) throws Exception {
+        LicenseKey previousLicenseKey = currentMetaData.custom(LicenseKey.WRITEABLE_TYPE);
+        if (previousLicenseKey != null) {
+            License newLicense = decode(newLicenseKey);
+            if (newLicense.type() == License.Type.TRIAL) {
+                throw new LicenseViolationException("Cannot set a trial license if a license already exists");
+            }
+        }
     }
 }

@@ -179,7 +179,7 @@ public abstract class AbstractTableRelation<T extends TableInfo> implements Anal
 
     protected Field allocate(Path path, Reference reference) {
         allocatedFields.put(path, reference);
-        return new Field(this, path, reference.valueType());
+        return new Field(this, path, reference);
     }
 
     @Override

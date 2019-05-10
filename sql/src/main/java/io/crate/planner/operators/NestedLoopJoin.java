@@ -64,7 +64,6 @@ public class NestedLoopJoin implements LogicalPlan {
     private final Symbol joinCondition;
     private final AnalyzedRelation topMostLeftRelation;
     private final JoinType joinType;
-    private final boolean noOuterJoin;
     private final boolean isFiltered;
     final LogicalPlan lhs;
     final LogicalPlan rhs;
@@ -79,7 +78,6 @@ public class NestedLoopJoin implements LogicalPlan {
                    JoinType joinType,
                    @Nullable Symbol joinCondition,
                    boolean isFiltered,
-                   boolean noOuterJoin,
                    AnalyzedRelation topMostLeftRelation) {
         this.joinType = joinType;
         this.isFiltered = isFiltered || joinCondition != null;
@@ -93,7 +91,6 @@ public class NestedLoopJoin implements LogicalPlan {
         this.baseTables = Lists2.concat(lhs.baseTables(), rhs.baseTables());
         this.topMostLeftRelation = topMostLeftRelation;
         this.joinCondition = joinCondition;
-        this.noOuterJoin = noOuterJoin;
         this.expressionMapping = Maps.concat(lhs.expressionMapping(), rhs.expressionMapping());
         this.dependencies = Maps.concat(lhs.dependencies(), rhs.dependencies());
     }
@@ -103,15 +100,10 @@ public class NestedLoopJoin implements LogicalPlan {
                           JoinType joinType,
                           @Nullable Symbol joinCondition,
                           boolean isFiltered,
-                          boolean noOuterJoin,
                           AnalyzedRelation topMostLeftRelation,
                           boolean orderByWasPushedDown) {
-        this(lhs, rhs, joinType, joinCondition, isFiltered, noOuterJoin, topMostLeftRelation);
+        this(lhs, rhs, joinType, joinCondition, isFiltered, topMostLeftRelation);
         this.orderByWasPushedDown = orderByWasPushedDown;
-    }
-
-    public boolean isNoOuterJoin() {
-        return noOuterJoin;
     }
 
     public boolean isFiltered() {
@@ -253,7 +245,6 @@ public class NestedLoopJoin implements LogicalPlan {
             joinType,
             joinCondition,
             isFiltered,
-            noOuterJoin,
             topMostLeftRelation,
             orderByWasPushedDown
         );

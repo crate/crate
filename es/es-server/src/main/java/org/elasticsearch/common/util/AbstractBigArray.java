@@ -115,27 +115,27 @@ abstract class AbstractBigArray extends AbstractArray {
     protected final byte[] newBytePage(int page) {
         if (recycler != null) {
             final Recycler.V<byte[]> v = recycler.bytePage(clearOnResize);
-            return registerNewPage(v, page, BigArrays.BYTE_PAGE_SIZE);
+            return registerNewPage(v, page, PageCacheRecycler.BYTE_PAGE_SIZE);
         } else {
-            return new byte[BigArrays.BYTE_PAGE_SIZE];
+            return new byte[PageCacheRecycler.BYTE_PAGE_SIZE];
         }
     }
 
     protected final int[] newIntPage(int page) {
         if (recycler != null) {
             final Recycler.V<int[]> v = recycler.intPage(clearOnResize);
-            return registerNewPage(v, page, BigArrays.INT_PAGE_SIZE);
+            return registerNewPage(v, page, PageCacheRecycler.INT_PAGE_SIZE);
         } else {
-            return new int[BigArrays.INT_PAGE_SIZE];
+            return new int[PageCacheRecycler.INT_PAGE_SIZE];
         }
     }
 
     protected final Object[] newObjectPage(int page) {
         if (recycler != null) {
             final Recycler.V<Object[]> v = recycler.objectPage();
-            return registerNewPage(v, page, BigArrays.OBJECT_PAGE_SIZE);
+            return registerNewPage(v, page, PageCacheRecycler.OBJECT_PAGE_SIZE);
         } else {
-            return new Object[BigArrays.OBJECT_PAGE_SIZE];
+            return new Object[PageCacheRecycler.OBJECT_PAGE_SIZE];
         }
     }
 

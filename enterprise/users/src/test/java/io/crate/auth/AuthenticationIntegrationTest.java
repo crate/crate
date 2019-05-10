@@ -46,6 +46,11 @@ import static org.hamcrest.Matchers.notNullValue;
 public class AuthenticationIntegrationTest extends SQLTransportIntegrationTest {
 
     @Override
+    protected boolean addMockHttpTransport() {
+        return false;
+    }
+
+    @Override
     protected Settings nodeSettings(int nodeOrdinal) {
         return Settings.builder()
             .put(super.nodeSettings(nodeOrdinal))

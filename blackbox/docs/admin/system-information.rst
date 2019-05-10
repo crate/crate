@@ -154,8 +154,6 @@ applied cluster settings.
     | settings['cluster']['routing']['rebalance']['enable']                             | text             |
     | settings['discovery']                                                             | object           |
     | settings['discovery']['zen']                                                      | object           |
-    | settings['discovery']['zen']['minimum_master_nodes']                              | integer          |
-    | settings['discovery']['zen']['ping_timeout']                                      | text             |
     | settings['discovery']['zen']['publish_timeout']                                   | text             |
     | settings['gateway']                                                               | object           |
     | settings['gateway']['expected_nodes']                                             | integer          |
@@ -1432,12 +1430,11 @@ Here's an example query::
   +----+--------------------------------------------------------------...-+
   | id | description                                                      |
   +----+--------------------------------------------------------------...-+
-  |  1 | The setting 'discovery.zen.minimum_master_nodes' must not be ... |
   |  2 | The total number of partitions of one or more partitioned tab... |
   |  3 | The following tables need to be upgraded for compatibility wi... |
   |  6 | Your CrateDB license is valid. Enjoy CrateDB!                    |
   +----+--------------------------------------------------------------...-+
-  SELECT 4 rows in set (... sec)
+  SELECT 3 rows in set (... sec)
 
 Cluster checks are also indicated in the CrateDB `admin console`_. When all
 cluster checks (and all :ref:`sys-node-checks`) pass, the *Checks* icon will be
@@ -1451,27 +1448,6 @@ severity level:
 
 Current Checks
 --------------
-
-Minimum Master Nodes
-....................
-
-The check for the :ref:`discovery.zen.minimum_master_nodes
-<discovery.zen.minimum_master_nodes>` setting verifies that the minimum number
-of nodes is equal/greater than the half of maximum number of nodes in the
-cluster.
-
-::
-
-  (N / 2) + 1 <= M
-
-where ``N`` is the number of nodes in the cluster, and ``M`` is the value of
-the setting :ref:`discovery.zen.minimum_master_nodes
-<discovery.zen.minimum_master_nodes>`.
-
-You can change the value (via :ref:`ref-set`) permanently by issuing the
-following SQL statement::
-
-  SET GLOBAL PERSISTENT discovery.zen.minimum_master_nodes = M;
 
 Number of Partitions
 ....................

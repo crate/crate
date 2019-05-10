@@ -24,20 +24,22 @@ import io.crate.testing.SQLResponse;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
-import static org.elasticsearch.common.settings.Settings.builder;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.core.Is.is;
 
 public class LicenseITest extends SQLTransportIntegrationTest {
 
-    private static final String LICENSE_KEY = "AAAAAAAAAAEAAABAFs4j1KCBd7oXN4ep073eHrdvIO8mbMadmNLFbvxK4F3kj9Cfc2HEYzmCWtLVoQ6I7ocn4g10q90QiFm/w2hm6g==";
+    public static final String ENTERPRISE_LICENSE_KEY =
+        "AAAAAQAAAAIAAAEAGzjeQvokJp4ND3h8T/9/JFij7Jey2wGs4qHTR4kFXBf0dDki61pypEM7Or5p4Vb7e9t4ZErvNwwbMd9O4w" +
+        "TW1ykfbJDWOul71C8pkb8VXkCNnCFHAs2Z71hY88iORn9FzB7gkJyHekv59Dpn9PH42EI52+qbi3oBprtUfbsdudx8Rwnq8ev8" +
+        "4zRF57e5KVUwRvvpBlE7lqYKBLp7BrjYOWMFFKE0liNH7rUff6KBtkK0pmCYcWWp+b7TW8O3mhQoCk1GcRyyDwwhjTKuutWC+w" +
+        "lBj7eoTRqinJ3aK8jr0Yi3q58Zx6Q31MYKsNjn84xwW900v3X1+XjuLJIRYJ+9uA==";
 
     @Test
     public void testLicenseIsAvailableInClusterStateAfterSetLicense() {
-        execute("set license '" + LICENSE_KEY + "'");
+        execute("set license '" + ENTERPRISE_LICENSE_KEY + "'");
 
         LicenseKey licenseKey = clusterService().state().metaData().custom(LicenseKey.WRITEABLE_TYPE);
-        assertThat(licenseKey, is(new LicenseKey(LICENSE_KEY)));
+        assertThat(licenseKey, is(new LicenseKey(ENTERPRISE_LICENSE_KEY)));
     }
 
     @Test

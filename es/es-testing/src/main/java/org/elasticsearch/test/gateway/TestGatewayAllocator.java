@@ -94,6 +94,10 @@ public class TestGatewayAllocator extends GatewayAllocator {
         }
     };
 
+    public TestGatewayAllocator() {
+        super();
+    }
+
     @Override
     public void applyStartedShards(RoutingAllocation allocation, List<ShardRouting> startedShards) {
         currentNodes = allocation.nodes();

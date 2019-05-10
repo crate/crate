@@ -20,6 +20,7 @@
 package org.elasticsearch.indices.breaker;
 
 import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 
 /**
@@ -49,6 +50,11 @@ public class NoneCircuitBreakerService extends CircuitBreakerService {
 
     @Override
     public void registerBreaker(BreakerSettings breakerSettings) {
+        // ignore
+    }
+
+    @Override
+    public void checkParentLimit(String label) throws CircuitBreakingException {
         // ignore
     }
 }
