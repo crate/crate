@@ -203,6 +203,9 @@ Deprecations
 Changes
 =======
 
+- Added support for the
+  :ref:`Azure Storage repositories <ref-create-repository-types-azure>`.
+
 - Changed the default value of the ``fs`` repository type setting
   ``compress``, to ``true``. See
   :ref:`fs repository parameters<ref-create-repository-types-fs>`.

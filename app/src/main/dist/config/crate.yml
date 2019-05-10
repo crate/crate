@@ -769,6 +769,19 @@ auth:
 #s3.client.default.access_key: Access_Key
 #s3.client.default.secret_key: Secret_Key
 
+# If Azure Storage is used for snapshot repositories the following settings
+# must be provided:
+#azure.client.default.account: azure_account_name
+#azure.client.default.key: azure_account_key
+#
+# Additional Azure Storage client settings:
+#azure.client.default.max_retries: 3
+#azure.client.default.endpoint_suffix: core.windows.net
+#azure.client.default.timeout: 30s
+#azure.client.default.proxy.host: proxy.host
+#azure.client.default.proxy.port: 8888
+#azure.client.default.proxy.type: http
+
 ###################### POSTGRES WIRE PROTOCOL SUPPORT ########################
 
 # CrateDB supports the PostgreSQL wire protocol v3 and emulates a PostgreSQL
