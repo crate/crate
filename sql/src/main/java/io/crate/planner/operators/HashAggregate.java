@@ -23,7 +23,6 @@
 package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.ExecutionPhases;
@@ -32,7 +31,6 @@ import io.crate.execution.dsl.projection.AggregationProjection;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Function;
-import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.expression.symbol.format.SymbolFormatter;
@@ -49,16 +47,14 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
-public class HashAggregate implements LogicalPlan {
+public class HashAggregate extends ForwardingLogicalPlan {
 
     private static final String MERGE_PHASE_NAME = "mergeOnHandler";
     final List<Function> aggregates;
-    final LogicalPlan source;
 
     HashAggregate(LogicalPlan source, List<Function> aggregates) {
-        this.source = source;
+        super(source);
         this.aggregates = aggregates;
     }
 
@@ -138,38 +134,13 @@ public class HashAggregate implements LogicalPlan {
     }
 
     @Override
-    public Map<Symbol, Symbol> expressionMapping() {
-        return source.expressionMapping();
-    }
-
-    @Override
-    public List<AbstractTableRelation> baseTables() {
-        return source.baseTables();
-    }
-
-    @Override
-    public List<LogicalPlan> sources() {
-        return List.of(source);
-    }
-
-    @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
         return new HashAggregate(Lists2.getOnlyElement(sources), aggregates);
     }
 
     @Override
-    public Map<LogicalPlan, SelectSymbol> dependencies() {
-        return source.dependencies();
-    }
-
-    @Override
     public long numExpectedRows() {
         return 1L;
-    }
-
-    @Override
-    public long estimatedRowSize() {
-        return source.estimatedRowSize();
     }
 
     @Override

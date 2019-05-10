@@ -23,7 +23,6 @@
 package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.collections.Lists2;
 import io.crate.data.Row;
@@ -52,12 +51,7 @@ import java.util.function.Function;
  * It is used to take care of the field mapping (providing {@link LogicalPlan#expressionMapping()})
  * In addition it takes care of MultiPhase planning.
  */
-public class RelationBoundary implements LogicalPlan {
-
-    final LogicalPlan source;
-    private final Map<LogicalPlan, SelectSymbol> dependencies;
-    private final List<Symbol> outputs;
-    private final Map<Symbol, Symbol> expressionMapping;
+public class RelationBoundary extends ForwardingLogicalPlan {
 
     public static LogicalPlan.Builder create(LogicalPlan.Builder sourceBuilder,
                                              AnalyzedRelation relation,
@@ -91,6 +85,10 @@ public class RelationBoundary implements LogicalPlan {
         };
     }
 
+    private final Map<LogicalPlan, SelectSymbol> dependencies;
+    private final List<Symbol> outputs;
+    private final Map<Symbol, Symbol> expressionMapping;
+
     private final AnalyzedRelation relation;
     private final Map<Symbol, Symbol> reverseMapping;
 
@@ -100,7 +98,7 @@ public class RelationBoundary implements LogicalPlan {
                             Map<Symbol, Symbol> expressionMapping,
                             Map<Symbol, Symbol> reverseMapping,
                             Map<LogicalPlan, SelectSymbol> subQueries) {
-        this.source = source;
+        super(source);
         this.outputs = outputs;
         this.expressionMapping = expressionMapping;
         Map<LogicalPlan, SelectSymbol> allSubQueries = new HashMap<>();
@@ -109,10 +107,6 @@ public class RelationBoundary implements LogicalPlan {
         this.dependencies = Collections.unmodifiableMap(allSubQueries);
         this.relation = relation;
         this.reverseMapping = reverseMapping;
-    }
-
-    public LogicalPlan source() {
-        return source;
     }
 
     @Override
@@ -139,16 +133,6 @@ public class RelationBoundary implements LogicalPlan {
     }
 
     @Override
-    public List<AbstractTableRelation> baseTables() {
-        return source.baseTables();
-    }
-
-    @Override
-    public List<LogicalPlan> sources() {
-        return List.of(source);
-    }
-
-    @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
         LogicalPlan newSource = Lists2.getOnlyElement(sources);
         return new RelationBoundary(
@@ -164,16 +148,6 @@ public class RelationBoundary implements LogicalPlan {
     @Override
     public Map<LogicalPlan, SelectSymbol> dependencies() {
         return dependencies;
-    }
-
-    @Override
-    public long numExpectedRows() {
-        return source.numExpectedRows();
-    }
-
-    @Override
-    public long estimatedRowSize() {
-        return source.estimatedRowSize();
     }
 
     @Override
