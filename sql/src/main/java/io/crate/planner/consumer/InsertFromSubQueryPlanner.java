@@ -75,8 +75,7 @@ public final class InsertFromSubQueryPlanner {
         AnalyzedRelation subRelation = relationNormalizer.normalize(
             statement.subQueryRelation(), plannerContext.transactionContext());
 
-        LogicalPlan plannedSubQuery = logicalPlanner.normalizeAndPlan(
-            subRelation, plannerContext, subqueryPlanner, FetchMode.NEVER_CLEAR, EnumSet.of(PlanHint.PREFER_SOURCE_LOOKUP));
+        LogicalPlan plannedSubQuery = logicalPlanner.normalizeAndPlan(subRelation, plannerContext, subqueryPlanner, EnumSet.of(PlanHint.PREFER_SOURCE_LOOKUP));
         EvalProjection castOutputs = createCastProjection(statement.columns(), plannedSubQuery.outputs());
         return new Insert(plannedSubQuery, indexWriterProjection, castOutputs);
     }

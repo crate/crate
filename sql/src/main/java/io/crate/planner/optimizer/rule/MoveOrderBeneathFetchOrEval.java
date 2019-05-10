@@ -23,7 +23,7 @@
 package io.crate.planner.optimizer.rule;
 
 import io.crate.expression.symbol.Symbol;
-import io.crate.planner.operators.FetchOrEval;
+import io.crate.planner.operators.Eval;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.Order;
 import io.crate.planner.optimizer.Rule;
@@ -40,13 +40,13 @@ import static io.crate.planner.optimizer.rule.Util.transpose;
 
 public final class MoveOrderBeneathFetchOrEval implements Rule<Order> {
 
-    private final Capture<FetchOrEval> fetchCapture;
+    private final Capture<Eval> fetchCapture;
     private final Pattern<Order> pattern;
 
     public MoveOrderBeneathFetchOrEval() {
         this.fetchCapture = new Capture<>();
         this.pattern = typeOf(Order.class)
-            .with(source(), typeOf(FetchOrEval.class).capturedAs(fetchCapture));
+            .with(source(), typeOf(Eval.class).capturedAs(fetchCapture));
     }
 
     @Override
@@ -56,12 +56,12 @@ public final class MoveOrderBeneathFetchOrEval implements Rule<Order> {
 
     @Override
     public LogicalPlan apply(Order plan, Captures captures) {
-        FetchOrEval fetchOrEval = captures.get(fetchCapture);
-        List<Symbol> outputsOfSourceOfFetch = fetchOrEval.source().outputs();
+        Eval eval = captures.get(fetchCapture);
+        List<Symbol> outputsOfSourceOfFetch = eval.source().outputs();
         List<Symbol> orderBySymbols = plan.orderBy().orderBySymbols();
         if (outputsOfSourceOfFetch.containsAll(orderBySymbols)
             || outputsOfSourceOfFetch.containsAll(extractColumns(orderBySymbols))) {
-            return transpose(plan, fetchOrEval);
+            return transpose(plan, eval);
         }
         return null;
     }

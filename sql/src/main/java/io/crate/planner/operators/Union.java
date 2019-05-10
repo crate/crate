@@ -32,7 +32,6 @@ import io.crate.data.Row;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.pipeline.TopN;
-import io.crate.expression.symbol.FieldsVisitor;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -43,16 +42,12 @@ import io.crate.planner.PlannerContext;
 import io.crate.planner.ResultDescription;
 import io.crate.planner.SubqueryPlanner;
 import io.crate.planner.UnionExecutionPlan;
-import io.crate.planner.consumer.FetchMode;
 import io.crate.planner.distribution.DistributionInfo;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.function.Consumer;
 
 import static io.crate.planner.operators.Limit.limitAndOffset;
 
@@ -72,54 +67,19 @@ public class Union implements LogicalPlan {
     private final Map<Symbol, Symbol> expressionMapping;
     private final Map<LogicalPlan, SelectSymbol> dependencies;
 
-    static Builder create(UnionSelect ttr, SubqueryPlanner subqueryPlanner, Functions functions, CoordinatorTxnCtx txnCtx) {
-        return (tableStats, hints, usedColsByParent) -> {
+    static Builder create(UnionSelect union, SubqueryPlanner subqueryPlanner, Functions functions, CoordinatorTxnCtx txnCtx) {
+        return (tableStats, hints) -> {
+            AnalyzedRelation left = union.left();
+            AnalyzedRelation right = union.right();
 
-            AnalyzedRelation left = ttr.left();
-            AnalyzedRelation right = ttr.right();
+            LogicalPlan lhsPlan = LogicalPlanner.plan(left, subqueryPlanner, true, functions, txnCtx).build(tableStats, hints);
+            LogicalPlan rhsPlan = LogicalPlanner.plan(right, subqueryPlanner, true, functions, txnCtx).build(tableStats, hints);
 
-            Set<Symbol> usedFromLeft = new HashSet<>();
-            Set<Symbol> usedFromRight = new HashSet<>();
-
-            addColumnsFrom(usedColsByParent, usedFromLeft::add, left);
-            addColumnsFrom(usedColsByParent, usedFromRight::add, right);
-
-            usedFromLeft.addAll(left.outputs());
-            usedFromRight.addAll(right.outputs());
-
-            LogicalPlan lhsPlan = LogicalPlanner
-                .plan(left, FetchMode.NEVER_CLEAR, subqueryPlanner, true, functions, txnCtx)
-                .build(tableStats, hints, usedFromLeft);
-
-            LogicalPlan rhsPlan = LogicalPlanner
-                .plan(right, FetchMode.NEVER_CLEAR, subqueryPlanner, true, functions, txnCtx)
-                .build(tableStats, hints, usedFromRight);
-
-            return new Union(lhsPlan, rhsPlan, ttr.outputs());
+            return new Union(lhsPlan, rhsPlan, union.outputs());
         };
     }
 
-    private static void addColumnsFrom(Iterable<? extends Symbol> symbols,
-                                       Consumer<? super Symbol> consumer,
-                                       AnalyzedRelation rel) {
-
-        for (Symbol symbol : symbols) {
-            addColumnsFrom(symbol, consumer, rel);
-        }
-    }
-
-    private static void addColumnsFrom(@Nullable Symbol symbol, Consumer<? super Symbol> consumer, AnalyzedRelation rel) {
-        if (symbol == null) {
-            return;
-        }
-        FieldsVisitor.visitFields(symbol, f -> {
-            if (f.relation().getQualifiedName().equals(rel.getQualifiedName())) {
-                consumer.accept(f.pointer());
-            }
-        });
-    }
-
-    Union(LogicalPlan lhs, LogicalPlan rhs, List<Symbol> outputs) {
+    private Union(LogicalPlan lhs, LogicalPlan rhs, List<Symbol> outputs) {
         this.lhs = lhs;
         this.rhs = rhs;
         this.outputs = outputs;

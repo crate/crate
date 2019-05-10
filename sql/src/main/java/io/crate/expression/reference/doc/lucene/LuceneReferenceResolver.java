@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableSet;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.expression.reference.ReferenceResolver;
+import io.crate.expression.symbol.DynamicReference;
 import io.crate.lucene.FieldTypeLookup;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
@@ -107,7 +108,7 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
         String fqn = ref.column().fqn();
         MappedFieldType fieldType = fieldTypeLookup.get(fqn);
         if (fieldType == null) {
-            return NO_FIELD_TYPES.contains(unnest(ref.valueType()))
+            return NO_FIELD_TYPES.contains(unnest(ref.valueType())) || ref instanceof DynamicReference
                 ? DocCollectorExpression.create(toSourceLookup(ref))
                 : new NullValueCollectorExpression();
         }

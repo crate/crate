@@ -111,7 +111,7 @@ public class ExplainLogicalPlan {
         }
 
         @Override
-        public ImmutableMap.Builder<String, Object> visitFetchOrEval(FetchOrEval logicalPlan, Context context) {
+        public ImmutableMap.Builder<String, Object> visitEval(Eval logicalPlan, Context context) {
             return createMap(logicalPlan, createSubMap()
                 .put("fetchRefs", ExplainLeaf.printList(logicalPlan.outputs()))
                 .put("source", explainMap(logicalPlan.source, context)));
