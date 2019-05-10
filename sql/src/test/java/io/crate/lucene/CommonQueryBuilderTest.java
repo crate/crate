@@ -71,6 +71,9 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     @Test
     public void testWhereRefEqNullWithDifferentTypes() throws Exception {
         for (DataType type : DataTypes.PRIMITIVE_TYPES) {
+            // ensure the test is operating on a fresh, empty cluster state (no existing tables)
+            resetClusterService();
+
             DocTableInfo tableInfo = SQLExecutor.tableInfo(
                 new RelationName(DocSchemaInfo.NAME, "test_primitive"),
                 "create table doc.test_primitive (" +
