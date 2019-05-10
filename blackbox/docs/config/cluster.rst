@@ -344,10 +344,10 @@ new master node is elected.
    | *Default:* ``not set``
    | *Runtime:* ``no``
 
-   Contains a list of names or IP addresses of the master-eligible nodes which
-   will vote in the very first election of a cluster that's bootstrapping for
-   the first time. By default this is not set, meaning it expects this node to
-   join an already formed cluster.
+   Contains a list of node names, full-qualified hostnames or IP addresses of
+   the master-eligible nodes which will vote in the very first election of a
+   cluster that's bootstrapping for the first time. By default this is not set,
+   meaning it expects this node to join an already formed cluster.
    In development mode, with no discovery settings configured, this step is
    performed by the nodes themselves, but this auto-bootstrapping is designed
    to aim development and is not safe for production. In production you must
