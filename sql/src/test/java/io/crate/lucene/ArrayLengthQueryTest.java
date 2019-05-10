@@ -27,7 +27,6 @@ import io.crate.testing.DataTypeTesting;
 import io.crate.testing.QueryTester;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
-import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 import org.elasticsearch.Version;
 import org.junit.After;
@@ -280,12 +279,16 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
             Object[] values = new Object[] {
                 arr
             };
+
+            // ensure the test is operating on a fresh, empty cluster state (no tables)
+            resetClusterService();
+
             try (QueryTester tester = new QueryTester.Builder(
                 createTempDir(),
                 THREAD_POOL,
                 clusterService,
                 Version.CURRENT,
-                "create table t (xs array(\"" + type.getName() + "\"))"
+                "create table \"t_"+ type.getName() + "\" (xs array(\"" + type.getName() + "\"))"
             ).indexValues("xs", values).build()) {
                 System.out.println(type);
                 List<Object> result = tester.runQuery("xs", "array_length(xs, 1) >= 2");
