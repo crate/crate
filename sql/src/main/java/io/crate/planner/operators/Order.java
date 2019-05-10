@@ -38,9 +38,7 @@ import io.crate.planner.PlannerContext;
 import io.crate.planner.PositionalOrderBy;
 
 import javax.annotation.Nullable;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.function.Consumer;
 
 public class Order extends ForwardingLogicalPlan {
@@ -52,12 +50,7 @@ public class Order extends ForwardingLogicalPlan {
         if (orderBy == null) {
             return source;
         }
-        return (tableStats, hints, usedColumns, params) -> {
-            Set<Symbol> allUsedColumns = new LinkedHashSet<>();
-            allUsedColumns.addAll(orderBy.orderBySymbols());
-            allUsedColumns.addAll(usedColumns);
-            return new Order(source.build(tableStats, hints, allUsedColumns, params), orderBy);
-        };
+        return (tableStats, hints, params) -> new Order(source.build(tableStats, hints, params), orderBy);
     }
 
     public Order(LogicalPlan source, OrderBy orderBy) {

@@ -223,7 +223,7 @@ public final class InputColumns extends DefaultTraversalSymbolVisitor<InputColum
             Symbol subscriptOnRoot = tryCreateSubscriptOnRoot(ref, ref.column(), sourceSymbols.inputs);
             return subscriptOnRoot == null ? ref : subscriptOnRoot;
         }
-        return visitSymbol(ref, sourceSymbols);
+        return inputColumn;
     }
 
     @Override

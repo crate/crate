@@ -27,7 +27,6 @@ import io.crate.data.Row;
 import io.crate.execution.dsl.phases.HashJoinPhase;
 import io.crate.execution.dsl.phases.NestedLoopPhase;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
-import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
@@ -38,7 +37,6 @@ import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.SubqueryPlanner;
 import io.crate.planner.node.dql.Collect;
-import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.join.Join;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.statistics.Stats;
@@ -46,9 +44,7 @@ import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
-import io.crate.types.DataTypes;
 import org.elasticsearch.common.Randomness;
-import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -57,12 +53,12 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.Collections;
 
 import static io.crate.analyze.TableDefinitions.TEST_DOC_LOCATIONS_TABLE_DEFINITION;
 import static io.crate.analyze.TableDefinitions.USER_TABLE_DEFINITION;
 import static io.crate.analyze.TableDefinitions.USER_TABLE_IDENT;
 import static io.crate.planner.operators.LogicalPlannerTest.isPlan;
-import static io.crate.testing.SymbolMatchers.isFetchRef;
 import static io.crate.testing.SymbolMatchers.isInputColumn;
 import static io.crate.testing.SymbolMatchers.isReference;
 import static io.crate.testing.TestingHelpers.getFunctions;
@@ -109,7 +105,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         );
         SubqueryPlanner subqueryPlanner = new SubqueryPlanner((s) -> logicalPlanner.planSubSelect(s, plannerCtx));
         return JoinPlanBuilder.createNodes(mss, mss.where(), subqueryPlanner, functions, txnCtx)
-            .build(tableStats, Set.of(), Set.of(), null);
+            .build(tableStats, Set.of(), null);
     }
 
     private Join buildJoin(LogicalPlan operator) {
@@ -194,7 +190,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         );
         SubqueryPlanner subqueryPlanner = new SubqueryPlanner((s) -> logicalPlanner.planSubSelect(s, context));
         LogicalPlan operator = JoinPlanBuilder.createNodes(mss, mss.where(), subqueryPlanner, e.functions(), txnCtx)
-            .build(tableStats, Set.of(), Set.of(), null);
+            .build(tableStats, Set.of(), null);
         Join nl = (Join) operator.build(
             context, projectionBuilder, -1, 0, null, null, Row.EMPTY, SubQueryResults.EMPTY);
 
@@ -223,7 +219,6 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             context, projectionBuilder, -1, 0, null, null, Row.EMPTY, SubQueryResults.EMPTY);
         Join nl = (Join) merge.subPlan();
 
-        assertThat(((Collect) nl.left()).collectPhase().toCollect(), isSQL("doc.users._fetchid, doc.users.id"));
         assertThat(nl.resultDescription().orderBy(), notNullValue());
     }
 
@@ -244,10 +239,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         assertThat(((HashJoin) operator).concreteRelation.toString(), is("DocTableRelation{doc.locations}"));
 
         Join join = buildJoin(operator);
-        assertThat(join.joinPhase().leftMergePhase().inputTypes(), contains(DataTypes.LONG, DataTypes.LONG));
-        assertThat(join.joinPhase().rightMergePhase().inputTypes(), contains(DataTypes.LONG, DataTypes.LONG));
-        assertThat(join.joinPhase().projections().get(0).outputs().toString(),
-            is("[IC{0, bigint}, IC{1, bigint}, IC{2, bigint}, IC{3, bigint}]"));
+        assertThat(((Collect) join.left()).collectPhase().toCollect().get(1), isReference("other_id"));
     }
 
     @Test
@@ -267,11 +259,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         assertThat(((HashJoin) operator).concreteRelation.toString(), is("DocTableRelation{doc.locations}"));
 
         Join join = buildJoin(operator);
-        // Plans must be switched (left<->right)
-        assertThat(join.joinPhase().leftMergePhase().inputTypes(), Matchers.contains(DataTypes.LONG, DataTypes.LONG));
-        assertThat(join.joinPhase().rightMergePhase().inputTypes(), Matchers.contains(DataTypes.LONG, DataTypes.LONG));
-        assertThat(join.joinPhase().projections().get(0).outputs().toString(),
-            is("[IC{2, bigint}, IC{3, bigint}, IC{0, bigint}, IC{1, bigint}]"));
+        assertThat(((Collect) join.left()).collectPhase().toCollect().get(1), isReference("loc"));
     }
 
     @Test
@@ -422,8 +410,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         ExecutionPlan build = operator.build(plannerCtx, projectionBuilder, -1, 0, null,
             null, Row.EMPTY, SubQueryResults.EMPTY);
 
-        assertThat((((NestedLoopPhase) ((Join) ((QueryThenFetch) build).subPlan()).joinPhase())).blockNestedLoop,
-            is(false));
+        assertThat((((NestedLoopPhase) ((Join) build).joinPhase())).blockNestedLoop, is(false));
     }
 
     @Test
@@ -440,7 +427,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         );
         LogicalPlan join = logicalPlanner.plan(mss, plannerCtx);
 
-        WindowAgg windowAggOperator = (WindowAgg) ((FetchOrEval) ((RootRelationBoundary) join).source).source;
+        WindowAgg windowAggOperator = (WindowAgg) ((Eval) ((RootRelationBoundary) join).source).source;
         assertThat(join.outputs(), hasItem(windowAggOperator.windowFunctions().get(0)));
     }
 
@@ -455,25 +442,21 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         var logicalPlan = e.logicalPlan(statement);
         var expectedPlan =
             "RootBoundary[x, x]\n" +
-            "FetchOrEval[x, x]\n" +
-            "Boundary[_fetchid, _fetchid]\n" +      // Aliased relation boundary
-            "Boundary[_fetchid, _fetchid]\n" +
+            "Boundary[x, x]\n" +
+            "Boundary[x, x]\n" +
             "NestedLoopJoin[\n" +
-            "    Boundary[_fetchid]\n" +
-            "    Collect[doc.t1 | [_fetchid] | true]\n" +
+            "    Boundary[x]\n" +
+            "    Collect[doc.t1 | [x] | true]\n" +
             "    --- CROSS ---\n" +
-            "    Boundary[_fetchid]\n" +
-            "    Collect[doc.t2 | [_fetchid] | true]\n" +
+            "    Boundary[x]\n" +
+            "    Collect[doc.t2 | [x] | true]\n" +
             "]\n";
         assertThat(logicalPlan, isPlan(e.functions(), expectedPlan));
 
-        var plan = e.plan(statement);
-        var qtf = (QueryThenFetch) plan;
-        var join = (Join) qtf.subPlan();
-        ColumnIdent column = new ColumnIdent("_doc", "x");
-        assertThat(join.joinPhase().projections().get(1).outputs(), contains(
-            isFetchRef(isInputColumn(0), isReference(is(column), is(new RelationName("doc", "t1")), is(DataTypes.INTEGER))),
-            isFetchRef(isInputColumn(1), isReference(is(column), is(new RelationName("doc", "t2")), is(DataTypes.INTEGER)))
+        Join join = e.plan(statement);
+        assertThat(join.joinPhase().projections().get(0).outputs(), contains(
+            isInputColumn(0),
+            isInputColumn(1)
         ));
     }
 
@@ -499,13 +482,13 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
                                             " where t1.a = users.address['postcode']");
         var expectedPlan =
             "RootBoundary[name]\n" +
-            "FetchOrEval[name]\n" +
+            "Eval[name]\n" +
             "HashJoin[\n" +
-            "    Boundary[_fetchid, address['postcode']]\n" +
-            "    Collect[doc.users | [_fetchid, address['postcode']] | true]\n" +
+            "    Boundary[id, other_id, name, text, no_index, details, address, awesome, counters, friends, tags, bytes, shorts, date, shape, ints, floats, address['postcode']]\n" +
+            "    Collect[doc.users | [id, other_id, name, text, no_index, details, address, awesome, counters, friends, tags, bytes, shorts, date, shape, ints, floats, address['postcode']] | true]\n" +
             "    --- INNER ---\n" +
-            "    Boundary[_fetchid, a]\n" +
-            "    Collect[doc.t1 | [_fetchid, a] | true]\n" +
+            "    Boundary[a, x, i]\n" +
+            "    Collect[doc.t1 | [a, x, i] | true]\n" +
             "]\n";
         assertThat(logicalPlan, is(isPlan(e.functions(), expectedPlan)));
 
@@ -515,14 +498,14 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
                                         " where t1.a = u.address['postcode']");
         expectedPlan =
             "RootBoundary[name]\n" +
-            "FetchOrEval[name]\n" +
+            "Eval[name]\n" +
             "HashJoin[\n" +
-            "    Boundary[_fetchid, address['postcode']]\n" +
-            "    Boundary[_fetchid, address['postcode']]\n" +
-            "    Collect[doc.users | [_fetchid, address['postcode']] | true]\n" +
+            "    Boundary[id, other_id, name, text, no_index, details, address, awesome, counters, friends, tags, bytes, shorts, date, shape, ints, floats, address['postcode']]\n" +
+            "    Boundary[id, other_id, name, text, no_index, details, address, awesome, counters, friends, tags, bytes, shorts, date, shape, ints, floats, address['postcode']]\n" +
+            "    Collect[doc.users | [id, other_id, name, text, no_index, details, address, awesome, counters, friends, tags, bytes, shorts, date, shape, ints, floats, address['postcode']] | true]\n" +
             "    --- INNER ---\n" +
-            "    Boundary[_fetchid, a]\n" +
-            "    Collect[doc.t1 | [_fetchid, a] | true]\n" +
+            "    Boundary[a, x, i]\n" +
+            "    Collect[doc.t1 | [a, x, i] | true]\n" +
             "]\n";
         assertThat(logicalPlan, is(isPlan(e.functions(), expectedPlan)));
     }

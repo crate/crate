@@ -46,14 +46,12 @@ import io.crate.planner.distribution.DistributionType;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 import static io.crate.execution.dsl.phases.ExecutionPhases.executesOnHandler;
-import static io.crate.planner.operators.LogicalPlanner.extractColumns;
 
 public class WindowAgg extends ForwardingLogicalPlan {
 
@@ -66,17 +64,14 @@ public class WindowAgg extends ForwardingLogicalPlan {
         if (windowFunctions.isEmpty()) {
             return source;
         }
-
-        return (tableStats, hints, usedBeforeNextFetch, params) -> {
-            HashSet<Symbol> allUsedColumns = new HashSet<>(extractColumns(usedBeforeNextFetch));
-            allUsedColumns.addAll(extractColumns(windowFunctions));
+        return (tableStats, hints, params) -> {
             LinkedHashMap<WindowDefinition, ArrayList<WindowFunction>> groupedFunctions = new LinkedHashMap<>();
             for (WindowFunction windowFunction : windowFunctions) {
                 WindowDefinition windowDefinition = windowFunction.windowDefinition();
                 ArrayList<WindowFunction> functions = groupedFunctions.computeIfAbsent(windowDefinition, w -> new ArrayList<>());
                 functions.add(windowFunction);
             }
-            LogicalPlan lastWindowAgg = source.build(tableStats, hints, allUsedColumns, params);
+            LogicalPlan lastWindowAgg = source.build(tableStats, hints, params);
             for (Map.Entry<WindowDefinition, ArrayList<WindowFunction>> entry : groupedFunctions.entrySet()) {
                 /*
                  * Pass along the source outputs as standalone symbols as they might be required in cases like:

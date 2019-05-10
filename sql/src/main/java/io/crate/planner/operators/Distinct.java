@@ -28,7 +28,6 @@ import java.util.Collections;
 import java.util.List;
 
 import static io.crate.planner.operators.GroupHashAggregate.approximateDistinctValues;
-import static io.crate.planner.operators.LogicalPlanner.extractColumns;
 
 public final class Distinct {
 
@@ -36,8 +35,8 @@ public final class Distinct {
         if (!distinct) {
             return source;
         }
-        return (tableStats, hints, usedBeforeNextFetch, params) -> {
-            LogicalPlan sourcePlan = source.build(tableStats, hints, extractColumns(outputs), params);
+        return (tableStats, hints, params) -> {
+            LogicalPlan sourcePlan = source.build(tableStats, hints, params);
             long numExpectedRows = approximateDistinctValues(sourcePlan.numExpectedRows(), tableStats, outputs);
             return new GroupHashAggregate(sourcePlan, outputs, Collections.emptyList(), numExpectedRows);
         };

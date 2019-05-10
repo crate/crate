@@ -42,6 +42,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.Set;
 
 /**
  * LogicalPlan is a tree of "Operators"
@@ -86,29 +87,8 @@ public interface LogicalPlan extends Plan {
 
         /**
          * Create a LogicalPlan node
-         *
-         * @param usedBeforeNextFetch The columns the "parent" is using.
-         *                    This is used to create plans which utilize query-then-fetch.
-         *                    For example:
-         *                    <pre>
-         *                       select a, b, c from t1 order by a limit 10
-         *
-         *                       EvalFetch (usedColumns: [a, b, c])
-         *                         outputs: [a, b, c]   (b, c resolved using _fetch)
-         *                         |
-         *                       Limit 10 (usedColumns: [])
-         *                         |
-         *                       Order (usedColumns: [a]
-         *                         |
-         *                       Collect (usedColumns: [a] - inherited from Order)
-         *                         outputs: [_fetch, a]
-         *                    </pre>
-         * @param params See {@link PlannerContext#params()}
          */
-        LogicalPlan build(TableStats tableStats,
-                          Set<PlanHint> hints,
-                          Set<Symbol> usedBeforeNextFetch,
-                          @Nullable Row params);
+        LogicalPlan build(TableStats tableStats, Set<PlanHint> hints, @Nullable Row params);
     }
 
     /**

@@ -94,12 +94,11 @@ public class ObjectColumnTest extends SQLTransportIntegrationTest {
     @Test
     @UseJdbc(0) // inserting object requires other treatment for PostgreSQL
     public void testAddColumnToIgnoredObject() throws Exception {
-        Map<String, Object> detailMap = new HashMap<String, Object>() {{
-            put("num_pages", 240);
-            put("publishing_date", "1982-01-01");
-            put("isbn", "978-0345391827");
-            put("weight", 4.8d);
-        }};
+        Map<String, Object> detailMap = new HashMap<>();
+        detailMap.put("num_pages", 240);
+        detailMap.put("publishing_date", "1982-01-01");
+        detailMap.put("isbn", "978-0345391827");
+        detailMap.put("weight", 4.8d);
         execute("insert into ot (title, details) values (?, ?)",
             new Object[]{
                 "Life, the Universe and Everything",
@@ -160,15 +159,14 @@ public class ObjectColumnTest extends SQLTransportIntegrationTest {
         refresh();
         execute("select details, details['published'] from ot where title=?",
             new Object[]{"The Hitchhiker's Guide to the Galaxy"});
-        assertEquals(1, response.rowCount());
-        assertEquals(
-            new HashMap<String, Object>() {{
-                put("num_pages", 224);
-                put("published", "1978-01-01");
-            }},
-            response.rows()[0][0]
+        assertThat(response.rowCount(), is(1L));
+        assertThat(
+            response.rows()[0][0],
+            is(Map.of(
+                "num_pages", 224,
+                "published", "1978-01-01"
+            ))
         );
-        assertEquals("1978-01-01", response.rows()[0][1]);
     }
 
     @Test

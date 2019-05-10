@@ -44,7 +44,7 @@ import java.util.TreeSet;
  *
  * <pre>
  *     type = SELECT
- *     labels = [Collect, FetchOrEval, Order]
+ *     labels = [Collect, Eval, Order]
  * </pre>
  */
 public final class StatementClassifier extends LogicalPlanVisitor<Set<String>, Void> {
@@ -126,15 +126,15 @@ public final class StatementClassifier extends LogicalPlanVisitor<Set<String>, V
     }
 
     @Override
-    public Void visitFetchOrEval(FetchOrEval logicalPlan, Set<String> context) {
-        logicalPlan.source.accept(this, context);
-        return visitPlan(logicalPlan, context);
-    }
-
-    @Override
     public Void visitLimit(Limit limit, Set<String> context) {
         limit.source.accept(this, context);
         return visitPlan(limit, context);
+    }
+
+    @Override
+    public Void visitEval(Eval eval, Set<String> context) {
+        eval.source.accept(this, context);
+        return visitPlan(eval, context);
     }
 
     @Override

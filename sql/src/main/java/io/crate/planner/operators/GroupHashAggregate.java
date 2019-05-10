@@ -52,12 +52,9 @@ import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.List;
 
 import static io.crate.planner.operators.LogicalPlanner.NO_LIMIT;
-import static io.crate.planner.operators.LogicalPlanner.extractColumns;
 
 public class GroupHashAggregate extends ForwardingLogicalPlan {
 
@@ -68,14 +65,10 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
     private final long numExpectedRows;
 
     public static Builder create(Builder source, List<Symbol> groupKeys, List<Function> aggregates) {
-        return (tableStats, hints, parentUsedCols, params) -> {
-            HashSet<Symbol> usedCols = new LinkedHashSet<>();
-            usedCols.addAll(groupKeys);
-            usedCols.addAll(extractColumns(aggregates));
+        return (tableStats, hints, params) -> {
             LogicalPlan sourcePlan = source.build(
                 tableStats,
                 Sets.difference(hints, EnumSet.of(PlanHint.PREFER_SOURCE_LOOKUP)),
-                usedCols,
                 params
             );
             long numExpectedRows = approximateDistinctValues(sourcePlan.numExpectedRows(), tableStats, groupKeys);
