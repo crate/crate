@@ -63,7 +63,6 @@ public class SequenceConsistencyIT extends SQLTransportIntegrationTest {
         // then the default of 30s, causing ensureGreen and friends to time out
         .build();
 
-
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {
         final HashSet<Class<? extends Plugin>> classes = new HashSet<>(super.nodePlugins());
@@ -112,9 +111,7 @@ public class SequenceConsistencyIT extends SQLTransportIntegrationTest {
 
         String schema = sqlExecutor.getCurrentSchema();
         try {
-            systemExecute("update registers set value = 'value whilst disrupted' where id = 1",
-                          schema,
-                          isolatedNode);
+            execute("update registers set value = 'value whilst disrupted' where id = 1", null, isolatedNode);
             fail("expected timeout exception");
         } catch (ElasticsearchTimeoutException elasticsearchTimeoutException) {
         }
@@ -130,10 +127,10 @@ public class SequenceConsistencyIT extends SQLTransportIntegrationTest {
             assertTrue(primaryShard.active());
         }, 30, TimeUnit.SECONDS);
 
-        systemExecute("update registers set value = 'value set on master' where id = 1", schema, masterNodeName);
-        systemExecute("update registers set value = 'value set on master the second time' where id = 1",
-                      schema,
-                      masterNodeName);
+        execute("update registers set value = 'value set on master' where id = 1", null, masterNodeName);
+        execute("update registers set value = 'value set on master the second time' where id = 1",
+                null,
+                masterNodeName);
 
         logger.info("heal disruption");
         partition.stopDisrupting();
