@@ -57,7 +57,6 @@ public final class HdfsRepository extends BlobStoreRepository {
 
     private final Environment environment;
     private final ByteSizeValue chunkSize;
-    private final boolean compress;
     private final BlobPath basePath = BlobPath.cleanPath();
     private final URI uri;
     private final String pathSetting;
@@ -72,7 +71,6 @@ public final class HdfsRepository extends BlobStoreRepository {
 
         this.environment = environment;
         this.chunkSize = metadata.settings().getAsBytesSize("chunk_size", null);
-        this.compress = metadata.settings().getAsBoolean("compress", false);
 
         String uriSetting = getMetadata().settings().get("uri");
         if (Strings.hasText(uriSetting) == false) {
@@ -232,11 +230,6 @@ public final class HdfsRepository extends BlobStoreRepository {
     @Override
     protected BlobPath basePath() {
         return basePath;
-    }
-
-    @Override
-    protected boolean isCompress() {
-        return compress;
     }
 
     @Override
