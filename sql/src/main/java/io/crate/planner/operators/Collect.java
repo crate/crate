@@ -42,13 +42,10 @@ import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.expression.symbol.SymbolVisitors;
-import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.DocReferences;
 import io.crate.metadata.Reference;
-import io.crate.metadata.RelationName;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.ExecutionPlan;
@@ -59,17 +56,13 @@ import io.crate.planner.consumer.OrderByPositionVisitor;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.selectivity.SelectivityFunctions;
 import io.crate.statistics.Stats;
-import io.crate.statistics.TableStats;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import static io.crate.planner.operators.Limit.limitAndOffset;
-import static io.crate.planner.operators.OperatorUtils.getUnusedColumns;
 
 /**
  * An Operator for data-collection.
@@ -78,12 +71,6 @@ import static io.crate.planner.operators.OperatorUtils.getUnusedColumns;
  * This operator can also eagerly apply ORDER BY and will utilize limit, offset and pageSizeHint
  * to avoid collecting too much data.
  *
- * Note:
- *  In case of lucene-tables this may not actually produce {@code toCollect} as output.
- *  Instead it may choose to output {@link DocSysColumns#FETCHID} + {@code usedColumns}.
- *
- *  {@link FetchOrEval} will then later use {@code fetchId} to fetch the values for the columns which are "unused".
- *  See also {@link LogicalPlan.Builder#build(TableStats, Set, Set, Row)}
  */
 public class Collect implements LogicalPlan {
 
@@ -98,39 +85,24 @@ public class Collect implements LogicalPlan {
 
     WhereClause where;
 
-    public static LogicalPlan.Builder create(AbstractTableRelation relation,
+    public static LogicalPlan.Builder create(AbstractTableRelation<?> relation,
                                              List<Symbol> toCollect,
                                              WhereClause where) {
-        return (tableStats, hints, usedColumns, params) -> new Collect(
-            hints.contains(PlanHint.PREFER_SOURCE_LOOKUP),
-            relation,
-            toCollect,
-            where,
-            usedColumns,
-            tableStats.getStats(relation.tableInfo().ident()),
-            params
-        );
+        return (tableStats, hints, params) -> {
+            Stats stats = tableStats.getStats(relation.tableInfo().ident());
+            return new Collect(
+                hints.contains(PlanHint.PREFER_SOURCE_LOOKUP),
+                relation,
+                toCollect,
+                where,
+                SelectivityFunctions.estimateNumRows(stats, where.queryOrFallback(), params),
+                stats.averageSizePerRowInBytes()
+            );
+        };
     }
 
     public Collect(boolean preferSourceLookup,
-                   AbstractTableRelation relation,
-                   List<Symbol> toCollect,
-                   WhereClause where,
-                   Set<Symbol> usedBeforeNextFetch,
-                   Stats stats,
-                   @Nullable Row params) {
-        this(
-            preferSourceLookup,
-            relation,
-            generateOutputs(toCollect, relation, usedBeforeNextFetch, where),
-            where,
-            SelectivityFunctions.estimateNumRows(stats, where.queryOrFallback(), params),
-            stats.averageSizePerRowInBytes()
-        );
-    }
-
-    public Collect(boolean preferSourceLookup,
-                   AbstractTableRelation relation,
+                   AbstractTableRelation<?> relation,
                    List<Symbol> outputs,
                    WhereClause where,
                    long numExpectedRows,
@@ -140,6 +112,9 @@ public class Collect implements LogicalPlan {
         this.baseTables = List.of(relation);
         this.numExpectedRows = numExpectedRows;
         this.estimatedRowSize = estimatedRowSize;
+        if (where.hasQuery() && !(relation instanceof DocTableRelation)) {
+            NoPredicateVisitor.ensureNoMatchPredicate(where.query());
+        }
         if (where.hasVersions()) {
             throw VersioninigValidationException.versionInvalidUsage();
         } else if (where.hasSeqNoAndPrimaryTerm()) {
@@ -148,51 +123,6 @@ public class Collect implements LogicalPlan {
         this.relation = relation;
         this.where = where;
         this.tableInfo = relation.tableInfo();
-    }
-
-    private static List<Symbol> generateOutputs(List<Symbol> toCollect,
-                                                AbstractTableRelation tableRelation,
-                                                Set<Symbol> usedBeforeNextFetch,
-                                                WhereClause where) {
-        if (tableRelation instanceof DocTableRelation) {
-            return generateToCollectWithFetch(((DocTableRelation) tableRelation).tableInfo().ident(), toCollect, usedBeforeNextFetch);
-        } else {
-            if (where.hasQuery()) {
-                NoPredicateVisitor.ensureNoMatchPredicate(where.query());
-            }
-            return toCollect;
-        }
-    }
-
-    private static List<Symbol> generateToCollectWithFetch(RelationName relationName,
-                                                           List<Symbol> toCollect,
-                                                           Set<Symbol> usedColumns) {
-
-        List<Symbol> unusedCols = getUnusedColumns(toCollect, usedColumns);
-
-        ArrayList<Symbol> fetchable = new ArrayList<>();
-        Symbol scoreCol = null;
-        for (Symbol unusedCol : unusedCols) {
-            // _score cannot be fetched because it's a relative value only available during the query phase
-            if (Symbols.containsColumn(unusedCol, DocSysColumns.SCORE)) {
-                scoreCol = unusedCol;
-
-            // literals or functions like random() shouldn't be tracked as fetchable
-            } else if (SymbolVisitors.any(Symbols.IS_COLUMN, unusedCol)) {
-                fetchable.add(unusedCol);
-            }
-        }
-        if (fetchable.isEmpty()) {
-            return toCollect;
-        }
-        Reference fetchIdRef = DocSysColumns.forTable(relationName, DocSysColumns.FETCHID);
-        ArrayList<Symbol> preFetchSymbols = new ArrayList<>(usedColumns.size() + 1);
-        preFetchSymbols.add(fetchIdRef);
-        preFetchSymbols.addAll(usedColumns);
-        if (scoreCol != null) {
-            preFetchSymbols.add(scoreCol);
-        }
-        return preFetchSymbols;
     }
 
     @Override

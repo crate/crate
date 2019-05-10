@@ -36,11 +36,7 @@ import io.crate.planner.PlannerContext;
 import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Set;
-
-import static io.crate.planner.operators.LogicalPlanner.extractColumns;
 
 public final class Filter extends ForwardingLogicalPlan {
 
@@ -54,12 +50,8 @@ public final class Filter extends ForwardingLogicalPlan {
         if (isMatchAll(query)) {
             return sourceBuilder;
         }
-        Set<Symbol> columnsInQuery = extractColumns(query);
-        return (tableStats, hints, usedColumns, params) -> {
-            Set<Symbol> allUsedColumns = new LinkedHashSet<>();
-            allUsedColumns.addAll(columnsInQuery);
-            allUsedColumns.addAll(usedColumns);
-            return new Filter(sourceBuilder.build(tableStats, hints, allUsedColumns, params), query);
+        return (tableStats, hints, params) -> {
+            return new Filter(sourceBuilder.build(tableStats, hints, params), query);
         };
     }
 

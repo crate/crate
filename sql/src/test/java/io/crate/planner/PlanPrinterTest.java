@@ -49,43 +49,6 @@ public class PlanPrinterTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void test_explain_for_pk_lookup() {
-        Map<String, Object> output = printPlan("select name from users where id = 1 limit 4");
-        assertThat(
-            output.toString(),
-            allOf(
-                containsString("toCollect"),
-                containsString("shardsByNode"),
-                containsString("projections")
-            )
-        );
-    }
-
-    @Test
-    public void testQueryTheFetch() {
-        Map<String, Object> map = printPlan("select * " +
-                                            "from t1 " +
-                                            "where t1.x > 10 " +
-                                            "order by a " +
-                                            "limit 10");
-        String mapStr = map.toString();
-        assertThat(mapStr, containsString(
-            "{QueryThenFetch={type=executionPlan, subPlan={Collect={type=executionPlan, " +
-               "collectPhase={COLLECT={type=executionPhase, id=0, executionNodes=[n1], " +
-                   "distribution={distributedByColumn=0, type=BROADCAST}, toCollect=Ref{doc.t1._fetchid, bigint}, Ref{doc.t1.a, text}, " +
-                   "projections=[" +
-                       "{type=TopN, limit=10, offset=0, outputs=IC{0, bigint}, IC{1, text}}, " +
-                       "{type=Fetch, outputs=IC{1, text}, " +
-                           "Fetch{IC{0, bigint}, Ref{doc.t1._doc['x'], integer}}, " +
-                           "Fetch{IC{0, bigint}, Ref{doc.t1._doc['i'], integer}}, fetchSize="));
-        // fetchSize depends on machine's heap size
-        assertThat(mapStr, containsString("}], " +
-               "routing={n1={t1=[0, 1, 2, 3]}}, where=Ref{doc.t1.x, integer} > 10, orderBy=Ref{doc.t1.a, text} ASC}}}}, " +
-               "fetchPhase={FETCH={type=executionPhase, id=1, executionNodes=[n1], " +
-                   "fetchRefs=Ref{doc.t1._doc['x'], integer}, Ref{doc.t1._doc['i'], integer}}}}}"));
-    }
-
-    @Test
     public void testGroupBy() {
         Map<String, Object> map = printPlan("select a, max(x) " +
                                             "from t1 " +

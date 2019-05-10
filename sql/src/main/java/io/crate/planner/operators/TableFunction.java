@@ -52,7 +52,7 @@ public final class TableFunction implements LogicalPlan {
     final WhereClause where;
 
     public static Builder create(TableFunctionRelation relation, List<Symbol> toCollect, WhereClause where) {
-        return (tableStats, hints, usedBeforeNextFetch, params) -> new TableFunction(relation, toCollect, where);
+        return (tableStats, hints, params) -> new TableFunction(relation, toCollect, where);
     }
 
     public TableFunction(TableFunctionRelation relation, List<Symbol> toCollect, WhereClause where) {

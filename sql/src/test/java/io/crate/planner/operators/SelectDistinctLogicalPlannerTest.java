@@ -47,7 +47,7 @@ public class SelectDistinctLogicalPlannerTest extends CrateDummyClusterServiceUn
             "select distinct id from users order by id + 10");
         assertThat(logicalPlan, isPlan(e.functions(),
             "RootBoundary[id]\n" +
-            "FetchOrEval[id]\n" +
+            "Eval[id]\n" +
             "OrderBy[(id + 10) ASC]\n" +
             "GroupBy[id | ]\n" +
             "Collect[doc.users | [id, (id + 10)] | true]\n"));
@@ -90,9 +90,8 @@ public class SelectDistinctLogicalPlannerTest extends CrateDummyClusterServiceUn
             "GroupBy[count(id) | ]\n" +
             "GroupBy[name | count(id)]\n" +
             "HashJoin[\n" +
-            "    Boundary[_fetchid, id, department_id]\n" +
-            "    FetchOrEval[_fetchid, id, department_id]\n" +
-            "    Collect[doc.users | [_fetchid, department_id, id] | true]\n" +
+            "    Boundary[id, department_id, name]\n" +
+            "    Collect[doc.users | [id, department_id, name] | true]\n" +
             "    --- INNER ---\n" +
             "    Boundary[id, name]\n" +
             "    Collect[doc.departments | [id, name] | true]\n" +
@@ -110,8 +109,8 @@ public class SelectDistinctLogicalPlannerTest extends CrateDummyClusterServiceUn
             "OrderBy[name ASC]\n" +
             "GroupBy[name | ]\n" +
             "HashJoin[\n" +
-            "    Boundary[_fetchid, department_id]\n" +
-            "    Collect[doc.users | [_fetchid, department_id] | true]\n" +
+            "    Boundary[id, department_id, name]\n" +
+            "    Collect[doc.users | [id, department_id, name] | true]\n" +
             "    --- INNER ---\n" +
             "    Boundary[id, name]\n" +
             "    Collect[doc.departments | [id, name] | true]\n" +

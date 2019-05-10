@@ -24,14 +24,14 @@ package io.crate.planner.optimizer.rule;
 
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.TransactionContext;
-import io.crate.statistics.TableStats;
-import io.crate.planner.operators.FetchOrEval;
+import io.crate.planner.operators.Eval;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
+import io.crate.statistics.TableStats;
 
 import java.util.List;
 
@@ -42,13 +42,13 @@ import static io.crate.planner.optimizer.rule.Util.transpose;
 
 public final class MoveFilterBeneathFetchOrEval implements Rule<Filter> {
 
-    private final Capture<FetchOrEval> fetchOrEvalCapture;
+    private final Capture<Eval> fetchOrEvalCapture;
     private final Pattern<Filter> pattern;
 
     public MoveFilterBeneathFetchOrEval() {
         this.fetchOrEvalCapture = new Capture<>();
         this.pattern = typeOf(Filter.class)
-            .with(source(), typeOf(FetchOrEval.class).capturedAs(fetchOrEvalCapture));
+            .with(source(), typeOf(Eval.class).capturedAs(fetchOrEvalCapture));
     }
 
     @Override
@@ -57,11 +57,8 @@ public final class MoveFilterBeneathFetchOrEval implements Rule<Filter> {
     }
 
     @Override
-    public LogicalPlan apply(Filter plan,
-                             Captures captures,
-                             TableStats tableStats,
-                             TransactionContext txnCtx) {
-        FetchOrEval eval = captures.get(fetchOrEvalCapture);
+    public LogicalPlan apply(Filter plan, Captures captures, TableStats tableStats, TransactionContext txnCtx) {
+        Eval eval = captures.get(fetchOrEvalCapture);
         List<Symbol> outputsOfFetchSource = eval.source().outputs();
         if (outputsOfFetchSource.containsAll(extractColumns(plan.query()))) {
             return transpose(plan, eval);
