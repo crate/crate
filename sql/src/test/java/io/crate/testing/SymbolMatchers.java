@@ -39,7 +39,6 @@ import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 
 import javax.annotation.Nullable;
-import java.util.Collection;
 import java.util.List;
 import java.util.ListIterator;
 
@@ -47,6 +46,7 @@ import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.both;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.instanceOf;
 
 public class SymbolMatchers {
 
@@ -55,21 +55,11 @@ public class SymbolMatchers {
     }
 
     private static Matcher<Symbol> hasDataType(DataType type) {
-        return new FeatureMatcher<Symbol, DataType>(equalTo(type), "valueType", "valueType") {
-            @Override
-            protected DataType featureValueOf(Symbol actual) {
-                return actual.valueType();
-            }
-        };
+        return withFeature(Symbol::valueType, "valueType", equalTo(type));
     }
 
     private static Matcher<Symbol> hasValue(Object expectedValue) {
-        return new FeatureMatcher<Symbol, Object>(equalTo(expectedValue), "value", "value") {
-            @Override
-            protected Object featureValueOf(Symbol actual) {
-                return ((Input) actual).value();
-            }
-        };
+        return withFeature(s -> ((Input) s).value(), "value", equalTo(expectedValue));
     }
 
     public static Matcher<Symbol> isLiteral(Object expectedValue, @Nullable final DataType type) {
@@ -80,13 +70,8 @@ public class SymbolMatchers {
     }
 
     public static Matcher<Symbol> isInputColumn(final Integer index) {
-        return both(Matchers.<Symbol>instanceOf(InputColumn.class)).and(
-            new FeatureMatcher<Symbol, Integer>(equalTo(index), "index", "index") {
-                @Override
-                protected Integer featureValueOf(Symbol actual) {
-                    return ((InputColumn) actual).index();
-                }
-            });
+        return both(Matchers.<Symbol>instanceOf(InputColumn.class))
+            .and(withFeature(s -> ((InputColumn) s).index(), "index", equalTo(index)));
     }
 
     public static Matcher<Symbol> isField(final String expectedName) {
@@ -94,43 +79,23 @@ public class SymbolMatchers {
     }
 
     public static Matcher<Symbol> isField(final String expectedName, @Nullable final DataType dataType) {
-        FeatureMatcher<Symbol, String> fm = new FeatureMatcher<Symbol, String>(equalTo(expectedName), "path", "path") {
-            @Override
-            protected String featureValueOf(Symbol actual) {
-                return ((Field) actual).path().outputName();
-            }
-        };
+        Matcher<Symbol> hasExpectedName = withFeature(s -> ((Field) s).path().outputName(), "name", equalTo(expectedName));
         if (dataType == null) {
-            return fm;
+            return both(Matchers.<Symbol>instanceOf(Field.class)).and(hasExpectedName);
         }
-        return both(fm).and(hasDataType(dataType));
+        return allOf(instanceOf(Field.class), hasExpectedName, hasDataType(dataType));
     }
 
     public static Matcher<Symbol> isFetchRef(int docIdIdx, String ref) {
         return isFetchRef(isInputColumn(docIdIdx), isReference(ref));
     }
 
-    public static Matcher<Symbol> isFetchRef(Matcher<Symbol> docIdMatcher, Matcher<Symbol> refMatcher) {
-
-        FeatureMatcher<Symbol, Symbol> m1 = new FeatureMatcher<Symbol, Symbol>(
-            docIdMatcher, "docId", "docId"
-        ) {
-            @Override
-            protected Symbol featureValueOf(Symbol actual) {
-                return ((FetchReference) actual).fetchId();
-            }
-        };
-
-        FeatureMatcher<Symbol, Symbol> m2 = new FeatureMatcher<Symbol, Symbol>(
-            refMatcher, "ref", "ref"
-        ) {
-            @Override
-            protected Symbol featureValueOf(Symbol actual) {
-                return ((FetchReference) actual).ref();
-            }
-        };
-        return allOf(Matchers.<Symbol>instanceOf(FetchReference.class), m1, m2);
-
+    public static Matcher<Symbol> isFetchRef(Matcher<Symbol> fetchIdMatcher, Matcher<Symbol> refMatcher) {
+        return allOf(
+            Matchers.instanceOf(FetchReference.class),
+            withFeature(s -> ((FetchReference) s).fetchId(), "fetchId", fetchIdMatcher),
+            withFeature(s -> ((FetchReference) s).ref(), "ref", refMatcher)
+        );
     }
 
     public static Matcher<Symbol> isReference(String expectedName) {
@@ -148,7 +113,7 @@ public class SymbolMatchers {
         );
     }
 
-    private static <T> Matcher<Symbol> withFeature(java.util.function.Function<? super Symbol, T> getFeature,
+    private static <T> FeatureMatcher<Symbol, T> withFeature(java.util.function.Function<? super Symbol, T> getFeature,
                                                    String featureName,
                                                    Matcher<T> featureMatcher) {
         return new FeatureMatcher<Symbol, T>(featureMatcher, featureName, featureName) {
@@ -161,12 +126,7 @@ public class SymbolMatchers {
     }
 
     public static Matcher<Symbol> isReference(final String expectedName, @Nullable final DataType dataType) {
-        FeatureMatcher<Symbol, String> fm = new FeatureMatcher<Symbol, String>(equalTo(expectedName), "name", "name") {
-            @Override
-            protected String featureValueOf(Symbol actual) {
-                return ((Reference) actual).column().outputName();
-            }
-        };
+        Matcher<Symbol> fm = withFeature(s -> ((Reference) s).column().outputName(), "name", equalTo(expectedName));
         if (dataType == null) {
             return allOf(Matchers.instanceOf(Reference.class), fm);
         }
@@ -174,26 +134,14 @@ public class SymbolMatchers {
     }
 
     @SafeVarargs
-    public static Matcher<Symbol> isFunction(final String name, Matcher<Symbol>... argMatchers) {
-        FeatureMatcher<Symbol, Collection<Symbol>> ma = new FeatureMatcher<Symbol, Collection<Symbol>>(
-            contains(argMatchers), "args", "args") {
-            @Override
-            protected Collection<Symbol> featureValueOf(Symbol actual) {
-                return ((Function) actual).arguments();
-            }
-        };
-        return both(isFunction(name)).and(ma);
+    public static Matcher<Symbol> isFunction(final String name, Matcher<? super Symbol>... argMatchers) {
+        return both(isFunction(name))
+            .and(withFeature(s -> ((Function) s).arguments(), "args", contains(argMatchers)));
     }
 
     public static Matcher<Symbol> isFunction(String name) {
-        FeatureMatcher<Symbol, String> mn = new FeatureMatcher<Symbol, String>(
-            equalTo(name), "name", "name") {
-            @Override
-            protected String featureValueOf(Symbol actual) {
-                return ((Function) actual).info().ident().name();
-            }
-        };
-        return both(Matchers.<Symbol>instanceOf(Function.class)).and(mn);
+        return both(Matchers.<Symbol>instanceOf(Function.class))
+            .and(withFeature(s -> ((Function) s).info().ident().name(), "name", equalTo(name)));
     }
 
     public static Matcher<Symbol> isFunction(final String name, @Nullable final List<DataType> argumentTypes) {
@@ -212,12 +160,7 @@ public class SymbolMatchers {
     }
 
     public static Matcher<Symbol> isAggregation(String name) {
-        FeatureMatcher<Symbol, String> fm = new FeatureMatcher<Symbol, String>(equalTo(name), "name", "name") {
-            @Override
-            protected String featureValueOf(Symbol actual) {
-                return ((Aggregation) actual).functionIdent().name();
-            }
-        };
-        return both(Matchers.<Symbol>instanceOf(Aggregation.class)).and(fm);
+        return both(Matchers.<Symbol>instanceOf(Aggregation.class))
+            .and(withFeature(s -> ((Aggregation) s).functionIdent().name(), "name", equalTo(name)));
     }
 }
