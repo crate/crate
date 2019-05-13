@@ -135,10 +135,6 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
                 TableDefinitions.PARTED_PKS_TABLE_DEFINITION,
                 new PartitionName(new RelationName("doc", "parted_pks"), singletonList("1395874800000")).asIndexName(),
                 new PartitionName(new RelationName("doc", "parted_pks"), singletonList("1395961200000")).asIndexName())
-            .addTable(
-                "create table doc.ignored_nested (" +
-                "  details object(ignored)" +
-                ")")
             .build();
     }
 

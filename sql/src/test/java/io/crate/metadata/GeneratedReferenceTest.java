@@ -23,23 +23,19 @@
 package io.crate.metadata;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.sql.tree.ColumnPolicy;
-import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.SqlExpressions;
-import io.crate.testing.T3;
 import io.crate.types.StringType;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.List;
-import java.util.Map;
+import java.util.Collections;
 
 import static io.crate.testing.T3.T1_DEFINITION;
 import static io.crate.testing.T3.T1_RN;
@@ -47,17 +43,20 @@ import static org.hamcrest.Matchers.is;
 
 public class GeneratedReferenceTest extends CrateDummyClusterServiceUnitTest {
 
-    private Map<QualifiedName, AnalyzedRelation> sources;
+    SQLExecutor executor;
     private SqlExpressions expressions;
     private DocTableInfo t1Info;
 
     @Before
     public void prepare() throws Exception {
-        sources = T3.sources(List.of(T3.T1_RN), clusterService);
-        t1Info = SQLExecutor.tableInfo(T1_RN, T1_DEFINITION, clusterService);
+        executor = SQLExecutor.builder(clusterService)
+            .addTable(T1_DEFINITION)
+            .build();
+        t1Info = executor.schemas().getTableInfo(T1_RN);
 
-        DocTableRelation tr1 = (DocTableRelation) T3.fromSource(T3.T1_RN, sources);
-        expressions = new SqlExpressions(sources, tr1);
+        DocTableRelation tableRelation = new DocTableRelation(t1Info);
+        tableRelation.getField(new ColumnIdent("a"));   // allocate field so it can be resolved
+        expressions = new SqlExpressions(Collections.emptyMap(), tableRelation);
     }
 
     @Test
@@ -70,7 +69,7 @@ public class GeneratedReferenceTest extends CrateDummyClusterServiceUnitTest {
             StringType.INSTANCE, ColumnPolicy.STRICT, Reference.IndexType.ANALYZED,
             formattedGeneratedExpression, false);
 
-        generatedReferenceInfo.generatedExpression(expressions.normalize(expressions.asSymbol(formattedGeneratedExpression)));
+        generatedReferenceInfo.generatedExpression(expressions.normalize(executor.asSymbol(formattedGeneratedExpression)));
         generatedReferenceInfo.referencedReferences(ImmutableList.of(t1Info.getReference(new ColumnIdent("a"))));
 
         BytesStreamOutput out = new BytesStreamOutput();

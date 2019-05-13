@@ -911,14 +911,14 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
     @Test
     public void testInsertFromValuesWithOnConflictAndNestedColumn() throws Exception {
         SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table doc.nested_clustered (" +
+            .addTable("create table nested_on_conflict (" +
                       "  o object as (c text)," +
                       "  o2 object as (p text)," +
                       "  k integer," +
                       "  primary key (o2['p'])" +
                       ")")
             .build();
-        String insertStatement = "insert into nested_clustered (o, o2) values ({c=1}, {p=1}) on conflict (o2.p) do update set k = 1";
+        String insertStatement = "insert into nested_on_conflict (o, o2) values ({c=1}, {p=1}) on conflict (o2.p) do update set k = 1";
         InsertFromValuesAnalyzedStatement statement = e.analyze(insertStatement);
         assertThat(statement.onDuplicateKeyAssignments().size(), is(1));
         assertThat(statement.onDuplicateKeyAssignmentsColumns().size(), is(1));
