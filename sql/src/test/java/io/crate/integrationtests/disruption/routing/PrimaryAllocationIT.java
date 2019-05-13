@@ -256,7 +256,7 @@ public class PrimaryAllocationIT extends SQLTransportIntegrationTest {
         final int numberOfReplicas = between(2, 3);
         final String oldPrimary = internalCluster().startDataOnlyNode();
         execute("create table t (x string) clustered into 1 shards " +
-                "with (number_of_replicas = " + numberOfReplicas + ")");
+                "with (number_of_replicas = " + numberOfReplicas + ", \"write.wait_for_active_shards\" = 1)");
         final ShardId shardId = new ShardId(clusterService().state().metaData().index(indexName).getIndex(), 0);
         final Set<String> replicaNodes = new HashSet<>(internalCluster().startDataOnlyNodes(numberOfReplicas));
         ensureGreen();
