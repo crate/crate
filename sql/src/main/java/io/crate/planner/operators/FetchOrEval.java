@@ -452,13 +452,20 @@ public class FetchOrEval extends ForwardingLogicalPlan {
                                                  List<Symbol> sourceOutputs,
                                                  Row params,
                                                  SubQueryResults subQueryResults) {
-        PositionalOrderBy orderBy = executionPlan.resultDescription().orderBy();
-        PositionalOrderBy newOrderBy = null;
         SubQueryAndParamBinder binder = new SubQueryAndParamBinder(params, subQueryResults);
         List<Symbol> boundOutputs = Lists2.map(outputs, binder);
-        if (orderBy != null) {
+        PositionalOrderBy orderBy = executionPlan.resultDescription().orderBy();
+        PositionalOrderBy newOrderBy;
+        if (orderBy == null) {
+            newOrderBy = null;
+        } else {
             newOrderBy = orderBy.tryMapToNewOutputs(sourceOutputs, boundOutputs);
             if (newOrderBy == null) {
+                // We've a query like `SELECT x, y FROM t ORDER BY z`
+                //
+                // The previous operator added `z` to the outputs to be able to do a sorted merge;
+                // We couldn't map the PositionalOrderBy to the new outputs (=[x,y]) since they don't contain `z` anymore.
+                // We need to merge to handler *before* we remove `z` from the outputs (which is what the eval here would do)
                 executionPlan = Merge.ensureOnHandler(executionPlan, plannerContext);
             }
         }
