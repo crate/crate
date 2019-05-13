@@ -78,16 +78,16 @@ public class Order extends ForwardingLogicalPlan {
                                @Nullable Integer pageSizeHint,
                                Row params,
                                SubQueryResults subQueryResults) {
-        ExecutionPlan executionPlan = source.build(
+        ExecutionPlan plan = source.build(
             plannerContext, projectionBuilder, limit, offset, orderBy, pageSizeHint, params, subQueryResults);
-        if (executionPlan.resultDescription().orderBy() != null) {
+        if (plan.resultDescription().orderBy() != null) {
             // Collect applied ORDER BY eagerly to produce a optimized execution plan;
             if (source instanceof Collect) {
-                return executionPlan;
+                return plan;
             }
-            // merge to finalize the sorting and apply the order of *this* operator.
-            // This is likely a order by on a virtual table which is sorted as well
-            executionPlan = Merge.ensureOnHandler(executionPlan, plannerContext);
+        }
+        if (plan.resultDescription().hasRemainingLimitOrOffset()) {
+            plan = Merge.ensureOnHandler(plan, plannerContext);
         }
         InputColumns.SourceSymbols ctx = new InputColumns.SourceSymbols(source.outputs());
         ensureOrderByColumnsArePresentInOutputs(source.outputs(), orderBy.orderBySymbols());
@@ -100,13 +100,13 @@ public class Order extends ForwardingLogicalPlan {
             orderBy.nullsFirst()
         );
         PositionalOrderBy positionalOrderBy = PositionalOrderBy.of(orderBy, outputs);
-        executionPlan.addProjection(
+        plan.addProjection(
             topNProjection,
             limit,
             offset,
             positionalOrderBy
         );
-        return executionPlan;
+        return plan;
     }
 
     @Override
