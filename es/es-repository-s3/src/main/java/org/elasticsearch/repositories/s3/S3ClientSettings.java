@@ -32,68 +32,74 @@ import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * A container for settings used to create an S3 client.
  */
 final class S3ClientSettings {
 
-    // prefix for s3 client settings
-    private static final String PREFIX = "s3.client.";
+    private static final String DEFAULT = "default";
+
+    // prefix for s3 default client settings
+    private static final String DEFAULT_PREFIX = "s3.client.default.";
 
     /** The access key (ie login id) for connecting to s3. */
-    static final Setting.AffixSetting<SecureString> ACCESS_KEY_SETTING = Setting.affixKeySetting(PREFIX, "access_key",
-        SecureSetting::insecureString);
+    static final Setting<SecureString> ACCESS_KEY_SETTING = SecureSetting.insecureString(DEFAULT_PREFIX + "access_key");
 
     /** The secret key (ie password) for connecting to s3. */
-    static final Setting.AffixSetting<SecureString> SECRET_KEY_SETTING = Setting.affixKeySetting(PREFIX, "secret_key",
-        SecureSetting::insecureString);
+    static final Setting<SecureString> SECRET_KEY_SETTING = SecureSetting.insecureString(DEFAULT_PREFIX + "secret_key");
 
     /** The secret key (ie password) for connecting to s3. */
-    static final Setting.AffixSetting<SecureString> SESSION_TOKEN_SETTING = Setting.affixKeySetting(PREFIX, "session_token",
-        SecureSetting::insecureString);
+    static final Setting<SecureString> SESSION_TOKEN_SETTING = SecureSetting.insecureString(
+        DEFAULT_PREFIX + "session_token");
 
     /** An override for the s3 endpoint to connect to. */
-    static final Setting.AffixSetting<String> ENDPOINT_SETTING = Setting.affixKeySetting(PREFIX, "endpoint",
-        key -> new Setting<>(key, "", s -> s.toLowerCase(Locale.ROOT), Property.NodeScope));
+    static final Setting<String> ENDPOINT_SETTING = Setting.simpleString(DEFAULT_PREFIX + "endpoint",
+                                                                         s -> s.toLowerCase(Locale.ROOT),
+                                                                         Property.NodeScope);
 
     /** The protocol to use to connect to s3. */
-    static final Setting.AffixSetting<Protocol> PROTOCOL_SETTING = Setting.affixKeySetting(PREFIX, "protocol",
-        key -> new Setting<>(key, "https", s -> Protocol.valueOf(s.toUpperCase(Locale.ROOT)), Property.NodeScope));
+    static final Setting<Protocol> PROTOCOL_SETTING = new Setting<>(DEFAULT_PREFIX + "protocol",
+                                                                    "https",
+                                                                    s -> Protocol.valueOf(s.toUpperCase(Locale.ROOT)),
+                                                                    Property.NodeScope);
 
     /** The host name of a proxy to connect to s3 through. */
-    static final Setting.AffixSetting<String> PROXY_HOST_SETTING = Setting.affixKeySetting(PREFIX, "proxy.host",
-        key -> Setting.simpleString(key, Property.NodeScope));
+    static final Setting<String> PROXY_HOST_SETTING = Setting.simpleString(DEFAULT_PREFIX + "proxy.host",
+                                                                           Property.NodeScope);
 
     /** The port of a proxy to connect to s3 through. */
-    static final Setting.AffixSetting<Integer> PROXY_PORT_SETTING = Setting.affixKeySetting(PREFIX, "proxy.port",
-        key -> Setting.intSetting(key, 80, 0, 1<<16, Property.NodeScope));
+    static final Setting<Integer> PROXY_PORT_SETTING = Setting.intSetting(DEFAULT_PREFIX + "proxy.port",
+                                                                          80,
+                                                                          0,
+                                                                          1<<16,
+                                                                          Property.NodeScope);
 
     /** The username of a proxy to connect to s3 through. */
-    static final Setting.AffixSetting<SecureString> PROXY_USERNAME_SETTING = Setting.affixKeySetting(PREFIX, "proxy.username",
-        SecureSetting::insecureString);
+    static final Setting<SecureString> PROXY_USERNAME_SETTING = SecureSetting.insecureString(
+        DEFAULT_PREFIX + "proxy.username");
 
     /** The password of a proxy to connect to s3 through. */
-    static final Setting.AffixSetting<SecureString> PROXY_PASSWORD_SETTING = Setting.affixKeySetting(PREFIX, "proxy.password",
-        SecureSetting::insecureString);
+    static final Setting<SecureString> PROXY_PASSWORD_SETTING = SecureSetting.insecureString(
+        DEFAULT_PREFIX + "proxy.password");
 
     /** The socket timeout for connecting to s3. */
-    static final Setting.AffixSetting<TimeValue> READ_TIMEOUT_SETTING = Setting.affixKeySetting(PREFIX, "read_timeout",
-        key -> Setting.timeSetting(key, TimeValue.timeValueMillis(ClientConfiguration.DEFAULT_SOCKET_TIMEOUT), Property.NodeScope));
+    static final Setting<TimeValue> READ_TIMEOUT_SETTING = Setting.timeSetting(DEFAULT_PREFIX + "read_timeout",
+                                                                               TimeValue.timeValueMillis(ClientConfiguration.DEFAULT_SOCKET_TIMEOUT),
+                                                                               Property.NodeScope);
 
     /** The number of retries to use when an s3 request fails. */
-    static final Setting.AffixSetting<Integer> MAX_RETRIES_SETTING = Setting.affixKeySetting(PREFIX, "max_retries",
-        key -> Setting.intSetting(key, ClientConfiguration.DEFAULT_RETRY_POLICY.getMaxErrorRetry(), 0, Property.NodeScope));
+    static final Setting<Integer> MAX_RETRIES_SETTING = Setting.intSetting(DEFAULT_PREFIX + "max_retries",
+                                                                           ClientConfiguration.DEFAULT_RETRY_POLICY.getMaxErrorRetry(),
+                                                                           0,
+                                                                           Property.NodeScope);
 
     /** Whether retries should be throttled (ie use backoff). */
-    static final Setting.AffixSetting<Boolean> USE_THROTTLE_RETRIES_SETTING = Setting.affixKeySetting(PREFIX, "use_throttle_retries",
-        key -> Setting.boolSetting(key, ClientConfiguration.DEFAULT_THROTTLE_RETRIES, Property.NodeScope));
-
+    static final Setting<Boolean> USE_THROTTLE_RETRIES_SETTING = Setting.boolSetting(DEFAULT_PREFIX + "use_throttle_retries",
+                                                                                     ClientConfiguration.DEFAULT_THROTTLE_RETRIES,
+                                                                                     Property.NodeScope);
     /** Credentials to authenticate with s3. */
     final AWSCredentials credentials;
 
@@ -126,7 +132,7 @@ final class S3ClientSettings {
     /** Whether the s3 client should use an exponential backoff retry policy. */
     final boolean throttleRetries;
 
-    protected S3ClientSettings(AWSCredentials credentials, String endpoint, Protocol protocol,
+    private S3ClientSettings(AWSCredentials credentials, String endpoint, Protocol protocol,
                              String proxyHost, int proxyPort, String proxyUsername, String proxyPassword,
                              int readTimeoutMillis, int maxRetries, boolean throttleRetries) {
         this.credentials = credentials;
@@ -142,22 +148,11 @@ final class S3ClientSettings {
     }
 
     /**
-     * Load all client settings from the given settings.
+     * Load the default client settings from the given settings.
      *
-     * Note this will always at least return a client named "default".
      */
     static Map<String, S3ClientSettings> load(Settings settings) {
-        final Set<String> clientNames = settings.getGroups(PREFIX).keySet();
-        final Map<String, S3ClientSettings> clients = new HashMap<>();
-        for (final String clientName : clientNames) {
-            clients.put(clientName, getClientSettings(settings, clientName));
-        }
-        if (clients.containsKey("default") == false) {
-            // this won't find any settings under the default client,
-            // but it will pull all the fallback static settings
-            clients.put("default", getClientSettings(settings, "default"));
-        }
-        return Collections.unmodifiableMap(clients);
+        return Map.of(DEFAULT, getClientSettings(settings));
     }
 
     static boolean checkDeprecatedCredentials(Settings repositorySettings) {
@@ -183,10 +178,10 @@ final class S3ClientSettings {
         }
     }
 
-    static AWSCredentials loadCredentials(Settings settings, String clientName) {
-        try (SecureString accessKey = getConfigValue(settings, clientName, ACCESS_KEY_SETTING);
-             SecureString secretKey = getConfigValue(settings, clientName, SECRET_KEY_SETTING);
-             SecureString sessionToken = getConfigValue(settings, clientName, SESSION_TOKEN_SETTING)) {
+    private static AWSCredentials loadCredentials(Settings settings) {
+        try (SecureString accessKey = getConfigValue(settings, ACCESS_KEY_SETTING);
+             SecureString secretKey = getConfigValue(settings, SECRET_KEY_SETTING);
+             SecureString sessionToken = getConfigValue(settings, SESSION_TOKEN_SETTING)) {
             if (accessKey.length() != 0) {
                 if (secretKey.length() != 0) {
                     if (sessionToken.length() != 0) {
@@ -195,14 +190,14 @@ final class S3ClientSettings {
                         return new BasicAWSCredentials(accessKey.toString(), secretKey.toString());
                     }
                 } else {
-                    throw new IllegalArgumentException("Missing secret key for s3 client [" + clientName + "]");
+                    throw new IllegalArgumentException("Missing secret key for s3 client [" + DEFAULT + "]");
                 }
             } else {
                 if (secretKey.length() != 0) {
-                    throw new IllegalArgumentException("Missing access key for s3 client [" + clientName + "]");
+                    throw new IllegalArgumentException("Missing access key for s3 client [" + DEFAULT + "]");
                 }
                 if (sessionToken.length() != 0) {
-                    throw new IllegalArgumentException("Missing access key and secret key for s3 client [" + clientName + "]");
+                    throw new IllegalArgumentException("Missing access key and secret key for s3 client [" + DEFAULT + "]");
                 }
                 return null;
             }
@@ -211,25 +206,25 @@ final class S3ClientSettings {
 
     // pkg private for tests
     /** Parse settings for a single client. */
-    static S3ClientSettings getClientSettings(final Settings settings, final String clientName) {
-        final AWSCredentials credentials = S3ClientSettings.loadCredentials(settings, clientName);
-        return getClientSettings(settings, clientName, credentials);
+    private static S3ClientSettings getClientSettings(final Settings settings) {
+        final AWSCredentials credentials = S3ClientSettings.loadCredentials(settings);
+        return getClientSettings(settings, credentials);
     }
 
-    static S3ClientSettings getClientSettings(final Settings settings, final String clientName, final AWSCredentials credentials) {
-        try (SecureString proxyUsername = getConfigValue(settings, clientName, PROXY_USERNAME_SETTING);
-             SecureString proxyPassword = getConfigValue(settings, clientName, PROXY_PASSWORD_SETTING)) {
+    private static S3ClientSettings getClientSettings(final Settings settings, final AWSCredentials credentials) {
+        try (SecureString proxyUsername = getConfigValue(settings, PROXY_USERNAME_SETTING);
+             SecureString proxyPassword = getConfigValue(settings, PROXY_PASSWORD_SETTING)) {
             return new S3ClientSettings(
                     credentials,
-                    getConfigValue(settings, clientName, ENDPOINT_SETTING),
-                    getConfigValue(settings, clientName, PROTOCOL_SETTING),
-                    getConfigValue(settings, clientName, PROXY_HOST_SETTING),
-                    getConfigValue(settings, clientName, PROXY_PORT_SETTING),
+                    getConfigValue(settings, ENDPOINT_SETTING),
+                    getConfigValue(settings, PROTOCOL_SETTING),
+                    getConfigValue(settings, PROXY_HOST_SETTING),
+                    getConfigValue(settings, PROXY_PORT_SETTING),
                     proxyUsername.toString(),
                     proxyPassword.toString(),
-                    Math.toIntExact(getConfigValue(settings, clientName, READ_TIMEOUT_SETTING).millis()),
-                    getConfigValue(settings, clientName, MAX_RETRIES_SETTING),
-                    getConfigValue(settings, clientName, USE_THROTTLE_RETRIES_SETTING)
+                    Math.toIntExact(getConfigValue(settings, READ_TIMEOUT_SETTING).millis()),
+                    getConfigValue(settings, MAX_RETRIES_SETTING),
+                    getConfigValue(settings, USE_THROTTLE_RETRIES_SETTING)
             );
         }
     }
@@ -237,15 +232,13 @@ final class S3ClientSettings {
     static S3ClientSettings getClientSettings(final RepositoryMetaData metadata, final AWSCredentials credentials) {
         final Settings.Builder builder = Settings.builder();
         for (final String key : metadata.settings().keySet()) {
-            builder.put(PREFIX + "provided" + "." + key, metadata.settings().get(key));
+            builder.put(DEFAULT_PREFIX + key, metadata.settings().get(key));
         }
-        return getClientSettings(builder.build(), "provided", credentials);
+        return getClientSettings(builder.build(), credentials);
     }
 
-    private static <T> T getConfigValue(Settings settings, String clientName,
-                                        Setting.AffixSetting<T> clientSetting) {
-        final Setting<T> concreteSetting = clientSetting.getConcreteSettingForNamespace(clientName);
-        return concreteSetting.get(settings);
+    private static <T> T getConfigValue(Settings settings, Setting<T> clientSetting) {
+        return clientSetting.get(settings);
     }
 
 }
