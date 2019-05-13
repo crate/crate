@@ -24,8 +24,9 @@ package io.crate.test.integration;
 
 import com.google.common.collect.ImmutableSet;
 import org.elasticsearch.Version;
+import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.NodeConnectionsService;
+import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.service.ClusterApplierService;
@@ -51,6 +52,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import static org.elasticsearch.test.ClusterServiceUtils.createClusterStatePublisher;
+import static org.elasticsearch.test.ClusterServiceUtils.createNoOpNodeConnectionsService;
 
 public class CrateDummyClusterServiceUnitTest extends CrateUnitTest {
 
@@ -109,18 +111,7 @@ public class CrateDummyClusterServiceUnitTest extends CrateUnitTest {
             clusterSettings,
             THREAD_POOL
         );
-        clusterService.setNodeConnectionsService(new NodeConnectionsService(Settings.EMPTY, null, null) {
-
-            @Override
-            public void connectToNodes(DiscoveryNodes discoveryNodes, Runnable onCompletion) {
-                onCompletion.run();
-            }
-
-            @Override
-            public void disconnectFromNodesExcept(DiscoveryNodes nodesToKeep) {
-                // skip
-            }
-        });
+        clusterService.setNodeConnectionsService(createNoOpNodeConnectionsService());
         DiscoveryNode discoveryNode = new DiscoveryNode(
             NODE_NAME,
             NODE_ID,
@@ -134,7 +125,8 @@ public class CrateDummyClusterServiceUnitTest extends CrateUnitTest {
             .localNodeId(NODE_ID)
             .masterNodeId(NODE_ID)
             .build();
-        ClusterState clusterState = ClusterState.builder(ClusterState.EMPTY_STATE).nodes(nodes).build();
+        ClusterState clusterState = ClusterState.builder(new ClusterName(this.getClass().getSimpleName()))
+            .nodes(nodes).blocks(ClusterBlocks.EMPTY_CLUSTER_BLOCK).build();
 
         ClusterApplierService clusterApplierService = clusterService.getClusterApplierService();
         clusterApplierService.setInitialState(clusterState);
