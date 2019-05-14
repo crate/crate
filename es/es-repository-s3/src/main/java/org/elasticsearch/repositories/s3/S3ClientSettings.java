@@ -32,13 +32,14 @@ import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
 /**
  * A container for settings used to create an S3 client.
  */
-final class S3ClientSettings {
+public final class S3ClientSettings {
 
     private static final String DEFAULT = "default";
 
@@ -100,6 +101,13 @@ final class S3ClientSettings {
     static final Setting<Boolean> USE_THROTTLE_RETRIES_SETTING = Setting.boolSetting(DEFAULT_PREFIX + "use_throttle_retries",
                                                                                      ClientConfiguration.DEFAULT_THROTTLE_RETRIES,
                                                                                      Property.NodeScope);
+    public static List<Setting> optionalSettings() {
+        return List.of(ENDPOINT_SETTING,
+                       PROTOCOL_SETTING,
+                       MAX_RETRIES_SETTING,
+                       USE_THROTTLE_RETRIES_SETTING);
+    }
+
     /** Credentials to authenticate with s3. */
     final AWSCredentials credentials;
 
