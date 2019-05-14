@@ -71,7 +71,6 @@ public class RepositorySettingsModule extends AbstractModule {
             .put("security.principal", Setting.simpleString("security.principal", Setting.Property.NodeScope))
             .put("path", Setting.simpleString("path", Setting.Property.NodeScope))
             .put("load_defaults", Setting.boolSetting("load_defaults", true, Setting.Property.NodeScope))
-            .put("concurrent_streams", Setting.intSetting("concurrent_streams", 5, Setting.Property.NodeScope))
             .put("compress", Setting.boolSetting("compress", true, Setting.Property.NodeScope))
             // We cannot use a ByteSize setting as it doesn't support NULL and it must be NULL as default to indicate to
             // not override the default behaviour.

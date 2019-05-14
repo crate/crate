@@ -88,6 +88,9 @@ The following settings are removed:
 Breaking Changes
 ----------------
 
+- Removed :ref:`HDFS repository setting<ref-create-repository-types-hdfs>`:
+  ``concurrent_streams`` as it is no longer supported.
+
 - Removed the implicit soft limit of 10000 that was applied for clients using
   ``HTTP``.
 
