@@ -39,8 +39,11 @@ import org.elasticsearch.repositories.fs.FsRepository;
 import org.elasticsearch.repositories.url.URLRepository;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static java.util.Map.entry;
 
@@ -54,11 +57,9 @@ public class RepositorySettingsModule extends AbstractModule {
     private static final String AZURE = "azure";
 
     private static final TypeSettings FS_SETTINGS = new TypeSettings(
-        ImmutableMap.of("location", FsRepository.LOCATION_SETTING),
-        ImmutableMap.of(
-            "compress", FsRepository.COMPRESS_SETTING,
-            "chunk_size", FsRepository.CHUNK_SIZE_SETTING
-        ));
+        groupSettingsByKey(FsRepository.mandatorySettings()),
+        groupSettingsByKey(FsRepository.optionalSettings())
+    );
 
     private static final TypeSettings URL_SETTINGS = new TypeSettings(
         ImmutableMap.of("url", URLRepository.URL_SETTING),
@@ -168,5 +169,9 @@ public class RepositorySettingsModule extends AbstractModule {
         typeSettingsBinder.addBinding(HDFS).toInstance(HDFS_SETTINGS);
         typeSettingsBinder.addBinding(S3).toInstance(S3_SETTINGS);
         typeSettingsBinder.addBinding(AZURE).toInstance(AZURE_SETTINGS);
+    }
+
+    private static Map<String, Setting> groupSettingsByKey(List<Setting> settings) {
+        return settings.stream().collect(Collectors.toMap(Setting::getKey, Function.identity()));
     }
 }
