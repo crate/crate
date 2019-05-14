@@ -116,21 +116,6 @@ public interface LogicalPlan extends Plan {
         return false;
     }
 
-    /**
-     * A mapping from from symbol to symbol.
-     * This is used across relation boundaries to map parent expression to source expression
-     *
-     * Example:
-     * <pre>
-     *     select tt.bb from
-     *          (select t.b + t.b as bb from t) tt
-     *
-     * expressionMapping
-     *      tt.bb -> t.b + t.b
-     * </pre>
-     */
-    Map<Symbol, Symbol> expressionMapping();
-
     List<AbstractTableRelation> baseTables();
 
     List<LogicalPlan> sources();

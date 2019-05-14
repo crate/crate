@@ -22,9 +22,9 @@
 
 package io.crate.planner.optimizer.rule;
 
-import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Field;
+import io.crate.expression.symbol.FieldReplacer;
 import io.crate.planner.operators.LogicalPlan;
-import io.crate.planner.operators.OperatorUtils;
 import io.crate.planner.operators.Order;
 import io.crate.planner.operators.RelationBoundary;
 import io.crate.planner.optimizer.Rule;
@@ -33,7 +33,6 @@ import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
 
 import java.util.List;
-import java.util.function.Function;
 
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 import static io.crate.planner.optimizer.matcher.Patterns.source;
@@ -57,8 +56,7 @@ public final class MoveOrderBeneathBoundary implements Rule<Order> {
     @Override
     public LogicalPlan apply(Order plan, Captures captures) {
         RelationBoundary relationBoundary = captures.get(boundary);
-        Function<Symbol, Symbol> mapper = OperatorUtils.getMapper(relationBoundary.expressionMapping());
-        Order newOrder = new Order(relationBoundary.source(), plan.orderBy().map(mapper));
+        Order newOrder = new Order(relationBoundary.source(), plan.orderBy().map(FieldReplacer.bind(Field::pointer)));
         return relationBoundary.replaceSources(List.of(newOrder));
     }
 }

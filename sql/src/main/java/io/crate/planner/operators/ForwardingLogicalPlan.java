@@ -51,11 +51,6 @@ public abstract class ForwardingLogicalPlan implements LogicalPlan {
     }
 
     @Override
-    public Map<Symbol, Symbol> expressionMapping() {
-        return source.expressionMapping();
-    }
-
-    @Override
     public List<AbstractTableRelation> baseTables() {
         return source.baseTables();
     }

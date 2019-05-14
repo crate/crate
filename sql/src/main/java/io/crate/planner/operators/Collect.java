@@ -284,11 +284,6 @@ public class Collect implements LogicalPlan {
     }
 
     @Override
-    public Map<Symbol, Symbol> expressionMapping() {
-        return Map.of();
-    }
-
-    @Override
     public List<AbstractTableRelation> baseTables() {
         return baseTables;
     }

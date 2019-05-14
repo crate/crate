@@ -64,7 +64,6 @@ public class Union implements LogicalPlan {
     private final List<Symbol> outputs;
     final LogicalPlan lhs;
     final LogicalPlan rhs;
-    private final Map<Symbol, Symbol> expressionMapping;
     private final Map<LogicalPlan, SelectSymbol> dependencies;
 
     static Builder create(UnionSelect union, SubqueryPlanner subqueryPlanner, Functions functions, CoordinatorTxnCtx txnCtx) {
@@ -83,7 +82,6 @@ public class Union implements LogicalPlan {
         this.lhs = lhs;
         this.rhs = rhs;
         this.outputs = outputs;
-        this.expressionMapping = Maps.concat(lhs.expressionMapping(), rhs.expressionMapping());
         this.dependencies = Maps.concat(lhs.dependencies(), rhs.dependencies());
     }
 
@@ -143,11 +141,6 @@ public class Union implements LogicalPlan {
     @Override
     public List<Symbol> outputs() {
         return outputs;
-    }
-
-    @Override
-    public Map<Symbol, Symbol> expressionMapping() {
-        return expressionMapping;
     }
 
     @Override

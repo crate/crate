@@ -208,6 +208,13 @@ public class LogicalPlanner {
         if (isLastFetch) {
             return builder;
         }
+        if (relation instanceof UnionSelect) {
+            // Union already acts as boundary and doesn't require a additional dedicated boundary symbol.
+            // Using a boundary would even break some optimization rules
+            // E.g. Order -> Boundary -> Union; MoveOrderBeneathBoundary would prematurely remap
+            // Fields to point to the left child of the Union.
+            return builder;
+        }
         return RelationBoundary.create(builder, relation);
     }
 
