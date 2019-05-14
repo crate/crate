@@ -59,14 +59,14 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testOrderByOnUnionIsMovedBeneathUnion() {
         LogicalPlan plan = plan("Select name from users union all select text from users order by name");
-        assertThat(plan, isPlan(sqlExecutor.functions(), "Boundary[name]\n" +
-                                                "Union[\n" +
-                                                    "OrderBy[name ASC]\n" +
-                                                    "Collect[doc.users | [name] | All]\n" +
-                                                "---\n" +
-                                                    "OrderBy[text ASC]\n" +
-                                                    "Collect[doc.users | [text] | All]\n" +
-                                                "]\n"));
+        var expectedPlan = "Union[\n" +
+                           "OrderBy[name ASC]\n" +
+                           "Collect[doc.users | [name] | All]\n" +
+                           "---\n" +
+                           "OrderBy[text ASC]\n" +
+                           "Collect[doc.users | [text] | All]\n" +
+                           "]\n";
+        assertThat(plan, isPlan(sqlExecutor.functions(), expectedPlan));
     }
 
     @Test
@@ -76,8 +76,7 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
             "union all " +
             "select text from users " +
             "order by name");
-        assertThat(plan, isPlan(sqlExecutor.functions(), "Boundary[name]\n" +
-                                                         "Union[\n" +
+        assertThat(plan, isPlan(sqlExecutor.functions(), "Union[\n" +
                                                              "Boundary[name]\n" +   // Aliased relation boundary
                                                              "Boundary[name]\n" +
                                                              "Eval[name]\n" +
@@ -109,21 +108,22 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
                                 "inner join t2 on t1.a = t2.b " +
                                 "inner join t1 as t3 on t3.a = t2.b " +
                                 "order by t2.b");
-        assertThat(plan, isPlan(sqlExecutor.functions(), "Eval[a, b, a]\n" +
-                                                         "NestedLoopJoin[\n" +
-                                                         "    NestedLoopJoin[\n" +
-                                                         "        Boundary[b, y, i]\n" +
-                                                         "        OrderBy[b ASC]\n" +
-                                                         "        Collect[doc.t2 | [b, y, i] | All]\n" +
-                                                         "        --- INNER ---\n" +
-                                                         "        Boundary[a, x, i]\n" +
-                                                         "        Collect[doc.t1 | [a, x, i] | All]\n" +
-                                                         "]\n" +
-                                                         "    --- INNER ---\n" +
-                                                         "    Boundary[a, x, i]\n" +
-                                                         "    Boundary[a, x, i]\n" +
-                                                         "    Collect[doc.t1 | [a, x, i] | All]\n" +
-                                                         "]\n"));
+        var expectedPlan = "Eval[a, b, a]\n" +
+                           "NestedLoopJoin[\n" +
+                           "    NestedLoopJoin[\n" +
+                           "        Boundary[b, y, i]\n" +
+                           "        OrderBy[b ASC]\n" +
+                           "        Collect[doc.t2 | [b, y, i] | All]\n" +
+                           "        --- INNER ---\n" +
+                           "        Boundary[a, x, i]\n" +
+                           "        Collect[doc.t1 | [a, x, i] | All]\n" +
+                           "]\n" +
+                           "    --- INNER ---\n" +
+                           "    Boundary[a, x, i]\n" +
+                           "    Boundary[a, x, i]\n" +
+                           "    Collect[doc.t1 | [a, x, i] | All]\n" +
+                           "]\n";
+        assertThat(plan, isPlan(sqlExecutor.functions(), expectedPlan));
     }
 
     @Test
@@ -340,7 +340,6 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
             LogicalPlannerTest.isPlan(sqlExecutor.functions(),
                 "RootBoundary[name]\n" +
                 "Boundary[name]\n" +    // Aliased relation boundary
-                "Boundary[name]\n" +
                 "Union[\n" +
                 "Collect[sys.nodes | [name] | ((name LIKE 'b%') AND (name LIKE 'c%'))]\n" +
                 "---\n" +
