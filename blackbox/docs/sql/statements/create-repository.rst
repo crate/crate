@@ -165,12 +165,6 @@ A repository that stores its snapshot inside an HDFS file-system.
 
   Dynamic config values added to the Hadoop configuration.
 
-**concurrent_streams**
-  | *Type:*    ``integer``
-  | *Default:* ``5``
-
-  The number of concurrent streams to use for backup and restore.
-
 **compress**
   | *Type:*    ``boolean``
   | *Default:* ``true``
