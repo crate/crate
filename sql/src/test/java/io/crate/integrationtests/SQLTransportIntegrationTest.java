@@ -511,12 +511,14 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
             .actionGet(SQLTransportExecutor.REQUEST_TIMEOUT);
         return response;
     }
-
     public SQLResponse execute(String stmt, Object[] args, String node) {
+        return execute(stmt, args, node, SQLTransportExecutor.REQUEST_TIMEOUT);
+    }
+    public SQLResponse execute(String stmt, Object[] args, String node, TimeValue timeout) {
         SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class, node);
         Session session = sqlOperations.createSession(sqlExecutor.getCurrentSchema(), User.CRATE_USER);
         response = SQLTransportExecutor.execute(stmt, args, session)
-            .actionGet(SQLTransportExecutor.REQUEST_TIMEOUT);
+            .actionGet(timeout);
         return response;
     }
 
