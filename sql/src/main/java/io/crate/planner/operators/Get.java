@@ -23,7 +23,6 @@
 package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.QueriedTable;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.where.DocKeys;
@@ -62,9 +61,9 @@ public class Get implements LogicalPlan {
     final long estimatedSizePerRow;
     private final List<Symbol> outputs;
 
-    Get(QueriedTable<DocTableRelation> table, DocKeys docKeys, List<Symbol> outputs, TableStats tableStats) {
+    Get(DocTableRelation table, DocKeys docKeys, List<Symbol> outputs, TableStats tableStats) {
         this.outputs = outputs;
-        this.tableRelation = table.tableRelation();
+        this.tableRelation = table;
         this.docKeys = docKeys;
         this.estimatedSizePerRow = tableStats.estimatedSizePerRow(tableRelation.tableInfo().ident());
     }
