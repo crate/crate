@@ -53,7 +53,7 @@ import java.util.function.Function;
  */
 public class URLRepository extends BlobStoreRepository {
 
-    private static final Logger logger = LogManager.getLogger(URLRepository.class);
+    private static final Logger LOGGER = LogManager.getLogger(URLRepository.class);
 
     public static final String TYPE = "url";
 
@@ -68,6 +68,10 @@ public class URLRepository extends BlobStoreRepository {
     public static final Setting<URL> REPOSITORIES_URL_SETTING =
         new Setting<>("repositories.url.url", (s) -> s.get("repositories.uri.url", "http:"), URLRepository::parseURL,
             Property.NodeScope);
+
+    public static List<Setting> mandatorySettings() {
+        return List.of(URL_SETTING);
+    }
 
     private final List<String> supportedProtocols;
 
@@ -136,7 +140,7 @@ public class URLRepository extends BlobStoreRepository {
                         return url;
                     }
                 } catch (URISyntaxException ex) {
-                    logger.warn("cannot parse the specified url [{}]", url);
+                    LOGGER.warn("cannot parse the specified url [{}]", url);
                     throw new RepositoryException(getMetadata().name(), "cannot parse the specified url [" + url + "]");
                 }
                 // We didn't match white list - try to resolve against path.repo
@@ -144,7 +148,7 @@ public class URLRepository extends BlobStoreRepository {
                 if (normalizedUrl == null) {
                     String logMessage = "The specified url [{}] doesn't start with any repository paths specified by the " +
                         "path.repo setting or by {} setting: [{}] ";
-                    logger.warn(logMessage, url, ALLOWED_URLS_SETTING.getKey(), environment.repoFiles());
+                    LOGGER.warn(logMessage, url, ALLOWED_URLS_SETTING.getKey(), environment.repoFiles());
                     String exceptionMessage = "file url [" + url + "] doesn't match any of the locations specified by path.repo or "
                         + ALLOWED_URLS_SETTING.getKey();
                     throw new RepositoryException(getMetadata().name(), exceptionMessage);

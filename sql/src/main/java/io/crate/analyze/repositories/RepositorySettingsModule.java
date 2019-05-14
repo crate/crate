@@ -62,8 +62,9 @@ public class RepositorySettingsModule extends AbstractModule {
     );
 
     private static final TypeSettings URL_SETTINGS = new TypeSettings(
-        ImmutableMap.of("url", URLRepository.URL_SETTING),
-        Collections.emptyMap());
+        groupSettingsByKey(URLRepository.mandatorySettings()),
+        Map.of()
+    );
 
     private static final TypeSettings HDFS_SETTINGS = new TypeSettings(
         Collections.emptyMap(),
