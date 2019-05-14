@@ -53,7 +53,7 @@ import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class AzureUnicastHostsProviderTest {
+public class AzureSeedHostsProviderTest {
 
     private static final String rgName = "my_resourcegroup";
     private static final String vnetName = "myVnet";
@@ -99,13 +99,13 @@ public class AzureUnicastHostsProviderTest {
 
     @Test
     public void testSingleSubnet() throws IOException, ServiceException {
-        List<String> networkAddresses = AzureUnicastHostsProvider.listIPAddresses(providerClient, rgName, vnetName, "", "vnet",
-            AzureUnicastHostsProvider.HostType.PRIVATE_IP, logger);
+        List<String> networkAddresses = AzureSeedHostsProvider.listIPAddresses(providerClient, rgName, vnetName, "", "vnet",
+                                                                               AzureSeedHostsProvider.HostType.PRIVATE_IP, logger);
         assertEquals(networkAddresses.size(), 1);
         assertEquals(networkAddresses.get(0), "10.0.0.4");
 
-        List<String> networkAddresses2 = AzureUnicastHostsProvider.listIPAddresses(providerClient, rgName, vnetName, "", "vnet",
-            AzureUnicastHostsProvider.HostType.PUBLIC_IP, logger);
+        List<String> networkAddresses2 = AzureSeedHostsProvider.listIPAddresses(providerClient, rgName, vnetName, "", "vnet",
+                                                                                AzureSeedHostsProvider.HostType.PUBLIC_IP, logger);
         assertEquals(networkAddresses2.size(), 0);
     }
 
@@ -146,19 +146,19 @@ public class AzureUnicastHostsProviderTest {
         when(publicIpAddressOperations.get(rgName, "ip_public1")).thenReturn(publicIpAddressGetResponse);
         when(publicIpAddressGetResponse.getPublicIpAddress()).thenReturn(publicIpAddress);
 
-        List<String> networkAddresses = AzureUnicastHostsProvider.listIPAddresses(providerClient, rgName, vnetName, subnetname, "subnet",
-            AzureUnicastHostsProvider.HostType.PRIVATE_IP, logger);
+        List<String> networkAddresses = AzureSeedHostsProvider.listIPAddresses(providerClient, rgName, vnetName, subnetname, "subnet",
+                                                                               AzureSeedHostsProvider.HostType.PRIVATE_IP, logger);
         assertEquals(networkAddresses.size(), 1);
         assertEquals(networkAddresses.get(0), "10.0.0.5");
 
-        List<String> networkAddresses2 = AzureUnicastHostsProvider.listIPAddresses(providerClient, rgName, vnetName, subnetname, "vnet",
-            AzureUnicastHostsProvider.HostType.PRIVATE_IP, logger);
+        List<String> networkAddresses2 = AzureSeedHostsProvider.listIPAddresses(providerClient, rgName, vnetName, subnetname, "vnet",
+                                                                                AzureSeedHostsProvider.HostType.PRIVATE_IP, logger);
         assertEquals(networkAddresses2.size(), 2);
         assertEquals(networkAddresses2.contains("10.0.0.5"), true);
         assertEquals(networkAddresses2.contains("10.0.0.4"), true);
 
-        List<String> networkAddresses3 = AzureUnicastHostsProvider.listIPAddresses(providerClient, rgName, vnetName, subnetname, "vnet",
-            AzureUnicastHostsProvider.HostType.PUBLIC_IP, logger);
+        List<String> networkAddresses3 = AzureSeedHostsProvider.listIPAddresses(providerClient, rgName, vnetName, subnetname, "vnet",
+                                                                                AzureSeedHostsProvider.HostType.PUBLIC_IP, logger);
         assertEquals(networkAddresses3.size(), 1);
         assertEquals(networkAddresses3.contains("33.33.33.33"), true);
         assertEquals(networkAddresses3.contains("10.0.0.5"), false);
