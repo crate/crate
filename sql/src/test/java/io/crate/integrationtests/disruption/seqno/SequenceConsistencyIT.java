@@ -22,21 +22,15 @@
 
 package io.crate.integrationtests.disruption.seqno;
 
-import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.integrationtests.disruption.discovery.AbstractDisruptionTestCase;
 import io.crate.metadata.IndexParts;
 import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.coordination.Coordinator;
-import org.elasticsearch.cluster.coordination.FollowersChecker;
-import org.elasticsearch.cluster.coordination.JoinHelper;
-import org.elasticsearch.cluster.coordination.LeaderChecker;
 import org.elasticsearch.cluster.routing.ShardRouting;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.elasticsearch.test.disruption.NetworkDisruption;
 import org.elasticsearch.test.transport.MockTransportService;
-import org.elasticsearch.transport.TransportSettings;
 import org.junit.Test;
 
 import java.util.Collection;
@@ -48,20 +42,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 
 @ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST, numDataNodes = 0)
-public class SequenceConsistencyIT extends SQLTransportIntegrationTest {
-
-    static final Settings DEFAULT_SETTINGS = Settings.builder()
-        .put(LeaderChecker.LEADER_CHECK_TIMEOUT_SETTING.getKey(), "1s") // for hitting simulated network failures quickly
-        .put(LeaderChecker.LEADER_CHECK_RETRY_COUNT_SETTING.getKey(), 1) // for hitting simulated network failures quickly
-        .put(FollowersChecker.FOLLOWER_CHECK_TIMEOUT_SETTING.getKey(), "1s") // for hitting simulated network failures quickly
-        .put(FollowersChecker.FOLLOWER_CHECK_RETRY_COUNT_SETTING.getKey(), 1) // for hitting simulated network failures quickly
-        .put(JoinHelper.JOIN_TIMEOUT_SETTING.getKey(), "10s") // still long to induce failures but not too long so test won't time out
-        .put(Coordinator.PUBLISH_TIMEOUT_SETTING.getKey(), "1s") // <-- for hitting simulated network failures quickly
-        .put(TransportSettings.CONNECT_TIMEOUT.getKey(), "10s") // Network delay disruption waits for the min between this
-        // value and the time of disruption and does not recover immediately
-        // when disruption is stop. We should make sure we recover faster
-        // then the default of 30s, causing ensureGreen and friends to time out
-        .build();
+public class SequenceConsistencyIT extends AbstractDisruptionTestCase {
 
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {
@@ -143,8 +124,8 @@ public class SequenceConsistencyIT extends SQLTransportIntegrationTest {
         long finalSequenceNumber = (long) response.rows()[0][1];
         long finalPrimaryTerm = (long) response.rows()[0][2];
 
-        assertThat(finalValue, equalTo("value set on master the second time"));
         assertThat("We executed 2 updates on the new primary", finalSequenceNumber, is(2L));
         assertThat("Primary promotion should've triggered a bump in primary term", finalPrimaryTerm, equalTo(2L));
+        assertThat(finalValue, equalTo("value set on master the second time"));
     }
 }
