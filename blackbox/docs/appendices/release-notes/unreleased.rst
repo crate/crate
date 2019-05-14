@@ -66,6 +66,12 @@ Renamed Settings
 
  - Renamed ``discovery.zen.ping.unicast.hosts`` to ``discovery.seed_hosts``.
 
+   .. NOTE::
+
+      Apart from the rename, only a single port value on each entry is
+      allowed. Defining a port range as it was allowed but ignored in previous
+      versions will be rejected.
+
  - Renamed ``discovery.zen.hosts_provider`` to ``discovery.seed_providers``.
 
 Removed Settings
