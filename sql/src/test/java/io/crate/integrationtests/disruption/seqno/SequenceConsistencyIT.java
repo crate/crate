@@ -61,7 +61,7 @@ public class SequenceConsistencyIT extends AbstractDisruptionTestCase {
         logger.info("wait for all nodes to join the cluster");
         ensureGreen();
 
-        execute("create table registers (id int, value string) CLUSTERED INTO 1 shards " +
+        execute("create table registers (id int primary key, value string) CLUSTERED INTO 1 shards " +
                 "with (number_of_replicas = 1, \"unassigned.node_left.delayed_timeout\" = '5s')");
         execute("insert into registers values (1, 'initial value')");
         refresh();
@@ -119,7 +119,7 @@ public class SequenceConsistencyIT extends AbstractDisruptionTestCase {
         logger.info("wait for cluster to get into a green state");
         ensureGreen();
 
-        execute("select value, _seq_no, _primary_term from registers where id = 1");
+        execute("select value, _seq_no, _primary_term from registers where id = 1", null, masterNodeName);
         String finalValue = (String) response.rows()[0][0];
         long finalSequenceNumber = (long) response.rows()[0][1];
         long finalPrimaryTerm = (long) response.rows()[0][2];
