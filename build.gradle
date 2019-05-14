@@ -48,7 +48,7 @@ allprojects {
         outputs.upToDateWhen { false }
 
         minHeapSize = "1024m"
-        maxHeapSize = "4096m"
+        maxHeapSize = "1024m"
 
         // allow to set the number of test forks from the CLI
         if (project.hasProperty('testForks')) {
