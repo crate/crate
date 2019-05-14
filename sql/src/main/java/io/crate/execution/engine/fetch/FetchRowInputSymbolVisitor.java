@@ -28,11 +28,11 @@ import io.crate.expression.BaseImplementationSymbolVisitor;
 import io.crate.expression.symbol.FetchReference;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.InputColumn;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.TransactionContext;
 import io.crate.planner.node.fetch.FetchSource;
 
 import java.util.Map;
@@ -197,7 +197,8 @@ public class FetchRowInputSymbolVisitor extends BaseImplementationSymbolVisitor<
 
     @Override
     public Input<?> visitField(Field field, Context context) {
-        return context.allocateInput(field.index());
+        throw new UnsupportedOperationException(
+            "Encountered " + field + " but Fields should have been changed to InputColumns already");
     }
 
     @Override
@@ -208,6 +209,5 @@ public class FetchRowInputSymbolVisitor extends BaseImplementationSymbolVisitor<
         assert fetchReference.ref().granularity() == RowGranularity.PARTITION :
             "fetchReference.ref().granularity() must be " + RowGranularity.PARTITION;
         return context.allocatePartitionedInput(fetchReference);
-
     }
 }

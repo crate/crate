@@ -70,6 +70,10 @@ public class Field extends Symbol {
         this.pointer = pointer;
     }
 
+    public Symbol pointer() {
+        return pointer;
+    }
+
     public Path path() {
         return path;
     }
@@ -130,14 +134,5 @@ public class Field extends Symbol {
         result = 31 * result + path.hashCode();
         result = 31 * result + pointer.hashCode();
         return result;
-    }
-
-    /**
-     * @return the position of the field in its relation
-     */
-    public int index() {
-        int idx = relation.fields().indexOf(this);
-        assert idx >= 0 : "idx must be >= 0";
-        return idx;
     }
 }

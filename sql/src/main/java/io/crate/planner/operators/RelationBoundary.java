@@ -59,10 +59,12 @@ public class RelationBoundary extends ForwardingLogicalPlan {
         return (tableStats, usedBeforeNextFetch) -> {
             HashMap<Symbol, Symbol> expressionMapping = new HashMap<>();
             HashMap<Symbol, Symbol> reverseMapping = new HashMap<>();
-            for (Field field : relation.fields()) {
-                Symbol value = field.relation().outputs().get(field.index());
-                expressionMapping.put(field, value);
-                reverseMapping.put(value, field);
+            List<Field> fields = relation.fields();
+            for (int i = 0; i < fields.size(); i++) {
+                Field field = fields.get(i);
+                Symbol outputAtSamePosition = relation.outputs().get(i);
+                expressionMapping.put(field, outputAtSamePosition);
+                reverseMapping.put(outputAtSamePosition, field);
             }
             Function<Symbol, Symbol> mapper = OperatorUtils.getMapper(expressionMapping);
             HashSet<Symbol> mappedUsedColumns = new LinkedHashSet<>();
