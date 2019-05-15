@@ -22,8 +22,8 @@
 
 package io.crate.analyze.repositories;
 
-import com.amazonaws.Protocol;
 import com.google.common.collect.ImmutableMap;
+import io.crate.common.collections.Maps;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.GenericProperty;
@@ -34,13 +34,16 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.monitor.jvm.JvmInfo;
 import org.elasticsearch.repositories.fs.FsRepository;
+import org.elasticsearch.repositories.s3.S3ClientSettings;
+import org.elasticsearch.repositories.s3.S3Repository;
 import org.elasticsearch.repositories.url.URLRepository;
 
 import java.util.Collections;
-import java.util.Locale;
+import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static java.util.Map.entry;
 
@@ -54,15 +57,14 @@ public class RepositorySettingsModule extends AbstractModule {
     private static final String AZURE = "azure";
 
     private static final TypeSettings FS_SETTINGS = new TypeSettings(
-        ImmutableMap.of("location", FsRepository.LOCATION_SETTING),
-        ImmutableMap.of(
-            "compress", FsRepository.COMPRESS_SETTING,
-            "chunk_size", FsRepository.CHUNK_SIZE_SETTING
-        ));
+        groupSettingsByKey(FsRepository.mandatorySettings()),
+        groupSettingsByKey(FsRepository.optionalSettings())
+    );
 
     private static final TypeSettings URL_SETTINGS = new TypeSettings(
-        ImmutableMap.of("url", URLRepository.URL_SETTING),
-        Collections.emptyMap());
+        groupSettingsByKey(URLRepository.mandatorySettings()),
+        Map.of()
+    );
 
     private static final TypeSettings HDFS_SETTINGS = new TypeSettings(
         Collections.emptyMap(),
@@ -93,42 +95,13 @@ public class RepositorySettingsModule extends AbstractModule {
         }
     };
 
-    /**
-     * Default is to use 100MB (S3 defaults) for heaps above 2GB and 5% of
-     * the available memory for smaller heaps.
-     */
-    private static final ByteSizeValue S3_DEFAULT_BUFFER_SIZE = new ByteSizeValue(
-        Math.max(
-            ByteSizeUnit.MB.toBytes(5), // minimum value
-            Math.min(
-                ByteSizeUnit.MB.toBytes(100),
-                JvmInfo.jvmInfo().getMem().getHeapMax().getBytes() / 20)),
-        ByteSizeUnit.BYTES);
-
-
     private static final TypeSettings S3_SETTINGS = new TypeSettings(
-        Collections.emptyMap(),
-        ImmutableMap.<String, Setting>builder()
-            .put("base_path", Setting.simpleString("base_path"))
-            .put("bucket", Setting.simpleString("bucket"))
-            .put("client", Setting.simpleString("client"))
-            .put("buffer_size", Setting.byteSizeSetting("buffer_size", S3_DEFAULT_BUFFER_SIZE,
-                new ByteSizeValue(5, ByteSizeUnit.MB), new ByteSizeValue(5, ByteSizeUnit.GB)))
-            .put("canned_acl", Setting.simpleString("canned_acl"))
-            .put("chunk_size", Setting.byteSizeSetting("chunk_size", new ByteSizeValue(1, ByteSizeUnit.GB),
-                new ByteSizeValue(5, ByteSizeUnit.MB), new ByteSizeValue(5, ByteSizeUnit.TB)))
-            .put("compress", Setting.boolSetting("compress", true)) // TODO: ES defaults to false!
-            .put("server_side_encryption",
-                Setting.boolSetting("server_side_encryption", false))
+        Map.of(),
+        Maps.concat(
+            groupSettingsByKey(S3Repository.optionalSettings()),
             // client related settings
-            .put("access_key", SecureSetting.insecureString("access_key"))
-            .put("secret_key", SecureSetting.insecureString("secret_key"))
-            .put("endpoint", Setting.simpleString("endpoint")
-            )
-            .put("protocol", new Setting<>("protocol", "https", s -> Protocol.valueOf(s.toUpperCase(Locale.ROOT))))
-            .put("max_retries", Setting.intSetting("max_retries", 3))
-            .put("use_throttle_retries", Setting.boolSetting("use_throttle_retries", true))
-            .build());
+            groupSettingsByKey(renameSettingsUsingSuffixAsKey(S3ClientSettings.optionalSettings()))
+        ));
 
     private static final TypeSettings AZURE_SETTINGS = new TypeSettings(
         Collections.emptyMap(),
@@ -168,5 +141,29 @@ public class RepositorySettingsModule extends AbstractModule {
         typeSettingsBinder.addBinding(HDFS).toInstance(HDFS_SETTINGS);
         typeSettingsBinder.addBinding(S3).toInstance(S3_SETTINGS);
         typeSettingsBinder.addBinding(AZURE).toInstance(AZURE_SETTINGS);
+    }
+
+    private static Map<String, Setting> groupSettingsByKey(List<Setting> settings) {
+        return settings.stream().collect(Collectors.toMap(Setting::getKey, Function.identity()));
+    }
+
+    /**
+     * Copy and rename {@link Setting}s.
+     * For each Setting, a new Setting is created
+     * with it's key suffix acting as the new key
+     *
+     * eg. From Setting: s3.client.default.endpoint
+     * a new Setting will be created with same characteristics
+     * and new key name: endpoint
+     */
+    private static List<Setting> renameSettingsUsingSuffixAsKey(List<Setting> settings) {
+        return settings
+            .stream()
+            .map(s -> s.copyAndRename(k -> getSuffixOrInput((String) k)))
+            .collect(Collectors.toList());
+    }
+
+    private static String getSuffixOrInput(String str) {
+        return str.substring(str.lastIndexOf('.') + 1);
     }
 }

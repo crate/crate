@@ -38,6 +38,7 @@ import org.elasticsearch.monitor.jvm.JvmInfo;
 import org.elasticsearch.repositories.RepositoryException;
 import org.elasticsearch.repositories.blobstore.BlobStoreRepository;
 
+import java.util.List;
 import java.util.function.Function;
 
 /**
@@ -53,7 +54,7 @@ import java.util.function.Function;
  * <dt>{@code compress}</dt><dd>If set to true metadata files will be stored compressed. Defaults to false.</dd>
  * </dl>
  */
-class S3Repository extends BlobStoreRepository {
+public class S3Repository extends BlobStoreRepository {
 
     private static final Logger LOGGER = LogManager.getLogger(S3Repository.class);
     private static final DeprecationLogger DEPRECATION_LOGGER = new DeprecationLogger(LOGGER);
@@ -142,6 +143,19 @@ class S3Repository extends BlobStoreRepository {
      * Specifies the path within bucket to repository data. Defaults to root directory.
      */
     static final Setting<String> BASE_PATH_SETTING = Setting.simpleString("base_path");
+
+    public static List<Setting> optionalSettings() {
+        return List.of(ACCESS_KEY_SETTING,
+                       SECRET_KEY_SETTING,
+                       BASE_PATH_SETTING,
+                       BUCKET_SETTING,
+                       CLIENT_NAME,
+                       BUFFER_SIZE_SETTING,
+                       CANNED_ACL_SETTING,
+                       CHUNK_SIZE_SETTING,
+                       COMPRESS_SETTING,
+                       SERVER_SIDE_ENCRYPTION_SETTING);
+    }
 
     private final S3Service service;
 

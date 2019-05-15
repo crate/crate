@@ -56,6 +56,7 @@ import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -997,6 +998,16 @@ public class Setting<T> implements ToXContentObject {
             logSettingUpdate(Setting.this, current, previous, logger);
             consumer.accept(value);
         }
+    }
+
+    public Setting<T> copyAndRename(UnaryOperator<String> keyOperator) {
+        assert (isGroupSetting() == false) : "Can only be applied to concrete settings";
+        return new Setting<>(new SimpleKey(keyOperator.apply(getKey())),
+                             fallbackSetting,
+                             defaultValue,
+                             parser,
+                             validator,
+                             properties.toArray(new Property[0]));
     }
 
     public static Setting<Version> versionSetting(final String key, final Version defaultValue, Property... properties) {
