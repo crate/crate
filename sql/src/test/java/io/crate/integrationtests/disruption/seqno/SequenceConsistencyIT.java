@@ -22,6 +22,7 @@
 
 package io.crate.integrationtests.disruption.seqno;
 
+import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.integrationtests.disruption.discovery.AbstractDisruptionTestCase;
 import io.crate.metadata.IndexParts;
 import org.elasticsearch.ElasticsearchTimeoutException;
@@ -42,6 +43,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 
 @ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST, numDataNodes = 0)
+@SQLTransportIntegrationTest.Slow
 public class SequenceConsistencyIT extends AbstractDisruptionTestCase {
 
     @Override

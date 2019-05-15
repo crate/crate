@@ -45,6 +45,7 @@ import org.elasticsearch.test.disruption.NetworkDisruption.TwoPartitions;
 import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.elasticsearch.test.transport.MockTransportService;
 import org.junit.Before;
+import org.junit.Test;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -60,6 +61,7 @@ import static org.hamcrest.Matchers.in;
 import static org.hamcrest.Matchers.not;
 
 @ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST, numDataNodes = 0)
+@SQLTransportIntegrationTest.Slow
 public class PrimaryAllocationIT extends SQLTransportIntegrationTest {
 
     private String schema;
@@ -128,6 +130,7 @@ public class PrimaryAllocationIT extends SQLTransportIntegrationTest {
             equalTo(2));
     }
 
+    @Test
     public void testDoNotAllowStaleReplicasToBePromotedToPrimary() throws Exception {
         logger.info("--> starting 3 nodes, 1 master, 2 data");
         String master = internalCluster().startMasterOnlyNode(Settings.EMPTY);
@@ -146,6 +149,7 @@ public class PrimaryAllocationIT extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(2L));
     }
 
+    @Test
     public void testDoNotRemoveAllocationIdOnNodeLeave() throws Exception {
         internalCluster().startMasterOnlyNode(Settings.EMPTY);
         internalCluster().startDataOnlyNode(Settings.EMPTY);
@@ -174,6 +178,7 @@ public class PrimaryAllocationIT extends SQLTransportIntegrationTest {
         ensureGreen();
     }
 
+    @Test
     public void testRemoveAllocationIdOnWriteAfterNodeLeave() throws Exception {
         internalCluster().startMasterOnlyNode(Settings.EMPTY);
         internalCluster().startDataOnlyNode(Settings.EMPTY);
@@ -207,6 +212,7 @@ public class PrimaryAllocationIT extends SQLTransportIntegrationTest {
             .getRoutingTable().index(indexName).allPrimaryShardsUnassigned()));
     }
 
+    @Test
     public void testNotWaitForQuorumCopies() throws Exception {
         logger.info("--> starting 3 nodes");
         List<String> nodes = internalCluster().startNodes(3);
@@ -231,6 +237,7 @@ public class PrimaryAllocationIT extends SQLTransportIntegrationTest {
      * we will force allocate the primary shard to one of those nodes, even if the allocation deciders all return
      * a NO decision to allocate.
      */
+    @Test
     public void testForceAllocatePrimaryOnNoDecision() throws Exception {
         logger.info("--> starting 1 node");
         final String node = internalCluster().startNode();
@@ -251,6 +258,7 @@ public class PrimaryAllocationIT extends SQLTransportIntegrationTest {
      */
     @TestLogging("_root:DEBUG, org.elasticsearch.cluster.routing.allocation:TRACE, org.elasticsearch.cluster.action.shard:TRACE," +
                  "org.elasticsearch.indices.recovery:TRACE, org.elasticsearch.cluster.routing.allocation.allocator:TRACE")
+    @Test
     public void testPrimaryReplicaResyncFailed() throws Exception {
         String master = internalCluster().startMasterOnlyNode(Settings.EMPTY);
         final int numberOfReplicas = between(2, 3);

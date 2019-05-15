@@ -22,6 +22,7 @@
 
 package io.crate.integrationtests.disruption.discovery;
 
+import io.crate.integrationtests.SQLTransportIntegrationTest;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.coordination.JoinHelper;
 import org.elasticsearch.cluster.coordination.PublicationTransportHandler;
@@ -37,6 +38,7 @@ import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.elasticsearch.test.transport.MockTransportService;
 import org.elasticsearch.transport.Transport;
 import org.elasticsearch.transport.TransportService;
+import org.junit.Test;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -50,11 +52,13 @@ import static io.crate.metadata.IndexParts.toIndexName;
  */
 @TestLogging("_root:DEBUG,org.elasticsearch.cluster.service:TRACE")
 @ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST, numDataNodes = 0)
+@SQLTransportIntegrationTest.Slow
 public class DiscoveryDisruptionIT extends AbstractDisruptionTestCase {
 
     /**
      * Test cluster join with issues in cluster state publishing *
      */
+    @Test
     public void testClusterJoinDespiteOfPublishingIssues() throws Exception {
         String masterNode = internalCluster().startMasterOnlyNode();
         String nonMasterNode = internalCluster().startDataOnlyNode();
@@ -107,6 +111,7 @@ public class DiscoveryDisruptionIT extends AbstractDisruptionTestCase {
         internalCluster().stopRandomNonMasterNode();
     }
 
+    @Test
     public void testClusterFormingWithASlowNode() {
 
         SlowClusterStateProcessing disruption = new SlowClusterStateProcessing(random(), 0, 0, 1000, 2000);
@@ -122,6 +127,7 @@ public class DiscoveryDisruptionIT extends AbstractDisruptionTestCase {
         ensureStableCluster(3);
     }
 
+    @Test
     public void testElectMasterWithLatestVersion() throws Exception {
         final Set<String> nodes = new HashSet<>(internalCluster().startNodes(3));
         ensureStableCluster(3);
@@ -175,6 +181,7 @@ public class DiscoveryDisruptionIT extends AbstractDisruptionTestCase {
      * sure that the node is removed form the cluster, that the node start pinging and that
      * the cluster reforms when healed.
      */
+    @Test
     public void testNodeNotReachableFromMaster() throws Exception {
         startCluster(3);
 

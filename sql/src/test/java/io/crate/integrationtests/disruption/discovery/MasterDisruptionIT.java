@@ -22,6 +22,7 @@
 
 package io.crate.integrationtests.disruption.discovery;
 
+import io.crate.integrationtests.SQLTransportIntegrationTest;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.coordination.NoMasterBlockService;
 import org.elasticsearch.common.settings.Settings;
@@ -32,6 +33,7 @@ import org.elasticsearch.test.disruption.NetworkDisruption;
 import org.elasticsearch.test.disruption.NetworkDisruption.TwoPartitions;
 import org.elasticsearch.test.disruption.SingleNodeDisruption;
 import org.elasticsearch.test.junit.annotations.TestLogging;
+import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -46,11 +48,13 @@ import static org.hamcrest.Matchers.not;
  */
 @TestLogging("_root:DEBUG,org.elasticsearch.cluster.service:TRACE")
 @ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST, numDataNodes = 0)
+@SQLTransportIntegrationTest.Slow
 public class MasterDisruptionIT extends AbstractDisruptionTestCase {
 
     /**
      * Test that cluster recovers from a long GC on master that causes other nodes to elect a new one
      */
+    @Test
     public void testMasterNodeGCs() throws Exception {
         List<String> nodes = startCluster(3);
 
@@ -93,6 +97,7 @@ public class MasterDisruptionIT extends AbstractDisruptionTestCase {
                     + "org.elasticsearch.cluster.service:TRACE,"
                     + "org.elasticsearch.gateway:TRACE,"
                     + "org.elasticsearch.indices.store:TRACE")
+    @Test
     public void testIsolateMasterAndVerifyClusterStateConsensus() throws Exception {
         final List<String> nodes = startCluster(3);
 
@@ -160,6 +165,7 @@ public class MasterDisruptionIT extends AbstractDisruptionTestCase {
     /**
      * Verify that the proper block is applied when nodes lose their master
      */
+    @Test
     public void testVerifyApiBlocksDuringPartition() throws Exception {
         internalCluster().startNodes(3);
 
