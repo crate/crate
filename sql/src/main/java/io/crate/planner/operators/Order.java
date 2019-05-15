@@ -23,13 +23,11 @@
 package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.OrderedTopNProjection;
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
-import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.format.SymbolFormatter;
 import io.crate.planner.ExecutionPlan;
@@ -40,15 +38,13 @@ import io.crate.planner.PositionalOrderBy;
 import javax.annotation.Nullable;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import static io.crate.planner.operators.LogicalPlanner.extractColumns;
 
-public class Order implements LogicalPlan {
+public class Order extends ForwardingLogicalPlan {
 
     final OrderBy orderBy;
-    final LogicalPlan source;
     private final List<Symbol> outputs;
 
     static LogicalPlan.Builder create(LogicalPlan.Builder source, @Nullable OrderBy orderBy) {
@@ -64,7 +60,7 @@ public class Order implements LogicalPlan {
     }
 
     public Order(LogicalPlan source, OrderBy orderBy) {
-        this.source = source;
+        super(source);
         this.outputs = Lists2.concatUnique(source.outputs(), orderBy.orderBySymbols());
         this.orderBy = orderBy;
     }
@@ -82,16 +78,16 @@ public class Order implements LogicalPlan {
                                @Nullable Integer pageSizeHint,
                                Row params,
                                SubQueryResults subQueryResults) {
-        ExecutionPlan executionPlan = source.build(
+        ExecutionPlan plan = source.build(
             plannerContext, projectionBuilder, limit, offset, orderBy, pageSizeHint, params, subQueryResults);
-        if (executionPlan.resultDescription().orderBy() != null) {
+        if (plan.resultDescription().orderBy() != null) {
             // Collect applied ORDER BY eagerly to produce a optimized execution plan;
             if (source instanceof Collect) {
-                return executionPlan;
+                return plan;
             }
-            // merge to finalize the sorting and apply the order of *this* operator.
-            // This is likely a order by on a virtual table which is sorted as well
-            executionPlan = Merge.ensureOnHandler(executionPlan, plannerContext);
+        }
+        if (plan.resultDescription().hasRemainingLimitOrOffset()) {
+            plan = Merge.ensureOnHandler(plan, plannerContext);
         }
         InputColumns.SourceSymbols ctx = new InputColumns.SourceSymbols(source.outputs());
         ensureOrderByColumnsArePresentInOutputs(source.outputs(), orderBy.orderBySymbols());
@@ -104,13 +100,13 @@ public class Order implements LogicalPlan {
             orderBy.nullsFirst()
         );
         PositionalOrderBy positionalOrderBy = PositionalOrderBy.of(orderBy, outputs);
-        executionPlan.addProjection(
+        plan.addProjection(
             topNProjection,
             limit,
             offset,
             positionalOrderBy
         );
-        return executionPlan;
+        return plan;
     }
 
     @Override
@@ -119,42 +115,8 @@ public class Order implements LogicalPlan {
     }
 
     @Override
-    public Map<Symbol, Symbol> expressionMapping() {
-        return source.expressionMapping();
-    }
-
-    @Override
-    public List<AbstractTableRelation> baseTables() {
-        return source.baseTables();
-    }
-
-    @Override
-    public List<LogicalPlan> sources() {
-        return List.of(source);
-    }
-
-    public LogicalPlan source() {
-        return source;
-    }
-
-    @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
         return new Order(Lists2.getOnlyElement(sources), orderBy);
-    }
-
-    @Override
-    public Map<LogicalPlan, SelectSymbol> dependencies() {
-        return source.dependencies();
-    }
-
-    @Override
-    public long numExpectedRows() {
-        return source.numExpectedRows();
-    }
-
-    @Override
-    public long estimatedRowSize() {
-        return source.estimatedRowSize();
     }
 
     private static void ensureOrderByColumnsArePresentInOutputs(List<Symbol> outputs, List<Symbol> orderBySymbols) {

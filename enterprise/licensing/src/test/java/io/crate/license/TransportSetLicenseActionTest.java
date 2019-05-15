@@ -22,7 +22,6 @@
 
 package io.crate.license;
 
-import io.crate.exceptions.LicenseViolationException;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.junit.Test;
@@ -45,7 +44,6 @@ public class TransportSetLicenseActionTest extends CrateUnitTest {
         );
         LicenseKey trialLicenseKey = TrialLicense.createLicenseKey(LicenseKey.VERSION, licenseData);
 
-        expectedException.expect(LicenseViolationException.class);
-        TransportSetLicenseAction.validateTrialLicenseDoNotOverrideExistingLicense(trialLicenseKey, currentMetaData);
+        assertTrue(TransportSetLicenseAction.ignoreNewTrialLicense(trialLicenseKey, currentMetaData));
     }
 }

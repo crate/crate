@@ -1,0 +1,7 @@
+dependencies {
+    implementation project(':es:es-server')
+    implementation "com.microsoft.azure:azure-storage:${versions.azure_storage}"
+    implementation "com.microsoft.azure:azure-keyvault-core:${versions.azure_keyvault}"
+
+    testImplementation project(':es:es-testing')
+}

@@ -29,27 +29,22 @@ import io.crate.expression.symbol.WindowFunction;
 import io.crate.planner.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import io.crate.testing.SqlExpressions;
-import io.crate.testing.T3;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
 import static io.crate.planner.operators.LogicalPlannerTest.isPlan;
 import static io.crate.testing.SymbolMatchers.isField;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.notNullValue;
 
 public class WindowAggTest extends CrateDummyClusterServiceUnitTest {
 
-    private SqlExpressions expressions;
     private SQLExecutor e;
 
     @Before
     public void init() throws Exception {
-        expressions = new SqlExpressions(T3.sources(clusterService));
         e = SQLExecutor.builder(clusterService)
             .addTable("create table t1 (x int, y int)")
             .build();
@@ -120,7 +115,7 @@ public class WindowAggTest extends CrateDummyClusterServiceUnitTest {
     }
 
     private WindowDefinition wd(String expression) {
-        Symbol symbol = expressions.asSymbol(expression);
+        Symbol symbol = e.asSymbol(expression);
         assertThat(symbol, instanceOf(WindowFunction.class));
         return ((WindowFunction) symbol).windowDefinition();
     }

@@ -92,8 +92,6 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
     private final Map<String, SchemaInfo> schemas = new ConcurrentHashMap<>();
     private final Map<String, SchemaInfo> builtInSchemas;
 
-    private final DefaultTemplateService defaultTemplateService;
-
     @Inject
     public Schemas(Map<String, SchemaInfo> builtInSchemas,
                    ClusterService clusterService,
@@ -102,7 +100,6 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         this.docSchemaInfoFactory = docSchemaInfoFactory;
         schemas.putAll(builtInSchemas);
         this.builtInSchemas = builtInSchemas;
-        this.defaultTemplateService = new DefaultTemplateService(clusterService);
     }
 
     public TableInfo resolveTableInfo(QualifiedName ident, Operation operation, SearchPath searchPath) {
@@ -260,7 +257,6 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         if (!event.metaDataChanged()) {
             return;
         }
-        defaultTemplateService.createIfNotExists(event.state());
 
         Set<String> newCurrentSchemas = getNewCurrentSchemas(event.state().metaData());
         synchronized (schemas) {

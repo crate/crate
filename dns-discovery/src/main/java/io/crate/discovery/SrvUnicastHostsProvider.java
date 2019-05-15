@@ -174,7 +174,7 @@ public class SrvUnicastHostsProvider implements AutoCloseable, SeedHostsProvider
                 String hostname = DefaultDnsRecordDecoder.decodeName(content).replaceFirst("\\.$", "");
                 String address = hostname + ":" + port;
                 try {
-                    for (TransportAddress transportAddress : transportService.addressesFromString(address, 1)) {
+                    for (TransportAddress transportAddress : transportService.addressesFromString(address)) {
                         if (logger.isTraceEnabled()) {
                             logger.trace("adding {}, transport_address {}", address, transportAddress);
                         }

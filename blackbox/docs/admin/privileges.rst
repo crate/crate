@@ -40,6 +40,11 @@ user is allowed to execute ``SELECT``, ``SHOW``, ``REFRESH``, ``COPY TO``,
 and ``SET SESSION`` statements, as well as using the available user defined
 functions, on the object for which the privilege applies.
 
+.. NOTE::
+
+   :ref:`SET GLOBAL <ref-set-desc>` privileges cannot be granted because ``SET
+   GLOBAL`` statements can only be issued by the superuser.
+
 ``DML``
 .......
 

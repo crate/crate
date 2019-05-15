@@ -48,6 +48,7 @@ import io.crate.license.CeLicenseModule;
 import io.crate.license.LicenseExtension;
 import io.crate.lucene.ArrayMapperService;
 import io.crate.metadata.DanglingArtifactsService;
+import io.crate.metadata.DefaultTemplateService;
 import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.blob.MetaDataBlobModule;
@@ -152,6 +153,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
             .add(PostgresNetty.class)
             .add(TasksService.class)
             .add(Schemas.class)
+            .add(DefaultTemplateService.class)
             .add(ArrayMapperService.class)
             .add(DanglingArtifactsService.class);
         if (licenseExtension != null) {

@@ -23,29 +23,23 @@
 package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
-import io.crate.expression.symbol.SelectSymbol;
-import io.crate.expression.symbol.Symbol;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
 
 import javax.annotation.Nullable;
 import java.util.List;
-import java.util.Map;
 
 /**
  * An operator with the primary purpose to ensure that the result is on the handler and no longer distributed.
  */
-public class RootRelationBoundary implements LogicalPlan {
-
-    final LogicalPlan source;
+public class RootRelationBoundary extends ForwardingLogicalPlan {
 
     public RootRelationBoundary(LogicalPlan source) {
-        this.source = source;
+        super(source);
     }
 
     @Override
@@ -70,43 +64,8 @@ public class RootRelationBoundary implements LogicalPlan {
     }
 
     @Override
-    public List<Symbol> outputs() {
-        return source.outputs();
-    }
-
-    @Override
-    public Map<Symbol, Symbol> expressionMapping() {
-        return source.expressionMapping();
-    }
-
-    @Override
-    public List<AbstractTableRelation> baseTables() {
-        return source.baseTables();
-    }
-
-    @Override
-    public List<LogicalPlan> sources() {
-        return List.of(source);
-    }
-
-    @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
         return new RootRelationBoundary(Lists2.getOnlyElement(sources));
-    }
-
-    @Override
-    public Map<LogicalPlan, SelectSymbol> dependencies() {
-        return source.dependencies();
-    }
-
-    @Override
-    public long numExpectedRows() {
-        return source.numExpectedRows();
-    }
-
-    @Override
-    public long estimatedRowSize() {
-        return source.estimatedRowSize();
     }
 
     @Override

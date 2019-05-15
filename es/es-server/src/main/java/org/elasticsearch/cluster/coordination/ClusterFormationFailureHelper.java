@@ -163,7 +163,7 @@ public class ClusterFormationFailureHelper {
 
                 return String.format(Locale.ROOT,
                     "master not discovered yet, this node has not previously joined a bootstrapped (v%d+) cluster, and %s: %s",
-                    Version.V_4_0_0.major, bootstrappingDescription, discoveryStateIgnoringQuorum);
+                    ((Version.V_4_0_0.externalId / 1000_000) % 100), bootstrappingDescription, discoveryStateIgnoringQuorum);
             }
 
             assert clusterState.getLastCommittedConfiguration().isEmpty() == false;

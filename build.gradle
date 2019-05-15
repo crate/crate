@@ -195,6 +195,7 @@ def jacocoProjects() {
           'es-testing',
           'es-discovery-ec2',
           'es-repository-s3',
+          'es-repository-azure',
           'es-repository-hdfs',
           'integration-testing',
           'testing'].contains(it.name)
@@ -299,5 +300,5 @@ idea {
 }
 
 wrapper {
-    gradleVersion = '5.3'
+    gradleVersion = '5.4.1'
 }
