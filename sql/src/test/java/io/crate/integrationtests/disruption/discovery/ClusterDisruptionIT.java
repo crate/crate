@@ -23,6 +23,7 @@
 package io.crate.integrationtests.disruption.discovery;
 
 import io.crate.exceptions.DuplicateKeyException;
+import io.crate.integrationtests.SQLTransportIntegrationTest;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.index.CorruptIndexException;
 import org.elasticsearch.ElasticsearchException;
@@ -44,6 +45,7 @@ import org.elasticsearch.test.disruption.NetworkDisruption.Bridge;
 import org.elasticsearch.test.disruption.NetworkDisruption.NetworkLinkDisruptionType;
 import org.elasticsearch.test.disruption.ServiceDisruptionScheme;
 import org.elasticsearch.test.junit.annotations.TestLogging;
+import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -72,6 +74,7 @@ import static org.hamcrest.Matchers.not;
  */
 @TestLogging("_root:DEBUG,org.elasticsearch.cluster.service:TRACE")
 @ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST, numDataNodes = 0)
+@SQLTransportIntegrationTest.Slow
 public class ClusterDisruptionIT extends AbstractDisruptionTestCase {
 
     /**
@@ -84,6 +87,7 @@ public class ClusterDisruptionIT extends AbstractDisruptionTestCase {
                  "org.elasticsearch.discovery:TRACE,org.elasticsearch.action.support.replication:TRACE," +
                  "org.elasticsearch.cluster.service:TRACE,org.elasticsearch.indices.recovery:TRACE," +
                  "org.elasticsearch.indices.cluster:TRACE,org.elasticsearch.index.shard:TRACE")
+    @Test
     public void testAckedIndexing() throws Exception {
         final List<String> nodes = startCluster( 3);
 
@@ -246,6 +250,7 @@ public class ClusterDisruptionIT extends AbstractDisruptionTestCase {
      *  Test that a document which is indexed on the majority side of a partition, is available from the minority side,
      *  once the partition is healed
      */
+    @Test
     public void testRejoinDocumentExistsInAllShardCopies() throws Exception {
         List<String> nodes = startCluster(3);
 
@@ -285,6 +290,7 @@ public class ClusterDisruptionIT extends AbstractDisruptionTestCase {
     }
 
     // simulate handling of sending shard failure during an isolation
+    @Test
     public void testSendingShardFailure() throws Exception {
         List<String> nodes = startCluster(3);
         String masterNode = internalCluster().getMasterName();
@@ -352,6 +358,7 @@ public class ClusterDisruptionIT extends AbstractDisruptionTestCase {
         }
     }
 
+    @Test
     public void testRestartNodeWhileIndexing() throws Exception {
         startCluster(3);
         String index = toIndexName(sqlExecutor.getCurrentSchema(), "t", null);

@@ -34,6 +34,11 @@ repositories {
     mavenCentral()
 }
 
+boolean runSlowTests = System.getProperty("tests.crate.slow")
+if (runSlowTests) {
+    println "Configured to run the crate slow tests as well, grab yourself a coffee"
+}
+
 allprojects {
     apply plugin: 'jacoco'
 

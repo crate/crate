@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.randomizedtesting.RandomizedContext;
 import com.carrotsearch.randomizedtesting.annotations.Listeners;
+import com.carrotsearch.randomizedtesting.annotations.TestGroup;
 import com.carrotsearch.randomizedtesting.generators.RandomStrings;
 import com.google.common.collect.Multimap;
 import io.crate.action.sql.Option;
@@ -112,6 +113,10 @@ import org.junit.rules.Timeout;
 
 import java.io.IOException;
 import java.lang.annotation.Annotation;
+import java.lang.annotation.Documented;
+import java.lang.annotation.Inherited;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
@@ -144,6 +149,18 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
     protected static SessionSettings DUMMY_SESSION_INFO = new SessionSettings(
         "dummyUser",
         SearchPath.createSearchPathFrom("dummySchema"));
+
+    /**
+     * Annotation for tests that are slow. Slow tests do not run by default but can be
+     * enabled.
+     */
+    @Documented
+    @Inherited
+    @Retention(RetentionPolicy.RUNTIME)
+    @TestGroup(enabled = false, sysProperty = RUN_SLOW_TESTS_PROP)
+    public @interface Slow {}
+
+    public static final String RUN_SLOW_TESTS_PROP = "tests.crate.slow";
 
     @Rule
     public Timeout globalTimeout = new Timeout(5, TimeUnit.MINUTES);
