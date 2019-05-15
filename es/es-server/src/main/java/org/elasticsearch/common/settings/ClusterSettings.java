@@ -365,7 +365,6 @@ public final class ClusterSettings extends AbstractScopedSettings {
                     PluginsService.MANDATORY_SETTING,
                     BootstrapSettings.MEMORY_LOCK_SETTING,
                     BootstrapSettings.CTRLHANDLER_SETTING,
-                    KeyStoreWrapper.SEED_SETTING,
                     IndexingMemoryController.INDEX_BUFFER_SIZE_SETTING,
                     IndexingMemoryController.MIN_INDEX_BUFFER_SIZE_SETTING,
                     IndexingMemoryController.MAX_INDEX_BUFFER_SIZE_SETTING,
