@@ -291,6 +291,11 @@ Changes
 Fixes
 =====
 
+- Fixed an issue with the disk watermark sys checks which would incorrectly
+  report all of them as failed if
+  :ref:`cluster.routing.allocation.disk.threshold_enabled
+  <cluster.routing.allocation.disk.threshold_enabled>` was set to false.
+
 - Fixed an issue were a query on a sub-query with ambiguous columns would
   return the same values for all of the ambiguous columns. An example is
   ``SELECT * FROM (SELECT * FROM t1, t2) AS tjoin`` where both ``t1`` and
