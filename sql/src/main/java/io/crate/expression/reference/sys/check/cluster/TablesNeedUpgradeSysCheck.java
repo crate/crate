@@ -99,7 +99,7 @@ public class TablesNeedUpgradeSysCheck extends AbstractSysCheck {
     }
 
     @Override
-    public boolean validate() {
+    public boolean isValid() {
         return tablesNeedUpgrade == null || tablesNeedUpgrade.isEmpty();
     }
 

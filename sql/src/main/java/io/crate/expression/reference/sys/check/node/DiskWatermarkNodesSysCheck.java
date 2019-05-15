@@ -46,7 +46,7 @@ abstract class DiskWatermarkNodesSysCheck extends AbstractSysNodeCheck {
     }
 
     @Override
-    public boolean validate() {
+    public boolean isValid() {
         if (!diskThresholdSettings.isEnabled()) {
             return true;
         }
@@ -55,10 +55,10 @@ abstract class DiskWatermarkNodesSysCheck extends AbstractSysNodeCheck {
             // DiskUsage can be unavailable during cluster start-up
             return true;
         }
-        return validate(leastDiskEstimate.getFreeBytes(), leastDiskEstimate.getTotalBytes());
+        return isValid(leastDiskEstimate.getFreeBytes(), leastDiskEstimate.getTotalBytes());
     }
 
-    protected abstract boolean validate(long free, long total);
+    protected abstract boolean isValid(long free, long total);
 
     static double getFreeDiskAsPercentage(long free, long total) {
         if (total == 0) {

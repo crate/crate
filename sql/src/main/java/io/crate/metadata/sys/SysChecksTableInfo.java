@@ -60,7 +60,7 @@ public class SysChecksTableInfo extends StaticTableInfo {
             .put(SysChecksTableInfo.Columns.SEVERITY,
                 () -> NestableCollectExpression.forFunction((SysCheck r) -> r.severity().value()))
             .put(SysChecksTableInfo.Columns.PASSED,
-                () -> NestableCollectExpression.forFunction(SysCheck::validate))
+                () -> NestableCollectExpression.forFunction(SysCheck::isValid))
             .build();
     }
 

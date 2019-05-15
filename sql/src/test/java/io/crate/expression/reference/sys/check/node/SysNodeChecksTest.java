@@ -131,7 +131,7 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
             .build();
 
         RecoveryAfterTimeSysCheck recoveryAfterNodesCheck = new RecoveryAfterTimeSysCheck(settings);
-        assertThat(recoveryAfterNodesCheck.validate(), is(true));
+        assertThat(recoveryAfterNodesCheck.isValid(), is(true));
     }
 
     @Test
@@ -157,7 +157,7 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
 
         RecoveryAfterTimeSysCheck recoveryAfterNodesCheck = new RecoveryAfterTimeSysCheck(settings);
 
-        assertThat(recoveryAfterNodesCheck.validate(), is(false));
+        assertThat(recoveryAfterNodesCheck.isValid(), is(false));
     }
 
     @Test
@@ -172,8 +172,8 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
         assertThat(low.severity(), is(SysCheck.Severity.HIGH));
 
         // default threshold is: 85% used
-        assertThat(low.validate(15, 100), is(true));
-        assertThat(low.validate(14, 100), is(false));
+        assertThat(low.isValid(15, 100), is(true));
+        assertThat(low.isValid(14, 100), is(false));
     }
 
     @Test
@@ -183,7 +183,7 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
             Settings.builder().put("cluster.routing.allocation.disk.threshold_enabled", false).build(),
             mock(NodeService.class, Answers.RETURNS_MOCKS)
         );
-        assertThat(check.validate(), is(true));
+        assertThat(check.isValid(), is(true));
     }
 
     @Test
@@ -198,8 +198,8 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
         assertThat(high.severity(), is(SysCheck.Severity.HIGH));
 
         // default threshold is: 90% used
-        assertThat(high.validate(10, 100), is(true));
-        assertThat(high.validate(9, 100), is(false));
+        assertThat(high.isValid(10, 100), is(true));
+        assertThat(high.isValid(9, 100), is(false));
     }
 
     @Test
@@ -214,7 +214,7 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
         assertThat(floodStage.severity(), is(SysCheck.Severity.HIGH));
 
         // default threshold is: 95% used
-        assertThat(floodStage.validate(5, 100), is(true));
-        assertThat(floodStage.validate(4, 100), is(false));
+        assertThat(floodStage.isValid(5, 100), is(true));
+        assertThat(floodStage.isValid(4, 100), is(false));
     }
 }

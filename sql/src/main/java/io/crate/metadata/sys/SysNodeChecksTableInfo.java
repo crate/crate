@@ -72,7 +72,7 @@ public class SysNodeChecksTableInfo extends StaticTableInfo {
             .put(SysNodeChecksTableInfo.Columns.SEVERITY,
                 () -> NestableCollectExpression.forFunction((SysNodeCheck x) -> x.severity().value()))
             .put(SysNodeChecksTableInfo.Columns.PASSED,
-                () -> NestableCollectExpression.forFunction(SysNodeCheck::validate))
+                () -> NestableCollectExpression.forFunction(SysNodeCheck::isValid))
             .put(SysNodeChecksTableInfo.Columns.ACKNOWLEDGED,
                 () -> NestableCollectExpression.forFunction(SysNodeCheck::acknowledged))
             .put(DocSysColumns.ID,
