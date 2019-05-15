@@ -201,7 +201,7 @@ public class MockTransport implements Transport, LifecycleComponent {
     }
 
     @Override
-    public TransportAddress[] addressesFromString(String address, int perAddressLimit) {
+    public TransportAddress[] addressesFromString(String address) {
         return new TransportAddress[0];
     }
 
@@ -231,7 +231,7 @@ public class MockTransport implements Transport, LifecycleComponent {
     }
 
     @Override
-    public List<String> getLocalAddresses() {
+    public List<String> getDefaultSeedAddresses() {
         return Collections.emptyList();
     }
 

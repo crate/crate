@@ -52,9 +52,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 
-public class AzureUnicastHostsProvider implements SeedHostsProvider {
+public class AzureSeedHostsProvider implements SeedHostsProvider {
 
-    private static final Logger logger = LogManager.getLogger(AzureUnicastHostsProvider.class);
+    private static final Logger logger = LogManager.getLogger(AzureSeedHostsProvider.class);
 
     public enum HostType {
         PRIVATE_IP("private_ip"),
@@ -88,10 +88,10 @@ public class AzureUnicastHostsProvider implements SeedHostsProvider {
     private final String discoveryMethod;
 
     @Inject
-    public AzureUnicastHostsProvider(Settings settings,
-                                     AzureComputeService azureComputeService,
-                                     TransportService transportService,
-                                     NetworkService networkService) {
+    public AzureSeedHostsProvider(Settings settings,
+                                  AzureComputeService azureComputeService,
+                                  TransportService transportService,
+                                  NetworkService networkService) {
         this.azureComputeService = azureComputeService;
         this.transportService = transportService;
         this.networkService = networkService;
@@ -152,8 +152,7 @@ public class AzureUnicastHostsProvider implements SeedHostsProvider {
                 List<String> ipAddresses = listIPAddresses(client, resourceGroup, networkNameOfCurrentHost.get(AzureConfiguration.VNET),
                     networkNameOfCurrentHost.get(AzureConfiguration.SUBNET), discoveryMethod, hostType, logger);
                 for (String networkAddress : ipAddresses) {
-                    // limit to 1 port per address
-                    for (TransportAddress transportAddress : transportService.addressesFromString(networkAddress, 1)) {
+                    for (TransportAddress transportAddress : transportService.addressesFromString(networkAddress)) {
                         if (logger.isTraceEnabled()) {
                             logger.trace("adding {}, transport_address {}", networkAddress, transportAddress);
                         }

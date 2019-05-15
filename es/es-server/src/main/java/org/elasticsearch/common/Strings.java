@@ -133,6 +133,24 @@ public class Strings {
     }
 
     /**
+     * Trim all occurrences of the supplied leading character from the given String.
+     *
+     * @param str              the String to check
+     * @param leadingCharacter the leading character to be trimmed
+     * @return the trimmed String
+     */
+    public static String trimLeadingCharacter(String str, char leadingCharacter) {
+        if (!hasLength(str)) {
+            return str;
+        }
+        StringBuilder sb = new StringBuilder(str);
+        while (sb.length() > 0 && sb.charAt(0) == leadingCharacter) {
+            sb.deleteCharAt(0);
+        }
+        return sb.toString();
+    }
+
+    /**
      * Check that the given String is neither <code>null</code> nor of length 0.
      * Note: Will return <code>true</code> for a String that purely consists of whitespace.
      *

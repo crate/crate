@@ -23,7 +23,6 @@
 package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.ExecutionPhases;
@@ -49,11 +48,10 @@ import static com.google.common.base.MoreObjects.firstNonNull;
 import static io.crate.analyze.SymbolEvaluator.evaluate;
 import static io.crate.planner.operators.LogicalPlanner.NO_LIMIT;
 
-public class Limit implements LogicalPlan {
+public class Limit extends ForwardingLogicalPlan {
 
     final Symbol limit;
     final Symbol offset;
-    final LogicalPlan source;
 
     static LogicalPlan.Builder create(LogicalPlan.Builder source, @Nullable Symbol limit, @Nullable Symbol offset) {
         if (limit == null && offset == null) {
@@ -67,7 +65,7 @@ public class Limit implements LogicalPlan {
     }
 
     public Limit(LogicalPlan source, Symbol limit, Symbol offset) {
-        this.source = source;
+        super(source);
         this.limit = limit;
         this.offset = offset;
     }
@@ -119,26 +117,6 @@ public class Limit implements LogicalPlan {
     }
 
     @Override
-    public List<Symbol> outputs() {
-        return source.outputs();
-    }
-
-    @Override
-    public Map<Symbol, Symbol> expressionMapping() {
-        return source.expressionMapping();
-    }
-
-    @Override
-    public List<AbstractTableRelation> baseTables() {
-        return source.baseTables();
-    }
-
-    @Override
-    public List<LogicalPlan> sources() {
-        return List.of(source);
-    }
-
-    @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
         return new Limit(Lists2.getOnlyElement(sources), limit, offset);
     }
@@ -154,11 +132,6 @@ public class Limit implements LogicalPlan {
             return DataTypes.LONG.value(((Literal) limit).value());
         }
         return source.numExpectedRows();
-    }
-
-    @Override
-    public long estimatedRowSize() {
-        return source.estimatedRowSize();
     }
 
     @Override

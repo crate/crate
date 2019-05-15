@@ -33,6 +33,7 @@ import org.elasticsearch.common.settings.SecureSetting;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
+import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.monitor.jvm.JvmInfo;
 import org.elasticsearch.repositories.fs.FsRepository;
 import org.elasticsearch.repositories.url.URLRepository;
@@ -41,6 +42,8 @@ import java.util.Collections;
 import java.util.Locale;
 import java.util.Map;
 
+import static java.util.Map.entry;
+
 
 public class RepositorySettingsModule extends AbstractModule {
 
@@ -48,6 +51,7 @@ public class RepositorySettingsModule extends AbstractModule {
     private static final String URL = "url";
     private static final String HDFS = "hdfs";
     private static final String S3 = "s3";
+    private static final String AZURE = "azure";
 
     private static final TypeSettings FS_SETTINGS = new TypeSettings(
         ImmutableMap.of("location", FsRepository.LOCATION_SETTING),
@@ -127,6 +131,33 @@ public class RepositorySettingsModule extends AbstractModule {
             .put("use_throttle_retries", Setting.boolSetting("use_throttle_retries", true))
             .build());
 
+    private static final TypeSettings AZURE_SETTINGS = new TypeSettings(
+        Collections.emptyMap(),
+        Map.ofEntries(
+            // repository settings
+            entry("base_path", Setting.simpleString("base_path")),
+            entry("chunk_size", Setting.byteSizeSetting(
+                "chunk_size",
+                new ByteSizeValue(256, ByteSizeUnit.MB),
+                new ByteSizeValue(1, ByteSizeUnit.BYTES),
+                new ByteSizeValue(256, ByteSizeUnit.MB))
+            ),
+            entry("container", Setting.simpleString("container", "crate-snapshots", Setting.Property.NodeScope)),
+            entry("readonly", Setting.boolSetting("readonly", false, Setting.Property.NodeScope)),
+            entry("compress", Setting.boolSetting("compress", true, Setting.Property.NodeScope)),
+            entry("location_mode", Setting.simpleString("location_mode", "primary_only", Setting.Property.NodeScope)),
+
+            // client related settings
+            entry("account", SecureSetting.insecureString("account")),
+            entry("key", SecureSetting.insecureString("key")),
+            entry("max_retries", Setting.intSetting("max_retries", 3, Setting.Property.NodeScope)),
+            entry("endpoint_suffix", Setting.simpleString("endpoint_suffix", Setting.Property.NodeScope)),
+            entry("timeout", Setting.timeSetting("timeout", TimeValue.timeValueSeconds(30), Setting.Property.NodeScope)),
+            entry("proxy.type", Setting.simpleString("proxy.type", "direct", Setting.Property.NodeScope)),
+            entry("proxy.host", Setting.simpleString("proxy.host", Setting.Property.NodeScope)),
+            entry("proxy.port", Setting.intSetting("proxy.port", 0, 0, 65535, Setting.Property.NodeScope)))
+    );
+
     @Override
     protected void configure() {
         MapBinder<String, TypeSettings> typeSettingsBinder = MapBinder.newMapBinder(
@@ -137,5 +168,6 @@ public class RepositorySettingsModule extends AbstractModule {
         typeSettingsBinder.addBinding(URL).toInstance(URL_SETTINGS);
         typeSettingsBinder.addBinding(HDFS).toInstance(HDFS_SETTINGS);
         typeSettingsBinder.addBinding(S3).toInstance(S3_SETTINGS);
+        typeSettingsBinder.addBinding(AZURE).toInstance(AZURE_SETTINGS);
     }
 }

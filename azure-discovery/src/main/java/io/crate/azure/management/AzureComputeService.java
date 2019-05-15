@@ -23,7 +23,7 @@ import com.microsoft.azure.management.compute.ComputeManagementClient;
 import com.microsoft.azure.management.network.NetworkResourceProviderClient;
 import com.microsoft.windowsazure.Configuration;
 import io.crate.azure.AzureConfiguration;
-import io.crate.azure.discovery.AzureUnicastHostsProvider;
+import io.crate.azure.discovery.AzureSeedHostsProvider;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.unit.TimeValue;
@@ -53,7 +53,7 @@ public interface AzureComputeService extends LifecycleComponent {
         public static final Setting<TimeValue> REFRESH = Setting.timeSetting(
             "discovery.azure.refresh_interval", TimeValue.timeValueSeconds(5L), Setting.Property.NodeScope);
         public static final Setting<String> HOST_TYPE = new Setting<>(
-            "discovery.azure.host.type", s -> AzureUnicastHostsProvider.HostType.PRIVATE_IP.name(),
+            "discovery.azure.host.type", s -> AzureSeedHostsProvider.HostType.PRIVATE_IP.name(),
             Function.identity(), Setting.Property.NodeScope);
         public static final Setting<String> DISCOVERY_METHOD = new Setting<>(
             "discovery.azure.method", s -> AzureConfiguration.VNET, Function.identity(), Setting.Property.NodeScope);

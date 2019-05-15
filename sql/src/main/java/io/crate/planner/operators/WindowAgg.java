@@ -24,7 +24,6 @@ package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WindowDefinition;
-import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.exceptions.UnsupportedFeatureException;
@@ -34,7 +33,6 @@ import io.crate.execution.dsl.projection.WindowAggProjection;
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.pipeline.TopN;
-import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.WindowFunction;
 import io.crate.planner.ExecutionPlan;
@@ -57,12 +55,11 @@ import java.util.UUID;
 import static io.crate.execution.dsl.phases.ExecutionPhases.executesOnHandler;
 import static io.crate.planner.operators.LogicalPlanner.extractColumns;
 
-public class WindowAgg implements LogicalPlan {
+public class WindowAgg extends ForwardingLogicalPlan {
 
     final WindowDefinition windowDefinition;
     private final List<WindowFunction> windowFunctions;
     private final List<Symbol> standalone;
-    final LogicalPlan source;
     private final List<Symbol> outputs;
 
     static LogicalPlan.Builder create(LogicalPlan.Builder source, List<WindowFunction> windowFunctions) {
@@ -107,7 +104,7 @@ public class WindowAgg implements LogicalPlan {
     }
 
     private WindowAgg(LogicalPlan source, WindowDefinition windowDefinition, List<WindowFunction> windowFunctions, List<Symbol> standalone) {
-        this.source = source;
+        super(source);
         this.outputs = Lists2.concat(standalone, windowFunctions);
         this.windowDefinition = windowDefinition;
         this.windowFunctions = windowFunctions;
@@ -216,38 +213,8 @@ public class WindowAgg implements LogicalPlan {
     }
 
     @Override
-    public Map<Symbol, Symbol> expressionMapping() {
-        return source.expressionMapping();
-    }
-
-    @Override
-    public List<AbstractTableRelation> baseTables() {
-        return source.baseTables();
-    }
-
-    @Override
-    public List<LogicalPlan> sources() {
-        return List.of(source);
-    }
-
-    @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
         return new WindowAgg(Lists2.getOnlyElement(sources), windowDefinition, windowFunctions, standalone);
-    }
-
-    @Override
-    public Map<LogicalPlan, SelectSymbol> dependencies() {
-        return source.dependencies();
-    }
-
-    @Override
-    public long numExpectedRows() {
-        return source.numExpectedRows();
-    }
-
-    @Override
-    public long estimatedRowSize() {
-        return source.estimatedRowSize();
     }
 
     @Override

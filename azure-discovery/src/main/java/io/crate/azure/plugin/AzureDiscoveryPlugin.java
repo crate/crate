@@ -23,7 +23,7 @@
 package io.crate.azure.plugin;
 
 import io.crate.azure.AzureConfiguration;
-import io.crate.azure.discovery.AzureUnicastHostsProvider;
+import io.crate.azure.discovery.AzureSeedHostsProvider;
 import io.crate.azure.management.AzureComputeService;
 import io.crate.azure.management.AzureComputeServiceImpl;
 import org.apache.logging.log4j.LogManager;
@@ -118,10 +118,10 @@ public class AzureDiscoveryPlugin extends Plugin implements DiscoveryPlugin {
             AzureConfiguration.AZURE,
             () -> {
                 if (AzureConfiguration.isDiscoveryReady(settings, logger)) {
-                    return new AzureUnicastHostsProvider(settings,
-                                                         azureComputeService(),
-                                                         transportService,
-                                                         networkService);
+                    return new AzureSeedHostsProvider(settings,
+                                                      azureComputeService(),
+                                                      transportService,
+                                                      networkService);
                 } else {
                     return hostsResolver -> Collections.emptyList();
                 }
