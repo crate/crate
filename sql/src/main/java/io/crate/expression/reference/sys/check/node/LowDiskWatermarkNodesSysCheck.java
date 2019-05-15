@@ -43,7 +43,7 @@ public class LowDiskWatermarkNodesSysCheck extends DiskWatermarkNodesSysCheck {
     }
 
     @Override
-    protected boolean validate(long free, long total) {
+    protected boolean isValid(long free, long total) {
         return !(free < diskThresholdSettings.getFreeBytesThresholdLow().getBytes()
             || getFreeDiskAsPercentage(free, total) < diskThresholdSettings.getFreeDiskThresholdLow());
     }

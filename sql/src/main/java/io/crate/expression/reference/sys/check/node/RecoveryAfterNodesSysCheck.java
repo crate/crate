@@ -47,7 +47,7 @@ public class RecoveryAfterNodesSysCheck extends AbstractSysNodeCheck {
     }
 
     @Override
-    public boolean validate() {
+    public boolean isValid() {
         return validate(
             GatewayService.RECOVER_AFTER_NODES_SETTING.get(settings),
             GatewayService.EXPECTED_NODES_SETTING.get(settings)

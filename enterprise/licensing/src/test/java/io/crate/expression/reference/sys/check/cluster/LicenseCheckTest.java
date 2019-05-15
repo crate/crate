@@ -56,7 +56,7 @@ public class LicenseCheckTest extends CrateDummyClusterServiceUnitTest {
         when(licenseService.currentLicense()).thenReturn(thirtyDaysLicense);
 
         assertThat(licenseCheck.severity(), is(SysCheck.Severity.LOW));
-        assertThat(licenseCheck.validate(), is(true));
+        assertThat(licenseCheck.isValid(), is(true));
         assertThat(licenseCheck.description(), is(
             "Your CrateDB license is valid. Enjoy CrateDB!"));
     }
@@ -69,7 +69,7 @@ public class LicenseCheckTest extends CrateDummyClusterServiceUnitTest {
         when(licenseService.getLicenseState()).thenReturn(LicenseService.LicenseState.VALID);
         when(licenseService.currentLicense()).thenReturn(license);
 
-        assertThat(licenseCheck.validate(), is(false));
+        assertThat(licenseCheck.isValid(), is(false));
         assertThat(licenseCheck.severity(), is(SysCheck.Severity.MEDIUM));
         // Verify the description only partly as the LicenseData.millisToExpiration() can vary
         assertThat(licenseCheck.description(), containsString("Your CrateDB license will expire in"));
@@ -82,7 +82,7 @@ public class LicenseCheckTest extends CrateDummyClusterServiceUnitTest {
         when(licenseService.getLicenseState()).thenReturn(LicenseService.LicenseState.VALID);
         when(licenseService.currentLicense()).thenReturn(license);
 
-        assertThat(licenseCheck.validate(), is(false));
+        assertThat(licenseCheck.isValid(), is(false));
         assertThat(licenseCheck.severity(), is(SysCheck.Severity.HIGH));
         // Verify the description only partly as the LicenseData.millisToExpiration() can vary
         assertThat(licenseCheck.description(), containsString("Your CrateDB license will expire in"));
@@ -95,7 +95,7 @@ public class LicenseCheckTest extends CrateDummyClusterServiceUnitTest {
         when(licenseService.currentLicense()).thenReturn(license);
         when(licenseService.getLicenseState()).thenReturn(LicenseService.LicenseState.MAX_NODES_VIOLATED);
 
-        assertThat(licenseCheck.validate(), is(false));
+        assertThat(licenseCheck.isValid(), is(false));
         assertThat(licenseCheck.severity(), is(SysCheck.Severity.HIGH));
         assertThat(licenseCheck.description(), is(
             "The license is limited to 2 nodes, but there are 1 nodes in the cluster." +
@@ -110,7 +110,7 @@ public class LicenseCheckTest extends CrateDummyClusterServiceUnitTest {
         when(licenseService.getLicenseState()).thenReturn(LicenseService.LicenseState.EXPIRED);
         when(licenseService.currentLicense()).thenReturn(license);
 
-        assertThat(licenseCheck.validate(), is(false));
+        assertThat(licenseCheck.isValid(), is(false));
         assertThat(licenseCheck.severity(), is(SysCheck.Severity.HIGH));
         assertThat(licenseCheck.description(), is(
             "Your CrateDB license has expired. For more information on " +

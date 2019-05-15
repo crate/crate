@@ -49,7 +49,7 @@ public class NumberOfPartitionsSysCheck extends AbstractSysCheck {
     }
 
     @Override
-    public boolean validate() {
+    public boolean isValid() {
         for (SchemaInfo schemaInfo : schemas) {
             if (schemaInfo instanceof DocSchemaInfo && !validateDocTablesPartitioning(schemaInfo)) {
                 return false;
