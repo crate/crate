@@ -177,6 +177,16 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void testLowDiskWatermarkSucceedsIfThresholdCheckIsDisabled() {
+        LowDiskWatermarkNodesSysCheck check = new LowDiskWatermarkNodesSysCheck(
+            clusterService,
+            Settings.builder().put("cluster.routing.allocation.disk.threshold_enabled", false).build(),
+            mock(NodeService.class, Answers.RETURNS_MOCKS.get())
+        );
+        assertThat(check.validate(), is(true));
+    }
+
+    @Test
     public void testValidationHighDiskWatermarkCheck() {
         DiskWatermarkNodesSysCheck high = new HighDiskWatermarkNodesSysCheck(
             clusterService,
