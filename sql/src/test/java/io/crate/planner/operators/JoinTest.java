@@ -393,6 +393,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testSameOutputIsNotDeDuplicated() throws Exception {
+        resetClusterService(); // drop existing tables
         SQLExecutor e = SQLExecutor.builder(clusterService)
             .addTable("create table t1 (x int)")
             .addTable("create table t2 (x int)")

@@ -42,7 +42,6 @@ import io.crate.expression.symbol.FieldReplacer;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.RefReplacer;
-import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.DocReferences;
@@ -107,11 +106,10 @@ import static io.crate.planner.operators.OperatorUtils.getUnusedColumns;
  *                Fetch 500
  * </pre>
  */
-public class FetchOrEval implements LogicalPlan {
+public class FetchOrEval extends ForwardingLogicalPlan {
 
     private final FetchMode fetchMode;
     private final boolean doFetch;
-    final LogicalPlan source;
     private final List<Symbol> outputs;
 
     static LogicalPlan.Builder create(LogicalPlan.Builder sourceBuilder,
@@ -170,14 +168,10 @@ public class FetchOrEval implements LogicalPlan {
     }
 
     public FetchOrEval(LogicalPlan source, List<Symbol> outputs, FetchMode fetchMode, boolean doFetch) {
-        this.source = source;
+        super(source);
         this.outputs = outputs;
         this.fetchMode = fetchMode;
         this.doFetch = doFetch;
-    }
-
-    public LogicalPlan source() {
-        return source;
     }
 
     /**
@@ -258,38 +252,8 @@ public class FetchOrEval implements LogicalPlan {
     }
 
     @Override
-    public Map<Symbol, Symbol> expressionMapping() {
-        return source.expressionMapping();
-    }
-
-    @Override
-    public List<AbstractTableRelation> baseTables() {
-        return source.baseTables();
-    }
-
-    @Override
-    public List<LogicalPlan> sources() {
-        return List.of(source);
-    }
-
-    @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
         return new FetchOrEval(Lists2.getOnlyElement(sources), outputs, fetchMode, doFetch);
-    }
-
-    @Override
-    public Map<LogicalPlan, SelectSymbol> dependencies() {
-        return source.dependencies();
-    }
-
-    @Override
-    public long numExpectedRows() {
-        return source.numExpectedRows();
-    }
-
-    @Override
-    public long estimatedRowSize() {
-        return source.estimatedRowSize();
     }
 
     private ExecutionPlan planWithFetch(PlannerContext plannerContext,
@@ -488,13 +452,20 @@ public class FetchOrEval implements LogicalPlan {
                                                  List<Symbol> sourceOutputs,
                                                  Row params,
                                                  SubQueryResults subQueryResults) {
-        PositionalOrderBy orderBy = executionPlan.resultDescription().orderBy();
-        PositionalOrderBy newOrderBy = null;
         SubQueryAndParamBinder binder = new SubQueryAndParamBinder(params, subQueryResults);
         List<Symbol> boundOutputs = Lists2.map(outputs, binder);
-        if (orderBy != null) {
+        PositionalOrderBy orderBy = executionPlan.resultDescription().orderBy();
+        PositionalOrderBy newOrderBy;
+        if (orderBy == null) {
+            newOrderBy = null;
+        } else {
             newOrderBy = orderBy.tryMapToNewOutputs(sourceOutputs, boundOutputs);
             if (newOrderBy == null) {
+                // We've a query like `SELECT x, y FROM t ORDER BY z`
+                //
+                // The previous operator added `z` to the outputs to be able to do a sorted merge;
+                // We couldn't map the PositionalOrderBy to the new outputs (=[x,y]) since they don't contain `z` anymore.
+                // We need to merge to handler *before* we remove `z` from the outputs (which is what the eval here would do)
                 executionPlan = Merge.ensureOnHandler(executionPlan, plannerContext);
             }
         }

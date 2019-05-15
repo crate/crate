@@ -25,6 +25,8 @@ Synopsis
 
     RESET GLOBAL setting_ident [, ...]
 
+.. _ref-set-desc:
+
 Description
 ===========
 

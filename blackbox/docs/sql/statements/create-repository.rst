@@ -165,12 +165,6 @@ A repository that stores its snapshot inside an HDFS file-system.
 
   Dynamic config values added to the Hadoop configuration.
 
-**concurrent_streams**
-  | *Type:*    ``integer``
-  | *Default:* ``5``
-
-  The number of concurrent streams to use for backup and restore.
-
 **compress**
   | *Type:*    ``boolean``
   | *Default:* ``true``
@@ -309,6 +303,111 @@ A repository that stores its snapshot on the Amazon S3 service.
 
   When the repository creates buckets and objects, the specified canned ACL is
   added.
+
+.. _ref-create-repository-types-azure:
+
+``azure``
+---------
+
+A repository type that stores its snapshots on the Azure Storage service.
+
+.. rubric:: Parameters
+
+**container**
+  | *Type:*    ``text``
+  | *Default:* ``crate-snapshots``
+
+  The Azure Storage container name. You must create the Azure Storage container
+  before creating the repository.
+
+**base_path**
+  | *Type:* ``text``
+
+  The path within the Azure Storage container to repository data.
+
+**chunk_size**
+  | *Type:*    ``bigint`` or ``text``
+  | *Default:* ``256mb``
+  | *Maximum:* ``256mb``
+  | *Minimum:* ``1b``
+
+  Defines the maximum size of a single file that gets created during snapshot
+  creation. The chunk size can be either specified in bytes or using size value
+  notation (e.g. ``128mb``, ``5m``, or ``9k``).
+
+**compress**
+  | *Type:*    ``boolean``
+  | *Default:* ``true``
+
+  When set to true metadata files are stored in compressed format.
+  The actual table data is not compressed.
+
+**readonly**
+  | *Type:*    ``boolean``
+  | *Default:* ``false``
+
+  If set to ``true`` the repository is made read-only.
+
+**location_mode**
+  | *Type:*    ``text``
+  | *Values:*  ``primary_only``, ``secondary_only``
+  | *Default:* ``primary_only``
+
+  The location mode for storing data on the Azure Storage.
+  Note that if you set it to ``secondary_only``, it will force readonly to true.
+
+Azure Client Settings
+.....................
+
+All the setting values are specified via ``azure.client.default.``
+
+**account**
+  | *Type:*    ``text``
+
+  The Azure Storage account name.
+
+**key**
+  | *Type:*    ``text``
+
+  The Azure Storage account secret key.
+
+**endpoint_suffix**
+  | *Type:*    ``text``
+  | *Default:* ``core.windows.net``
+
+  The Azure Storage account endpoint suffix.
+
+**max_retries**
+  | *Type:*    ``integer``
+  | *Default:* ``3``
+
+  The number of retries in case of failures before considering the
+  snapshot to be failed.
+
+**timeout**
+  | *Type:*    ``text``
+  | *Default:* ``30s``
+
+  The initial backoff period. Time to wait before retrying after a first
+  timeout or failure.
+
+**proxy.type**
+  | *Type:*    ``text``
+  | *Values:* ``http``, ``socks``, or ``direct``
+  | *Default:* ``direct``
+
+  The type of the proxy to connect to the Azure Storage account through.
+
+**proxy.host**
+  | *Type:* ``text``
+
+  The host name of a proxy to connect to the Azure Storage account through.
+
+**proxy.port**
+  | *Type:* ``integer``
+  | *Default:* ``0``
+
+  The port of a proxy to connect to the Azure Storage account through.
 
 .. _ref-create-repository-types-url:
 

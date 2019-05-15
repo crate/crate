@@ -23,6 +23,7 @@
 package io.crate.testing;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
 import io.crate.Constants;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.SessionContext;
@@ -41,6 +42,7 @@ import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.SubqueryAnalyzer;
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.FullQualifiedNameFieldProvider;
 import io.crate.analyze.relations.ParentRelations;
 import io.crate.analyze.relations.RelationAnalyzer;
@@ -69,7 +71,6 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.blob.BlobSchemaInfo;
-import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocSchemaInfoFactory;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.DocTableInfoFactory;
@@ -78,6 +79,7 @@ import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.SchemaInfo;
+import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.view.ViewInfoFactory;
 import io.crate.metadata.view.ViewsMetaData;
 import io.crate.planner.Plan;
@@ -235,15 +237,21 @@ public class SQLExecutor {
         private TableStats tableStats = new TableStats();
         private Settings settings = Settings.EMPTY;
         private boolean hasValidLicense = true;
-        private boolean hasBlobTables = false;
+        private Schemas schemas;
 
         private Builder(ClusterService clusterService, int numNodes, Random random) {
-            this.random = random;
             Preconditions.checkArgument(numNodes >= 1, "Must have at least 1 node");
-            addNodesToClusterState(clusterService, numNodes);
+            this.random = random;
             this.clusterService = clusterService;
+            addNodesToClusterState(numNodes);
             schemaInfoByName.put("sys", new SysSchemaInfo());
             schemaInfoByName.put("information_schema", new InformationSchemaInfo());
+            schemaInfoByName.put(
+                BlobSchemaInfo.NAME,
+                new BlobSchemaInfo(
+                    clusterService,
+                    new TestingBlobTableInfoFactory(Collections.emptyMap(), new IndexNameExpressionResolver(Settings.EMPTY), createTempDir())));
+
             functions = getFunctions();
 
             tableInfoFactory = new TestingDocTableInfoFactory(
@@ -251,11 +259,13 @@ public class SQLExecutor {
             testingViewInfoFactory = (ident, state) -> null;
             udfService = new UserDefinedFunctionService(clusterService, functions);
 
-            Schemas schemas = new Schemas(
+            schemas = new Schemas(
                 schemaInfoByName,
                 clusterService,
                 new DocSchemaInfoFactory(tableInfoFactory, testingViewInfoFactory, functions, udfService)
             );
+            schemas.start();  // start listen to cluster state changes
+
             File homeDir = createTempDir();
             Environment environment = new Environment(
                 Settings.builder().put(PATH_HOME_SETTING.getKey(), homeDir.getAbsolutePath()).build(),
@@ -288,10 +298,13 @@ public class SQLExecutor {
                 new BalancedShardsAllocator(Settings.EMPTY),
                 EmptyClusterInfoService.INSTANCE
             );
+
+            publishInitialClusterState();
         }
 
-        private void addNodesToClusterState(ClusterService clusterService, int numNodes) {
-            DiscoveryNodes.Builder builder = DiscoveryNodes.builder(clusterService.state().nodes());
+        private void addNodesToClusterState(int numNodes) {
+            ClusterState prevState = clusterService.state();
+            DiscoveryNodes.Builder builder = DiscoveryNodes.builder(prevState.nodes());
             for (int i = 1; i <= numNodes; i++) {
                 if (builder.get("n" + i) == null) {
                     builder.add(new DiscoveryNode("n" + i, newFakeAddress(), Version.CURRENT));
@@ -301,7 +314,24 @@ public class SQLExecutor {
             builder.masterNodeId("n1");
             ClusterServiceUtils.setState(
                 clusterService,
-                ClusterState.builder(clusterService.state()).nodes(builder).build());
+                ClusterState.builder(prevState).nodes(builder).build());
+        }
+
+        /**
+         * Publish the current {@link ClusterState} so new instances of
+         * {@link org.elasticsearch.cluster.ClusterStateListener} like e.g. {@link Schemas} will consume it and
+         * build current schema/table infos.
+         *
+         * The {@link MetaData#version()} must be increased to trigger a {@link ClusterChangedEvent#metaDataChanged()}.
+         */
+        private void publishInitialClusterState() {
+            ClusterState currentState = clusterService.state();
+            ClusterState newState = ClusterState.builder(currentState)
+                .metaData(MetaData.builder(currentState.metaData())
+                              .version(currentState.metaData().version() + 1)
+                              .build())
+                .build();
+            ClusterServiceUtils.setState(clusterService, newState);
         }
 
         public Builder setSearchPath(String... schemas) {
@@ -367,28 +397,6 @@ public class SQLExecutor {
         }
 
         public SQLExecutor build() {
-            if (hasBlobTables) {
-                schemaInfoByName.put(
-                    BlobSchemaInfo.NAME,
-                    new BlobSchemaInfo(
-                        clusterService,
-                        new TestingBlobTableInfoFactory(Collections.emptyMap(), new IndexNameExpressionResolver(Settings.EMPTY), createTempDir())));
-            }
-
-            for (String schema : searchPath) {
-                schemaInfoByName.put(
-                    schema,
-                    new DocSchemaInfo(schema, clusterService, functions, udfService, testingViewInfoFactory, tableInfoFactory)
-                );
-            }
-            // Can't use the schemas instance from the constructor because
-            // schemaInfoByName can receive new items and Schemas creates a new map internally; so mutations are not visible
-            Schemas schemas = new Schemas(
-                schemaInfoByName,
-                clusterService,
-                new DocSchemaInfoFactory(tableInfoFactory, testingViewInfoFactory, functions, udfService)
-            );
-            schemas.clusterChanged(new ClusterChangedEvent("init", clusterService.state(), ClusterState.EMPTY_STATE));
             RelationAnalyzer relationAnalyzer = new RelationAnalyzer(functions, schemas);
             return new SQLExecutor(
                 functions,
@@ -546,7 +554,6 @@ public class SQLExecutor {
         }
 
         public Builder addBlobTable(String createBlobTableStmt) throws IOException {
-            hasBlobTables = true;
             CreateBlobTable stmt = (CreateBlobTable) SqlParser.createStatement(createBlobTableStmt);
             CreateBlobTableAnalyzedStatement analyzedStmt = createBlobTableAnalyzer.analyze(
                 stmt, ParameterContext.EMPTY);
@@ -668,18 +675,27 @@ public class SQLExecutor {
 
     /**
      * Convert a expression to a symbol
-     *
-     * @param sources The relations which are accessible in the expression.
-     *                Think of this as the FROM clause.
-     *                If tables are used here they must also be registered in the SQLExecutor having used {@link Builder#addTable(String)}
+     * If tables are used here they must also be registered in the SQLExecutor having used {@link Builder#addTable(String)}
      */
-    public Symbol asSymbol(Map<QualifiedName, AnalyzedRelation> sources, String expression) {
+    public Symbol asSymbol(String expression) {
+        ImmutableMap.Builder<QualifiedName, AnalyzedRelation> sources = ImmutableMap.builder();
+        for (SchemaInfo schemaInfo : schemas) {
+            for (TableInfo tableInfo : schemaInfo.getTables()) {
+                if (tableInfo instanceof DocTableInfo) {
+                    RelationName relationName = tableInfo.ident();
+                    sources.put(
+                        new QualifiedName(Arrays.asList(relationName.schema(), relationName.name())),
+                        new DocTableRelation(schemas.getTableInfo(relationName)));
+                }
+            }
+        }
+
         CoordinatorTxnCtx coordinatorTxnCtx = new CoordinatorTxnCtx(sessionContext);
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             functions,
             coordinatorTxnCtx,
             ParamTypeHints.EMPTY,
-            new FullQualifiedNameFieldProvider(sources, ParentRelations.NO_PARENTS, sessionContext.searchPath().currentSchema()),
+            new FullQualifiedNameFieldProvider(sources.build(), ParentRelations.NO_PARENTS, sessionContext.searchPath().currentSchema()),
             new SubqueryAnalyzer(
                 relAnalyzer,
                 new StatementAnalysisContext(ParamTypeHints.EMPTY, Operation.READ, coordinatorTxnCtx)

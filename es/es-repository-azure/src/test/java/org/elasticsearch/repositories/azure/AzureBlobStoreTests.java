@@ -16,15 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+package org.elasticsearch.repositories.azure;
 
-grant {
-  // needed because of problems in ClientConfiguration
-  // TODO: get these fixed in aws sdk
-  permission java.lang.RuntimePermission "accessDeclaredMembers";
-  // NOTE: no tests fail without this, but we know the problem
-  // exists in AWS sdk, and tests here are not thorough
-  permission java.lang.RuntimePermission "getClassLoader";
+import org.elasticsearch.cluster.metadata.RepositoryMetaData;
+import org.elasticsearch.common.blobstore.BlobStore;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.repositories.ESBlobStoreTestCase;
 
-  // ec2 client opens socket connections for discovery
-  permission java.net.SocketPermission "*", "connect";
-};
+public class AzureBlobStoreTests extends ESBlobStoreTestCase {
+
+    @Override
+    protected BlobStore newBlobStore() {
+        RepositoryMetaData repositoryMetaData = new RepositoryMetaData("azure", "ittest", Settings.EMPTY);
+        AzureStorageServiceMock client = new AzureStorageServiceMock();
+        try (AzureBlobStore azureBlobStore = new AzureBlobStore(repositoryMetaData, client)) {
+            return azureBlobStore;
+        }
+    }
+}

@@ -66,6 +66,12 @@ Renamed Settings
 
  - Renamed ``discovery.zen.ping.unicast.hosts`` to ``discovery.seed_hosts``.
 
+   .. NOTE::
+
+      Apart from the rename, only a single port value on each entry is
+      allowed. Defining a port range as it was allowed but ignored in previous
+      versions will be rejected.
+
  - Renamed ``discovery.zen.hosts_provider`` to ``discovery.seed_providers``.
 
 Removed Settings
@@ -81,6 +87,9 @@ The following settings are removed:
 
 Breaking Changes
 ----------------
+
+- Removed :ref:`HDFS repository setting<ref-create-repository-types-hdfs>`:
+  ``concurrent_streams`` as it is no longer supported.
 
 - Removed the implicit soft limit of 10000 that was applied for clients using
   ``HTTP``.
@@ -196,6 +205,9 @@ Deprecations
 
 Changes
 =======
+
+- Added support for the
+  :ref:`Azure Storage repositories <ref-create-repository-types-azure>`.
 
 - Changed the default value of the ``fs`` repository type setting
   ``compress``, to ``true``. See
