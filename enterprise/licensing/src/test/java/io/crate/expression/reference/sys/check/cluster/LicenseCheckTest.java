@@ -22,7 +22,6 @@ import io.crate.expression.reference.sys.check.SysCheck;
 import io.crate.license.LicenseData;
 import io.crate.license.LicenseService;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
 import org.junit.Test;
 
