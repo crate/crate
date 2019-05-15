@@ -33,6 +33,7 @@ import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedView;
+import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.OrderedLimitedRelation;
 import io.crate.analyze.relations.RelationNormalizer;
 import io.crate.analyze.relations.UnionSelect;
@@ -55,8 +56,6 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.table.TableInfo;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
@@ -298,30 +297,31 @@ public class LogicalPlanner {
         }
         if (analyzedRelation instanceof QueriedTable) {
             QueriedTable queriedTable = (QueriedTable) analyzedRelation;
-            TableInfo table = queriedTable.tableRelation().tableInfo();
-            if (table instanceof DocTableInfo) {
+            AbstractTableRelation tableRelation = queriedTable.tableRelation();
+            if (tableRelation instanceof DocTableRelation) {
+                DocTableRelation docTableRelation = (DocTableRelation) tableRelation;
                 EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
-                    functions, RowGranularity.CLUSTER, null, queriedTable.tableRelation());
+                    functions, RowGranularity.CLUSTER, null, docTableRelation);
 
                 WhereClauseOptimizer.DetailedQuery detailedQuery = WhereClauseOptimizer.optimize(
                     normalizer,
                     where.queryOrFallback(),
-                    (DocTableInfo) table,
+                    docTableRelation.tableInfo(),
                     txnCtx
                 );
 
                 Optional<DocKeys> docKeys = detailedQuery.docKeys();
                 if (docKeys.isPresent()) {
                     return (tableStats, usedBeforeNextFetch) ->
-                        new Get(queriedTable, docKeys.get(), toCollect, tableStats);
+                        new Get(docTableRelation, docKeys.get(), toCollect, tableStats);
                 }
-                return Collect.create(queriedTable.tableRelation(), toCollect, new WhereClause(
+                return Collect.create(docTableRelation, toCollect, new WhereClause(
                     detailedQuery.query(),
                     where.partitions(),
                     detailedQuery.clusteredBy()
                 ));
             }
-            return Collect.create(queriedTable.tableRelation(), toCollect, where);
+            return Collect.create(tableRelation, toCollect, where);
         }
         if (analyzedRelation instanceof MultiSourceSelect) {
             return JoinPlanBuilder.createNodes((MultiSourceSelect) analyzedRelation, where, subqueryPlanner, functions, txnCtx);
