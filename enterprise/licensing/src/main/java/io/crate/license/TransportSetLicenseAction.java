@@ -18,7 +18,6 @@
 
 package io.crate.license;
 
-import io.crate.exceptions.LicenseViolationException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
@@ -69,7 +68,9 @@ public class TransportSetLicenseAction extends TransportMasterNodeAction<SetLice
                 @Override
                 public ClusterState execute(ClusterState currentState) throws Exception {
                     MetaData currentMetaData = currentState.metaData();
-                    validateTrialLicenseDoNotOverrideExistingLicense(metaData, currentMetaData);
+                    if (ignoreNewTrialLicense(metaData, currentMetaData)) {
+                        return currentState;
+                    }
                     MetaData.Builder mdBuilder = MetaData.builder(currentMetaData);
                     mdBuilder.putCustom(LicenseKey.WRITEABLE_TYPE, metaData);
                     return ClusterState.builder(currentState).metaData(mdBuilder).build();
@@ -97,14 +98,13 @@ public class TransportSetLicenseAction extends TransportMasterNodeAction<SetLice
         return state.blocks().globalBlockedException(ClusterBlockLevel.METADATA_READ);
     }
 
-    static void validateTrialLicenseDoNotOverrideExistingLicense(LicenseKey newLicenseKey,
-                                                                 MetaData currentMetaData) throws Exception {
+    static boolean ignoreNewTrialLicense(LicenseKey newLicenseKey,
+                                         MetaData currentMetaData) throws Exception {
         LicenseKey previousLicenseKey = currentMetaData.custom(LicenseKey.WRITEABLE_TYPE);
         if (previousLicenseKey != null) {
             License newLicense = decode(newLicenseKey);
-            if (newLicense.type() == License.Type.TRIAL) {
-                throw new LicenseViolationException("Cannot set a trial license if a license already exists");
-            }
+            return newLicense.type() == License.Type.TRIAL;
         }
+        return false;
     }
 }
