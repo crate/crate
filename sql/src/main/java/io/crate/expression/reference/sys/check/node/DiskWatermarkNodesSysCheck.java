@@ -55,7 +55,9 @@ abstract class DiskWatermarkNodesSysCheck extends AbstractSysNodeCheck {
     @Override
     public boolean validate() {
         try {
-            if (!diskThresholdSettings.isEnabled()) return false;
+            if (!diskThresholdSettings.isEnabled()) {
+                return true;
+            }
 
             FsInfo.Path leastAvailablePath = getLeastAvailablePath();
             return validate(
