@@ -59,7 +59,7 @@ public final class CreateViewAnalyzer {
         // on an outdated cluster check, leading to a potential race condition.
         // The "masterOperation" which will update the clusterState will do a real-time verification
 
-        if (query.fields().stream().map(f -> f.path().outputName()).distinct().count() != query.fields().size()) {
+        if (query.fields().stream().map(f -> f.path().sqlFqn()).distinct().count() != query.fields().size()) {
             throw new IllegalArgumentException("Query in CREATE VIEW must not have duplicate column names");
         }
         return new CreateViewStmt(

@@ -28,7 +28,6 @@ import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.Field;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
-import io.crate.metadata.Path;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
@@ -49,30 +48,29 @@ public class DocTableRelation extends AbstractTableRelation<DocTableInfo> {
 
     @Nullable
     @Override
-    public Field getField(Path path) {
+    public Field getField(ColumnIdent path) {
         return getField(path, Operation.READ);
     }
 
     @Override
-    public Field getField(Path path, Operation operation) throws UnsupportedOperationException, ColumnUnknownException {
-        ColumnIdent ci = toColumnIdent(path);
+    public Field getField(ColumnIdent path, Operation operation) throws UnsupportedOperationException, ColumnUnknownException {
         if (operation == Operation.UPDATE) {
-            ensureColumnCanBeUpdated(ci);
+            ensureColumnCanBeUpdated(path);
         }
-        Reference reference = tableInfo.getReference(ci);
+        Reference reference = tableInfo.getReference(path);
         if (reference == null) {
-            reference = tableInfo.indexColumn(ci);
+            reference = tableInfo.indexColumn(path);
             if (reference == null) {
-                DynamicReference dynamic = tableInfo.getDynamic(ci,
+                DynamicReference dynamic = tableInfo.getDynamic(path,
                     operation == Operation.INSERT || operation == Operation.UPDATE);
                 if (dynamic == null) {
                     return null;
                 } else {
-                    return allocate(ci, dynamic);
+                    return allocate(path, dynamic);
                 }
             }
         }
-        return allocate(ci, makeArrayIfContainedInObjectArray(reference));
+        return allocate(path, makeArrayIfContainedInObjectArray(reference));
     }
 
     /**

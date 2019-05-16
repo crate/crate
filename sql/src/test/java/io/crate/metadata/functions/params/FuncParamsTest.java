@@ -29,7 +29,6 @@ import io.crate.expression.symbol.FuncArg;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Path;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -143,7 +142,7 @@ public class FuncParamsTest extends CrateUnitTest {
 
     @Test
     public void testFieldsAreNotCastable() {
-        Path path = new ColumnIdent("test");
+        ColumnIdent path = new ColumnIdent("test");
         Field field = new Field(Mockito.mock(AnalyzedRelation.class), path, new InputColumn(0, DataTypes.INTEGER));
         FuncParams params = FuncParams.builder(Param.LONG).build();
         expectedException.expect(ConversionException.class);

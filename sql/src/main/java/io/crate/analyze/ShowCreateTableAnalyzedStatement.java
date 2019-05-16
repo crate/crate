@@ -27,8 +27,7 @@ import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.OutputName;
-import io.crate.metadata.Path;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
@@ -38,7 +37,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
 
 public class ShowCreateTableAnalyzedStatement implements AnalyzedStatement, AnalyzedRelation {
 
@@ -46,8 +44,8 @@ public class ShowCreateTableAnalyzedStatement implements AnalyzedStatement, Anal
     private final List<Field> fields;
 
     public ShowCreateTableAnalyzedStatement(DocTableInfo tableInfo) {
-        String columnName = String.format(Locale.ENGLISH, "SHOW CREATE TABLE %s", tableInfo.ident().fqn());
-        this.fields = Collections.singletonList(new Field(this, new OutputName(columnName), new InputColumn(0, DataTypes.STRING)));
+        String columnName = "SHOW CREATE TABLE " + tableInfo.ident().fqn();
+        this.fields = Collections.singletonList(new Field(this, new ColumnIdent(columnName), new InputColumn(0, DataTypes.STRING)));
         this.tableInfo = tableInfo;
     }
 
@@ -66,7 +64,7 @@ public class ShowCreateTableAnalyzedStatement implements AnalyzedStatement, Anal
     }
 
     @Override
-    public Field getField(Path path, Operation operation) throws UnsupportedOperationException, ColumnUnknownException {
+    public Field getField(ColumnIdent path, Operation operation) throws UnsupportedOperationException, ColumnUnknownException {
         throw new UnsupportedOperationException("getWritableField() is not supported on ShowCreateTableAnalyzedStatement");
     }
 

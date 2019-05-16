@@ -80,7 +80,7 @@ public final class WhereClauseValidator {
 
         @Override
         public Symbol visitField(Field field, Context context) {
-            validateSysReference(context, field.path().outputName());
+            validateSysReference(context, field.path().sqlFqn());
             return super.visitField(field, context);
         }
 

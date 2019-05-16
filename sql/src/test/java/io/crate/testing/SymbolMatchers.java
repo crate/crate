@@ -79,7 +79,7 @@ public class SymbolMatchers {
     }
 
     public static Matcher<Symbol> isField(final String expectedName, @Nullable final DataType dataType) {
-        var hasExpectedName = withFeature(s -> ((Field) s).path().outputName(), "name", equalTo(expectedName));
+        var hasExpectedName = withFeature(s -> ((Field) s).path().sqlFqn(), "name", equalTo(expectedName));
         if (dataType == null) {
             return both(Matchers.<Symbol>instanceOf(Field.class)).and(hasExpectedName);
         }
@@ -126,7 +126,7 @@ public class SymbolMatchers {
     }
 
     public static Matcher<Symbol> isReference(final String expectedName, @Nullable final DataType dataType) {
-        Matcher<Symbol> fm = withFeature(s -> ((Reference) s).column().outputName(), "name", equalTo(expectedName));
+        Matcher<Symbol> fm = withFeature(s -> ((Reference) s).column().sqlFqn(), "name", equalTo(expectedName));
         if (dataType == null) {
             return allOf(Matchers.instanceOf(Reference.class), fm);
         }

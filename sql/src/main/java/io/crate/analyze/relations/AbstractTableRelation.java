@@ -27,7 +27,6 @@ import io.crate.analyze.WhereClause;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Path;
 import io.crate.metadata.Reference;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.QualifiedName;
@@ -53,7 +52,7 @@ public abstract class AbstractTableRelation<T extends TableInfo> implements Anal
         && ((ArrayType) input.valueType()).innerType().id() == ObjectType.ID;
 
     protected final T tableInfo;
-    private final Map<Path, Reference> allocatedFields = new HashMap<>();
+    private final Map<ColumnIdent, Reference> allocatedFields = new HashMap<>();
     private final List<Symbol> outputSymbols;
     private List<Field> outputs;
     private QualifiedName qualifiedName;
@@ -118,8 +117,8 @@ public abstract class AbstractTableRelation<T extends TableInfo> implements Anal
     }
 
     @Nullable
-    public Field getField(Path path) {
-        Reference reference = tableInfo.getReference(toColumnIdent(path));
+    public Field getField(ColumnIdent path) {
+        Reference reference = tableInfo.getReference(path);
         if (reference == null) {
             return null;
         }
@@ -169,15 +168,7 @@ public abstract class AbstractTableRelation<T extends TableInfo> implements Anal
         return arrayType;
     }
 
-    static ColumnIdent toColumnIdent(Path path) {
-        try {
-            return (ColumnIdent) path;
-        } catch (ClassCastException e) {
-            throw new UnsupportedOperationException("TableRelation requires a ColumnIdent as path to get a field");
-        }
-    }
-
-    protected Field allocate(Path path, Reference reference) {
+    protected Field allocate(ColumnIdent path, Reference reference) {
         allocatedFields.put(path, reference);
         return new Field(this, path, reference);
     }

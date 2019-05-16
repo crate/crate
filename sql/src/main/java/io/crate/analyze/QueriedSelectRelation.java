@@ -28,7 +28,7 @@ import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.FieldReplacer;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.Path;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
 
@@ -49,14 +49,14 @@ public class QueriedSelectRelation implements AnalyzedRelation {
 
     public QueriedSelectRelation(boolean isDistinct,
                                  AnalyzedRelation subRelation,
-                                 Collection<? extends Path> outputNames,
+                                 Collection<? extends ColumnIdent> outputNames,
                                  QuerySpec querySpec) {
         this.isDistinct = isDistinct;
         this.subRelation = subRelation;
         this.querySpec = querySpec;
         this.fields = new Fields(outputNames.size());
         Iterator<Symbol> outputsIterator = querySpec.outputs().iterator();
-        for (Path path : outputNames) {
+        for (ColumnIdent path : outputNames) {
             fields.add(path, new Field(this, path, outputsIterator.next()));
         }
     }
@@ -77,7 +77,7 @@ public class QueriedSelectRelation implements AnalyzedRelation {
 
     @Nullable
     @Override
-    public Field getField(Path path, Operation operation) throws UnsupportedOperationException, ColumnUnknownException {
+    public Field getField(ColumnIdent path, Operation operation) throws UnsupportedOperationException, ColumnUnknownException {
         if (operation != Operation.READ) {
             throw new UnsupportedOperationException("getField on QueriedSelectRelation is only supported for READ operations");
         }

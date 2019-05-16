@@ -28,8 +28,7 @@ import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.OutputName;
-import io.crate.metadata.Path;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.table.Operation;
 import io.crate.profile.ProfilingContext;
 import io.crate.sql.tree.QualifiedName;
@@ -48,7 +47,7 @@ public class ExplainAnalyzedStatement implements AnalyzedStatement, AnalyzedRela
     private final List<Symbol> outputs;
 
     ExplainAnalyzedStatement(String columnName, AnalyzedStatement statement, ProfilingContext context) {
-        Field field = new Field(this, new OutputName(columnName), new InputColumn(0, ObjectType.untyped()));
+        Field field = new Field(this, new ColumnIdent(columnName), new InputColumn(0, ObjectType.untyped()));
         this.statement = statement;
         this.fields = Collections.singletonList(field);
         this.context = context;
@@ -75,7 +74,7 @@ public class ExplainAnalyzedStatement implements AnalyzedStatement, AnalyzedRela
     }
 
     @Override
-    public Field getField(Path path, Operation operation) throws UnsupportedOperationException, ColumnUnknownException {
+    public Field getField(ColumnIdent path, Operation operation) throws UnsupportedOperationException, ColumnUnknownException {
         throw new UnsupportedOperationException("getField is not supported");
     }
 

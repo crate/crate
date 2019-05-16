@@ -26,6 +26,7 @@ import io.crate.analyze.ValuesResolver;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.types.DataTypes;
@@ -45,11 +46,13 @@ public class ExcludedFieldProviderTest {
         QualifiedName normalField2 = QualifiedName.of("normal", "field2");
         QualifiedName excludedName = QualifiedName.of("excluded", "field3");
 
-        FieldProvider fieldProvider = (qualifiedName, path, operation) -> {
-            return new Field(Mockito.mock(AnalyzedRelation.class), qualifiedName::toString, new InputColumn(0, DataTypes.INTEGER));
-        };
+        FieldProvider fieldProvider = (qualifiedName, path, operation) ->
+            new Field(
+                Mockito.mock(AnalyzedRelation.class),
+                new ColumnIdent(qualifiedName.toString()),
+                new InputColumn(0, DataTypes.INTEGER));
         ValuesResolver valuesResolver = argumentColumn -> {
-            assertThat(argumentColumn.path().outputName(), is("field3"));
+            assertThat(argumentColumn.path().sqlFqn(), is("field3"));
             return Literal.of(42);
         };
 

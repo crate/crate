@@ -341,7 +341,7 @@ public class InformationSchemaIterables implements ClusterStateListener {
             return relationName.schema();
         }
 
-        public String getPkColumnName() {
+        public String getPkColumnIdent() {
             return pkColumnIdent.name();
         }
 

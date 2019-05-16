@@ -26,7 +26,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import io.crate.expression.symbol.Field;
 import io.crate.exceptions.AmbiguousColumnAliasException;
-import io.crate.metadata.Path;
+import io.crate.metadata.ColumnIdent;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -41,15 +41,15 @@ public class Fields {
         fieldsList = new ArrayList<>(expectedSize);
     }
 
-    public void add(Path key, Field value) {
-        fieldsMap.put(key.outputName(), value);
+    public void add(ColumnIdent key, Field value) {
+        fieldsMap.put(key.sqlFqn(), value);
         fieldsList.add(value);
     }
 
-    public Field get(Path key) {
-        Collection<Field> fieldList = fieldsMap.get(key.outputName());
+    public Field get(ColumnIdent key) {
+        Collection<Field> fieldList = fieldsMap.get(key.sqlFqn());
         if (fieldList.size() > 1) {
-            throw new AmbiguousColumnAliasException(key.outputName(), fieldList);
+            throw new AmbiguousColumnAliasException(key.sqlFqn(), fieldList);
         }
         if (fieldList.isEmpty()) {
             return null;

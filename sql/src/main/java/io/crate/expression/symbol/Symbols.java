@@ -26,8 +26,6 @@ import io.crate.Streamer;
 import io.crate.expression.symbol.format.SymbolPrinter;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
-import io.crate.metadata.OutputName;
-import io.crate.metadata.Path;
 import io.crate.metadata.Reference;
 import io.crate.types.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -77,7 +75,7 @@ public class Symbols {
      * returns true if the symbol contains the given columnIdent.
      * If symbol is a Function the function tree will be traversed
      */
-    public static boolean containsColumn(@Nullable Symbol symbol, Path path) {
+    public static boolean containsColumn(@Nullable Symbol symbol, ColumnIdent path) {
         if (symbol == null) {
             return false;
         }
@@ -87,7 +85,7 @@ public class Symbols {
     /**
      * returns true if any of the symbols contains the given column
      */
-    public static boolean containsColumn(Iterable<? extends Symbol> symbols, Path path) {
+    public static boolean containsColumn(Iterable<? extends Symbol> symbols, ColumnIdent path) {
         for (Symbol symbol : symbols) {
             if (containsColumn(symbol, path)) {
                 return true;
@@ -140,24 +138,24 @@ public class Symbols {
         return SymbolType.VALUES.get(in.readVInt()).newInstance(in);
     }
 
-    public static Path pathFromSymbol(Symbol symbol) {
+    public static ColumnIdent pathFromSymbol(Symbol symbol) {
         if (symbol instanceof Field) {
             return ((Field) symbol).path();
         } else if (symbol instanceof Reference) {
             return ((Reference) symbol).column();
         }
-        return new OutputName(SymbolPrinter.INSTANCE.printUnqualified(symbol));
+        return new ColumnIdent(SymbolPrinter.INSTANCE.printUnqualified(symbol));
     }
 
-    private static class HasColumnVisitor extends SymbolVisitor<Path, Boolean> {
+    private static class HasColumnVisitor extends SymbolVisitor<ColumnIdent, Boolean> {
 
         @Override
-        protected Boolean visitSymbol(Symbol symbol, Path column) {
+        protected Boolean visitSymbol(Symbol symbol, ColumnIdent column) {
             return false;
         }
 
         @Override
-        public Boolean visitFunction(Function symbol, Path column) {
+        public Boolean visitFunction(Function symbol, ColumnIdent column) {
             for (Symbol arg : symbol.arguments()) {
                 if (process(arg, column)) {
                     return true;
@@ -167,7 +165,7 @@ public class Symbols {
         }
 
         @Override
-        public Boolean visitFetchReference(FetchReference fetchReference, Path column) {
+        public Boolean visitFetchReference(FetchReference fetchReference, ColumnIdent column) {
             if (process(fetchReference.fetchId(), column)) {
                 return true;
             }
@@ -175,12 +173,12 @@ public class Symbols {
         }
 
         @Override
-        public Boolean visitField(Field field, Path column) {
-            return field.path().equals(column) || field.path().outputName().equals(column.outputName());
+        public Boolean visitField(Field field, ColumnIdent column) {
+            return field.path().equals(column) || field.path().sqlFqn().equals(column.sqlFqn());
         }
 
         @Override
-        public Boolean visitReference(Reference symbol, Path column) {
+        public Boolean visitReference(Reference symbol, ColumnIdent column) {
             return column.equals(symbol.column());
         }
     }

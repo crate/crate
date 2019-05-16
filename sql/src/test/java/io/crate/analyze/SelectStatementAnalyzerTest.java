@@ -196,7 +196,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             @Nullable
             @Override
             public String apply(Field input) {
-                return input.path().outputName();
+                return input.path().sqlFqn();
             }
         });
     }
@@ -1904,7 +1904,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testColumnOutputWithSingleRowSubselect() {
         AnalyzedRelation relation = analyze("select 1 = \n (select \n 2\n)\n");
-        assertThat(relation.fields(), isSQL("(1 = (SELECT 2))"));
+        assertThat(relation.fields(), isSQL("\"(1 = (SELECT 2))\""));
     }
 
     @Test
