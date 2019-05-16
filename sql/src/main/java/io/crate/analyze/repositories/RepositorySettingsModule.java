@@ -68,7 +68,7 @@ public class RepositorySettingsModule extends AbstractModule {
 
     private static final TypeSettings HDFS_SETTINGS = new TypeSettings(
         Collections.emptyMap(),
-        ImmutableMap.<String, Setting>builder()
+        ImmutableMap.<String, Setting<?>>builder()
             .put("uri", Setting.simpleString("uri", Setting.Property.NodeScope))
             .put("security.principal", Setting.simpleString("security.principal", Setting.Property.NodeScope))
             .put("path", Setting.simpleString("path", Setting.Property.NodeScope))
@@ -143,7 +143,7 @@ public class RepositorySettingsModule extends AbstractModule {
         typeSettingsBinder.addBinding(AZURE).toInstance(AZURE_SETTINGS);
     }
 
-    private static Map<String, Setting> groupSettingsByKey(List<Setting> settings) {
+    private static Map<String, Setting<?>> groupSettingsByKey(List<Setting<?>> settings) {
         return settings.stream().collect(Collectors.toMap(Setting::getKey, Function.identity()));
     }
 
@@ -156,10 +156,10 @@ public class RepositorySettingsModule extends AbstractModule {
      * a new Setting will be created with same characteristics
      * and new key name: endpoint
      */
-    private static List<Setting> renameSettingsUsingSuffixAsKey(List<Setting> settings) {
+    private static List<Setting<?>> renameSettingsUsingSuffixAsKey(List<Setting<?>> settings) {
         return settings
             .stream()
-            .map(s -> s.copyAndRename(k -> getSuffixOrInput((String) k)))
+            .map(s -> s.copyAndRename(RepositorySettingsModule::getSuffixOrInput))
             .collect(Collectors.toList());
     }
 

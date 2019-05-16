@@ -101,7 +101,7 @@ public final class S3ClientSettings {
     static final Setting<Boolean> USE_THROTTLE_RETRIES_SETTING = Setting.boolSetting(DEFAULT_PREFIX + "use_throttle_retries",
                                                                                      ClientConfiguration.DEFAULT_THROTTLE_RETRIES,
                                                                                      Property.NodeScope);
-    public static List<Setting> optionalSettings() {
+    public static List<Setting<?>> optionalSettings() {
         return List.of(ENDPOINT_SETTING,
                        PROTOCOL_SETTING,
                        MAX_RETRIES_SETTING,

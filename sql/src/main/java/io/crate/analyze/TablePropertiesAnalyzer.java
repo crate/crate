@@ -47,8 +47,8 @@ public final class TablePropertiesAnalyzer {
                                GenericProperties properties,
                                Row parameters,
                                boolean withDefaults) {
-        Map<String, Setting> settingMap = tableParameterInfo.supportedSettings();
-        Map<String, Setting> mappingsMap = tableParameterInfo.supportedMappings();
+        Map<String, Setting<?>> settingMap = tableParameterInfo.supportedSettings();
+        Map<String, Setting<?>> mappingsMap = tableParameterInfo.supportedMappings();
 
         GenericPropertiesConverter.settingsFromProperties(
             tableParameter.settingsBuilder(),
@@ -76,8 +76,8 @@ public final class TablePropertiesAnalyzer {
     static void analyzeResetProperties(TableParameter tableParameter,
                                        TableParameterInfo tableParameterInfo,
                                        List<String> properties) {
-        Map<String, Setting> settingMap = tableParameterInfo.supportedSettings();
-        Map<String, Setting> mappingsMap = tableParameterInfo.supportedMappings();
+        Map<String, Setting<?>> settingMap = tableParameterInfo.supportedSettings();
+        Map<String, Setting<?>> mappingsMap = tableParameterInfo.supportedMappings();
 
         GenericPropertiesConverter.resetSettingsFromProperties(
             tableParameter.settingsBuilder(),
