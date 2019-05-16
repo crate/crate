@@ -51,6 +51,10 @@ None
 Fixes
 =====
 
+- Fixed an issue that will prevent CrateDB from bootstrapping when running on
+  java 8 and a javaagent is specificed using ``JAVA_OPTS`` or
+  ``CRATE_JAVA_OPTS``.
+
 - Fixed an issue that prevented parameter placeholders from being resolved when
   creating a view. A view definition like ``CREATE VIEW v1 AS SELECT ?`` would
   get stored without the ``?`` being resolved to the actual parameter value,
