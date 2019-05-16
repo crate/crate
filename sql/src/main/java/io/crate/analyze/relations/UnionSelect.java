@@ -29,7 +29,7 @@ import io.crate.analyze.WhereClause;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.Path;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
 
@@ -77,7 +77,7 @@ public class UnionSelect implements AnalyzedRelation {
     }
 
     @Override
-    public Field getField(Path path, Operation operation) throws UnsupportedOperationException, ColumnUnknownException {
+    public Field getField(ColumnIdent path, Operation operation) throws UnsupportedOperationException, ColumnUnknownException {
         if (operation != Operation.READ) {
             throw new UnsupportedOperationException("getField on MultiSourceSelect is only supported for READ operations");
         }

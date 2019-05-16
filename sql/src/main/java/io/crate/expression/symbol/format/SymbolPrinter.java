@@ -41,7 +41,6 @@ import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.expression.symbol.WindowFunction;
-import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
@@ -251,11 +250,7 @@ public final class SymbolPrinter {
                 context.builder.append(RelationPrinter.INSTANCE.process(field.relation(), null))
                     .append(DOT);
             }
-            if (field.path() instanceof ColumnIdent) {
-                context.builder.append(((ColumnIdent) field.path()).quotedOutputName());
-            } else {
-                context.builder.append(field.path().outputName());
-            }
+            context.builder.append(field.path().quotedOutputName());
             return null;
         }
 

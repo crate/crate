@@ -135,7 +135,7 @@ public class FieldProviderTest extends CrateUnitTest {
             new QualifiedName(Arrays.asList("t")), relation));
         Field field = resolver.resolveField(newQN("t.name"), null, Operation.READ);
         assertThat(field.relation(), equalTo(relation));
-        assertThat(field.path().outputName(), is("name"));
+        assertThat(field.path().sqlFqn(), is("name"));
     }
 
     @Test
@@ -145,7 +145,7 @@ public class FieldProviderTest extends CrateUnitTest {
         FieldProvider<Field> resolver = newFQFieldProvider(ImmutableMap.of(newQN("doc.t"), relation));
         Field field = resolver.resolveField(newQN("name"), null, Operation.READ);
         assertThat(field.relation(), equalTo(relation));
-        assertThat(field.path().outputName(), is("name"));
+        assertThat(field.path().sqlFqn(), is("name"));
     }
 
     @Test
@@ -156,7 +156,7 @@ public class FieldProviderTest extends CrateUnitTest {
         FieldProvider<Field> resolver = newFQFieldProvider(ImmutableMap.of(newQN("doc.t"), relation));
         Field field = resolver.resolveField(newQN("doc.t.name"), null, Operation.INSERT);
         assertThat(field.relation(), equalTo(relation));
-        assertThat(field.path().outputName(), is("name"));
+        assertThat(field.path().sqlFqn(), is("name"));
     }
 
     @Test

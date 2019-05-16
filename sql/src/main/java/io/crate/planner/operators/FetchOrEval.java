@@ -363,7 +363,7 @@ public class FetchOrEval extends ForwardingLogicalPlan {
         for (int i = 0; i < outputs.size(); i++) {
             Symbol output = outputs.get(i);
             if (output instanceof Field &&
-                ((Field) output).path().outputName().equals(DocSysColumns.FETCHID.outputName())) {
+                ((Field) output).path().sqlFqn().equals(DocSysColumns.FETCHID.sqlFqn())) {
 
                 DocTableRelation rel = resolveDocTableRelation(output);
                 m.put(rel, new InputColumn(i, DataTypes.LONG));

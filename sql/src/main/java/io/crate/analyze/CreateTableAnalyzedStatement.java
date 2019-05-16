@@ -143,7 +143,7 @@ public class CreateTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
     }
 
     /**
-     * return true if a columnDefinition with name <code>columnName</code> exists
+     * return true if a columnDefinition with name <code>columnIdent</code> exists
      */
     public boolean hasColumnDefinition(ColumnIdent columnIdent) {
         return (analyzedTableElements().columnIdents().contains(columnIdent) ||

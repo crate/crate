@@ -23,7 +23,7 @@ package io.crate.exceptions;
 
 import io.crate.analyze.TableIdentsExtractor;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.Path;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 
 import java.util.Locale;
@@ -32,8 +32,8 @@ public class AmbiguousColumnException extends ValidationException implements Tab
 
     private final Symbol columnSymbol;
 
-    public AmbiguousColumnException(Path columnPath, Symbol columnSymbol) {
-        super(String.format(Locale.ENGLISH, "Column \"%s\" is ambiguous", columnPath.outputName()));
+    public AmbiguousColumnException(ColumnIdent columnPath, Symbol columnSymbol) {
+        super(String.format(Locale.ENGLISH, "Column \"%s\" is ambiguous", columnPath.sqlFqn()));
         this.columnSymbol = columnSymbol;
     }
 

@@ -28,7 +28,7 @@ import io.crate.collections.Lists2;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.FieldReplacer;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.Path;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
 
@@ -55,7 +55,7 @@ public class MultiSourceSelect implements AnalyzedRelation {
 
     public MultiSourceSelect(boolean isDistinct,
                              Map<QualifiedName, AnalyzedRelation> sources,
-                             Collection<? extends Path> outputNames,
+                             Collection<? extends ColumnIdent> outputNames,
                              QuerySpec querySpec,
                              List<JoinPair> joinPairs) {
         this.isDistinct = isDistinct;
@@ -70,7 +70,7 @@ public class MultiSourceSelect implements AnalyzedRelation {
         assert outputNames.size() == querySpec.outputs().size() : "size of outputNames and outputSymbols must match";
         fields = new Fields(outputNames.size());
         Iterator<Symbol> outputsIterator = querySpec.outputs().iterator();
-        for (Path path : outputNames) {
+        for (ColumnIdent path : outputNames) {
             fields.add(path, new Field(this, path, outputsIterator.next()));
         }
     }
@@ -98,7 +98,7 @@ public class MultiSourceSelect implements AnalyzedRelation {
     }
 
     @Override
-    public Field getField(Path path, Operation operation) throws UnsupportedOperationException {
+    public Field getField(ColumnIdent path, Operation operation) throws UnsupportedOperationException {
         if (operation != Operation.READ) {
             throw new UnsupportedOperationException("getField on MultiSourceSelect is only supported for READ operations");
         }

@@ -26,7 +26,7 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.Path;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
 
@@ -48,14 +48,14 @@ public final class QueriedTable<TR extends AbstractTableRelation> implements Ana
 
     public QueriedTable(boolean isDistinct,
                         TR tableRelation,
-                        Collection<? extends Path> outputNames,
+                        Collection<? extends ColumnIdent> outputNames,
                         QuerySpec querySpec) {
         this.isDistinct = isDistinct;
         this.tableRelation = tableRelation;
         this.querySpec = querySpec;
         this.fields = new Fields(outputNames.size());
         Iterator<Symbol> outputsIterator = querySpec.outputs().iterator();
-        for (Path path : outputNames) {
+        for (ColumnIdent path : outputNames) {
             fields.add(path, new Field(this, path, outputsIterator.next()));
         }
     }
@@ -89,7 +89,7 @@ public final class QueriedTable<TR extends AbstractTableRelation> implements Ana
 
     @Nullable
     @Override
-    public Field getField(Path path, Operation operation) throws UnsupportedOperationException {
+    public Field getField(ColumnIdent path, Operation operation) throws UnsupportedOperationException {
         if (operation != Operation.READ) {
             throw new UnsupportedOperationException("getField on SelectAnalyzedStatement is only supported for READ operations");
         }
