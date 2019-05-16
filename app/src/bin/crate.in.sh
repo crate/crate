@@ -9,7 +9,13 @@ EOF
     exit 1
 fi
 
-CRATE_CLASSPATH=$CRATE_HOME/lib/*:
+for libname in $CRATE_HOME/lib/*.jar; do
+    if [[ -n $CRATE_CLASSPATH ]]; then
+        CRATE_CLASSPATH=$CRATE_CLASSPATH:$libname
+    else
+        CRATE_CLASSPATH=$libname
+    fi
+done
 
 if [ "x$CRATE_MIN_MEM" = "x" ]; then
     CRATE_MIN_MEM=256m
