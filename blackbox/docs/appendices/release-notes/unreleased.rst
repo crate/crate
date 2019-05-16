@@ -291,6 +291,10 @@ Changes
 Fixes
 =====
 
+- Increased the precedence of the double colon cast operator, so that a
+  statement like ``x::double / y::double`` applies both casts before the
+  division.
+
 - Fixed an issue with the disk watermark sys checks which would incorrectly
   report all of them as failed if
   :ref:`cluster.routing.allocation.disk.threshold_enabled

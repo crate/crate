@@ -54,6 +54,12 @@ public class CastFunctionTest extends AbstractScalarFunctionsTest {
     }
 
     @Test
+    public void testPrecedenceOfDoubleColonCastIsHigherThanArithmetic() {
+        // used to result in 2.0 as the precedence was like this: ((x::double) / a)::double
+        assertEvaluate("x::double / a::double", 2.5, Literal.of(5), Literal.of(2L));
+    }
+
+    @Test
     public void testCastGeoShapeToObject() {
         Map<String, Object> shape = new HashMap<>();
         shape.put("type", "LineString");
@@ -65,11 +71,12 @@ public class CastFunctionTest extends AbstractScalarFunctionsTest {
     public void testDoubleColonOperatorCast() {
         assertEvaluate("10.4::string", "10.4");
         assertEvaluate("[1, 2, 0]::array(boolean)", new Boolean[]{true, true, false});
-        assertEvaluate("(1+3)/2::string", "2");
+        assertEvaluate("(1+3)/2::string", 2L);
+        assertEvaluate("((1+3)/2)::string", "2");
         assertEvaluate("'10'::long + 5", 15L);
-        assertEvaluate("-4::string", "-4");
+        assertEvaluate("(-4)::string", "-4");
         assertEvaluate("'-4'::long", -4L);
-        assertEvaluate("-4::string || ' apples'", "-4 apples");
+        assertEvaluate("(-4)::string || ' apples'", "-4 apples");
         assertEvaluate("'-4'::long + 10", 6L);
         assertEvaluate("'2017-01-01'::timestamp with time zone", 1483228800000L);
         assertEvaluate("'2017-01-01T00:00:00'::timestamp with time zone", 1483228800000L);
