@@ -45,6 +45,8 @@ import org.elasticsearch.index.translog.Translog;
 
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.ThreadSafe;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @Immutable
@@ -87,8 +89,8 @@ public class TableParameterInfo {
 
     // all available table mapping keys
 
-    private static final ImmutableList<Setting> SUPPORTED_SETTINGS =
-        ImmutableList.<Setting>builder()
+    private static final List<Setting<?>> SUPPORTED_SETTINGS =
+        ImmutableList.<Setting<?>>builder()
             .add(NUMBER_OF_REPLICAS)
             .add(REFRESH_INTERVAL)
             .add(READ_ONLY)
@@ -118,41 +120,33 @@ public class TableParameterInfo {
         IndexMetaData.INDEX_NUMBER_OF_ROUTING_SHARDS_SETTING
     );
 
-    private static final ImmutableMap<String, Setting> SUPPORTED_SETTINGS_DEFAULT
+    private static final Map<String, Setting<?>> SUPPORTED_SETTINGS_DEFAULT
         = SUPPORTED_SETTINGS
             .stream()
             .collect(ImmutableMap.toImmutableMap((s) -> stripDotSuffix(stripIndexPrefix(s.getKey())), s -> s));
 
-    private static final ImmutableList<Setting> EXCLUDED_SETTING_FOR_METADATA_IMPORT =
-        ImmutableList.<Setting>builder()
-            .add(NUMBER_OF_REPLICAS)
-            .build();
+    private static final List<Setting<?>> EXCLUDED_SETTING_FOR_METADATA_IMPORT = List.of(NUMBER_OF_REPLICAS);
 
-    private static final ImmutableMap<String, Setting> SUPPORTED_SETTINGS_INCL_SHARDS
-        = ImmutableMap.<String, Setting>builder()
+    private static final Map<String, Setting<?>> SUPPORTED_SETTINGS_INCL_SHARDS
+        = ImmutableMap.<String, Setting<?>>builder()
             .putAll(SUPPORTED_SETTINGS_DEFAULT)
             .put(stripIndexPrefix(NUMBER_OF_SHARDS.getKey()), NUMBER_OF_SHARDS)
             .build();
 
-    private static final ImmutableMap<String, Setting> SUPPORTED_SETTINGS_FOR_BLOB_CREATION
-        = ImmutableMap.<String, Setting>builder()
+    private static final Map<String, Setting<?>> SUPPORTED_SETTINGS_FOR_BLOB_CREATION
+        = ImmutableMap.<String, Setting<?>>builder()
             .put(NUMBER_OF_REPLICAS.getKey(), NUMBER_OF_REPLICAS)
             .put("blobs_path",
                 Setting.simpleString(BlobIndicesService.SETTING_INDEX_BLOBS_PATH.getKey(),
                 Validators.stringValidator("blobs_path")))
             .build();
 
-    private static final ImmutableMap<String, Setting> SUPPORTED_SETTINGS_FOR_BLOB_ALTERING
-        = ImmutableMap.<String, Setting>builder()
-            .put(NUMBER_OF_REPLICAS.getKey(), NUMBER_OF_REPLICAS)
-            .build();
+    private static final Map<String, Setting<?>> SUPPORTED_SETTINGS_FOR_BLOB_ALTERING = Map.of(
+        NUMBER_OF_REPLICAS.getKey(), NUMBER_OF_REPLICAS);
 
-    private static final ImmutableMap<String, Setting> SUPPORTED_MAPPINGS_DEFAULT
-        = ImmutableMap.<String, Setting>builder()
-            .put("column_policy", COLUMN_POLICY)
-            .build();
+    private static final Map<String, Setting<?>> SUPPORTED_MAPPINGS_DEFAULT = Map.of("column_policy", COLUMN_POLICY);
 
-    private static final ImmutableMap<String, Setting> EMPTY_MAP = ImmutableMap.of();
+    private static final Map<String, Setting<?>> EMPTY_MAP = Map.of();
 
     static final TableParameterInfo TABLE_CREATE_PARAMETER_INFO
         = new TableParameterInfo(SUPPORTED_SETTINGS_DEFAULT, SUPPORTED_MAPPINGS_DEFAULT);
@@ -168,11 +162,10 @@ public class TableParameterInfo {
         = new TableParameterInfo(SUPPORTED_SETTINGS_FOR_BLOB_ALTERING, EMPTY_MAP);
 
 
-    private final ImmutableMap<String, Setting> supportedSettings;
-    private final ImmutableMap<String, Setting> supportedMappings;
+    private final Map<String, Setting<?>> supportedSettings;
+    private final Map<String, Setting<?>> supportedMappings;
 
-    protected TableParameterInfo(final ImmutableMap<String, Setting> supportedSettings,
-                                 final ImmutableMap<String, Setting> supportedMappings) {
+    protected TableParameterInfo(Map<String, Setting<?>> supportedSettings, Map<String, Setting<?>> supportedMappings) {
         this.supportedSettings = supportedSettings;
         this.supportedMappings = supportedMappings;
     }
@@ -180,14 +173,14 @@ public class TableParameterInfo {
     /**
      * Returns list of public settings names supported by this table
      */
-    public ImmutableMap<String, Setting> supportedSettings() {
+    public Map<String, Setting<?>> supportedSettings() {
         return supportedSettings;
     }
 
     /**
      * Returns a list of mapping names supported by this table
      */
-    public ImmutableMap<String, Setting> supportedMappings() {
+    public Map<String, Setting<?>> supportedMappings() {
         return supportedMappings;
     }
 

@@ -63,11 +63,11 @@ public class FsRepository extends BlobStoreRepository {
     public static final Setting<ByteSizeValue> REPOSITORIES_CHUNK_SIZE_SETTING = Setting.byteSizeSetting("repositories.fs.chunk_size",
         new ByteSizeValue(Long.MAX_VALUE), new ByteSizeValue(5), new ByteSizeValue(Long.MAX_VALUE), Property.NodeScope);
 
-    public static List<Setting> mandatorySettings() {
+    public static List<Setting<?>> mandatorySettings() {
         return List.of(LOCATION_SETTING);
     }
 
-    public static List<Setting> optionalSettings() {
+    public static List<Setting<?>> optionalSettings() {
         return List.of(COMPRESS_SETTING, CHUNK_SIZE_SETTING);
     }
 

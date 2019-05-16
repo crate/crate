@@ -144,7 +144,7 @@ public class S3Repository extends BlobStoreRepository {
      */
     static final Setting<String> BASE_PATH_SETTING = Setting.simpleString("base_path");
 
-    public static List<Setting> optionalSettings() {
+    public static List<Setting<?>> optionalSettings() {
         return List.of(ACCESS_KEY_SETTING,
                        SECRET_KEY_SETTING,
                        BASE_PATH_SETTING,

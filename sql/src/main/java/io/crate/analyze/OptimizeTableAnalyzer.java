@@ -22,7 +22,6 @@
 
 package io.crate.analyze;
 
-import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.blob.BlobTableInfo;
@@ -38,6 +37,7 @@ import org.elasticsearch.common.settings.Settings;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public class OptimizeTableAnalyzer {
@@ -56,12 +56,12 @@ public class OptimizeTableAnalyzer {
 
     public static final Setting<Boolean> UPGRADE_SEGMENTS = Setting.boolSetting("upgrade_segments", false);
 
-    private static final ImmutableMap<String, Setting> SETTINGS = ImmutableMap.<String, Setting>builder()
-        .put(MAX_NUM_SEGMENTS.getKey(), MAX_NUM_SEGMENTS)
-        .put(ONLY_EXPUNGE_DELETES.getKey(), ONLY_EXPUNGE_DELETES)
-        .put(FLUSH.getKey(), FLUSH)
-        .put(UPGRADE_SEGMENTS.getKey(), UPGRADE_SEGMENTS)
-        .build();
+    private static final Map<String, Setting<?>> SETTINGS = Map.of(
+        MAX_NUM_SEGMENTS.getKey(), MAX_NUM_SEGMENTS,
+        ONLY_EXPUNGE_DELETES.getKey(), ONLY_EXPUNGE_DELETES,
+        FLUSH.getKey(), FLUSH,
+        UPGRADE_SEGMENTS.getKey(), UPGRADE_SEGMENTS
+    );
 
     private final Schemas schemas;
 
