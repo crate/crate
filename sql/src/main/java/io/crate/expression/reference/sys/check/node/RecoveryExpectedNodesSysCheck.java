@@ -46,7 +46,7 @@ public class RecoveryExpectedNodesSysCheck extends AbstractSysNodeCheck {
     }
 
     @Override
-    public boolean validate() {
+    public boolean isValid() {
         return validate(clusterService.state().nodes().getMasterAndDataNodes().size(),
             GatewayService.EXPECTED_NODES_SETTING.get(settings)
         );

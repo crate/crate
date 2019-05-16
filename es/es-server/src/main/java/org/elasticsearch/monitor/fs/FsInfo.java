@@ -19,16 +19,12 @@
 
 package org.elasticsearch.monitor.fs;
 
-import org.elasticsearch.Version;
 import org.elasticsearch.cluster.DiskUsage;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.unit.ByteSizeValue;
-import org.elasticsearch.common.xcontent.ToXContentFragment;
-import org.elasticsearch.common.xcontent.ToXContentObject;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -36,9 +32,9 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
-public class FsInfo implements Iterable<FsInfo.Path>, Writeable, ToXContentFragment {
+public class FsInfo implements Iterable<FsInfo.Path>, Writeable {
 
-    public static class Path implements Writeable, ToXContentObject {
+    public static class Path implements Writeable {
 
         String path;
         @Nullable
@@ -117,63 +113,14 @@ public class FsInfo implements Iterable<FsInfo.Path>, Writeable, ToXContentFragm
             return current + other;
         }
 
-        private double addDouble(double current, double other) {
-            if (other == -1) {
-                return current;
-            }
-            if (current == -1) {
-                return other;
-            }
-            return current + other;
-        }
-
         public void add(Path path) {
             total = FsProbe.adjustForHugeFilesystems(addLong(total, path.total));
             free = FsProbe.adjustForHugeFilesystems(addLong(free, path.free));
             available = FsProbe.adjustForHugeFilesystems(addLong(available, path.available));
         }
-
-        static final class Fields {
-            static final String PATH = "path";
-            static final String MOUNT = "mount";
-            static final String TYPE = "type";
-            static final String TOTAL = "total";
-            static final String TOTAL_IN_BYTES = "total_in_bytes";
-            static final String FREE = "free";
-            static final String FREE_IN_BYTES = "free_in_bytes";
-            static final String AVAILABLE = "available";
-            static final String AVAILABLE_IN_BYTES = "available_in_bytes";
-        }
-
-        @Override
-        public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-            builder.startObject();
-            if (path != null) {
-                builder.field(Fields.PATH, path);
-            }
-            if (mount != null) {
-                builder.field(Fields.MOUNT, mount);
-            }
-            if (type != null) {
-                builder.field(Fields.TYPE, type);
-            }
-
-            if (total != -1) {
-                builder.humanReadableField(Fields.TOTAL_IN_BYTES, Fields.TOTAL, getTotal());
-            }
-            if (free != -1) {
-                builder.humanReadableField(Fields.FREE_IN_BYTES, Fields.FREE, getFree());
-            }
-            if (available != -1) {
-                builder.humanReadableField(Fields.AVAILABLE_IN_BYTES, Fields.AVAILABLE, getAvailable());
-            }
-
-            builder.endObject();
-            return builder;
-        }
     }
 
-    public static class DeviceStats implements Writeable, ToXContentFragment {
+    public static class DeviceStats implements Writeable {
 
         final int majorDeviceNumber;
         final int minorDeviceNumber;
@@ -294,27 +241,9 @@ public class FsInfo implements Iterable<FsInfo.Path>, Writeable, ToXContentFragm
 
             return (currentSectorsWritten - previousSectorsWritten) / 2;
         }
-
-        @Override
-        public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-            builder.field("device_name", deviceName);
-            builder.field(IoStats.OPERATIONS, operations());
-            builder.field(IoStats.READ_OPERATIONS, readOperations());
-            builder.field(IoStats.WRITE_OPERATIONS, writeOperations());
-            builder.field(IoStats.READ_KILOBYTES, readKilobytes());
-            builder.field(IoStats.WRITE_KILOBYTES, writeKilobytes());
-            return builder;
-        }
-
     }
 
-    public static class IoStats implements Writeable, ToXContentFragment {
-
-        private static final String OPERATIONS = "operations";
-        private static final String READ_OPERATIONS = "read_operations";
-        private static final String WRITE_OPERATIONS = "write_operations";
-        private static final String READ_KILOBYTES = "read_kilobytes";
-        private static final String WRITE_KILOBYTES = "write_kilobytes";
+    public static class IoStats implements Writeable {
 
         final DeviceStats[] devicesStats;
         final long totalOperations;
@@ -394,29 +323,6 @@ public class FsInfo implements Iterable<FsInfo.Path>, Writeable, ToXContentFragm
         public long getTotalWriteKilobytes() {
             return totalWriteKilobytes;
         }
-
-        @Override
-        public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-            if (devicesStats.length > 0) {
-                builder.startArray("devices");
-                for (DeviceStats deviceStats : devicesStats) {
-                    builder.startObject();
-                    deviceStats.toXContent(builder, params);
-                    builder.endObject();
-                }
-                builder.endArray();
-
-                builder.startObject("total");
-                builder.field(OPERATIONS, totalOperations);
-                builder.field(READ_OPERATIONS, totalReadOperations);
-                builder.field(WRITE_OPERATIONS, totalWriteOperations);
-                builder.field(READ_KILOBYTES, totalReadKilobytes);
-                builder.field(WRITE_KILOBYTES, totalWriteKilobytes);
-                builder.endObject();
-            }
-            return builder;
-        }
-
     }
 
     private final long timestamp;
@@ -505,62 +411,5 @@ public class FsInfo implements Iterable<FsInfo.Path>, Writeable, ToXContentFragm
     @Override
     public Iterator<Path> iterator() {
         return Arrays.stream(paths).iterator();
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject(Fields.FS);
-        builder.field(Fields.TIMESTAMP, timestamp);
-        builder.field(Fields.TOTAL);
-        total().toXContent(builder, params);
-        if (leastDiskEstimate != null) {
-            builder.startObject(Fields.LEAST_ESTIMATE);
-            {
-                builder.field(Fields.PATH, leastDiskEstimate.getPath());
-                builder.humanReadableField(Fields.TOTAL_IN_BYTES, Fields.TOTAL, new ByteSizeValue(leastDiskEstimate.getTotalBytes()));
-                builder.humanReadableField(Fields.AVAILABLE_IN_BYTES, Fields.AVAILABLE,
-                    new ByteSizeValue(leastDiskEstimate.getFreeBytes()));
-                builder.field(Fields.USAGE_PERCENTAGE, leastDiskEstimate.getUsedDiskAsPercentage());
-            }
-            builder.endObject();
-        }
-
-        if (mostDiskEstimate != null) {
-            builder.startObject(Fields.MOST_ESTIMATE);
-            {
-                builder.field(Fields.PATH, mostDiskEstimate.getPath());
-                builder.humanReadableField(Fields.TOTAL_IN_BYTES, Fields.TOTAL, new ByteSizeValue(mostDiskEstimate.getTotalBytes()));
-                builder.humanReadableField(Fields.AVAILABLE_IN_BYTES, Fields.AVAILABLE, new ByteSizeValue(mostDiskEstimate.getFreeBytes()));
-                builder.field(Fields.USAGE_PERCENTAGE, mostDiskEstimate.getUsedDiskAsPercentage());
-            }
-            builder.endObject();
-        }
-        builder.startArray(Fields.DATA);
-        for (Path path : paths) {
-            path.toXContent(builder, params);
-        }
-        builder.endArray();
-        if (ioStats != null) {
-            builder.startObject(Fields.IO_STATS);
-            ioStats.toXContent(builder, params);
-            builder.endObject();
-        }
-        builder.endObject();
-        return builder;
-    }
-
-    static final class Fields {
-        static final String FS = "fs";
-        static final String TIMESTAMP = "timestamp";
-        static final String DATA = "data";
-        static final String TOTAL = "total";
-        static final String TOTAL_IN_BYTES = "total_in_bytes";
-        static final String IO_STATS = "io_stats";
-        static final String LEAST_ESTIMATE = "least_usage_estimate";
-        static final String MOST_ESTIMATE = "most_usage_estimate";
-        static final String USAGE_PERCENTAGE = "used_disk_percent";
-        static final String AVAILABLE = "available";
-        static final String AVAILABLE_IN_BYTES = "available_in_bytes";
-        static final String PATH = "path";
     }
 }

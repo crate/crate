@@ -59,7 +59,7 @@ public abstract class AbstractSysCheck implements SysCheck {
         return severity;
     }
 
-    public abstract boolean validate();
+    public abstract boolean isValid();
 
     @Override
     public CompletableFuture<?> computeResult() {

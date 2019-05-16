@@ -32,25 +32,25 @@ import java.util.Map;
 
 public class TypeSettings {
 
-    private static final Map<String, Setting> GENERIC = ImmutableMap.<String, Setting>builder()
+    private static final Map<String, Setting<?>> GENERIC = ImmutableMap.<String, Setting<?>>builder()
         .put("max_restore_bytes_per_sec", Setting.byteSizeSetting("max_restore_bytes_per_sec", new ByteSizeValue(40, ByteSizeUnit.MB), Setting.Property.NodeScope))
         .put("max_snapshot_bytes_per_sec", Setting.byteSizeSetting("max_snapshot_bytes_per_sec", new ByteSizeValue(40, ByteSizeUnit.MB), Setting.Property.NodeScope))
         .build();
 
-    private final Map<String, Setting> required;
-    private final Map<String, Setting> all;
+    private final Map<String, Setting<?>> required;
+    private final Map<String, Setting<?>> all;
 
-    TypeSettings(Map<String, Setting> required,
-                 Map<String, Setting> optional) {
+    TypeSettings(Map<String, Setting<?>> required,
+                 Map<String, Setting<?>> optional) {
         this.required = required;
-        this.all = ImmutableMap.<String, Setting>builder().putAll(required).putAll(optional).putAll(GENERIC).build();
+        this.all = ImmutableMap.<String, Setting<?>>builder().putAll(required).putAll(optional).putAll(GENERIC).build();
     }
 
-    public Map<String, Setting> required() {
+    public Map<String, Setting<?>> required() {
         return required;
     }
 
-    public Map<String, Setting> all() {
+    public Map<String, Setting<?>> all() {
         return all;
     }
 

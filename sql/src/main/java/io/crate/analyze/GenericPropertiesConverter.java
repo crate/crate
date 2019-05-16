@@ -78,14 +78,14 @@ public class GenericPropertiesConverter {
 
     static Settings.Builder settingsFromProperties(GenericProperties properties,
                                                    Row parameters,
-                                                   Map<String, Setting> supportedSettings) {
+                                                   Map<String, Setting<?>> supportedSettings) {
 
         return settingsFromProperties(properties, parameters, supportedSettings, true);
     }
 
     public static Settings.Builder settingsFromProperties(GenericProperties properties,
                                                           Row parameters,
-                                                          Map<String, Setting> supportedSettings,
+                                                          Map<String, Setting<?>> supportedSettings,
                                                           boolean setDefaults) {
 
         Settings.Builder builder = Settings.builder();
@@ -96,36 +96,42 @@ public class GenericPropertiesConverter {
     static void settingsFromProperties(Settings.Builder builder,
                                        GenericProperties properties,
                                        Row parameters,
-                                       Map<String, Setting> supportedSettings,
+                                       Map<String, Setting<?>> supportedSettings,
                                        boolean setDefaults,
                                        Predicate<String> ignoreProperty,
                                        String invalidMessage) {
         if (setDefaults) {
             setDefaults(builder, supportedSettings);
         }
-        if (!properties.isEmpty()) {
-            for (Map.Entry<String, Expression> entry : properties.properties().entrySet()) {
-                String settingName = entry.getKey();
-                if (ignoreProperty.test(settingName) || ignoreProperty.test(getPossibleGroup(settingName))) {
-                    continue;
-                }
-                SettingHolder settingHolder = getSupportedSetting(supportedSettings, settingName);
-                if (settingHolder == null) {
-                    throw new IllegalArgumentException(String.format(Locale.ENGLISH, invalidMessage, entry.getKey()));
-                }
-                settingHolder.apply(builder, entry.getValue(), parameters);
+        for (Map.Entry<String, Expression> entry : properties.properties().entrySet()) {
+            String settingName = entry.getKey();
+            if (ignoreProperty.test(settingName)) {
+                continue;
             }
+            String groupName = getPossibleGroup(settingName);
+            if (groupName != null && ignoreProperty.test(groupName)) {
+                continue;
+            }
+            SettingHolder settingHolder = getSupportedSetting(supportedSettings, settingName);
+            if (settingHolder == null) {
+                throw new IllegalArgumentException(String.format(Locale.ENGLISH, invalidMessage, entry.getKey()));
+            }
+            settingHolder.apply(builder, entry.getValue(), parameters);
         }
     }
 
     @SuppressWarnings("SameParameterValue")
     static void resetSettingsFromProperties(Settings.Builder builder,
                                             List<String> properties,
-                                            Map<String, Setting> supportedSettings,
+                                            Map<String, Setting<?>> supportedSettings,
                                             Predicate<String> ignoreProperty,
                                             String invalidMessage) {
         for (String name : properties) {
-            if (ignoreProperty.test(name) || ignoreProperty.test(getPossibleGroup(name))) {
+            if (ignoreProperty.test(name)) {
+                continue;
+            }
+            String groupName = getPossibleGroup(name);
+            if (groupName != null && ignoreProperty.test(groupName)) {
                 continue;
             }
             SettingHolder settingHolder = getSupportedSetting(supportedSettings, name);
@@ -136,8 +142,8 @@ public class GenericPropertiesConverter {
         }
     }
 
-    private static void setDefaults(Settings.Builder builder, Map<String, Setting> supportedSettings) {
-        for (Map.Entry<String, Setting> entry : supportedSettings.entrySet()) {
+    private static void setDefaults(Settings.Builder builder, Map<String, Setting<?>> supportedSettings) {
+        for (Map.Entry<String, Setting<?>> entry : supportedSettings.entrySet()) {
             SettingHolder settingHolder = new SettingHolder(entry.getValue());
             // We'd set the "wrong" default for settings that base their default on other settings
             if (TableParameterInfo.SETTINGS_WITH_OTHER_SETTING_FALLBACK.contains(settingHolder.setting)) {
@@ -148,7 +154,7 @@ public class GenericPropertiesConverter {
     }
 
     @Nullable
-    private static SettingHolder getSupportedSetting(Map<String, Setting> supportedSettings,
+    private static SettingHolder getSupportedSetting(Map<String, Setting<?>> supportedSettings,
                                                      String settingName) {
         Setting<?> setting = supportedSettings.get(settingName);
         if (setting == null) {

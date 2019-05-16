@@ -34,6 +34,7 @@ import org.elasticsearch.repositories.RepositoryException;
 import org.elasticsearch.repositories.blobstore.BlobStoreRepository;
 
 import java.nio.file.Path;
+import java.util.List;
 import java.util.function.Function;
 
 /**
@@ -61,6 +62,14 @@ public class FsRepository extends BlobStoreRepository {
             new ByteSizeValue(Long.MAX_VALUE), new ByteSizeValue(5), new ByteSizeValue(Long.MAX_VALUE), Property.NodeScope);
     public static final Setting<ByteSizeValue> REPOSITORIES_CHUNK_SIZE_SETTING = Setting.byteSizeSetting("repositories.fs.chunk_size",
         new ByteSizeValue(Long.MAX_VALUE), new ByteSizeValue(5), new ByteSizeValue(Long.MAX_VALUE), Property.NodeScope);
+
+    public static List<Setting<?>> mandatorySettings() {
+        return List.of(LOCATION_SETTING);
+    }
+
+    public static List<Setting<?>> optionalSettings() {
+        return List.of(COMPRESS_SETTING, CHUNK_SIZE_SETTING);
+    }
 
     private final Environment environment;
 

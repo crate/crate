@@ -54,7 +54,7 @@ public class LicenseCheck implements SysCheck {
     }
 
     @Override
-    public boolean validate() {
+    public boolean isValid() {
         LicenseData currentLicense = licenseService.currentLicense();
         if (currentLicense == null) {
             // node might've not have received the license cluster state

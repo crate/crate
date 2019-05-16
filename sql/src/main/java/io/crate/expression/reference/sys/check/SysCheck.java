@@ -71,7 +71,7 @@ public interface SysCheck {
      *
      * @return true if validation is passed.
      */
-    boolean validate();
+    boolean isValid();
 
     /**
      * Start the checks in an async manner and returns a future

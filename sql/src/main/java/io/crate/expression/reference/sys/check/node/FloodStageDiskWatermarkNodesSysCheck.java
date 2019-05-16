@@ -44,7 +44,7 @@ public class FloodStageDiskWatermarkNodesSysCheck extends DiskWatermarkNodesSysC
     }
 
     @Override
-    protected boolean validate(long free, long total) {
+    protected boolean isValid(long free, long total) {
         return !(free < diskThresholdSettings.getFreeBytesThresholdFloodStage().getBytes() ||
                  getFreeDiskAsPercentage(free, total) < diskThresholdSettings.getFreeDiskThresholdFloodStage());
     }

@@ -52,7 +52,7 @@ public class RepositoryParamValidator {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Invalid repository type \"%s\"", type));
         }
 
-        Map<String, Setting> allSettings = typeSettings.all();
+        Map<String, Setting<?>> allSettings = typeSettings.all();
 
         // create string settings for all dynamic settings
         GenericProperties dynamicProperties = typeSettings.dynamicProperties(genericProperties);

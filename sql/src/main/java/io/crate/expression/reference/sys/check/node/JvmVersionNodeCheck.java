@@ -46,7 +46,7 @@ public final class JvmVersionNodeCheck extends AbstractSysNodeCheck {
     }
 
     @Override
-    public boolean validate() {
+    public boolean isValid() {
         try {
             return isOnOrAfter11(Constants.JAVA_VERSION);
         } catch (Exception e) {

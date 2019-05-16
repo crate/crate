@@ -23,8 +23,9 @@
 package io.crate.analyze;
 
 
-import com.google.common.collect.ImmutableMap;
 import org.elasticsearch.common.settings.Setting;
+
+import java.util.Map;
 
 public final class SnapshotSettings {
 
@@ -32,10 +33,10 @@ public final class SnapshotSettings {
 
     public static final Setting<Boolean> WAIT_FOR_COMPLETION = Setting.boolSetting("wait_for_completion", false);
 
-    static final ImmutableMap<String, Setting> SETTINGS = ImmutableMap.<String, Setting>builder()
-        .put(IGNORE_UNAVAILABLE.getKey(), IGNORE_UNAVAILABLE)
-        .put(WAIT_FOR_COMPLETION.getKey(), WAIT_FOR_COMPLETION)
-        .build();
+    static final Map<String, Setting<?>> SETTINGS = Map.of(
+        IGNORE_UNAVAILABLE.getKey(), IGNORE_UNAVAILABLE,
+        WAIT_FOR_COMPLETION.getKey(), WAIT_FOR_COMPLETION
+    );
 
     private SnapshotSettings() {
     }
