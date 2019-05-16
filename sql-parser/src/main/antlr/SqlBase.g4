@@ -215,7 +215,6 @@ valueExpression
         right=valueExpression                                                        #arithmeticBinary
     | left=valueExpression operator=(PLUS | MINUS) right=valueExpression             #arithmeticBinary
     | left=valueExpression CONCAT right=valueExpression                              #concatenation
-    | valueExpression CAST_OPERATOR dataType                                         #doubleColonCast
     ;
 
 primaryExpression
@@ -238,6 +237,7 @@ primaryExpression
     | SESSION_USER                                                                   #sessionUser
     | SUBSTRING '(' expr FROM expr (FOR expr)? ')'                                   #substring
     | EXTRACT '(' stringLiteralOrIdentifier FROM expr ')'                            #extract
+    | primaryExpression CAST_OPERATOR dataType                                       #doubleColonCast
     | CAST '(' expr AS dataType ')'                                                  #cast
     | TRY_CAST '(' expr AS dataType ')'                                              #cast
     | CASE operand=expr whenClause+ (ELSE elseExpr=expr)? END                        #simpleCase
