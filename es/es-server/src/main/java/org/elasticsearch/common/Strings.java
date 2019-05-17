@@ -744,4 +744,21 @@ public class Strings {
     public static boolean isNullOrEmpty(@Nullable String s) {
         return s == null || s.isEmpty();
     }
+
+    public static String padStart(String s, int minimumLength, char c) {
+        if (s == null) {
+            throw new NullPointerException("s");
+        }
+        if (s.length() >= minimumLength) {
+            return s;
+        } else {
+            StringBuilder sb = new StringBuilder(minimumLength);
+            for (int i = s.length(); i < minimumLength; i++) {
+                sb.append(c);
+            }
+
+            sb.append(s);
+            return sb.toString();
+        }
+    }
 }

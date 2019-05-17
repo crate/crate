@@ -65,7 +65,9 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -307,26 +309,40 @@ public final class MockTransportService extends TransportService {
 
         Supplier<TimeValue> delaySupplier = () -> new TimeValue(duration.millis() - (System.currentTimeMillis() - startTime));
 
-        transport().addConnectBehavior(transportAddress, (transport, discoveryNode, profile) -> {
-            TimeValue delay = delaySupplier.get();
-            if (delay.millis() <= 0) {
-                return original.openConnection(discoveryNode, profile);
-            }
+        transport().addConnectBehavior(transportAddress, new StubbableTransport.OpenConnectionBehavior() {
+            private CountDownLatch stopLatch = new CountDownLatch(1);
 
-            // TODO: Replace with proper setting
-            TimeValue connectingTimeout = TransportService.TCP_CONNECT_TIMEOUT.getDefault(Settings.EMPTY);
-            try {
-                if (delay.millis() < connectingTimeout.millis()) {
-                    Thread.sleep(delay.millis());
+            @Override
+            public Transport.Connection openConnection(Transport transport,
+                                                       DiscoveryNode discoveryNode,
+                                                       ConnectionProfile profile) {
+                TimeValue delay = delaySupplier.get();
+                if (delay.millis() <= 0) {
                     return original.openConnection(discoveryNode, profile);
-                } else {
-                    Thread.sleep(connectingTimeout.millis());
+                }
+
+                // TODO: Replace with proper setting
+                TimeValue connectingTimeout = TransportSettings.CONNECT_TIMEOUT.getDefault(Settings.EMPTY);
+                try {
+                    if (delay.millis() < connectingTimeout.millis()) {
+                        stopLatch.await(delay.millis(), TimeUnit.MILLISECONDS);
+                        return original.openConnection(discoveryNode, profile);
+                    } else {
+                        stopLatch.await(connectingTimeout.millis(), TimeUnit.MILLISECONDS);
+                        throw new ConnectTransportException(discoveryNode, "UNRESPONSIVE: simulated");
+                    }
+                } catch (
+                    InterruptedException e) {
                     throw new ConnectTransportException(discoveryNode, "UNRESPONSIVE: simulated");
                 }
-            } catch (InterruptedException e) {
-                throw new ConnectTransportException(discoveryNode, "UNRESPONSIVE: simulated");
+            }
+
+            @Override
+            public void clearCallback() {
+                stopLatch.countDown();
             }
         });
+
 
         transport().addSendBehavior(transportAddress, new StubbableTransport.SendRequestBehavior() {
             private final Queue<Runnable> requestsToSendWhenCleared = new LinkedBlockingDeque<>();
