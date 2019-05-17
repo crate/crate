@@ -531,6 +531,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
     public SQLResponse execute(String stmt, Object[] args, String node) {
         return execute(stmt, args, node, SQLTransportExecutor.REQUEST_TIMEOUT);
     }
+
     public SQLResponse execute(String stmt, Object[] args, String node, TimeValue timeout) {
         SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class, node);
         Session session = sqlOperations.createSession(sqlExecutor.getCurrentSchema(), User.CRATE_USER);
