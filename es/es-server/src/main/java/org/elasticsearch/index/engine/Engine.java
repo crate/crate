@@ -361,6 +361,10 @@ public abstract class Engine implements Closeable {
             return seqNo;
         }
 
+        public long getTerm() {
+            return term;
+        }
+
         /**
          * If the operation was aborted due to missing mappings, this method will return the mappings
          * that are required to complete the operation.

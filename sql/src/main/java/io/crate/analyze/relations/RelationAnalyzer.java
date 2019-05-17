@@ -623,9 +623,6 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             ViewMetaData view = viewMetaData.v1();
             relationName = viewMetaData.v2();
             AnalyzedRelation resolvedView = process(SqlParser.createStatement(view.stmt()), context);
-            if (!(resolvedView instanceof AnalyzedRelation)) {
-                throw new IllegalArgumentException("View must be a top-level SELECT statement, got: " + view.stmt());
-            }
             relation = new AnalyzedView(relationName, view.owner(), resolvedView);
         }
 

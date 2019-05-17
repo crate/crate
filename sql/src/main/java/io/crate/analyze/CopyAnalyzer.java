@@ -22,7 +22,6 @@
 package io.crate.analyze;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.copy.NodeFilters;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
@@ -86,10 +85,10 @@ class CopyAnalyzer {
     private static final Setting<String> INPUT_FORMAT_SETTING =
         new Setting<>("format", "json", (s) -> s, Validators.stringValidator("format","json", "csv"), Setting.Property.Dynamic);
 
-    private static final ImmutableMap<String, Setting> OUTPUT_SETTINGS = ImmutableMap.<String, Setting>builder()
-        .put(COMPRESSION_SETTING.getKey(), COMPRESSION_SETTING)
-        .put(OUTPUT_FORMAT_SETTING.getKey(), OUTPUT_FORMAT_SETTING)
-        .build();
+    private static final Map<String, Setting<?>> OUTPUT_SETTINGS = Map.of(
+        COMPRESSION_SETTING.getKey(), COMPRESSION_SETTING,
+        OUTPUT_FORMAT_SETTING.getKey(), OUTPUT_FORMAT_SETTING
+    );
 
     private final Schemas schemas;
     private final Functions functions;
