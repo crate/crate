@@ -22,41 +22,44 @@
 
 package io.crate.analyze;
 
-import com.google.common.annotations.VisibleForTesting;
 import io.crate.analyze.relations.QueriedRelation;
-import io.crate.metadata.RelationName;
 import io.crate.auth.user.User;
+import io.crate.metadata.RelationName;
+import io.crate.sql.tree.Query;
 
 import javax.annotation.Nullable;
 
 public final class CreateViewStmt implements AnalyzedStatement {
 
     private final RelationName name;
-    private final QueriedRelation query;
-    private final String formattedQuery;
+    private final QueriedRelation analyzedQuery;
+    private final Query query;
     private final boolean replaceExisting;
     @Nullable
     private final User owner;
 
-    CreateViewStmt(RelationName name, QueriedRelation query, String formattedQuery, boolean replaceExisting, @Nullable User owner) {
+    CreateViewStmt(RelationName name,
+                   QueriedRelation analyzedQuery,
+                   Query query,
+                   boolean replaceExisting,
+                   @Nullable User owner) {
         this.name = name;
+        this.analyzedQuery = analyzedQuery;
         this.query = query;
-        this.formattedQuery = formattedQuery;
         this.replaceExisting = replaceExisting;
         this.owner = owner;
+    }
+
+    public Query query() {
+        return query;
     }
 
     public RelationName name() {
         return name;
     }
 
-    @VisibleForTesting
-    public QueriedRelation query() {
-        return query;
-    }
-
-    public String formattedQuery() {
-        return formattedQuery;
+    public QueriedRelation analyzedQuery() {
+        return analyzedQuery;
     }
 
     public boolean replaceExisting() {

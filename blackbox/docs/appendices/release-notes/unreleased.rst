@@ -51,6 +51,12 @@ None
 Fixes
 =====
 
+- Fixed an issue that prevented parameter placeholders from being resolved when
+  creating a view. A view definition like ``CREATE VIEW v1 AS SELECT ?`` would
+  get stored without the ``?`` being resolved to the actual parameter value,
+  causing queries on the view to fail and also breaking
+  ``information_schema.views``.
+
 - Increased the precedence of the double colon cast operator, so that a
   statement like ``x::double / y::double`` applies both casts before the
   division.

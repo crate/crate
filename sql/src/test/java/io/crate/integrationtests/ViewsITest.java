@@ -32,6 +32,7 @@ import org.junit.Test;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.is;
 
@@ -53,13 +54,17 @@ public class ViewsITest extends SQLTransportIntegrationTest {
         execute("create table t1 (x int)");
         execute("insert into t1 (x) values (1)");
         execute("refresh table t1");
-        execute("create view v1 as select * from t1");
+        execute("create view v1 as select * from t1 where x > ?", $(0));
         for (ClusterService clusterService : internalCluster().getInstances(ClusterService.class)) {
             ViewsMetaData views = clusterService.state().metaData().custom(ViewsMetaData.TYPE);
             assertThat(views, Matchers.notNullValue());
             assertThat(views.contains(RelationName.fromIndexName(sqlExecutor.getCurrentSchema() + ".v1")), is(true));
         }
         assertThat(printedTable(execute("select * from v1").rows()), is("1\n"));
+        assertThat(
+            printedTable(execute("select view_definition from information_schema.views").rows()),
+            is("SELECT *\nFROM \"t1\"\nWHERE \"x\" > 0\n\n")
+        );
         execute("drop view v1");
         for (ClusterService clusterService : internalCluster().getInstances(ClusterService.class)) {
             ViewsMetaData views = clusterService.state().metaData().custom(ViewsMetaData.TYPE);

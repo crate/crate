@@ -442,7 +442,7 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
                 createViewStmt.name().schema(),
                 user,
                 defaultSchema);
-            visitRelation(createViewStmt.query(), user, Privilege.Type.DQL);
+            visitRelation(createViewStmt.analyzedQuery(), user, Privilege.Type.DQL);
             return null;
         }
 

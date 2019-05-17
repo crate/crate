@@ -29,25 +29,27 @@ import io.crate.analyze.CreateIngestionRuleAnalysedStatement;
 import io.crate.analyze.DropIngestionRuleAnalysedStatement;
 import io.crate.analyze.ParameterContext;
 import io.crate.analyze.PrivilegesAnalyzedStatement;
-import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.format.SymbolPrinter;
+import io.crate.auth.user.UserManager;
 import io.crate.concurrent.CompletableFutures;
 import io.crate.data.Row;
 import io.crate.exceptions.SQLExceptions;
-import io.crate.metadata.rule.ingest.IngestRule;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.format.SymbolPrinter;
 import io.crate.ingestion.CreateIngestRuleRequest;
 import io.crate.ingestion.DropIngestRuleRequest;
 import io.crate.ingestion.IngestRuleResponse;
 import io.crate.ingestion.TransportCreateIngestRuleAction;
 import io.crate.ingestion.TransportDropIngestRuleAction;
-import io.crate.auth.user.UserManager;
+import io.crate.metadata.rule.ingest.IngestRule;
 import io.crate.sql.ExpressionFormatter;
+import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.ParameterExpression;
 import org.elasticsearch.ResourceNotFoundException;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
 
+import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
@@ -72,7 +74,7 @@ public class DCLStatementDispatcher implements BiFunction<AnalyzedStatement, Row
         }
 
         @Override
-        public String visitParameterExpression(ParameterExpression node, Void context) {
+        public String visitParameterExpression(ParameterExpression node, List<Expression> parameters) {
             String formattedExpression = null;
             Symbol symbol = parameterContext.apply(node);
             if (symbol != null) {
@@ -129,9 +131,10 @@ public class DCLStatementDispatcher implements BiFunction<AnalyzedStatement, Row
         }
 
         private String getFormattedCondition(CreateIngestionRuleAnalysedStatement analysis) {
-            return analysis.whereClause() != null ? ExpressionFormatter.formatStandaloneExpression(analysis.whereClause(),
-                    new ExpressionParameterSubstitutionFormatter(symbolPrinter, analysis.parameterContext())) :
-                    "";
+            return analysis.whereClause() != null ? ExpressionFormatter.formatStandaloneExpression(
+                analysis.whereClause(),
+                null,
+                new ExpressionParameterSubstitutionFormatter(symbolPrinter, analysis.parameterContext())) : "";
         }
 
         @Override

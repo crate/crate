@@ -23,6 +23,8 @@
 package io.crate.planner;
 
 import io.crate.analyze.CreateViewStmt;
+import io.crate.analyze.ParamTypeHints;
+import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.auth.user.User;
 import io.crate.data.Row;
 import io.crate.data.Row1;
@@ -30,7 +32,22 @@ import io.crate.data.RowConsumer;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.execution.ddl.views.CreateViewRequest;
 import io.crate.execution.support.OneRowActionListener;
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.Functions;
+import io.crate.metadata.Schemas;
 import io.crate.planner.operators.SubQueryResults;
+import io.crate.sql.SqlFormatter;
+import io.crate.sql.parser.SqlParser;
+import io.crate.sql.tree.Expression;
+import io.crate.sql.tree.Literal;
+import io.crate.sql.tree.ParameterExpression;
+import io.crate.sql.tree.Query;
+
+import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 public final class CreateViewPlan implements Plan {
 
@@ -53,9 +70,12 @@ public final class CreateViewPlan implements Plan {
                               SubQueryResults subQueryResults) {
 
         User owner = createViewStmt.owner();
+        String formattedQuery = SqlFormatter.formatSql(createViewStmt.query(), makeExpressions(params));
+        ensureFormattedQueryCanStillBeAnalyzed(
+            dependencies.functions(), dependencies.schemas(), plannerContext.transactionContext(), formattedQuery);
         CreateViewRequest request = new CreateViewRequest(
             createViewStmt.name(),
-            createViewStmt.formattedQuery(),
+            formattedQuery,
             createViewStmt.replaceExisting(),
             owner == null ? null : owner.name()
         );
@@ -65,5 +85,30 @@ public final class CreateViewPlan implements Plan {
             }
             return new Row1(1L);
         }));
+    }
+
+    private static void ensureFormattedQueryCanStillBeAnalyzed(Functions functions,
+                                                               Schemas schemas,
+                                                               CoordinatorTxnCtx txnCtx,
+                                                               String formattedQuery) {
+        RelationAnalyzer analyzer = new RelationAnalyzer(functions, schemas);
+        Query query = (Query) SqlParser.createStatement(formattedQuery);
+        analyzer.analyzeUnbound(query, txnCtx, new ParamTypeHints(Collections.emptyList()) {
+
+                @Override
+                public Symbol apply(@Nullable ParameterExpression input) {
+                    throw new UnsupportedOperationException(
+                        "View definition must not contain any parameter placeholders");
+                }
+            }
+        );
+    }
+
+    private static List<Expression> makeExpressions(Row params) {
+        ArrayList<Expression> result = new ArrayList<>(params.numColumns());
+        for (int i = 0; i < params.numColumns(); i++) {
+            result.add(Literal.fromObject(params.get(i)));
+        }
+        return result;
     }
 }
