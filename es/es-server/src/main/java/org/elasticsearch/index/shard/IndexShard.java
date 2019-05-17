@@ -21,6 +21,7 @@ package org.elasticsearch.index.shard;
 
 import com.carrotsearch.hppc.ObjectLongMap;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.index.CheckIndex;
 import org.apache.lucene.index.IndexCommit;
 import org.apache.lucene.index.SegmentInfos;
@@ -678,13 +679,49 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         active.set(true);
         final Engine.IndexResult result;
         index = indexingOperationListeners.preIndex(shardId, index);
+        boolean traceEnabled = logger.isTraceEnabled();
         try {
-            if (logger.isTraceEnabled()) {
+            if (traceEnabled) {
                 // don't use index.source().utf8ToString() here source might not be valid UTF-8
-                logger.trace("index [{}][{}] (seq# [{}])",  index.type(), index.id(), index.seqNo());
+                logger.trace(
+                    "index [{}][{}] seq# [{}] allocation-id [{}] primaryTerm [{}] operationPrimaryTerm [{}] origin [{}]",
+                    index.type(),
+                    index.id(),
+                    index.seqNo(),
+                    routingEntry().allocationId(),
+                    index.primaryTerm(),
+                    operationPrimaryTerm,
+                    index.origin());
             }
             result = engine.index(index);
+            if (traceEnabled) {
+                logger.trace(
+                    "index-done [{}][{}] seq# [{}] allocation-id [{}] primaryTerm [{}] operationPrimaryTerm [{}] origin [{}] " +
+                    "result-seq# [{}] result-term [{}] failure [{}]",
+                    index.type(),
+                    index.id(),
+                    index.seqNo(),
+                    routingEntry().allocationId(),
+                    index.primaryTerm(),
+                    operationPrimaryTerm,
+                    index.origin(),
+                    result.getSeqNo(),
+                    result.getTerm(),
+                    result.getFailure());
+            }
         } catch (Exception e) {
+            if (traceEnabled) {
+                logger.trace(new ParameterizedMessage(
+                    "index-fail [{}][{}] seq# [{}] allocation-id [{}] primaryTerm [{}] operationPrimaryTerm [{}] origin [{}]",
+                    index.type(),
+                    index.id(),
+                    index.seqNo(),
+                    routingEntry().allocationId(),
+                    index.primaryTerm(),
+                    operationPrimaryTerm,
+                    index.origin()
+                ), e);
+            }
             indexingOperationListeners.postIndex(shardId, index, e);
             throw e;
         }
