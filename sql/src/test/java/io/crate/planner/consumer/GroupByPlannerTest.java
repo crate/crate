@@ -67,6 +67,7 @@ import java.util.List;
 import static io.crate.testing.SymbolMatchers.isAggregation;
 import static io.crate.testing.SymbolMatchers.isInputColumn;
 import static io.crate.testing.SymbolMatchers.isReference;
+import static io.crate.testing.TestingHelpers.isSQL;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
@@ -377,17 +378,10 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
             "select id from users group by id having id > 0");
         Collect collect = (Collect) merge.subPlan();
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
+        assertThat(collectPhase.where(), isSQL("(doc.users.id > 0)"));
         assertThat(collectPhase.projections(), contains(
-            instanceOf(GroupProjection.class),
-            instanceOf(FilterProjection.class)
+            instanceOf(GroupProjection.class)
         ));
-
-        FilterProjection filterProjection = (FilterProjection) collectPhase.projections().get(1);
-        assertThat(filterProjection.requiredGranularity(), is(RowGranularity.SHARD));
-        assertThat(filterProjection.outputs().size(), is(1));
-        assertThat(filterProjection.outputs().get(0), instanceOf(InputColumn.class));
-        InputColumn inputColumn = (InputColumn) filterProjection.outputs().get(0);
-        assertThat(inputColumn.index(), is(0));
 
         MergePhase localMergeNode = merge.mergePhase();
         assertThat(localMergeNode.projections(), empty());
