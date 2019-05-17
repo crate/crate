@@ -26,12 +26,15 @@ import io.crate.data.Input;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.TransactionContext;
 import io.crate.types.DataTypes;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.List;
 
 public class AndOperator extends Operator<Boolean> {
 
@@ -138,5 +141,48 @@ public class AndOperator extends Operator<Boolean> {
             first = new Function(INFO, Arrays.asList(first, symbols.next()));
         }
         return first;
+    }
+
+    /**
+     * Split a symbol by AND functions.
+     * <pre>
+     * x = 1 AND y = 2 ->  [(x = 1), y = 2)]
+     * x = 1           ->  [(x = 1)]
+     * </pre>
+     *
+     * @return The parts of a predicate
+     */
+    public static List<Symbol> split(Symbol predicate) {
+        ArrayList<Symbol> conjunctions = new ArrayList<>();
+        predicate.accept(SplitVisitor.INSTANCE, conjunctions);
+        if (conjunctions.isEmpty()) {
+            conjunctions.add(predicate);
+        }
+        return conjunctions;
+    }
+
+    static class SplitVisitor extends SymbolVisitor<List<Symbol>, Symbol> {
+
+        private static final SplitVisitor INSTANCE = new SplitVisitor();
+
+        @Override
+        protected Symbol visitSymbol(Symbol symbol, List<Symbol> context) {
+            return symbol;
+        }
+
+        @Override
+        public Symbol visitFunction(Function func, List<Symbol> conjunctions) {
+            if (func.info().equals(INFO)) {
+                for (Symbol argument : func.arguments()) {
+                    Symbol result = argument.accept(this, conjunctions);
+                    if (result != null) {
+                        conjunctions.add(result);
+                    }
+                }
+                return null;
+            } else {
+                return func;
+            }
+        }
     }
 }

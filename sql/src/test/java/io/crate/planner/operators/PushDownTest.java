@@ -349,4 +349,29 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
             )
         );
     }
+
+    @Test
+    public void testFilterIsPushedBeneathGroupIfOnGroupKeys() {
+        var plan = sqlExecutor.logicalPlan(
+            "SELECT x, count(*) FROM t1 GROUP BY 1 HAVING x > 1"
+        );
+        var expectedPlan =
+            "RootBoundary[x, count(*)]\n" +
+            "GroupBy[x | count(*)]\n" +
+            "Collect[doc.t1 | [x] | (x > 1)]\n";
+        assertThat(plan, isPlan(sqlExecutor.functions(), expectedPlan));
+    }
+
+    @Test
+    public void testFilterOnGroupKeyAndOnAggregateIsPartiallyPushedBeneathGroupBy() {
+        var plan = sqlExecutor.logicalPlan(
+            "SELECT x, count(*) FROM t1 GROUP BY 1 HAVING count(*) > 10 AND x > 1"
+        );
+        var expectedPlan =
+            "RootBoundary[x, count(*)]\n" +
+            "Filter[(count(*) > 10)]\n" +
+            "GroupBy[x | count(*)]\n" +
+            "Collect[doc.t1 | [x] | (x > 1)]\n";
+        assertThat(plan, isPlan(sqlExecutor.functions(), expectedPlan));
+    }
 }
