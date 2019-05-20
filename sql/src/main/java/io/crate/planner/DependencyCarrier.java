@@ -33,6 +33,7 @@ import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.PhasesTaskFactory;
 import io.crate.license.LicenseService;
 import io.crate.metadata.Functions;
+import io.crate.metadata.Schemas;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -51,6 +52,7 @@ public class DependencyCarrier {
     private final TransportActionProvider transportActionProvider;
     private final PhasesTaskFactory phasesTaskFactory;
     private final ThreadPool threadPool;
+    private final Schemas schemas;
     private final Functions functions;
     private final DDLStatementDispatcher ddlAnalysisDispatcherProvider;
     private final ClusterService clusterService;
@@ -67,6 +69,7 @@ public class DependencyCarrier {
                              TransportActionProvider transportActionProvider,
                              PhasesTaskFactory phasesTaskFactory,
                              ThreadPool threadPool,
+                             Schemas schemas,
                              Functions functions,
                              DDLStatementDispatcher ddlAnalysisDispatcherProvider,
                              ClusterService clusterService,
@@ -80,6 +83,7 @@ public class DependencyCarrier {
         this.transportActionProvider = transportActionProvider;
         this.phasesTaskFactory = phasesTaskFactory;
         this.threadPool = threadPool;
+        this.schemas = schemas;
         this.functions = functions;
         this.ddlAnalysisDispatcherProvider = ddlAnalysisDispatcherProvider;
         this.clusterService = clusterService;
@@ -90,6 +94,10 @@ public class DependencyCarrier {
         this.createViewAction = createViewAction;
         this.dropViewAction = dropViewAction;
         this.swapRelationsAction = swapRelationsAction;
+    }
+
+    public Schemas schemas() {
+        return schemas;
     }
 
     public TransportSwapRelationsAction swapRelationsAction() {

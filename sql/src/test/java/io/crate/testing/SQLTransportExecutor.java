@@ -620,7 +620,7 @@ public class SQLTransportExecutor {
 
             for (int i = 0, outputFieldsSize = outputFields.size(); i < outputFieldsSize; i++) {
                 Field field = outputFields.get(i);
-                outputNames[i] = field.path().outputName();
+                outputNames[i] = field.path().sqlFqn();
                 outputTypes[i] = field.valueType();
             }
 

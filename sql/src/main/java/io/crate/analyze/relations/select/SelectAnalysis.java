@@ -28,7 +28,7 @@ import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.Path;
+import io.crate.metadata.ColumnIdent;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.QualifiedName;
 
@@ -41,7 +41,7 @@ public class SelectAnalysis {
     private final Map<QualifiedName, AnalyzedRelation> sources;
     private final ExpressionAnalyzer expressionAnalyzer;
     private final ExpressionAnalysisContext expressionAnalysisContext;
-    private final List<Path> outputNames;
+    private final List<ColumnIdent> outputNames;
     private final List<Symbol> outputSymbols;
     private final Multimap<String, Symbol> outputMultiMap;
 
@@ -57,7 +57,7 @@ public class SelectAnalysis {
         outputSymbols = new ArrayList<>(expectedItems);
     }
 
-    public List<Path> outputNames() {
+    public List<ColumnIdent> outputNames() {
         return outputNames;
     }
 
@@ -82,9 +82,9 @@ public class SelectAnalysis {
         return outputMultiMap;
     }
 
-    public void add(Path path, Symbol symbol) {
+    public void add(ColumnIdent path, Symbol symbol) {
         outputNames.add(path);
         outputSymbols.add(symbol);
-        outputMultiMap.put(path.outputName(), symbol);
+        outputMultiMap.put(path.sqlFqn(), symbol);
     }
 }

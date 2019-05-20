@@ -83,15 +83,15 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testGroupKeyNotInResultColumnList() throws Exception {
         AnalyzedRelation relation = analyze("select count(*) from sys.nodes group by name");
         assertThat(relation.groupBy().size(), is(1));
-        assertThat(relation.fields().get(0).path().outputName(), is("count(*)"));
+        assertThat(relation.fields().get(0).path().sqlFqn(), is("count(*)"));
     }
 
     @Test
     public void testGroupByOnAlias() throws Exception {
         AnalyzedRelation relation = analyze("select count(*), name as n from sys.nodes group by n");
         assertThat(relation.groupBy().size(), is(1));
-        assertThat(relation.fields().get(0).path().outputName(), is("count(*)"));
-        assertThat(relation.fields().get(1).path().outputName(), is("n"));
+        assertThat(relation.fields().get(0).path().sqlFqn(), is("count(*)"));
+        assertThat(relation.fields().get(1).path().sqlFqn(), is("n"));
 
         assertEquals(relation.groupBy().get(0), relation.outputs().get(1));
     }

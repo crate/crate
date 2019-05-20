@@ -33,7 +33,7 @@ import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.relations.UnionSelect;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
-import io.crate.metadata.Path;
+import io.crate.metadata.ColumnIdent;
 
 import java.util.Collection;
 import java.util.List;
@@ -41,7 +41,7 @@ import java.util.function.Consumer;
 
 public class Relations {
 
-    static Collection<? extends Path> namesFromOutputs(List<Symbol> outputs) {
+    static Collection<? extends ColumnIdent> namesFromOutputs(List<Symbol> outputs) {
         return Lists.transform(outputs, Symbols::pathFromSymbol);
     }
 

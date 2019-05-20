@@ -96,7 +96,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
             if (!columns.contains(columnReference)) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                     "Referenced column '%s' isn't part of the column list of the INSERT statement",
-                    argumentColumn.path().outputName()));
+                    argumentColumn.path().sqlFqn()));
             }
             assert columnReference != null : "columnReference must not be null";
             DataType returnType = columnReference.valueType();

@@ -41,7 +41,7 @@ public class OutputNameFormatter {
 
     private static class InnerOutputNameFormatter extends ExpressionFormatter.Formatter {
         @Override
-        protected String visitQualifiedNameReference(QualifiedNameReference node, Void context) {
+        protected String visitQualifiedNameReference(QualifiedNameReference node, List<Expression> parameters) {
             List<String> parts = node.getName().getParts();
             if (parts.isEmpty()) {
                 throw new NoSuchElementException("Parts of QualifiedNameReference are empty: " + node.getName());
@@ -50,12 +50,12 @@ public class OutputNameFormatter {
         }
 
         @Override
-        protected String visitSubscriptExpression(SubscriptExpression node, Void context) {
+        protected String visitSubscriptExpression(SubscriptExpression node, List<Expression> parameters) {
             return process(node.name(), null) + '[' + process(node.index(), null) + ']';
         }
 
         @Override
-        public String visitArrayComparisonExpression(ArrayComparisonExpression node, Void context) {
+        public String visitArrayComparisonExpression(ArrayComparisonExpression node, List<Expression> parameters) {
             return process(node.getLeft(), null) + ' ' +
                    node.getType().getValue() + ' ' +
                    node.quantifier().name() + '(' +
@@ -63,8 +63,8 @@ public class OutputNameFormatter {
         }
 
         @Override
-        protected String visitSubqueryExpression(SubqueryExpression node, Void context) {
-            return super.visitSubqueryExpression(node, context).replace("\n", "");
+        protected String visitSubqueryExpression(SubqueryExpression node, List<Expression> parameters) {
+            return super.visitSubqueryExpression(node, parameters).replace("\n", "");
         }
     }
 }

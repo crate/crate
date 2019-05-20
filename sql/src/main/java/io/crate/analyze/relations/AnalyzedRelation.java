@@ -29,7 +29,7 @@ import io.crate.analyze.WhereClause;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.Path;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
 
@@ -42,7 +42,7 @@ public interface AnalyzedRelation extends AnalyzedStatement {
 
     <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context);
 
-    Field getField(Path path, Operation operation) throws UnsupportedOperationException, ColumnUnknownException;
+    Field getField(ColumnIdent path, Operation operation) throws UnsupportedOperationException, ColumnUnknownException;
 
     List<Field> fields();
 

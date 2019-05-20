@@ -68,7 +68,7 @@ public class InternalViewInfoFactory implements ViewInfoFactory {
             final List<Reference> collectedColumns = new ArrayList<>(relation.fields().size());
             relation.fields()
                 .forEach(field -> collectedColumns.add(
-                    new Reference(new ReferenceIdent(ident, field.path().outputName()),
+                    new Reference(new ReferenceIdent(ident, field.path().sqlFqn()),
                                   RowGranularity.DOC,
                                   field.valueType(),
                                   null)));

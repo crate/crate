@@ -40,7 +40,7 @@ import java.util.Map;
 import java.util.StringJoiner;
 import java.util.regex.Pattern;
 
-public class ColumnIdent implements Path, Comparable<ColumnIdent> {
+public class ColumnIdent implements Comparable<ColumnIdent> {
 
     private static final Pattern UNDERSCORE_PATTERN = Pattern.compile("^_([a-z][_a-z]*)*[a-z]$");
     private static final Pattern SUBSCRIPT_PATTERN = Pattern.compile("^\\w+(\\[[^\\]]+\\])+");
@@ -74,7 +74,7 @@ public class ColumnIdent implements Path, Comparable<ColumnIdent> {
 
     public ColumnIdent(String name, @Nullable List<String> path) {
         this.name = name;
-        this.path = MoreObjects.firstNonNull(path, ImmutableList.<String>of());
+        this.path = MoreObjects.firstNonNull(path, ImmutableList.of());
     }
 
     /**
@@ -96,7 +96,7 @@ public class ColumnIdent implements Path, Comparable<ColumnIdent> {
      *
      * @return the validated ColumnIdent
      */
-    public static ColumnIdent fromNameAndPathSafe(String name, @Nullable List<String> path) {
+    public static ColumnIdent fromNameAndPathSafe(String name, List<String> path) {
         validateColumnName(name);
         for (String part : path) {
             validateObjectKey(part);
@@ -167,14 +167,16 @@ public class ColumnIdent implements Path, Comparable<ColumnIdent> {
     /**
      * Checks whether this ColumnIdent is a child of <code>parentIdent</code>
      *
-     * @param parentIdent the ident to check for parenthood
+     * @param parent the ident to check for parenthood
      *
      * @return true if <code>parentIdent</code> is parentIdent of this, false otherwise.
      */
-    public boolean isChildOf(ColumnIdent parentIdent) {
-        if (!name.equals(parentIdent.name)) return false;
-        if (path.size() > parentIdent.path.size()) {
-            Iterator<String> parentIt = parentIdent.path.iterator();
+    public boolean isChildOf(ColumnIdent parent) {
+        if (!name.equals(parent.name)) {
+            return false;
+        }
+        if (path.size() > parent.path.size()) {
+            Iterator<String> parentIt = parent.path.iterator();
             Iterator<String> it = path.iterator();
             while (parentIt.hasNext()) {
                 if (!parentIt.next().equals(it.next())) {
@@ -249,39 +251,41 @@ public class ColumnIdent implements Path, Comparable<ColumnIdent> {
      * <p>
      * person --&gt; null
      */
+    @Nullable
     public ColumnIdent getParent() {
-        if (isTopLevel()) {
-            return null;
-        }
+        switch (path.size()) {
+            case 0:
+                return null;
 
-        if (path.size() > 1) {
-            return new ColumnIdent(name(), path.subList(0, path.size() - 1));
+            case 1:
+                return new ColumnIdent(name);
+
+            default:
+                return new ColumnIdent(name, path.subList(0, path.size() - 1));
         }
-        return new ColumnIdent(name());
     }
 
-
     /**
-     * creates a new columnIdent which just consists of the path of the given columnIdent
+     * creates a new columnName which just consists of the path of the given columnName
      * e.g.
      * <pre>foo['x']['y']</pre>
      * becomes
      * <pre> x['y']</pre>
      *
-     * If the columnIdent doesn't have a path the return value is null
+     * If the columnName doesn't have a path the return value is null
      */
     @Nullable
     public ColumnIdent shiftRight() {
-        if (path.isEmpty()) {
-            return null;
+        switch (path.size()) {
+            case 0:
+                return null;
+
+            case 1:
+                return new ColumnIdent(path.get(0));
+
+            default:
+                return new ColumnIdent(path.get(0), path.subList(1, path.size()));
         }
-        ColumnIdent newCi;
-        if (path.size() > 1) {
-            newCi = new ColumnIdent(path.get(0), path.subList(1, path.size()));
-        } else {
-            newCi = new ColumnIdent(path.get(0));
-        }
-        return newCi;
     }
 
     /**
@@ -317,11 +321,6 @@ public class ColumnIdent implements Path, Comparable<ColumnIdent> {
             stringJoiner.add(p);
         }
         return stringJoiner.toString();
-    }
-
-    @Override
-    public String outputName() {
-        return sqlFqn();
     }
 
     public String quotedOutputName() {

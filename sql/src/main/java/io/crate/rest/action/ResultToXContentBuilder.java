@@ -58,7 +58,7 @@ class ResultToXContentBuilder {
     ResultToXContentBuilder cols(List<Field> fields) throws IOException {
         builder.startArray(FIELDS.COLS);
         for (Field field : fields) {
-            builder.value(field.path().outputName());
+            builder.value(field.path().sqlFqn());
         }
         builder.endArray();
         return this;

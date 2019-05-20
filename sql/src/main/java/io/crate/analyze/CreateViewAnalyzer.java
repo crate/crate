@@ -24,8 +24,8 @@ package io.crate.analyze;
 
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.RelationAnalyzer;
-import io.crate.metadata.RelationName;
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.sql.SqlFormatter;
 import io.crate.sql.parser.SqlParser;
@@ -46,15 +46,11 @@ public final class CreateViewAnalyzer {
         if (BlobSchemaInfo.NAME.equals(name.schema())) {
             throw new UnsupportedOperationException("Creating a view in the \"blob\" schema is not supported");
         }
-        AnalyzedRelation query = relationAnalyzer.analyzeUnbound(
-            createView.query(), txnCtx, ParamTypeHints.EMPTY);
-
-        // sqlPrinter isn't feature complete yet; so restrict CREATE VIEW to only support queries where the
-        // format->analyze round-trip works.
-        String formattedQuery;
+        AnalyzedRelation query;
         try {
-            formattedQuery = SqlFormatter.formatSql(createView.query());
-            relationAnalyzer.analyzeUnbound((Query) SqlParser.createStatement(formattedQuery), txnCtx, ParamTypeHints.EMPTY);
+            String formattedQuery = SqlFormatter.formatSql(createView.query());
+            // Analyze the formatted Query to make sure the formatting didn't mess it up in any way.
+            query = relationAnalyzer.analyzeUnbound((Query) SqlParser.createStatement(formattedQuery), txnCtx, ParamTypeHints.EMPTY);
         } catch (Exception e) {
             throw new UnsupportedOperationException("Query cannot be used in a VIEW: " + createView.query());
         }
@@ -63,9 +59,15 @@ public final class CreateViewAnalyzer {
         // on an outdated cluster check, leading to a potential race condition.
         // The "masterOperation" which will update the clusterState will do a real-time verification
 
-        if (query.fields().stream().map(f -> f.path().outputName()).distinct().count() != query.fields().size()) {
+        if (query.fields().stream().map(f -> f.path().sqlFqn()).distinct().count() != query.fields().size()) {
             throw new IllegalArgumentException("Query in CREATE VIEW must not have duplicate column names");
         }
-        return new CreateViewStmt(name, query, formattedQuery, createView.replaceExisting(), txnCtx.sessionContext().user());
+        return new CreateViewStmt(
+            name,
+            query,
+            createView.query(),
+            createView.replaceExisting(),
+            txnCtx.sessionContext().user()
+        );
     }
 }

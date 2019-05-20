@@ -81,7 +81,7 @@ public class InformationKeyColumnUsageTableInfo extends InformationTableInfo {
             .put(Columns.TABLE_NAME,
                 () -> forFunction(InformationSchemaIterables.KeyColumnUsage::getTableName))
             .put(Columns.COLUMN_NAME,
-                () -> forFunction(InformationSchemaIterables.KeyColumnUsage::getPkColumnName))
+                () -> forFunction(InformationSchemaIterables.KeyColumnUsage::getPkColumnIdent))
             .put(Columns.ORDINAL_POSITION,
                 () -> forFunction(InformationSchemaIterables.KeyColumnUsage::getOrdinal))
             .build();

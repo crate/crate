@@ -398,7 +398,7 @@ public class Messages {
 
         int idx = 0;
         for (Field column : columns) {
-            byte[] nameBytes = column.path().outputName().getBytes(StandardCharsets.UTF_8);
+            byte[] nameBytes = column.path().sqlFqn().getBytes(StandardCharsets.UTF_8);
             length += nameBytes.length + 1;
             length += columnSize;
 
