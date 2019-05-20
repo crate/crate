@@ -10,7 +10,7 @@ EOF
 fi
 
 for libname in $CRATE_HOME/lib/*.jar; do
-    if [[ -n $CRATE_CLASSPATH ]]; then
+    if [ "x$CRATE_CLASSPATH" != "x" ]; then
         CRATE_CLASSPATH=$CRATE_CLASSPATH:$libname
     else
         CRATE_CLASSPATH=$libname
