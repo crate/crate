@@ -60,12 +60,13 @@ import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.threadpool.ThreadPool;
 
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -140,18 +141,17 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
     public JobsLogService(Settings settings,
                           ClusterSettings clusterSettings,
                           Functions functions,
-                          ThreadPool threadPool,
                           CrateCircuitBreakerService breakerService) {
-        this(settings, clusterSettings, functions, threadPool.scheduler(), breakerService);
+        this(settings, clusterSettings, functions, Executors.newSingleThreadScheduledExecutor(), breakerService);
     }
 
     @VisibleForTesting
     JobsLogService(Settings settings,
                    ClusterSettings clusterSettings,
                    Functions functions,
-                   ScheduledExecutorService scheduledExecutorService,
+                   ScheduledExecutorService scheduler,
                    CrateCircuitBreakerService breakerService) {
-        scheduler = scheduledExecutorService;
+        this.scheduler = scheduler;
         this.breakerService = breakerService;
         this.inputFactory = new InputFactory(functions);
         this.refResolver = new StaticTableReferenceResolver<>(SysJobsLogTableInfo.expressions());
@@ -273,9 +273,10 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
         } else if (expirationMillis > 0) {
             q = new ConcurrentLinkedDeque<>();
             long delay = 0L;
+            long intervalInMs = clearInterval(expiration);
             ScheduledFuture<?> scheduledFuture = TimeBasedQEviction.scheduleTruncate(
                 delay,
-                clearInterval(expiration),
+                intervalInMs,
                 q,
                 scheduler,
                 expiration
@@ -342,6 +343,12 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
     @Override
     protected void doClose() {
         jobsLogs.close();
+        scheduler.shutdown();
+        try {
+            scheduler.awaitTermination(5, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            // ignore
+        }
     }
 
     private JobsLogs statsTables() {

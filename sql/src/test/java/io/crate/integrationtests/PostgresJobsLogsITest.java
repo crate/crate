@@ -53,6 +53,7 @@ public class PostgresJobsLogsITest extends SQLTransportIntegrationTest {
         Settings.Builder builder = Settings.builder();
         return builder.put(super.nodeSettings(nodeOrdinal))
             .put("psql.port", "4244-4299")
+            .put("stats.jobs_log_expiration", "30m")
             .put("network.host", "127.0.0.1").build();
     }
 
