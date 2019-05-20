@@ -9,7 +9,17 @@ EOF
     exit 1
 fi
 
+<<<<<<< HEAD
 CRATE_CLASSPATH=$CRATE_HOME/lib/*:
+=======
+for libname in $CRATE_HOME/lib/*.jar; do
+    if [ "x$CRATE_CLASSPATH" != "x" ]; then
+        CRATE_CLASSPATH=$CRATE_CLASSPATH:$libname
+    else
+        CRATE_CLASSPATH=$libname
+    fi
+done
+>>>>>>> 4bc66ab1ac... Fix startup script conditional for older shells.
 
 if [ "x$CRATE_MIN_MEM" = "x" ]; then
     CRATE_MIN_MEM=256m
