@@ -32,6 +32,7 @@ import io.crate.execution.TransportExecutorModule;
 import io.crate.execution.engine.aggregation.impl.AggregationImplModule;
 import io.crate.execution.engine.collect.CollectOperationModule;
 import io.crate.execution.engine.collect.files.FileCollectModule;
+import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.execution.engine.window.WindowFunctionModule;
 import io.crate.execution.jobs.JobModule;
 import io.crate.execution.jobs.TasksService;
@@ -150,6 +151,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
             ImmutableList.<Class<? extends LifecycleComponent>>builder()
             .add(DecommissioningService.class)
             .add(NodeDisconnectJobMonitorService.class)
+            .add(JobsLogService.class)
             .add(PostgresNetty.class)
             .add(TasksService.class)
             .add(Schemas.class)
