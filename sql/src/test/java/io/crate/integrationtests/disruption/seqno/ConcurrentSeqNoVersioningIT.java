@@ -21,6 +21,7 @@
  */
 package io.crate.integrationtests.disruption.seqno;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import io.crate.integrationtests.disruption.discovery.AbstractDisruptionTestCase;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.ExceptionsHelper;
@@ -127,6 +128,7 @@ public class ConcurrentSeqNoVersioningIT extends AbstractDisruptionTestCase {
     // Wait up to 1 minute (+10s in thread to ensure it does not time out) for threads to complete previous round before initiating next
     // round.
     @Test
+    @Repeat(iterations = 10)
     public void testSeqNoCASLinearizability() {
         final int disruptTimeSeconds = scaledRandomIntBetween(1, 8);
 
