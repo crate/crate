@@ -37,10 +37,4 @@ public final class FieldsVisitor extends DefaultTraversalSymbolVisitor<Consumer<
     public static void visitFields(Symbol symbolTree, Consumer<? super Field> consumer) {
         FIELDS_VISITOR.process(symbolTree, consumer);
     }
-
-    public static void visitFields(Iterable<? extends Symbol> symbolTrees, Consumer<? super Field> consumer) {
-        for (Symbol symbolTree : symbolTrees) {
-            visitFields(symbolTree, consumer);
-        }
-    }
 }

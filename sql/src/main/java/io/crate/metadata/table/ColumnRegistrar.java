@@ -35,7 +35,6 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -59,10 +58,6 @@ public class ColumnRegistrar {
 
     public ColumnRegistrar register(String column, DataType type) {
         return register(new ColumnIdent(column), type);
-    }
-
-    public ColumnRegistrar register(String column, DataType type, @Nullable List<String> path) {
-        return register(new ColumnIdent(column, path), type);
     }
 
     public ColumnRegistrar register(ColumnIdent column, DataType type) {

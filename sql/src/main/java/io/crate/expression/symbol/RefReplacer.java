@@ -37,22 +37,10 @@ public final class RefReplacer extends FunctionCopyVisitor<Function<? super Refe
     }
 
     /**
-     * Create a function that applies {@code mapper} on any Reference within a function-symbol-tree.
-     */
-    public static Function<? super Symbol, ? extends Symbol> replaceRefs(Function<? super Reference, ? extends Symbol> mapper) {
-        return st -> replaceRefs(st, mapper);
-    }
-
-    /**
      * Applies {@code mapper} on all {@link Reference} instances within {@code tree}
      */
     public static Symbol replaceRefs(Symbol tree, Function<? super Reference, ? extends Symbol> mapper) {
         return REPLACER.process(tree, mapper);
-    }
-
-    public static io.crate.expression.symbol.Function replaceRefs(io.crate.expression.symbol.Function func,
-                                                                  Function<? super Reference, ? extends Symbol> mapper) {
-        return (io.crate.expression.symbol.Function) REPLACER.process(func, mapper);
     }
 
     @Override
