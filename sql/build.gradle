@@ -22,6 +22,7 @@ dependencies {
     compile "org.hdrhistogram:HdrHistogram:2.1.9"
     implementation "io.netty:netty-codec-http:${versions.netty4}"
     compile "io.netty:netty-transport:${versions.netty4}"
+    compile "io.netty:netty-transport-native-epoll:${versions.netty4}:linux-x86_64"
     compile "io.netty:netty-codec:${versions.netty4}"
     compile "io.netty:netty-buffer:${versions.netty4}"
     compile "com.google.guava:guava:${versions.guava}"

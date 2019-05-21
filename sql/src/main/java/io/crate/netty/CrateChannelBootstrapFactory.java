@@ -25,11 +25,15 @@ package io.crate.netty;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
+import io.netty.channel.epoll.EpollEventLoopGroup;
+import io.netty.channel.epoll.EpollServerSocketChannel;
 import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.socket.nio.NioServerSocketChannel;
+import org.apache.lucene.util.Constants;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.transport.TransportSettings;
 import org.elasticsearch.transport.netty4.Netty4Transport;
+
+import java.util.concurrent.ThreadFactory;
 
 import static org.elasticsearch.common.util.concurrent.EsExecutors.daemonThreadFactory;
 
@@ -42,13 +46,20 @@ public final class CrateChannelBootstrapFactory {
     }
 
     public static ServerBootstrap newChannelBootstrap(String id, Settings settings) {
-        EventLoopGroup boss = new NioEventLoopGroup(
-            Netty4Transport.NETTY_BOSS_COUNT.get(settings), daemonThreadFactory(settings, id + "-netty-boss"));
-        EventLoopGroup worker = new NioEventLoopGroup(
-            Netty4Transport.WORKER_COUNT.get(settings), daemonThreadFactory(settings, id + "-netty-worker"));
+        ThreadFactory bossThreads = daemonThreadFactory(settings, id + "-netty-boss");
+        ThreadFactory workerThreads = daemonThreadFactory(settings, id + "-netty-worker");
+        final EventLoopGroup boss;
+        final EventLoopGroup worker;
+        if (Constants.LINUX) {
+            boss = new EpollEventLoopGroup(Netty4Transport.NETTY_BOSS_COUNT.get(settings), bossThreads);
+            worker = new EpollEventLoopGroup(Netty4Transport.WORKER_COUNT.get(settings), workerThreads);
+        } else {
+            boss = new NioEventLoopGroup(Netty4Transport.NETTY_BOSS_COUNT.get(settings), bossThreads);
+            worker = new NioEventLoopGroup(Netty4Transport.WORKER_COUNT.get(settings), workerThreads);
+        }
         Boolean reuseAddress = TransportSettings.TCP_REUSE_ADDRESS.get(settings);
         return new ServerBootstrap()
-            .channel(NioServerSocketChannel.class)
+            .channel(EpollServerSocketChannel.class)
             .group(boss, worker)
             .option(ChannelOption.SO_REUSEADDR, reuseAddress)
             .childOption(ChannelOption.SO_REUSEADDR, reuseAddress)

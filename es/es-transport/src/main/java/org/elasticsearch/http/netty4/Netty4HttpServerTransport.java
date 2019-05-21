@@ -30,8 +30,9 @@ import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.FixedRecvByteBufAllocator;
 import io.netty.channel.RecvByteBufAllocator;
+import io.netty.channel.epoll.EpollEventLoopGroup;
+import io.netty.channel.epoll.EpollServerSocketChannel;
 import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.ByteToMessageDecoder;
 import io.netty.handler.codec.http.HttpContentCompressor;
 import io.netty.handler.codec.http.HttpContentDecompressor;
@@ -42,6 +43,7 @@ import io.netty.handler.codec.http.HttpResponseEncoder;
 import io.netty.handler.timeout.ReadTimeoutHandler;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.lucene.util.Constants;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
@@ -79,6 +81,7 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
@@ -271,9 +274,13 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
 
             serverBootstrap = new ServerBootstrap();
 
-            serverBootstrap.group(
-                new NioEventLoopGroup(workerCount, daemonThreadFactory(settings, HTTP_SERVER_WORKER_THREAD_NAME_PREFIX)));
-            serverBootstrap.channel(NioServerSocketChannel.class);
+            ThreadFactory threadFactory = daemonThreadFactory(settings, HTTP_SERVER_WORKER_THREAD_NAME_PREFIX);
+            if (Constants.LINUX) {
+                serverBootstrap.group(new EpollEventLoopGroup(workerCount, threadFactory));
+            } else {
+                serverBootstrap.group(new NioEventLoopGroup(workerCount, threadFactory));
+            }
+            serverBootstrap.channel(EpollServerSocketChannel.class);
 
             serverBootstrap.childHandler(configureServerChannelHandler());
 
@@ -395,10 +402,9 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
             builder.allowCredentials();
         }
         String[] strMethods = Strings.tokenizeToStringArray(SETTING_CORS_ALLOW_METHODS.get(settings), ",");
-        HttpMethod[] methods = Arrays.asList(strMethods)
-            .stream()
+        HttpMethod[] methods = Arrays.stream(strMethods)
             .map(HttpMethod::valueOf)
-            .toArray(size -> new HttpMethod[size]);
+            .toArray(HttpMethod[]::new);
         return builder.allowedRequestMethods(methods)
             .maxAge(SETTING_CORS_MAX_AGE.get(settings))
             .allowedRequestHeaders(Strings.tokenizeToStringArray(SETTING_CORS_ALLOW_HEADERS.get(settings), ","))
