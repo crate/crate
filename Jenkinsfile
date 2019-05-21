@@ -16,13 +16,11 @@ pipeline {
           environment {
             CODECOV_TOKEN = credentials('cratedb-codecov-token')
           }
-          tools {
-            jdk 'jdk11'
-          }
           steps {
             sh 'git clean -xdff'
             checkout scm
-            sh 'timeout 30m ./gradlew --no-daemon --parallel -PtestForks=8 test forbiddenApisMain jacocoReport'
+            sh 'jabba install openjdk@1.11.0-2'
+            sh 'JAVA_HOME=$(jabba which --home openjdk@1.11.0-2) timeout 30m ./gradlew --no-daemon --parallel -PtestForks=8 test forbiddenApisMain jacocoReport'
             sh 'curl -s https://codecov.io/bash | bash'
           }
           post {
@@ -36,13 +34,11 @@ pipeline {
           environment {
             CODECOV_TOKEN = credentials('cratedb-codecov-token')
           }
-          tools {
-            jdk 'jdk12'
-          }
           steps {
             sh 'git clean -xdff'
             checkout scm
-            sh 'timeout 30m ./gradlew --no-daemon --parallel -PtestForks=8 test jacocoReport'
+            sh 'jabba install openjdk@1.12.0-1'
+            sh 'JAVA_HOME=$(jabba which --home openjdk@1.12.0-1) timeout 30m ./gradlew --no-daemon --parallel -PtestForks=8 test jacocoReport'
             sh 'curl -s https://codecov.io/bash | bash'
           }
           post {
@@ -53,57 +49,47 @@ pipeline {
         }
         stage('itest jdk11') {
           agent { label 'medium' }
-          tools {
-            jdk 'jdk11'
-          }
           steps {
             sh 'git clean -xdff'
             checkout scm
-            sh 'timeout 20m ./gradlew --no-daemon itest'
+            sh 'jabba install openjdk@1.11.0-2'
+            sh 'JAVA_HOME=$(jabba which --home openjdk@1.11.0-2) timeout 20m ./gradlew --no-daemon itest'
           }
         }
         stage('ce itest jdk11') {
           agent { label 'medium' }
-          tools {
-            jdk 'jdk11'
-          }
           steps {
             sh 'git clean -xdff'
             checkout scm
-            sh 'timeout 20m ./gradlew --no-daemon ceItest'
+            sh 'jabba install openjdk@1.11.0-2'
+            sh 'JAVA_HOME=$(jabba which --home openjdk@1.11.0-2) timeout 20m ./gradlew --no-daemon ceItest'
           }
         }
         stage('ce licenseTest jdk11') {
           agent { label 'medium' }
-          tools {
-            jdk 'jdk11'
-          }
           steps {
             sh 'git clean -xdff'
             checkout scm
-            sh 'timeout 20m ./gradlew --no-daemon ceLicenseTest'
+            sh 'jabba install openjdk@1.11.0-2'
+            sh 'JAVA_HOME=$(jabba which --home openjdk@1.11.0-2) timeout 20m ./gradlew --no-daemon ceLicenseTest'
           }
         }
         stage('itest jdk12') {
           agent { label 'medium' }
-          tools {
-            jdk 'jdk12'
-          }
           steps {
             sh 'git clean -xdff'
             checkout scm
-            sh 'timeout 20m ./gradlew --no-daemon itest'
+            sh 'jabba install openjdk@1.12.0-1'
+            sh 'JAVA_HOME=$(jabba which --home openjdk@1.12.0-1) timeout 20m ./gradlew --no-daemon itest'
           }
         }
         stage('blackbox tests') {
           agent { label 'medium' }
-          tools {
-            jdk 'jdk11'
-          }
           steps {
             sh 'git clean -xdff'
             checkout scm
-            sh 'timeout 20m ./gradlew --no-daemon hdfsTest monitoringTest gtest dnsDiscoveryTest'
+            sh 'jabba install openjdk@1.11.0-2'
+            sh 'JAVA_HOME=$(jabba which --home openjdk@1.11.0-2) timeout 20m ./gradlew --no-daemon hdfsTest monitoringTest gtest dnsDiscoveryTest'
           }
         }
       }
