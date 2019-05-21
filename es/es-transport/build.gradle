@@ -7,4 +7,5 @@ dependencies {
     implementation "io.netty:netty-handler:${versions.netty4}"
     implementation "io.netty:netty-resolver:${versions.netty4}"
     implementation "io.netty:netty-transport:${versions.netty4}"
+    implementation "io.netty:netty-transport-native-epoll:${versions.netty4}:linux-x86_64"
 }

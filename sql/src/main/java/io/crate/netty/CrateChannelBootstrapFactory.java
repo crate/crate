@@ -22,16 +22,22 @@
 
 package io.crate.netty;
 
-import io.netty.bootstrap.ServerBootstrap;
-import io.netty.channel.ChannelOption;
-import io.netty.channel.EventLoopGroup;
-import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.socket.nio.NioServerSocketChannel;
+import static org.elasticsearch.common.util.concurrent.EsExecutors.daemonThreadFactory;
+
+import java.util.concurrent.ThreadFactory;
+
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.transport.TransportSettings;
 import org.elasticsearch.transport.netty4.Netty4Transport;
 
-import static org.elasticsearch.common.util.concurrent.EsExecutors.daemonThreadFactory;
+import io.netty.bootstrap.ServerBootstrap;
+import io.netty.channel.ChannelOption;
+import io.netty.channel.EventLoopGroup;
+import io.netty.channel.epoll.Epoll;
+import io.netty.channel.epoll.EpollEventLoopGroup;
+import io.netty.channel.epoll.EpollServerSocketChannel;
+import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.nio.NioServerSocketChannel;
 
 /**
  * Factory utility for creating channel server bootstraps, based on the relevant netty {@link Settings}
@@ -42,13 +48,22 @@ public final class CrateChannelBootstrapFactory {
     }
 
     public static ServerBootstrap newChannelBootstrap(String id, Settings settings) {
-        EventLoopGroup boss = new NioEventLoopGroup(
-            Netty4Transport.NETTY_BOSS_COUNT.get(settings), daemonThreadFactory(settings, id + "-netty-boss"));
-        EventLoopGroup worker = new NioEventLoopGroup(
-            Netty4Transport.WORKER_COUNT.get(settings), daemonThreadFactory(settings, id + "-netty-worker"));
+        ThreadFactory bossThreads = daemonThreadFactory(settings, id + "-netty-boss");
+        ThreadFactory workerThreads = daemonThreadFactory(settings, id + "-netty-worker");
+        final EventLoopGroup boss;
+        final EventLoopGroup worker;
+        var serverBootstrap = new ServerBootstrap();
+        if (Epoll.isAvailable()) {
+            boss = new EpollEventLoopGroup(Netty4Transport.NETTY_BOSS_COUNT.get(settings), bossThreads);
+            worker = new EpollEventLoopGroup(Netty4Transport.WORKER_COUNT.get(settings), workerThreads);
+            serverBootstrap.channel(EpollServerSocketChannel.class);
+        } else {
+            boss = new NioEventLoopGroup(Netty4Transport.NETTY_BOSS_COUNT.get(settings), bossThreads);
+            worker = new NioEventLoopGroup(Netty4Transport.WORKER_COUNT.get(settings), workerThreads);
+            serverBootstrap.channel(NioServerSocketChannel.class);
+        }
         Boolean reuseAddress = TransportSettings.TCP_REUSE_ADDRESS.get(settings);
-        return new ServerBootstrap()
-            .channel(NioServerSocketChannel.class)
+        return serverBootstrap
             .group(boss, worker)
             .option(ChannelOption.SO_REUSEADDR, reuseAddress)
             .childOption(ChannelOption.SO_REUSEADDR, reuseAddress)
