@@ -121,7 +121,6 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
                         LOGGER.error("Error sending response", ex);
                         throw ex;
                     } finally {
-                        content.release();
                         request.release();
                     }
                 });
