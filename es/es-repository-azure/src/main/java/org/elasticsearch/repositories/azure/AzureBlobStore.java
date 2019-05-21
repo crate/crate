@@ -33,24 +33,20 @@ import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.util.Map;
 
-import static java.util.Collections.emptyMap;
-
 public class AzureBlobStore implements BlobStore {
 
     private final AzureStorageService service;
 
-    private final String clientName;
     private final String container;
     private final LocationMode locationMode;
 
     public AzureBlobStore(RepositoryMetaData metadata, AzureStorageService service) {
         this.container = Repository.CONTAINER_SETTING.get(metadata.settings());
-        this.clientName = Repository.CLIENT_NAME.get(metadata.settings());
         this.service = service;
         // locationMode is set per repository, not per client
         this.locationMode = Repository.LOCATION_MODE_SETTING.get(metadata.settings());
-        final Map<String, AzureStorageSettings> prevSettings = this.service.refreshAndClearCache(emptyMap());
-        final Map<String, AzureStorageSettings> newSettings = AzureStorageSettings.overrideLocationMode(prevSettings, this.locationMode);
+        final AzureStorageSettings prevSettings = this.service.refreshAndClearCache(null);
+        final AzureStorageSettings newSettings = AzureStorageSettings.overrideLocationMode(prevSettings, this.locationMode);
         this.service.refreshAndClearCache(newSettings);
     }
 
@@ -66,10 +62,6 @@ public class AzureBlobStore implements BlobStore {
         return locationMode;
     }
 
-    public String getClientName() {
-        return clientName;
-    }
-
     @Override
     public BlobContainer blobContainer(BlobPath path) {
         return new AzureBlobContainer(path, this);
@@ -79,7 +71,7 @@ public class AzureBlobStore implements BlobStore {
     public void delete(BlobPath path) throws IOException {
         final String keyPath = path.buildAsString();
         try {
-            service.deleteFiles(clientName, container, keyPath);
+            service.deleteFiles(container, keyPath);
         } catch (URISyntaxException | StorageException e) {
             throw new IOException(e);
         }
@@ -90,28 +82,28 @@ public class AzureBlobStore implements BlobStore {
     }
 
     public boolean containerExist() throws URISyntaxException, StorageException {
-        return service.doesContainerExist(clientName, container);
+        return service.doesContainerExist(container);
     }
 
     public boolean blobExists(String blob) throws URISyntaxException, StorageException {
-        return service.blobExists(clientName, container, blob);
+        return service.blobExists(container, blob);
     }
 
     public void deleteBlob(String blob) throws URISyntaxException, StorageException {
-        service.deleteBlob(clientName, container, blob);
+        service.deleteBlob(container, blob);
     }
 
     public InputStream getInputStream(String blob) throws URISyntaxException, StorageException, IOException {
-        return service.getInputStream(clientName, container, blob);
+        return service.getInputStream(container, blob);
     }
 
     public Map<String, BlobMetaData> listBlobsByPrefix(String keyPath, String prefix)
         throws URISyntaxException, StorageException {
-        return service.listBlobsByPrefix(clientName, container, keyPath, prefix);
+        return service.listBlobsByPrefix(container, keyPath, prefix);
     }
 
     public void writeBlob(String blobName, InputStream inputStream, long blobSize, boolean failIfAlreadyExists)
         throws URISyntaxException, StorageException, IOException {
-        service.writeBlob(this.clientName, container, blobName, inputStream, blobSize, failIfAlreadyExists);
+        service.writeBlob(container, blobName, inputStream, blobSize, failIfAlreadyExists);
     }
 }

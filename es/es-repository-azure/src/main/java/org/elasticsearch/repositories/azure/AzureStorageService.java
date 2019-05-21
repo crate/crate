@@ -19,6 +19,7 @@
 
 package org.elasticsearch.repositories.azure;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.microsoft.azure.storage.AccessCondition;
 import com.microsoft.azure.storage.CloudStorageAccount;
 import com.microsoft.azure.storage.OperationContext;
@@ -36,6 +37,7 @@ import com.microsoft.azure.storage.blob.ListBlobItem;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
+import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.blobstore.BlobMetaData;
 import org.elasticsearch.common.blobstore.support.PlainBlobMetaData;
 import org.elasticsearch.common.collect.Tuple;
@@ -56,8 +58,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Supplier;
 
-import static java.util.Collections.emptyMap;
-
 public class AzureStorageService {
 
     private static final Logger LOGGER = LogManager.getLogger(AzureStorageService.class);
@@ -68,13 +68,13 @@ public class AzureStorageService {
      */
     public static final ByteSizeValue MAX_CHUNK_SIZE = new ByteSizeValue(256, ByteSizeUnit.MB);
 
-    // 'package' for testing
-    volatile Map<String, AzureStorageSettings> storageSettings = emptyMap();
+    @VisibleForTesting
+    volatile AzureStorageSettings storageSettings;
 
     public AzureStorageService(Settings settings) {
         // eagerly load client settings so that secure settings are read
-        final Map<String, AzureStorageSettings> clientsSettings = AzureStorageSettings.load(settings);
-        refreshAndClearCache(clientsSettings);
+        final AzureStorageSettings clientSettings = AzureStorageSettings.getClientSettings(settings);
+        refreshAndClearCache(clientSettings);
     }
 
     /**
@@ -84,15 +84,15 @@ public class AzureStorageService {
      * thread for logically coupled ops. The {@code OperationContext} is used to
      * specify the proxy, but a new context is *required* for each call.
      */
-    public Tuple<CloudBlobClient, Supplier<OperationContext>> client(String clientName) {
-        final AzureStorageSettings azureStorageSettings = this.storageSettings.get(clientName);
+    public Tuple<CloudBlobClient, Supplier<OperationContext>> client() {
+        final AzureStorageSettings azureStorageSettings = this.storageSettings;
         if (azureStorageSettings == null) {
-            throw new SettingsException("Unable to find client with name [" + clientName + "]");
+            throw new SettingsException("Client settings are not provided");
         }
         try {
             return new Tuple<>(buildClient(azureStorageSettings), () -> buildOperationContext(azureStorageSettings));
         } catch (InvalidKeyException | URISyntaxException | IllegalArgumentException e) {
-            throw new SettingsException("Invalid azure client settings with name [" + clientName + "]", e);
+            throw new SettingsException("Invalid azure client settings", e);
         }
     }
 
@@ -126,27 +126,31 @@ public class AzureStorageService {
     }
 
     /**
-     * Updates settings for building clients. Any client cache is cleared. Future
+     * Updates settings for building a client. Any client cache is cleared. Future
      * client requests will use the new refreshed settings.
      *
-     * @param clientsSettings the settings for new clients
+     * @param clientSettings the settings for a new client
      * @return the old settings
      */
-    public Map<String, AzureStorageSettings> refreshAndClearCache(Map<String, AzureStorageSettings> clientsSettings) {
-        final Map<String, AzureStorageSettings> prevSettings = this.storageSettings;
-        this.storageSettings = Map.copyOf(clientsSettings);
-        // clients are built lazily by {@link client(String)}
+    public AzureStorageSettings refreshAndClearCache(@Nullable AzureStorageSettings clientSettings) {
+        final AzureStorageSettings prevSettings = this.storageSettings;
+        if (clientSettings == null) {
+            this.storageSettings = null;
+        } else {
+            this.storageSettings = AzureStorageSettings.copy(clientSettings);
+        }
+        // clients are built lazily by {@link client()}
         return prevSettings;
     }
 
-    public boolean doesContainerExist(String account, String container) throws URISyntaxException, StorageException {
-        final Tuple<CloudBlobClient, Supplier<OperationContext>> client = client(account);
+    public boolean doesContainerExist(String container) throws URISyntaxException, StorageException {
+        final Tuple<CloudBlobClient, Supplier<OperationContext>> client = client();
         final CloudBlobContainer blobContainer = client.v1().getContainerReference(container);
         return blobContainer.exists(null, null, client.v2().get());
     }
 
-    public void deleteFiles(String account, String container, String path) throws URISyntaxException, StorageException {
-        final Tuple<CloudBlobClient, Supplier<OperationContext>> client = client(account);
+    public void deleteFiles(String container, String path) throws URISyntaxException, StorageException {
+        final Tuple<CloudBlobClient, Supplier<OperationContext>> client = client();
         // container name must be lower case.
         LOGGER.trace(() -> new ParameterizedMessage("delete files container [{}], path [{}]", container, path));
         // list the blobs using a flat blob listing mode
@@ -179,16 +183,16 @@ public class AzureStorageService {
         return splits[2];
     }
 
-    public boolean blobExists(String account, String container, String blob) throws URISyntaxException, StorageException {
+    public boolean blobExists(String container, String blob) throws URISyntaxException, StorageException {
         // Container name must be lower case.
-        final Tuple<CloudBlobClient, Supplier<OperationContext>> client = client(account);
+        final Tuple<CloudBlobClient, Supplier<OperationContext>> client = client();
         final CloudBlobContainer blobContainer = client.v1().getContainerReference(container);
         final CloudBlockBlob azureBlob = blobContainer.getBlockBlobReference(blob);
         return azureBlob.exists(null, null, client.v2().get());
     }
 
-    public void deleteBlob(String account, String container, String blob) throws URISyntaxException, StorageException {
-        final Tuple<CloudBlobClient, Supplier<OperationContext>> client = client(account);
+    public void deleteBlob(String container, String blob) throws URISyntaxException, StorageException {
+        final Tuple<CloudBlobClient, Supplier<OperationContext>> client = client();
         // Container name must be lower case.
         final CloudBlobContainer blobContainer = client.v1().getContainerReference(container);
         LOGGER.trace(() -> new ParameterizedMessage("delete blob for container [{}], blob [{}]", container, blob));
@@ -197,22 +201,22 @@ public class AzureStorageService {
         azureBlob.delete(DeleteSnapshotsOption.NONE, null, null, client.v2().get());
     }
 
-    public InputStream getInputStream(String account, String container, String blob)
+    public InputStream getInputStream(String container, String blob)
         throws URISyntaxException, StorageException, IOException {
-        final Tuple<CloudBlobClient, Supplier<OperationContext>> client = client(account);
+        final Tuple<CloudBlobClient, Supplier<OperationContext>> client = client();
         final CloudBlockBlob blockBlobReference = client.v1().getContainerReference(container).getBlockBlobReference(blob);
         LOGGER.trace(() -> new ParameterizedMessage("reading container [{}], blob [{}]", container, blob));
         return blockBlobReference.openInputStream(null, null, client.v2().get());
     }
 
-    public Map<String, BlobMetaData> listBlobsByPrefix(String account, String container, String keyPath, String prefix)
+    public Map<String, BlobMetaData> listBlobsByPrefix(String container, String keyPath, String prefix)
         throws URISyntaxException, StorageException {
         // NOTE: this should be here: if (prefix == null) prefix = "";
         // however, this is really inefficient since deleteBlobsByPrefix enumerates everything and
         // then does a prefix match on the result; it should just call listBlobsByPrefix with the prefix!
         final var blobsBuilder = new HashMap<String, BlobMetaData>();
         final EnumSet<BlobListingDetails> enumBlobListingDetails = EnumSet.of(BlobListingDetails.METADATA);
-        final Tuple<CloudBlobClient, Supplier<OperationContext>> client = client(account);
+        final Tuple<CloudBlobClient, Supplier<OperationContext>> client = client();
         final CloudBlobContainer blobContainer = client.v1().getContainerReference(container);
         LOGGER.trace(() -> new ParameterizedMessage("listing container [{}], keyPath [{}], prefix [{}]", container, keyPath, prefix));
         for (final ListBlobItem blobItem : blobContainer.listBlobs(keyPath + (prefix == null ? "" : prefix), false,
@@ -231,11 +235,11 @@ public class AzureStorageService {
         return Map.copyOf(blobsBuilder);
     }
 
-    public void writeBlob(String account, String container, String blobName, InputStream inputStream, long blobSize,
+    public void writeBlob(String container, String blobName, InputStream inputStream, long blobSize,
                           boolean failIfAlreadyExists)
         throws URISyntaxException, StorageException, IOException {
         LOGGER.trace(() -> new ParameterizedMessage("writeBlob({}, stream, {})", blobName, blobSize));
-        final Tuple<CloudBlobClient, Supplier<OperationContext>> client = client(account);
+        final Tuple<CloudBlobClient, Supplier<OperationContext>> client = client();
         final CloudBlobContainer blobContainer = client.v1().getContainerReference(container);
         final CloudBlockBlob blob = blobContainer.getBlockBlobReference(blobName);
         try {
