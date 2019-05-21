@@ -66,7 +66,7 @@ public class AzureStorageServiceTests extends ESTestCase {
             .put("azure.client.endpoint_suffix", "my_endpoint_suffix").build();
         try (AzureRepositoryPlugin plugin = pluginWithSettingsValidation(settings)) {
             final AzureStorageService azureStorageService = plugin.azureStoreService;
-            final CloudBlobClient client = azureStorageService.client("default").v1();
+            final CloudBlobClient client = azureStorageService.client().v1();
             assertThat(client.getEndpoint().toString(), equalTo("https://myaccount1.blob.my_endpoint_suffix"));
         }
     }
@@ -82,10 +82,10 @@ public class AzureStorageServiceTests extends ESTestCase {
 
         try (AzureRepositoryPlugin plugin = pluginWithSettingsValidation(settings1)) {
             final AzureStorageService azureStorageService = plugin.azureStoreService;
-            CloudBlobClient client = azureStorageService.client("default").v1();
+            CloudBlobClient client = azureStorageService.client().v1();
             assertThat(client.getEndpoint().toString(), equalTo("https://myaccount11.blob.core.windows.net"));
             plugin.reload(settings2);
-            client = azureStorageService.client("default").v1();
+            client = azureStorageService.client().v1();
             assertThat(client.getEndpoint().toString(), equalTo("https://myaccount21.blob.core.windows.net"));
         }
     }
@@ -98,21 +98,14 @@ public class AzureStorageServiceTests extends ESTestCase {
         final Settings settings2 = Settings.builder().put("azure.client.account", "myaccount1").build();
         try (AzureRepositoryPlugin plugin = pluginWithSettingsValidation(settings1)) {
             final AzureStorageService azureStorageService = plugin.azureStoreService;
-            final CloudBlobClient client = azureStorageService.client("default").v1();
+            final CloudBlobClient client = azureStorageService.client().v1();
             assertThat(client.getEndpoint().toString(), equalTo("https://myaccount1.blob.core.windows.net"));
             plugin.reload(settings2);
             // existing client untouched
             assertThat(client.getEndpoint().toString(), equalTo("https://myaccount1.blob.core.windows.net"));
-            final SettingsException e = expectThrows(SettingsException.class,
-                                                     () -> azureStorageService.client("default"));
-            assertThat(e.getMessage(), is("Invalid azure client settings with name [default]"));
+            final SettingsException e = expectThrows(SettingsException.class, azureStorageService::client);
+            assertThat(e.getMessage(), is("Invalid azure client settings"));
         }
-    }
-
-    public void testGetSelectedClientNonExisting() {
-        final AzureStorageService azureStorageService = storageServiceWithSettingsValidation(buildClientCredSettings());
-        final SettingsException e = expectThrows(SettingsException.class, () -> azureStorageService.client("azure4"));
-        assertThat(e.getMessage(), is("Unable to find client with name [azure4]"));
     }
 
     public void testGetSelectedClientDefaultTimeout() {
@@ -120,19 +113,19 @@ public class AzureStorageServiceTests extends ESTestCase {
             .put(buildClientCredSettings())
             .build();
         final AzureStorageService azureStorageService = storageServiceWithSettingsValidation(timeoutSettings);
-        final CloudBlobClient client = azureStorageService.client("default").v1();
+        final CloudBlobClient client = azureStorageService.client().v1();
         assertThat(client.getDefaultRequestOptions().getTimeoutIntervalInMs(), nullValue());
     }
 
     public void testGetSelectedClientNoTimeout() {
         final AzureStorageService azureStorageService = storageServiceWithSettingsValidation(buildClientCredSettings());
-        final CloudBlobClient client = azureStorageService.client("default").v1();
+        final CloudBlobClient client = azureStorageService.client().v1();
         assertThat(client.getDefaultRequestOptions().getTimeoutIntervalInMs(), is(nullValue()));
     }
 
     public void testGetSelectedClientBackoffPolicy() {
         final AzureStorageService azureStorageService = storageServiceWithSettingsValidation(buildClientCredSettings());
-        final CloudBlobClient client = azureStorageService.client("default").v1();
+        final CloudBlobClient client = azureStorageService.client().v1();
         assertThat(client.getDefaultRequestOptions().getRetryPolicyFactory(), is(notNullValue()));
         assertThat(client.getDefaultRequestOptions().getRetryPolicyFactory(), instanceOf(RetryExponentialRetry.class));
     }
@@ -144,7 +137,7 @@ public class AzureStorageServiceTests extends ESTestCase {
             .build();
 
         final AzureStorageService azureStorageService = storageServiceWithSettingsValidation(timeoutSettings);
-        final CloudBlobClient client = azureStorageService.client("default").v1();
+        final CloudBlobClient client = azureStorageService.client().v1();
         assertThat(client.getDefaultRequestOptions().getRetryPolicyFactory(), is(notNullValue()));
         assertThat(client.getDefaultRequestOptions().getRetryPolicyFactory(), instanceOf(RetryExponentialRetry.class));
     }
@@ -154,7 +147,7 @@ public class AzureStorageServiceTests extends ESTestCase {
             .put(buildClientCredSettings())
             .build();
         final AzureStorageService mock = storageServiceWithSettingsValidation(settings);
-        assertThat(mock.storageSettings.get("default").getProxy(), nullValue());
+        assertThat(mock.storageSettings.getProxy(), nullValue());
     }
 
     public void testProxyHttp() throws UnknownHostException {
@@ -165,7 +158,7 @@ public class AzureStorageServiceTests extends ESTestCase {
             .put("azure.client.proxy.type", "http")
             .build();
         final AzureStorageService mock = storageServiceWithSettingsValidation(settings);
-        final Proxy defaultProxy = mock.storageSettings.get("default").getProxy();
+        final Proxy defaultProxy = mock.storageSettings.getProxy();
 
         assertThat(defaultProxy, notNullValue());
         assertThat(defaultProxy.type(), is(Proxy.Type.HTTP));
@@ -180,7 +173,7 @@ public class AzureStorageServiceTests extends ESTestCase {
             .put("azure.client.proxy.type", "http")
             .build();
         final AzureStorageService mock = storageServiceWithSettingsValidation(settings);
-        final Proxy proxy = mock.storageSettings.get("default").getProxy();
+        final Proxy proxy = mock.storageSettings.getProxy();
         assertThat(proxy, notNullValue());
         assertThat(proxy.type(), is(Proxy.Type.HTTP));
         assertThat(proxy.address(), is(new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 8080)));
@@ -194,7 +187,7 @@ public class AzureStorageServiceTests extends ESTestCase {
             .put("azure.client.proxy.type", "socks")
             .build();
         final AzureStorageService mock = storageServiceWithSettingsValidation(settings);
-        final Proxy proxy = mock.storageSettings.get("default").getProxy();
+        final Proxy proxy = mock.storageSettings.getProxy();
         assertThat(proxy, notNullValue());
         assertThat(proxy.type(), is(Proxy.Type.SOCKS));
         assertThat(proxy.address(), is(new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 8080)));

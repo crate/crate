@@ -32,18 +32,13 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.SocketPermission;
-import java.net.URISyntaxException;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.NoSuchFileException;
-import java.security.AccessController;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
-
-import static java.util.Collections.emptyMap;
 
 /**
  * In memory storage for unit tests
@@ -52,45 +47,45 @@ public class AzureStorageServiceMock extends AzureStorageService {
 
     protected final Map<String, ByteArrayOutputStream> blobs = new ConcurrentHashMap<>();
 
-    public AzureStorageServiceMock() {
+    AzureStorageServiceMock() {
         super(Settings.EMPTY);
     }
 
     @Override
-    public boolean doesContainerExist(String account, String container) {
+    public boolean doesContainerExist(String container) {
         return true;
     }
 
     @Override
-    public void deleteFiles(String account, String container, String path) throws URISyntaxException, StorageException {
-        final Map<String, BlobMetaData> blobs = listBlobsByPrefix(account, container, path, null);
+    public void deleteFiles(String container, String path) throws StorageException {
+        final Map<String, BlobMetaData> blobs = listBlobsByPrefix(container, path, null);
         for (String key : blobs.keySet()) {
-            deleteBlob(account, container, key);
+            deleteBlob(container, key);
         }
     }
 
     @Override
-    public boolean blobExists(String account, String container, String blob) {
+    public boolean blobExists(String container, String blob) {
         return blobs.containsKey(blob);
     }
 
     @Override
-    public void deleteBlob(String account, String container, String blob) throws URISyntaxException, StorageException {
+    public void deleteBlob(String container, String blob) throws StorageException {
         if (blobs.remove(blob) == null) {
             throw new StorageException("BlobNotFound", "[" + blob + "] does not exist.", 404, null, null);
         }
     }
 
     @Override
-    public InputStream getInputStream(String account, String container, String blob) throws IOException {
-        if (!blobExists(account, container, blob)) {
+    public InputStream getInputStream(String container, String blob) throws IOException {
+        if (!blobExists(container, blob)) {
             throw new NoSuchFileException("missing blob [" + blob + "]");
         }
         return new ByteArrayInputStream(blobs.get(blob).toByteArray());
     }
 
     @Override
-    public Map<String, BlobMetaData> listBlobsByPrefix(String account, String container, String keyPath, String prefix) {
+    public Map<String, BlobMetaData> listBlobsByPrefix(String container, String keyPath, String prefix) {
         final var blobsBuilder = new HashMap<String, BlobMetaData>();
         blobs.forEach((String blobName, ByteArrayOutputStream bos) -> {
             final String checkBlob;
@@ -108,9 +103,11 @@ public class AzureStorageServiceMock extends AzureStorageService {
     }
 
     @Override
-    public void writeBlob(String account, String container, String blobName, InputStream inputStream, long blobSize,
-                          boolean failIfAlreadyExists)
-        throws URISyntaxException, StorageException, FileAlreadyExistsException {
+    public void writeBlob(String container,
+                          String blobName,
+                          InputStream inputStream,
+                          long blobSize,
+                          boolean failIfAlreadyExists) throws StorageException, FileAlreadyExistsException {
         if (failIfAlreadyExists && blobs.containsKey(blobName)) {
             throw new FileAlreadyExistsException(blobName);
         }
@@ -145,38 +142,13 @@ public class AzureStorageServiceMock extends AzureStorageService {
         return lcStr.equals(lcPrefix);
     }
 
-    private static class PermissionRequiringInputStream extends ByteArrayInputStream {
-
-        private PermissionRequiringInputStream(byte[] buf) {
-            super(buf);
-        }
-
-        @Override
-        public synchronized int read() {
-            AccessController.checkPermission(new SocketPermission("*", "connect"));
-            return super.read();
-        }
-
-        @Override
-        public int read(byte[] b) throws IOException {
-            AccessController.checkPermission(new SocketPermission("*", "connect"));
-            return super.read(b);
-        }
-
-        @Override
-        public synchronized int read(byte[] b, int off, int len) {
-            AccessController.checkPermission(new SocketPermission("*", "connect"));
-            return super.read(b, off, len);
-        }
-    }
-
     @Override
-    public Tuple<CloudBlobClient, Supplier<OperationContext>> client(String clientName) {
+    public Tuple<CloudBlobClient, Supplier<OperationContext>> client() {
         return null;
     }
 
     @Override
-    public Map<String, AzureStorageSettings> refreshAndClearCache(Map<String, AzureStorageSettings> clientsSettings) {
-        return emptyMap();
+    public AzureStorageSettings refreshAndClearCache(AzureStorageSettings clientsSettings) {
+        return AzureStorageSettings.getClientSettings(Settings.EMPTY);
     }
 }

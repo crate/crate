@@ -19,6 +19,7 @@
 
 package org.elasticsearch.repositories.azure;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.microsoft.azure.storage.LocationMode;
 import com.microsoft.azure.storage.StorageException;
 import org.apache.logging.log4j.LogManager;
@@ -52,9 +53,9 @@ import static org.elasticsearch.repositories.azure.AzureStorageService.MIN_CHUNK
  * <p>
  * Azure file system repository supports the following settings:
  * <dl>
- * <dt>{@code container}</dt><dd>Azure container name. Defaults to elasticsearch-snapshots</dd>
+ * <dt>{@code container}</dt><dd>Azure container name. Defaults to crate-snapshots</dd>
  * <dt>{@code base_path}</dt><dd>Specifies the path within bucket to repository data. Defaults to root directory.</dd>
- * <dt>{@code chunk_size}</dt><dd>Large file can be divided into chunks. This parameter specifies the chunk size. Defaults to 64mb.</dd>
+ * <dt>{@code chunk_size}</dt><dd>Large file can be divided into chunks. This parameter specifies the chunk size. Defaults to 256mb.</dd>
  * <dt>{@code compress}</dt><dd>If set to true metadata files will be stored compressed. Defaults to false.</dd>
  * </dl>
  */
@@ -64,8 +65,6 @@ public class AzureRepository extends BlobStoreRepository {
     public static final String TYPE = "azure";
 
     public static final class Repository {
-        static final Setting<String> CLIENT_NAME =
-            new Setting<>("client", "default", Function.identity(), Property.NodeScope);
         static final Setting<String> CONTAINER_SETTING =
             new Setting<>("container", "crate-snapshots", Function.identity(), Property.NodeScope);
         static final Setting<String> BASE_PATH_SETTING = Setting.simpleString("base_path", Property.NodeScope);
@@ -119,7 +118,7 @@ public class AzureRepository extends BlobStoreRepository {
         }
     }
 
-    // only use for testing
+    @VisibleForTesting
     @Override
     protected BlobStore getBlobStore() {
         return super.getBlobStore();
@@ -129,7 +128,7 @@ public class AzureRepository extends BlobStoreRepository {
      * {@inheritDoc}
      */
     @Override
-    protected AzureBlobStore createBlobStore() throws URISyntaxException, StorageException {
+    protected AzureBlobStore createBlobStore() {
         final AzureBlobStore blobStore = new AzureBlobStore(metadata, storageService);
 
         LOGGER.debug((org.apache.logging.log4j.util.Supplier<?>) () -> new ParameterizedMessage(
