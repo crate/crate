@@ -181,7 +181,7 @@ public abstract class ReplicationRequest<Request extends ReplicationRequest<Requ
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
         if (in.readBoolean()) {
-            shardId = ShardId.readShardId(in);
+            shardId = new ShardId(in);
         } else {
             shardId = null;
         }
