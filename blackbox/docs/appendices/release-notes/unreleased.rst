@@ -206,6 +206,10 @@ Deprecations
 Changes
 =======
 
+- Changed the circuit breaker logic to measure the real heap usage instead of
+  the memory reserved by child circuit breakers. This should reduce the chance
+  of nodes running into an out of memory error.
+
 - Added support for the
   :ref:`Azure Storage repositories <ref-create-repository-types-azure>`.
 

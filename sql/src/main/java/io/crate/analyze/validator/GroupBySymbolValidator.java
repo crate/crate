@@ -37,10 +37,6 @@ public class GroupBySymbolValidator {
         INNER_VALIDATOR.process(symbol, "Cannot GROUP BY '%s': invalid data type '%s'");
     }
 
-    public static void validateForDistinctRewrite(Symbol symbol) throws IllegalArgumentException, UnsupportedOperationException {
-        INNER_VALIDATOR.process(symbol, "Cannot use DISTINCT on '%s': invalid data type '%s'");
-    }
-
     private static class InnerValidator extends SymbolVisitor<String, Void> {
 
         @Override

@@ -22,23 +22,15 @@
 
 package io.crate.expression.symbol;
 
-import io.crate.metadata.FunctionInfo;
 import io.crate.expression.scalar.arithmetic.ArrayFunction;
+import io.crate.metadata.FunctionInfo;
 
 import java.util.List;
 
 public final class Aggregations {
 
-    private static final AggregationSearcher AGGREGATION_SEARCHER = new AggregationSearcher();
     private static final AggregationOrScalarSearcher AGGREGATION_OR_SCALAR_SEARCHER = new AggregationOrScalarSearcher();
     private static final GroupBySymbolMatcher GROUP_BY_MATCHER = new GroupBySymbolMatcher();
-
-    /**
-     * @return true if the symbol is an aggregation or function which contains an aggregation.
-     */
-    public static boolean containsAggregation(Symbol s) {
-        return AGGREGATION_SEARCHER.process(s, null);
-    }
 
     /**
      * @return true if the symbol is an aggregation or function which contains an aggregation or a scalar.
@@ -68,33 +60,6 @@ public final class Aggregations {
                     return false;
                 }
                 return true;
-            }
-            return false;
-        }
-
-        @Override
-        public Boolean visitAggregation(Aggregation symbol, Void context) {
-            return true;
-        }
-    }
-
-    private static class AggregationSearcher extends SymbolVisitor<Void, Boolean> {
-
-        @Override
-        protected Boolean visitSymbol(Symbol symbol, Void context) {
-            return false;
-        }
-
-        @Override
-        public Boolean visitFunction(Function symbol, Void context) {
-            if (symbol.info().type() == FunctionInfo.Type.AGGREGATE) {
-                return true;
-            } else {
-                for (Symbol argument : symbol.arguments()) {
-                    if (process(argument, context)) {
-                        return true;
-                    }
-                }
             }
             return false;
         }

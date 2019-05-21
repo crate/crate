@@ -431,11 +431,7 @@ public class LogicalPlanner {
         @Override
         public LogicalPlan visitSelectStatement(AnalyzedRelation relation, PlannerContext context) {
             SubqueryPlanner subqueryPlanner = new SubqueryPlanner((s) -> planSubSelect(s, context));
-            LogicalPlan logicalPlan = normalizeAndPlan(
-                relation, context, subqueryPlanner, FetchMode.MAYBE_CLEAR);
-            if (logicalPlan == null) {
-                throw new UnsupportedOperationException("Cannot create plan for: " + relation);
-            }
+            LogicalPlan logicalPlan = normalizeAndPlan(relation, context, subqueryPlanner, FetchMode.MAYBE_CLEAR);
             return new RootRelationBoundary(logicalPlan);
         }
 

@@ -52,7 +52,7 @@ public abstract class CircuitBreakerService extends AbstractLifecycleComponent {
      */
     public abstract CircuitBreakerStats stats(String name);
 
-    public abstract void checkParentLimit(String label) throws CircuitBreakingException;
+    public abstract void checkParentLimit(long newBytesReserved, String label) throws CircuitBreakingException;
 
     @Override
     protected void doStart() {
