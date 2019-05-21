@@ -146,7 +146,7 @@ public class ShardsSyncedFlushResult implements Streamable {
             shardResponses.put(shardRouting, response);
         }
         syncId = in.readOptionalString();
-        shardId = ShardId.readShardId(in);
+        shardId = new ShardId(in);
         totalShards = in.readInt();
     }
 
