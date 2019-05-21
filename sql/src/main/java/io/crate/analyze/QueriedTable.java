@@ -56,7 +56,7 @@ public final class QueriedTable<TR extends AbstractTableRelation> implements Ana
         this.fields = new Fields(outputNames.size());
         Iterator<Symbol> outputsIterator = querySpec.outputs().iterator();
         for (ColumnIdent path : outputNames) {
-            fields.add(path, new Field(this, path, outputsIterator.next()));
+            fields.add(new Field(this, path, outputsIterator.next()));
         }
     }
 
