@@ -131,8 +131,8 @@ public class CrateCircuitBreakerService extends CircuitBreakerService {
     }
 
     @Override
-    public void checkParentLimit(String label) throws CircuitBreakingException {
-        esCircuitBreakerService.checkParentLimit(label);
+    public void checkParentLimit(long newBytesReserved, String label) throws CircuitBreakingException {
+        esCircuitBreakerService.checkParentLimit(newBytesReserved, label);
     }
 
     public static String breakingExceptionMessage(String label, long limit) {

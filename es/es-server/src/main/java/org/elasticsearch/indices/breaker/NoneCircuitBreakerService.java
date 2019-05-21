@@ -54,7 +54,7 @@ public class NoneCircuitBreakerService extends CircuitBreakerService {
     }
 
     @Override
-    public void checkParentLimit(String label) throws CircuitBreakingException {
+    public void checkParentLimit(long newBytesReserved, String label) throws CircuitBreakingException {
         // ignore
     }
 }
