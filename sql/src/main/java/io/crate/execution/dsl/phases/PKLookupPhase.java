@@ -78,7 +78,7 @@ public final class PKLookupPhase extends AbstractProjectionsPhase implements Col
             HashMap<ShardId, List<PKAndVersion>> idsByShard = new HashMap<>(numShards);
             idsByShardByNode.put(nodeId, idsByShard);
             for (int shardIdx = 0; shardIdx < numShards; shardIdx++) {
-                ShardId shardId = ShardId.readShardId(in);
+                ShardId shardId = new ShardId(in);
                 int numPks = in.readVInt();
                 ArrayList<PKAndVersion> pks = new ArrayList<>(numPks);
                 for (int pkIdx = 0; pkIdx < numPks; pkIdx++) {

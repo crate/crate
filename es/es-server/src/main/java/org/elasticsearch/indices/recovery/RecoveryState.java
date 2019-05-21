@@ -232,7 +232,7 @@ public class RecoveryState implements ToXContentFragment, Streamable {
     public synchronized void readFrom(StreamInput in) throws IOException {
         timer.readFrom(in);
         stage = Stage.fromId(in.readByte());
-        shardId = ShardId.readShardId(in);
+        shardId = new ShardId(in);
         recoverySource = RecoverySource.readFrom(in);
         targetNode = new DiscoveryNode(in);
         sourceNode = in.readOptionalWriteable(DiscoveryNode::new);

@@ -57,7 +57,7 @@ public class RecoveryCleanFilesRequest extends TransportRequest {
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
         recoveryId = in.readLong();
-        shardId = ShardId.readShardId(in);
+        shardId = new ShardId(in);
         snapshotFiles = new Store.MetadataSnapshot(in);
         totalTranslogOps = in.readVInt();
     }
