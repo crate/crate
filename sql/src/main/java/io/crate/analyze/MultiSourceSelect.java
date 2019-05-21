@@ -71,7 +71,7 @@ public class MultiSourceSelect implements AnalyzedRelation {
         fields = new Fields(outputNames.size());
         Iterator<Symbol> outputsIterator = querySpec.outputs().iterator();
         for (ColumnIdent path : outputNames) {
-            fields.add(path, new Field(this, path, outputsIterator.next()));
+            fields.add(new Field(this, path, outputsIterator.next()));
         }
     }
 
