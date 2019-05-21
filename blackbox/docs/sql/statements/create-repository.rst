@@ -359,7 +359,8 @@ A repository type that stores its snapshots on the Azure Storage service.
 Azure Client Settings
 .....................
 
-All the setting values are specified via ``azure.client.``
+All the setting values are specified via ``azure.client.`` in the crate.yaml
+configuration file.
 
 **account**
   | *Type:*    ``text``

@@ -38,7 +38,7 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
-final class AzureStorageSettings {
+public final class AzureStorageSettings {
 
     // prefix for azure client settings
     private static final String AZURE_CLIENT_PREFIX = "azure.client.";

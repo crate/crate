@@ -64,16 +64,25 @@ public class AzureRepository extends BlobStoreRepository {
     public static final String TYPE = "azure";
 
     public static final class Repository {
-        public static final Setting<String> CLIENT_NAME =
+        static final Setting<String> CLIENT_NAME =
             new Setting<>("client", "default", Function.identity(), Property.NodeScope);
-        public static final Setting<String> CONTAINER_SETTING =
+        static final Setting<String> CONTAINER_SETTING =
             new Setting<>("container", "crate-snapshots", Function.identity(), Property.NodeScope);
-        public static final Setting<String> BASE_PATH_SETTING = Setting.simpleString("base_path", Property.NodeScope);
-        public static final Setting<LocationMode> LOCATION_MODE_SETTING = new Setting<>("location_mode",
+        static final Setting<String> BASE_PATH_SETTING = Setting.simpleString("base_path", Property.NodeScope);
+        static final Setting<LocationMode> LOCATION_MODE_SETTING = new Setting<>("location_mode",
             s -> LocationMode.PRIMARY_ONLY.toString(), s -> LocationMode.valueOf(s.toUpperCase(Locale.ROOT)), Property.NodeScope);
-        public static final Setting<ByteSizeValue> CHUNK_SIZE_SETTING =
+        static final Setting<ByteSizeValue> CHUNK_SIZE_SETTING =
             Setting.byteSizeSetting("chunk_size", MAX_CHUNK_SIZE, MIN_CHUNK_SIZE, MAX_CHUNK_SIZE, Property.NodeScope);
-        public static final Setting<Boolean> READONLY_SETTING = Setting.boolSetting("readonly", false, Property.NodeScope);
+        static final Setting<Boolean> READONLY_SETTING = Setting.boolSetting("readonly", false, Property.NodeScope);
+    }
+
+    public static List<Setting<?>> optionalSettings() {
+        return List.of(Repository.CONTAINER_SETTING,
+                       Repository.BASE_PATH_SETTING,
+                       Repository.CHUNK_SIZE_SETTING,
+                       COMPRESS_SETTING,
+                       Repository.READONLY_SETTING,
+                       Repository.LOCATION_MODE_SETTING);
     }
 
     private final BlobPath basePath;
