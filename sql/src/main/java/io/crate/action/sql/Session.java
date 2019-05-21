@@ -63,10 +63,9 @@ import org.elasticsearch.common.Randomness;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.IdentityHashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -122,7 +121,7 @@ public class Session implements AutoCloseable {
     @VisibleForTesting
     final Map<String, Portal> portals = new HashMap<>();
     @VisibleForTesting
-    final Set<Portal> pendingExecutions = Collections.newSetFromMap(new IdentityHashMap<Portal, Boolean>());
+    final Set<Portal> pendingExecutions = new HashSet<>();
 
     private final Analyzer analyzer;
     private final Planner planner;
