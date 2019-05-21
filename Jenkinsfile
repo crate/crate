@@ -83,6 +83,15 @@ pipeline {
             sh 'JAVA_HOME=$(jabba which --home openjdk@1.12.0-1) timeout 20m ./gradlew --no-daemon itest'
           }
         }
+        stage('itest adopt-jdk-12') {
+          agent { label 'medium' }
+          steps {
+            sh 'git clean -xdff'
+            checkout scm
+            sh 'jabba install adopt@1.12.33-0'
+            sh 'JAVA_HOME=$(jabba which --home adopt@1.12.33-0) timeout 20m ./gradlew --no-daemon itest'
+          }
+        }
         stage('blackbox tests') {
           agent { label 'medium' }
           steps {
