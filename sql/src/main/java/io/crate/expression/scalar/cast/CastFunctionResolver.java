@@ -73,11 +73,6 @@ public class CastFunctionResolver {
         return new Function(functionInfo, List.of(sourceSymbol));
     }
 
-    public static boolean isCastFunction(Symbol symbol) {
-        return symbol instanceof Function
-            && ((Function) symbol).info().ident().name().startsWith(TO_PREFIX);
-    }
-
     /**
      * resolve the needed conversion function info based on the wanted return data type
      */

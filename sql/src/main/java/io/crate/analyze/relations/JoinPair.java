@@ -90,31 +90,6 @@ public class JoinPair {
         return Objects.hashCode(left, right, joinType, condition);
     }
 
-    boolean equalsNames(QualifiedName left, QualifiedName right) {
-        return this.left.equals(left) && this.right.equals(right);
-    }
-
-    boolean isOuterRelation(QualifiedName name) {
-        if (joinType.isOuter()) {
-            if (left.equals(name) && (joinType == JoinType.RIGHT || joinType == JoinType.FULL)) {
-                return true;
-            }
-            if (right.equals(name) && (joinType == JoinType.LEFT || joinType == JoinType.FULL)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    public JoinPair reverse() {
-        return of(
-            right,
-            left,
-            joinType.invert(),
-            condition
-        );
-    }
-
     public JoinPair mapCondition(Function<? super Symbol,? extends Symbol> updateField) {
         if (condition == null) {
             return this;
