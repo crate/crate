@@ -63,7 +63,7 @@ public class CreateDropRepositoryAnalyzerTest extends CrateDummyClusterServiceUn
     }
 
     @Test
-    public void testCreateRepository() throws Exception {
+    public void testCreateRepository() {
         CreateRepositoryAnalyzedStatement statement = e.analyze(
             "CREATE REPOSITORY \"new_repository\" TYPE \"fs\" with (location='/mount/backups/my_backup', compress=True)");
         assertThat(statement.repositoryName(), is("new_repository"));
@@ -73,28 +73,28 @@ public class CreateDropRepositoryAnalyzerTest extends CrateDummyClusterServiceUn
     }
 
     @Test
-    public void testCreateExistingRepository() throws Exception {
+    public void testCreateExistingRepository() {
         expectedException.expect(RepositoryAlreadyExistsException.class);
         expectedException.expectMessage("Repository 'my_repo' already exists");
         e.analyze("create repository my_repo TYPE fs");
     }
 
     @Test
-    public void testDropUnknownRepository() throws Exception {
+    public void testDropUnknownRepository() {
         expectedException.expect(RepositoryUnknownException.class);
         expectedException.expectMessage("Repository 'unknown_repo' unknown");
         e.analyze("DROP REPOSITORY \"unknown_repo\"");
     }
 
     @Test
-    public void testDropExistingRepo() throws Exception {
+    public void testDropExistingRepo() {
         DropRepositoryAnalyzedStatement statement = e.analyze("DROP REPOSITORY my_repo");
         assertThat(statement.repositoryName(), is("my_repo"));
 
     }
 
     @Test
-    public void testCreateS3RepositoryWithAllSettings() throws Exception {
+    public void testCreateS3RepositoryWithAllSettings() {
         CreateRepositoryAnalyzedStatement analysis = e.analyze("CREATE REPOSITORY foo TYPE s3 WITH (" +
                                                              "bucket='abc'," +
                                                              "endpoint='www.example.com'," +
@@ -132,7 +132,38 @@ public class CreateDropRepositoryAnalyzerTest extends CrateDummyClusterServiceUn
     }
 
     @Test
-    public void testCreateS3RepoWithWrongSettings() throws Exception {
+    public void testCreateAzureRepositoryWithAllSettings() {
+        CreateRepositoryAnalyzedStatement analysis = e.analyze(
+            "CREATE REPOSITORY foo TYPE azure WITH (" +
+            "   container='test_container'," +
+            "   base_path='test_path'," +
+            "   chunk_size='12mb'," +
+            "   compress=true," +
+            "   readonly=true," +
+            "   location_mode='primary_only')");
+        assertThat(analysis.repositoryType(), is("azure"));
+        assertThat(analysis.repositoryName(), is("foo"));
+        assertThat(
+            analysis.settings(),
+            allOf(
+                hasEntry("container", "test_container"),
+                hasEntry("base_path", "test_path"),
+                hasEntry("chunk_size", "12mb"),
+                hasEntry("compress", "true"),
+                hasEntry("readonly", "true")
+            )
+        );
+    }
+
+    @Test
+    public void testCreateAzureRepoWithWrongSettings() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("setting 'wrong' not supported");
+        e.analyze("CREATE REPOSITORY foo TYPE azure WITH (wrong=true)");
+    }
+
+    @Test
+    public void testCreateS3RepoWithWrongSettings() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("setting 'wrong' not supported");
         e.analyze("CREATE REPOSITORY foo TYPE s3 WITH (wrong=true)");
