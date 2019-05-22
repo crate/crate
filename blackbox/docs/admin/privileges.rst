@@ -49,7 +49,7 @@ have to other users as well.
 
 .. _privilege_types:
 
-Privilege Types
+Privilege types
 ===============
 
 ``DQL``
@@ -104,7 +104,7 @@ granting this on a schema or table level will have no effect.
 
 .. _hierarchical_privileges_inheritance:
 
-Hierarchical Inheritance of Privileges
+Hierarchical inheritance of privileges
 ======================================
 .. hide:
 
@@ -336,7 +336,7 @@ like this::
     has no effect. The effect of the ``REVOKE`` statement will be reflected
     in the row count.
 
-List Privileges
+List privileges
 ===============
 
 CrateDB exposes privileges ``sys.privileges`` system table.

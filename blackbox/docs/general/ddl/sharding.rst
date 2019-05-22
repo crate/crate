@@ -28,7 +28,7 @@ think about shards when querying a table.
 Read requests are broken down and executed in parallel across multiple shards
 on multiple nodes, massively improving read performance.
 
-Number of Shards
+Number of shards
 ================
 
 The number of shards can be defined by using the ``CLUSTERED INTO <number>

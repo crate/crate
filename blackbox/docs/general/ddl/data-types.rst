@@ -25,7 +25,7 @@ Classification
 
 .. _sql_ddl_datatypes_primitives:
 
-Primitive Types
+Primitive types
 ---------------
 
 Primitive types represent primitive values.
@@ -47,7 +47,7 @@ or collections.
 
 .. _sql_ddl_datatypes_geographic:
 
-Geographic Types
+Geographic types
 ----------------
 
 Geographic types represent points or shapes in a 2d world:
@@ -57,7 +57,7 @@ Geographic types represent points or shapes in a 2d world:
 
 .. _sql_ddl_datatypes_compound:
 
-Compound Types
+Compound types
 --------------
 
 Compound types represent values that are composed out of distinct parts like
@@ -102,7 +102,7 @@ Columns of type string can also be analyzed. See :ref:`sql_ddl_index_fulltext`.
    with UTF-8 unless the string is analyzed using full text or indexing and
    the usage of the :ref:`ddl-storage-columnstore` is disabled.
 
-Numeric Types
+Numeric types
 =============
 
 CrateDB supports a set of the following numeric data types:
@@ -130,7 +130,7 @@ For instance, the result of applying ``sum`` or ``avg`` aggregate functions may
 slightly vary between query executions or comparing floating-point values for
 equality might not always be correct.
 
-Special Floating Point Values
+Special floating point values
 -----------------------------
 
 CrateDB conforms to the `IEEE 754`_ standard concerning special values for
@@ -200,7 +200,7 @@ Example::
 
 .. _date-time-types:
 
-Date/Time Types
+Date/Time types
 ===============
 
 +---------------------------------+---------+-------------------------+--------------------+
@@ -427,7 +427,7 @@ Both of these index types accept the following parameters:
 
 .. _geo_shape_data_type_index:
 
-Geo Shape Index Structure
+Geo shape index structure
 -------------------------
 
 Computations on very complex polygons and geometry collections are exact but
@@ -642,7 +642,7 @@ inserted into it, but otherwise ignore them.
 
 .. _data-type-object-literals:
 
-Object Literals
+Object literals
 ---------------
 
 To insert values into object columns one can use object literals or parameters.
@@ -738,7 +738,7 @@ Array types are defined as follows::
 
 .. _data-type-array-literals:
 
-Array Constructor
+Array constructor
 -----------------
 
 Arrays can be written using the array constructor ``ARRAY[]`` or short ``[]``.
@@ -767,7 +767,7 @@ Some valid arrays are::
     ARRAY[column_a, column_b]
     ARRAY[ARRAY[1, 2, 1 + 2], ARRAY[3, 4, 3 + 4]]
 
-Array Representation
+Array representation
 ....................
 
 Arrays are always represented as zero or more literal elements inside square
@@ -776,7 +776,7 @@ brackets (``[]``), for example::
     [1, 2, 3]
     ['Zaphod', 'Ford', 'Arthur']
 
-Special Character Types
+Special character types
 =======================
 
 +----------+--------+------------------+
@@ -787,7 +787,7 @@ Special Character Types
 
 .. _type_conversion:
 
-Type Conversion
+Type conversion
 ===============
 
 .. _type_cast:

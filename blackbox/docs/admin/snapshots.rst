@@ -21,7 +21,7 @@ tables in a CrateDB cluster at the time the *Snapshot* was created. A
 
    You cannot snapshot BLOB tables.
 
-Creating a Repository
+Creating a repository
 .....................
 
 Repositories are used to store, manage and restore snapshots.
@@ -54,7 +54,7 @@ Creating a repository with the same name will result in an error::
 
 .. _plugins: https://github.com/crate/crate/blob/master/devs/docs/plugins.rst
 
-Creating a Snapshot
+Creating a snapshot
 ...................
 
 Snapshots are created inside a repository and can contain any number of tables.
@@ -196,7 +196,7 @@ restore.
 Cleanup
 -------
 
-Dropping Snapshots
+Dropping snapshots
 ..................
 
 Dropping a snapshot deletes all files inside the repository that are only
@@ -207,7 +207,7 @@ few files (e.g. for intermediate snapshots). Snapshots are dropped using the
     cr> DROP SNAPSHOT where_my_snapshots_go.snapshot3;
     DROP OK, 1 row affected (... sec)
 
-Dropping Repositories
+Dropping repositories
 .....................
 
 .. Hidden: create repository
@@ -238,7 +238,7 @@ in the cluster state, so it's not accessible any more.
 
 .. _snapshot-restore_hfs-requirements:
 
-Requirements for Using HDFS Repositories
+Requirements for using HDFS repositories
 ----------------------------------------
 
 CrateDB supports repositories of type
@@ -305,7 +305,7 @@ ignored::
 .. _Hadoop: https://hadoop.apache.org/
 .. _Hadoop (YARN): https://hadoop.apache.org/docs/r2.8.0/hadoop-yarn/hadoop-yarn-site/YARN.html
 
-Working with a Secured HA HDFS
+Working with a secured HA HDFS
 ..............................
 
 For users with Kerberos-secured HA NameNode configurations, configuring the plugin

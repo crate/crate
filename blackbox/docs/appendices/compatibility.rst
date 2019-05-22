@@ -13,10 +13,10 @@ is worth being aware of some unique characteristics in CrateDB's SQL dialect.
 .. contents::
    :local:
 
-Implementation Notes
+Implementation notes
 ====================
 
-Data Types
+Data types
 ----------
 
 CrateDB supports a set of primitive data types: integer, long, short, double,
@@ -47,20 +47,20 @@ The following table defines how data types of standard SQL map to CrateDB
 | double precision                  | double                 |
 +-----------------------------------+------------------------+
 
-Create Table
+Create table
 ------------
 
 :ref:`ref-create-table` supports additional storage and table parameters for
 sharding, replication and routing of the data, and does not support
 inheritance.
 
-Alter Table
+Alter table
 -----------
 
 ``ALTER COLUMN`` and ``DROP COLUMN`` actions are not currently supported (see
 :ref:`ref-alter-table`).
 
-System Information Tables
+System information tables
 -------------------------
 
 The read-only :ref:`system-information` and :ref:`information_schema` tables
@@ -68,7 +68,7 @@ have a slightly different schema than specified in standard SQL. They provide
 schema information and can be queried to get real-time statistical data about
 the cluster, its nodes, and their shards.
 
-BLOB Support
+BLOB support
 ------------
 
 Standard SQL defines a binary string type, called ``BLOB`` or ``BINARY LARGE
@@ -88,7 +88,7 @@ the record is modified. This version number can be used to implement patterns
 like :ref:`sql_occ`, which can be used to solve many of the use cases that
 would otherwise require traditional transactions.
 
-Unsupported Features and Functions
+Unsupported features and functions
 ==================================
 
 These **features** of standard SQL are not supported:

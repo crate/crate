@@ -12,7 +12,7 @@ Scalar functions return a single value.
 .. contents::
    :local:
 
-String Functions
+String functions
 ================
 
 ``concat('first_arg', second_arg, [ parameter , ... ])``
@@ -356,7 +356,7 @@ The quoted string can be used as an identifier in an SQL statement.
    +----------------------------+
    SELECT 1 row in set (... sec)
 
-Date and Time Functions
+Date and time functions
 =======================
 
 .. _scalar-date-trunc:
@@ -668,7 +668,7 @@ The ``timezone`` will be ``UTC`` if not provided::
     +------------------+
     SELECT 1 row in set (... sec)
 
-Geo Functions
+Geo functions
 =============
 
 .. _scalar_distance:
@@ -836,7 +836,7 @@ Example::
 
 .. _mathematical_functions:
 
-Mathematical Functions
+Mathematical functions
 ======================
 
 All mathematical functions can be used within ``WHERE`` and ``ORDER BY``
@@ -1136,7 +1136,7 @@ See below for an example::
 
 .. _scalar-regexp:
 
-Regular Expression Functions
+Regular expression functions
 ============================
 
 The regular expression functions in CrateDB use `Java Regular Expressions`_.
@@ -1345,7 +1345,7 @@ Examples
     +---------------------+--------------+
     SELECT 5 rows in set (... sec)
 
-Array Functions
+Array functions
 ===============
 
 ``array_cat(first_array, second_array)``
@@ -1646,7 +1646,7 @@ If the ``null_string`` argument is omitted or NULL, none of the substrings of
 the input will be replaced by NULL.
 
 
-Conditional Functions and Expressions
+Conditional functions and expressions
 =====================================
 
 ``CASE WHEN ... THEN ... END``
@@ -1856,7 +1856,7 @@ Returns: same type as arguments
     +-----------------------------+
     SELECT 1 row in set (... sec)
 
-System Information Functions
+System information functions
 ============================
 
 .. _scalar_current_schema:
@@ -2126,7 +2126,7 @@ Example::
     +---------------------------+
     SELECT 1 row in set (... sec)
 
-Special Functions
+Special functions
 =================
 
 .. _ignore3vl:

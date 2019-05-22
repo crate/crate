@@ -22,7 +22,7 @@ differently and is configured differently.
 
 .. _conf-logging-app:
 
-Application Logging
+Application logging
 ===================
 
 .. _conf-logging-log4j:
@@ -34,7 +34,7 @@ CrateDB uses `Log4j`_.
 
 .. _conf-logging-log4j-file:
 
-Configuration File
+Configuration file
 ..................
 
 You can configure Log4j with the ``log4j2.properties`` file in the CrateDB
@@ -70,7 +70,7 @@ You get the point.
 
 .. _conf-logging-log4j-loggers:
 
-Log Levels
+Log levels
 ..........
 
 Possible log levels are the same as for Log4j_, in order of increasing
@@ -92,7 +92,7 @@ Log levels must be provided as string literals in the ``SET`` statement.
 
 .. _conf-logging-log4j-run-time:
 
-Run-Time Configuration
+Run-time configuration
 ......................
 
 It's possible to set the log level of loggers at runtime using :ref:`SET
@@ -127,20 +127,20 @@ overrides the start-up configuration defined in each respective
 
 .. _conf-logging-jvm:
 
-JVM Logging
+JVM logging
 ===========
 
 CrateDB exposes some native JVM logging functionality.
 
 .. _conf-logging-gc:
 
-Garbage Collection
+Garbage collection
 ------------------
 
 CrateDB logs JVM garbage collection times using the built-in garbage
 collection logging of the JVM.
 
-Environment Variables
+Environment variables
 .....................
 
 The following :ref:`environment variables <config>` can be used to configure

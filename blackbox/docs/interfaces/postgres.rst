@@ -38,7 +38,7 @@ which is why clients should generally enable ``autocommit``.
     Write operations will still behave as if autocommit was enabled and commit
     or rollback calls are ignored.
 
-Server Compatibility and Implementation Status
+Server compatibility and implementation status
 ==============================================
 
 CrateDB emulates PostgreSQL server version ``10.5``.
@@ -91,12 +91,12 @@ is ``UTF8``.
 Query Modes
 -----------
 
-Simple Query
+Simple query
 ............
 
 The `Simple Query`_ protocol mode is fully implemented.
 
-Extended Query
+Extended query
 ..............
 
 The `Extended Query`_ protocol mode is implemented with the following limitations:
@@ -107,17 +107,17 @@ The `Extended Query`_ protocol mode is implemented with the following limitation
 - To optimize the execution of bulk operations the execution of statements is
   delayed until the ``Sync`` message is received
 
-Copy Operations
+Copy operations
 ---------------
 
 CrateDB does not support the ``COPY`` sub-protocol.
 
-Function Call
+Function call
 -------------
 
 The function call sub-protocol is not supported since it's a legacy feature.
 
-Canceling Requests
+Canceling requests
 ------------------
 
 Operations can be cancelled using the ``KILL`` statement, hence the
@@ -191,7 +191,7 @@ CrateDB::
    Check table :ref:`information_schema.columns <information_schema_columns>`
    to get information for all supported columns.
 
-Show Transaction Isolation
+Show transaction isolation
 --------------------------
 
 For compatibility with JDBC the ``SHOW TRANSACTION ISOLATION LEVEL`` statement
@@ -205,7 +205,7 @@ is implemented::
     +-----------------------+
     SHOW 1 row in set (... sec)
 
-BEGIN/COMMIT Statements
+BEGIN/COMMIT statements
 -----------------------
 
 For compatibility with clients that use the Postgres wire protocol, such as the
@@ -224,7 +224,7 @@ implemented, for example::
 Since CrateDB does not support transactions, both the ``COMMIT`` and ``BEGIN``
 statement and any of its parameters are ignored.
 
-Client Compatibility
+Client compatibility
 ====================
 
 JDBC
@@ -263,7 +263,7 @@ Limitations
   `Extended Query`_ API from working due to a `bug
   <https://github.com/pgjdbc/pgjdbc/issues/653>`_ at `pgjdbc`_.
 
-Connection Failover and Load Balancing
+Connection failover and load balancing
 ......................................
 
 Connection failover and load balancing is supported as described here:
@@ -274,7 +274,7 @@ Connection failover and load balancing is supported as described here:
    It is not recommended to use the **targetServerType** parameter since
    CrateDB has no concept of master-replica nodes.
 
-Implementation Differences
+Implementation differences
 ==========================
 
 The PostgreSQL Wire Protocol makes it easy to use many PostgreSQL compatible
@@ -310,7 +310,7 @@ or ``HSTORE`` are not supported. CrateDB alternatively allows the definition of
 nested documents (of type :ref:`object_data_type`) that store fieldscontaining
 any CrateDB supported data type, including nested object types.
 
-Type Casts
+Type casts
 ----------
 
 CrateDB accepts the :ref:`type_conversion` syntax for conversion of one data
@@ -319,7 +319,7 @@ type to another (see `Value Expressions`_).
 Arrays
 ------
 
-Declaration of Arrays
+Declaration of arrays
 .....................
 
 While multidimensional arrays in PostgreSQL must have matching extends for each
@@ -334,14 +334,14 @@ shows::
     +---------------------+
     SELECT 1 row in set (... sec)
 
-Accessing Arrays
+Accessing arrays
 ................
 
 Fetching arbitrary rectangular slices of an array using
 ``lower-bound:upper-bound`` expression (see `Arrays`_) in the array subscript
 is not supported.
 
-Text Search Functions and Operators
+Text search functions and operators
 -----------------------------------
 
 The functions and operators provided by PostgreSQL for full-text search (see
@@ -353,7 +353,7 @@ If you are missing features, functions or dialect improvements and have a great
 use case for it, let us know on `Github`_. We're always improving and extending
 CrateDB, and we love to hear feedback.
 
-Expression Evaluation
+Expression evaluation
 ---------------------
 
 Unlike PostgreSQL, expressions are not evaluated if the query results in 0 rows

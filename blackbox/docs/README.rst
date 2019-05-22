@@ -2,7 +2,7 @@
 Documentation README
 ====================
 
-Top-Level Structure
+Top-level structure
 ===================
 
 The documentation is structured as follows:
@@ -41,7 +41,7 @@ The documentation is structured as follows:
 |                        | changes.                                           |
 +------------------------+----------------------------------------------------+
 
-How to Document a Feature
+How to document a feature
 =========================
 
 A single feature may have three types of documentation:

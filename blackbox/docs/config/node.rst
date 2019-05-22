@@ -39,7 +39,7 @@ Basics
   Defines how many nodes are allowed to be started on the same machine using
   the same configured data path defined via `path.data`_.
 
-Node Types
+Node types
 ==========
 
 CrateDB supports different kinds of nodes.
@@ -248,15 +248,15 @@ Paths
   See also :ref:`location <ref-create-repository-types-fs-location>` setting of
   repository type ``fs``.
 
-Plugins
-=======
+Plug-ins
+========
 
 **plugin.mandatory**
   | *Runtime:* ``no``
 
-  A list of plugins that are required for a node to startup.
+  A list of plug-ins that are required for a node to startup.
 
-  If any plugin listed here is missing, the CrateDB node will fail to start.
+  If any plug-in listed here is missing, the CrateDB node will fail to start.
 
 CPU
 ===
@@ -285,7 +285,7 @@ Memory
   system call on startup to ensure that the memory pages of the CrateDB process
   are locked into RAM.
 
-Garbage Collection
+Garbage collection
 ==================
 
 CrateDB logs if JVM garbage collection on different memory pools takes too
@@ -342,7 +342,7 @@ Authentication
 
 .. _host_based_auth:
 
-Trust Authentication
+Trust authentication
 --------------------
 
 **auth.trust.http_default_user**
@@ -353,7 +353,7 @@ Trust Authentication
   to CrateDB via HTTP protocol and they do not specify a user via the
   ``Authorization`` request header.
 
-Host Based Authentication
+Host-based authentication
 -------------------------
 
 Authentication settings (``auth.host_based.*``) are node settings, which means
@@ -367,7 +367,7 @@ nodes may have different authentication settings.
   Setting to enable or disable Host Based Authentication (HBA). It is disabled
   by default.
 
-HBA Entries
+HBA entries
 ...........
 
 The ``auth.host_based.config.`` setting is a group setting that can have zero,
@@ -456,7 +456,7 @@ The meaning of the fields of the are as follows:
 
 .. _ssl_config:
 
-Secured Communications (SSL/TLS)
+Secured communications (SSL/TLS)
 ================================
 
 Secured communications via SSL allows you to encrypt traffic between CrateDB
@@ -514,7 +514,7 @@ Layer Security (TLS).
   The password used to decrypt the truststore file defined with
   ``ssl.truststore_filepath``.
 
-Cross-Origin Resource Sharing (CORS)
+Cross-origin resource sharing (CORS)
 ====================================
 
 Many browsers support the `same-origin policy`_ which requires web applications
@@ -637,7 +637,7 @@ Queries
 
 .. _conf-node-lang-js:
 
-Javascript Language
+Javascript language
 ===================
 
 **lang.js.enabled**
@@ -653,7 +653,7 @@ Javascript Language
 
 .. _conf-node-attributes:
 
-Custom Attributes
+Custom attributes
 =================
 
 The ``node.attr`` namespace is a bag of custom attributes.
@@ -666,4 +666,3 @@ Custom attributes are not validated by CrateDB, unlike core node attributes.
 
 Custom attributes can, however, be :ref:`used to control shard allocation
 <conf-routing-allocation-awareness>`.
-
