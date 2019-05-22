@@ -26,6 +26,7 @@ import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.Relations;
 import io.crate.analyze.TableDefinitions;
+import io.crate.auth.user.AccessControl;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.ParameterSymbol;
@@ -115,6 +116,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
             new JobsLogs(() -> false),
             false,
             executor,
+            AccessControl.DISABLED,
             SessionContext.systemSessionContext());
 
         session.parse("S_1", "Select 1 + ? + ?;", Collections.emptyList());
@@ -276,6 +278,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
             new JobsLogs(() -> false),
             false,
             executor,
+            AccessControl.DISABLED,
             SessionContext.systemSessionContext());
 
         session.parse("S_1", "select name from sys.cluster;", Collections.emptyList());
@@ -310,6 +313,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
             new JobsLogs(() -> false),
             false,
             executor,
+            AccessControl.DISABLED,
             SessionContext.systemSessionContext());
 
         session.parse("S_1", "select * from sys.cluster;", Collections.emptyList());
@@ -336,6 +340,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
             new JobsLogs(() -> false),
             false,
             executor,
+            AccessControl.DISABLED,
             SessionContext.systemSessionContext());
 
         session.parse("test_prep_stmt", "select * from sys.cluster;", Collections.emptyList());

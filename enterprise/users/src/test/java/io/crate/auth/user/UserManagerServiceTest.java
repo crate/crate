@@ -18,35 +18,19 @@
 
 package io.crate.auth.user;
 
-import io.crate.execution.engine.collect.sources.SysTableRegistry;
-import io.crate.metadata.Schemas;
 import io.crate.metadata.UserDefinitions;
 import io.crate.metadata.UsersMetaData;
 import io.crate.metadata.UsersPrivilegesMetaData;
-import io.crate.metadata.cluster.DDLClusterStateService;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Set;
 
 import static io.crate.auth.user.User.CRATE_USER;
-import static io.crate.auth.user.UserManagerService.BYPASS_AUTHORIZATION_CHECKS;
-import static io.crate.auth.user.UserManagerService.NOOP_EXCEPTION_VALIDATOR;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.is;
-import static org.mockito.Mockito.mock;
 
 public class UserManagerServiceTest extends CrateDummyClusterServiceUnitTest {
-
-    private UserManagerService userManagerService;
-
-    @Before
-    public void setUpUserManager() throws Exception {
-        userManagerService = new UserManagerService(null, null,
-            null, null, mock(SysTableRegistry.class), clusterService, new DDLClusterStateService());
-    }
 
     @Test
     public void testNullAndEmptyMetaData() {
@@ -62,29 +46,5 @@ public class UserManagerServiceTest extends CrateDummyClusterServiceUnitTest {
     public void testNewUser() {
         Set<User> users = UserManagerService.getUsers(new UsersMetaData(UserDefinitions.SINGLE_USER_ONLY), new UsersPrivilegesMetaData());
         assertThat(users, containsInAnyOrder(User.of("Arthur"), CRATE_USER));
-    }
-
-    @Test
-    public void testUserIsRequiredToGetStatementValidator() throws Exception {
-        expectedException.expectMessage("User must not be null");
-        userManagerService.getStatementValidator(null, Schemas.DOC_SCHEMA_NAME);
-    }
-
-    @Test
-    public void testGetNoopStatementValidatorForSuperUser() throws Exception {
-        StatementAuthorizedValidator validator = userManagerService.getStatementValidator(CRATE_USER, Schemas.DOC_SCHEMA_NAME);
-        assertThat(validator, is(BYPASS_AUTHORIZATION_CHECKS));
-    }
-
-    @Test
-    public void testUserIsRequiredToGetExceptionValidator() throws Exception {
-        expectedException.expectMessage("User must not be null");
-        userManagerService.getExceptionValidator(null, Schemas.DOC_SCHEMA_NAME);
-    }
-
-    @Test
-    public void testGetNoopExceptionValidatorForSuperUser() throws Exception {
-        ExceptionAuthorizedValidator validator = userManagerService.getExceptionValidator(CRATE_USER, Schemas.DOC_SCHEMA_NAME);
-        assertThat(validator, is(NOOP_EXCEPTION_VALIDATOR));
     }
 }

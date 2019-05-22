@@ -94,7 +94,6 @@ import io.crate.sql.tree.Update;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.analysis.AnalysisRegistry;
 
 import java.util.ArrayList;
@@ -115,6 +114,7 @@ public class Analyzer {
     private final CreateAnalyzerStatementAnalyzer createAnalyzerStatementAnalyzer;
     private final DropAnalyzerStatementAnalyzer dropAnalyzerStatementAnalyzer;
     private final DropBlobTableAnalyzer dropBlobTableAnalyzer;
+    private final UserManager userManager;
     private final RefreshTableAnalyzer refreshTableAnalyzer;
     private final OptimizeTableAnalyzer optimizeTableAnalyzer;
     private final AlterTableAnalyzer alterTableAnalyzer;
@@ -149,8 +149,7 @@ public class Analyzer {
      *                         instance of the class
      */
     @Inject
-    public Analyzer(Settings settings,
-                    Schemas schemas,
+    public Analyzer(Schemas schemas,
                     Functions functions,
                     RelationAnalyzer relationAnalyzer,
                     ClusterService clusterService,
@@ -162,6 +161,7 @@ public class Analyzer {
         this.schemas = schemas;
         this.dropTableAnalyzer = new DropTableAnalyzer(schemas);
         this.dropBlobTableAnalyzer = new DropBlobTableAnalyzer(schemas);
+        this.userManager = userManager;
         FulltextAnalyzerResolver fulltextAnalyzerResolver =
             new FulltextAnalyzerResolver(clusterService, analysisRegistry);
         NumberOfShards numberOfShards = new NumberOfShards(clusterService);
@@ -217,7 +217,8 @@ public class Analyzer {
     public Analysis boundAnalyze(Statement statement, CoordinatorTxnCtx coordinatorTxnCtx, ParameterContext parameterContext) {
         Analysis analysis = new Analysis(coordinatorTxnCtx, parameterContext, ParamTypeHints.EMPTY);
         AnalyzedStatement analyzedStatement = analyzedStatement(statement, analysis);
-        coordinatorTxnCtx.sessionContext().ensureStatementAuthorized(analyzedStatement);
+        SessionContext sessionContext = coordinatorTxnCtx.sessionContext();
+        userManager.getAccessControl(sessionContext).ensureMayExecute(analyzedStatement);
         analysis.analyzedStatement(analyzedStatement);
         return analysis;
     }

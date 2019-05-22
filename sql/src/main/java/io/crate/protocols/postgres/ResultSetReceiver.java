@@ -23,21 +23,20 @@
 package io.crate.protocols.postgres;
 
 import io.crate.action.sql.BaseResultReceiver;
-import io.crate.auth.user.ExceptionAuthorizedValidator;
 import io.crate.data.Row;
-import io.crate.exceptions.SQLExceptions;
 import io.crate.types.DataType;
 import io.netty.channel.Channel;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.List;
+import java.util.function.Function;
 
 class ResultSetReceiver extends BaseResultReceiver {
 
     private final String query;
     private final Channel channel;
-    private final ExceptionAuthorizedValidator exceptionAuthorizedValidator;
+    private final Function<Throwable, Exception> wrapError;
     private final List<? extends DataType> columnTypes;
 
     @Nullable
@@ -47,12 +46,12 @@ class ResultSetReceiver extends BaseResultReceiver {
 
     ResultSetReceiver(String query,
                       Channel channel,
-                      ExceptionAuthorizedValidator exceptionAuthorizedValidator,
+                      Function<Throwable, Exception> wrapError,
                       List<? extends DataType> columnTypes,
                       @Nullable FormatCodes.FormatCode[] formatCodes) {
         this.query = query;
         this.channel = channel;
-        this.exceptionAuthorizedValidator = exceptionAuthorizedValidator;
+        this.wrapError = wrapError;
         this.columnTypes = columnTypes;
         this.formatCodes = formatCodes;
     }
@@ -83,7 +82,7 @@ class ResultSetReceiver extends BaseResultReceiver {
 
     @Override
     public void fail(@Nonnull Throwable throwable) {
-        final Throwable t = SQLExceptions.createSQLActionException(throwable, exceptionAuthorizedValidator);
-        Messages.sendErrorResponse(channel, t).addListener(f -> super.fail(t));
+        final Exception e = wrapError.apply(throwable);
+        Messages.sendErrorResponse(channel, e).addListener(f -> super.fail(e));
     }
 }

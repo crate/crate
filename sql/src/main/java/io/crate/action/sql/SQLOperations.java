@@ -23,8 +23,6 @@
 package io.crate.action.sql;
 
 import io.crate.analyze.Analyzer;
-import io.crate.auth.user.ExceptionAuthorizedValidator;
-import io.crate.auth.user.StatementAuthorizedValidator;
 import io.crate.auth.user.User;
 import io.crate.auth.user.UserManager;
 import io.crate.execution.engine.collect.stats.JobsLogs;
@@ -86,6 +84,7 @@ public class SQLOperations {
             jobsLogs,
             isReadOnly,
             executorProvider.get(),
+            userManager.getAccessControl(sessionContext),
             sessionContext);
     }
 
@@ -98,13 +97,11 @@ public class SQLOperations {
     }
 
     public Session createSession(@Nullable String defaultSchema, User user, Set<Option> options) {
-        StatementAuthorizedValidator statementValidator = userManager.getStatementValidator(user, defaultSchema);
-        ExceptionAuthorizedValidator exceptionValidator = userManager.getExceptionValidator(user, defaultSchema);
         SessionContext sessionContext;
         if (defaultSchema == null) {
-            sessionContext = new SessionContext(options, user, statementValidator, exceptionValidator);
+            sessionContext = new SessionContext(options, user);
         } else {
-            sessionContext = new SessionContext(options, user, statementValidator, exceptionValidator, defaultSchema);
+            sessionContext = new SessionContext(options, user, defaultSchema);
         }
 
         return createSession(sessionContext);

@@ -34,7 +34,6 @@ import org.elasticsearch.common.settings.Settings;
 @Singleton
 public class RestSQLAction {
 
-    @SuppressWarnings("WeakerAccess")
     @Inject
     public RestSQLAction(Settings settings,
                          SQLOperations sqlOperations,
@@ -45,7 +44,14 @@ public class RestSQLAction {
         pipelineRegistry.addBefore(new PipelineRegistry.ChannelPipelineItem(
             "handler",
             "sql_handler",
-            corsConfig -> new SqlHttpHandler(settings, sqlOperations, breakerService::getBreaker, userManager, corsConfig)
+            corsConfig -> new SqlHttpHandler(
+                settings,
+                sqlOperations,
+                breakerService::getBreaker,
+                userManager,
+                userManager::getAccessControl,
+                corsConfig
+            )
         ));
     }
 }

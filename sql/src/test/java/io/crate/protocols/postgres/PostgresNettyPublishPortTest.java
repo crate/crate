@@ -26,6 +26,7 @@ import io.crate.action.sql.SQLOperations;
 import io.crate.auth.AlwaysOKNullAuthentication;
 import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.test.integration.CrateUnitTest;
+import io.crate.user.StubUserManager;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
@@ -76,8 +77,14 @@ public class PostgresNettyPublishPortTest extends CrateUnitTest {
     public void testBindAndPublishAddressDefault() {
         // First check if binding to a local works
         NetworkService networkService = new NetworkService(Collections.emptyList());
-        PostgresNetty psql = new PostgresNetty(Settings.EMPTY, Mockito.mock(SQLOperations.class),
-            networkService, new AlwaysOKNullAuthentication(), Mockito.mock(SslContextProvider.class));
+        PostgresNetty psql = new PostgresNetty(
+            Settings.EMPTY,
+            Mockito.mock(SQLOperations.class),
+            new StubUserManager(),
+            networkService,
+            new AlwaysOKNullAuthentication(),
+            Mockito.mock(SslContextProvider.class)
+        );
         try {
             psql.doStart();
         } finally {
@@ -90,8 +97,14 @@ public class PostgresNettyPublishPortTest extends CrateUnitTest {
         // Check override for network.host
         Settings settingsWithCustomHost = Settings.builder().put("network.host", "cantbindtothis").build();
         NetworkService networkService = new NetworkService(Collections.emptyList());
-        PostgresNetty psql = new PostgresNetty(settingsWithCustomHost, Mockito.mock(SQLOperations.class), networkService,
-            new AlwaysOKNullAuthentication(), Mockito.mock(SslContextProvider.class));
+        PostgresNetty psql = new PostgresNetty(
+            settingsWithCustomHost,
+            Mockito.mock(SQLOperations.class),
+            new StubUserManager(),
+            networkService,
+            new AlwaysOKNullAuthentication(),
+            Mockito.mock(SslContextProvider.class)
+        );
         try {
             psql.doStart();
             fail("Should have failed due to custom hostname");
@@ -108,8 +121,14 @@ public class PostgresNettyPublishPortTest extends CrateUnitTest {
         // Check override for network.bind_host
         Settings settingsWithCustomBind = Settings.builder().put("network.bind_host", "cantbindtothis").build();
         NetworkService networkService = new NetworkService(Collections.emptyList());
-        PostgresNetty psql = new PostgresNetty(settingsWithCustomBind, Mockito.mock(SQLOperations.class), networkService,
-            new AlwaysOKNullAuthentication(), Mockito.mock(SslContextProvider.class));
+        PostgresNetty psql = new PostgresNetty(
+            settingsWithCustomBind,
+            Mockito.mock(SQLOperations.class),
+            new StubUserManager(),
+            networkService,
+            new AlwaysOKNullAuthentication(),
+            Mockito.mock(SslContextProvider.class)
+        );
         try {
             psql.doStart();
             fail("Should have failed due to custom hostname");
@@ -126,8 +145,14 @@ public class PostgresNettyPublishPortTest extends CrateUnitTest {
         // Check override for network.publish_host
         Settings settingsWithCustomPublish = Settings.builder().put("network.publish_host", "cantbindtothis").build();
         NetworkService networkService = new NetworkService(Collections.emptyList());
-        PostgresNetty psql = new PostgresNetty(settingsWithCustomPublish, Mockito.mock(SQLOperations.class), networkService,
-            new AlwaysOKNullAuthentication(), Mockito.mock(SslContextProvider.class));
+        PostgresNetty psql = new PostgresNetty(
+            settingsWithCustomPublish,
+            Mockito.mock(SQLOperations.class),
+            new StubUserManager(),
+            networkService,
+            new AlwaysOKNullAuthentication(),
+            Mockito.mock(SslContextProvider.class)
+        );
         try {
             psql.doStart();
             fail("Should have failed due to custom hostname");

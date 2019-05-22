@@ -22,11 +22,7 @@
 
 package io.crate.action.sql;
 
-import io.crate.analyze.AnalyzedStatement;
-import io.crate.auth.user.ExceptionAuthorizedValidator;
-import io.crate.auth.user.StatementAuthorizedValidator;
 import io.crate.auth.user.User;
-import io.crate.exceptions.MissingPrivilegeException;
 import io.crate.metadata.SearchPath;
 
 import java.util.Set;
@@ -35,12 +31,10 @@ import static io.crate.metadata.SearchPath.createSearchPathFrom;
 import static io.crate.metadata.SearchPath.pathWithPGCatalogAndDoc;
 import static java.util.Objects.requireNonNull;
 
-public class SessionContext implements StatementAuthorizedValidator, ExceptionAuthorizedValidator {
+public class SessionContext {
 
     private final Set<Option> options;
     private final User user;
-    private final StatementAuthorizedValidator statementAuthorizedValidator;
-    private final ExceptionAuthorizedValidator exceptionAuthorizedValidator;
 
     private SearchPath searchPath;
     private boolean hashJoinEnabled = true;
@@ -49,18 +43,12 @@ public class SessionContext implements StatementAuthorizedValidator, ExceptionAu
      * Creates a new SessionContext suitable to use as system SessionContext
      */
     public static SessionContext systemSessionContext() {
-        return new SessionContext(Option.NONE, User.CRATE_USER, s -> { }, e -> { });
+        return new SessionContext(Option.NONE, User.CRATE_USER);
     }
 
-    public SessionContext(Set<Option> options,
-                          User user,
-                          StatementAuthorizedValidator statementAuthorizedValidator,
-                          ExceptionAuthorizedValidator exceptionAuthorizedValidator,
-                          String... searchPath) {
+    public SessionContext(Set<Option> options, User user, String... searchPath) {
         this.options = options;
         this.user = requireNonNull(user, "User is required");
-        this.statementAuthorizedValidator = statementAuthorizedValidator;
-        this.exceptionAuthorizedValidator = exceptionAuthorizedValidator;
         this.searchPath = createSearchPathFrom(searchPath);
     }
 
@@ -97,16 +85,6 @@ public class SessionContext implements StatementAuthorizedValidator, ExceptionAu
 
     public User user() {
         return user;
-    }
-
-    @Override
-    public void ensureExceptionAuthorized(Throwable t) throws MissingPrivilegeException {
-        exceptionAuthorizedValidator.ensureExceptionAuthorized(t);
-    }
-
-    @Override
-    public void ensureStatementAuthorized(AnalyzedStatement statement) {
-        statementAuthorizedValidator.ensureStatementAuthorized(statement);
     }
 
     public void resetToDefaults() {

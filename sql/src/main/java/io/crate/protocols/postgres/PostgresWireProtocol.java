@@ -26,11 +26,14 @@ import com.google.common.annotations.VisibleForTesting;
 import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
+import io.crate.action.sql.SessionContext;
 import io.crate.auth.Authentication;
 import io.crate.auth.AuthenticationMethod;
 import io.crate.auth.Protocol;
+import io.crate.auth.user.AccessControl;
 import io.crate.auth.user.User;
 import io.crate.collections.Lists2;
+import io.crate.exceptions.SQLExceptions;
 import io.crate.expression.symbol.Field;
 import io.crate.protocols.http.CrateNettyHttpServerTransport;
 import io.crate.protocols.postgres.types.PGType;
@@ -60,6 +63,7 @@ import java.util.Locale;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
+import java.util.function.Function;
 
 import static io.crate.protocols.SSL.getSession;
 import static io.crate.protocols.postgres.FormatCodes.getFormatCode;
@@ -183,6 +187,7 @@ class PostgresWireProtocol {
     final MessageDecoder decoder;
     final MessageHandler handler;
     private final SQLOperations sqlOperations;
+    private final Function<SessionContext, AccessControl> getAccessControl;
     private final Authentication authService;
     private final SslReqHandler sslReqHandler;
 
@@ -203,8 +208,12 @@ class PostgresWireProtocol {
 
     private State state = PRE_STARTUP;
 
-    PostgresWireProtocol(SQLOperations sqlOperations, Authentication authService, @Nullable SslContext sslContext) {
+    PostgresWireProtocol(SQLOperations sqlOperations,
+                         Function<SessionContext, AccessControl> getAcessControl,
+                         Authentication authService,
+                         @Nullable SslContext sslContext) {
         this.sqlOperations = sqlOperations;
+        this.getAccessControl = getAcessControl;
         this.authService = authService;
         this.sslReqHandler = new SslReqHandler(sslContext);
         this.decoder = new MessageDecoder();
@@ -604,11 +613,20 @@ class PostgresWireProtocol {
         if (outputTypes == null) {
             // this is a DML query
             maxRows = 0;
-            resultReceiver = new RowCountReceiver(query, channel, session.sessionContext());
+            resultReceiver = new RowCountReceiver(
+                query,
+                channel,
+                SQLExceptions.forWireTransmission(getAccessControl.apply(session.sessionContext()))
+            );
         } else {
             // query with resultSet
-            resultReceiver = new ResultSetReceiver(query, channel, session.sessionContext(), outputTypes,
-                session.getResultFormatCodes(portalName));
+            resultReceiver = new ResultSetReceiver(
+                query,
+                channel,
+                SQLExceptions.forWireTransmission(getAccessControl.apply(session.sessionContext())),
+                outputTypes,
+                session.getResultFormatCodes(portalName)
+            );
         }
         session.execute(portalName, maxRows, resultReceiver);
     }
@@ -668,15 +686,18 @@ class PostgresWireProtocol {
             session.bind("", "", Collections.emptyList(), null);
             Session.DescribeResult describeResult = session.describe('P', "");
             List<Field> fields = describeResult.getFields();
+
+            Function<Throwable, Exception> wrapError = SQLExceptions.forWireTransmission(
+                getAccessControl.apply(session.sessionContext()));
             if (fields == null) {
-                RowCountReceiver rowCountReceiver = new RowCountReceiver(query, channel, session.sessionContext());
+                RowCountReceiver rowCountReceiver = new RowCountReceiver(query, channel, wrapError);
                 session.execute("", 0, rowCountReceiver);
             } else {
                 Messages.sendRowDescription(channel, fields, null);
                 ResultSetReceiver resultSetReceiver = new ResultSetReceiver(
                     query,
                     channel,
-                    session.sessionContext(),
+                    wrapError,
                     Lists2.map(fields, Field::valueType),
                     null
                 );

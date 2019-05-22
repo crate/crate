@@ -31,6 +31,7 @@ import io.crate.analyze.DeallocateAnalyzedStatement;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.Relations;
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.auth.user.AccessControl;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.exceptions.SQLExceptions;
@@ -114,6 +115,7 @@ public class Session implements AutoCloseable {
 
     public static final String UNNAMED = "";
     private final DependencyCarrier executor;
+    private final AccessControl accessControl;
     private final SessionContext sessionContext;
 
     @VisibleForTesting
@@ -134,12 +136,14 @@ public class Session implements AutoCloseable {
                    JobsLogs jobsLogs,
                    boolean isReadOnly,
                    DependencyCarrier executor,
+                   AccessControl accessControl,
                    SessionContext sessionContext) {
         this.analyzer = analyzer;
         this.planner = planner;
         this.jobsLogs = jobsLogs;
         this.isReadOnly = isReadOnly;
         this.executor = executor;
+        this.accessControl = accessControl;
         this.sessionContext = sessionContext;
         this.parameterTypeExtractor = new Session.ParameterTypeExtractor();
     }
@@ -270,7 +274,7 @@ public class Session implements AutoCloseable {
                 statement = EMPTY_STMT;
             } else {
                 jobsLogs.logPreExecutionFailure(UUID.randomUUID(), query, SQLExceptions.messageOf(t), sessionContext.user());
-                throw SQLExceptions.createSQLActionException(t, sessionContext);
+                throw SQLExceptions.createSQLActionException(t, e -> accessControl.ensureMaySee(e));
             }
         }
         preparedStatements.put(statementName, new PreparedStmt(statement, query, paramTypes));
@@ -298,7 +302,7 @@ public class Session implements AutoCloseable {
             }
         } catch (Throwable t) {
             jobsLogs.logPreExecutionFailure(UUID.randomUUID(), portal.getLastQuery(), SQLExceptions.messageOf(t), sessionContext.user());
-            throw SQLExceptions.createSQLActionException(t, sessionContext);
+            throw SQLExceptions.forWireTransmission(accessControl, t);
         }
     }
 
@@ -343,7 +347,7 @@ public class Session implements AutoCloseable {
                         analyzedStatement = analyzer.unboundAnalyze(statement, sessionContext, preparedStmt.paramTypes());
                         preparedStmt.analyzedStatement(analyzedStatement);
                     } catch (Throwable t) {
-                        throw SQLExceptions.createSQLActionException(t, sessionContext);
+                        throw SQLExceptions.forWireTransmission(accessControl, t);
                     }
                 }
                 if (analyzedStatement == null) {

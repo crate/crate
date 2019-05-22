@@ -24,9 +24,11 @@ package io.crate.protocols.postgres;
 
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
+import io.crate.action.sql.SessionContext;
 import io.crate.auth.AlwaysOKNullAuthentication;
 import io.crate.auth.Authentication;
 import io.crate.auth.AuthenticationMethod;
+import io.crate.auth.user.AccessControl;
 import io.crate.auth.user.User;
 import io.crate.auth.user.UserManager;
 import io.crate.concurrent.CompletableFutures;
@@ -58,6 +60,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -114,6 +117,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         PostgresWireProtocol ctx =
             new PostgresWireProtocol(
                 mock(SQLOperations.class),
+                sessionContext -> AccessControl.DISABLED,
                 new AlwaysOKNullAuthentication(),
                 null);
         channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
@@ -155,6 +159,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         PostgresWireProtocol ctx =
             new PostgresWireProtocol(
                 sqlOperations,
+                sessionContext -> AccessControl.DISABLED,
                 new AlwaysOKNullAuthentication(),
                 null);
         channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
@@ -175,6 +180,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         PostgresWireProtocol ctx =
             new PostgresWireProtocol(
                 sqlOperations,
+                sessionContext -> AccessControl.DISABLED,
                 new AlwaysOKNullAuthentication(),
                 null);
         channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
@@ -199,6 +205,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         PostgresWireProtocol ctx =
             new PostgresWireProtocol(
                 sqlOperations,
+                sessionContext -> AccessControl.DISABLED,
                 new AlwaysOKNullAuthentication(),
                 null);
 
@@ -255,6 +262,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         PostgresWireProtocol ctx =
             new PostgresWireProtocol(
                 sqlOperations,
+                sessionContext -> AccessControl.DISABLED,
                 new AlwaysOKNullAuthentication(),
                 null);
 
@@ -315,6 +323,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         PostgresWireProtocol ctx =
             new PostgresWireProtocol(
                 mock(SQLOperations.class),
+                sessionContext -> AccessControl.DISABLED,
                 new AlwaysOKNullAuthentication(),
                 null);
 
@@ -342,7 +351,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testCrateServerVersionIsReceivedOnStartup() throws Exception {
         PostgresWireProtocol ctx = new PostgresWireProtocol(
-            sqlOperations, new AlwaysOKNullAuthentication(), null);
+            sqlOperations, sessionContext -> AccessControl.DISABLED, new AlwaysOKNullAuthentication(), null);
         channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
 
         ByteBuf buf = Unpooled.buffer();
@@ -377,8 +386,9 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         PostgresWireProtocol ctx =
             new PostgresWireProtocol(
                 mock(SQLOperations.class),
+                sessionContext -> AccessControl.DISABLED,
                 new Authentication() {
-                    @Nullable
+
                     @Override
                     public AuthenticationMethod resolveAuthenticationType(String user, ConnectionProperties connectionProperties) {
                         return new AuthenticationMethod() {
@@ -430,6 +440,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         PostgresWireProtocol ctx =
             new PostgresWireProtocol(
                 sqlOperations,
+                sessionContext -> AccessControl.DISABLED,
                 new AlwaysOKNullAuthentication(),
                 null);
         channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
@@ -468,6 +479,8 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
     private void submitQueriesThroughSimpleQueryMode(String statements, @Nullable Throwable failure) {
         SQLOperations sqlOperations = Mockito.mock(SQLOperations.class);
         Session session = mock(Session.class);
+        SessionContext sessionContext = new SessionContext(Set.of(), User.CRATE_USER);
+        when(session.sessionContext()).thenReturn(sessionContext);
         when(sqlOperations.createSession(any(String.class), any(User.class))).thenReturn(session);
         Session.DescribeResult describeResult = mock(Session.DescribeResult.class);
         when(describeResult.getFields()).thenReturn(null);
@@ -476,6 +489,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         PostgresWireProtocol ctx =
             new PostgresWireProtocol(
                 sqlOperations,
+                sessionCtx -> AccessControl.DISABLED,
                 new AlwaysOKNullAuthentication(),
                 null);
         channel = new EmbeddedChannel(ctx.decoder, ctx.handler);

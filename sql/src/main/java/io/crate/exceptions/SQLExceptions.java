@@ -24,14 +24,14 @@ package io.crate.exceptions;
 import com.google.common.base.MoreObjects;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import io.crate.action.sql.SQLActionException;
-import io.crate.auth.user.ExceptionAuthorizedValidator;
+import io.crate.auth.user.AccessControl;
 import io.crate.metadata.PartitionName;
 import io.crate.sql.parser.ParsingException;
 import io.netty.handler.codec.http.HttpResponseStatus;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ResourceAlreadyExistsException;
-import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.common.util.concurrent.UncategorizedExecutionException;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.engine.EngineException;
@@ -52,6 +52,8 @@ import javax.annotation.Nullable;
 import java.util.Locale;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 public class SQLExceptions {
@@ -108,13 +110,20 @@ public class SQLExceptions {
         return e instanceof ShardNotFoundException || e instanceof IllegalIndexShardStateException;
     }
 
+    public static Function<Throwable, Exception> forWireTransmission(AccessControl accessControl) {
+        return e -> createSQLActionException(e, accessControl::ensureMaySee);
+    }
+
+    public static SQLActionException forWireTransmission(AccessControl accessControl, Throwable e) {
+        return createSQLActionException(e, accessControl::ensureMaySee);
+    }
 
     /**
      * Create a {@link SQLActionException} out of a {@link Throwable}.
      * If concrete {@link ElasticsearchException} is found, first transform it
      * to a {@link CrateException}
      */
-    public static SQLActionException createSQLActionException(Throwable e, ExceptionAuthorizedValidator validator) {
+    public static SQLActionException createSQLActionException(Throwable e, Consumer<Throwable> maskSensitiveInformation) {
         // ideally this method would be a static factory method in SQLActionException,
         // but that would pull too many dependencies for the client
 
@@ -124,7 +133,7 @@ public class SQLExceptions {
         Throwable unwrappedError = SQLExceptions.unwrap(e);
         e = esToCrateException(unwrappedError);
         try {
-            validator.ensureExceptionAuthorized(e);
+            maskSensitiveInformation.accept(e);
         } catch (Exception mpe) {
             e = mpe;
         }
