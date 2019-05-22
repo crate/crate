@@ -20,12 +20,9 @@
 package org.elasticsearch.repositories.azure;
 
 import com.microsoft.azure.storage.LocationMode;
-import com.microsoft.azure.storage.RetryPolicy;
 import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.settings.SecureSetting;
 import org.elasticsearch.common.settings.SecureString;
 import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.SettingsException;
 import org.elasticsearch.common.unit.TimeValue;
@@ -34,52 +31,8 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.net.UnknownHostException;
-import java.util.Locale;
 
 public final class AzureStorageSettings {
-
-    private static final String AZURE_CLIENT_PREFIX = "azure.client.";
-
-    static final Setting<SecureString> ACCOUNT_SETTING = SecureSetting.insecureString(AZURE_CLIENT_PREFIX + "account");
-
-    static final Setting<SecureString> KEY_SETTING = SecureSetting.insecureString(AZURE_CLIENT_PREFIX + "key");
-
-    /**
-     * max_retries: Number of retries in case of Azure errors.
-     * Defaults to 3 (RetryPolicy.DEFAULT_CLIENT_RETRY_COUNT).
-     */
-    static final Setting<Integer> MAX_RETRIES_SETTING = Setting.intSetting(
-        AZURE_CLIENT_PREFIX + "max_retries", RetryPolicy.DEFAULT_CLIENT_RETRY_COUNT, Setting.Property.NodeScope);
-
-    /**
-     * Azure endpoint suffix. Default to core.windows.net (CloudStorageAccount.DEFAULT_DNS).
-     */
-    static final Setting<String> ENDPOINT_SUFFIX_SETTING =
-        Setting.simpleString(AZURE_CLIENT_PREFIX + "endpoint_suffix", Property.NodeScope);
-
-    static final Setting<TimeValue> TIMEOUT_SETTING = Setting.timeSetting(
-        AZURE_CLIENT_PREFIX + "timeout", TimeValue.timeValueMinutes(-1), Property.NodeScope);
-
-    /**
-     * The type of the proxy to connect to azure through. Can be direct (no proxy, default), http or socks
-     */
-    static final Setting<Proxy.Type> PROXY_TYPE_SETTING = new Setting<>(
-        AZURE_CLIENT_PREFIX + "proxy.type",
-        "direct",
-        s -> Proxy.Type.valueOf(s.toUpperCase(Locale.ROOT)),
-        Property.NodeScope);
-
-    /**
-     * The host name of a proxy to connect to azure through.
-     */
-    static final Setting<String> PROXY_HOST_SETTING = Setting.simpleString(
-        AZURE_CLIENT_PREFIX + "proxy.host", Property.NodeScope);
-
-    /**
-     * The port of a proxy to connect to azure through.
-     */
-    static final Setting<Integer> PROXY_PORT_SETTING = Setting.intSetting(
-        AZURE_CLIENT_PREFIX + "proxy.port", 0, 0, 65535, Setting.Property.NodeScope);
 
     private final String account;
     private final String key;
@@ -181,34 +134,22 @@ public final class AzureStorageSettings {
     }
 
     static AzureStorageSettings getClientSettings(Settings settings) {
-        try (SecureString account = getConfigValue(settings, ACCOUNT_SETTING);
-             SecureString key = getConfigValue(settings, KEY_SETTING)) {
+        try (SecureString account = getConfigValue(settings, AzureRepository.Repository.ACCOUNT_SETTING);
+             SecureString key = getConfigValue(settings, AzureRepository.Repository.KEY_SETTING)) {
             return new AzureStorageSettings(
                 account.toString(),
                 key.toString(),
-                getConfigValue(settings, ENDPOINT_SUFFIX_SETTING),
-                getConfigValue(settings, TIMEOUT_SETTING),
-                getConfigValue(settings, MAX_RETRIES_SETTING),
-                getConfigValue(settings, PROXY_TYPE_SETTING),
-                getConfigValue(settings, PROXY_HOST_SETTING),
-                getConfigValue(settings, PROXY_PORT_SETTING));
+                getConfigValue(settings, AzureRepository.Repository.ENDPOINT_SUFFIX_SETTING),
+                getConfigValue(settings, AzureRepository.Repository.TIMEOUT_SETTING),
+                getConfigValue(settings, AzureRepository.Repository.MAX_RETRIES_SETTING),
+                getConfigValue(settings, AzureRepository.Repository.PROXY_TYPE_SETTING),
+                getConfigValue(settings, AzureRepository.Repository.PROXY_HOST_SETTING),
+                getConfigValue(settings, AzureRepository.Repository.PROXY_PORT_SETTING));
         }
     }
 
     private static <T> T getConfigValue(Settings settings, Setting<T> clientSetting) {
         return clientSetting.get(settings);
-    }
-
-    static AzureStorageSettings overrideLocationMode(AzureStorageSettings clientSettings,
-                                                     LocationMode locationMode) {
-        return new AzureStorageSettings(
-            clientSettings.account,
-            clientSettings.key,
-            clientSettings.endpointSuffix,
-            clientSettings.timeout,
-            clientSettings.maxRetries,
-            clientSettings.proxy,
-            locationMode);
     }
 
     static AzureStorageSettings copy(AzureStorageSettings settings) {

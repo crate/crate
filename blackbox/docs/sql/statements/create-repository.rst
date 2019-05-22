@@ -322,8 +322,10 @@ A repository type that stores its snapshots on the Azure Storage service.
 
 **base_path**
   | *Type:* ``text``
+  | *Default:* `` ``
 
-  The path within the Azure Storage container to repository data.
+  The path within the Azure Storage container to repository data. Defaults to
+  root if not set.
 
 **chunk_size**
   | *Type:*    ``bigint`` or ``text``
@@ -356,11 +358,8 @@ A repository type that stores its snapshots on the Azure Storage service.
   The location mode for storing data on the Azure Storage.
   Note that if you set it to ``secondary_only``, it will force readonly to true.
 
-Azure Client Settings
-.....................
-
-All the setting values are specified via ``azure.client.`` in the crate.yaml
-configuration file.
+Client Specific Settings
+........................
 
 **account**
   | *Type:*    ``text``
@@ -392,19 +391,19 @@ configuration file.
   The initial backoff period. Time to wait before retrying after a first
   timeout or failure.
 
-**proxy.type**
+**proxy_type**
   | *Type:*    ``text``
   | *Values:* ``http``, ``socks``, or ``direct``
   | *Default:* ``direct``
 
   The type of the proxy to connect to the Azure Storage account through.
 
-**proxy.host**
+**proxy_host**
   | *Type:* ``text``
 
   The host name of a proxy to connect to the Azure Storage account through.
 
-**proxy.port**
+**proxy_port**
   | *Type:* ``integer``
   | *Default:* ``0``
 

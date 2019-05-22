@@ -140,7 +140,15 @@ public class CreateDropRepositoryAnalyzerTest extends CrateDummyClusterServiceUn
             "   chunk_size='12mb'," +
             "   compress=true," +
             "   readonly=true," +
-            "   location_mode='primary_only')");
+            "   location_mode='primary_only'," +
+            "   account='test_account'," +
+            "   key='test_key'," +
+            "   max_retries=3," +
+            "   endpoint_suffix='.com'," +
+            "   timeout='30s'," +
+            "   proxy_port=0," +
+            "   proxy_type='socks'," +
+            "   proxy_host='localhost')");
         assertThat(analysis.repositoryType(), is("azure"));
         assertThat(analysis.repositoryName(), is("foo"));
         assertThat(
@@ -150,9 +158,25 @@ public class CreateDropRepositoryAnalyzerTest extends CrateDummyClusterServiceUn
                 hasEntry("base_path", "test_path"),
                 hasEntry("chunk_size", "12mb"),
                 hasEntry("compress", "true"),
-                hasEntry("readonly", "true")
+                hasEntry("readonly", "true"),
+                hasEntry("account", "test_account"),
+                hasEntry("key", "test_key"),
+                hasEntry("max_retries", "3"),
+                hasEntry("endpoint_suffix", ".com"),
+                hasEntry("timeout", "30s"),
+                hasEntry("proxy_port", "0"),
+                hasEntry("proxy_type", "SOCKS"),
+                hasEntry("proxy_host", "localhost")
             )
         );
+    }
+
+    @Test
+    public void testCreateAzureRepoWithMissingMandatorySettings() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("The following required parameters are missing to" +
+                                        " create a repository of type \"azure\": [key]");
+        e.analyze("CREATE REPOSITORY foo TYPE azure WITH (account='test')");
     }
 
     @Test
