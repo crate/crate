@@ -5,16 +5,34 @@
 Privileges
 ==========
 
-The superuser is allowed to execute any statement without any privilege checks.
+To execute statements in CrateDB a user needs to have the required privileges
+to do so.
 
-The superuser uses ``GRANT``, ``DENY`` and ``REVOKE`` statements to control
-access to the resource. The privileges are either applied on the whole cluster
-or on instances of objects such as schema, or table.
+There is a superuser (``crate``) which has the privilege to do anything. The
+privileges of other users have to be managed using the ``GRANT``, ``DENY`` or
+``REVOKE`` statements.
 
-Currently, only ``DQL``, ``DML`` and ``DDL`` privileges can be granted.
+The privileges that can be granted, denied or revoked are:
 
-Any statements which are not allowed with those privileges, such as ``GRANT``,
-``DENY`` and ``REVOKE``, can only be issued by a superuser.
+- ``DQL``
+- ``DML``
+- ``DDL``
+
+Skip to :ref:`privilege_types` for details.
+
+These privileges can be granted on different levels:
+
+- ``CLUSTER``
+- ``SCHEMA``
+- ``TABLE`` and ``VIEW``
+
+Skip to :ref:`hierarchical_privileges_inheritance` for details.
+
+
+A user with ``DDL`` on level ``CLUSTER`` can grant privileges they themselves
+have to other users as well. But once a grantor loses a privilege, all users
+who received grants by this users will lose the privilege as well.
+
 
 .. NOTE::
 
@@ -28,6 +46,8 @@ Any statements which are not allowed with those privileges, such as ``GRANT``,
 
 .. contents::
    :local:
+
+.. _privilege_types:
 
 Privilege Types
 ===============
@@ -56,11 +76,24 @@ and ``DELETE`` statements, on the object for which the privilege applies.
 .......
 
 Granting ``Data Definition Language (DDL)`` privilege to a user, indicates that
-this user is allowed to execute ``CREATE TABLE``, ``DROP TABLE``,
-``CREATE VIEW``, ``DROP VIEW``, ``CREATE FUNCTION``, ``DROP FUNCTION``,
-``CREATE REPOSITORY``, ``DROP REPOSITORY``, ``CREATE SNAPSHOT``,
-``DROP SNAPSHOT``, ``RESTORE SNAPSHOT``, and ``ALTER`` statements, on the
-object for which the privilege applies.
+this user is allowed to execute the following statements on objects for which
+the privilege applies:
+
+- ``CREATE TABLE``
+- ``DROP TABLE``
+- ``CREATE VIEW``
+- ``DROP VIEW``
+- ``CREATE FUNCTION``
+- ``DROP FUNCTION``
+- ``CREATE REPOSITORY``
+- ``DROP REPOSITORY``
+- ``CREATE SNAPSHOT``
+- ``DROP SNAPSHOT``
+- ``RESTORE SNAPSHOT``
+- ``ALTER``
+- ``CREATE USER`` (Cluster)
+- ``DROP USER``, for users the user created. The superuser can remove any user.
+
 
 .. _hierarchical_privileges_inheritance:
 
