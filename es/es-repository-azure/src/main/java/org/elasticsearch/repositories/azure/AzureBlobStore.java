@@ -41,13 +41,14 @@ public class AzureBlobStore implements BlobStore {
     private final LocationMode locationMode;
 
     public AzureBlobStore(RepositoryMetaData metadata, AzureStorageService service) {
-        this.container = Repository.CONTAINER_SETTING.get(metadata.settings());
         this.service = service;
-        // locationMode is set per repository, not per client
+        this.container = Repository.CONTAINER_SETTING.get(metadata.settings());
         this.locationMode = Repository.LOCATION_MODE_SETTING.get(metadata.settings());
-        final AzureStorageSettings prevSettings = this.service.refreshAndClearCache(null);
-        final AzureStorageSettings newSettings = AzureStorageSettings.overrideLocationMode(prevSettings, this.locationMode);
-        this.service.refreshAndClearCache(newSettings);
+
+        AzureStorageSettings repositorySettings = AzureStorageSettings
+            .getClientSettings(metadata.settings());
+
+        this.service.refreshSettings(repositorySettings);
     }
 
     @Override
