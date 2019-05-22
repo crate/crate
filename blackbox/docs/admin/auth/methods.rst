@@ -18,7 +18,7 @@ There are multiple ways to authenticate against CrateDB.
 
 .. _auth_trust:
 
-Trust Method
+Trust method
 ============
 
 When the ``trust`` authentication method is used, the server just takes the
@@ -26,13 +26,13 @@ username provided by the client as is without further validation. This is
 useful for any setup where access is controlled by other means, like network
 restrictions as implemented by :ref:`admin_hba`.
 
-Trust Authentication Over Postgres Protocol
+Trust authentication over postgres protocol
 -------------------------------------------
 
 The Postgres Protocol requires a user for every connection which is sent by all
 client implementations.
 
-Trust Authentication Over HTTP
+Trust authentication over HTTP
 ------------------------------
 
 The HTTP implementation extracts the username from the
@@ -70,7 +70,7 @@ setting like this:
 
 .. _auth_password:
 
-Password Authentication Method
+Password authentication method
 ==============================
 
 When the ``password`` authentication method is used, the client has to provide
@@ -97,7 +97,7 @@ PBKDF2_ key derivation function and the `SHA-512 hash algorithm`_.
 
 .. _auth_cert:
 
-Client Certificate Authentication Method
+Client certificate authentication method
 ========================================
 
 When the ``cert`` authentication method is used, the client has to connect to

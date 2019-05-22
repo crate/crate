@@ -1,7 +1,7 @@
 .. _ddl_shard_allocation:
 
 ============================
- Shard Allocation Filtering
+ Shard allocation filtering
 ============================
 
 Shard allocation filters allows to configure shard and replicas allocation per
@@ -37,7 +37,7 @@ set of nodes to another:
    Assign the table to a node whose *{attribute}* has **none** of the
    comma-separated values.
 
-Special Attributes
+Special attributes
 ==================
 
 Following special attributes are supported:

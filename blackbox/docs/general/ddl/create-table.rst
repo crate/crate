@@ -119,7 +119,7 @@ the ``doc`` schema::
 
 .. _sql_ddl_naming_restrictions:
 
-Naming Restrictions
+Naming restrictions
 ===================
 
 Table, schema and column identifiers cannot have the same names as reserved key

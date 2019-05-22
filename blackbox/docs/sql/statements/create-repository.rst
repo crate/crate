@@ -356,7 +356,7 @@ A repository type that stores its snapshots on the Azure Storage service.
   The location mode for storing data on the Azure Storage.
   Note that if you set it to ``secondary_only``, it will force readonly to true.
 
-Azure Client Settings
+Azure client settings
 .....................
 
 All the setting values are specified via ``azure.client.`` in the crate.yaml

@@ -18,7 +18,7 @@ cluster settings can be :ref:`changed at runtime
 
 .. _applying-cluster-settings:
 
-Non-Runtime Cluster Wide Settings
+Non-runtime cluster wide settings
 ---------------------------------
 
 Cluster wide settings which cannot be changed at runtime need to be specified
@@ -32,7 +32,7 @@ in the configuration of each node in the cluster.
 
 .. _conf_collecting_stats:
 
-Collecting Stats
+Collecting stats
 ----------------
 
 .. _stats.enabled:
@@ -180,7 +180,7 @@ Collecting Stats
 
 .. _conf_usage_data_collector:
 
-Usage Data Collector
+Usage data collector
 --------------------
 
 The settings of the Usage Data Collector are read-only and cannot be set during
@@ -231,7 +231,7 @@ about its usage.
 
 .. _conf_graceful_stop:
 
-Graceful Stop
+Graceful stop
 -------------
 
 By default, when the CrateDB process stops it simply shuts down, possibly
@@ -288,7 +288,7 @@ nodes of the cluster:
 
 .. _conf_bulk_operations:
 
-Bulk Operations
+Bulk operations
 ---------------
 
 SQL DML Statements involving a huge amount of rows like :ref:`copy_from`,
@@ -358,8 +358,8 @@ new master node is elected.
 
 .. _conf_host_discovery:
 
-Unicast Host Discovery
-.......................
+Unicast host discovery
+......................
 
 As described above, CrateDB has built-in support for statically specifying a
 list of addresses that will act as the seed nodes in the discovery process
@@ -541,7 +541,7 @@ To enable Azure discovery set the ``discovery.seed_providers`` setting to
 
 .. _conf_routing:
 
-Routing Allocation
+Routing allocation
 ------------------
 
 .. _cluster.routing.allocation.enable:
@@ -667,7 +667,7 @@ across generic attributes associated with nodes.
   shards will be allocated (with no replicas). Only when we start more shards
   with ``node.attr.zone`` set to ``zone2`` the replicas will be allocated.
 
-Balanced Shards
+Balanced shards
 ...............
 
 All these values are relative to one another. The first three are used to
@@ -706,7 +706,7 @@ to forced awareness or allocation filtering.
   negative float). Increasing this value will cause the cluster to be less
   aggressive about optimising the shard balance.
 
-Cluster-Wide Allocation Filtering
+Cluster-wide allocation filtering
 .................................
 
 Allow to control the allocation of all shards based on include/exclude filters.
@@ -739,7 +739,7 @@ specific IP addresses or custom attributes.
   to allocate a shard on it. This is in contrast to include which will include
   a node if ANY rule matches.
 
-Disk-based Shard Allocation
+Disk-based shard allocation
 ...........................
 
 .. _cluster.routing.allocation.disk.threshold_enabled:
@@ -865,7 +865,7 @@ Recovery
   fail. Defaults to :ref:`internal_action_long_timeout
   <indices.recovery.internal_action_long_timeout>`.
 
-Query Circuit Breaker
+Query circuit breaker
 ---------------------
 
 The Query circuit breaker will keep track of the used memory during the
@@ -889,7 +889,7 @@ keeps working.
   A constant that all data estimations are multiplied with to determine a final
   estimation.
 
-Field Data Circuit Breaker
+Field data circuit breaker
 --------------------------
 
 The field data circuit breaker allows estimation of needed heap memory required
@@ -909,7 +909,7 @@ is raised.
   A constant that all field data estimations are multiplied with to determine a
   final estimation.
 
-Request Circuit Breaker
+Request circuit breaker
 -----------------------
 
 The request circuit breaker allows an estimation of required heap memory per
@@ -929,7 +929,7 @@ exception is raised.
   A constant that all request estimations are multiplied with to determine a
   final estimation.
 
-Accounting Circuit Breaker
+Accounting circuit breaker
 --------------------------
 
 Tracks things that are held in memory independent of queries. For example the
@@ -951,7 +951,7 @@ memory used by Lucene for segments.
 
 .. _stats.breaker.log:
 
-Stats Circuit Breakers
+Stats circuit breakers
 ----------------------
 
 Settings that control the behaviour of the stats circuit breaker. There are two
@@ -985,7 +985,7 @@ each of them, the breaker limit can be set.
   error message and clears the :ref:`sys.operations_log <sys-logs>` table
   completely.
 
-Total Circuit Breaker
+Total circuit breaker
 ---------------------
 
 **indices.breaker.total.limit**
@@ -999,7 +999,7 @@ Total Circuit Breaker
   queries might still get aborted if several circuit breakers together would
   hit the memory limit configured in ``indices.breaker.total.limit``.
 
-Thread Pools
+Thread pools
 ------------
 
 Every node holds several thread pools to improve how threads are managed within
@@ -1056,7 +1056,7 @@ Metadata
 
 .. _metadata_gateway:
 
-Metadata Gateway
+Metadata gateway
 ................
 
   The gateway persists cluster meta data on disk every time the meta data
@@ -1101,7 +1101,7 @@ Metadata Gateway
 
 .. _s3-credentials:
 
-Credentials for S3 Repositories
+Credentials for S3 repositories
 ...............................
 
 CrateDB has built-in support for configuring

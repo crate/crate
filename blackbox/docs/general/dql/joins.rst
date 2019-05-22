@@ -11,7 +11,7 @@ Joins
 
 .. _cross-joins:
 
-Cross Joins
+Cross joins
 -----------
 
 Referencing two tables results in a ``CROSS JOIN``.
@@ -61,7 +61,7 @@ the ``FROM`` list::
     +------------------------------+---------------+----------+
     SELECT 8 rows in set (... sec)
 
-Inner Joins
+Inner joins
 -----------
 
 Inner Joins require each record of one table to have matching records on the
@@ -82,7 +82,7 @@ other table::
     +----+------------+------------------+
     SELECT 4 rows in set (... sec)
 
-Left Outer Joins
+Left outer joins
 ----------------
 
 **Left** outer join returns tuples for all matching records of the *left* and
@@ -118,7 +118,7 @@ null values for the columns of the *right* relation::
     +--------------------+-----------------------+
     SELECT 18 rows in set (... sec)
 
-Right Outer Joins
+Right outer joins
 -----------------
 
 **Right** outer join returns tuples for all matching records of the *right* and
@@ -142,7 +142,7 @@ null values for the columns of the *left* relation::
     +-------------+-----------------------+
     SELECT 6 rows in set (... sec)
 
-Full Outer Joins
+Full outer joins
 ----------------
 
 **Full** outer join returns tuples for all matching records of the *left* and
@@ -181,7 +181,7 @@ tuples for all other records from *right* that don't match any record on the
     +--------------------+-----------------------+
     SELECT 19 rows in set (... sec)
 
-Join Conditions
+Join conditions
 ---------------
 
 CrateDB supports all operators and scalar functions as join conditions in the
@@ -203,10 +203,10 @@ Example with ``within`` scalar function::
 
 .. _available-join-algo:
 
-Available Join Algorithms
+Available join algorithms
 -------------------------
 
-Nested Loop Join Algorithm
+Nested loop join algorithm
 ..........................
 
 The nested loop algorithm evaluates the join conditions on every record of the
@@ -216,10 +216,10 @@ in the left table.
 
 This is the default algorithm used for all types of joins.
 
-Block Hash Join Algorithm
+Block hash join algorithm
 .........................
 
-The performance of `Equi-Joins`_  is substantially improved by using the
+The performance of `Equi-Joins`_ is substantially improved by using the
 `Hash Join`_ algorithm. At first one relation is scanned and loaded into a hash
 table using the attributes of the join conditions as hash keys. Once the hash
 table is build, the second relation is scanned and the join condition values of
@@ -230,7 +230,7 @@ available memory, only a certain block size of a relation is loaded at once. The
 whole operation will be repeated with the next block of the first relation once
 scanning the second relation has finished.
 
-This optimisation cannot be applied unless the join is an  **INNER** join and
+This optimization cannot be applied unless the join is an  **INNER** join and
 the `join condition` obeys the following rules:
 
   - contains at least one ``EQUAL`` operator
@@ -247,8 +247,8 @@ session setting :ref:`enable_hashjoin <conf-session-enable-hashjoin>`::
 Limitations
 -----------
 
- - Joining more than 2 tables can result in execution plans which perform
-   poorly as there is no query optimizer in place yet.
+Joining more than 2 tables can result in execution plans which perform poorly
+as there is no query optimizer in place yet.
 
 
 .. _`nightly builds`: https://cdn.crate.io/downloads/releases/nightly/

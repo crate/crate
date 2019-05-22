@@ -8,7 +8,7 @@ Data storage options can be tuned for each column similar to how indexing is def
 
 .. _ddl-storage-columnstore:
 
-Column Store
+Column store
 ============
 
 Beside of storing the row data as-is (and indexing each value by default), each

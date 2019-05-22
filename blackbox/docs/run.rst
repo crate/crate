@@ -48,7 +48,7 @@ To stop the process that is running in the background send the ``TERM`` or
 
 The ``crate`` executable supports the following command line options:
 
-Command Line Options
+Command-line options
 ====================
 
 +------------------+----------------------------------------------------------+
@@ -76,7 +76,7 @@ Example::
 
 .. _cli_signals:
 
-Signal Handling
+Signal handling
 ===============
 
 The CrateDB process can handle the following signals.

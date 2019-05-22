@@ -9,7 +9,7 @@ Views
 .. contents::
     :local:
 
-Introduction: Creating Views
+Introduction: creating views
 ============================
 
 Views are stored named queries which can be used in place of table names.
@@ -25,7 +25,7 @@ pre-defined filter::
     CREATE OK, 1 row affected (... sec)
 
 
-Querying Views
+Querying views
 ==============
 
 Once created, views can be used instead of a table in a statement::
@@ -62,7 +62,7 @@ be able to query it.
 
 See also :ref:`administration-privileges`.
 
-Dropping Views
+Dropping views
 ==============
 
 Views can be dropped using the :ref:`DROP VIEW statement <ref-drop-view>`::

@@ -29,7 +29,7 @@ Any statements which are not allowed with those privileges, such as ``GRANT``,
 .. contents::
    :local:
 
-Privilege Types
+Privilege types
 ===============
 
 ``DQL``
@@ -64,7 +64,7 @@ object for which the privilege applies.
 
 .. _hierarchical_privileges_inheritance:
 
-Hierarchical Inheritance of Privileges
+Hierarchical inheritance of privileges
 ======================================
 .. hide:
 
@@ -296,7 +296,7 @@ like this::
     has no effect. The effect of the ``REVOKE`` statement will be reflected
     in the row count.
 
-List Privileges
+List privileges
 ===============
 
 CrateDB exposes privileges ``sys.privileges`` system table.
