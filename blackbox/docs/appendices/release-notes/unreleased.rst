@@ -45,8 +45,15 @@ Discovery Changes
 -----------------
 
 This version of CrateDB uses a new cluster coordination (discovery)
-implementation known as `zen2` which improves resiliency and master election
-times.
+implementation which improves resiliency and master election times.
+A new voting mechanism is used when a node is removed or added which makes the
+system capable of automatically maintaining an optimal level of fault
+tolerance even in situations of network partitions.
+This eliminates the need of the easily misconfigured ``minimum_master_nodes``
+setting.
+Additionally a very rare resiliency failure, recorded as "Repeated network
+partitions can cause cluster state updates to be lost" can no longer occur.
+
 Due to this some discovery settings are renamed, removed and added.
 
 Added Settings
