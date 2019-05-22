@@ -1164,6 +1164,10 @@ Every request that queries data or manipulates data is considered a "job" if it
 is a valid query. Requests that are not valid queries (for example, a request
 that tries to query a non-existent table) will not show up as jobs.
 
+.. NOTE::
+
+   The ``sys.jobs`` table is subject to :ref:`jobs_table_permissions`.
+
 .. _sys-jobs-metrics:
 
 Jobs Metrics
@@ -1347,6 +1351,10 @@ have corresponding log tables: ``sys.jobs_log`` and ``sys.operations_log``.
 
   You can control which jobs are recorded using the :ref:`stats.jobs_log_filter
   <stats.jobs_log_filter>`
+
+.. NOTE::
+
+   The ``sys.jobs_log`` table is subject to :ref:`jobs_table_permissions`.
 
 
 ``sys.operations_log`` Table Schema
@@ -1847,6 +1855,20 @@ For example, if the user ``john`` has any privilege on the ``doc.books`` table
 but no privilege at all on ``doc.locations``, when ``john`` issues a
 ``SELECT * FROM sys.shards`` statement, the shards information related to the
 ``doc.locations`` table will not be returned.
+
+.. _jobs_table_permissions:
+
+Sys Jobs Tables Permissions
+===========================
+
+Accessing :ref:`sys.jobs <sys-jobs>` and :ref:`sys.jobs_log <sys-logs>` tables
+is subjected to the same privileges constraints as other tables. To query
+them, the current user needs to have the ``DQL`` privilege on that particular
+table, either directly or inherited from the ``SCHEMA`` or ``CLUSTER``.
+
+A user that doesn't have superuser privileges is allowed to retrieve only
+their own job logs entries, while a user with superuser privileges has access
+to all.
 
 Before Upgrading
 ================

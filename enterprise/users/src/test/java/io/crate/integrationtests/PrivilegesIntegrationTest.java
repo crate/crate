@@ -42,13 +42,13 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
     private SQLOperations sqlOperations;
     private UserManager userManager;
 
-    private void assertPrivilegeIsGranted(String privilege) throws Exception {
+    private void assertPrivilegeIsGranted(String privilege) {
         SQLResponse response = executeAsSuperuser("select count(*) from sys.privileges where grantee = ? and type = ?",
             new Object[]{TEST_USERNAME, privilege});
         assertThat(response.rows()[0][0], is(1L));
     }
 
-    private void assertPrivilegeIsRevoked(String privilege) throws Exception {
+    private void assertPrivilegeIsRevoked(String privilege) {
         SQLResponse response = executeAsSuperuser("select count(*) from sys.privileges where grantee = ? and type = ?",
             new Object[]{TEST_USERNAME, privilege});
         assertThat(response.rows()[0][0], is(0L));
@@ -83,26 +83,26 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
     }
 
     @Test
-    public void testNormalUserGrantsPrivilegeThrowsException() throws Exception {
+    public void testNormalUserGrantsPrivilegeThrowsException() {
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("Missing 'AL' privilege for user 'normal'");
         executeAsNormalUser("grant DQL to " + TEST_USERNAME);
     }
 
     @Test
-    public void testNewUserHasNoPrivilegesByDefault() throws Exception {
+    public void testNewUserHasNoPrivilegesByDefault() {
         executeAsSuperuser("select * from sys.privileges where grantee = ?", new Object[]{TEST_USERNAME});
         assertThat(response.rowCount(), is(0L));
     }
 
     @Test
-    public void testSuperUserGrantsPrivilege() throws Exception {
+    public void testSuperUserGrantsPrivilege() {
         executeAsSuperuser("grant DQL to " + TEST_USERNAME);
         assertPrivilegeIsGranted("DQL");
     }
 
     @Test
-    public void testGrantRevokeALLPrivileges() throws Exception {
+    public void testGrantRevokeALLPrivileges() {
         executeAsSuperuser("grant ALL to " + TEST_USERNAME);
         assertPrivilegeIsGranted("DQL");
         assertPrivilegeIsGranted("DML");
@@ -115,7 +115,7 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
     }
 
     @Test
-    public void testSuperUserRevokesPrivilege() throws Exception {
+    public void testSuperUserRevokesPrivilege() {
         executeAsSuperuser("grant DQL to " + TEST_USERNAME);
         assertThat(response.rowCount(), is(1L));
 
@@ -135,21 +135,21 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
     }
 
     @Test
-    public void testApplyPrivilegesToUnknownUserThrowsException() throws Exception {
+    public void testApplyPrivilegesToUnknownUserThrowsException() {
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("UserUnknownException: User 'unknown_user' does not exist");
         executeAsSuperuser("grant DQL to unknown_user");
     }
 
     @Test
-    public void testApplyPrivilegesToMultipleUnknownUsersThrowsException() throws Exception {
+    public void testApplyPrivilegesToMultipleUnknownUsersThrowsException() {
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("UserUnknownException: Users 'unknown_user, also_unknown' do not exist");
         executeAsSuperuser("grant DQL to unknown_user, also_unknown");
     }
 
     @Test
-    public void testQuerySysShardsReturnsOnlyRowsRegardingTablesUserHasAccessOn() throws Exception {
+    public void testQuerySysShardsReturnsOnlyRowsRegardingTablesUserHasAccessOn() {
         executeAsSuperuser("create table t1 (x int) partitioned by (x) clustered into 1 shards with (number_of_replicas = 0)");
         executeAsSuperuser("insert into t1 values (1)");
         executeAsSuperuser("insert into t1 values (2)");
@@ -170,7 +170,29 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
     }
 
     @Test
-    public void testQuerySysAllocationsReturnsOnlyRowsRegardingTablesUserHasAccessOn() throws Exception {
+    public void testQuerySysJobsLogReturnsLogEntriesRelevantToUser() {
+        executeAsSuperuser("grant dql on table sys.jobs_log to " + TEST_USERNAME);
+        executeAsSuperuser("select 2");
+        executeAsSuperuser("select 3");
+        execute("select 1", null, testUserSession());
+
+        String stmt = "select username, stmt " +
+                      "from sys.jobs_log " +
+                      "where stmt in ('select 1', 'select 2', 'select 3') " +
+                      "order by stmt";
+
+        executeAsSuperuser(stmt);
+        assertThat(printedTable(response.rows()),
+                   is("privileges_test_user| select 1\n" +
+                      "crate| select 2\n" +
+                      "crate| select 3\n"));
+
+        execute(stmt, null, testUserSession());
+        assertThat(printedTable(response.rows()), is("privileges_test_user| select 1\n"));
+    }
+
+    @Test
+    public void testQuerySysAllocationsReturnsOnlyRowsRegardingTablesUserHasAccessOn() {
         executeAsSuperuser("CREATE TABLE su.t1 (i INTEGER) CLUSTERED INTO 1 SHARDS WITH (number_of_replicas = 0)");
         executeAsSuperuser("CREATE TABLE u.t1 (i INTEGER) CLUSTERED INTO 1 SHARDS WITH (number_of_replicas = 0)");
 
@@ -185,7 +207,7 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
     }
 
     @Test
-    public void testQuerySysHealthReturnsOnlyRowsRegardingTablesUserHasAccessOn() throws Exception {
+    public void testQuerySysHealthReturnsOnlyRowsRegardingTablesUserHasAccessOn() {
         executeAsSuperuser("CREATE TABLE su.t1 (i INTEGER) CLUSTERED INTO 1 SHARDS WITH (number_of_replicas = 0)");
         executeAsSuperuser("CREATE TABLE u.t1 (i INTEGER) CLUSTERED INTO 1 SHARDS WITH (number_of_replicas = 0)");
 
@@ -197,7 +219,7 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
     }
 
     @Test
-    public void testQueryInformationSchemaShowsOnlyRowsRegardingTablesUserHasAccessOn() throws Exception {
+    public void testQueryInformationSchemaShowsOnlyRowsRegardingTablesUserHasAccessOn() {
         executeAsSuperuser("create table t1 (x int) partitioned by (x) clustered into 1 shards with (number_of_replicas = 0)");
         executeAsSuperuser("insert into t1 values (1)");
         executeAsSuperuser("insert into t1 values (2)");
