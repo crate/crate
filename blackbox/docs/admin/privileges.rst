@@ -36,9 +36,9 @@ Privilege Types
 .......
 
 Granting ``Data Query Language (DQL)`` privilege to a user, indicates that this
-user is allowed to execute ``SELECT``, ``SHOW``, ``REFRESH``, ``COPY TO``,
-and ``SET SESSION`` statements, as well as using the available user defined
-functions, on the object for which the privilege applies.
+user is allowed to execute ``SELECT``, ``SHOW``, ``REFRESH`` and ``COPY TO``
+statements, as well as using the available user defined functions, on the
+object for which the privilege applies.
 
 .. NOTE::
 
