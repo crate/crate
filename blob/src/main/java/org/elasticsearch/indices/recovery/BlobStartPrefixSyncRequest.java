@@ -49,7 +49,7 @@ public class BlobStartPrefixSyncRequest extends BlobRecoveryRequest {
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
         prefix = in.readByte();
-        shardId = ShardId.readShardId(in);
+        shardId = new ShardId(in);
     }
 
     @Override

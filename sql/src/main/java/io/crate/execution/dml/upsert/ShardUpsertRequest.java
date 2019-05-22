@@ -53,7 +53,6 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
     private DuplicateKeyAction duplicateKeyAction;
     private boolean continueOnError;
     private boolean validateConstraints = true;
-    private boolean isRetry;
     private SessionSettings sessionSettings;
 
     /**
@@ -136,18 +135,6 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
         return this;
     }
 
-    /**
-     * Returns <code>true</code> if this request has been sent to a shard copy more than once.
-     */
-    public boolean isRetry() {
-        return isRetry;
-    }
-
-    @Override
-    public void onRetry() {
-        isRetry = true;
-    }
-
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
@@ -219,7 +206,6 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
         if (!super.equals(o)) return false;
         if (this == o) return true;
         if (getClass() != o.getClass()) return false;
-        if (!super.equals(o)) return false;
         ShardUpsertRequest items = (ShardUpsertRequest) o;
         return continueOnError == items.continueOnError &&
                duplicateKeyAction == items.duplicateKeyAction &&

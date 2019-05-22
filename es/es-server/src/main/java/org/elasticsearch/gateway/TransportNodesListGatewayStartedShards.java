@@ -189,7 +189,7 @@ public class TransportNodesListGatewayStartedShards extends
         @Override
         public void readFrom(StreamInput in) throws IOException {
             super.readFrom(in);
-            shardId = ShardId.readShardId(in);
+            shardId = new ShardId(in);
         }
 
         @Override
@@ -233,7 +233,7 @@ public class TransportNodesListGatewayStartedShards extends
         @Override
         public void readFrom(StreamInput in) throws IOException {
             super.readFrom(in);
-            shardId = ShardId.readShardId(in);
+            shardId = new ShardId(in);
         }
 
         @Override

@@ -34,23 +34,14 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.net.UnknownHostException;
-import java.util.HashMap;
 import java.util.Locale;
-import java.util.Map;
 
-final class AzureStorageSettings {
+public final class AzureStorageSettings {
 
-    // prefix for azure client settings
     private static final String AZURE_CLIENT_PREFIX = "azure.client.";
 
-    /**
-     * Azure account name
-     */
     static final Setting<SecureString> ACCOUNT_SETTING = SecureSetting.insecureString(AZURE_CLIENT_PREFIX + "account");
 
-    /**
-     * Azure key
-     */
     static final Setting<SecureString> KEY_SETTING = SecureSetting.insecureString(AZURE_CLIENT_PREFIX + "key");
 
     /**
@@ -98,8 +89,12 @@ final class AzureStorageSettings {
     private final Proxy proxy;
     private final LocationMode locationMode;
 
-    // copy-constructor
-    private AzureStorageSettings(String account, String key, String endpointSuffix, TimeValue timeout, int maxRetries, Proxy proxy,
+    private AzureStorageSettings(String account,
+                                 String key,
+                                 String endpointSuffix,
+                                 TimeValue timeout,
+                                 int maxRetries,
+                                 Proxy proxy,
                                  LocationMode locationMode) {
         this.account = account;
         this.key = key;
@@ -110,8 +105,14 @@ final class AzureStorageSettings {
         this.locationMode = locationMode;
     }
 
-    private AzureStorageSettings(String account, String key, String endpointSuffix, TimeValue timeout, int maxRetries,
-                                 Proxy.Type proxyType, String proxyHost, Integer proxyPort) {
+    private AzureStorageSettings(String account,
+                                 String key,
+                                 String endpointSuffix,
+                                 TimeValue timeout,
+                                 int maxRetries,
+                                 Proxy.Type proxyType,
+                                 String proxyHost,
+                                 Integer proxyPort) {
         this.account = account;
         this.key = key;
         this.endpointSuffix = endpointSuffix;
@@ -162,6 +163,10 @@ final class AzureStorageSettings {
         return proxy;
     }
 
+    public LocationMode getLocationMode() {
+        return locationMode;
+    }
+
     public String buildConnectionString() {
         final StringBuilder connectionStringBuilder = new StringBuilder();
         connectionStringBuilder.append("DefaultEndpointsProtocol=https")
@@ -175,37 +180,7 @@ final class AzureStorageSettings {
         return connectionStringBuilder.toString();
     }
 
-    public LocationMode getLocationMode() {
-        return locationMode;
-    }
-
-    @Override
-    public String toString() {
-        final StringBuilder sb = new StringBuilder("AzureStorageSettings{");
-        sb.append("account='").append(account).append('\'');
-        sb.append(", key='").append(key).append('\'');
-        sb.append(", timeout=").append(timeout);
-        sb.append(", endpointSuffix='").append(endpointSuffix).append('\'');
-        sb.append(", maxRetries=").append(maxRetries);
-        sb.append(", proxy=").append(proxy);
-        sb.append(", locationMode='").append(locationMode).append('\'');
-        sb.append('}');
-        return sb.toString();
-    }
-
-    /**
-     * Parse and read all settings available under the azure.client
-     * @param settings settings to parse
-     * @return All the named configurations
-     */
-    public static Map<String, AzureStorageSettings> load(Settings settings) {
-        return Map.of("default", getClientSettings(settings));
-    }
-
-    /**
-     * Parse settings for a single client.
-     */
-    private static AzureStorageSettings getClientSettings(Settings settings) {
+    static AzureStorageSettings getClientSettings(Settings settings) {
         try (SecureString account = getConfigValue(settings, ACCOUNT_SETTING);
              SecureString key = getConfigValue(settings, KEY_SETTING)) {
             return new AzureStorageSettings(
@@ -224,15 +199,38 @@ final class AzureStorageSettings {
         return clientSetting.get(settings);
     }
 
-    static Map<String, AzureStorageSettings> overrideLocationMode(Map<String, AzureStorageSettings> clientsSettings,
-                                                                  LocationMode locationMode) {
-        final var map = new HashMap<String, AzureStorageSettings>();
-        for (final Map.Entry<String, AzureStorageSettings> entry : clientsSettings.entrySet()) {
-            final AzureStorageSettings azureSettings = new AzureStorageSettings(entry.getValue().account, entry.getValue().key,
-                    entry.getValue().endpointSuffix, entry.getValue().timeout, entry.getValue().maxRetries, entry.getValue().proxy,
-                    locationMode);
-            map.put(entry.getKey(), azureSettings);
-        }
-        return Map.copyOf(map);
+    static AzureStorageSettings overrideLocationMode(AzureStorageSettings clientSettings,
+                                                     LocationMode locationMode) {
+        return new AzureStorageSettings(
+            clientSettings.account,
+            clientSettings.key,
+            clientSettings.endpointSuffix,
+            clientSettings.timeout,
+            clientSettings.maxRetries,
+            clientSettings.proxy,
+            locationMode);
+    }
+
+    static AzureStorageSettings copy(AzureStorageSettings settings) {
+        return new AzureStorageSettings(
+            settings.account,
+            settings.key,
+            settings.endpointSuffix,
+            settings.timeout,
+            settings.maxRetries,
+            settings.proxy,
+            settings.locationMode);
+    }
+
+    @Override
+    public String toString() {
+        return "AzureStorageSettings{" + "account='" + account + '\'' +
+               ", key='" + key + '\'' +
+               ", timeout=" + timeout +
+               ", endpointSuffix='" + endpointSuffix + '\'' +
+               ", maxRetries=" + maxRetries +
+               ", proxy=" + proxy +
+               ", locationMode='" + locationMode + '\'' +
+               '}';
     }
 }

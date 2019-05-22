@@ -19,11 +19,9 @@
 
 package org.elasticsearch.indices.recovery;
 
-import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.transport.TransportRequest;
 
 import java.io.IOException;
@@ -45,7 +43,7 @@ class RecoveryPrepareForTranslogOperationsRequest extends TransportRequest {
     RecoveryPrepareForTranslogOperationsRequest(StreamInput in) throws IOException {
         super.readFrom(in);
         recoveryId = in.readLong();
-        shardId = ShardId.readShardId(in);
+        shardId = new ShardId(in);
         totalTranslogOps = in.readVInt();
         fileBasedRecovery = in.readBoolean();
     }

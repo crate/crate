@@ -985,6 +985,20 @@ each of them, the breaker limit can be set.
   error message and clears the :ref:`sys.operations_log <sys-logs>` table
   completely.
 
+Total Circuit Breaker
+---------------------
+
+**indices.breaker.total.limit**
+  | *Default:*    ``95%``
+  | *Runtime:*   ``yes``
+
+  The maximum memory that can be used by all aforementioned circuit breakers
+  together.
+
+  Even if an individual circuit breaker doesn't hit its individual limit,
+  queries might still get aborted if several circuit breakers together would
+  hit the memory limit configured in ``indices.breaker.total.limit``.
+
 Thread Pools
 ------------
 
