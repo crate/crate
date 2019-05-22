@@ -22,9 +22,9 @@
 
 package io.crate.user;
 
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.user.Privilege;
-import io.crate.auth.user.ExceptionAuthorizedValidator;
-import io.crate.auth.user.StatementAuthorizedValidator;
+import io.crate.auth.user.AccessControl;
 import io.crate.auth.user.User;
 import io.crate.auth.user.UserManager;
 import io.crate.concurrent.CompletableFutures;
@@ -72,14 +72,7 @@ public class StubUserManager implements UserManager {
     }
 
     @Override
-    public StatementAuthorizedValidator getStatementValidator(@Nullable User user, String defaultSchema) {
-        return s -> {
-        };
-    }
-
-    @Override
-    public ExceptionAuthorizedValidator getExceptionValidator(@Nullable User user, String defaultSchema) {
-        return t -> {
-        };
+    public AccessControl getAccessControl(SessionContext sessionContext) {
+        return AccessControl.DISABLED;
     }
 }

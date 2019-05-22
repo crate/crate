@@ -401,7 +401,6 @@ public class SQLExecutor {
             return new SQLExecutor(
                 functions,
                 new Analyzer(
-                    settings,
                     schemas,
                     functions,
                     relationAnalyzer,
@@ -425,7 +424,7 @@ public class SQLExecutor {
                     () -> hasValidLicense
                 ),
                 relationAnalyzer,
-                new SessionContext(Option.NONE, user, s -> {}, t -> {}, searchPath),
+                new SessionContext(Option.NONE, user, searchPath),
                 schemas,
                 random
             );

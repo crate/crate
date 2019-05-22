@@ -42,8 +42,7 @@ public class ResultSetReceiverTest {
         ResultSetReceiver resultSetReceiver = new ResultSetReceiver(
             "select * from t",
             channel,
-            t -> {
-            },
+            RuntimeException::new,
             Collections.singletonList(DataTypes.INTEGER),
             null
         );

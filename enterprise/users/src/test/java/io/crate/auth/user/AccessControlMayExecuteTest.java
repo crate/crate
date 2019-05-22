@@ -28,7 +28,6 @@ import io.crate.exceptions.UnauthorizedException;
 import io.crate.execution.engine.collect.sources.SysTableRegistry;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.Schemas;
 import io.crate.metadata.cluster.DDLClusterStateService;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -55,7 +54,7 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 
-public class StatementPrivilegeValidatorTest extends CrateDummyClusterServiceUnitTest {
+public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTest {
 
     private List<List<Object>> validationCallArguments;
     private User user;
@@ -124,9 +123,7 @@ public class StatementPrivilegeValidatorTest extends CrateDummyClusterServiceUni
 
     private void analyze(String stmt, User user) {
         e.analyzer.boundAnalyze(SqlParser.createStatement(stmt),
-            new CoordinatorTxnCtx(new SessionContext(Option.NONE, user,
-                userManager.getStatementValidator(user, Schemas.DOC_SCHEMA_NAME),
-                userManager.getExceptionValidator(user, Schemas.DOC_SCHEMA_NAME))), ParameterContext.EMPTY);
+            new CoordinatorTxnCtx(new SessionContext(Option.NONE, user)), ParameterContext.EMPTY);
     }
 
     @SuppressWarnings("unchecked")

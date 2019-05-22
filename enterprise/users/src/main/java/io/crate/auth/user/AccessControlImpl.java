@@ -18,7 +18,7 @@
 
 package io.crate.auth.user;
 
-
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.AddColumnAnalyzedStatement;
 import io.crate.analyze.AlterBlobTableAnalyzedStatement;
 import io.crate.analyze.AlterTableAnalyzedStatement;
@@ -68,7 +68,14 @@ import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.relations.UnionSelect;
 import io.crate.analyze.user.Privilege;
+import io.crate.exceptions.ClusterScopeException;
+import io.crate.exceptions.CrateException;
+import io.crate.exceptions.CrateExceptionVisitor;
+import io.crate.exceptions.MissingPrivilegeException;
+import io.crate.exceptions.SchemaScopeException;
+import io.crate.exceptions.TableScopeException;
 import io.crate.exceptions.UnauthorizedException;
+import io.crate.exceptions.UnscopedException;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
@@ -76,27 +83,149 @@ import io.crate.sql.tree.SetStatement;
 
 import java.util.Locale;
 
-class StatementPrivilegeValidator implements StatementAuthorizedValidator {
+public final class AccessControlImpl implements AccessControl {
 
-    private final UserLookup userLookup;
     private final User user;
-    private final String defaultSchema;
+    private final UserLookup userLookup;
+    private final SessionContext sessionContext;
 
-    StatementPrivilegeValidator(UserLookup userLookup, User user, String defaultSchema) {
+    /**
+     * @param sessionContext for user and defaultSchema information.
+     *                       The `sessionContext` (instead of user and schema) is required to
+     *                       observe updates to the default schema.
+     *                       (Which can change at runtime within the life-time of a session)
+     */
+    public AccessControlImpl(UserLookup userLookup, SessionContext sessionContext) {
         this.userLookup = userLookup;
-        this.user = user;
-        this.defaultSchema = defaultSchema;
+        this.sessionContext = sessionContext;
+        this.user = sessionContext.user();
     }
 
     @Override
-    public void ensureStatementAuthorized(AnalyzedStatement statement) {
-        new StatementVisitor(userLookup, defaultSchema).process(statement, user);
+    public void ensureMayExecute(AnalyzedStatement statement) {
+        if (!user.isSuperUser()) {
+            new StatementVisitor(userLookup, sessionContext.searchPath().currentSchema()).process(statement, user);
+        }
+    }
+
+    @Override
+    public void ensureMaySee(Throwable t) throws MissingPrivilegeException {
+        if (!user.isSuperUser() && t instanceof CrateException) {
+            ((CrateException) t).accept(MaskSensitiveExceptions.INSTANCE, user);
+        }
     }
 
     private static void throwRequiresSuperUserPermission(String userName) {
         throw new UnauthorizedException(
             String.format(Locale.ENGLISH, "User \"%s\" is not authorized to execute the statement. " +
                                           "Superuser permissions are required", userName));
+    }
+
+    private static class RelationContext {
+
+        private User user;
+        private final Privilege.Type type;
+
+        RelationContext(User user, Privilege.Type type) {
+            this.user = user;
+            this.type = type;
+        }
+    }
+
+    private static final class RelationVisitor extends AnalyzedRelationVisitor<RelationContext, Void> {
+
+        private final UserLookup userLookup;
+        private final String defaultSchema;
+
+        public RelationVisitor(UserLookup userLookup, String defaultSchema) {
+            this.userLookup = userLookup;
+            this.defaultSchema = defaultSchema;
+        }
+
+        @Override
+        protected Void visitAnalyzedRelation(AnalyzedRelation relation, RelationContext context) {
+            throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "Can't handle \"%s\"", relation));
+        }
+
+        @Override
+        public Void visitQueriedTable(QueriedTable table, RelationContext context) {
+            process(table.tableRelation(), context);
+            return null;
+        }
+
+        @Override
+        public Void visitMultiSourceSelect(MultiSourceSelect multiSourceSelect, RelationContext context) {
+            for (AnalyzedRelation relation : multiSourceSelect.sources().values()) {
+                process(relation, context);
+            }
+            return null;
+        }
+
+        @Override
+        public Void visitOrderedLimitedRelation(OrderedLimitedRelation relation, RelationContext context) {
+            process(relation.childRelation(), context);
+            return null;
+        }
+
+        @Override
+        public Void visitUnionSelect(UnionSelect unionSelect, RelationContext context) {
+            process(unionSelect.left(), context);
+            process(unionSelect.right(), context);
+            return null;
+        }
+
+        @Override
+        public Void visitTableRelation(TableRelation tableRelation, RelationContext context) {
+            Privileges.ensureUserHasPrivilege(
+                context.type,
+                Privilege.Clazz.TABLE,
+                tableRelation.tableInfo().ident().fqn(),
+                context.user,
+                defaultSchema);
+            return null;
+        }
+
+        @Override
+        public Void visitDocTableRelation(DocTableRelation relation, RelationContext context) {
+            Privileges.ensureUserHasPrivilege(
+                context.type,
+                Privilege.Clazz.TABLE,
+                relation.tableInfo().ident().fqn(),
+                context.user,
+                defaultSchema);
+            return null;
+        }
+
+        @Override
+        public Void visitTableFunctionRelation(TableFunctionRelation tableFunctionRelation, RelationContext context) {
+            // Any user can execute table functions; Queries like `select 1` might be used to do simple connection checks
+            return null;
+        }
+
+        @Override
+        public Void visitQueriedSelectRelation(QueriedSelectRelation relation, RelationContext context) {
+            return process(relation.subRelation(), context);
+        }
+
+        @Override
+        public Void visitView(AnalyzedView analyzedView, RelationContext context) {
+            Privileges.ensureUserHasPrivilege(
+                context.type,
+                Privilege.Clazz.VIEW,
+                analyzedView.name().toString(),
+                context.user,
+                defaultSchema);
+            User owner = analyzedView.owner() == null ? null : userLookup.findUser(analyzedView.owner());
+            if (owner == null) {
+                throw new UnauthorizedException(
+                    "Owner \"" + analyzedView.owner() + "\" of the view \"" + analyzedView.name().fqn() + "\" not found");
+            }
+            User currentUser = context.user;
+            context.user = owner;
+            process(analyzedView.relation(), context);
+            context.user = currentUser;
+            return null;
+        }
     }
 
     private static final class StatementVisitor extends AnalyzedStatementVisitor<User, Void> {
@@ -472,110 +601,38 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
         }
     }
 
-    private static class RelationContext {
+    private static class MaskSensitiveExceptions extends CrateExceptionVisitor<User, Void> {
 
-        private User user;
-        private final Privilege.Type type;
+        private static final MaskSensitiveExceptions INSTANCE = new MaskSensitiveExceptions();
 
-        RelationContext(User user, Privilege.Type type) {
-            this.user = user;
-            this.type = type;
-        }
-    }
-
-
-    private static final class RelationVisitor extends AnalyzedRelationVisitor<RelationContext, Void> {
-
-        private final UserLookup userLookup;
-        private final String defaultSchema;
-
-        public RelationVisitor(UserLookup userLookup, String defaultSchema) {
-            this.userLookup = userLookup;
-            this.defaultSchema = defaultSchema;
+        @Override
+        protected Void visitCrateException(CrateException e, User context) {
+            throw new IllegalStateException(String.format(Locale.ENGLISH,
+                "CrateException '%s' not supported by privileges exception validator", e.getClass()));
         }
 
         @Override
-        protected Void visitAnalyzedRelation(AnalyzedRelation relation, RelationContext context) {
-            throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "Can't handle \"%s\"", relation));
-        }
-
-        @Override
-        public Void visitQueriedTable(QueriedTable table, RelationContext context) {
-            process(table.tableRelation(), context);
-            return null;
-        }
-
-        @Override
-        public Void visitMultiSourceSelect(MultiSourceSelect multiSourceSelect, RelationContext context) {
-            for (AnalyzedRelation relation : multiSourceSelect.sources().values()) {
-                process(relation, context);
+        protected Void visitTableScopeException(TableScopeException e, User user) {
+            for (RelationName relationName : e.getTableIdents()) {
+                Privileges.ensureUserHasPrivilege(Privilege.Clazz.TABLE, relationName.toString(), user);
             }
             return null;
         }
 
         @Override
-        public Void visitOrderedLimitedRelation(OrderedLimitedRelation relation, RelationContext context) {
-            process(relation.childRelation(), context);
+        protected Void visitSchemaScopeException(SchemaScopeException e, User context) {
+            Privileges.ensureUserHasPrivilege(Privilege.Clazz.SCHEMA, e.getSchemaName(), context);
             return null;
         }
 
         @Override
-        public Void visitUnionSelect(UnionSelect unionSelect, RelationContext context) {
-            process(unionSelect.left(), context);
-            process(unionSelect.right(), context);
+        protected Void visitClusterScopeException(ClusterScopeException e, User context) {
+            Privileges.ensureUserHasPrivilege(Privilege.Clazz.CLUSTER, null, context);
             return null;
         }
 
         @Override
-        public Void visitTableRelation(TableRelation tableRelation, RelationContext context) {
-            Privileges.ensureUserHasPrivilege(
-                context.type,
-                Privilege.Clazz.TABLE,
-                tableRelation.tableInfo().ident().fqn(),
-                context.user,
-                defaultSchema);
-            return null;
-        }
-
-        @Override
-        public Void visitDocTableRelation(DocTableRelation relation, RelationContext context) {
-            Privileges.ensureUserHasPrivilege(
-                context.type,
-                Privilege.Clazz.TABLE,
-                relation.tableInfo().ident().fqn(),
-                context.user,
-                defaultSchema);
-            return null;
-        }
-
-        @Override
-        public Void visitTableFunctionRelation(TableFunctionRelation tableFunctionRelation, RelationContext context) {
-            // Any user can execute table functions; Queries like `select 1` might be used to do simple connection checks
-            return null;
-        }
-
-        @Override
-        public Void visitQueriedSelectRelation(QueriedSelectRelation relation, RelationContext context) {
-            return process(relation.subRelation(), context);
-        }
-
-        @Override
-        public Void visitView(AnalyzedView analyzedView, RelationContext context) {
-            Privileges.ensureUserHasPrivilege(
-                context.type,
-                Privilege.Clazz.VIEW,
-                analyzedView.name().toString(),
-                context.user,
-                defaultSchema);
-            User owner = analyzedView.owner() == null ? null : userLookup.findUser(analyzedView.owner());
-            if (owner == null) {
-                throw new UnauthorizedException(
-                    "Owner \"" + analyzedView.owner() + "\" of the view \"" + analyzedView.name().fqn() + "\" not found");
-            }
-            User currentUser = context.user;
-            context.user = owner;
-            process(analyzedView.relation(), context);
-            context.user = currentUser;
+        protected Void visitUnscopedException(UnscopedException e, User context) {
             return null;
         }
     }

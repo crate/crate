@@ -18,9 +18,9 @@
 
 package io.crate.auth.user;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import io.crate.action.FutureActionListener;
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.user.Privilege;
 import io.crate.exceptions.UserAlreadyExistsException;
 import io.crate.exceptions.UserUnknownException;
@@ -47,17 +47,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 import static io.crate.auth.user.User.CRATE_USER;
-import static java.util.Objects.requireNonNull;
 
 @Singleton
 public class UserManagerService implements UserManager, ClusterStateListener {
-
-    @VisibleForTesting
-    static final StatementAuthorizedValidator BYPASS_AUTHORIZATION_CHECKS = s -> {
-    };
-    @VisibleForTesting
-    static final ExceptionAuthorizedValidator NOOP_EXCEPTION_VALIDATOR = t -> {
-    };
 
     private static final Consumer<User> ENSURE_DROP_USER_NOT_SUPERUSER = user -> {
         if (user != null && user.isSuperUser()) {
@@ -181,21 +173,8 @@ public class UserManagerService implements UserManager, ClusterStateListener {
     }
 
     @Override
-    public StatementAuthorizedValidator getStatementValidator(User user, String defaultSchema) {
-        requireNonNull(user, "User must not be null");
-        if (user.isSuperUser()) {
-            return BYPASS_AUTHORIZATION_CHECKS;
-        }
-        return new StatementPrivilegeValidator(this, user, defaultSchema);
-    }
-
-    @Override
-    public ExceptionAuthorizedValidator getExceptionValidator(User user, String defaultSchema) {
-        requireNonNull(user, "User must not be null");
-        if (user.isSuperUser()) {
-            return NOOP_EXCEPTION_VALIDATOR;
-        }
-        return new ExceptionPrivilegeValidator(user, defaultSchema);
+    public AccessControl getAccessControl(SessionContext sessionContext) {
+        return new AccessControlImpl(this, sessionContext);
     }
 
     @Override

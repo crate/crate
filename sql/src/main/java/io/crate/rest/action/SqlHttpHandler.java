@@ -31,11 +31,13 @@ import io.crate.action.sql.SessionContext;
 import io.crate.action.sql.parser.SQLRequestParseContext;
 import io.crate.action.sql.parser.SQLRequestParser;
 import io.crate.auth.AuthSettings;
+import io.crate.auth.user.AccessControl;
 import io.crate.auth.user.User;
 import io.crate.auth.user.UserLookup;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.breaker.RowAccountingWithEstimators;
+import io.crate.exceptions.SQLExceptions;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Symbols;
 import io.crate.protocols.http.Headers;
@@ -74,7 +76,6 @@ import java.util.function.Function;
 
 import static io.crate.action.sql.Session.UNNAMED;
 import static io.crate.concurrent.CompletableFutures.failedFuture;
-import static io.crate.exceptions.SQLExceptions.createSQLActionException;
 import static io.crate.protocols.http.Headers.isCloseConnection;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
@@ -90,6 +91,7 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
     private final SQLOperations sqlOperations;
     private final Function<String, CircuitBreaker> circuitBreakerProvider;
     private final UserLookup userLookup;
+    private final Function<SessionContext, AccessControl> getAccessControl;
     private final Netty4CorsConfig corsConfig;
 
     private Session session;
@@ -98,12 +100,14 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
                    SQLOperations sqlOperations,
                    Function<String, CircuitBreaker> circuitBreakerProvider,
                    UserLookup userLookup,
+                   Function<SessionContext, AccessControl> getAccessControl,
                    Netty4CorsConfig corsConfig) {
         super(false);
         this.settings = settings;
         this.sqlOperations = sqlOperations;
         this.circuitBreakerProvider = circuitBreakerProvider;
         this.userLookup = userLookup;
+        this.getAccessControl = getAccessControl;
         this.corsConfig = corsConfig;
     }
 
@@ -159,7 +163,8 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
             resp = new DefaultFullHttpResponse(httpVersion, HttpResponseStatus.OK, content);
             resp.headers().add(HttpHeaderNames.CONTENT_TYPE, result.contentType().mediaType());
         } else {
-            SQLActionException sqlActionException = createSQLActionException(t, session.sessionContext());
+            SQLActionException sqlActionException = SQLExceptions.forWireTransmission(
+                getAccessControl.apply(session.sessionContext()), t);
             String mediaType;
             boolean includeErrorTrace = paramContainFlag(parameters, "error_trace");
             try (XContentBuilder contentBuilder = HTTPErrorFormatter.convert(sqlActionException, includeErrorTrace)) {

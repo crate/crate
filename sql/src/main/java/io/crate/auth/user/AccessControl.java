@@ -23,11 +23,23 @@
 package io.crate.auth.user;
 
 import io.crate.analyze.AnalyzedStatement;
+import io.crate.exceptions.MissingPrivilegeException;
 
-public interface StatementAuthorizedValidator {
+public interface AccessControl {
 
-    /**
-     * Ensures that a user is allowed to execute the statement.
-     */
-    void ensureStatementAuthorized(AnalyzedStatement statement);
+    AccessControl DISABLED = new AccessControl() {
+        @Override
+        public void ensureMayExecute(AnalyzedStatement statement) {
+
+        }
+
+        @Override
+        public void ensureMaySee(Throwable t) throws MissingPrivilegeException {
+
+        }
+    };
+
+    void ensureMayExecute(AnalyzedStatement statement);
+
+    void ensureMaySee(Throwable t) throws MissingPrivilegeException;
 }

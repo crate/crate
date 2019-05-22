@@ -24,6 +24,7 @@ package io.crate.rest.action;
 
 import io.crate.action.sql.SQLOperations;
 import io.crate.auth.AuthSettings;
+import io.crate.auth.user.AccessControl;
 import io.crate.auth.user.User;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.settings.Settings;
@@ -48,6 +49,7 @@ public class SqlHttpHandlerTest {
                 }
                 return null;
             },
+            sessionContext -> AccessControl.DISABLED,
             Netty4CorsConfigBuilder.forAnyOrigin().build()
         );
 
@@ -65,6 +67,7 @@ public class SqlHttpHandlerTest {
             mock(SQLOperations.class),
             (s) -> new NoopCircuitBreaker("dummy"),
             User::of,
+            sessionContext -> AccessControl.DISABLED,
             Netty4CorsConfigBuilder.forAnyOrigin().build()
         );
 
@@ -79,6 +82,7 @@ public class SqlHttpHandlerTest {
             mock(SQLOperations.class),
             (s) -> new NoopCircuitBreaker("dummy"),
             User::of,
+            sessionContext -> AccessControl.DISABLED,
             Netty4CorsConfigBuilder.forAnyOrigin().build()
         );
 

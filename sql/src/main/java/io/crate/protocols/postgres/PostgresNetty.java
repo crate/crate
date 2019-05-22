@@ -26,6 +26,7 @@ import com.carrotsearch.hppc.IntHashSet;
 import com.carrotsearch.hppc.IntSet;
 import io.crate.action.sql.SQLOperations;
 import io.crate.auth.Authentication;
+import io.crate.auth.user.UserManager;
 import io.crate.netty.CrateChannelBootstrapFactory;
 import io.crate.protocols.ssl.SslConfigSettings;
 import io.crate.protocols.ssl.SslContextProvider;
@@ -88,6 +89,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
     private final SslContextProvider sslContextProvider;
     private final Logger namedLogger;
     private final Settings settings;
+    private UserManager userManager;
 
     private ServerBootstrap bootstrap;
 
@@ -101,10 +103,12 @@ public class PostgresNetty extends AbstractLifecycleComponent {
     @Inject
     public PostgresNetty(Settings settings,
                          SQLOperations sqlOperations,
+                         UserManager userManager,
                          NetworkService networkService,
                          Authentication authentication,
                          SslContextProvider sslContextProvider) {
         this.settings = settings;
+        this.userManager = userManager;
         namedLogger = LogManager.getLogger("psql");
         this.sqlOperations = sqlOperations;
         this.networkService = networkService;
@@ -144,7 +148,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
                 ChannelPipeline pipeline = ch.pipeline();
                 pipeline.addLast("open_channels", PostgresNetty.this.openChannels);
                 PostgresWireProtocol postgresWireProtocol =
-                    new PostgresWireProtocol(sqlOperations, authentication, sslContext);
+                    new PostgresWireProtocol(sqlOperations, userManager::getAccessControl, authentication, sslContext);
                 pipeline.addLast("frame-decoder", postgresWireProtocol.decoder);
                 pipeline.addLast("handler", postgresWireProtocol.handler);
             }

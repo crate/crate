@@ -20,13 +20,13 @@ package io.crate.auth.user;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.user.Privilege;
 import io.crate.exceptions.RelationValidationException;
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.Schemas;
 import io.crate.test.integration.CrateUnitTest;
 import org.hamcrest.Matcher;
 import org.junit.Before;
@@ -34,16 +34,17 @@ import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.core.Is.is;
 
-public class ExceptionPrivilegeValidatorTest extends CrateUnitTest {
+public class AccessControlMaySeeTest extends CrateUnitTest {
 
     private List<List<Object>> validationCallArguments;
     private User user;
-    private ExceptionAuthorizedValidator validator;
+    private AccessControl accessControl;
 
     @Before
     public void setUpUserAndValidator() {
@@ -56,7 +57,7 @@ public class ExceptionPrivilegeValidatorTest extends CrateUnitTest {
                 return true;
             }
         };
-        validator = new ExceptionPrivilegeValidator(user, Schemas.DOC_SCHEMA_NAME);
+        accessControl = new AccessControlImpl(userName -> user, new SessionContext(Set.of(), user));
     }
 
     @SuppressWarnings("unchecked")
@@ -79,7 +80,7 @@ public class ExceptionPrivilegeValidatorTest extends CrateUnitTest {
 
     @Test
     public void testTableScopeException() throws Exception {
-        validator.ensureExceptionAuthorized(new RelationValidationException(Lists.newArrayList(
+        accessControl.ensureMaySee(new RelationValidationException(Lists.newArrayList(
             RelationName.fromIndexName("users"),
             RelationName.fromIndexName("my_schema.foo")
         ), "bla"));
@@ -89,19 +90,19 @@ public class ExceptionPrivilegeValidatorTest extends CrateUnitTest {
 
     @Test
     public void testSchemaScopeException() throws Exception {
-        validator.ensureExceptionAuthorized(new SchemaUnknownException("my_schema"));
+        accessControl.ensureMaySee(new SchemaUnknownException("my_schema"));
         assertAskedAnyForSchema("my_schema");
     }
 
     @Test
     public void testClusterScopeException() throws Exception {
-        validator.ensureExceptionAuthorized(new UnsupportedFeatureException("unsupported"));
+        accessControl.ensureMaySee(new UnsupportedFeatureException("unsupported"));
         assertAskedAnyForCluster();
     }
 
     @Test
     public void testUnscopedException() throws Exception {
-        validator.ensureExceptionAuthorized(new UnhandledServerException("unhandled"));
+        accessControl.ensureMaySee(new UnhandledServerException("unhandled"));
         assertThat(validationCallArguments.size(), is(0));
     }
 }

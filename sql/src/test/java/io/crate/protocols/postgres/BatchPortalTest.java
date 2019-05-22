@@ -26,6 +26,7 @@ import io.crate.action.sql.BaseResultReceiver;
 import io.crate.action.sql.Session;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.AnalyzedStatement;
+import io.crate.auth.user.AccessControl;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.engine.collect.stats.JobsLogs;
@@ -83,6 +84,7 @@ public class BatchPortalTest extends CrateDummyClusterServiceUnitTest {
             new JobsLogs(() -> false),
             false,
             executor,
+            AccessControl.DISABLED,
             SessionContext.systemSessionContext());
 
         session.parse("S_1", "insert into t1(x) values(1)", Collections.emptyList());
