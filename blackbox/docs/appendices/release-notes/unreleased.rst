@@ -211,7 +211,8 @@ Changes
   This doesn't apply to superusers.
 
 - Added a new ``Administration Language (AL)`` privilege type which allows
-  users to manage other users. See :ref:`administration-privileges`.
+  users to manage other users and use ``SET GLOBAL``. See
+  :ref:`administration-privileges`.
 
 - Changed the circuit breaker logic to measure the real heap usage instead of
   the memory reserved by child circuit breakers. This should reduce the chance
