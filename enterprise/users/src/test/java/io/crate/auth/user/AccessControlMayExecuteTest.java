@@ -161,22 +161,6 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
-    public void testCreateUserNotAllowedAsNormalUser() throws Exception {
-        expectedException.expect(UnauthorizedException.class);
-        expectedException.expectMessage("User \"normal\" is not authorized to execute the statement. " +
-                                        "Superuser permissions are required");
-        analyze("create user ford");
-    }
-
-    @Test
-    public void testDropUserNotAllowedAsNormalUser() throws Exception {
-        expectedException.expect(UnauthorizedException.class);
-        expectedException.expectMessage("User \"normal\" is not authorized to execute the statement. " +
-                                        "Superuser permissions are required");
-        analyze("drop user ford");
-    }
-
-    @Test
     public void testAlterOtherUsersNotAllowedAsNormalUser() {
         expectedException.expect(UnauthorizedException.class);
         expectedException.expectMessage("A regular user can use ALTER USER only on himself. " +
@@ -188,14 +172,6 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     public void testAlterOwnUserIsAllowed() {
         analyze("alter user normal set (password = 'pass')");
         assertThat(validationCallArguments.size(), is(0));
-    }
-
-    @Test
-    public void testPrivilegesNotAllowedAsNormalUser() throws Exception {
-        expectedException.expect(UnauthorizedException.class);
-        expectedException.expectMessage("User \"normal\" is not authorized to execute the statement. " +
-                                        "Superuser permissions are required");
-        analyze("grant dql to normal");
     }
 
     @Test
@@ -488,6 +464,31 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
         expectedException.expectMessage("User \"normal\" is not authorized to execute the statement. " +
                                         "Superuser permissions are required");
         analyze("alter cluster decommission 'n1'");
+    }
+
+    @Test
+    public void test_a_user_with_al_on_cluster_privileges_can_create_other_users() {
+        analyze("create user joe");
+        assertAskedForCluster(Privilege.Type.AL);
+    }
+
+    @Test
+    public void test_a_user_with_al_on_cluster_can_delete_users() {
+        analyze("drop user joe");
+        assertAskedForCluster(Privilege.Type.AL);
+    }
+
+    @Test
+    public void test_a_user_with_al_on_cluster_can_grant_privileges_he_has_to_other_users() {
+        analyze("GRANT DQL ON SCHEMA foo TO joe");
+        assertAskedForCluster(Privilege.Type.AL);
+        assertAskedForSchema(Privilege.Type.DQL, "foo");
+    }
+
+    @Test
+    public void test_a_user_with_al_can_revoke_privileges_from_users() {
+        analyze("REVOKE DQL ON SCHEMA foo FROM joe");
+        assertAskedForCluster(Privilege.Type.AL);
     }
 }
 

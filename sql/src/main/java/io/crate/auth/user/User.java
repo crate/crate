@@ -75,7 +75,6 @@ public class User {
         return password;
     }
 
-    @SuppressWarnings("WeakerAccess")
     public boolean isSuperUser() {
         return roles.contains(Role.SUPERUSER);
     }

@@ -85,7 +85,7 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
     @Test
     public void testNormalUserGrantsPrivilegeThrowsException() throws Exception {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("UnauthorizedException: User \"normal\" is not authorized to execute the statement");
+        expectedException.expectMessage("Missing 'AL' privilege for user 'normal'");
         executeAsNormalUser("grant DQL to " + TEST_USERNAME);
     }
 

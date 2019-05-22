@@ -17,7 +17,7 @@ Synopsis
 
 .. code-block:: psql
 
-  REVOKE { { DQL | DML | DDL [,...] } | ALL [ PRIVILEGES ] }
+  REVOKE { { DQL | DML | DDL | AL [,...] } | ALL [ PRIVILEGES ] }
   [ON {SCHEMA | TABLE} identifier [, ...]]
   FROM user_name [, ...];
 

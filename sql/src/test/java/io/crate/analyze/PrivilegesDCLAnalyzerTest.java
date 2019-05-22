@@ -45,6 +45,7 @@ import static io.crate.analyze.user.Privilege.Clazz.VIEW;
 import static io.crate.analyze.user.Privilege.State.DENY;
 import static io.crate.analyze.user.Privilege.State.GRANT;
 import static io.crate.analyze.user.Privilege.State.REVOKE;
+import static io.crate.analyze.user.Privilege.Type.AL;
 import static io.crate.analyze.user.Privilege.Type.DDL;
 import static io.crate.analyze.user.Privilege.Type.DML;
 import static io.crate.analyze.user.Privilege.Type.DQL;
@@ -180,45 +181,50 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
     @Test
     public void testGrantDenyRevokeAllPrivileges() {
         PrivilegesAnalyzedStatement analysis = analyzePrivilegesStatement("GRANT ALL PRIVILEGES TO user1");
-        assertThat(analysis.privileges().size(), is(3));
+        assertThat(analysis.privileges().size(), is(4));
         assertThat(analysis.privileges(), containsInAnyOrder(
             privilegeOf(GRANT, DQL, CLUSTER, null),
             privilegeOf(GRANT, DML, CLUSTER, null),
-            privilegeOf(GRANT, DDL, CLUSTER, null))
+            privilegeOf(GRANT, DDL, CLUSTER, null),
+            privilegeOf(GRANT, AL, CLUSTER, null))
         );
 
         analysis = analyzePrivilegesStatement("DENY ALL PRIVILEGES TO user1");
-        assertThat(analysis.privileges().size(), is(3));
+        assertThat(analysis.privileges().size(), is(4));
         assertThat(analysis.privileges(), containsInAnyOrder(
             privilegeOf(DENY, DQL, CLUSTER, null),
             privilegeOf(DENY, DML, CLUSTER, null),
-            privilegeOf(DENY, DDL, CLUSTER, null))
+            privilegeOf(DENY, DDL, CLUSTER, null),
+            privilegeOf(DENY, AL, CLUSTER, null))
         );
 
         analysis = analyzePrivilegesStatement("REVOKE ALL PRIVILEGES FROM user1");
-        assertThat(analysis.privileges().size(), is(3));
+        assertThat(analysis.privileges().size(), is(4));
         assertThat(analysis.privileges(), containsInAnyOrder(
             privilegeOf(REVOKE, DQL, CLUSTER, null),
             privilegeOf(REVOKE, DML, CLUSTER, null),
-            privilegeOf(REVOKE, DDL, CLUSTER, null))
+            privilegeOf(REVOKE, DDL, CLUSTER, null),
+            privilegeOf(REVOKE, AL, CLUSTER, null))
         );
     }
 
     @Test
     public void testGrantRevokeAllPrivilegesOnSchema() {
         PrivilegesAnalyzedStatement analysis = analyzePrivilegesStatement("GRANT ALL PRIVILEGES ON Schema doc TO user1");
-        assertThat(analysis.privileges().size(), is(3));
+        assertThat(analysis.privileges().size(), is(4));
         assertThat(analysis.privileges(), containsInAnyOrder(
             privilegeOf(GRANT, DQL, SCHEMA, "doc"),
             privilegeOf(GRANT, DML, SCHEMA, "doc"),
+            privilegeOf(GRANT, AL, SCHEMA, "doc"),
             privilegeOf(GRANT, DDL, SCHEMA, "doc"))
         );
 
         analysis = analyzePrivilegesStatement("REVOKE ALL PRIVILEGES ON Schema doc FROM user1");
-        assertThat(analysis.privileges().size(), is(3));
+        assertThat(analysis.privileges().size(), is(4));
         assertThat(analysis.privileges(), containsInAnyOrder(
             privilegeOf(REVOKE, DQL, SCHEMA, "doc"),
             privilegeOf(REVOKE, DML, SCHEMA, "doc"),
+            privilegeOf(REVOKE, AL, SCHEMA, "doc"),
             privilegeOf(REVOKE, DDL, SCHEMA, "doc"))
         );
     }
@@ -226,18 +232,20 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
     @Test
     public void testGrantRevokeAllPrivilegesOnTable() {
         PrivilegesAnalyzedStatement analysis = analyzePrivilegesStatement("GRANT ALL PRIVILEGES On table my_schema.locations TO user1");
-        assertThat(analysis.privileges().size(), is(3));
+        assertThat(analysis.privileges().size(), is(4));
         assertThat(analysis.privileges(), containsInAnyOrder(
             privilegeOf(GRANT, DQL, TABLE, "my_schema.locations"),
             privilegeOf(GRANT, DML, TABLE, "my_schema.locations"),
+            privilegeOf(GRANT, AL, TABLE, "my_schema.locations"),
             privilegeOf(GRANT, DDL, TABLE, "my_schema.locations"))
         );
 
         analysis = analyzePrivilegesStatement("REVOKE ALL PRIVILEGES On table my_schema.locations FROM user1");
-        assertThat(analysis.privileges().size(), is(3));
+        assertThat(analysis.privileges().size(), is(4));
         assertThat(analysis.privileges(), containsInAnyOrder(
             privilegeOf(REVOKE, DQL, TABLE, "my_schema.locations"),
             privilegeOf(REVOKE, DML, TABLE, "my_schema.locations"),
+            privilegeOf(REVOKE, AL, TABLE, "my_schema.locations"),
             privilegeOf(REVOKE, DDL, TABLE, "my_schema.locations"))
         );
 
@@ -246,18 +254,20 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
     @Test
     public void testGrantRevokeAllPrivilegesOnViews() {
         PrivilegesAnalyzedStatement analysis = analyzePrivilegesStatement("GRANT ALL PRIVILEGES On view my_schema.locations_view TO user1");
-        assertThat(analysis.privileges().size(), is(3));
+        assertThat(analysis.privileges().size(), is(4));
         assertThat(analysis.privileges(), containsInAnyOrder(
             privilegeOf(GRANT, DQL, VIEW, "my_schema.locations_view"),
             privilegeOf(GRANT, DML, VIEW, "my_schema.locations_view"),
+            privilegeOf(GRANT, AL, VIEW, "my_schema.locations_view"),
             privilegeOf(GRANT, DDL, VIEW, "my_schema.locations_view"))
         );
 
         analysis = analyzePrivilegesStatement("REVOKE ALL PRIVILEGES On view my_schema.locations_view FROM user1");
-        assertThat(analysis.privileges().size(), is(3));
+        assertThat(analysis.privileges().size(), is(4));
         assertThat(analysis.privileges(), containsInAnyOrder(
             privilegeOf(REVOKE, DQL, VIEW, "my_schema.locations_view"),
             privilegeOf(REVOKE, DML, VIEW, "my_schema.locations_view"),
+            privilegeOf(REVOKE, AL, VIEW, "my_schema.locations_view"),
             privilegeOf(REVOKE, DDL, VIEW, "my_schema.locations_view"))
         );
 
