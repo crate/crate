@@ -8,7 +8,7 @@
 Create a new incremental snapshot inside a repository that contains the current
 state of the given tables and/or partitions and the cluster metadata.
 
-.. rubric:: Table of Contents
+.. rubric:: Table of contents
 
 .. contents::
    :local:

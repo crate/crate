@@ -7,7 +7,7 @@
 
 Shows the ``CREATE TABLE`` statement that creates the named table.
 
-.. rubric:: Table of Contents
+.. rubric:: Table of contents
 
 .. contents::
    :local:

@@ -11,7 +11,7 @@ There are multiple ways to authenticate against CrateDB.
    Authentication methods are an :ref:`enterprise feature
    <enterprise-features>`.
 
-.. rubric:: Table of Contents
+.. rubric:: Table of contents
 
 .. contents::
    :local:
@@ -26,7 +26,7 @@ username provided by the client as is without further validation. This is
 useful for any setup where access is controlled by other means, like network
 restrictions as implemented by :ref:`admin_hba`.
 
-Trust authentication over Postgres Protocol
+Trust authentication over Postgres protocol
 -------------------------------------------
 
 The Postgres Protocol requires a user for every connection which is sent by all

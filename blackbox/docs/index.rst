@@ -20,7 +20,7 @@ massive amounts of machine data in real-time.
 
    CrateDB is an open source project and is `hosted on GitHub`_.
 
-.. rubric:: Table of Contents
+.. rubric:: Table of contents
 
 .. toctree::
    :maxdepth: 2

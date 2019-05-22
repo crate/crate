@@ -9,7 +9,7 @@ Information Schema
 are read-only and can be queried to get information about the state of the
 cluster.
 
-.. rubric:: Table of Contents
+.. rubric:: Table of contents
 
 .. contents::
    :local:

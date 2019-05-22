@@ -7,7 +7,7 @@ General Use
 This section of the documentation covers any feature primarily of interest to a
 general user.
 
-.. rubric:: Table of Contents
+.. rubric:: Table of contents
 
 .. toctree::
    :maxdepth: 2

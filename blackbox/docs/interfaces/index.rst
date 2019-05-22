@@ -18,7 +18,7 @@ client implementation perspective.
 .. _Connecting to CrateDB: https://crate.io/docs/crate/getting-started/en/latest/connect/index.html
 .. _Client Libraries: https://crate.io/docs/crate/getting-started/en/latest/clients/index.html
 
-.. rubric:: Table of Contents
+.. rubric:: Table of contents
 
 .. toctree::
     :maxdepth: 1

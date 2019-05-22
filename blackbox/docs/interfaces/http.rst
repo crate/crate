@@ -6,7 +6,7 @@
 HTTP Endpoint
 =============
 
-.. rubric:: Table of Contents
+.. rubric:: Table of contents
 
 .. contents::
    :local:

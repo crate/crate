@@ -9,7 +9,7 @@ Value expressions are expressions which return a single value.
 
 They can be used in many contexts of many statements.
 
-.. rubric:: Table of Contents
+.. rubric:: Table of contents
 
 .. contents::
    :local:

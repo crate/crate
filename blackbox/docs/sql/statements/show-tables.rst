@@ -6,7 +6,7 @@
 
 Lists the tables in the database.
 
-.. rubric:: Table of Contents
+.. rubric:: Table of contents
 
 .. contents::
    :local:

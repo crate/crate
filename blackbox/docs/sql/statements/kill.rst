@@ -7,7 +7,7 @@
 
 Kills active jobs in the CrateDB cluster.
 
-.. rubric:: Table of Contents
+.. rubric:: Table of contents
 
 .. contents::
    :local:

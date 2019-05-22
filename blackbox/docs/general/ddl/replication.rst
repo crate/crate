@@ -13,7 +13,7 @@ of available nodes at the cluster. At a single-node cluster, replicas are set
 to zero to allow fast write operations with the default setting of
 :ref:`sql_ref_write_wait_for_active_shards`.
 
-.. rubric:: Table of Contents
+.. rubric:: Table of contents
 
 .. contents::
     :local:

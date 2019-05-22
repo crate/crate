@@ -42,7 +42,7 @@ have to other users as well.
    privilege checks, and every statement will be executed without the
    validation of privileges.
 
-.. rubric:: Table of Contents
+.. rubric:: Table of contents
 
 .. contents::
    :local:

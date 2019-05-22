@@ -7,7 +7,7 @@
 
 Sets the characteristics of transactions.
 
-.. rubric:: Table of Contents
+.. rubric:: Table of contents
 
 .. contents::
    :local:

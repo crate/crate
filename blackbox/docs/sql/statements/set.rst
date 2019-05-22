@@ -9,7 +9,7 @@ Change and restore settings at runtime. To get an overview of available CrateDB
 settings, see :ref:`config`. Only settings documented with *Runtime:* ``yes``
 can be changed.
 
-.. rubric:: Table of Contents
+.. rubric:: Table of contents
 
 .. contents::
    :local:
