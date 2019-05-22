@@ -163,7 +163,7 @@ public final class S3ClientSettings {
         return Map.of(DEFAULT, getClientSettings(settings));
     }
 
-    static boolean checkDeprecatedCredentials(Settings repositorySettings) {
+    static boolean checkRepositoryCredentials(Settings repositorySettings) {
         if (S3Repository.ACCESS_KEY_SETTING.exists(repositorySettings)) {
             if (S3Repository.SECRET_KEY_SETTING.exists(repositorySettings) == false) {
                 throw new IllegalArgumentException("Repository setting [" + S3Repository.ACCESS_KEY_SETTING.getKey()
@@ -178,8 +178,8 @@ public final class S3ClientSettings {
     }
 
     // backcompat for reading keys out of repository settings (clusterState)
-    static BasicAWSCredentials loadDeprecatedCredentials(Settings repositorySettings) {
-        assert checkDeprecatedCredentials(repositorySettings);
+    static BasicAWSCredentials loadRepositoryCredentials(Settings repositorySettings) {
+        assert checkRepositoryCredentials(repositorySettings);
         try (SecureString key = S3Repository.ACCESS_KEY_SETTING.get(repositorySettings);
                 SecureString secret = S3Repository.SECRET_KEY_SETTING.get(repositorySettings)) {
             return new BasicAWSCredentials(key.toString(), secret.toString());

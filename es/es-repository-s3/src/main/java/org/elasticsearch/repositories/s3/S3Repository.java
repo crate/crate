@@ -216,18 +216,16 @@ public class S3Repository extends BlobStoreRepository {
 
         this.clientName = CLIENT_NAME.get(metadata.settings());
 
-        if (CLIENT_NAME.exists(metadata.settings()) && S3ClientSettings.checkDeprecatedCredentials(metadata.settings())) {
+        if (CLIENT_NAME.exists(metadata.settings()) && S3ClientSettings.checkRepositoryCredentials(metadata.settings())) {
             LOGGER.warn(
                     "ignoring use of named client [{}] for repository [{}] as insecure credentials were specified",
                     clientName,
                     metadata.name());
         }
 
-        if (S3ClientSettings.checkDeprecatedCredentials(metadata.settings())) {
+        if (S3ClientSettings.checkRepositoryCredentials(metadata.settings())) {
             // provided repository settings
-            DEPRECATION_LOGGER.deprecated("Using s3 access/secret key from repository settings. Instead "
-                    + "store these in named clients and the CrateDB keystore for secure settings.");
-            final BasicAWSCredentials insecureCredentials = S3ClientSettings.loadDeprecatedCredentials(metadata.settings());
+            final BasicAWSCredentials insecureCredentials = S3ClientSettings.loadRepositoryCredentials(metadata.settings());
             final S3ClientSettings s3ClientSettings = S3ClientSettings.getClientSettings(metadata, insecureCredentials);
             this.reference = new AmazonS3Reference(service.buildClient(s3ClientSettings));
         } else {
@@ -247,7 +245,7 @@ public class S3Repository extends BlobStoreRepository {
     @Override
     protected S3BlobStore createBlobStore() {
         if (reference != null) {
-            assert S3ClientSettings.checkDeprecatedCredentials(metadata.settings()) : metadata.name();
+            assert S3ClientSettings.checkRepositoryCredentials(metadata.settings()) : metadata.name();
             return new S3BlobStore(service, clientName, bucket, serverSideEncryption, bufferSize, cannedACL, storageClass) {
                 @Override
                 public AmazonS3Reference clientReference() {
@@ -288,7 +286,7 @@ public class S3Repository extends BlobStoreRepository {
     @Override
     protected void doClose() {
         if (reference != null) {
-            assert S3ClientSettings.checkDeprecatedCredentials(metadata.settings()) : metadata.name();
+            assert S3ClientSettings.checkRepositoryCredentials(metadata.settings()) : metadata.name();
             reference.decRef();
         }
         super.doClose();
