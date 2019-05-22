@@ -31,7 +31,7 @@ but no privilege at all on ``doc.locations``, when ``john`` issues a ``SELECT *
 FROM information_schema.tables`` statement, the tables information related to
 the ``doc.locations`` table will not be returned.
 
-Virtual Tables
+Virtual tables
 ==============
 
 .. _information_schema_tables:

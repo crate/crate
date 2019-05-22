@@ -18,7 +18,7 @@ The JMX monitoring feature exposes query metrics via the `JMX`_ API.
 Setup
 =====
 
-Enable Collecting Stats
+Enable collecting stats
 -----------------------
 
 .. highlight:: psql

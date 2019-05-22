@@ -14,7 +14,7 @@ regular data.
 .. contents::
    :local:
 
-Creating a Table for Blobs
+Creating a table for blobs
 ==========================
 
 Before adding blobs a ``blob table`` must be created. Blob tables can be
@@ -27,7 +27,7 @@ Lets use the CrateDB shell crash to issue the SQL statement::
 Now CrateDB is configured to allow blobs to be management under the
 ``/_blobs/myblobs`` endpoint.
 
-Custom Location for Storing Blob Data
+Custom location for storing blob data
 =====================================
 
 It is possible to define a custom directory path for storing blob data which
@@ -44,7 +44,7 @@ Blob data will be stored under this path with the following layout::
 
   /<blobs.path>/nodes/<NODE_NO>/indices/<INDEX_UUID>/<SHARD_ID>/blobs
 
-Global by Config
+Global by config
 ----------------
 
 Just uncomment or add following entry at the CrateDB config in order to define a
@@ -54,7 +54,7 @@ custom path globally for all blob tables::
 
 Also see :ref:`config`.
 
-Per Blob Table Setting
+Per blob table setting
 ----------------------
 
 It is also possible to define a custom blob data path per table instead of
@@ -98,7 +98,7 @@ To list all blobs inside a blob table a ``SELECT`` statement can be used::
     HTTP/1.1 204 No Content
 
 
-Altering a Blob Table
+Altering a blob table
 =====================
 
 The number of replicas a blob table has can be changed using the ``ALTER BLOB
@@ -107,7 +107,7 @@ TABLE`` clause::
     sh$ crash -c "alter blob table myblobs set (number_of_replicas=0)"
     ALTER OK, 1 row affected (... sec)
 
-Deleting a Blob Table
+Deleting a blob table
 =====================
 
 Blob tables can be deleted similar to normal tables::
@@ -121,7 +121,7 @@ Blob tables can be deleted similar to normal tables::
     CREATE OK, 1 row affected (... sec)
 
 
-Using Blob Tables
+Using blob tables
 =================
 
 The usage of Blob Tables is only supported using the HTTP/HTTPS protocol. This
@@ -155,8 +155,8 @@ If a blob already exists with the given hash a 409 Conflict is returned::
     HTTP/1.1 409 Conflict
     content-length: 0
 
-Download
---------
+Downloading
+-----------
 
 To download a blob simply use a GET request::
 
@@ -184,8 +184,8 @@ used::
     The cache headers for blobs are static and basically allows clients to
     cache the response forever since the blob is immutable.
 
-Delete
-------
+Deleting
+--------
 
 To delete a blob simply use a DELETE request::
 

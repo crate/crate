@@ -126,7 +126,7 @@ statement returns an error::
 
     It is not possible to drop the built-in superuser ``crate``.
 
-List Users
+List users
 ==========
 
 CrateDB exposes database users via the read-only ``sys.users`` system table.

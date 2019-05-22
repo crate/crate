@@ -106,7 +106,7 @@ You can download the libraries using a simple ``build.gradle`` file:
 Running ``gradle azureLibs`` will fetch the required jars and put them into the
 ``libs/`` folder from where you can copy them into the plugin folder.
 
-Basic Configuration
+Basic configuration
 -------------------
 
 To enable Azure discovery simply change the ``discovery.seed_providers``

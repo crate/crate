@@ -41,7 +41,7 @@ See: :ref:`applying-cluster-settings`.
 .. contents::
    :local:
 
-Authentication Against CrateDB
+Authentication against CrateDB
 ==============================
 
 Client access and authentication is configured via the
@@ -156,7 +156,7 @@ superuser) can authenticate to CrateDB from any IP address using the
 
    For general help managing users, see :ref:`administration_user_management`.
 
-Authenticating as a Superuser
+Authenticating as a superuser
 =============================
 
 When CrateDB is started, the cluster contains one predefined superuser. This

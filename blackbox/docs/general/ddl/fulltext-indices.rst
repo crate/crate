@@ -19,7 +19,7 @@ be defined for the related columns.
 
 .. _sql_ddl_index_definition:
 
-Index Definition
+Index definition
 ================
 
 In CrateDB, every column's data is indexed using the ``plain`` index method by
@@ -71,7 +71,7 @@ When a not indexed column is queried the query will return an error.
 
 .. _sql_ddl_index_plain:
 
-Plain index (Default)
+Plain index (default)
 =====================
 
 An index of type ``plain`` is indexing the input data as-is without analyzing.
@@ -92,7 +92,7 @@ This results in the same behaviour than without any index declaration::
 
 .. _sql_ddl_index_fulltext:
 
-Fulltext Index With Analyzer
+Fulltext index with analyzer
 ----------------------------
 
 By defining an index on a column, it's analyzed data is indexed instead of the
@@ -116,7 +116,7 @@ analyzer as a parameter using the ``WITH`` statement::
     ... );
     CREATE OK, 1 row affected (... sec)
 
-Defining a Named Index Column Definition
+Defining a named index column definition
 ----------------------------------------
 
 It's also possible to define an index column which treat the data of a given
@@ -140,7 +140,7 @@ Of course defining a custom analyzer is possible here too::
 
 .. _sql-ddl-composite-index:
 
-Defining a Composite Index
+Defining a composite index
 --------------------------
 
 Defining a composite (or combined) index is done using the same syntax as above
@@ -170,8 +170,8 @@ Composite indices can include nested columns within object columns as well::
 
 .. _create_custom_analyzer:
 
-Create a Custom Analyzer
-========================
+Creating a custom analyzer
+==========================
 
 An analyzer consists of one tokenizer, zero or more token-filters, and zero or
 more char-filters.
@@ -267,8 +267,8 @@ Tokenizer and token-filters can be customized in the same way.
 
   :ref:`builtin-char-filter` for a list of built-in char-filter.
 
-Extending a Bultin Analyzer
-===========================
+Extending a built-in analyzer
+=============================
 
 Existing Analyzers can be used to create custom Analyzers by means of extending
 them.

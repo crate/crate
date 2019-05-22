@@ -25,7 +25,7 @@ identifiable information.
 .. contents::
    :local:
 
-Technical Information
+Technical information
 =====================
 
 To gather good statistics about CrateDB usage, UDC collects this information:
@@ -45,7 +45,7 @@ CrateDB Version   The CrateDB version.
 Java Version      The Java version CrateDB is currently running with.
 Hardware Address  MAC address to uniquely identify instances behind
                   firewalls.
-Processor count   Number of available CPUs as reported by 
+Processor count   Number of available CPUs as reported by
                   ``Runtime.availableProcessors``
 Enterprise        Identifies whether the Enterprise Edition is used.
 License           License information of the CrateDB Enterprise Edition.
@@ -57,7 +57,7 @@ UDC, and secondly, we want to keep pings from automatic tests to a minimum. By
 default, UDC is sending pings every 24 hours. The ping to the UDC servers is
 done with a HTTP GET.
 
-Admin UI Tracking
+Admin UI tracking
 =================
 
 Since Admin UI v0.16.0 we are tracking the user ID along with the cluster ID to
@@ -71,7 +71,7 @@ configuration file or adding a system property setting. Refer to
 :ref:`conf_usage_data_collector` to see how these settings can be accessed and
 how they are configured.
 
-How to Disable UDC
+How to disable UDC
 ==================
 
 Below are two ways you can disable UDC. However we hope you support us offering
@@ -85,14 +85,14 @@ CrateDB.
 
 .. highlight:: yaml
 
-By Configuration
+By configuration
 ----------------
 
 Just add following to your ``crate.yml`` configuration file::
 
     udc.enabled:  false
 
-By System Property
+By system property
 ------------------
 
 If you do not want to make any change to the jars or to the configuration,

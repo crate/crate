@@ -57,7 +57,7 @@ A simple ``SELECT`` statement can be submitted like this::
 
 .. _parameter_substitution:
 
-Parameter Substitution
+Parameter substitution
 ======================
 
 In addition to the ``stmt`` key the request body may also contain an ``args``
@@ -144,7 +144,7 @@ The same query using question marks as placeholders looks like this::
     With some queries the row count is not ascertainable. In this cases
     rowcount is ``-1``.
 
-Default Schema
+Default schema
 ==============
 
 It is possible to set a default schema while querying the CrateDB cluster via
@@ -180,7 +180,7 @@ It is possible to set a default schema while querying the CrateDB cluster via
 If the schema name is not specified in the header, the default ``doc`` schema
 will be used instead.
 
-Column Types
+Column types
 ============
 
 CrateDB can respond a list ``col_types`` with the data type ID of every
@@ -272,7 +272,7 @@ ID    Data Type
 
 .. _bulk_operations:
 
-Bulk Operations
+Bulk operations
 ===============
 
 The REST endpoint allows to issue bulk operations which are executed as single
@@ -326,7 +326,7 @@ insert three records at once::
       ]
     }
 
-Error Handling
+Error handling
 ==============
 
 Queries that are invalid or cannot be satisfied will result in an error
@@ -456,7 +456,7 @@ Code   Error
 5030   The query was killed by a ``kill`` statement
 ====== =====================================================================
 
-Bulk Errors
+Bulk errors
 -----------
 
 If a bulk operation fails, the resulting rowcount will be ``-2`` and the

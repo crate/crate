@@ -32,7 +32,7 @@ Besides using ``SHOW``, it is also possible to use the :ref:`current_setting
 <scalar_current_setting>` scalar function.
 
 
-Supported Session Settings
+Supported session settings
 ==========================
 
 .. _conf-session-search-path:

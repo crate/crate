@@ -33,7 +33,7 @@ CrateDB
 
 .. _enterprise-features:
 
-Enterprise Features
+Enterprise features
 -------------------
 
 - :ref:`administration_user_management`: manage multiple database users
@@ -55,7 +55,7 @@ Enterprise Features
 
 .. _node-limitations:
 
-Node Limitation
+Node limitation
 ---------------
 
 To make full use of CrateDB, you must `acquire an Enterprise License`_. Unless and
