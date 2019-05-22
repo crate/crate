@@ -98,7 +98,7 @@ public class RepositorySettingsModule extends AbstractModule {
         ));
 
     private static final TypeSettings AZURE_SETTINGS = new TypeSettings(
-        Collections.emptyMap(),
+        groupSettingsByKey(AzureRepository.mandatorySettings()),
         groupSettingsByKey(AzureRepository.optionalSettings())
     );
 
