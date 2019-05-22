@@ -9,7 +9,7 @@ CrateDB includes support to store `binary large objects`_. By utilizing
 CrateDB's cluster features the files can be replicated and sharded just like
 regular data.
 
-.. rubric:: Table of Contents
+.. rubric:: Table of contents
 
 .. contents::
    :local:

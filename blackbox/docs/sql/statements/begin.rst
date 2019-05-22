@@ -7,7 +7,7 @@
 
 Start a transaction block
 
-.. rubric:: Table of Contents
+.. rubric:: Table of contents
 
 .. contents::
    :local:

@@ -12,7 +12,7 @@ These :ref:`sql_operators` are supported for doing array comparisons.
 
 For additional examples of row comparisons, see :ref:`sql_subquery_expressions`.
 
-.. rubric:: Table of Contents
+.. rubric:: Table of contents
 
 .. contents::
    :local:

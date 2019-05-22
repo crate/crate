@@ -15,7 +15,7 @@ Released on 2017/03/21.
     This version was removed from all release channels. This changelog is kept
     for information purposes only.
 
-.. rubric:: Table of Contents
+.. rubric:: Table of contents
 
 .. contents::
    :local:

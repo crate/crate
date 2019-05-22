@@ -17,7 +17,7 @@ These :ref:`sql_operators` are supported for subquery expressions.
 To compare a list of values other than subqueries, see
 :ref:`sql_array_comparisons`.
 
-.. rubric:: Table of Contents
+.. rubric:: Table of contents
 
 .. contents::
    :local:

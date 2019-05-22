@@ -15,7 +15,7 @@ records are queried.
 Data type names are reserved words and need to be escaped when used as column
 names.
 
-.. rubric:: Table of Contents
+.. rubric:: Table of contents
 
 .. contents::
    :local:

@@ -2,7 +2,7 @@
 SQL Statements
 ==============
 
-.. rubric:: Table of Contents
+.. rubric:: Table of contents
 
 .. toctree::
     :maxdepth: 1
