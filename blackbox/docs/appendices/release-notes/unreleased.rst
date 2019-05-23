@@ -51,8 +51,10 @@ system capable of automatically maintaining an optimal level of fault
 tolerance even in situations of network partitions.
 This eliminates the need of the easily misconfigured ``minimum_master_nodes``
 setting.
-Additionally a very rare resiliency failure, recorded as "Repeated network
-partitions can cause cluster state updates to be lost" can no longer occur.
+Additionally a very rare resiliency failure, recorded as `Repeated cluster
+partitions can cause cluster state updates to be lost
+<https://crate.io/docs/crate/guide/en/latest/architecture/resilience.html#repeated-cluster-partitions-can-cause-lost-cluster-updates>`_
+can no longer occur.
 
 Due to this some discovery settings are added, renamed and removed.
 
@@ -217,6 +219,16 @@ Deprecations
 
 Changes
 =======
+
+- By introducing :ref:`_seq_no <sql_administration_system_columns_seq_no>` and
+  :ref:`_primary_term <sql_administration_system_columns_primary_term>`, the
+  following resiliency issues were fixed:
+
+   - `Version Number Representing Ambiguous Row Versions
+     <https://crate.io/docs/crate/guide/en/latest/architecture/resilience.html#version-number-representing-ambiguous-row-versions>`_
+
+   - `Replicas can fall out of sync when a primary shard fails
+     <https://crate.io/docs/crate/guide/en/latest/architecture/resilience.html#replicas-can-fall-out-of-sync-when-a-primary-shard-fails>`_
 
 - Restrict access to log entries in :ref:`sys.jobs <sys-jobs>` and
   :ref:`sys.jobs_log <sys-logs>` to the current user.
