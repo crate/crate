@@ -400,7 +400,7 @@ Import CA into Truststore
 .........................
 
 If we are using our own CA, we should also import the certificate to the
-truststore, such that it is available for clients which want to verify
+Truststore, such that it is available for clients which want to verify
 signatures.
 
 Command::
