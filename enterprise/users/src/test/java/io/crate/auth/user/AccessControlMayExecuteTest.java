@@ -183,11 +183,9 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
-    public void testSetGlobalNotAllowedAsNormalUser() throws Exception {
-        expectedException.expect(UnauthorizedException.class);
-        expectedException.expectMessage("User \"normal\" is not authorized to execute the statement. " +
-                                        "Superuser permissions are required");
+    public void test_set_global_statements_can_be_executed_with_al_cluster_privileges() throws Exception {
         analyze("set global stats.enabled = true");
+        assertAskedForCluster(Privilege.Type.AL);
     }
 
     @Test

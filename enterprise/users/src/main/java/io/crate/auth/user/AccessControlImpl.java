@@ -462,8 +462,13 @@ public final class AccessControlImpl implements AccessControl {
         @Override
         public Void visitSetStatement(SetAnalyzedStatement analysis, User user) {
             if (analysis.scope().equals(SetStatement.Scope.GLOBAL)) {
-                throwRequiresSuperUserPermission(user.name());
-                return null;
+                Privileges.ensureUserHasPrivilege(
+                    Privilege.Type.AL,
+                    Privilege.Clazz.CLUSTER,
+                    null,
+                    user,
+                    defaultSchema
+                );
             }
             return null;
         }
