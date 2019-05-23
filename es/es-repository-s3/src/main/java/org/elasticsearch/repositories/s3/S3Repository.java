@@ -19,27 +19,34 @@
 
 package org.elasticsearch.repositories.s3;
 
-import com.amazonaws.auth.BasicAWSCredentials;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.metadata.RepositoryMetaData;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.blobstore.BlobPath;
 import org.elasticsearch.common.blobstore.BlobStore;
-import org.elasticsearch.common.logging.DeprecationLogger;
-import org.elasticsearch.common.settings.SecureSetting;
-import org.elasticsearch.common.settings.SecureString;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.monitor.jvm.JvmInfo;
 import org.elasticsearch.repositories.RepositoryException;
 import org.elasticsearch.repositories.blobstore.BlobStoreRepository;
 
 import java.util.List;
-import java.util.function.Function;
+
+import static org.elasticsearch.repositories.s3.S3RepositorySettings.ACCESS_KEY_SETTING;
+import static org.elasticsearch.repositories.s3.S3RepositorySettings.BASE_PATH_SETTING;
+import static org.elasticsearch.repositories.s3.S3RepositorySettings.BUCKET_SETTING;
+import static org.elasticsearch.repositories.s3.S3RepositorySettings.BUFFER_SIZE_SETTING;
+import static org.elasticsearch.repositories.s3.S3RepositorySettings.CANNED_ACL_SETTING;
+import static org.elasticsearch.repositories.s3.S3RepositorySettings.CHUNK_SIZE_SETTING;
+import static org.elasticsearch.repositories.s3.S3RepositorySettings.ENDPOINT_SETTING;
+import static org.elasticsearch.repositories.s3.S3RepositorySettings.MAX_RETRIES_SETTING;
+import static org.elasticsearch.repositories.s3.S3RepositorySettings.PROTOCOL_SETTING;
+import static org.elasticsearch.repositories.s3.S3RepositorySettings.SECRET_KEY_SETTING;
+import static org.elasticsearch.repositories.s3.S3RepositorySettings.SERVER_SIDE_ENCRYPTION_SETTING;
+import static org.elasticsearch.repositories.s3.S3RepositorySettings.STORAGE_CLASS_SETTING;
+import static org.elasticsearch.repositories.s3.S3RepositorySettings.USE_THROTTLE_RETRIES_SETTING;
 
 /**
  * Shared file system implementation of the BlobStoreRepository
@@ -57,104 +64,26 @@ import java.util.function.Function;
 public class S3Repository extends BlobStoreRepository {
 
     private static final Logger LOGGER = LogManager.getLogger(S3Repository.class);
-    private static final DeprecationLogger DEPRECATION_LOGGER = new DeprecationLogger(LOGGER);
 
     static final String TYPE = "s3";
 
-    /** The access key to authenticate with s3. This setting is insecure because cluster settings are stored in cluster state */
-    static final Setting<SecureString> ACCESS_KEY_SETTING = SecureSetting.insecureString("access_key");
-
-    /** The secret key to authenticate with s3. This setting is insecure because cluster settings are stored in cluster state */
-    static final Setting<SecureString> SECRET_KEY_SETTING = SecureSetting.insecureString("secret_key");
-
-    /**
-     * Default is to use 100MB (S3 defaults) for heaps above 2GB and 5% of
-     * the available memory for smaller heaps.
-     */
-    private static final ByteSizeValue DEFAULT_BUFFER_SIZE = new ByteSizeValue(
-        Math.max(
-            ByteSizeUnit.MB.toBytes(5), // minimum value
-            Math.min(
-                ByteSizeUnit.MB.toBytes(100),
-                JvmInfo.jvmInfo().getMem().getHeapMax().getBytes() / 20)),
-        ByteSizeUnit.BYTES);
-
-
-    static final Setting<String> BUCKET_SETTING = Setting.simpleString("bucket");
-
-    /**
-     * When set to true files are encrypted on server side using AES256 algorithm.
-     * Defaults to false.
-     */
-    static final Setting<Boolean> SERVER_SIDE_ENCRYPTION_SETTING = Setting.boolSetting("server_side_encryption", false);
-
-    /**
-     * Maximum size of files that can be uploaded using a single upload request.
-     */
-    static final ByteSizeValue MAX_FILE_SIZE = new ByteSizeValue(5, ByteSizeUnit.GB);
-
-    /**
-     * Minimum size of parts that can be uploaded using the Multipart Upload API.
-     * (see http://docs.aws.amazon.com/AmazonS3/latest/dev/qfacts.html)
-     */
-    static final ByteSizeValue MIN_PART_SIZE_USING_MULTIPART = new ByteSizeValue(5, ByteSizeUnit.MB);
-
-    /**
-     * Maximum size of parts that can be uploaded using the Multipart Upload API.
-     * (see http://docs.aws.amazon.com/AmazonS3/latest/dev/qfacts.html)
-     */
-    static final ByteSizeValue MAX_PART_SIZE_USING_MULTIPART = MAX_FILE_SIZE;
-
-    /**
-     * Maximum size of files that can be uploaded using the Multipart Upload API.
-     */
-    static final ByteSizeValue MAX_FILE_SIZE_USING_MULTIPART = new ByteSizeValue(5, ByteSizeUnit.TB);
-
-    /**
-     * Minimum threshold below which the chunk is uploaded using a single request. Beyond this threshold,
-     * the S3 repository will use the AWS Multipart Upload API to split the chunk into several parts, each of buffer_size length, and
-     * to upload each part in its own request. Note that setting a buffer size lower than 5mb is not allowed since it will prevents the
-     * use of the Multipart API and may result in upload errors. Defaults to the minimum between 100MB and 5% of the heap size.
-     */
-    static final Setting<ByteSizeValue> BUFFER_SIZE_SETTING =
-        Setting.byteSizeSetting("buffer_size", DEFAULT_BUFFER_SIZE, MIN_PART_SIZE_USING_MULTIPART, MAX_PART_SIZE_USING_MULTIPART);
-
-    /**
-     * Big files can be broken down into chunks during snapshotting if needed. Defaults to 1g.
-     */
-    static final Setting<ByteSizeValue> CHUNK_SIZE_SETTING = Setting.byteSizeSetting("chunk_size", new ByteSizeValue(1, ByteSizeUnit.GB),
-            new ByteSizeValue(5, ByteSizeUnit.MB), new ByteSizeValue(5, ByteSizeUnit.TB));
-
-    /**
-     * Sets the S3 storage class type for the backup files. Values may be standard, reduced_redundancy,
-     * standard_ia. Defaults to standard.
-     */
-    static final Setting<String> STORAGE_CLASS_SETTING = Setting.simpleString("storage_class");
-
-    /**
-     * The S3 repository supports all S3 canned ACLs : private, public-read, public-read-write,
-     * authenticated-read, log-delivery-write, bucket-owner-read, bucket-owner-full-control. Defaults to private.
-     */
-    static final Setting<String> CANNED_ACL_SETTING = Setting.simpleString("canned_acl");
-
-    static final Setting<String> CLIENT_NAME = new Setting<>("client", "default", Function.identity());
-
-    /**
-     * Specifies the path within bucket to repository data. Defaults to root directory.
-     */
-    static final Setting<String> BASE_PATH_SETTING = Setting.simpleString("base_path");
+    public static List<Setting<?>> mandatorySettings() {
+        return List.of(ACCESS_KEY_SETTING, SECRET_KEY_SETTING);
+    }
 
     public static List<Setting<?>> optionalSettings() {
-        return List.of(ACCESS_KEY_SETTING,
-                       SECRET_KEY_SETTING,
-                       BASE_PATH_SETTING,
+        return List.of(BASE_PATH_SETTING,
                        BUCKET_SETTING,
-                       CLIENT_NAME,
                        BUFFER_SIZE_SETTING,
                        CANNED_ACL_SETTING,
                        CHUNK_SIZE_SETTING,
                        COMPRESS_SETTING,
-                       SERVER_SIDE_ENCRYPTION_SETTING);
+                       SERVER_SIDE_ENCRYPTION_SETTING,
+                       // client specific settings
+                       ENDPOINT_SETTING,
+                       PROTOCOL_SETTING,
+                       MAX_RETRIES_SETTING,
+                       USE_THROTTLE_RETRIES_SETTING);
     }
 
     private final S3Service service;
@@ -172,8 +101,6 @@ public class S3Repository extends BlobStoreRepository {
     private final String storageClass;
 
     private final String cannedACL;
-
-    private final String clientName;
 
     private final AmazonS3Reference reference;
 
@@ -214,25 +141,8 @@ public class S3Repository extends BlobStoreRepository {
         this.storageClass = STORAGE_CLASS_SETTING.get(metadata.settings());
         this.cannedACL = CANNED_ACL_SETTING.get(metadata.settings());
 
-        this.clientName = CLIENT_NAME.get(metadata.settings());
-
-        if (CLIENT_NAME.exists(metadata.settings()) && S3ClientSettings.checkDeprecatedCredentials(metadata.settings())) {
-            LOGGER.warn(
-                    "ignoring use of named client [{}] for repository [{}] as insecure credentials were specified",
-                    clientName,
-                    metadata.name());
-        }
-
-        if (S3ClientSettings.checkDeprecatedCredentials(metadata.settings())) {
-            // provided repository settings
-            DEPRECATION_LOGGER.deprecated("Using s3 access/secret key from repository settings. Instead "
-                    + "store these in named clients and the CrateDB keystore for secure settings.");
-            final BasicAWSCredentials insecureCredentials = S3ClientSettings.loadDeprecatedCredentials(metadata.settings());
-            final S3ClientSettings s3ClientSettings = S3ClientSettings.getClientSettings(metadata, insecureCredentials);
-            this.reference = new AmazonS3Reference(service.buildClient(s3ClientSettings));
-        } else {
-            reference = null;
-        }
+        final S3ClientSettings s3ClientSettings = S3ClientSettings.getClientSettings(metadata.settings());
+        this.reference = new AmazonS3Reference(service.buildClient(s3ClientSettings));
 
         LOGGER.debug(
                 "using bucket [{}], chunk_size [{}], server_side_encryption [{}], buffer_size [{}], cannedACL [{}], storageClass [{}]",
@@ -246,8 +156,9 @@ public class S3Repository extends BlobStoreRepository {
 
     @Override
     protected S3BlobStore createBlobStore() {
+        // TODO remove support for multiple client
+        String clientName = "default";
         if (reference != null) {
-            assert S3ClientSettings.checkDeprecatedCredentials(metadata.settings()) : metadata.name();
             return new S3BlobStore(service, clientName, bucket, serverSideEncryption, bufferSize, cannedACL, storageClass) {
                 @Override
                 public AmazonS3Reference clientReference() {
@@ -288,7 +199,6 @@ public class S3Repository extends BlobStoreRepository {
     @Override
     protected void doClose() {
         if (reference != null) {
-            assert S3ClientSettings.checkDeprecatedCredentials(metadata.settings()) : metadata.name();
             reference.decRef();
         }
         super.doClose();

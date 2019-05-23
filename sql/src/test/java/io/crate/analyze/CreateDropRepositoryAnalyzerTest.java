@@ -90,25 +90,25 @@ public class CreateDropRepositoryAnalyzerTest extends CrateDummyClusterServiceUn
     public void testDropExistingRepo() {
         DropRepositoryAnalyzedStatement statement = e.analyze("DROP REPOSITORY my_repo");
         assertThat(statement.repositoryName(), is("my_repo"));
-
     }
 
     @Test
     public void testCreateS3RepositoryWithAllSettings() {
-        CreateRepositoryAnalyzedStatement analysis = e.analyze("CREATE REPOSITORY foo TYPE s3 WITH (" +
-                                                             "bucket='abc'," +
-                                                             "endpoint='www.example.com'," +
-                                                             "protocol='http'," +
-                                                             "base_path='/holz/'," +
-                                                             "access_key='0xAFFE'," +
-                                                             "secret_key='0xCAFEE'," +
-                                                             "chunk_size='12mb'," +
-                                                             "compress=true," +
-                                                             "server_side_encryption=false," +
-                                                             "buffer_size='5mb'," +
-                                                             "max_retries=2," +
-                                                             "use_throttle_retries=false," +
-                                                             "canned_acl=false)");
+        CreateRepositoryAnalyzedStatement analysis = e.analyze(
+            "CREATE REPOSITORY foo TYPE s3 WITH (" +
+            "   bucket='abc'," +
+            "   endpoint='www.example.com'," +
+            "   protocol='http'," +
+            "   base_path='/holz/'," +
+            "   access_key='0xAFFE'," +
+            "   secret_key='0xCAFEE'," +
+            "   chunk_size='12mb'," +
+            "   compress=true," +
+            "   server_side_encryption=false," +
+            "   buffer_size='5mb'," +
+            "   max_retries=2," +
+            "   use_throttle_retries=false," +
+            "   canned_acl=false)");
         assertThat(analysis.repositoryType(), is("s3"));
         assertThat(analysis.repositoryName(), is("foo"));
         assertThat(
@@ -126,9 +126,16 @@ public class CreateDropRepositoryAnalyzerTest extends CrateDummyClusterServiceUn
                 hasEntry("use_throttle_retries", "false"),
                 hasEntry("protocol", "http"),
                 hasEntry("secret_key", "0xCAFEE"),
-                hasEntry("server_side_encryption", "false")
-            )
+                hasEntry("server_side_encryption", "false"))
         );
+    }
+
+    @Test
+    public void testCreateS3RepoWithMissingMandatorySettings() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("The following required parameters are missing to" +
+                                        " create a repository of type \"s3\": [secret_key]");
+        e.analyze("CREATE REPOSITORY foo TYPE s3 WITH (access_key='test')");
     }
 
     @Test

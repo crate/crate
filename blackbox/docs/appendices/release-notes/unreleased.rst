@@ -102,6 +102,10 @@ Due to this some discovery settings are added, renamed and removed.
 Breaking Changes
 ----------------
 
+- Removed the possibility of configuring the AWS S3 repository client via the
+  ``crate.yaml`` configuration file and command line arguments. Please, use
+  the :ref:`ref-create-repository` statement parameters for this purpose.
+
 - Removed :ref:`HDFS repository setting<ref-create-repository-types-hdfs>`:
   ``concurrent_streams`` as it is no longer supported.
 
