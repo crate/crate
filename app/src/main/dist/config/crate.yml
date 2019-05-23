@@ -763,12 +763,6 @@ auth:
 # "file" urls must be prefixed with an entry configured in ``path.repo``
 #repositories.url.allowed_urls: ["http://example.org/root/*", "https://*.mydomain.com/*?*#*"]
 
-# If S3 buckets are used for snapshot repositories the following settings provide
-# default credentials to be used if no credentials are defined as parameters in the
-# SQL  ``CREATE REPOSITORY`` statement.
-#s3.client.default.access_key: Access_Key
-#s3.client.default.secret_key: Secret_Key
-
 ###################### POSTGRES WIRE PROTOCOL SUPPORT ########################
 
 # CrateDB supports the PostgreSQL wire protocol v3 and emulates a PostgreSQL
