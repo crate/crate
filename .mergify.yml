@@ -10,8 +10,6 @@ pull_request_rules:
       - '#approved-reviews-by>=1'
       - status-success=ci/jenkins/pr_tests
       - status-success=crate.crate
-      - 'status-success=LGTM analysis: Java'
-      - 'status-success=LGTM analysis: Python'
     name: default
   - name: Delete branch after merge
     actions:
