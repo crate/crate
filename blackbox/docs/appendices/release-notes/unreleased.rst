@@ -54,43 +54,48 @@ setting.
 Additionally a very rare resiliency failure, recorded as "Repeated network
 partitions can cause cluster state updates to be lost" can no longer occur.
 
-Due to this some discovery settings are renamed, removed and added.
+Due to this some discovery settings are added, renamed and removed.
 
-Added Settings
-~~~~~~~~~~~~~~
-
- - Added :ref:`cluster.initial_master_nodes <cluster_initial_master_nodes>`.
+   +----------------------------------------+----------------------------------+
+   | Old Name                               | New Name                         |
+   +========================================+==================================+
+   | New, required on upgrade.              | ``cluster.initial_master_nodes`` |
+   +----------------------------------------+----------------------------------+
+   | ``discovery.zen.hosts_provider``       | ``discovery.seed_providers``     |
+   +----------------------------------------+----------------------------------+
+   | ``discovery.zen.ping.unicast.hosts``   | ``discovery.seed_hosts``         |
+   +----------------------------------------+----------------------------------+
+   | ``discovery.zen.minimum_master_nodes`` | Removed                          |
+   +----------------------------------------+----------------------------------+
+   | ``discovery.zen.ping_interval``        | Removed                          |
+   +----------------------------------------+----------------------------------+
+   | ``discovery.zen.ping_timeout``         | Removed                          |
+   +----------------------------------------+----------------------------------+
+   | ``discovery.zen.ping_retries``         | Removed                          |
+   +----------------------------------------+----------------------------------+
+   | ``discovery.zen.publish_timeout``      | Removed                          |
+   +----------------------------------------+----------------------------------+
 
 .. CAUTION::
 
-   This setting is required to be set at production (non loopback bound)
-   clusters on upgrade, see
-   :ref:`cluster.initial_master_nodes <cluster_initial_master_nodes>` for
-   details.
+   The :ref:`cluster.initial_master_nodes <cluster_initial_master_nodes>`
+   setting is required to be set at production (non loopback bound) clusters on
+   upgrade, see the :ref:`setting documentation <cluster_initial_master_nodes>`
+   for details.
 
-Renamed Settings
-~~~~~~~~~~~~~~~~
+.. NOTE::
 
- - Renamed ``discovery.zen.ping.unicast.hosts`` to ``discovery.seed_hosts``.
+   Only a single port value is allowed for each ``discovery.seed_hosts`` setting
+   entry. Defining a port range as it was allowed but ignored in previous
+   versions under the old setting name ``discovery.zen.ping.unicast.hosts``,
+   will be rejected.
 
-   .. NOTE::
+.. NOTE::
 
-      Apart from the rename, only a single port value on each entry is
-      allowed. Defining a port range as it was allowed but ignored in previous
-      versions will be rejected.
+   CrateDB will refuse to start when it encounters an unknown setting, like the
+   above mentioned removed ones. Please make sure to adjust your ``crate.yml``
+   or CMD arguments upfront.
 
- - Renamed ``discovery.zen.hosts_provider`` to ``discovery.seed_providers``.
-
-Removed Settings
-~~~~~~~~~~~~~~~~
-
-The following settings are removed:
-
- - ``discovery.zen.minimum_master_nodes``
- - ``discovery.zen.ping_interval``
- - ``discovery.zen.ping_timeout``
- - ``discovery.zen.ping_retries``
- - ``discovery.zen.publish_timeout``
 
 Breaking Changes
 ----------------
