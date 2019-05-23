@@ -21,6 +21,8 @@ package io.crate.protocols.ssl;
 import io.crate.test.integration.CrateUnitTest;
 import io.netty.handler.ssl.SslContext;
 import org.elasticsearch.common.settings.Settings;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -30,6 +32,7 @@ import java.io.IOException;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.security.PrivateKey;
+import java.security.Security;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.X509Certificate;
 
@@ -54,10 +57,23 @@ public class SslConfigurationTest extends CrateUnitTest {
     private static File trustStoreFile;
     private static File keyStoreFile;
 
+    private String originalKeyStoreType;
+
     @BeforeClass
     public static void beforeTests() throws IOException {
         trustStoreFile = getAbsoluteFilePathFromClassPath("truststore.jks");
         keyStoreFile = getAbsoluteFilePathFromClassPath("keystore.jks");
+    }
+
+    @Before
+    public void setKeyStoreType() throws Exception {
+        originalKeyStoreType = Security.getProperty("keystore.type");
+        Security.setProperty("keystore.type", "jks");
+    }
+
+    @After
+    public void resetKeyStoreType() throws Exception {
+        Security.setProperty("keystore.type", originalKeyStoreType);
     }
 
     @Test
