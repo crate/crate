@@ -206,6 +206,10 @@ Deprecations
 Changes
 =======
 
+- Restrict access to log entries in :ref:`sys.jobs <sys-jobs>` and
+  :ref:`sys.jobs_log <sys-logs>` to the current user.
+  This doesn't apply to superusers.
+
 - Added a new ``Administration Language (AL)`` privilege type which allows
   users to manage other users and use ``SET GLOBAL``. See
   :ref:`administration-privileges`.
