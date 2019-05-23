@@ -37,6 +37,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.repositories.RepositoriesService;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -86,7 +87,7 @@ public class SysTableDefinitions {
         ));
         tableDefinitions.put(SysRepositoriesTableInfo.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(repositoriesService.getRepositoriesList()),
-            SysRepositoriesTableInfo.expressions()
+            SysRepositoriesTableInfo.expressions(List.of())
         ));
         tableDefinitions.put(SysSnapshotsTableInfo.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(sysSnapshots.currentSnapshots()),
