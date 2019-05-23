@@ -24,6 +24,7 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.inject.Binder;
 import org.elasticsearch.common.inject.Module;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -56,19 +57,26 @@ public class SettingsModule implements Module {
             List<String> settingsFilter,
             Set<SettingUpgrader<?>> settingUpgraders) {
         this.settings = settings;
+        ArrayList<Setting<?>> maskedSettings = new ArrayList<>();
         for (Setting<?> setting : ClusterSettings.BUILT_IN_CLUSTER_SETTINGS) {
             registerSetting(setting);
+            if (setting.isMasked()) {
+                maskedSettings.add(setting);
+            }
         }
         for (Setting<?> setting : IndexScopedSettings.BUILT_IN_INDEX_SETTINGS) {
             registerSetting(setting);
         }
-
         for (Setting<?> setting : additionalSettings) {
             registerSetting(setting);
+            if (setting.isMasked()) {
+                maskedSettings.add(setting);
+            }
         }
         for (String filter : settingsFilter) {
             registerSettingsFilter(filter);
         }
+
         final Set<SettingUpgrader<?>> clusterSettingUpgraders = new HashSet<>();
         for (final SettingUpgrader<?> settingUpgrader : settingUpgraders) {
             assert settingUpgrader.getSetting().hasNodeScope() : settingUpgrader.getSetting().getKey();
@@ -76,7 +84,10 @@ public class SettingsModule implements Module {
             assert added : settingUpgrader.getSetting().getKey();
         }
         this.indexScopedSettings = new IndexScopedSettings(settings, new HashSet<>(this.indexSettings.values()));
-        this.clusterSettings = new ClusterSettings(settings, new HashSet<>(this.nodeSettings.values()), clusterSettingUpgraders);
+        this.clusterSettings = new ClusterSettings(settings,
+                                                   maskedSettings,
+                                                   new HashSet<>(this.nodeSettings.values()),
+                                                   clusterSettingUpgraders);
         Settings indexSettings = settings.filter((s) -> s.startsWith("index.") && clusterSettings.get(s) == null);
         if (indexSettings.isEmpty() == false) {
             throw new IllegalArgumentException(
