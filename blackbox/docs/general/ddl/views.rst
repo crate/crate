@@ -9,7 +9,7 @@ Views
 .. contents::
     :local:
 
-Introduction: creating views
+Introduction: Creating views
 ============================
 
 Views are stored named queries which can be used in place of table names.

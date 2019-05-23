@@ -370,7 +370,7 @@ max_token_length
 
 .. _ngram-tokenizer:
 
-n-gram tokenizer
+N-gram tokenizer
 ----------------
 
 ``type='ngram'``
@@ -420,7 +420,7 @@ Keyword tokenizer
 
 ``type='keyword'``
 
-The ``keyword`` tokenizer emits the entire input as a single token.
+The ``keyworkd`` tokenizer emits the entire input as a single token.
 
 .. rubric:: Parameters
 

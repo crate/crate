@@ -93,7 +93,7 @@ This results in the same behaviour than without any index declaration::
 .. _sql_ddl_index_fulltext:
 
 Fulltext index with analyzer
------------------------------
+----------------------------
 
 By defining an index on a column, it's analyzed data is indexed instead of the
 raw data.  Thus, depending on the used analyzer, querying for the exact data

@@ -58,7 +58,7 @@ Per blob table setting
 ----------------------
 
 It is also possible to define a custom blob data path per table instead of
-global by config. Also per table settings take precedence over the config
+global by config. Also per table setting take precedence over the config
 setting.
 
 See :ref:`ref-create-blob-table` for details.

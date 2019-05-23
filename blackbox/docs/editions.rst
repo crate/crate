@@ -86,7 +86,7 @@ node limitation, you can switch to the :ref:`community-edition`.
 
 .. _community-edition:
 
-CrateDB community edition
+CrateDB Community Edition
 =========================
 
 The CrateDB *Community Edition* (CrateDB CE) does not include any

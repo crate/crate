@@ -219,7 +219,7 @@ This is the default algorithm used for all types of joins.
 Block hash join algorithm
 .........................
 
-The performance of `Equi-Joins`_ is substantially improved by using the
+The performance of `Equi-Joins`_  is substantially improved by using the
 `Hash Join`_ algorithm. At first one relation is scanned and loaded into a hash
 table using the attributes of the join conditions as hash keys. Once the hash
 table is build, the second relation is scanned and the join condition values of
@@ -230,7 +230,7 @@ available memory, only a certain block size of a relation is loaded at once. The
 whole operation will be repeated with the next block of the first relation once
 scanning the second relation has finished.
 
-This optimization cannot be applied unless the join is an  **INNER** join and
+This optimisation cannot be applied unless the join is an  **INNER** join and
 the `join condition` obeys the following rules:
 
   - contains at least one ``EQUAL`` operator
@@ -247,8 +247,8 @@ session setting :ref:`enable_hashjoin <conf-session-enable-hashjoin>`::
 Limitations
 -----------
 
-Joining more than 2 tables can result in execution plans which perform poorly
-as there is no query optimizer in place yet.
+Joining more than 2 tables can result in execution plans which
+perform poorly as there is no query optimizer in place yet.
 
 
 .. _`nightly builds`: https://cdn.crate.io/downloads/releases/nightly/

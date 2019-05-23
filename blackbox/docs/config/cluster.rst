@@ -3,7 +3,7 @@
 .. _conf-cluster-settings:
 
 =====================
-Cluster Wide Settings
+Cluster-Wide Settings
 =====================
 
 All current applied cluster settings can be read by querying the
@@ -18,7 +18,7 @@ cluster settings can be :ref:`changed at runtime
 
 .. _applying-cluster-settings:
 
-Non-runtime cluster wide settings
+Non-runtime cluster-wide settings
 ---------------------------------
 
 Cluster wide settings which cannot be changed at runtime need to be specified

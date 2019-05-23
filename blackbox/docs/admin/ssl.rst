@@ -47,7 +47,7 @@ the following steps:
 
 .. _ssl_configure_keystore:
 
-Configuring the keystore
+Configuring the Keystore
 ------------------------
 
 SSL/TLS needs a keystore. The keystore holds the node certificate(s) which
@@ -81,7 +81,7 @@ Also, define the password needed to decrypt the keystore by using the
 ``ssl.keystore_password`` setting.
 
 Use ``ssl.keystore_key_password`` setting to define the key password used when
-creating the keystore.
+creating the Keystore.
 
 For a full list of the settings needed to configure SSL/TLS, refer to
 :ref:`SSL configuration reference <ssl_config>`.
@@ -89,7 +89,7 @@ For a full list of the settings needed to configure SSL/TLS, refer to
 
 .. _ssl_configure_truststore:
 
-Configuring a separate truststore
+Configuring a separate Truststore
 ---------------------------------
 
 Trusted CA certificates can be stored in a node's keystore or a separate
@@ -115,14 +115,14 @@ Connecting to a CrateDB node using HTTPS
 ----------------------------------------
 
 Connect to a CrateDB node using the Admin UI
-.............................................
+............................................
 
 Crate's HTTP endpoint remains unchanged. When you have turned on secure
 communication, it will use HTTPS instead of plain HTTP. Simply point your
 browser to the same URL you used before but changing the protocol to https:
 
 For example, ``http://localhost:4200`` becomes ``https://localhost:4200``.
-If you have not configured the CrateDB node's Keystore with a signed
+If you have not configured the CrateDB node's keystore with a signed
 certificate from a Certificate Authority (CA), then you will get something
 like the following: ``NET::ERR_CERT_AUTHORITY_INVALID``. You either need to
 get your certificate signed from one of the CAs included in your browser or
@@ -130,7 +130,7 @@ import your owned certificates into the browser. A third option is storing
 an exception for the CrateDB node certification in your browser after
 verifying that this is indeed a certificate you trust.
 
-Connect to a CrateDB node using crash
+Connect to a CrateDB node using Crash
 .....................................
 
 You can connect to a CrateDB node using a secure communication::
@@ -148,8 +148,8 @@ may have to configure your client to validate the received certificate
 accordingly.
 
 
-Connecting to a CrateDB node using PostgreSQL wire protocol with SSL/TLS
-------------------------------------------------------------------------
+Connecting to a CrateDB node using the PostgreSQL wire protocol with SSL/TLS
+----------------------------------------------------------------------------
 
 Connect to a CrateDB node using JDBC
 ....................................
@@ -187,20 +187,20 @@ information including the different SSL modes please visit the
 .. _psql documentation: https://www.postgresql.org/docs/current/static/app-psql.html
 
 
-Setting up a keystore/truststore with a certificate chain
+Setting up a Keystore/Truststore with a certificate chain
 =========================================================
 
-In case you need to setup a Keystore or a Trustore, here are the commands
+In case you need to setup a Kestore or a Trustore, here are the commands
 to get you started. All the commands use a validity of 36500 days
 (about 100 years). You might want to use less.
 
 
 .. _ssl_generate_keystore:
 
-Generate keystore with a private key
+Generate Keystore with a private key
 ------------------------------------
 
-The first step is to create a keystore with a private key using the RSA
+The first step is to create a Kestore with a private key using the RSA
 algorithm. The "first and last name" is the common name (CN) which should
 overlap with the URL the service it is used with.
 
@@ -342,10 +342,10 @@ Output::
 
 .. _subjectAltName: http://wiki.cacert.org/FAQ/subjectAltName
 
-Import the CA certificate into the keystore
+Import the CA certificate into the Keystore
 ...........................................
 
-The CA needs to be imported to the keystore for the certificate chain to be
+The CA needs to be imported to the Kestore for the certificate chain to be
 available when we import our signed certificate.
 
 Command::
@@ -396,7 +396,7 @@ Output::
     Certificate was added to keystore
 
 
-Import CA into truststore
+Import CA into Truststore
 .........................
 
 If we are using our own CA, we should also import the certificate to the
@@ -456,7 +456,7 @@ Import the signed certificate
 -----------------------------
 
 Now we have a signed certificate, signed by either from a official CA
-or from our own CA. Let's import it to the keystore.
+or from our own CA. Let's import it to the Kestore.
 
 Command::
 
@@ -472,5 +472,5 @@ Output::
 Configuring CrateDB
 -------------------
 
-Finally, you want to supply the keystore/truststore configuration in the
+Finally, you want to supply the Keystore/Truststore configuration in the
 CrateDB config, see :ref:`ssl_config`.
