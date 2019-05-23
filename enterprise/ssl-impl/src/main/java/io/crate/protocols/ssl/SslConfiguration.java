@@ -18,15 +18,13 @@
 
 package io.crate.protocols.ssl;
 
-import io.crate.settings.CrateSetting;
+import io.crate.common.Optionals;
 import io.netty.handler.ssl.ApplicationProtocolConfig;
 import io.netty.handler.ssl.ClientAuth;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.handler.ssl.SslProvider;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.net.ssl.KeyManager;
@@ -34,13 +32,8 @@ import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
-import java.io.File;
+import java.io.BufferedInputStream;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.nio.file.Files;
-import java.nio.file.LinkOption;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.security.Key;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -53,7 +46,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.List;
-import java.util.Optional;
 
 /**
  * Builds a Netty {@link SSLContext} which is passed upon creation of a {@link SslHandler}
@@ -77,259 +69,136 @@ public final class SslConfiguration {
 
     private SslConfiguration() {}
 
-    public static SslContext buildSslContext(Settings settings) {
-        try {
-            KeyStoreSettings keyStoreSettings = new KeyStoreSettings(settings);
+    static KeyStore loadKeyStore(String path, char[] pass) throws Exception {
+        KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+        try (var stream = new BufferedInputStream(new FileInputStream(path))) {
+            keyStore.load(stream, pass);
+        }
+        return keyStore;
+    }
 
-            Optional<TrustStoreSettings> trustStoreSettings = TrustStoreSettings.tryLoad(settings);
-            TrustManager[] trustManagers = null;
-            if (trustStoreSettings.isPresent()) {
-                trustManagers = trustStoreSettings.get().trustManagers;
+    static KeyManager[] createKeyManagers(KeyStore keyStore, char[] pass) throws Exception {
+        var keyFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+        keyFactory.init(keyStore, pass);
+        return keyFactory.getKeyManagers();
+    }
+
+    private static TrustManager[] createTrustManagers(KeyStore keyStore) {
+        TrustManagerFactory trustFactory;
+        try {
+            trustFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+            trustFactory.init(keyStore);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        return trustFactory.getTrustManagers();
+    }
+
+    private static <T> T[] concat(T[] xs, T[] ys) {
+        T[] result = Arrays.copyOf(xs, xs.length + ys.length);
+        System.arraycopy(ys, 0, result, xs.length, ys.length);
+        return result;
+    }
+
+    static X509Certificate[] getRootCertificates(KeyStore keyStore) {
+        ArrayList<X509Certificate> certs = new ArrayList<>();
+        try {
+            Enumeration<String> aliases = keyStore.aliases();
+            while (aliases.hasMoreElements()) {
+                String alias = aliases.nextElement();
+                if (keyStore.isCertificateEntry(alias)) {
+                    var cert = (X509Certificate) keyStore.getCertificate(alias);
+                    if (cert != null) {
+                        certs.add(cert);
+                    }
+                }
             }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        return certs.toArray(new X509Certificate[0]);
+    }
+
+    static X509Certificate[] getCertificateChain(KeyStore keyStore) {
+        ArrayList<X509Certificate> certs = new ArrayList<>();
+        try {
+            Enumeration<String> aliases = keyStore.aliases();
+            while (aliases.hasMoreElements()) {
+                String alias = aliases.nextElement();
+                if (keyStore.isKeyEntry(alias)) {
+                    Certificate[] certificateChain = keyStore.getCertificateChain(alias);
+                    if (certificateChain != null) {
+                        for (Certificate certificate : certificateChain) {
+                            certs.add((X509Certificate) certificate);
+                        }
+                    }
+
+                }
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        return certs.toArray(new X509Certificate[0]);
+    }
+
+    static PrivateKey getPrivateKey(KeyStore keyStore, char[] password) throws KeyStoreException, UnrecoverableKeyException, NoSuchAlgorithmException {
+        Enumeration<String> aliases = keyStore.aliases();
+        while (aliases.hasMoreElements()) {
+            String alias = aliases.nextElement();
+            if (keyStore.isKeyEntry(alias)) {
+                Key key = keyStore.getKey(alias, password);
+                if (key instanceof PrivateKey) {
+                    return (PrivateKey) key;
+                }
+            }
+        }
+        throw new KeyStoreException("No fitting private key found in keyStore");
+    }
+
+    public static SslContext buildSslContext(Settings settings) {
+        var keystorePath = SslConfigSettings.SSL_KEYSTORE_FILEPATH.setting().get(settings);
+        var keystorePass = SslConfigSettings.SSL_KEYSTORE_PASSWORD.setting().get(settings).toCharArray();
+        var keystoreKeyPass = SslConfigSettings.SSL_KEYSTORE_KEY_PASSWORD.setting().get(settings).toCharArray();
+
+        var trustStorePath = SslConfigSettings.SSL_TRUSTSTORE_FILEPATH.setting().get(settings);
+        var trustStorePass = SslConfigSettings.SSL_TRUSTSTORE_PASSWORD.setting().get(settings).toCharArray();
+
+        try {
+            var keyStore = loadKeyStore(keystorePath, keystorePass);
+            var keyManagers = createKeyManagers(keyStore, keystoreKeyPass);
+
+            var trustStore = Optionals.of(() -> loadKeyStore(trustStorePath, trustStorePass));
+            var trustManagers = trustStore
+                .map(SslConfiguration::createTrustManagers)
+                .orElseGet(() -> new TrustManager[0]);
 
             // Use the newest SSL standard which is (at the time of writing) TLSv1.2
             // If we just specify "TLS" here, it depends on the JVM implementation which version we'll get.
             SSLContext sslContext = SSLContext.getInstance("TLSv1.2");
-            sslContext.init(keyStoreSettings.keyManagers, trustManagers, null);
+            sslContext.init(keyManagers, trustManagers, null);
             SSLContext.setDefault(sslContext);
 
-            List<String> enabledCiphers = Arrays.asList(sslContext.createSSLEngine().getEnabledCipherSuites());
-
-            final X509Certificate[] keystoreCerts = keyStoreSettings.exportServerCertChain();
-            final PrivateKey privateKey = keyStoreSettings.exportDecryptedKey();
-
-            X509Certificate[] trustedCertificates = keyStoreSettings.exportRootCertificates();
-            if (trustStoreSettings.isPresent()) {
-                trustedCertificates = trustStoreSettings.get().exportRootCertificates(trustedCertificates);
-            }
-
-            final SslContextBuilder sslContextBuilder =
-                SslContextBuilder
-                    .forServer(privateKey, keystoreCerts)
-                    .ciphers(enabledCiphers)
-                    .applicationProtocolConfig(ApplicationProtocolConfig.DISABLED)
-                    .clientAuth(ClientAuth.OPTIONAL)
-                    .sessionCacheSize(0)
-                    .sessionTimeout(0)
-                    .startTls(false)
-                    .sslProvider(SslProvider.JDK);
-
-            if (trustedCertificates != null && trustedCertificates.length > 0) {
-                sslContextBuilder.trustManager(trustedCertificates);
-            }
-
-            return sslContextBuilder.build();
-
+            var keyStoreRootCerts = getRootCertificates(keyStore);
+            var keyStoreCertChain = getCertificateChain(keyStore);
+            var trustStoreRootCerts = trustStore
+                .map(SslConfiguration::getRootCertificates)
+                .orElseGet(() -> new X509Certificate[0]);
+            PrivateKey privateKey = getPrivateKey(keyStore, keystoreKeyPass);
+            return SslContextBuilder
+                .forServer(privateKey, keyStoreCertChain)
+                .ciphers(List.of(sslContext.createSSLEngine().getEnabledCipherSuites()))
+                .applicationProtocolConfig(ApplicationProtocolConfig.DISABLED)
+                .clientAuth(ClientAuth.OPTIONAL)
+                .trustManager(concat(keyStoreRootCerts, trustStoreRootCerts))
+                .sessionCacheSize(0)
+                .sessionTimeout(0)
+                .startTls(false)
+                .sslProvider(SslProvider.JDK)
+                .build();
         } catch (SslConfigurationException e) {
             throw e;
         } catch (Exception e) {
-            throw new SslConfigurationException("Failed to build SSL configuration", e);
-        }
-    }
-
-    abstract static class AbstractKeyStoreSettings {
-
-        final Logger logger;
-        final KeyStore keyStore;
-        final String keyStorePath;
-        final char[] keyStorePassword;
-
-        AbstractKeyStoreSettings(Settings settings) throws Exception {
-            logger = LogManager.getLogger(this.getClass());
-            String keyStoreType = KeyStore.getDefaultType();
-            logger.debug("using SSL keystore type \"" + keyStoreType + "\"");
-            keyStorePath = checkStorePath(getPathSetting().setting().get(settings));
-            logger.debug("using SSL keystore path \"" + keyStorePath + "\"");
-            keyStorePassword = getPassword(getPasswordSetting().setting().get(settings));
-            keyStore = KeyStore.getInstance(keyStoreType);
-        }
-
-        abstract CrateSetting<String> getPathSetting();
-
-        abstract CrateSetting<String> getPasswordSetting();
-
-
-        X509Certificate[] exportRootCertificates() throws KeyStoreException {
-            return exportRootCertificates(new X509Certificate[0]);
-        }
-
-        X509Certificate[] exportRootCertificates(X509Certificate[] existingCerts) throws KeyStoreException {
-
-            final List<X509Certificate> trustedCerts = new ArrayList<>();
-
-            final Enumeration<String> aliases = keyStore.aliases();
-
-            while (aliases.hasMoreElements()) {
-                String _alias = aliases.nextElement();
-
-                if (keyStore.isCertificateEntry(_alias)) {
-                    logger.info("Found certificate with alias {}", _alias);
-                    final X509Certificate cert = (X509Certificate) keyStore.getCertificate(_alias);
-                    if (cert != null) {
-                        trustedCerts.add(cert);
-                    }
-                }
-            }
-
-            X509Certificate[] certsToAdd = trustedCerts.toArray(new X509Certificate[0]);
-
-            X509Certificate[] trustedCertificates = Arrays.copyOf(
-                existingCerts,
-                existingCerts.length + certsToAdd.length);
-
-            System.arraycopy(
-                certsToAdd, 0,
-                trustedCertificates, existingCerts.length,
-                certsToAdd.length);
-
-            return trustedCertificates;
-        }
-
-        X509Certificate[] exportServerCertChain() throws KeyStoreException {
-
-            X509Certificate[] allCerts = new X509Certificate[0];
-            final Enumeration<String> aliases = keyStore.aliases();
-
-            while (aliases.hasMoreElements()) {
-                String alias = aliases.nextElement();
-                if (keyStore.isKeyEntry(alias)) {
-                    logger.info("Found key with alias {}", alias);
-                    Certificate[] certs = keyStore.getCertificateChain(alias);
-                    if (certs != null && certs.length > 0) {
-                        X509Certificate[] newAllCerts =
-                            Arrays.copyOf(allCerts,
-                                allCerts.length + certs.length,
-                                X509Certificate[].class);
-                        //noinspection SuspiciousSystemArraycopy
-                        System.arraycopy(
-                            certs, 0,
-                            newAllCerts, allCerts.length,
-                            certs.length);
-                        allCerts = newAllCerts;
-                    }
-                }
-            }
-
-            return allCerts;
-        }
-
-        static String checkStorePath(String keystoreFilePath) throws FileNotFoundException {
-
-            if (keystoreFilePath == null || keystoreFilePath.length() == 0) {
-                throw new FileNotFoundException("Empty file path for keystore.");
-            }
-
-            Path path = Paths.get(keystoreFilePath);
-            if (Files.isDirectory(path, LinkOption.NOFOLLOW_LINKS)) {
-                throw new FileNotFoundException("[" + keystoreFilePath + "] is a directory, expected file for keystore.");
-            }
-
-            if (!Files.isReadable(path)) {
-                throw new FileNotFoundException("Unable to read [" + keystoreFilePath + "] for " +
-                                                    "key store. Please make sure this file exists and has read permissions.");
-            }
-
-            return keystoreFilePath;
-        }
-
-
-        static char[] getPassword(String password) {
-            if (password == null) {
-                return new char[] {};
-            }
-            return password.toCharArray();
-        }
-    }
-
-    static class KeyStoreSettings extends AbstractKeyStoreSettings {
-
-        final KeyManager[] keyManagers;
-        final char[] keyStoreKeyPassword;
-
-        KeyStoreSettings(Settings settings) throws Exception {
-            super(settings);
-
-            this.keyStoreKeyPassword = getPassword(
-                SslConfigSettings.SSL_KEYSTORE_KEY_PASSWORD.setting().get(settings));
-
-            try (FileInputStream is = new FileInputStream(new File(keyStorePath))) {
-                keyStore.load(is, keyStorePassword);
-            }
-
-            KeyManagerFactory keyFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-            keyFactory.init(keyStore, keyStoreKeyPassword);
-
-            this.keyManagers = keyFactory.getKeyManagers();
-        }
-
-
-        PrivateKey exportDecryptedKey()
-                throws KeyStoreException, UnrecoverableKeyException, NoSuchAlgorithmException {
-            Enumeration<String> aliases = keyStore.aliases();
-            if (!aliases.hasMoreElements()) {
-                throw new KeyStoreException("No aliases found in keystore");
-            }
-
-            while (aliases.hasMoreElements()) {
-                String alias = aliases.nextElement();
-                if (keyStore.isKeyEntry(alias)) {
-                    logger.info("Found private key with alias {}", alias);
-                    Key key = keyStore.getKey(alias, keyStoreKeyPassword);
-                    if (key instanceof PrivateKey) {
-                        return (PrivateKey) key;
-                    }
-                }
-            }
-
-            throw new KeyStoreException("No key matching the password found in keystore: " + keyStorePath);
-        }
-
-        @Override
-        CrateSetting<String> getPathSetting() {
-            return SslConfigSettings.SSL_KEYSTORE_FILEPATH;
-        }
-
-        @Override
-        CrateSetting<String> getPasswordSetting() {
-            return SslConfigSettings.SSL_KEYSTORE_PASSWORD;
-        }
-
-    }
-
-    static class TrustStoreSettings extends AbstractKeyStoreSettings {
-
-        final TrustManager[] trustManagers;
-
-        private TrustStoreSettings(Settings settings) throws Exception {
-            super(settings);
-
-            try (FileInputStream stream = new FileInputStream(new File(keyStorePath))) {
-                keyStore.load(stream, keyStorePassword);
-            }
-
-            TrustManagerFactory trustFactory =
-                TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-            trustFactory.init(keyStore);
-
-            this.trustManagers = trustFactory.getTrustManagers();
-        }
-
-        @Override
-        CrateSetting<String> getPathSetting() {
-            return SslConfigSettings.SSL_TRUSTSTORE_FILEPATH;
-        }
-
-        @Override
-        CrateSetting<String> getPasswordSetting() {
-            return SslConfigSettings.SSL_TRUSTSTORE_PASSWORD;
-        }
-
-        static Optional<TrustStoreSettings> tryLoad(Settings settings) throws Exception {
-            try {
-                return Optional.of(new TrustStoreSettings(settings));
-            } catch (FileNotFoundException e) {
-                return Optional.empty();
-            }
+            throw new SslConfigurationException("Failed to build SSL configuration: " + e.getMessage(), e);
         }
     }
 }

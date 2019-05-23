@@ -63,7 +63,7 @@ public final class SslConfigSettings {
         DataTypes.STRING);
 
     public static final CrateSetting<String> SSL_KEYSTORE_PASSWORD = CrateSetting.of(
-        Setting.simpleString(SSL_KEYSTORE_PASSWORD_SETTING_NAME, Setting.Property.NodeScope),
+        Setting.simpleString(SSL_KEYSTORE_PASSWORD_SETTING_NAME, "", Setting.Property.NodeScope),
         DataTypes.STRING);
 
     public static final CrateSetting<String> SSL_KEYSTORE_KEY_PASSWORD = CrateSetting.of(
