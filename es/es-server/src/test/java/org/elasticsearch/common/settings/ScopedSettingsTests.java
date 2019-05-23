@@ -873,6 +873,7 @@ public class ScopedSettingsTests extends ESTestCase {
         final AbstractScopedSettings service =
                 new ClusterSettings(
                         Settings.EMPTY,
+                        List.of(),
                         new HashSet<>(Arrays.asList(oldSetting, newSetting, remainingSetting)),
                         Collections.singleton(new SettingUpgrader<String>() {
 
@@ -915,6 +916,7 @@ public class ScopedSettingsTests extends ESTestCase {
         final AbstractScopedSettings service =
                 new ClusterSettings(
                         Settings.EMPTY,
+                        List.of(),
                         new HashSet<>(Arrays.asList(oldSetting, newSetting, remainingSetting)),
                         Collections.singleton(new SettingUpgrader<String>() {
 
@@ -947,6 +949,7 @@ public class ScopedSettingsTests extends ESTestCase {
         final AbstractScopedSettings service =
                 new ClusterSettings(
                         Settings.EMPTY,
+                        List.of(),
                         new HashSet<>(Arrays.asList(oldSetting, newSetting, remainingSetting)),
                         Collections.singleton(new SettingUpgrader<String>() {
 
@@ -1001,6 +1004,7 @@ public class ScopedSettingsTests extends ESTestCase {
         final AbstractScopedSettings service =
                 new ClusterSettings(
                         Settings.EMPTY,
+                        List.of(),
                         new HashSet<>(Arrays.asList(oldSetting, newSetting)),
                         Collections.singleton(new SettingUpgrader<List<String>>() {
 
