@@ -47,6 +47,7 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasToString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
@@ -614,5 +615,25 @@ public class SettingsTests extends ESTestCase {
         IllegalArgumentException iae = expectThrows(IllegalArgumentException.class,
                                                     () -> Settings.builder().copy("not_there", settings));
         assertEquals("source key not found in the source settings", iae.getMessage());
+    }
+
+    @Test
+    public void testGetAsStructuredMapNoSettingToMask() {
+        Settings settings = Settings.builder()
+            .put("masked", "masked_value")
+            .build();
+
+        Map<String, Object> map = settings.getAsStructuredMap(Set.of());
+        assertThat(map, hasEntry("masked", "masked_value"));
+    }
+
+    @Test
+    public void testGetAsStructuredMapMaskingValues() {
+        Settings settings = Settings.builder()
+            .put("masked", "masked_value")
+            .build();
+
+        Map<String, Object> map = settings.getAsStructuredMap(Set.of("masked"));
+        assertThat(map, hasEntry("masked", Settings.MASKED_VALUE));
     }
 }
