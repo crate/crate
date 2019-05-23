@@ -37,11 +37,7 @@ import io.crate.metadata.table.StaticTableInfo;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.repositories.Repository;
-
-import java.util.List;
-import java.util.stream.Collectors;
 
 public class SysRepositoriesTableInfo extends StaticTableInfo {
 
@@ -55,7 +51,7 @@ public class SysRepositoriesTableInfo extends StaticTableInfo {
         static final ColumnIdent SETTINGS = new ColumnIdent("settings");
     }
 
-    public static ImmutableMap<ColumnIdent, RowCollectExpressionFactory<Repository>> expressions(List<Setting<?>> maskedSettings) {
+    public static ImmutableMap<ColumnIdent, RowCollectExpressionFactory<Repository>> expressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<Repository>>builder()
             .put(SysRepositoriesTableInfo.Columns.NAME,
                 () -> NestableCollectExpression.forFunction((Repository r) -> r.getMetadata().name()))
@@ -63,13 +59,9 @@ public class SysRepositoriesTableInfo extends StaticTableInfo {
                 () -> NestableCollectExpression.forFunction((Repository r) -> r.getMetadata().type()))
             .put(SysRepositoriesTableInfo.Columns.SETTINGS,
                 () -> NestableCollectExpression
-                    .forFunction(r -> r.getMetadata().settings().getAsStructuredMap(maskedSettings
-                                                                                        .stream()
-                                                                                        .map(Setting::getKey)
-                                                                                        .collect(Collectors.toSet()))))
+                    .forFunction((Repository r) -> r.getMetadata().settings().getAsStructuredMap()))
             .build();
     }
-
 
     SysRepositoriesTableInfo() {
         super(IDENT, new ColumnRegistrar(IDENT, GRANULARITY)
