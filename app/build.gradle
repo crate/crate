@@ -409,10 +409,6 @@ task(run, dependsOn: 'classes', type: JavaExec) {
 }
 
 test {
-    testLogging {
-        exceptionFormat = 'full'
-    }
-
     jacoco {
         excludes = ["*Test*"]
     }
