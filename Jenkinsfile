@@ -1,6 +1,7 @@
 pipeline {
   agent any
   environment {
+    CI_RUN = "true"
     JDK_11 = 'openjdk@1.11.0-2'
     JDK_12 = 'openjdk@1.12.0-1'
     ADOPT_JDK_12 = 'adopt@1.12.33-0'
