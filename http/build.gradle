@@ -6,6 +6,7 @@ dependencies {
     implementation project(':es:es-server')
     implementation project(':es:es-transport')
     implementation project(':common')
+    implementation project(':ssl')
     implementation "io.netty:netty-buffer:${versions.netty4}"
     implementation "io.netty:netty-codec-http:${versions.netty4}"
     implementation "com.google.code.findbugs:jsr305:${versions.jsr305}"

@@ -24,7 +24,6 @@ package io.crate.protocols.postgres;
 
 import io.crate.action.sql.SQLOperations;
 import io.crate.auth.AlwaysOKNullAuthentication;
-import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.user.StubUserManager;
 import org.elasticsearch.common.network.NetworkService;
@@ -82,9 +81,7 @@ public class PostgresNettyPublishPortTest extends CrateUnitTest {
             Mockito.mock(SQLOperations.class),
             new StubUserManager(),
             networkService,
-            new AlwaysOKNullAuthentication(),
-            Mockito.mock(SslContextProvider.class)
-        );
+            new AlwaysOKNullAuthentication());
         try {
             psql.doStart();
         } finally {
@@ -102,9 +99,7 @@ public class PostgresNettyPublishPortTest extends CrateUnitTest {
             Mockito.mock(SQLOperations.class),
             new StubUserManager(),
             networkService,
-            new AlwaysOKNullAuthentication(),
-            Mockito.mock(SslContextProvider.class)
-        );
+            new AlwaysOKNullAuthentication());
         try {
             psql.doStart();
             fail("Should have failed due to custom hostname");
@@ -126,9 +121,7 @@ public class PostgresNettyPublishPortTest extends CrateUnitTest {
             Mockito.mock(SQLOperations.class),
             new StubUserManager(),
             networkService,
-            new AlwaysOKNullAuthentication(),
-            Mockito.mock(SslContextProvider.class)
-        );
+            new AlwaysOKNullAuthentication());
         try {
             psql.doStart();
             fail("Should have failed due to custom hostname");
@@ -150,9 +143,7 @@ public class PostgresNettyPublishPortTest extends CrateUnitTest {
             Mockito.mock(SQLOperations.class),
             new StubUserManager(),
             networkService,
-            new AlwaysOKNullAuthentication(),
-            Mockito.mock(SslContextProvider.class)
-        );
+            new AlwaysOKNullAuthentication());
         try {
             psql.doStart();
             fail("Should have failed due to custom hostname");
