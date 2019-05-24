@@ -8,5 +8,4 @@ dependencies {
     implementation project(':common')
     implementation project(':es:es-server')
     implementation "io.netty:netty-handler:${versions.netty4}"
-    implementation project(':http')
 }
