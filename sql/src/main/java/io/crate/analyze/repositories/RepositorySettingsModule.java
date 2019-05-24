@@ -23,7 +23,6 @@
 package io.crate.analyze.repositories;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.common.collections.Maps;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.GenericProperty;
@@ -32,7 +31,6 @@ import org.elasticsearch.common.inject.multibindings.MapBinder;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.repositories.azure.AzureRepository;
 import org.elasticsearch.repositories.fs.FsRepository;
-import org.elasticsearch.repositories.s3.S3ClientSettings;
 import org.elasticsearch.repositories.s3.S3Repository;
 import org.elasticsearch.repositories.url.URLRepository;
 
@@ -90,12 +88,9 @@ public class RepositorySettingsModule extends AbstractModule {
     };
 
     private static final TypeSettings S3_SETTINGS = new TypeSettings(
-        Map.of(),
-        Maps.concat(
-            groupSettingsByKey(S3Repository.optionalSettings()),
-            // client related settings
-            groupSettingsByKey(renameSettingsUsingSuffixAsKey(S3ClientSettings.optionalSettings()))
-        ));
+        groupSettingsByKey(S3Repository.mandatorySettings()),
+        groupSettingsByKey(S3Repository.optionalSettings())
+    );
 
     private static final TypeSettings AZURE_SETTINGS = new TypeSettings(
         groupSettingsByKey(AzureRepository.mandatorySettings()),
@@ -117,25 +112,5 @@ public class RepositorySettingsModule extends AbstractModule {
 
     private static Map<String, Setting<?>> groupSettingsByKey(List<Setting<?>> settings) {
         return settings.stream().collect(Collectors.toMap(Setting::getKey, Function.identity()));
-    }
-
-    /**
-     * Copy and rename {@link Setting}s.
-     * For each Setting, a new Setting is created
-     * with it's key suffix acting as the new key
-     *
-     * eg. From Setting: s3.client.default.endpoint
-     * a new Setting will be created with same characteristics
-     * and new key name: endpoint
-     */
-    private static List<Setting<?>> renameSettingsUsingSuffixAsKey(List<Setting<?>> settings) {
-        return settings
-            .stream()
-            .map(s -> s.copyAndRename(RepositorySettingsModule::getSuffixOrInput))
-            .collect(Collectors.toList());
-    }
-
-    private static String getSuffixOrInput(String str) {
-        return str.substring(str.lastIndexOf('.') + 1);
     }
 }

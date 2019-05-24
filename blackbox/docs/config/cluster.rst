@@ -1098,37 +1098,3 @@ Metadata Gateway
   because you only want the cluster state to be recovered once all nodes are
   started. However, the value must be bigger than the half of the expected
   number of nodes in the cluster.
-
-.. _s3-credentials:
-
-Credentials for S3 Repositories
-...............................
-
-CrateDB has built-in support for configuring
-:ref:`S3 buckets as repositories for snapshots
-<ref-create-repository-types-s3>`. If no credentials are provided as parameters
-to the SQL statement the following default credentials will be used:
-
-.. _s3-credentials-access-key:
-
-**s3.client.default.access_key**
-  | *Runtime:*  ``no``
-
-  The access key ID to identify the API calls.
-
-.. _s3-credentials-secret-key:
-
-**s3.client.default.secret_key**
-  | *Runtime:*  ``no``
-
-  The secret key to identify the API calls.
-
-
-.. TIP::
-
-   Configuring the settings above in the ``crate.yml`` file, is an easy way to
-   prevent credentials from being exposed.
-
-   If a repository is created with the credentials passed as parameters to the
-   SQL statement, then those credentials will be visible as plain text to
-   anyone querying the :ref:`sys.repositories table <sys-repositories>`.
