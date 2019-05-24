@@ -12,10 +12,9 @@ dependencies {
 test {
     outputs.upToDateWhen { false }
 
-    testLogging.exceptionFormat = 'full'
     jacoco {
         excludes = [
-                "*Test*"
+            "*Test*"
         ]
     }
 }
