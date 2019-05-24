@@ -364,12 +364,14 @@ Client Specific Settings
 **account**
   | *Type:*    ``text``
 
-  The Azure Storage account name.
+  The Azure Storage account name. Note that this setting is masked and
+  thus will not be visible when querying the ``sys.repositories`` table.
 
 **key**
   | *Type:*    ``text``
 
-  The Azure Storage account secret key.
+  The Azure Storage account secret key. Note that this setting is masked and
+  thus will not be visible when querying the ``sys.repositories`` table.
 
 **endpoint_suffix**
   | *Type:*    ``text``

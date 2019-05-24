@@ -1636,6 +1636,10 @@ used to create, manage and restore snapshots (see :ref:`snapshot-restore`).
     +---------+------+---------------------------------------------------...--+
     SELECT 1 row in set (... sec)
 
+.. NOTE::
+
+    Sensitive user account information will be masked and thus not visible to the user.
+
 .. _sys-snapshots:
 
 Snapshots

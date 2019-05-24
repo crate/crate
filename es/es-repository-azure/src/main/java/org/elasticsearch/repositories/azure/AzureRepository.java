@@ -70,9 +70,9 @@ public class AzureRepository extends BlobStoreRepository {
     public static final String TYPE = "azure";
 
     public static final class Repository {
-        static final Setting<SecureString> ACCOUNT_SETTING = SecureSetting.insecureString("account");
+        static final Setting<SecureString> ACCOUNT_SETTING = Setting.maskedString("account");
 
-        static final Setting<SecureString> KEY_SETTING = SecureSetting.insecureString("key");
+        static final Setting<SecureString> KEY_SETTING = Setting.maskedString("key");
 
         static final Setting<String> CONTAINER_SETTING = new Setting<>(
                 "container",

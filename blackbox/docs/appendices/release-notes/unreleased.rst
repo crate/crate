@@ -206,6 +206,9 @@ Deprecations
 Changes
 =======
 
+- Mask sensitive user account information in
+  :ref:`sys.repositories <sys-repositories>` for repository type: ``azure``.
+
 - Restrict access to log entries in :ref:`sys.jobs <sys-jobs>` and
   :ref:`sys.jobs_log <sys-logs>` to the current user.
   This doesn't apply to superusers.

@@ -37,9 +37,8 @@ specific type which determines how snapshots are stored.
 
 CrateDB supports different repository types:
 :ref:`ref-create-repository-types-fs`, :ref:`ref-create-repository-types-hdfs`,
-:ref:`ref-create-repository-types-s3`, and
-:ref:`ref-create-repository-types-url`. Support for further types can be
-added using `plugins`_.
+:ref:`ref-create-repository-types-s3`, :ref:`ref-create-repository-types-azure` and
+:ref:`ref-create-repository-types-url`.
 
 The creation of a repository configures it inside the CrateDB cluster. In
 general no data is written, no snapshots inside repositories changed or
@@ -51,8 +50,6 @@ Creating a repository with the same name will result in an error::
     cr> CREATE REPOSITORY where_my_snapshots_go TYPE fs
     ... WITH (location='another_repo_path', compress=false);
     SQLActionException[RepositoryAlreadyExistsException: Repository 'where_my_snapshots_go' already exists]
-
-.. _plugins: https://github.com/crate/crate/blob/master/devs/docs/plugins.rst
 
 Creating a Snapshot
 ...................

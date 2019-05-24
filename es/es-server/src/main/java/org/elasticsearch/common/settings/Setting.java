@@ -1080,6 +1080,10 @@ public class Setting<T> implements ToXContentObject {
         return new Setting<>(key, fallback, parser, properties);
     }
 
+    public static Setting<SecureString> maskedString(String name) {
+        return new Setting<>(name, "", SecureString::new, Property.Masked, Property.NodeScope);
+    }
+
     /**
      * Creates a new Setting instance with a String value
      *
