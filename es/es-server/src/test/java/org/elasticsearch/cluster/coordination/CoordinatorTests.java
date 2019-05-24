@@ -172,12 +172,7 @@ public class CoordinatorTests extends ESTestCase {
         resetPortCounter();
     }
 
-    /**
-     * Check that runRandomly leads to reproducible results
-     *
-     * Logging is adjusted to get more information in case it fails (this test was flaky at some point)
-     */
-    @TestLogging("org.elasticsearch.discovery:OFF,org.elasticsearch.cluster.coordination:DEBUG")
+    // check that runRandomly leads to reproducible results
     public void testRepeatableTests() throws Exception {
         final Callable<Long> test = () -> {
             resetNodeIndexBeforeEachTest();
@@ -1870,7 +1865,7 @@ public class CoordinatorTests extends ESTestCase {
                 final Collection<BiConsumer<DiscoveryNode, ClusterState>> onJoinValidators =
                     Collections.singletonList((dn, cs) -> extraJoinValidators.forEach(validator -> validator.accept(dn, cs)));
                 coordinator = new Coordinator("test_node", settings, clusterSettings, transportService, writableRegistry(),
-                    ESAllocationTestCase.createAllocationService(Settings.EMPTY), masterService, this::getPersistedState,
+                    ESAllocationTestCase.createAllocationService(Settings.EMPTY, clusterSettings, random()), masterService, this::getPersistedState,
                     Cluster.this::provideSeedHosts, clusterApplierService, onJoinValidators, Randomness.get());
                 masterService.setClusterStatePublisher(coordinator);
 
