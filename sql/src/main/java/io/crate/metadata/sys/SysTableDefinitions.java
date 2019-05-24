@@ -86,7 +86,7 @@ public class SysTableDefinitions {
         ));
         tableDefinitions.put(SysRepositoriesTableInfo.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(repositoriesService.getRepositoriesList()),
-            SysRepositoriesTableInfo.expressions()
+            SysRepositoriesTableInfo.expressions(clusterService.getClusterSettings().maskedSettings())
         ));
         tableDefinitions.put(SysSnapshotsTableInfo.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(sysSnapshots.currentSnapshots()),
