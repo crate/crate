@@ -224,6 +224,9 @@ Deprecations
 Changes
 =======
 
+- Routing awareness attributes are now also taken into consideration for
+  primary key lookups. (Queries like ``SELECT * FROM t WHERE pk = 1``)
+
 - By introducing :ref:`_seq_no <sql_administration_system_columns_seq_no>` and
   :ref:`_primary_term <sql_administration_system_columns_primary_term>`, the
   following resiliency issues were fixed:
