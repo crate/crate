@@ -13,10 +13,9 @@ and a client. This applies to connections using HTTP (i.e. `Admin UI
 Connections are secured using Transport Layer Security (TLS).
 
 Note that once SSL is enabled for HTTP connections, only connections using
-HTTPS are allowed. Same applies to secure MQTT connections.
-This is in contrast to the PostgreSQL Wire Protocol, which still allows
-non-encrypted connections when SSL is enabled. If you want to enforce SSL
-usage, please consult the :ref:`admin_hba`.
+HTTPS are allowed. This is in contrast to the PostgreSQL Wire Protocol, which
+still allows non-encrypted connections when SSL is enabled. If you want to
+enforce SSL usage, please consult the :ref:`admin_hba`.
 
 .. NOTE::
 
