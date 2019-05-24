@@ -33,6 +33,7 @@ import org.elasticsearch.analysis.common.CommonAnalysisPlugin;
 import org.elasticsearch.discovery.ec2.Ec2DiscoveryPlugin;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.node.Node;
+import org.elasticsearch.plugin.analysis.AnalysisPhoneticPlugin;
 import org.elasticsearch.plugin.repository.url.URLRepositoryPlugin;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.repositories.azure.AzureRepositoryPlugin;
@@ -55,6 +56,7 @@ public class CrateNode extends Node {
         AzureRepositoryPlugin.class,
         Ec2DiscoveryPlugin.class,
         CommonAnalysisPlugin.class,
+        AnalysisPhoneticPlugin.class,
         Netty4Plugin.class);
 
     protected CrateNode(Environment environment) {

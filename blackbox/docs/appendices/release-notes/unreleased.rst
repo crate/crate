@@ -53,9 +53,13 @@ Breaking Changes
   to use ``PgPoint``. (See `Geometric DataTypes in JDBC
   <https://jdbc.postgresql.org/documentation/head/geometric.html>`_)
 
-
 Changes
 =======
+
+- Added ``phonetic`` token filter with following encoders: ``metaphone``,
+  ``double_metaphone``, ``soundex``, ``refined_soundex``, ``caverphone1``,
+  ``caverphone2``, ``cologne``, ``nysiis``, ``koelnerphonetik``,
+  ``haasephonetik``, ``beider_morse``, ``daitch_mokotoff``.
 
 - Removed a restriction for predicates in the ``WHERE`` clause involving
   partitioned by columns which could result in a failure response with the

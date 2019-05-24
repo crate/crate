@@ -216,6 +216,8 @@ See the options below for details.
   results where only high frequency terms like ``the`` would cause a
   match.
 
+.. _match_option_fuzziness:
+
 :fuzziness:
   Can be used to perform fuzzy full text search.
 
