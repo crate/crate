@@ -135,7 +135,11 @@ public final class Settings implements ToXContentFragment {
         return map;
     }
 
-    private void processSetting(Map<String, Object> map, String prefix, String setting, Object value, Set<String> maskedSettings) {
+    private void processSetting(Map<String, Object> map,
+                                String prefix,
+                                String setting,
+                                Object value,
+                                Set<String> maskedSettings) {
         int prefixLength = setting.indexOf('.');
         if (prefixLength == -1) {
             @SuppressWarnings("unchecked") Map<String, Object> innerMap = (Map<String, Object>) map.get(prefix + setting);
@@ -146,7 +150,7 @@ public final class Settings implements ToXContentFragment {
                 }
             }
             String settingKey = prefix + setting;
-            Object settingValue = (maskedSettings.contains(settingKey)) ? MASKED_VALUE : value;
+            Object settingValue = maskedSettings.contains(settingKey) ? MASKED_VALUE : value;
             map.put(settingKey, settingValue);
         } else {
             String key = setting.substring(0, prefixLength);

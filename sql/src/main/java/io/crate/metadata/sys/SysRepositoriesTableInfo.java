@@ -63,6 +63,7 @@ public class SysRepositoriesTableInfo extends StaticTableInfo {
             .build();
     }
 
+
     SysRepositoriesTableInfo() {
         super(IDENT, new ColumnRegistrar(IDENT, GRANULARITY)
             .register(Columns.NAME, DataTypes.STRING)

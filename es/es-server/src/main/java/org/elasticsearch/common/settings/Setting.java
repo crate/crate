@@ -138,7 +138,7 @@ public class Setting<T> implements ToXContentObject {
         PrivateIndex,
 
         /**
-         * Indicates a setting that contains sensitive information. Such a setting will be masked when shown to non-authorized users.
+         * Indicates a setting that contains sensitive information. Such a setting will be masked when shown to the users.
          */
         Masked
     }
