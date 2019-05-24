@@ -39,7 +39,7 @@ data, etc. See :ref:`sql_ref_optimize` for detailed description of parameters.
 
     System tables cannot be optimized.
 
-Multiple Table Optimization
+Multiple table optimization
 ===========================
 
 .. Hidden: CREATE TABLE::
@@ -74,7 +74,7 @@ completed.
    tables/partitions are optimized and an error is returned. The error returns
    only the first non-existent table/partition.
 
-Partition Optimization
+Partition optimization
 ======================
 
 Additionally it is possible to define a specific ``PARTITION`` of a partitioned
@@ -102,7 +102,7 @@ reasons.
 
 .. _optimize_segments_upgrade:
 
-Segments Upgrade
+Segments upgrade
 ================
 
 In case that some or all of the segments of a table or a table partition are

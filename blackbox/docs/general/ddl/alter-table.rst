@@ -19,7 +19,7 @@ Altering Tables
     cr> CREATE TABLE my_table (id BIGINT);
     CREATE OK, 1 row affected (... sec)
 
-Updating Parameters
+Updating parameters
 ===================
 
 The parameters of a table can be modified using the ``ALTER TABLE`` clause::
@@ -34,7 +34,7 @@ In order to set a parameter to its default value use ``reset``::
 
 .. _alter_change_number_of_shard:
 
-Changing the Number of Shards
+Changing the number of shards
 -----------------------------
 
 Changing the number of shards in general works in the following steps.
@@ -54,8 +54,8 @@ Changing the number of shards in general works in the following steps.
 To change the number of primary shards of a table, it is necessary to first
 satisfy certain conditions.
 
-Decrease the Number of Shards
-.............................
+Decreasing the number of shards
+...............................
 
 To decrease the number of shards, it is necessary to ensure the following
 two conditions:
@@ -86,7 +86,7 @@ It is necessary to use a factor of the current number of primary shards as
 the target number of shards. For example, a table with 8 shards can be shrunk
 into 4, 2 or 1 primary shards.
 
-Increase the Number of Shards
+Increase the number of shards
 .............................
 
 Increasing the number of shards is limited to tables which have been created
@@ -115,7 +115,7 @@ for instance::
 Read :ref:`Alter Partitioned Tables <partitioned_tables_alter>` to see how to
 alter parameters of partitioned tables.
 
-Adding Columns
+Adding columns
 ==============
 
 In order to add a column to an existing table use ``ALTER TABLE`` with the
@@ -150,7 +150,7 @@ And now a nested column named ``name`` is added to the ``obj_column``::
     +--------------------+-----------+
     SELECT 3 rows in set (... sec)
 
-Closing and Opening Tables
+Closing and opening tables
 ==========================
 
 A table can be closed by using ``ALTER TABLE`` with the ``CLOSE`` clause::
@@ -173,7 +173,7 @@ clause::
     Closing and opening a table will preserve these settings if they are
     already set.
 
-Renaming Tables
+Renaming tables
 ===============
 
 A table can be renamed by using ``ALTER TABLE`` with the ``RENAME TO`` clause::
@@ -185,7 +185,7 @@ During the rename operation the shards of the table become temporarily unavailab
 
 .. _ddl_reroute_shards:
 
-Reroute Shards
+Reroute shards
 ==============
 
 With the ``REROUTE`` command it is possible to control the allocations of

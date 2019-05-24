@@ -47,7 +47,7 @@ type conversion will be attempted.
 -----------------------------
 
 This clause can be used to update a record if a conflicting record is
-encountered. 
+encountered.
 
 ::
 
@@ -86,7 +86,7 @@ In the above statement, if ``col1`` had a primary key constraint and the value
 ``1`` already existed for ``col1``, no insert would be performed. The conflict
 target after ``ON CONFLICT`` is optional.
 
-Insert From Dynamic Queries Constraints
+Insert from dynamic queries constraints
 ---------------------------------------
 
 In some cases ``SELECT`` statements produce invalid data. This opens a rare

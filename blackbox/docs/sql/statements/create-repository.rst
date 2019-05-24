@@ -353,7 +353,7 @@ A repository type that stores its snapshots on the Azure Storage service.
   The location mode for storing data on the Azure Storage.
   Note that if you set it to ``secondary_only``, it will force readonly to true.
 
-Client Specific Settings
+Client specific settings
 ........................
 
 **account**

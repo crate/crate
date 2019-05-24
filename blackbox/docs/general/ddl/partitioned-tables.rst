@@ -86,7 +86,7 @@ suitable partition value from the given values on database-side::
     ... ) PARTITIONED BY (month);
     CREATE OK, 1 row affected (... sec)
 
-Information Schema
+Information schema
 ==================
 
 This table shows up in the ``information_schema.tables`` table, recognizable as
@@ -315,7 +315,7 @@ list of partitions that need to be accessed.
     cr> DELETE FROM parted_table;
     DELETE OK, -1 rows affected (... sec)
 
-Generated Columns in ``PARTITIONED BY``
+Generated columns in ``PARTITIONED BY``
 ---------------------------------------
 
 Querying on tables partitioned by generated columns is also optimized to infer
@@ -373,7 +373,7 @@ both existing and new partitions of the table.
     ALTER OK, -1 rows affected (... sec)
 
 
-Changing the Number of Shards
+Changing the number of shards
 -----------------------------
 
 It is possible at any time to change the number of shards of a partitioned
@@ -426,7 +426,7 @@ table.
     +--------------------------+------------------------+------------------+
     SELECT 1 row in set (... sec)
 
-Altering a Single Partition
+Altering a single partition
 ...........................
 
 We also provide the option to change the number of shards that are already
@@ -461,7 +461,7 @@ thus a specific partition needs to be specified
    The same prerequisites and restrictions as with normal
    tables apply. See :ref:`alter_change_number_of_shard`.
 
-Alter Partitions
+Alter partitions
 ----------------
 
 It is also possible to alter parameters of single partitions of a partitioned
@@ -478,7 +478,7 @@ settings use the :ref:`ref-alter-table-partition-clause`.
 
 .. _partitioned_tables_alter_table_only:
 
-Alter Table ``ONLY``
+Alter table ``ONLY``
 --------------------
 
 Sometimes one wants to alter a partitioned table, but the changes should only
@@ -490,7 +490,7 @@ affect new partitions and not existing ones. This can be done by using the
     cr> ALTER TABLE ONLY parted_table SET (number_of_replicas = 1);
     ALTER OK, -1 rows affected (... sec)
 
-Closing and Opening a Partition
+Closing and opening a partition
 -------------------------------
 
 A single partition within a partitioned table can be opened and closed in the
@@ -512,7 +512,7 @@ Limitations
 * ``WHERE`` clauses cannot contain queries like ``partitioned_by_column='x' OR
   normal_column=x``
 
-Consistency Notes Related to Concurrent DML Statement
+Consistency notes related to concurrent DML statement
 =====================================================
 
 If a partition is deleted during an active insert or update bulk operation this

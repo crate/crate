@@ -56,7 +56,7 @@ The result has at most 1 row::
 
 .. _sys-cluster-license:
 
-Cluster License
+Cluster license
 ---------------
 
 The ``sys.cluster.license`` expression returns information about the currently
@@ -83,7 +83,7 @@ registered license.
 
 .. _sys-cluster-settings:
 
-Cluster Settings
+Cluster settings
 ----------------
 
 The ``sys.cluster.settings`` expression returns information about the currently
@@ -545,7 +545,7 @@ calculate the time difference between 2 probes.
 
 .. _os_cgroup_limitations:
 
-Cgroup Limitations
+Cgroup limitations
 ..................
 
 .. NOTE::
@@ -555,7 +555,7 @@ Cgroup Limitations
 
 .. _os_uptime_limitations:
 
-Uptime Limitations
+Uptime limitations
 ..................
 
 .. NOTE::
@@ -745,7 +745,7 @@ probes.
 
 .. _sys-node-checks:
 
-Node Checks
+Node checks
 ===========
 
 The table ``sys.node_checks`` exposes a list of internal node checks and
@@ -796,7 +796,7 @@ Example query::
 
 .. _sys-node-checks-ack:
 
-Acknowledge Failed Checks
+Acknowledge failed checks
 -------------------------
 
 It is possible to acknowledge every check by updating the ``acknowledged``
@@ -822,10 +822,10 @@ flag::
    Updates on this column are transient, so changed values are lost after the
    affected node is restarted.
 
-Description of Checked Node Settings
+Description of checked node settings
 ------------------------------------
 
-Recovery Expected Nodes
+Recovery expected nodes
 .......................
 
 The check for the :ref:`gateway.expected_nodes <gateway.expected_nodes>`
@@ -833,7 +833,7 @@ setting checks that the number of nodes that should be waited for the immediate
 cluster state recovery, must be equal to the maximum number of data and master
 nodes in the cluster.
 
-Recovery After Nodes
+Recovery after nodes
 ....................
 
 The check for the :ref:`gateway.recover_after_nodes
@@ -848,7 +848,7 @@ nodes and equal/less than number of nodes in the cluster.
 where ``R`` is the number of recovery nodes, ``E`` is the number of expected
 nodes.
 
-Recovery After Time
+Recovery after time
 ...................
 
 If :ref:`gateway.recover_after_nodes <gateway.recover_after_nodes>` is set,
@@ -858,7 +858,7 @@ have any effect.
 
 .. _node_checks_watermark_high:
 
-Routing Allocation Disk Watermark High
+Routing allocation disk watermark high
 ......................................
 
 The check for the :ref:`cluster.routing.allocation.disk.watermark.high
@@ -870,7 +870,7 @@ or more verification fails the check is marked as not passed.
 
 .. _node_checks_watermark_low:
 
-Routing Allocation Disk Watermark Low
+Routing allocation disk watermark low
 .....................................
 
 The check for the :ref:`cluster.routing.allocation.disk.watermark.low
@@ -881,7 +881,7 @@ for configured CrateDB data paths. The check is not passed if the verification
 for one or more disk fails.
 
 
-JVM Version
+JVM version
 ...........
 
 
@@ -900,7 +900,7 @@ Shards
 The table ``sys.shards`` contains real-time statistics for all shards of all
 (non-system) tables.
 
-Table Schema
+Table schema
 ------------
 
 +------------------------------------+----------------------------------------------------+-------------+
@@ -1068,7 +1068,7 @@ For example, you can query shards like this::
 
 .. _jobs_operations_logs:
 
-Jobs, Operations, and Logs
+Jobs, operations, and logs
 ==========================
 
 To let you inspect the activities currently taking place in a cluster, CrateDB
@@ -1119,7 +1119,7 @@ Jobs
 The ``sys.jobs`` table is a constantly updated view of all jobs that are
 currently being executed in the cluster.
 
-Table Schema
+Table schema
 ............
 
 +------------------+--------------------------------------------------+------------------------------+
@@ -1170,7 +1170,7 @@ that tries to query a non-existent table) will not show up as jobs.
 
 .. _sys-jobs-metrics:
 
-Jobs Metrics
+Jobs metrics
 ------------
 
 The ``sys.jobs_metrics`` table provides an overview of the query latency in the
@@ -1187,7 +1187,7 @@ statements.
   longer than that are capped to 10 minutes.
 
 
-``sys.jobs_metrics`` Table Schema
+``sys.jobs_metrics`` Table schema
 .................................
 
 +------------------------------+----------------------------------------------------+----------------------+
@@ -1270,7 +1270,7 @@ An operation is a node-specific sub-component of a job (for when a job involves
 multi-node processing). Jobs that do not require multi-node processing will not
 produce any operations.
 
-Table Schema
+Table schema
 ............
 
 +------------------+---------------------------------------------------+------------------------------+
@@ -1310,7 +1310,7 @@ Logs
 The :ref:`sys.jobs <sys-jobs>` and :ref:`sys.operations <sys-operations>` tables
 have corresponding log tables: ``sys.jobs_log`` and ``sys.operations_log``.
 
-``sys.jobs_log`` Table Schema
+``sys.jobs_log`` Table schema
 .............................
 
 +------------------------------+---------------------------------------+------------------------------+
@@ -1357,7 +1357,7 @@ have corresponding log tables: ``sys.jobs_log`` and ``sys.operations_log``.
    The ``sys.jobs_log`` table is subject to :ref:`jobs_table_permissions`.
 
 
-``sys.operations_log`` Table Schema
+``sys.operations_log`` Table schema
 ...................................
 
 +----------------+--------------------------------------------------+------------------------------+
@@ -1408,7 +1408,7 @@ See :ref:`conf_collecting_stats` for information on how to configure logs.
 
 .. _sys-checks:
 
-Cluster Checks
+Cluster checks
 ==============
 
 The table ``sys.checks`` exposes a list of internal cluster checks and results
@@ -1457,14 +1457,14 @@ severity level:
 Current Checks
 --------------
 
-Number of Partitions
+Number of partitions
 ....................
 
 This check warns if any :ref:`partitioned table <partitioned_tables>` has more
 than 1000 partitions to detect the usage of a high cardinality field for
 partitioning.
 
-Tables Need to Be Upgraded
+Tables need to be upgraded
 ..........................
 
 .. WARNING::
@@ -1575,7 +1575,7 @@ Example of getting a `cluster health` (`health` of all tables):
 
 .. _sys-health-def:
 
-Health Definition
+Health definition
 -----------------
 
 +------------+---------------------------------------------------+
@@ -1834,7 +1834,7 @@ node.
 
 .. _shard_table_permissions:
 
-Shard Table Permissions
+Shard table permissions
 =======================
 
 Accessing tables that return shards (``sys.shards``, ``sys.allocations``) is
@@ -1858,7 +1858,7 @@ but no privilege at all on ``doc.locations``, when ``john`` issues a
 
 .. _jobs_table_permissions:
 
-Sys Jobs Tables Permissions
+Sys jobs tables permissions
 ===========================
 
 Accessing :ref:`sys.jobs <sys-jobs>` and :ref:`sys.jobs_log <sys-logs>` tables
@@ -1870,13 +1870,13 @@ A user that doesn't have superuser privileges is allowed to retrieve only
 their own job logs entries, while a user with superuser privileges has access
 to all.
 
-Before Upgrading
+Before upgrading
 ================
 
 In certain cases, for compatibility with future versions of CrateDB,
 you need to perform some actions before upgrading to a new CrateDB version.
 
-Tables Need to Be Recreated
+Tables need to be recreated
 ---------------------------
 
 The following should be performed if there are tables

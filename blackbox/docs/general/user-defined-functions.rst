@@ -102,7 +102,7 @@ You can explicitly assign a schema like this::
    :ref:`snapshot-restore` can't be used to backup functions, because snapshots
    contain table data only.
 
-Supported Types
+Supported types
 ===============
 
 The argument types, and the return type of the function can be any of the
@@ -194,7 +194,7 @@ Optionally, you can provide a schema::
      cr> DROP FUNCTION my_schema.log10(bigint);
      DROP OK, 1 row affected  (... sec)
 
-Supported Languages
+Supported languages
 ===================
 
 CrateDB currently only supports the UDF language ``javascript``.
@@ -373,7 +373,7 @@ is returned::
     cr> DROP FUNCTION utc(bigint, bigint, bigint);
     DROP OK, 1 row affected  (... sec)
 
-Working With ``Array`` Methods
+Working with ``Array`` methods
 ------------------------------
 
 The JavaScript ``Array`` object has a number of prototype methods you can

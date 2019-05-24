@@ -51,7 +51,7 @@ listed. They can be used as is or can be extended.
 
 .. _builtin-analyzer:
 
-Built-in Analyzers
+Built-in analyzers
 ==================
 
 .. _standard-analyzer:
@@ -126,7 +126,7 @@ Uses a :ref:`whitespace-tokenizer` tokenizer
 
 ``type='stop'``
 
-Uses a :ref:`lowercase-tokenizer` Tokenizer, with :ref:`stop-tokenfilter` Token
+Uses a :ref:`lowercase-tokenizer` tokenizer, with :ref:`stop-tokenfilter` Token
 Filter.
 
 .. rubric:: Parameters
@@ -221,7 +221,7 @@ stem_exclusion
 
 ``type='snowball'``
 
-Uses the :ref:`standard-tokenizer` Tokenizer, with :ref:`standard-tokenfilter`
+Uses the :ref:`standard-tokenizer` tokenizer, with :ref:`standard-tokenfilter`
 filter, :ref:`lowercase-tokenfilter` filter, :ref:`stop-tokenfilter` filter,
 and :ref:`snowball-tokenfilter` filter.
 
@@ -245,7 +245,7 @@ The fingerprint analyzer implements a fingerprinting algorithm which is used by
 the OpenRefine project to assist in clustering. Input text is lowercased,
 normalized to remove extended characters, sorted, deduplicated and concatenated
 into a single token. If a stopword list is configured, stop words will also be
-removed. It uses the :ref:`standard-tokenizer` Tokenizer and the following
+removed. It uses the :ref:`standard-tokenizer` tokenizer and the following
 filters: :ref:`lowercase-tokenfilter`, :ref:`asciifolding-tokenfilter`,
 :ref:`fingerprint-tokenfilter` and ref:`stop-tokenfilter`.
 
@@ -267,12 +267,12 @@ stopwords_path
 
 .. _builtin-tokenizer:
 
-Built-in Tokenizers
+Built-in tokenizers
 ===================
 
 .. _standard-tokenizer:
 
-Standard Tokenizer
+Standard tokenizer
 ------------------
 
 ``type='standard'``
@@ -290,7 +290,7 @@ max_token_length
 
 .. _classic-tokenizer:
 
-Classic Tokenizer
+Classic tokenizer
 -----------------
 
 ``type='classic'``
@@ -309,7 +309,7 @@ max_token_length
 
 .. _thai-tokenizer:
 
-Thai Tokenizer
+Thai tokenizer
 --------------
 
 ``type='thai'``
@@ -319,7 +319,7 @@ like the `standard-tokenizer`_ does.
 
 .. _letter-tokenizer:
 
-Letter Tokenizer
+Letter tokenizer
 ----------------
 
 ``type='letter'``
@@ -328,7 +328,7 @@ The ``letter`` tokenzier splits text at non-letters.
 
 .. _lowercase-tokenizer:
 
-Lowercase Tokenizer
+Lowercase tokenizer
 -------------------
 
 ``type='lowercase'``
@@ -339,8 +339,8 @@ converts them to lower case.
 
 .. _whitespace-tokenizer:
 
-Witespace Tokenizer
--------------------
+Whitespace tokenizer
+--------------------
 
 ``type='whitespace'``
 
@@ -354,7 +354,7 @@ max_token_length
 
 .. _uaxemailurl-tokenizer:
 
-UAX URL Email Tokenizer
+UAX URL email tokenizer
 -----------------------
 
 ``type='uax_url_email'``
@@ -370,7 +370,7 @@ max_token_length
 
 .. _ngram-tokenizer:
 
-N-Gram Tokenizer
+N-gram tokenizer
 ----------------
 
 ``type='ngram'``
@@ -391,7 +391,7 @@ token_chars
 
 .. _edgengram-tokenizer:
 
-Edge N-Gram Tokenizer
+Edge n-gram tokenizer
 ---------------------
 
 ``type='edge_ngram'``
@@ -415,7 +415,7 @@ token_chars
 
 .. _keyword-tokenizer:
 
-Keywork Tokenizer
+Keyword tokenizer
 -----------------
 
 ``type='keyword'``
@@ -429,7 +429,7 @@ buffer_size
 
 .. _pattern-tokenizer:
 
-Pattern Tokenizer
+Pattern tokenizer
 -----------------
 
 ``type='pattern'``
@@ -457,7 +457,7 @@ Pattern API`_ for more details about flags options.
 
 .. _simple_pattern-tokenizer:
 
-Simple Pattern Tokenizer
+Simple pattern tokenizer
 ------------------------
 
 ``type='simple_pattern'``
@@ -474,7 +474,7 @@ pattern
 
 .. _simple_pattern_split-tokenizer:
 
-Simple Pattern Split Tokenizer
+Simple pattern split tokenizer
 ------------------------------
 
 ``type='simple_patten_split'``
@@ -490,7 +490,7 @@ pattern
 
 .. _pathhierarchy-tokenizer:
 
-Path Hierarchy Tokenizer
+Path hierarchy tokenizer
 ------------------------
 
 ``type='path_hierarchy'``
@@ -524,7 +524,7 @@ skip
 
 .. _analyzers_char_group:
 
-Char Group Tokenizer
+Char group tokenizer
 --------------------
 
 ``type=char_group``
@@ -540,7 +540,7 @@ tokenize_on_chars
 
 .. _builtin-token-filter:
 
-Built-in Token Filters
+Built-in token filters
 ======================
 
 .. _standard-tokenfilter:
@@ -550,7 +550,7 @@ Built-in Token Filters
 
 ``type='standard'``
 
-Normalizes tokens extracted with the :ref:`standard-tokenizer` Tokenizer.
+Normalizes tokens extracted with the :ref:`standard-tokenizer` tokenizer.
 
 .. _classic-tokenfilter:
 
@@ -659,8 +659,8 @@ Transforms the token stream as per the Porter stemming algorithm.
 .. NOTE::
 
     The input to the stemming filter must already be in lower case, so you will
-    need to use Lower Case Token Filter or Lower Case Tokenizer farther down
-    the Tokenizer chain in order for this to work properly! For example, when
+    need to use Lower Case Token Filter or Lower Case tokenizer farther down
+    the tokenizer chain in order for this to work properly! For example, when
     using custom analyzer, make sure the lowercase filter comes before the
     porterStem filter in the list of filters.
 
@@ -1249,8 +1249,8 @@ A token filter that drops identical tokens at the same position.
 
 .. _builtin-char-filter:
 
-Builtin Char Filter
-===================
+Built-in char filter
+====================
 
 .. _mapping-charfilter:
 

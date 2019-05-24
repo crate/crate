@@ -61,7 +61,7 @@ and deletes.
     checking for the exact ``_seq_no`` and ``_primary_term`` your update/delete
     is based on.
 
-Optimistic Update
+Optimistic update
 =================
 
 Querying for the correct ``_seq_no`` and ``_primary_term`` ensures that no
@@ -78,16 +78,16 @@ not execute the update and results in 0 affected rows::
     ... where id=5 and "_seq_no" = 222 and "_primary_term" = 1;
     UPDATE OK, 0 rows affected (... sec)
 
-Optimistic Delete
+Optimistic delete
 =================
 
 The same can be done when deleting a row::
 
-    cr> delete from locations where id = '6' and "_seq_no" = 13 
+    cr> delete from locations where id = '6' and "_seq_no" = 13
     ... and "_primary_term" = 1;
     DELETE OK, 1 row affected (... sec)
 
-Known Limitations
+Known limitations
 =================
 
  - The ``_seq_no`` and ``_primary_term`` columns can only be used when

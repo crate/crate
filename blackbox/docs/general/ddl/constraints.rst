@@ -9,7 +9,7 @@ Columns can be constrained in two ways:
 
 The values of a constrained column must comply with the constraint.
 
-Primary Key
+Primary key
 ===========
 
 The primary key constraint combines a unique constraint and a not-null
@@ -51,7 +51,7 @@ Or using a alternate syntax::
 
    See :ref:`primary_key_constraint`.
 
-Not Null
+Not null
 ========
 
 The not null constraint can be used on any table column and it prevents null
