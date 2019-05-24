@@ -32,7 +32,7 @@ Different types have different notations. The simplest forms are:
     - :ref:`sql_lexical`
     - :ref:`data-types`
 
-Column Reference
+Column reference
 ================
 
 A column reference is the name of a column. It's represented using an
@@ -52,7 +52,7 @@ multiple alias or table definitions::
 
     :ref:`sql_lexical`
 
-Parameter Reference
+Parameter reference
 ===================
 
 A parameter reference is a placeholder for a value.
@@ -65,7 +65,7 @@ Parameter references can either be unnumbered or numbered:
 
 - ``$n`` as numbered placeholder: ``select * from t where x = $1 or x = $2``
 
-Operator Invocation
+Operator invocation
 ===================
 
 There are two different types of operators in CrateDB:
@@ -81,13 +81,13 @@ There are two different types of operators in CrateDB:
 
 .. _sql_expressions_subscript:
 
-Subscript Expression
+Subscript expression
 ====================
 
 A subscript expression is an expression which contains a subscript operator
 (``[ ]``). It can be used to access a sub value of a composite type value.
 
-Array Subscript
+Array subscript
 ---------------
 
 The subscript operator can be used on array expressions to retrieve a single
@@ -102,7 +102,7 @@ the array which should be retrieved.
 
     :ref:`sql_dql_object_arrays_select`
 
-Object Subscript
+Object subscript
 ----------------
 
 On object expressions the subscript operator can be used to access an inner
@@ -117,7 +117,7 @@ should be retrieved.
 
     :ref:`sql_dql_objects`
 
-Function Call
+Function call
 =============
 
 A function is declared by its name followed by its arguments enclosed in
@@ -132,7 +132,7 @@ parentheses::
     - :ref:`aggregation`
     - :ref:`window-functions`
 
-Type Cast
+Type cast
 =========
 
 A type cast specifies the conversion from one type to another. The syntax is::
@@ -148,7 +148,7 @@ this returns ``null`` if a value cannot be converted to the given type::
 
     :ref:`data-types`
 
-Object Constructor
+Object constructor
 ==================
 
 A object constructor is an expression which builds an object using its
@@ -163,7 +163,7 @@ enclosed in curly brackets::
 
     :ref:`data-type-object-literals`
 
-Array Constructor
+Array constructor
 =================
 
 A array constructor is an expression which builds an array. It consists of one
@@ -198,7 +198,7 @@ Example::
 
     Array constructor only supports subqueries returning a single column.
 
-Scalar Subquery
+Scalar subquery
 ===============
 
 A scalar subquery is a regular SELECT statement in parentheses that returns

@@ -13,7 +13,7 @@ Data Manipulation
 
 .. _inserting_data:
 
-Inserting Data
+Inserting data
 ==============
 
 Inserting data to CrateDB is done by using the SQL ``INSERT`` statement.
@@ -92,7 +92,7 @@ column and the currently inserted row::
     ... ('Arthur Dent', 9876, 5432, 642935);
     SQLActionException[SQLParseException: Given value 642935 for generated column does not match defined generated expression value 642936]
 
-Inserting Data By Query
+Inserting data by query
 -----------------------
 
 .. Hidden: refresh locations
@@ -346,7 +346,7 @@ This can also be done when using a query instead of values::
 
 .. _dml_updating_data:
 
-Updating Data
+Updating data
 =============
 
 In order to update documents in CrateDB the SQL ``UPDATE`` statement can be
@@ -375,7 +375,7 @@ increment a number like this::
 
 .. _dml_deleting_data:
 
-Deleting Data
+Deleting data
 =============
 
 Deleting rows in CrateDB is done using the SQL ``DELETE`` statement::
@@ -385,10 +385,10 @@ Deleting rows in CrateDB is done using the SQL ``DELETE`` statement::
 
 .. _importing_data:
 
-Import and Export
+Import and export
 =================
 
-Importing Data
+Importing data
 --------------
 
 Using the ``COPY FROM`` statement, CrateDB nodes can import data from local
@@ -493,7 +493,7 @@ This wildcard can also be used to only match certain files in a directory::
     cr> refresh table quotes;
     REFRESH OK, 1 row affected (... sec)
 
-Detailed Error Reporting
+Detailed error reporting
 ........................
 
 If the ``RETURN_SUMMARY`` clause is specified, a result set containing information
@@ -545,7 +545,7 @@ See :ref:`copy_from` for more information.
 
 .. _exporting_data:
 
-Exporting Data
+Exporting data
 --------------
 
 Data can be exported using the ``COPY TO`` statement. Data is exported in a

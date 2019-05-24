@@ -19,14 +19,14 @@ character symbol.
 
 .. _string_literal:
 
-String Literal
+String literal
 ==============
 
 String literals are defined as an arbitrary sequence of characters that are
 delimited with single quotes ``'`` as defined in ANSI SQL, for example
 ``'This is a string'``.
 
-Escape Strings
+Escape strings
 --------------
 
 The escape character in CrateDB is the single-quote ``'``. A character gets
@@ -41,7 +41,7 @@ single quotes, e.g. ``'Jack''s car'``.
 
 .. _sql_escape_string_literals:
 
-String Literals with C-Style Escapes
+String literals with C-Style escapes
 ------------------------------------
 
 In addition to the escaped character ``'``, CrateDB supports C-Style escaped
@@ -102,7 +102,7 @@ single-quote described in :ref:`String Literals <string_literal>`.
 
 .. _sql_lexical_keywords_identifiers:
 
-Key Words and Identifiers
+Key words and identifiers
 =========================
 
 The table bellow lists all **reserved key words** in CrateDB. These need to be
@@ -185,7 +185,7 @@ double quotes (``"``). Quoted identifiers are never keywords, so you can use
 
 .. _sql_lexical_special_chars:
 
-Special Characters
+Special characters
 ==================
 
 Some non-alphanumeric characters do have a special meaning. For their usage

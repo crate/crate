@@ -11,7 +11,8 @@ CrateDB can be configured via configuration files. These files are located in
 the ``config`` directory inside the :ref:`CRATE_HOME <conf-env-crate-home>`
 directory.
 
-The configuration directory can changed via the ``path.conf`` setting, like so:
+The configuration directory can changed via the ``path.conf`` setting, like
+so:
 
 .. code-block:: sh
 

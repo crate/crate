@@ -32,7 +32,7 @@ application and the JVM itself, which runs CrateDB.
 
 .. _conf-env-app:
 
-Application Variables
+Application variables
 =====================
 
 .. _conf-env-crate-home:
@@ -52,7 +52,7 @@ Application Variables
 
 .. _conf-env-java:
 
-JVM Variables
+JVM variables
 =============
 
 .. _conf-env-java-general:
@@ -118,7 +118,7 @@ General
 
       Make sure there is enough disk space available for heap dumps.
 
-Garbage Collection
+Garbage collection
 ------------------
 
 Collector

@@ -109,7 +109,7 @@ The FROM clause specifies the source relation for the SELECT::
 
 The relation can be any of the following relations.
 
-Relation Reference
+Relation reference
 ''''''''''''''''''
 
 A ``relation_reference`` is an ident which can either reference a table or a
@@ -138,7 +138,7 @@ view with an optional alias::
 
 .. _sql_reference_joined_tables:
 
-Joined Relation
+Joined relation
 '''''''''''''''
 
 A ``joined_relation`` is a relation which joins two relations together. See
@@ -156,7 +156,7 @@ A ``joined_relation`` is a relation which joins two relations together. See
   The join_condition is not applicable for joins of type CROSS and must
   have a returning value of type ``boolean``.
 
-Table Function
+Table function
 ''''''''''''''
 
 ``table_function`` is a function that produces a set of rows and has columns.
@@ -177,7 +177,7 @@ Available functions are documented in the :ref:`table functions
 
 .. _sql_reference_subselect:
 
-Sub Select
+Sub select
 ''''''''''
 
 A ``sub_select`` is another ``SELECT`` statement surrounded by parentheses with

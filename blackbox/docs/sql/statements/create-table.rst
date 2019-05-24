@@ -82,7 +82,7 @@ encompass more than one column. Every column constraint can also be written as
 a table constraint; a column constraint is only a notational convenience for
 use when the constraint only affects one column.
 
-Table Elements
+Table elements
 --------------
 
 .. _ref-base-columns:
@@ -100,7 +100,7 @@ which case their value is null.
 
 .. _ref-generated-columns:
 
-Generated Columns
+Generated columns
 .................
 
 A generated column is a persistent column that is computed as needed from the
@@ -118,7 +118,7 @@ The ``GENERATED ALWAYS`` part of the syntax is optional.
 
    For more information, see :ref:`sql-ddl-generated-columns`.
 
-Table Constraints
+Table constraints
 .................
 
 Table constraints are constraints that are applied to more than one column or
@@ -126,7 +126,7 @@ to the table as a whole.
 
 For further details see :ref:`table_constraints`.
 
-Column Constraints
+Column constraints
 ..................
 
 Column constraints are constraints that are applied on each column of the table

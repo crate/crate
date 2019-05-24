@@ -54,7 +54,7 @@ Aliases can be used to change the output name of the columns::
 
 .. _sql_dql_from_clause:
 
-``FROM`` Clause
+``FROM`` clause
 ===============
 
 The ``FROM`` clause is used to reference the relation this select query is
@@ -115,7 +115,7 @@ Joins
 
 .. _sql_dql_distinct_clause:
 
-``DISTINCT`` Clause
+``DISTINCT`` clause
 ===================
 
 If DISTINCT is specified, one unique row is kept. All other duplicate rows are
@@ -137,7 +137,7 @@ removed from the result set::
 
 .. _sql_dql_where_clause:
 
-``WHERE`` Clause
+``WHERE`` clause
 ================
 
 A simple where clause example using an equality operator::
@@ -150,7 +150,7 @@ A simple where clause example using an equality operator::
     +---------------------------------------...--------------------------------------+
     SELECT 1 row in set (... sec)
 
-Comparison Operators
+Comparison operators
 --------------------
 
 These :ref:`sql_operators` are supported and can be used for all simple data
@@ -200,7 +200,7 @@ may fail.
 
 .. _sql_ddl_regexp:
 
-Regular Expressions
+Regular expressions
 ===================
 
 Operators for matching using regular expressions.
@@ -624,7 +624,7 @@ for operators
 
 .. _sql_dql_objects:
 
-Inner Objects and Nested Objects
+Inner objects and nested objects
 ================================
 
 CrateDB supports an ``object`` data type, used for simple storing a whole
@@ -663,11 +663,11 @@ Inserting objects::
 
 .. _sql_dql_object_arrays:
 
-Object Arrays
+Object arrays
 =============
 
 Arrays in CrateDB can be queried for containment using the
-:ref:`sql_dql_any_array` operator. 
+:ref:`sql_dql_any_array` operator.
 
 It is possible to access fields of :ref:`sql_dql_objects` using subscript
 expressions. If the parent is an object array, you'll get an array of the
@@ -736,7 +736,7 @@ Examples::
 
 .. _sql_dql_object_arrays_select:
 
-Selecting Array Elements
+Selecting array elements
 ------------------------
 
 Array elements can be selected directly using a integer value greater than or
@@ -766,7 +766,7 @@ index greater than the actual array size results in a NULL value.
 
 .. _sql_dql_aggregation:
 
-Data Aggregation
+Data aggregation
 ================
 
 CrateDB supports :ref:`aggregation` via the following aggregation functions.
@@ -956,7 +956,7 @@ Some Examples::
     +---------------+-------------+
     SELECT 4 rows in set (... sec)
 
-Window Functions
+Window functions
 ================
 
 CrateDB supports the :ref:`OVER <over>` clause to enable the execution of

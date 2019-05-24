@@ -44,7 +44,7 @@ Here's an example:
     cr> COPY quotes FROM 'file:///tmp/import_data/quotes.json';
     COPY OK, 3 rows affected (... sec)
 
-Supported Formats
+Supported formats
 -----------------
 
 CrateDB accepts both JSON and CSV inputs. The format is inferred from the file
@@ -73,7 +73,7 @@ Example CSV data::
 
 See also: :ref:`importing_data`.
 
-Type Casts and Constraints
+Type casts and constraints
 --------------------------
 
 CrateDB does not check if the column's data types match the types from the
@@ -112,7 +112,7 @@ Will be converted to:
 
     'file:///tmp%20folder/file.json'
 
-Supported Schemes
+Supported schemes
 -----------------
 
 ``file``
