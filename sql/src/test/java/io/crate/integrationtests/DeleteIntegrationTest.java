@@ -268,4 +268,11 @@ public class DeleteIntegrationTest extends SQLTransportIntegrationTest {
         execute("select count(*) from t");
         assertThat(response.rows()[0][0], is(0L));
     }
+
+    @Test
+    public void testDeleteFromAlias() {
+        execute("create table t1 (id int primary key, x int)");
+        execute("insert into t1 (id, x) values (1, 1), (2, 2), (3, 3)");
+        execute("delete from t1 as foo where foo.id = 1");
+    }
 }

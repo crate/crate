@@ -22,6 +22,7 @@
 
 package io.crate.analyze;
 
+import io.crate.analyze.relations.AliasedAnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.OrderedLimitedRelation;
 import io.crate.analyze.relations.UnionSelect;
@@ -99,7 +100,7 @@ public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
         UnionSelect tableUnion2 = (UnionSelect) tableUnion1.left();
         assertThat(tableUnion2, isSQL("SELECT u1.id, u1.text"));
-        assertThat(tableUnion2.left(), instanceOf(QueriedTable.class));
+        assertThat(tableUnion2.left(), instanceOf(AliasedAnalyzedRelation.class));
         assertThat(tableUnion2.right(), instanceOf(QueriedTable.class));
         assertThat(tableUnion2.left(), isSQL("SELECT doc.users.id, doc.users.text"));
         assertThat(tableUnion2.right(), isSQL("SELECT doc.users_multi_pk.id, doc.users_multi_pk.name"));

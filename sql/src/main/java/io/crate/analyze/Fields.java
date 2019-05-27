@@ -64,19 +64,14 @@ public class Fields {
     @Nullable
     public Field getWithSubscriptFallback(ColumnIdent column,
                                           AnalyzedRelation scope,
-                                          AnalyzedRelation childRelation,
-                                          boolean pointToChild) {
+                                          AnalyzedRelation childRelation) {
         Field field = get(column);
         if (field == null && !column.isTopLevel()) {
             Field childField = childRelation.getField(column, Operation.READ);
             if (childField == null) {
                 return null;
             }
-            if (pointToChild) {
-                return new Field(scope, column, childField);
-            } else {
-                return new Field(scope, childField.path(), childField.pointer());
-            }
+            return new Field(scope, column, childField);
         }
         return field;
     }

@@ -78,4 +78,8 @@ public abstract class AnalyzedRelationVisitor<C, R> {
     public R visitView(AnalyzedView analyzedView, C context) {
         return analyzedView.relation().accept(this, context);
     }
+
+    public R visitAliasedAnalyzedRelation(AliasedAnalyzedRelation relation, C context) {
+        return relation.relation().accept(this, context);
+    }
 }

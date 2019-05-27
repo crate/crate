@@ -47,7 +47,6 @@ import java.util.Set;
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 import static io.crate.planner.optimizer.matcher.Patterns.source;
 import static io.crate.planner.optimizer.rule.FilterOnJoinsUtil.getNewSource;
-import static io.crate.planner.optimizer.rule.FilterOnJoinsUtil.getRelationNames;
 
 /**
  * If we can determine that a filter on an OUTER JOIN turns all NULL rows that the join could generate into a NO-MATCH
@@ -127,8 +126,8 @@ public final class RewriteFilterOnOuterJoinToInnerJoin implements Rule<Filter> {
         }
         LogicalPlan lhs = nl.sources().get(0);
         LogicalPlan rhs = nl.sources().get(1);
-        Set<QualifiedName> leftName = getRelationNames(lhs);
-        Set<QualifiedName> rightName = getRelationNames(rhs);
+        Set<QualifiedName> leftName = lhs.getRelationNames();
+        Set<QualifiedName> rightName = rhs.getRelationNames();
 
         Symbol leftQuery = splitQueries.remove(leftName);
         Symbol rightQuery = splitQueries.remove(rightName);

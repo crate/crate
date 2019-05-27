@@ -35,39 +35,44 @@ import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.table.Operation;
 
 import java.util.Collection;
 import java.util.List;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 public class Relations {
 
-    // In a query like `select o['id'] from (select obj as o ..)`
-    // `o['id']` is not found in the child (its called `obj` there)
+    /**
+     * In a query like `select o['id'] from (select obj as o ..)`
+     * `o['id']` is not found in the child (its called `obj` there)
+     *
+     * @param path              The column path to resolve
+     * @param fields            The fields of the current/parent relation
+     * @param operation         The operation type
+     */
     public static Field resolveSubscriptOnAliasedField(ColumnIdent path,
                                                        Fields fields,
-                                                       Function<ColumnIdent, Field> fieldResolver) {
+                                                       Operation operation) {
         Field o = fields.get(path.getRoot());
         if (o != null) {
-            ColumnIdent obj = resolveOriginalColumnIdent(o);
+            AnalyzedRelation sourceRelation = o.relation();
+            Symbol symbol = o;
+            ColumnIdent f_path = o.path();
+            while (f_path.equals(o.path()) && symbol instanceof Field) {
+                Field f = ((Field) symbol);
+                symbol = f.pointer();
+                f_path = f.path();
+                sourceRelation = f.relation();
+            }
+            ColumnIdent obj = Symbols.pathFromSymbol(symbol);
             ColumnIdent withoutPrefix = path.shiftRight();
             assert withoutPrefix != null : "shiftRight must not be null because isTopLevel was false";
             ColumnIdent renamed = withoutPrefix.prepend(obj.name());
-            return fieldResolver.apply(renamed);
+
+            return sourceRelation.getField(renamed, operation);
         }
         return o;
-    }
-
-    private static ColumnIdent resolveOriginalColumnIdent(Field field) {
-        Symbol symbol = field;
-        ColumnIdent path = field.path();
-        while (path.equals(field.path()) && symbol instanceof Field) {
-            Field f = ((Field) symbol);
-            symbol = f.pointer();
-            path = f.path();
-        }
-        return Symbols.pathFromSymbol(symbol);
     }
 
     static Collection<? extends ColumnIdent> namesFromOutputs(List<Symbol> outputs) {

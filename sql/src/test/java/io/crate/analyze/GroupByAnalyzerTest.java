@@ -23,6 +23,7 @@
 package io.crate.analyze;
 
 import io.crate.action.sql.SessionContext;
+import io.crate.analyze.relations.AliasedAnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
@@ -290,7 +291,8 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(outerRelation.groupBy(), Matchers.empty());
         assertThat(outerRelation.orderBy().orderBySymbols(), contains(isField("id")));
 
-        AnalyzedRelation innerRelation = outerRelation.subRelation();
+        AliasedAnalyzedRelation aliasedRelation = (AliasedAnalyzedRelation) outerRelation.subRelation();
+        AnalyzedRelation innerRelation = aliasedRelation.relation();
         assertThat(innerRelation.isDistinct(), is(true));
         assertThat(innerRelation.groupBy(), contains(isReference("id"), isReference("name")));
     }
@@ -298,7 +300,7 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testGroupByOnLiteral() throws Exception {
         AnalyzedRelation relation = analyze(
-            "select [1,2,3], count(*) from users u group by 1");
+            "select [1,2,3], count(*) from users group by 1");
         assertThat(relation.outputs(), isSQL("[1, 2, 3], count()"));
         assertThat(relation.groupBy(), isSQL("[1, 2, 3]"));
     }
@@ -306,7 +308,7 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testGroupByOnNullLiteral() throws Exception {
         AnalyzedRelation relation = analyze(
-            "select null, count(*) from users u group by 1");
+            "select null, count(*) from users group by 1");
         assertThat(relation.outputs(), isSQL("NULL, count()"));
         assertThat(relation.groupBy(), isSQL("NULL"));
     }

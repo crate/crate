@@ -97,7 +97,7 @@ public class GroupByConsumer {
 
         @Override
         public Void visitField(Field field, Void context) {
-            return null;
+            return process(field.pointer(), context);
         }
     }
 }

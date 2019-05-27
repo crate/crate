@@ -250,6 +250,9 @@ Deprecations
 Changes
 =======
 
+- Added support for using relation aliases with column aliases. Example:
+  ``SELECT x, y from unnest([1], ['a']) as u(x, y)``
+
 - Added support for column :ref:`ref-default-clause` for :ref:`ref-create-table`.
 
 - Added support for ``CURRENT ROW -> UNBOUNDED FOLLOWING`` window frame

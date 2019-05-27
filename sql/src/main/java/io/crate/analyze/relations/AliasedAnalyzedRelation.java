@@ -30,62 +30,73 @@ import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.RelationName;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nullable;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
-public final class AnalyzedView implements AnalyzedRelation {
+public class AliasedAnalyzedRelation implements AnalyzedRelation {
 
-    private final QualifiedName qualifiedName;
-    private final RelationName name;
-    private final String owner;
     private final AnalyzedRelation relation;
+    private final QualifiedName qualifiedName;
+    private final List<String> columnAliases;
     private final Fields fields;
     private final List<Symbol> outputSymbols;
+    private final Map<ColumnIdent, ColumnIdent> aliasToColumnMapping;
 
-    public AnalyzedView(RelationName name, String owner, AnalyzedRelation relation) {
-        this.name = name;
-        this.qualifiedName = QualifiedName.of(name.schema(), name.name());
-        this.owner = owner;
-        this.fields = new Fields(relation.fields().size());
-        this.relation = relation;
-        for (Field field : relation.fields()) {
-            fields.add(new Field(this, field.path(), field));
-        }
-        this.outputSymbols = List.copyOf(relation.fields());
+    public AliasedAnalyzedRelation(AnalyzedRelation relation, QualifiedName relationAlias) {
+        this(relation, relationAlias, List.of());
     }
 
-    public String owner() {
-        return owner;
+    AliasedAnalyzedRelation(AnalyzedRelation relation, QualifiedName relationAlias, List<String> columnAliases) {
+        this.relation = relation;
+        qualifiedName = relationAlias;
+        this.columnAliases = columnAliases;
+        List<Field> originalFields = relation.fields();
+        fields = new Fields(originalFields.size());
+        outputSymbols = List.copyOf(relation.fields());
+        aliasToColumnMapping = new HashMap<>(columnAliases.size());
+        createAliasToColumnMappingAndNewFields(columnAliases, originalFields);
+    }
+
+    private void createAliasToColumnMappingAndNewFields(List<String> columnAliases, List<Field> originalFields) {
+        for (int i = 0; i < originalFields.size(); i++) {
+            Field field = originalFields.get(i);
+            ColumnIdent ci = field.path();
+            if (i < columnAliases.size()) {
+                String columnAlias = columnAliases.get(i);
+                if (columnAlias != null) {
+                    aliasToColumnMapping.put(new ColumnIdent(columnAlias), ci);
+                    ci = new ColumnIdent(columnAlias);
+                }
+            }
+            fields.add(new Field(this, ci, field));
+        }
     }
 
     public AnalyzedRelation relation() {
         return relation;
     }
 
-    public RelationName name() {
-        return name;
+    List<String> columnAliases() {
+        return columnAliases;
     }
 
     @Override
-    public boolean isDistinct() {
-        return false;
-    }
-
-    @Override
-    public <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context) {
-        return visitor.visitView(this, context);
-    }
-
-    @Override
-    public Field getField(ColumnIdent path, Operation operation) throws UnsupportedOperationException, ColumnUnknownException {
-        if (operation != Operation.READ) {
-            throw new UnsupportedOperationException("getField on AnalyzedView is only supported for READ operations");
+    public Field getField(ColumnIdent path,
+                          Operation operation) throws UnsupportedOperationException, ColumnUnknownException {
+        Field field = fields.get(path);
+        if (field == null) {
+            ColumnIdent childPath = aliasToColumnMapping.getOrDefault(path, path);
+            Field originalField = relation.getField(childPath, operation);
+            if (originalField != null) {
+                field = new Field(this, path, originalField);
+            }
         }
-        return fields.getWithSubscriptFallback(path, this, relation);
+        return field;
     }
 
     @Override
@@ -143,9 +154,19 @@ public final class AnalyzedView implements AnalyzedRelation {
     }
 
     @Override
+    public boolean isDistinct() {
+        return false;
+    }
+
+    @Override
     public String toString() {
-        return "AnalyzedView{" + "qualifiedName=" + qualifiedName +
+        return "AliasedAnalyzedRelation{" + "qualifiedName=" + qualifiedName +
                ", relation=" + relation +
                '}';
+    }
+
+    @Override
+    public <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context) {
+        return visitor.visitAliasedAnalyzedRelation(this, context);
     }
 }
