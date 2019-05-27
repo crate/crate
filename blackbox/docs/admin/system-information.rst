@@ -409,22 +409,6 @@ The table schema is as follows:
 +----------------------------------+------------------------------------------------+-------------+
 | ``fs['disks']['available']``     | Available space of the disk in bytes.          | ``BIGINT``  |
 +----------------------------------+------------------------------------------------+-------------+
-| ``fs['disks']['reads']``         | Number of reads on the disk.                   | ``BIGINT``  |
-|                                  |                                                |             |
-|                                  | DEPRECATED: always returns -1                  |             |
-+----------------------------------+------------------------------------------------+-------------+
-| ``fs['disks']['bytes_read']``    | Total size of reads on the disk in bytes.      | ``BIGINT``  |
-|                                  |                                                |             |
-|                                  | DEPRECATED: always returns -1                  |             |
-+----------------------------------+------------------------------------------------+-------------+
-| ``fs['disks']['writes']``        | Number of writes on the disk.                  | ``BIGINT``  |
-|                                  |                                                |             |
-|                                  | DEPRECATED: always returns -1                  |             |
-+----------------------------------+------------------------------------------------+-------------+
-| ``fs['disks']['bytes_written']`` | Total size of writes on the disk in bytes.     | ``BIGINT``  |
-|                                  |                                                |             |
-|                                  | DEPRECATED: always returns -1                  |             |
-+----------------------------------+------------------------------------------------+-------------+
 | ``fs['data']``                   | Information about data paths used by the node. | ``ARRAY``   |
 +----------------------------------+------------------------------------------------+-------------+
 | ``fs['data']['dev']``            | Device name                                    | ``TEXT``    |
@@ -477,23 +461,6 @@ The table schema is as follows:
 | ``os['cpu']``                                   | Information about CPU utilization                    | ``OBJECT``   |
 +-------------------------------------------------+------------------------------------------------------+--------------+
 | ``os['cpu']['used']``                           | System CPU usage as percentage                       | ``SMALLINT`` |
-+-------------------------------------------------+------------------------------------------------------+--------------+
-| ``os['cpu']['system']``                         | CPU time used by the system                          | ``SMALLINT`` |
-|                                                 |                                                      |              |
-|                                                 | DEPRECATED: always returns -1                        |              |
-+-------------------------------------------------+------------------------------------------------------+--------------+
-| ``os['cpu']['user']``                           | CPU time used by applications                        | ``SMALLINT`` |
-|                                                 |                                                      |              |
-|                                                 | DEPRECATED: always returns -1                        |              |
-+-------------------------------------------------+------------------------------------------------------+--------------+
-| ``os['cpu']['idle']``                           | Idle CPU time                                        | ``SMALLINT`` |
-|                                                 |                                                      |              |
-|                                                 | DEPRECATED: always returns -1                        |              |
-+-------------------------------------------------+------------------------------------------------------+--------------+
-| ``os['cpu']['stolen']``                         | The amount of CPU 'stolen' from this virtual         | ``SMALLINT`` |
-|                                                 | machine by the hypervisor for other tasks.           |              |
-|                                                 |                                                      |              |
-|                                                 | DEPRECATED: always returns -1                        |              |
 +-------------------------------------------------+------------------------------------------------------+--------------+
 | ``os['probe_timestamp']``                       | Unix timestamp at the time of collection             | ``BIGINT``   |
 |                                                 | of the OS probe.                                     |              |
@@ -721,14 +688,6 @@ in subsequent versions. All ``BIGINT`` columns always return ``0``.
 +------------------------------------------+------------------------------------------------+--------------+
 | ``process['cpu']['percent']``            | The CPU usage of the CrateDB JVM process given | ``SMALLINT`` |
 |                                          | in percent.                                    |              |
-+------------------------------------------+------------------------------------------------+--------------+
-| ``process['cpu']['user']``               | The process CPU user time in milliseconds.     | ``BIGINT``   |
-|                                          |                                                |              |
-|                                          | DEPRECATED: always returns -1                  |              |
-+------------------------------------------+------------------------------------------------+--------------+
-| ``process['cpu']['system']``             | The process CPU kernel time in milliseconds.   | ``BIGINT``   |
-|                                          |                                                |              |
-|                                          | DEPRECATED: always returns -1                  |              |
 +------------------------------------------+------------------------------------------------+--------------+
 
 The cpu information values are cached for 1s. They might differ from the actual
