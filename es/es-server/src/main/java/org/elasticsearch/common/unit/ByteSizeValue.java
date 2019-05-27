@@ -19,10 +19,8 @@
 
 package org.elasticsearch.common.unit;
 
-import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.logging.DeprecationLogger;
 import org.elasticsearch.common.xcontent.ToXContentFragment;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 
@@ -31,8 +29,6 @@ import java.util.Locale;
 import java.util.Objects;
 
 public class ByteSizeValue implements Comparable<ByteSizeValue>, ToXContentFragment {
-
-    private static final DeprecationLogger DEPRECATION_LOGGER = new DeprecationLogger(LogManager.getLogger(ByteSizeValue.class));
 
     public static final ByteSizeValue ZERO = new ByteSizeValue(0, ByteSizeUnit.BYTES);
 
@@ -45,9 +41,7 @@ public class ByteSizeValue implements Comparable<ByteSizeValue>, ToXContentFragm
 
     public ByteSizeValue(long size, ByteSizeUnit unit) {
         if (size < -1 || (size == -1 && unit != ByteSizeUnit.BYTES)) {
-            DEPRECATION_LOGGER.deprecated(
-                    "Values less than -1 bytes are deprecated and will not be supported in the next major version: [{}]",
-                    size + unit.getSuffix());
+            throw new IllegalArgumentException("Values less than -1 bytes are not supported: " + size + unit.getSuffix());
         }
         if (size > Long.MAX_VALUE / unit.toBytes(1)) {
             throw new IllegalArgumentException(
