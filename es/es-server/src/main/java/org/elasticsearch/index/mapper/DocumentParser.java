@@ -20,6 +20,7 @@
 package org.elasticsearch.index.mapper;
 
 import org.elasticsearch.Version;
+import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.joda.FormatDateTimeFormatter;
@@ -56,7 +57,7 @@ final class DocumentParser {
     }
 
     ParsedDocument parseDocument(SourceToParse source, MetadataFieldMapper[] metadataFieldsMappers) throws MapperParsingException {
-        validateType(source);
+        validateType();
 
         final Mapping mapping = docMapper.mapping();
         final ParseContext.InternalParseContext context;
@@ -76,7 +77,15 @@ final class DocumentParser {
             throw new IllegalStateException("found leftover path elements: " + remainingPath);
         }
 
-        return parsedDocument(source, context, createDynamicUpdate(mapping, docMapper, context.getDynamicMappers()));
+        return new ParsedDocument(
+            context.version(),
+            context.seqID(),
+            context.sourceToParse().id(),
+            source.routing(),
+            context.docs(),
+            context.sourceToParse().source(),
+            createDynamicUpdate(mapping, docMapper, context.getDynamicMappers())
+        );
     }
 
     private static void internalParseDocument(Mapping mapping, MetadataFieldMapper[] metadataFieldsMappers,
@@ -99,7 +108,7 @@ final class DocumentParser {
         }
     }
 
-    private void validateType(SourceToParse source) {
+    private void validateType() {
         if (docMapper.type().equals(MapperService.DEFAULT_MAPPING)) {
             throw new IllegalArgumentException("It is forbidden to index into the default mapping [" + MapperService.DEFAULT_MAPPING + "]");
         }
@@ -137,19 +146,6 @@ final class DocumentParser {
             }
         }
         return false;
-    }
-
-
-    private static ParsedDocument parsedDocument(SourceToParse source, ParseContext.InternalParseContext context, Mapping update) {
-        return new ParsedDocument(
-            context.version(),
-            context.seqID(),
-            context.sourceToParse().id(),
-            source.routing(),
-            context.docs(),
-            context.sourceToParse().source(),
-            update
-        );
     }
 
 
@@ -191,6 +187,7 @@ final class DocumentParser {
     }
 
     /** Creates a Mapping containing any dynamically added fields, or returns null if there were no dynamic mappings. */
+    @Nullable
     static Mapping createDynamicUpdate(Mapping mapping, DocumentMapper docMapper, List<Mapper> dynamicMappers) {
         if (dynamicMappers.isEmpty()) {
             return null;
