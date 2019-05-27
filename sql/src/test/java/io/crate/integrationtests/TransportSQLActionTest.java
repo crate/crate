@@ -21,7 +21,6 @@
 
 package io.crate.integrationtests;
 
-import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SQLActionException;
 import io.crate.exceptions.SQLExceptions;
@@ -47,7 +46,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.testing.TestingHelpers.printedTable;
@@ -632,19 +630,16 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("insert into test (pk_col, message) values ('1', 'foo')");
         execute("insert into test (pk_col, message) values ('2', 'bar')");
         execute("insert into test (pk_col, message) values ('3', 'baz')");
-        refresh();
 
         execute("SELECT * FROM test WHERE pk_col='1' OR pk_col='2'");
-        assertEquals(2, response.rowCount());
+        assertThat(response.rowCount(), is(2L));
 
         execute("SELECT * FROM test WHERE pk_col=? OR pk_col=?", new Object[]{"1", "2"});
-        assertEquals(2, response.rowCount());
+        assertThat(response.rowCount(), is(2L));
 
-        awaitBusy(() -> {
-            execute("SELECT * FROM test WHERE (pk_col=? OR pk_col=?) OR pk_col=?", new Object[]{"1", "2", "3"});
-            return response.rowCount() == 3
-                   && Joiner.on(',').join(Arrays.asList(response.cols())).equals("message,pk_col");
-        }, 10, TimeUnit.SECONDS);
+        execute("SELECT * FROM test WHERE (pk_col=? OR pk_col=?) OR pk_col=?", new Object[]{"1", "2", "3"});
+        assertThat(response.rowCount(), is(3L));
+        assertThat(String.join(", ", List.of(response.cols())), is("pk_col, message"));
     }
 
     @Test
