@@ -31,6 +31,7 @@ import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.unit.MemorySizeValue;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.common.util.ArrayUtils;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.ToXContentObject;
@@ -134,7 +135,12 @@ public class Setting<T> implements ToXContentObject {
         /**
          * Indicates an index-level setting that is privately managed. Such a setting can not even be set on index creation.
          */
-        PrivateIndex
+        PrivateIndex,
+
+        /**
+         * Indicates a setting that contains sensitive information. Such a setting will be masked when shown to the users.
+         */
+        Masked
     }
 
     private final Key key;
@@ -335,6 +341,10 @@ public class Setting<T> implements ToXContentObject {
      */
     public boolean isDeprecated() {
         return properties.contains(Property.Deprecated);
+    }
+
+    public final boolean isMasked() {
+        return properties.contains(Property.Masked);
     }
 
     /**
@@ -1068,6 +1078,10 @@ public class Setting<T> implements ToXContentObject {
             final Function<String, String> parser,
             final Property... properties) {
         return new Setting<>(key, fallback, parser, properties);
+    }
+
+    public static Setting<SecureString> maskedString(String name) {
+        return new Setting<>(name, "", SecureString::new, Property.Masked, Property.NodeScope);
     }
 
     /**

@@ -85,6 +85,8 @@ public final class Settings implements ToXContentFragment {
 
     public static final Settings EMPTY = new Builder().build();
 
+    public static final String MASKED_VALUE = "[xxxxx]";
+
     /** The raw settings from the full key to raw string value. */
     private final Map<String, Object> settings;
 
@@ -115,9 +117,13 @@ public final class Settings implements ToXContentFragment {
     }
 
     public Map<String, Object> getAsStructuredMap() {
+        return getAsStructuredMap(Set.of());
+    }
+
+    public Map<String, Object> getAsStructuredMap(Set<String> maskedSettings) {
         Map<String, Object> map = new HashMap<>(2);
         for (Map.Entry<String, Object> entry : settings.entrySet()) {
-            processSetting(map, "", entry.getKey(), entry.getValue());
+            processSetting(map, "", entry.getKey(), entry.getValue(), maskedSettings);
         }
         for (Map.Entry<String, Object> entry : map.entrySet()) {
             if (entry.getValue() instanceof Map) {
@@ -129,7 +135,11 @@ public final class Settings implements ToXContentFragment {
         return map;
     }
 
-    private void processSetting(Map<String, Object> map, String prefix, String setting, Object value) {
+    private void processSetting(Map<String, Object> map,
+                                String prefix,
+                                String setting,
+                                Object value,
+                                Set<String> maskedSettings) {
         int prefixLength = setting.indexOf('.');
         if (prefixLength == -1) {
             @SuppressWarnings("unchecked") Map<String, Object> innerMap = (Map<String, Object>) map.get(prefix + setting);
@@ -139,25 +149,27 @@ public final class Settings implements ToXContentFragment {
                     map.put(prefix + setting + "." + entry.getKey(), entry.getValue());
                 }
             }
-            map.put(prefix + setting, value);
+            String settingKey = prefix + setting;
+            Object settingValue = maskedSettings.contains(settingKey) ? MASKED_VALUE : value;
+            map.put(settingKey, settingValue);
         } else {
             String key = setting.substring(0, prefixLength);
             String rest = setting.substring(prefixLength + 1);
             Object existingValue = map.get(prefix + key);
             if (existingValue == null) {
                 Map<String, Object> newMap = new HashMap<>(2);
-                processSetting(newMap, "", rest, value);
+                processSetting(newMap, "", rest, value, maskedSettings);
                 map.put(key, newMap);
             } else {
                 if (existingValue instanceof Map) {
                     @SuppressWarnings("unchecked")
                     Map<String, Object> innerMap = (Map<String, Object>) existingValue;
-                    processSetting(innerMap, "", rest, value);
+                    processSetting(innerMap, "", rest, value, maskedSettings);
                     map.put(key, innerMap);
                 } else {
                     // It supposed to be a map, but we already have a value stored, which is not a map
                     // fall back to "." notation
-                    processSetting(map, prefix + key + ".", rest, value);
+                    processSetting(map, prefix + key + ".", rest, value, maskedSettings);
                 }
             }
         }
