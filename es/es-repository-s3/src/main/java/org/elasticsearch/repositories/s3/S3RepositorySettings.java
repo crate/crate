@@ -38,15 +38,13 @@ class S3RepositorySettings {
 
     /**
      * The access key to authenticate with s3.
-     * This setting is insecure because cluster settings are stored in cluster state
      */
-    static final Setting<SecureString> ACCESS_KEY_SETTING = SecureSetting.insecureString("access_key");
+    static final Setting<SecureString> ACCESS_KEY_SETTING = Setting.maskedString("access_key");
 
     /**
      * The secret key to authenticate with s3.
-     * This setting is insecure because cluster settings are stored in cluster state
      */
-    static final Setting<SecureString> SECRET_KEY_SETTING = SecureSetting.insecureString("secret_key");
+    static final Setting<SecureString> SECRET_KEY_SETTING = Setting.maskedString("secret_key");
 
     /**
      * Default is to use 100MB (S3 defaults) for heaps above 2GB and 5% of
