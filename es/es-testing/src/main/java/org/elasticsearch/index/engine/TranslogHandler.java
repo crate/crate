@@ -41,7 +41,6 @@ import org.elasticsearch.indices.mapper.MapperRegistry;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicLong;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
@@ -51,12 +50,6 @@ public class TranslogHandler implements Engine.TranslogRecoveryRunner {
     private final MapperService mapperService;
     public Mapping mappingUpdate = null;
     private final Map<String, Mapping> recoveredTypes = new HashMap<>();
-
-    private final AtomicLong appliedOperations = new AtomicLong();
-
-    long appliedOperations() {
-        return appliedOperations.get();
-    }
 
     public TranslogHandler(NamedXContentRegistry xContentRegistry, IndexSettings indexSettings) {
         NamedAnalyzer defaultAnalyzer = new NamedAnalyzer("default", AnalyzerScope.INDEX, new StandardAnalyzer());
@@ -108,7 +101,6 @@ public class TranslogHandler implements Engine.TranslogRecoveryRunner {
         while ((operation = snapshot.next()) != null) {
             applyOperation(engine, convertToEngineOp(operation, Engine.Operation.Origin.LOCAL_TRANSLOG_RECOVERY));
             opsRecovered++;
-            appliedOperations.incrementAndGet();
         }
         return opsRecovered;
     }
