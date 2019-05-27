@@ -225,7 +225,8 @@ Changes
 =======
 
 - Mask sensitive user account information in
-  :ref:`sys.repositories <sys-repositories>` for repository type: ``azure``.
+  :ref:`sys.repositories <sys-repositories>` for repository types:
+  ``azure``, ``s3``.
 
 - Routing awareness attributes are now also taken into consideration for
   primary key lookups. (Queries like ``SELECT * FROM t WHERE pk = 1``)
