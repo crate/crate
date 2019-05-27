@@ -302,7 +302,7 @@ public abstract class EngineTestCase extends ESTestCase {
         } else {
             document.add(new StoredField(SourceFieldMapper.NAME, ref.bytes, ref.offset, ref.length));
         }
-        return new ParsedDocument(versionField, seqID, id, "test", routing, Arrays.asList(document), source, mappingUpdate);
+        return new ParsedDocument(versionField, seqID, id, routing, Arrays.asList(document), source, mappingUpdate);
     }
 
     /**
@@ -311,7 +311,7 @@ public abstract class EngineTestCase extends ESTestCase {
     public static EngineConfig.TombstoneDocSupplier tombstoneDocSupplier() {
         return new EngineConfig.TombstoneDocSupplier() {
             @Override
-            public ParsedDocument newDeleteTombstoneDoc(String type, String id) {
+            public ParsedDocument newDeleteTombstoneDoc(String id) {
                 final ParseContext.Document doc = new ParseContext.Document();
                 Field uidField = new Field(IdFieldMapper.NAME, Uid.encodeId(id), IdFieldMapper.Defaults.FIELD_TYPE);
                 doc.add(uidField);
@@ -323,8 +323,8 @@ public abstract class EngineTestCase extends ESTestCase {
                 doc.add(seqID.primaryTerm);
                 seqID.tombstoneField.setLongValue(1);
                 doc.add(seqID.tombstoneField);
-                return new ParsedDocument(versionField, seqID, id, type, null,
-                    Collections.singletonList(doc), new BytesArray("{}"), null);
+                return new ParsedDocument(
+                    versionField, seqID, id, null, Collections.singletonList(doc), new BytesArray("{}"), null);
             }
 
             @Override
@@ -340,8 +340,8 @@ public abstract class EngineTestCase extends ESTestCase {
                 doc.add(versionField);
                 BytesRef byteRef = new BytesRef(reason);
                 doc.add(new StoredField(SourceFieldMapper.NAME, byteRef.bytes, byteRef.offset, byteRef.length));
-                return new ParsedDocument(versionField, seqID, null, null, null,
-                    Collections.singletonList(doc), null, null);
+                return new ParsedDocument(
+                    versionField, seqID, null, null, Collections.singletonList(doc), null, null);
             }
         };
     }
