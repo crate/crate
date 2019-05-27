@@ -192,11 +192,6 @@ public class NodeStatsTest extends SQLTransportIntegrationTest {
         assertThat((Short) ((Map) results.get("cpu")).get("used"), greaterThanOrEqualTo((short) -1));
         assertThat((Short) ((Map) results.get("cpu")).get("used"), lessThanOrEqualTo((short) 100));
 
-        assertThat((Short) ((Map) results.get("cpu")).get("idle"), greaterThanOrEqualTo((short) -1));
-        assertThat((Short) ((Map) results.get("cpu")).get("idle"), lessThanOrEqualTo((short) 100));
-
-        assertThat((Short) ((Map) results.get("cpu")).get("stolen"), greaterThanOrEqualTo((short) -1));
-        assertThat((Short) ((Map) results.get("cpu")).get("stolen"), lessThanOrEqualTo((short) 100));
     }
 
     @Test
@@ -294,9 +289,8 @@ public class NodeStatsTest extends SQLTransportIntegrationTest {
             // on travis there are no accessible disks
             assertThat(disks.length, greaterThanOrEqualTo(1));
             Map<String, Object> someDisk = (Map<String, Object>) disks[0];
-            assertThat(someDisk.keySet().size(), is(8));
-            assertThat(someDisk.keySet(), hasItems("dev", "size", "used", "available",
-                "reads", "writes", "bytes_read", "bytes_written"));
+            assertThat(someDisk.keySet().size(), is(4));
+            assertThat(someDisk.keySet(), hasItems("dev", "size", "used", "available"));
             for (Map.Entry<String, Object> entry : someDisk.entrySet()) {
                 if (!entry.getKey().equals("dev")) {
                     assertThat((Long) entry.getValue(), greaterThanOrEqualTo(-1L));

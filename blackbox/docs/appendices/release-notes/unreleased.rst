@@ -102,6 +102,32 @@ Due to this some discovery settings are added, renamed and removed.
 Breaking Changes
 ----------------
 
+- Removed deprecated metrics from :ref:`sys.nodes <sys-nodes>`:
+
+   +--------------------------------+
+   | Metric name                    |
+   +================================+
+   |``fs['disks']['reads']``        |
+   +--------------------------------+
+   |``fs['disks']['bytes_read']``   |
+   +--------------------------------+
+   |``fs['disks']['writes']``       |
+   +--------------------------------+
+   |``fs['disks']['bytes_written']``|
+   +--------------------------------+
+   |``os['cpu']['system']``         |
+   +--------------------------------+
+   |``os['cpu']['user']``           |
+   +--------------------------------+
+   |``os['cpu']['idle']``           |
+   +--------------------------------+
+   |``os['cpu']['stolen']``         |
+   +--------------------------------+
+   |``process['cpu']['user']``      |
+   +--------------------------------+
+   |``process['cpu']['system']``    |
+   +--------------------------------+
+
 - Removed the possibility of configuring the AWS S3 repository client via the
   ``crate.yaml`` configuration file and command line arguments. Please, use
   the :ref:`ref-create-repository` statement parameters for this purpose.

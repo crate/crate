@@ -31,14 +31,15 @@ import org.elasticsearch.monitor.fs.FsInfo;
 import java.util.Map;
 
 import static io.crate.expression.reference.sys.node.fs.NodeFsStatsExpression.AVAILABLE;
-import static io.crate.expression.reference.sys.node.fs.NodeFsStatsExpression.BYTES_READ;
-import static io.crate.expression.reference.sys.node.fs.NodeFsStatsExpression.BYTES_WRITTEN;
-import static io.crate.expression.reference.sys.node.fs.NodeFsStatsExpression.READS;
 import static io.crate.expression.reference.sys.node.fs.NodeFsStatsExpression.SIZE;
 import static io.crate.expression.reference.sys.node.fs.NodeFsStatsExpression.USED;
-import static io.crate.expression.reference.sys.node.fs.NodeFsStatsExpression.WRITES;
 
 public class NodeFsTotalStatsExpression extends SimpleNodeStatsExpression<Map<String, Long>> {
+
+    private static final String READS = "reads";
+    private static final String BYTES_READ = "bytes_read";
+    private static final String WRITES = "writes";
+    private static final String BYTES_WRITTEN = "bytes_written";
 
     @Override
     public Map<String, Long> innerValue(NodeStatsContext nodeStatsContext) {
