@@ -530,12 +530,12 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
      * Returns the document mapper created, including a mapping update if the
      * type has been dynamically created.
      */
-    public DocumentMapperForType documentMapperWithAutoCreate(String type) {
+    public DocumentMapper documentMapperSafe(String type) {
         DocumentMapper mapper = mappers.get(type);
         if (mapper == null) {
             throw new IllegalArgumentException("Mapper for type `" + type + "` not found.");
         }
-        return new DocumentMapperForType(mapper, null);
+        return mapper;
     }
 
     /**

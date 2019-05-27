@@ -130,7 +130,7 @@ public final class QueryTester implements AutoCloseable {
         }
 
         void indexValue(String column, Object value) throws IOException {
-            DocumentMapper mapper = indexEnv.mapperService().documentMapperWithAutoCreate("default").getDocumentMapper();
+            DocumentMapper mapper = indexEnv.mapperService().documentMapperSafe("default");
             InsertSourceGen sourceGen = InsertSourceGen.of(
                 CoordinatorTxnCtx.systemTransactionContext(),
                 sqlExecutor.functions(),

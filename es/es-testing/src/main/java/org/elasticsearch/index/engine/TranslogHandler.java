@@ -27,7 +27,6 @@ import org.elasticsearch.index.analysis.AnalyzerScope;
 import org.elasticsearch.index.analysis.IndexAnalyzers;
 import org.elasticsearch.index.analysis.NamedAnalyzer;
 import org.elasticsearch.index.mapper.DocumentMapper;
-import org.elasticsearch.index.mapper.DocumentMapperForType;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.mapper.Mapping;
 import org.elasticsearch.index.mapper.RootObjectMapper;
@@ -48,7 +47,6 @@ import static java.util.Collections.emptyMap;
 public class TranslogHandler implements Engine.TranslogRecoveryRunner {
 
     private final MapperService mapperService;
-    public Mapping mappingUpdate = null;
     private final Map<String, Mapping> recoveredTypes = new HashMap<>();
 
     public TranslogHandler(NamedXContentRegistry xContentRegistry, IndexSettings indexSettings) {
@@ -60,10 +58,10 @@ public class TranslogHandler implements Engine.TranslogRecoveryRunner {
                 () -> null);
     }
 
-    private DocumentMapperForType docMapper(String type) {
+    private DocumentMapper docMapper(String type) {
         RootObjectMapper.Builder rootBuilder = new RootObjectMapper.Builder(type);
         DocumentMapper.Builder b = new DocumentMapper.Builder(rootBuilder, mapperService);
-        return new DocumentMapperForType(b.build(mapperService), mappingUpdate);
+        return b.build(mapperService);
     }
 
     private void applyOperation(Engine engine, Engine.Operation operation) throws IOException {
