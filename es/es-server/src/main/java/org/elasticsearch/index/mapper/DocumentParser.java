@@ -40,7 +40,6 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.StreamSupport;
 
 /** A parser for documents, given mappings from a DocumentMapper */
@@ -104,9 +103,8 @@ final class DocumentParser {
         if (docMapper.type().equals(MapperService.DEFAULT_MAPPING)) {
             throw new IllegalArgumentException("It is forbidden to index into the default mapping [" + MapperService.DEFAULT_MAPPING + "]");
         }
-
-        if (Objects.equals(source.type(), docMapper.type()) == false) {
-            throw new MapperParsingException("Type mismatch, provide type [" + source.type() + "] but mapper is of type [" + docMapper.type() + "]");
+        if (!docMapper.type().equals("default")) {
+            throw new MapperParsingException("DocumentMapper type must be `default`. We don't allow other types");
         }
     }
 
@@ -147,7 +145,6 @@ final class DocumentParser {
             context.version(),
             context.seqID(),
             context.sourceToParse().id(),
-            context.sourceToParse().type(),
             source.routing(),
             context.docs(),
             context.sourceToParse().source(),
@@ -201,7 +198,7 @@ final class DocumentParser {
         // We build a mapping by first sorting the mappers, so that all mappers containing a common prefix
         // will be processed in a contiguous block. When the prefix is no longer seen, we pop the extra elements
         // off the stack, merging them upwards into the existing mappers.
-        Collections.sort(dynamicMappers, (Mapper o1, Mapper o2) -> o1.name().compareTo(o2.name()));
+        dynamicMappers.sort(Comparator.comparing(Mapper::name));
         Iterator<Mapper> dynamicMapperItr = dynamicMappers.iterator();
         List<ObjectMapper> parentMappers = new ArrayList<>();
         Mapper firstUpdate = dynamicMapperItr.next();

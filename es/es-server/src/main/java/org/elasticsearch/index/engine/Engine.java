@@ -1127,7 +1127,7 @@ public abstract class Engine implements Closeable {
 
         @Override
         public String type() {
-            return this.doc.type();
+            return "default";
         }
 
         @Override
