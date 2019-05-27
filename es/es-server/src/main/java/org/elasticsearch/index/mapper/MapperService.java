@@ -97,8 +97,6 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
 
     private final IndexAnalyzers indexAnalyzers;
 
-    private final String defaultMappingSource;
-
     private volatile Map<String, DocumentMapper> mappers = emptyMap();
 
     private volatile FieldTypeLookup fieldTypes;
@@ -124,8 +122,6 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
         this.searchAnalyzer = new MapperAnalyzerWrapper(indexAnalyzers.getDefaultSearchAnalyzer(), MappedFieldType::searchAnalyzer);
         this.searchQuoteAnalyzer = new MapperAnalyzerWrapper(indexAnalyzers.getDefaultSearchQuoteAnalyzer(), MappedFieldType::searchQuoteAnalyzer);
         this.mapperRegistry = mapperRegistry;
-
-        defaultMappingSource = "{\"_default_\":{}}";
     }
 
     /**
@@ -296,15 +292,9 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
                 continue;
             }
 
-            final boolean applyDefault =
-                // the default was already applied if we are recovering
-                reason != MergeReason.MAPPING_RECOVERY
-                    // only apply the default mapping if we don't have the type yet
-                    && mappers.containsKey(type) == false;
 
             try {
-                DocumentMapper documentMapper =
-                    documentParser.parse(type, entry.getValue(), applyDefault ? this.defaultMappingSource : null);
+                DocumentMapper documentMapper = documentParser.parse(type, entry.getValue());
                 documentMappers.add(documentMapper);
             } catch (Exception e) {
                 throw new MapperParsingException("Failed to parse mapping [{}]: {}", e, entry.getKey(), e.getMessage());
@@ -462,7 +452,7 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
     private boolean assertSerialization(DocumentMapper mapper) {
         // capture the source now, it may change due to concurrent parsing
         final CompressedXContent mappingSource = mapper.mappingSource();
-        DocumentMapper newMapper = parse(mapper.type(), mappingSource, false);
+        DocumentMapper newMapper = parse(mapper.type(), mappingSource);
 
         if (newMapper.mappingSource().equals(mappingSource) == false) {
             throw new IllegalStateException("DocumentMapper serialization result is different from source. \n--> Source ["
@@ -509,8 +499,8 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
         }
     }
 
-    public DocumentMapper parse(String mappingType, CompressedXContent mappingSource, boolean applyDefault) throws MapperParsingException {
-        return documentParser.parse(mappingType, mappingSource, applyDefault ? defaultMappingSource : null);
+    public DocumentMapper parse(String mappingType, CompressedXContent mappingSource) throws MapperParsingException {
+        return documentParser.parse(mappingType, mappingSource);
     }
 
     public boolean hasMapping(String mappingType) {
