@@ -43,13 +43,13 @@ import java.util.Locale;
 final class Ec2ClientSettings {
 
     /** The access key (ie login id) for connecting to ec2. */
-    static final Setting<SecureString> ACCESS_KEY_SETTING = SecureSetting.insecureString("discovery.ec2.access_key");
+    static final Setting<SecureString> ACCESS_KEY_SETTING = Setting.maskedString("discovery.ec2.access_key");
 
     /** The secret key (ie password) for connecting to ec2. */
-    static final Setting<SecureString> SECRET_KEY_SETTING = SecureSetting.insecureString("discovery.ec2.secret_key");
+    static final Setting<SecureString> SECRET_KEY_SETTING = Setting.maskedString("discovery.ec2.secret_key");
 
     /** The session token for connecting to ec2. */
-    static final Setting<SecureString> SESSION_TOKEN_SETTING = SecureSetting.insecureString("discovery.ec2.session_token");
+    static final Setting<SecureString> SESSION_TOKEN_SETTING = Setting.maskedString("discovery.ec2.session_token");
 
     /** The host name of a proxy to connect to ec2 through. */
     static final Setting<String> PROXY_HOST_SETTING = Setting.simpleString("discovery.ec2.proxy.host", Property.NodeScope);
@@ -66,10 +66,10 @@ final class Ec2ClientSettings {
             s -> Protocol.valueOf(s.toUpperCase(Locale.ROOT)), Property.NodeScope);
 
     /** The username of a proxy to connect to s3 through. */
-    static final Setting<SecureString> PROXY_USERNAME_SETTING = SecureSetting.insecureString("discovery.ec2.proxy.username");
+    static final Setting<SecureString> PROXY_USERNAME_SETTING = Setting.maskedString("discovery.ec2.proxy.username");
 
     /** The password of a proxy to connect to s3 through. */
-    static final Setting<SecureString> PROXY_PASSWORD_SETTING = SecureSetting.insecureString("discovery.ec2.proxy.password");
+    static final Setting<SecureString> PROXY_PASSWORD_SETTING = Setting.maskedString("discovery.ec2.proxy.password");
 
     /** The socket timeout for connecting to s3. */
     static final Setting<TimeValue> READ_TIMEOUT_SETTING = Setting.timeSetting("discovery.ec2.read_timeout",
