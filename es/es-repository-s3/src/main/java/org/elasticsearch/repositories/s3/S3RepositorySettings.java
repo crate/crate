@@ -24,7 +24,6 @@ package org.elasticsearch.repositories.s3;
 
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.Protocol;
-import org.elasticsearch.common.settings.SecureSetting;
 import org.elasticsearch.common.settings.SecureString;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.unit.ByteSizeUnit;
@@ -133,7 +132,7 @@ class S3RepositorySettings {
     /**
      * The secret key (ie password) for connecting to s3.
      */
-    static final Setting<SecureString> SESSION_TOKEN_SETTING = SecureSetting.insecureString("session_token");
+    static final Setting<SecureString> SESSION_TOKEN_SETTING = Setting.maskedString("session_token");
 
     /**
      * An override for the s3 endpoint to connect to.
@@ -167,12 +166,12 @@ class S3RepositorySettings {
     /**
      * The username of a proxy to connect to s3 through.
      */
-    static final Setting<SecureString> PROXY_USERNAME_SETTING = SecureSetting.insecureString("proxy_username");
+    static final Setting<SecureString> PROXY_USERNAME_SETTING = Setting.maskedString("proxy_username");
 
     /**
      * The password of a proxy to connect to s3 through.
      */
-    static final Setting<SecureString> PROXY_PASSWORD_SETTING = SecureSetting.insecureString("proxy_password");
+    static final Setting<SecureString> PROXY_PASSWORD_SETTING = Setting.maskedString("proxy_password");
 
     /**
      * The socket timeout for connecting to s3.
