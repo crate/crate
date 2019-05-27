@@ -22,7 +22,6 @@
 
 package io.crate.execution.engine.collect;
 
-import io.crate.Constants;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.BatchIterator;
 import io.crate.data.CompositeBatchIterator;
@@ -45,6 +44,8 @@ import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.engine.Engine;
+import org.elasticsearch.index.mapper.IdFieldMapper;
+import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.shard.ShardNotFoundException;
@@ -118,8 +119,8 @@ public final class PKLookupOperation {
 
     @Nullable
     public static Doc lookupDoc(IndexShard shard, String id, long version, VersionType versionType, long seqNo, long primaryTerm) {
-        Term uidTerm = shard.mapperService().createUidTerm(Constants.DEFAULT_MAPPING_TYPE, id);
-        Engine.Get get = new Engine.Get(true, true, Constants.DEFAULT_MAPPING_TYPE, id, uidTerm)
+        Term uidTerm = new Term(IdFieldMapper.NAME, Uid.encodeId(id));
+        Engine.Get get = new Engine.Get(true, true, id, uidTerm)
             .version(version)
             .versionType(versionType)
             .setIfSeqNo(seqNo)

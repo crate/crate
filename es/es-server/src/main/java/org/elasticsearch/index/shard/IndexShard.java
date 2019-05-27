@@ -2200,7 +2200,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
     }
 
     private DocumentMapper defaultDocMapper() {
-        return mapperService.documentMapperSafe("default");
+        return mapperService.documentMapperSafe();
     }
 
     private EngineConfig newEngineConfig() {
