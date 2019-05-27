@@ -31,8 +31,6 @@ import io.crate.testing.UseRandomizedSchema;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.test.ESIntegTestCase;
@@ -179,9 +177,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectStarEmptyMapping() throws Exception {
-        prepareCreate(getFqn("test")).execute().actionGet();
-        ensureYellow();
-        execute("select * from test");
+        execute("select * from unnest()");
         assertArrayEquals(new String[]{}, response.cols());
         assertEquals(0, response.rowCount());
     }
@@ -290,11 +286,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testFilterByBoolean() throws Exception {
-        prepareCreate(getFqn("test"))
-            .addMapping("default", "sunshine", "type=boolean")
-            .execute().actionGet();
-        ensureYellow();
-
+        execute("create table test (sunshine boolean)");
         execute("insert into test values (?)", new Object[]{true});
         refresh();
 
@@ -605,25 +597,10 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testGetResponseWithObjectColumn() throws Exception {
-        XContentBuilder mapping = XContentFactory.jsonBuilder().startObject()
-            .startObject("default")
-            .startObject("_meta").field("primary_keys", "id").endObject()
-            .startObject("properties")
-            .startObject("id")
-            .field("type", "keyword")
-            .endObject()
-            .startObject("data")
-            .field("type", "object")
-            .field("dynamic", false)
-            .endObject()
-            .endObject()
-            .endObject()
-            .endObject();
-
-        prepareCreate(getFqn("test"))
-            .addMapping("default", mapping)
-            .execute().actionGet();
-        ensureYellow();
+        execute("create table test (" +
+                "   id text primary key," +
+                "   data object " +
+                ")");
 
         Map<String, Object> data = new HashMap<>();
         data.put("foo", "bar");

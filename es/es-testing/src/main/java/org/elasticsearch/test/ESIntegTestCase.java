@@ -599,62 +599,18 @@ public abstract class ESIntegTestCase extends ESTestCase {
     }
 
     /**
-     * creates an index with the given setting
-     */
-    public final void createIndex(String name, Settings indexSettings) {
-        assertAcked(prepareCreate(name).setSettings(indexSettings));
-    }
-
-    /**
      * Creates a new {@link CreateIndexRequestBuilder} with the settings obtained from {@link #indexSettings()}.
      */
     public final CreateIndexRequestBuilder prepareCreate(String index) {
-        return prepareCreate(index, -1);
+        return prepareCreate(index, Settings.builder());
     }
 
     /**
      * Creates a new {@link CreateIndexRequestBuilder} with the settings obtained from {@link #indexSettings()}.
-     * The index that is created with this builder will only be allowed to allocate on the number of nodes passed to this
-     * method.
-     * <p>
-     * This method uses allocation deciders to filter out certain nodes to allocate the created index on. It defines allocation
-     * rules based on <code>index.routing.allocation.exclude._name</code>.
-     * </p>
-     */
-    public final CreateIndexRequestBuilder prepareCreate(String index, int numNodes) {
-        return prepareCreate(index, numNodes, Settings.builder());
-    }
-
-    /**
-     * Creates a new {@link CreateIndexRequestBuilder} with the settings obtained from {@link #indexSettings()}, augmented
-     * by the given builder
      */
     public CreateIndexRequestBuilder prepareCreate(String index, Settings.Builder settingsBuilder) {
-        return prepareCreate(index, -1, settingsBuilder);
-    }
-        /**
-         * Creates a new {@link CreateIndexRequestBuilder} with the settings obtained from {@link #indexSettings()}.
-         * The index that is created with this builder will only be allowed to allocate on the number of nodes passed to this
-         * method.
-         * <p>
-         * This method uses allocation deciders to filter out certain nodes to allocate the created index on. It defines allocation
-         * rules based on <code>index.routing.allocation.exclude._name</code>.
-         * </p>
-         */
-    public CreateIndexRequestBuilder prepareCreate(String index, int numNodes, Settings.Builder settingsBuilder) {
         Settings.Builder builder = Settings.builder().put(indexSettings()).put(settingsBuilder.build());
-
-        if (numNodes > 0) {
-            internalCluster().ensureAtLeastNumDataNodes(numNodes);
-            getExcludeSettings(index, numNodes, builder);
-        }
         return client().admin().indices().prepareCreate(index).setSettings(builder.build());
-    }
-
-    private Settings.Builder getExcludeSettings(String index, int num, Settings.Builder builder) {
-        String exclude = String.join(",", internalCluster().allDataNodesButN(num));
-        builder.put("index.routing.allocation.exclude._name", exclude);
-        return builder;
     }
 
     /**
@@ -673,25 +629,6 @@ public abstract class ESIntegTestCase extends ESTestCase {
             }
         });
         assertNoTimeout(client().admin().cluster().prepareHealth().setWaitForEvents(Priority.LANGUID).get());
-    }
-
-    /**
-     * Restricts the given index to be allocated on <code>n</code> nodes using the allocation deciders.
-     * Yet if the shards can't be allocated on any other node shards for this index will remain allocated on
-     * more than <code>n</code> nodes.
-     */
-    public void allowNodes(String index, int n) {
-        assert index != null;
-        internalCluster().ensureAtLeastNumDataNodes(n);
-        Settings.Builder builder = Settings.builder();
-        if (n > 0) {
-            getExcludeSettings(index, n, builder);
-        }
-        Settings build = builder.build();
-        if (!build.isEmpty()) {
-            logger.debug("allowNodes: updating [{}]'s setting to [{}]", index, build.toDelimitedString(';'));
-            client().admin().indices().prepareUpdateSettings(index).setSettings(build).execute().actionGet();
-        }
     }
 
     /**
