@@ -70,7 +70,7 @@ public final class SslConfigSettings {
         Setting.simpleString(SSL_KEYSTORE_KEY_PASSWORD_SETTING_NAME, Setting.Property.NodeScope),
         DataTypes.STRING);
 
-    static boolean isHttpsEnabled(Settings settings) {
+    public static boolean isHttpsEnabled(Settings settings) {
         return SSL_HTTP_ENABLED.setting().get(settings);
     }
 

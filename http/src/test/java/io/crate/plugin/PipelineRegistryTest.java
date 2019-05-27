@@ -24,6 +24,7 @@ package io.crate.plugin;
 
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
+import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;
@@ -34,15 +35,15 @@ public class PipelineRegistryTest {
     private static PipelineRegistry.ChannelPipelineItem channelPipelineItem(String base, String name) {
         return new PipelineRegistry.ChannelPipelineItem(base, name, (f) -> new SimpleChannelInboundHandler() {
             @Override
-            protected void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
+            protected void channelRead0(ChannelHandlerContext ctx, Object msg) {
 
             }
         });
     }
 
     @Test
-    public void testAddSortedToPipline() throws Exception {
-        PipelineRegistry pipelineRegistry = new PipelineRegistry();
+    public void testAddSortedToPipeline() throws Exception {
+        PipelineRegistry pipelineRegistry = new PipelineRegistry(Settings.EMPTY);
 
         pipelineRegistry.addBefore(channelPipelineItem("c", "d"));
         pipelineRegistry.addBefore(channelPipelineItem("a", "b"));
