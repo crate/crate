@@ -503,10 +503,6 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
         return documentParser.parse(mappingType, mappingSource);
     }
 
-    public boolean hasMapping(String mappingType) {
-        return mappers.containsKey(mappingType);
-    }
-
     /**
      * Return the set of concrete types that have a mapping.
      * NOTE: this does not return the default mapping.
@@ -530,10 +526,10 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
      * Returns the document mapper created, including a mapping update if the
      * type has been dynamically created.
      */
-    public DocumentMapper documentMapperSafe(String type) {
-        DocumentMapper mapper = mappers.get(type);
+    public DocumentMapper documentMapperSafe() {
+        DocumentMapper mapper = mappers.get("default");
         if (mapper == null) {
-            throw new IllegalArgumentException("Mapper for type `" + type + "` not found.");
+            throw new IllegalArgumentException("Mapper for type `default` not found.");
         }
         return mapper;
     }
@@ -619,11 +615,4 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
         }
     }
 
-    /** Return a term that uniquely identifies the document, or {@code null} if the type is not allowed. */
-    public Term createUidTerm(String type, String id) {
-        if (hasMapping(type) == false) {
-            return null;
-        }
-        return new Term(IdFieldMapper.NAME, Uid.encodeId(id));
-    }
 }

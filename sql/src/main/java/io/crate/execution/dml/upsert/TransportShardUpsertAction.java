@@ -353,7 +353,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         if (version != Versions.MATCH_ANY && version != doc.getVersion()) {
             throw new VersionConflictEngineException(
                 indexShard.shardId(),
-                Constants.DEFAULT_MAPPING_TYPE,
                 id,
                 "Requested version: " + version + " but got version: " + doc.getVersion());
         }
