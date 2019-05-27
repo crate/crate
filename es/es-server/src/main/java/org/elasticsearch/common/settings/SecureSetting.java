@@ -19,12 +19,11 @@
 
 package org.elasticsearch.common.settings;
 
+import org.elasticsearch.common.util.ArrayUtils;
+
 import java.security.GeneralSecurityException;
 import java.util.EnumSet;
 import java.util.Set;
-
-import org.elasticsearch.common.Booleans;
-import org.elasticsearch.common.util.ArrayUtils;
 
 /**
  * A secure setting.
@@ -32,9 +31,6 @@ import org.elasticsearch.common.util.ArrayUtils;
  * This class allows access to settings from the Elasticsearch keystore.
  */
 public abstract class SecureSetting<T> extends Setting<T> {
-
-    /** Determines whether legacy settings with sensitive values should be allowed. */
-    private static final boolean ALLOW_INSECURE_SETTINGS = Booleans.parseBoolean(System.getProperty("es.allow_insecure_settings", "true"));
 
     private static final Set<Property> ALLOWED_PROPERTIES = EnumSet.of(Property.Deprecated);
 
@@ -108,30 +104,5 @@ public abstract class SecureSetting<T> extends Setting<T> {
      */
     @Override
     public void diff(Settings.Builder builder, Settings source, Settings defaultSettings) {
-    }
-
-    /**
-     * A setting which contains a sensitive string, but which for legacy reasons must be found outside secure settings.
-     */
-    public static Setting<SecureString> insecureString(String name) {
-        return new InsecureStringSetting(name);
-    }
-
-    private static class InsecureStringSetting extends Setting<SecureString> {
-        private final String name;
-
-        private InsecureStringSetting(String name) {
-            super(name, "", SecureString::new, Property.Filtered, Property.NodeScope);
-            this.name = name;
-        }
-
-        @Override
-        public SecureString get(Settings settings) {
-            if (ALLOW_INSECURE_SETTINGS == false && exists(settings)) {
-                throw new IllegalArgumentException("Setting [" + name + "] is insecure, " +
-                    "but property [allow_insecure_settings] is not set");
-            }
-            return super.get(settings);
-        }
     }
 }
