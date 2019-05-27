@@ -32,7 +32,7 @@ import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.common.xcontent.LoggingDeprecationHandler;
-import org.elasticsearch.index.query.MultiMatchQueryBuilder;
+import org.elasticsearch.index.query.MultiMatchQueryType;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
@@ -47,7 +47,7 @@ public class MatchPredicate implements FunctionImplementation {
 
     public static final Set<DataType> SUPPORTED_TYPES = ImmutableSet.of(DataTypes.STRING, DataTypes.GEO_SHAPE);
 
-    private static final String DEFAULT_MATCH_TYPE_STRING = MultiMatchQueryBuilder.Type.BEST_FIELDS.toString().toLowerCase(Locale.ENGLISH);
+    private static final String DEFAULT_MATCH_TYPE_STRING = MultiMatchQueryType.BEST_FIELDS.toString().toLowerCase(Locale.ENGLISH);
     private static final Map<DataType, String> DATA_TYPE_TO_DEFAULT_MATCH_TYPE = ImmutableMap.of(
         DataTypes.STRING, DEFAULT_MATCH_TYPE_STRING,
         DataTypes.GEO_SHAPE, "intersects"
@@ -78,7 +78,7 @@ public class MatchPredicate implements FunctionImplementation {
         }
         if (columnType.equals(DataTypes.STRING)) {
             try {
-                MultiMatchQueryBuilder.Type.parse(matchType, LoggingDeprecationHandler.INSTANCE);
+                MultiMatchQueryType.parse(matchType, LoggingDeprecationHandler.INSTANCE);
                 return matchType;
             } catch (ElasticsearchParseException e) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH,

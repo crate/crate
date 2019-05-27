@@ -32,8 +32,7 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.index.mapper.MappedFieldType;
-import org.elasticsearch.index.query.AbstractQueryBuilder;
-import org.elasticsearch.index.query.MultiMatchQueryBuilder;
+import org.elasticsearch.index.query.MultiMatchQueryType;
 import org.elasticsearch.index.query.QueryShardContext;
 
 import java.io.IOException;
@@ -59,13 +58,13 @@ public class MultiMatchQuery extends MatchQuery {
     private Query parseAndApply(Type type, String fieldName, Object value, String minimumShouldMatch, Float boostValue) throws IOException {
         Query query = parse(type, fieldName, value);
         query = Queries.maybeApplyMinimumShouldMatch(query, minimumShouldMatch);
-        if (query != null && boostValue != null && boostValue != AbstractQueryBuilder.DEFAULT_BOOST && query instanceof MatchNoDocsQuery == false) {
+        if (query != null && boostValue != null && boostValue != DEFAULT_BOOST && query instanceof MatchNoDocsQuery == false) {
             query = new BoostQuery(query, boostValue);
         }
         return query;
     }
 
-    public Query parse(MultiMatchQueryBuilder.Type type, Map<String, Float> fieldNames, Object value, String minimumShouldMatch) throws IOException {
+    public Query parse(MultiMatchQueryType type, Map<String, Float> fieldNames, Object value, String minimumShouldMatch) throws IOException {
         final Query result;
         // reset query builder
         queryBuilder = null;
@@ -103,7 +102,7 @@ public class MultiMatchQuery extends MatchQuery {
             this.tieBreaker = tieBreaker;
         }
 
-        public List<Query> buildGroupedQueries(MultiMatchQueryBuilder.Type type, Map<String, Float> fieldNames, Object value, String minimumShouldMatch) throws IOException{
+        public List<Query> buildGroupedQueries(MultiMatchQueryType type, Map<String, Float> fieldNames, Object value, String minimumShouldMatch) throws IOException{
             List<Query> queries = new ArrayList<>();
             for (String fieldName : fieldNames.keySet()) {
                 Float boostValue = fieldNames.get(fieldName);
@@ -158,14 +157,14 @@ public class MultiMatchQuery extends MatchQuery {
         }
 
         @Override
-        public List<Query> buildGroupedQueries(MultiMatchQueryBuilder.Type type, Map<String, Float> fieldNames, Object value, String minimumShouldMatch) throws IOException {
+        public List<Query> buildGroupedQueries(MultiMatchQueryType type, Map<String, Float> fieldNames, Object value, String minimumShouldMatch) throws IOException {
             Map<Analyzer, List<FieldAndFieldType>> groups = new HashMap<>();
             List<Query> queries = new ArrayList<>();
             for (Map.Entry<String, Float> entry : fieldNames.entrySet()) {
                 String name = entry.getKey();
                 MappedFieldType fieldType = context.fieldMapper(name);
                 if (fieldType != null) {
-                    Analyzer actualAnalyzer = getAnalyzer(fieldType, type == MultiMatchQueryBuilder.Type.PHRASE);
+                    Analyzer actualAnalyzer = getAnalyzer(fieldType, type == MultiMatchQueryType.PHRASE);
                     name = fieldType.name();
                     if (!groups.containsKey(actualAnalyzer)) {
                        groups.put(actualAnalyzer, new ArrayList<>());
@@ -325,7 +324,7 @@ public class MultiMatchQuery extends MatchQuery {
                 builder.add(new Term(field.fieldType.name(), terms[i].bytes()), positions[i]);
             }
             Query q = builder.build();
-            if (field.boost != AbstractQueryBuilder.DEFAULT_BOOST) {
+            if (field.boost != MultiMatchQuery.DEFAULT_BOOST) {
                 q = new BoostQuery(q, field.boost);
             }
             disjunctions.add(q);
