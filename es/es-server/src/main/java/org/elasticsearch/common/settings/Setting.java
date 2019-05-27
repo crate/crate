@@ -31,7 +31,6 @@ import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.unit.MemorySizeValue;
 import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.common.util.ArrayUtils;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.ToXContentObject;
@@ -155,7 +154,7 @@ public class Setting<T> implements ToXContentObject {
 
     private Setting(Key key, @Nullable Setting<T> fallbackSetting, Function<Settings, String> defaultValue, Function<String, T> parser,
                     Validator<T> validator, Property... properties) {
-        assert this instanceof SecureSetting || this.isGroupSetting() || parser.apply(defaultValue.apply(Settings.EMPTY)) != null
+        assert this.isGroupSetting() || parser.apply(defaultValue.apply(Settings.EMPTY)) != null
                : "parser returned null";
         this.key = key;
         this.fallbackSetting = fallbackSetting;
@@ -916,8 +915,8 @@ public class Setting<T> implements ToXContentObject {
             Set<String> leftGroup = get(source).keySet();
             Settings defaultGroup = get(defaultSettings);
 
-            builder.put(Settings.builder().put(defaultGroup.filter(k -> leftGroup.contains(k) == false), false)
-                    .normalizePrefix(getKey()).build(), false);
+            builder.put(Settings.builder().put(defaultGroup.filter(k -> leftGroup.contains(k) == false))
+                    .normalizePrefix(getKey()).build());
         }
 
         @Override
