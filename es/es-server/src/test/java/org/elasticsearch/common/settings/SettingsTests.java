@@ -405,38 +405,21 @@ public class SettingsTests extends ESTestCase {
     }
 
     @Test
-    public void testSecureSettingsPrefix() {
-        MockSecureSettings secureSettings = new MockSecureSettings();
-        secureSettings.setString("test.prefix.foo", "somethingsecure");
-        Settings.Builder builder = Settings.builder();
-        builder.setSecureSettings(secureSettings);
-        Settings settings = builder.build();
-        Settings prefixSettings = settings.getByPrefix("test.prefix.");
-        assertTrue(prefixSettings.names().contains("foo"));
-    }
-
-    @Test
     public void testGroupPrefix() {
-        MockSecureSettings secureSettings = new MockSecureSettings();
-        secureSettings.setString("test.key1.foo", "somethingsecure");
-        secureSettings.setString("test.key1.bar", "somethingsecure");
-        secureSettings.setString("test.key2.foo", "somethingsecure");
-        secureSettings.setString("test.key2.bog", "somethingsecure");
         Settings.Builder builder = Settings.builder();
         builder.put("test.key1.baz", "blah1");
         builder.put("test.key1.other", "blah2");
         builder.put("test.key2.baz", "blah3");
         builder.put("test.key2.else", "blah4");
-        builder.setSecureSettings(secureSettings);
         Settings settings = builder.build();
         Map<String, Settings> groups = settings.getGroups("test");
         assertEquals(2, groups.size());
         Settings key1 = groups.get("key1");
         assertNotNull(key1);
-        assertThat(key1.names(), containsInAnyOrder("foo", "bar", "baz", "other"));
+        assertThat(key1.names(), containsInAnyOrder("baz", "other"));
         Settings key2 = groups.get("key2");
         assertNotNull(key2);
-        assertThat(key2.names(), containsInAnyOrder("foo", "bog", "baz", "else"));
+        assertThat(key2.names(), containsInAnyOrder("baz", "else"));
     }
 
     @Test
@@ -472,24 +455,16 @@ public class SettingsTests extends ESTestCase {
     @Test
     public void testEmpty() {
         assertTrue(Settings.EMPTY.isEmpty());
-        MockSecureSettings secureSettings = new MockSecureSettings();
-        assertTrue(Settings.builder().setSecureSettings(secureSettings).build().isEmpty());
     }
 
     @Test
     public void testWriteSettingsToStream() throws IOException {
         BytesStreamOutput out = new BytesStreamOutput();
-        MockSecureSettings secureSettings = new MockSecureSettings();
-        secureSettings.setString("test.key1.foo", "somethingsecure");
-        secureSettings.setString("test.key1.bar", "somethingsecure");
-        secureSettings.setString("test.key2.foo", "somethingsecure");
-        secureSettings.setString("test.key2.bog", "somethingsecure");
         Settings.Builder builder = Settings.builder();
         builder.put("test.key1.baz", "blah1");
         builder.putNull("test.key3.bar");
         builder.putList("test.key4.foo", "1", "2");
-        builder.setSecureSettings(secureSettings);
-        assertEquals(7, builder.build().size());
+        assertEquals(3, builder.build().size());
         Settings.writeSettingsToStream(builder.build(), out);
         StreamInput in = StreamInput.wrap(out.bytes().toBytesRef().bytes);
         Settings settings = Settings.readSettingsFromStream(in);
