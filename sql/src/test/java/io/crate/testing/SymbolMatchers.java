@@ -86,6 +86,24 @@ public class SymbolMatchers {
         return allOf(instanceOf(Field.class), hasExpectedName, hasDataType(dataType));
     }
 
+    public static Matcher<Symbol> fieldPointsToReferenceOf(final String expectedName,
+                                                           final String expectedRelationName) {
+        java.util.function.Function<Symbol, Symbol> followFieldPointer = s -> {
+            Symbol symbol = s;
+            while (symbol instanceof Field) {
+                symbol = ((Field) symbol).pointer();
+            }
+            return symbol;
+        };
+        return allOf(
+            withFeature(followFieldPointer, "ref", isReference(expectedName)),
+            withFeature(followFieldPointer
+                            .andThen(s -> ((Reference) s).ident().tableIdent().fqn()),
+                        "relationName",
+                        equalTo(expectedRelationName))
+        );
+    }
+
     public static Matcher<Symbol> isFetchRef(int docIdIdx, String ref) {
         return isFetchRef(isInputColumn(docIdIdx), isReference(ref));
     }

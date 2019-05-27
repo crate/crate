@@ -87,6 +87,10 @@ public final class UpdateAnalyzer {
         final RelationAnalysisContext relCtx = stmtCtx.startRelation();
         AnalyzedRelation relation = relationAnalyzer.analyze(update.relation(), stmtCtx);
         stmtCtx.endRelation();
+
+        MaybeAliasedStatement maybeAliasedStatement = MaybeAliasedStatement.analyze(relation);
+        relation = maybeAliasedStatement.nonAliasedRelation();
+
         if (!(relation instanceof AbstractTableRelation)) {
             throw new UnsupportedOperationException("UPDATE is only supported on base-tables");
         }
@@ -109,11 +113,12 @@ public final class UpdateAnalyzer {
 
         Map<Reference, Symbol> assignmentByTargetCol = getAssignments(
             update.assignements(), typeHints, txnCtx, table, normalizer, subqueryAnalyzer, sourceExprAnalyzer, exprCtx);
-        return new AnalyzedUpdateStatement(
-            table,
-            assignmentByTargetCol,
-            normalizer.normalize(sourceExprAnalyzer.generateQuerySymbol(update.whereClause(), exprCtx), txnCtx)
-        );
+
+        Symbol query = sourceExprAnalyzer.generateQuerySymbol(update.whereClause(), exprCtx);
+        query = maybeAliasedStatement.maybeMapFields(query);
+
+        Symbol normalizedQuery = normalizer.normalize(query, txnCtx);
+        return new AnalyzedUpdateStatement(table, assignmentByTargetCol, normalizedQuery);
     }
 
     private HashMap<Reference, Symbol> getAssignments(List<Assignment> assignments,

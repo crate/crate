@@ -24,8 +24,10 @@ package io.crate.analyze;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import io.crate.action.sql.SessionContext;
+import io.crate.analyze.relations.AliasedAnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.TableFunctionRelation;
+import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ConversionException;
 import io.crate.exceptions.RelationUnknown;
@@ -75,6 +77,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import static io.crate.testing.SymbolMatchers.fieldPointsToReferenceOf;
 import static io.crate.testing.SymbolMatchers.isField;
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
@@ -708,9 +711,9 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat(relation.where().query(), isSQL("null"));
 
         assertThat(relation.joinPairs().get(0).condition(),
-            isSQL("(doc.users.id = doc.users_multi_pk.id)"));
+            isSQL("(u1.id = u2.id)"));
         assertThat(relation.joinPairs().get(1).condition(),
-            isSQL("(doc.users_multi_pk.id = doc.users_clustered_by_only.id)"));
+            isSQL("(u2.id = u3.id)"));
     }
 
     @Test
@@ -750,7 +753,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
                                             "where t1.name = 'foo' and t2.name = 'bar'");
 
         assertThat(relation.where().queryOrFallback(),
-                   isSQL("((doc.users.name = 'foo') AND (doc.users.name = 'bar'))"));
+                   isSQL("((t1.name = 'foo') AND (t2.name = 'bar'))"));
         assertThat(relation, instanceOf(MultiSourceSelect.class));
 
         AnalyzedRelation subRel1 = ((MultiSourceSelect) relation).sources().get(QualifiedName.of("t1"));
@@ -790,8 +793,8 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         MultiSourceSelect mss = (MultiSourceSelect) relation;
         AnalyzedRelation u1 = mss.sources().values().iterator().next();
         assertThat(u1.outputs(), allOf(
-            hasItem(isReference("name")),
-            hasItem(isReference("id")))
+            hasItem(isField("name")),
+            hasItem(isField("id")))
         );
     }
 
@@ -930,14 +933,15 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat(relation.outputs().size(), is(1));
         Symbol s = relation.outputs().get(0);
         assertThat(s, notNullValue());
-        assertThat(s, isReference("friends['id']"));
+        assertThat(s, isField("friends['id']"));
     }
 
     @Test
     public void testOrderByWithOrdinal() throws Exception {
         AnalyzedRelation relation = analyze(
             "select name from users u order by 1");
-        assertEquals(relation.outputs().get(0), relation.orderBy().orderBySymbols().get(0));
+        QueriedTable queriedTable = (QueriedTable) ((AliasedAnalyzedRelation) relation).relation();
+        assertEquals(queriedTable.outputs().get(0), queriedTable.orderBy().orderBySymbols().get(0));
     }
 
     @Test
@@ -1729,12 +1733,12 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         AnalyzedRelation relation = analyze("select t1.* from sys.jobs t1");
         List<Symbol> outputs = relation.outputs();
         assertThat(outputs.size(), is(5));
-        //noinspection unchecked
-        assertThat(outputs, Matchers.contains(isReference("id"),
-            isReference("node"),
-            isReference("started"),
-            isReference("stmt"),
-            isReference("username"))
+        assertThat(outputs, Matchers.contains(
+            isField("id"),
+            isField("node"),
+            isField("started"),
+            isField("stmt"),
+            isField("username"))
         );
     }
 
@@ -1969,20 +1973,36 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void test_element_within_object_array_of_derived_table_can_be_accessed_using_subscript() {
-        analyze("select s.friends['id'] from (select friends from doc.users) s");
+        AnalyzedRelation relation = analyze("select s.friends['id'] from (select friends from doc.users) s");
+        assertThat(relation.outputs().get(0),
+                   fieldPointsToReferenceOf("friends['id']", "doc.users"));
     }
 
     @Test
     public void test_can_access_element_within_object_array_of_derived_table_containing_a_join() {
-        analyze("select joined.f1['id'], joined.f2['id'] from " +
+        AnalyzedRelation relation = analyze("select joined.f1['id'], joined.f2['id'] from " +
                 "(select u1.friends as f1, u2.friends as f2 from doc.users u1, doc.users u2) joined");
+        assertThat(relation.outputs().get(0),
+                   fieldPointsToReferenceOf("friends['id']", "doc.users"));
+        assertThat(relation.outputs().get(1),
+                   fieldPointsToReferenceOf("friends['id']", "doc.users"));
+    }
+
+    @Test
+    public void test_can_access_element_within_object_array_of_derived_table_containing_a_join_with_ambiguous_column_name() {
+        expectedException.expect(AmbiguousColumnException.class);
+        expectedException.expectMessage("Column \"friends['id']\" is ambiguous");
+        analyze("select joined.friends['id'] from " +
+                "(select u1.friends, u2.friends from doc.users u1, doc.users u2) joined");
     }
 
     @Test
     public void test_can_access_element_within_object_array_of_derived_table_containing_a_union() {
-        analyze("select joined.f1['id'] from" +
+        AnalyzedRelation relation = analyze("select joined.f1['id'] from" +
                 "  (select friends as f1 from doc.users u1 " +
                 "   union all" +
                 "   select friends from doc.users u2) as joined");
+        assertThat(relation.outputs().get(0),
+                   fieldPointsToReferenceOf("friends['id']", "doc.users"));
     }
 }

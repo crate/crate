@@ -95,6 +95,15 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void testQTFWithOrderByAndAlias() throws Exception {
+        LogicalPlan plan = plan("select a, x from t1 as t order by a");
+        assertThat(plan, isPlan("FetchOrEval[a, x]\n" +
+                                "Boundary[_fetchid, a]\n" +
+                                "OrderBy[a ASC]\n" +
+                                "Collect[doc.t1 | [_fetchid, a] | All]\n"));
+    }
+
+    @Test
     public void testQTFWithoutOrderBy() throws Exception {
         LogicalPlan plan = plan("select a, x from t1");
         assertThat(plan, isPlan("FetchOrEval[a, x]\n" +
@@ -115,6 +124,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                                 "   select a, x from t1 order by a limit 3) tt " +
                                 "order by x desc limit 1");
         assertThat(plan, isPlan("Limit[1;0]\n" +
+                                "Boundary[a, x]\n" +    // Aliased relation boundary
                                 "Boundary[a, x]\n" +
                                 "OrderBy[x DESC]\n" +
                                 "Limit[3;0]\n" +
@@ -126,6 +136,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testIntermediateFetch() throws Exception {
         LogicalPlan plan = plan("select sum(x) from (select x from t1 limit 10) tt");
         assertThat(plan, isPlan("Aggregate[sum(x)]\n" +
+                                "Boundary[x]\n" +       // Aliased relation boundary
                                 "Boundary[x]\n" +
                                 "FetchOrEval[x]\n" +
                                 "Limit[10;0]\n" +
@@ -136,6 +147,16 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testHavingGlobalAggregation() throws Exception {
         LogicalPlan plan = plan("select min(a), min(x) from t1 having min(x) < 33 and max(x) > 100");
         assertThat(plan, isPlan("FetchOrEval[min(a), min(x)]\n" +
+                                "Filter[((min(x) < 33) AND (max(x) > 100))]\n" +
+                                "Aggregate[min(a), min(x), max(x)]\n" +
+                                "Collect[doc.t1 | [a, x] | All]\n"));
+    }
+
+    @Test
+    public void testHavingGlobalAggregationAndRelationAlias() throws Exception {
+        LogicalPlan plan = plan("select min(a), min(x) from t1 as tt having min(tt.x) < 33 and max(tt.x) > 100");
+        assertThat(plan, isPlan("Boundary[\"min(a)\", \"min(x)\"]\n" +
+                                "FetchOrEval[min(a), min(x)]\n" +
                                 "Filter[((min(x) < 33) AND (max(x) > 100))]\n" +
                                 "Aggregate[min(a), min(x), max(x)]\n" +
                                 "Collect[doc.t1 | [a, x] | All]\n"));
@@ -178,9 +199,11 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                                "on t1.cnt = t2.i::long ");
         assertThat(plan, isPlan("FetchOrEval[i, cnt]\n" +
                                 "HashJoin[\n" +
+                                "    Boundary[cnt]\n" +     // Aliased relation boundary
                                 "    Boundary[cnt]\n" +
                                 "    Count[doc.t1 | All]\n" +
                                 "    --- INNER ---\n" +
+                                "    Boundary[i]\n" +       // Aliased relation boundary
                                 "    Boundary[i]\n" +
                                 "    Limit[1;0]\n" +
                                 "    Collect[doc.t2 | [i] | All]\n" +
@@ -259,12 +282,14 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                                 "limit 10");
         assertThat(plan, isPlan("Limit[10;0]\n" +
                                 "HashJoin[\n" +
+                                "    Boundary[a, i]\n" +    // Aliased relation boundary
                                 "    Boundary[a, i]\n" +
                                 "    Filter[(a > '50')]\n" +
                                 "    Limit[5;0]\n" +
                                 "    OrderBy[a ASC]\n" +
                                 "    Collect[doc.t1 | [a, i] | All]\n" +
                                 "    --- INNER ---\n" +
+                                "    Boundary[b, i]\n" +    // Aliased relation boundary
                                 "    Boundary[b, i]\n" +
                                 "    Collect[doc.t2 | [b, i] | ((b > '10') AND (b > '100'))]\n" +
                                 "]\n"));
@@ -286,6 +311,13 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                                 "    Boundary[_fetchid, x]\n" +
                                 "    Collect[doc.t1 | [_fetchid, x] | All]\n" +
                                 "]\n"));
+    }
+
+    @Test
+    public void testAliasedPrimaryKeyLookupHasGetPlan() {
+        LogicalPlan plan = plan("select name from users u where id = 1");
+        assertThat(plan, isPlan("Boundary[name]\n" +
+                                "Get[doc.users | name | DocKeys{1}"));
     }
 
     public static LogicalPlan plan(String statement,

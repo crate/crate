@@ -48,6 +48,7 @@ import io.crate.exceptions.RelationValidationException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.expression.symbol.Aggregations;
 import io.crate.expression.symbol.Field;
+import io.crate.expression.symbol.FieldReplacer;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
@@ -343,6 +344,30 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         AnalyzedRelation relation;
         if (context.sources().size() == 1) {
             AnalyzedRelation source = Iterables.getOnlyElement(context.sources().values());
+
+            // The logical planner will do a GET optimization only for concrete table relations (QueriedTable).
+            // For aliased relations we must inject the QueriedTable on the source relation:
+            //
+            //      AliasedAnalyzedRelation -> AbstractTableRelation
+            //
+            //  must be changed to:
+            //
+            //      AliasedAnalyzedRelation -> QueriedTable -> AbstractTableRelation
+            //
+            AliasedAnalyzedRelation aliasedRelation = null;
+            if (source instanceof AliasedAnalyzedRelation
+                && ((AliasedAnalyzedRelation) source).relation() instanceof AbstractTableRelation) {
+                aliasedRelation = (AliasedAnalyzedRelation) source;
+                source = aliasedRelation.relation();
+                AliasedAnalyzedRelation finalAliasedRelation = aliasedRelation;
+                querySpec = querySpec.map(s -> FieldReplacer.replaceFields(s, f -> {
+                    if (f.relation().equals(finalAliasedRelation)) {
+                        return f.pointer();
+                    }
+                    return f;
+                }));
+            }
+
             if (source instanceof AbstractTableRelation<?>) {
                 relation = new QueriedTable<>(
                     isDistinct,
@@ -358,6 +383,11 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                     querySpec
                 );
             }
+
+            if (aliasedRelation != null) {
+                relation = new AliasedAnalyzedRelation(relation, aliasedRelation.getQualifiedName(), aliasedRelation.columnAliases());
+            }
+
         } else {
             relation = new MultiSourceSelect(
                 isDistinct,
@@ -589,10 +619,12 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     protected AnalyzedRelation visitAliasedRelation(AliasedRelation node, StatementAnalysisContext context) {
         context.startRelation(true);
         AnalyzedRelation childRelation = process(node.getRelation(), context);
+        AnalyzedRelation aliasedRelation = new AliasedAnalyzedRelation(childRelation,
+                                                                       new QualifiedName(node.getAlias()),
+                                                                       node.getColumnNames());
         context.endRelation();
-        childRelation.setQualifiedName(new QualifiedName(node.getAlias()));
-        context.currentRelationContext().addSourceRelation(node.getAlias(), childRelation);
-        return childRelation;
+        context.currentRelationContext().addSourceRelation(node.getAlias(), aliasedRelation);
+        return aliasedRelation;
     }
 
     @Override
@@ -661,8 +693,9 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         TableFunctionImplementation tableFunction = TableFunctionFactory.from(functionImplementation);
         TableInfo tableInfo = tableFunction.createTableInfo();
         Operation.blockedRaiseException(tableInfo, statementContext.currentOperation());
-        TableRelation tableRelation = new TableFunctionRelation(tableInfo, tableFunction, function);
-        context.addSourceRelation(node.name(), tableRelation);
+        QualifiedName qualifiedName = new QualifiedName(node.name());
+        TableRelation tableRelation = new TableFunctionRelation(tableInfo, tableFunction, function, qualifiedName);
+        context.addSourceRelation(qualifiedName, tableRelation);
         return tableRelation;
     }
 

@@ -50,9 +50,12 @@ final class DeleteAnalyzer {
 
     public AnalyzedDeleteStatement analyze(Delete delete, ParamTypeHints typeHints, CoordinatorTxnCtx txnContext) {
         StatementAnalysisContext stmtCtx = new StatementAnalysisContext(typeHints, Operation.DELETE, txnContext);
-        RelationAnalysisContext relationCtx = stmtCtx.startRelation();
+        final RelationAnalysisContext relationCtx = stmtCtx.startRelation();
         AnalyzedRelation relation = relationAnalyzer.analyze(delete.getRelation(), stmtCtx);
         stmtCtx.endRelation();
+
+        MaybeAliasedStatement maybeAliasedStatement = MaybeAliasedStatement.analyze(relation);
+        relation = maybeAliasedStatement.nonAliasedRelation();
 
         if (!(relation instanceof DocTableRelation)) {
             throw new UnsupportedOperationException("Cannot delete from relations other than base tables");
@@ -70,10 +73,10 @@ final class DeleteAnalyzer {
             ),
             new SubqueryAnalyzer(relationAnalyzer, new StatementAnalysisContext(typeHints, Operation.READ, txnContext))
         );
-        Symbol query = normalizer.normalize(
-            expressionAnalyzer.generateQuerySymbol(delete.getWhere(), new ExpressionAnalysisContext()),
-            txnContext
-        );
-        return new AnalyzedDeleteStatement(table, query);
+        Symbol query = expressionAnalyzer.generateQuerySymbol(delete.getWhere(), new ExpressionAnalysisContext());
+        query = maybeAliasedStatement.maybeMapFields(query);
+
+        Symbol normalizedQuery = normalizer.normalize(query, txnContext);
+        return new AnalyzedDeleteStatement(table, normalizedQuery);
     }
 }

@@ -403,6 +403,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         var expectedPlan =
             "RootBoundary[x, x]\n" +
             "FetchOrEval[x, x]\n" +
+            "Boundary[_fetchid, _fetchid]\n" +      // Aliased relation boundary
             "Boundary[_fetchid, _fetchid]\n" +
             "NestedLoopJoin[\n" +
             "    Boundary[_fetchid]\n" +

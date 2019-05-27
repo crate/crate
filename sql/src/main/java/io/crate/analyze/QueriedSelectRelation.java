@@ -32,7 +32,6 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Iterator;
@@ -81,7 +80,7 @@ public class QueriedSelectRelation implements AnalyzedRelation {
         if (operation != Operation.READ) {
             throw new UnsupportedOperationException("getField on QueriedSelectRelation is only supported for READ operations");
         }
-        return fields.getWithSubscriptFallback(path, this, subRelation, true);
+        return fields.getWithSubscriptFallback(path, this, subRelation);
     }
 
     @Override
@@ -92,11 +91,6 @@ public class QueriedSelectRelation implements AnalyzedRelation {
     @Override
     public QualifiedName getQualifiedName() {
         return subRelation.getQualifiedName();
-    }
-
-    @Override
-    public void setQualifiedName(@Nonnull QualifiedName qualifiedName) {
-        subRelation.setQualifiedName(qualifiedName);
     }
 
     @Override
