@@ -204,13 +204,17 @@ A repository that stores its snapshot on the Amazon S3 service.
   | *Type:*    ``text``
   | *Required:* ``true``
 
-  Access key used for authentication against AWS.
+  Access key used for authentication against AWS. Note that this setting is
+  masked and thus will not be visible when querying the ``sys.repositories``
+  table.
 
 **secret_key**
   | *Type:*    ``text``
   | *Required:* ``true``
 
-  Secret key used for authentication against AWS.
+  Secret key used for authentication against AWS. Note that this setting is
+  masked and thus will not be visible when querying the ``sys.repositories``
+  table.
 
 **bucket**
   | *Type:*    ``text``
