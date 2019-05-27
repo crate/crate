@@ -39,9 +39,9 @@ public class ParsedDocument {
 
     private final List<Document> documents;
 
-    private BytesReference source;
+    private final BytesReference source;
 
-    private Mapping dynamicMappingsUpdate;
+    private final Mapping dynamicMappingsUpdate;
 
     public ParsedDocument(Field version,
                           SeqNoFieldMapper.SequenceIDFields seqID,
@@ -106,14 +106,6 @@ public class ParsedDocument {
      */
     public Mapping dynamicMappingsUpdate() {
         return dynamicMappingsUpdate;
-    }
-
-    public void addDynamicMappingsUpdate(Mapping update) {
-        if (dynamicMappingsUpdate == null) {
-            dynamicMappingsUpdate = update;
-        } else {
-            dynamicMappingsUpdate = dynamicMappingsUpdate.merge(update, false);
-        }
     }
 
     @Override
