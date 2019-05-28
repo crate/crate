@@ -57,7 +57,7 @@ class DocTableInfoBuilder {
     private final MetaData metaData;
     private String[] concreteIndices;
     private String[] concreteOpenIndices;
-    private static final Logger logger = LogManager.getLogger(DocTableInfoBuilder.class);
+    private static final Logger LOGGER = LogManager.getLogger(DocTableInfoBuilder.class);
 
     DocTableInfoBuilder(Functions functions,
                         RelationName ident,
@@ -111,7 +111,7 @@ class DocTableInfoBuilder {
             return docIndexMetaData.build();
         } catch (Exception e) {
             try {
-                logger.error(
+                LOGGER.error(
                     "Could not build DocIndexMetaData from: {}", indexMetaData.mapping("default").getSourceAsMap());
             } catch (Exception ignored) {
             }
@@ -153,7 +153,7 @@ class DocTableInfoBuilder {
                         partitions.add(partitionName);
                     } catch (IllegalArgumentException e) {
                         // ignore
-                        logger.warn(String.format(Locale.ENGLISH, "Cannot build partition %s of index %s", indexName, ident.indexNameOrAlias()));
+                        LOGGER.warn(String.format(Locale.ENGLISH, "Cannot build partition %s of index %s", indexName, ident.indexNameOrAlias()));
                     }
                 }
             }

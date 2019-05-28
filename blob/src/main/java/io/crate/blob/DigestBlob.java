@@ -63,7 +63,7 @@ public class DigestBlob implements Closeable {
     private MessageDigest md;
     private long chunks;
     private CountDownLatch headCatchedUpLatch;
-    private static final Logger logger = LogManager.getLogger(DigestBlob.class);
+    private static final Logger LOGGER = LogManager.getLogger(DigestBlob.class);
 
     public DigestBlob(BlobContainer container, String digest, UUID transferId) {
         this.digest = digest;
@@ -156,7 +156,7 @@ public class DigestBlob implements Closeable {
                 md.update(buffer, 0, bytesRead);
             }
         } catch (IOException ex) {
-            logger.error("error accessing file to calculate digest", ex);
+            LOGGER.error("error accessing file to calculate digest", ex);
         }
     }
 
@@ -192,7 +192,7 @@ public class DigestBlob implements Closeable {
                 semaphore.release();
             }
         } catch (InterruptedException e) {
-            logger.error("Unable to commit blob {}", e, file.getName());
+            LOGGER.error("Unable to commit blob {}", e, file.getName());
             throw new IllegalStateException("Unable to commit blob because exclusive execution could not be achieved");
         }
 
@@ -242,7 +242,7 @@ public class DigestBlob implements Closeable {
         digestBlob.file = getTmpFilePath(blobContainer, digest, transferId).toFile();
 
         try {
-            logger.trace("Resuming DigestBlob {}. CurrentPos {}", digest, currentPos);
+            LOGGER.trace("Resuming DigestBlob {}. CurrentPos {}", digest, currentPos);
             digestBlob.headFileChannel = new FileOutputStream(digestBlob.file, false).getChannel();
             digestBlob.headLength = currentPos;
             digestBlob.headSize = new AtomicLong();
@@ -255,7 +255,7 @@ public class DigestBlob implements Closeable {
             FileOutputStream outputStream = new FileOutputStream(digestBlob.file, true);
             digestBlob.fileChannel = outputStream.getChannel();
         } catch (IOException ex) {
-            logger.error("error resuming transfer of {}, id: {}", ex, digest, transferId);
+            LOGGER.error("error resuming transfer of {}, id: {}", ex, digest, transferId);
             return null;
         }
 

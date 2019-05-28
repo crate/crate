@@ -56,7 +56,7 @@ import java.util.Objects;
 @Singleton
 public class DefaultTemplateService extends AbstractLifecycleComponent implements ClusterStateListener {
 
-    private static final Logger logger = LogManager.getLogger(DefaultTemplateService.class);
+    private static final Logger LOGGER = LogManager.getLogger(DefaultTemplateService.class);
 
     public static final String TEMPLATE_NAME = "crate_defaults";
 
@@ -106,7 +106,7 @@ public class DefaultTemplateService extends AbstractLifecycleComponent implement
 
             @Override
             public void onFailure(String source, Exception e) {
-                logger.error("Error during ensure-default-template source={}", e, source);
+                LOGGER.error("Error during ensure-default-template source={}", e, source);
             }
         });
     }

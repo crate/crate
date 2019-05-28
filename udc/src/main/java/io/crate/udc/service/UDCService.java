@@ -42,7 +42,7 @@ import java.util.function.Function;
 
 public class UDCService extends AbstractLifecycleComponent {
 
-    private static final Logger logger = LogManager.getLogger(UDCService.class);
+    private static final Logger LOGGER = LogManager.getLogger(UDCService.class);
 
     public static final CrateSetting<Boolean> UDC_ENABLED_SETTING = CrateSetting.of(Setting.boolSetting(
         "udc.enabled", true,
@@ -82,8 +82,8 @@ public class UDCService extends AbstractLifecycleComponent {
         TimeValue initialDelay = UDC_INITIAL_DELAY_SETTING.setting().get(settings);
         TimeValue interval = UDC_INTERVAL_SETTING.setting().get(settings);
 
-        if (logger.isDebugEnabled()) {
-            logger.debug("Starting with delay {} and period {}.", initialDelay.getSeconds(), interval.getSeconds());
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Starting with delay {} and period {}.", initialDelay.getSeconds(), interval.getSeconds());
         }
         PingTask pingTask = new PingTask(clusterService, extendedNodeInfo, url, settings, licenseService);
         timer.scheduleAtFixedRate(pingTask, initialDelay.millis(), interval.millis());

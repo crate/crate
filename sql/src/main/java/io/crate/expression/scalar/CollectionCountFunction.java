@@ -42,10 +42,10 @@ public class CollectionCountFunction extends Scalar<Long, Collection<DataType>> 
     public static final String NAME = "collection_count";
     private final FunctionInfo info;
 
-    private static final FunctionResolver collectionCountResolver = new CollectionCountResolver();
+    private static final FunctionResolver COLLECTION_COUNT_RESOLVER = new CollectionCountResolver();
 
     public static void register(ScalarFunctionModule mod) {
-        mod.register(NAME, collectionCountResolver);
+        mod.register(NAME, COLLECTION_COUNT_RESOLVER);
     }
 
     CollectionCountFunction(FunctionInfo info) {

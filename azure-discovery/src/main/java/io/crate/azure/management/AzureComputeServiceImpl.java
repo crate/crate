@@ -47,7 +47,7 @@ import static io.crate.azure.management.AzureComputeService.Management.TENANT_ID
 
 public class AzureComputeServiceImpl extends AbstractLifecycleComponent implements AzureComputeService {
 
-    private static final Logger logger = LogManager.getLogger(AzureComputeServiceImpl.class);
+    private static final Logger LOGGER = LogManager.getLogger(AzureComputeServiceImpl.class);
 
     private final String resourceGroupName;
     private final String subscriptionId;
@@ -102,7 +102,7 @@ public class AzureComputeServiceImpl extends AbstractLifecycleComponent implemen
     @Override
     public Configuration configuration() {
         if (configuration == null) {
-            logger.trace("Creating new Azure configuration for [{}], [{}]", subscriptionId, resourceGroupName);
+            LOGGER.trace("Creating new Azure configuration for [{}], [{}]", subscriptionId, resourceGroupName);
             configuration = createConfiguration();
         }
         return configuration;
@@ -124,7 +124,7 @@ public class AzureComputeServiceImpl extends AbstractLifecycleComponent implemen
             conf = ManagementConfiguration.configure(null, new Configuration(registry),
                 URI.create(Azure.ENDPOINT), subscriptionId, authRes.getAccessToken());
         } catch (Exception e) {
-            logger.error("Could not create configuration for Azure clients", e);
+            LOGGER.error("Could not create configuration for Azure clients", e);
         }
         return conf;
     }
@@ -143,14 +143,14 @@ public class AzureComputeServiceImpl extends AbstractLifecycleComponent implemen
             try {
                 computeManagementClient.close();
             } catch (IOException e) {
-                logger.error("Error while closing Azure computeManagementClient", e);
+                LOGGER.error("Error while closing Azure computeManagementClient", e);
             }
         }
         if (networkResourceClient != null) {
             try {
                 networkResourceClient.close();
             } catch (IOException e) {
-                logger.error("Error while closing Azure networkResourceClient", e);
+                LOGGER.error("Error while closing Azure networkResourceClient", e);
             }
         }
     }

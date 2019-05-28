@@ -60,7 +60,7 @@ import java.util.concurrent.TimeUnit;
 
 public class BlobTransferTarget {
 
-    private static final Logger logger = LogManager.getLogger(BlobTransferTarget.class);
+    private static final Logger LOGGER = LogManager.getLogger(BlobTransferTarget.class);
 
     private final ConcurrentMap<UUID, BlobTransferStatus> activeTransfers = ConcurrentCollections.newConcurrentMap();
 
@@ -101,7 +101,7 @@ public class BlobTransferTarget {
     }
 
     public void startTransfer(StartBlobRequest request, StartBlobResponse response) {
-        logger.debug("startTransfer {} {}", request.transferId(), request.isLast());
+        LOGGER.debug("startTransfer {} {}", request.transferId(), request.isLast());
 
         BlobShard blobShard = blobIndicesService.blobShardSafe(request.shardId());
         File existing = blobShard.blobContainer().getFile(request.id());
@@ -137,7 +137,7 @@ public class BlobTransferTarget {
             activeTransfers.put(request.transferId(), status);
             response.status(RemoteDigestBlob.Status.PARTIAL);
         }
-        logger.debug("startTransfer finished {} {}", response.status(), response.size());
+        LOGGER.debug("startTransfer finished {} {}", response.status(), response.size());
     }
 
     public void continueTransfer(PutChunkReplicaRequest request, PutChunkResponse response) {
@@ -152,7 +152,7 @@ public class BlobTransferTarget {
     public void continueTransfer(PutChunkRequest request, PutChunkResponse response) {
         BlobTransferStatus status = activeTransfers.get(request.transferId());
         if (status == null) {
-            logger.error("No context for transfer: {} Dropping request", request.transferId());
+            LOGGER.error("No context for transfer: {} Dropping request", request.transferId());
             response.status(RemoteDigestBlob.Status.PARTIAL);
             return;
         }
@@ -161,8 +161,8 @@ public class BlobTransferTarget {
     }
 
     private BlobTransferStatus restoreTransferStatus(PutChunkReplicaRequest request) {
-        logger.trace("Restoring transferContext for PutChunkReplicaRequest with transferId {}",
-            request.transferId);
+        LOGGER.trace("Restoring transferContext for PutChunkReplicaRequest with transferId {}",
+                     request.transferId);
 
         DiscoveryNodes nodes = clusterService.state().getNodes();
         DiscoveryNode recipientNodeId = nodes.get(request.sourceNodeId);
@@ -193,8 +193,8 @@ public class BlobTransferTarget {
         BlobTransferStatus status;
         status = new BlobTransferStatus(request.shardId(), request.transferId, digestBlob);
         activeTransfers.put(request.transferId, status);
-        logger.trace("Restored transferStatus for digest {} transferId: {}",
-            transferInfoResponse.digest, request.transferId
+        LOGGER.trace("Restored transferStatus for digest {} transferId: {}",
+                     transferInfoResponse.digest, request.transferId
         );
 
         transportService.submitRequest(
@@ -234,8 +234,8 @@ public class BlobTransferTarget {
             } finally {
                 removeTransferAfterRecovery(status.transferId());
             }
-            logger.debug("transfer finished digest:{} status:{} size:{} chunks:{}",
-                status.transferId(), response.status(), response.size(), digestBlob.chunks());
+            LOGGER.debug("transfer finished digest:{} status:{} size:{} chunks:{}",
+                         status.transferId(), response.status(), response.size(), digestBlob.chunks());
         } else {
             response.status(RemoteDigestBlob.Status.PARTIAL);
         }
@@ -255,7 +255,7 @@ public class BlobTransferTarget {
             }
         }
         if (toSchedule) {
-            logger.debug("finished transfer {}, removing state", transferId);
+            LOGGER.debug("finished transfer {}, removing state", transferId);
 
             /**
              * there might be a race condition that the recoveryActive flag is still false although a
@@ -339,7 +339,7 @@ public class BlobTransferTarget {
                 activePutHeadChunkTransfers.add(transferId);
                 getHeadRequestLatch.countDown();
             } catch (InterruptedException | ExecutionException e) {
-                logger.error("can't retrieve getHeadRequestLatch", e);
+                LOGGER.error("can't retrieve getHeadRequestLatch", e);
             }
         }
     }
@@ -363,7 +363,7 @@ public class BlobTransferTarget {
         synchronized (lock) {
             recoveryActive = false;
             for (UUID finishedUpload : finishedUploads) {
-                logger.debug("finished transfer and recovery for {}, removing state", finishedUpload);
+                LOGGER.debug("finished transfer and recovery for {}, removing state", finishedUpload);
                 BlobTransferStatus transferStatus = activeTransfers.remove(finishedUpload);
                 IOUtils.closeWhileHandlingException(transferStatus);
             }

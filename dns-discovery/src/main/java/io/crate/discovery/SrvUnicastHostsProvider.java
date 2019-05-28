@@ -60,7 +60,7 @@ import static org.elasticsearch.common.util.concurrent.EsExecutors.daemonThreadF
 @Singleton
 public class SrvUnicastHostsProvider implements AutoCloseable, SeedHostsProvider {
 
-    private static final Logger logger = LogManager.getLogger(SrvUnicastHostsProvider.class);
+    private static final Logger LOGGER = LogManager.getLogger(SrvUnicastHostsProvider.class);
 
     public static final Setting<String> DISCOVERY_SRV_QUERY = Setting.simpleString(
         "discovery.srv.query", Setting.Property.NodeScope);
@@ -103,13 +103,13 @@ public class SrvUnicastHostsProvider implements AutoCloseable, SeedHostsProvider
                     try {
                         port = Integer.parseInt(parts[1]);
                     } catch (Exception e) {
-                        logger.warn("Resolver port '{}' is not an integer. Using default port 53", parts[1]);
+                        LOGGER.warn("Resolver port '{}' is not an integer. Using default port 53", parts[1]);
                     }
                 }
                 try {
                     return new InetSocketAddress(hostname, port);
                 } catch (IllegalArgumentException e) {
-                    logger.warn("Resolver port '{}' is out of range. Using default port 53", parts[1]);
+                    LOGGER.warn("Resolver port '{}' is out of range. Using default port 53", parts[1]);
                     return new InetSocketAddress(hostname, 53);
                 }
             }
@@ -126,7 +126,7 @@ public class SrvUnicastHostsProvider implements AutoCloseable, SeedHostsProvider
             try {
                 resolverBuilder.nameServerProvider(new SingletonDnsServerAddressStreamProvider(resolverAddress));
             } catch (IllegalArgumentException e) {
-                logger.warn("Could not create custom dns resolver. Using default resolver.", e);
+                LOGGER.warn("Could not create custom dns resolver. Using default resolver.", e);
             }
         }
         return resolverBuilder.build();
@@ -135,21 +135,21 @@ public class SrvUnicastHostsProvider implements AutoCloseable, SeedHostsProvider
     @Override
     public List<TransportAddress> getSeedAddresses(HostsResolver hostsResolver) {
         if (query == null) {
-            logger.error("DNS query must not be null. Please set '{}'", DISCOVERY_SRV_QUERY);
+            LOGGER.error("DNS query must not be null. Please set '{}'", DISCOVERY_SRV_QUERY);
             return Collections.emptyList();
         }
         try {
             List<DnsRecord> records = lookupRecords();
-            logger.trace("Building dynamic unicast discovery nodes...");
+            LOGGER.trace("Building dynamic unicast discovery nodes...");
             if (records == null || records.size() == 0) {
-                logger.debug("No nodes found");
+                LOGGER.debug("No nodes found");
             } else {
                 List<TransportAddress> transportAddresses = parseRecords(records);
-                logger.info("Using dynamic nodes {}", transportAddresses);
+                LOGGER.info("Using dynamic nodes {}", transportAddresses);
                 return transportAddresses;
             }
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
-            logger.error("DNS lookup exception:", e);
+            LOGGER.error("DNS lookup exception:", e);
         }
         return Collections.emptyList();
     }
@@ -175,13 +175,13 @@ public class SrvUnicastHostsProvider implements AutoCloseable, SeedHostsProvider
                 String address = hostname + ":" + port;
                 try {
                     for (TransportAddress transportAddress : transportService.addressesFromString(address)) {
-                        if (logger.isTraceEnabled()) {
-                            logger.trace("adding {}, transport_address {}", address, transportAddress);
+                        if (LOGGER.isTraceEnabled()) {
+                            LOGGER.trace("adding {}, transport_address {}", address, transportAddress);
                         }
                         addresses.add(transportAddress);
                     }
                 } catch (Exception e) {
-                    logger.warn("failed to add " + address, e);
+                    LOGGER.warn("failed to add " + address, e);
                 }
             }
         }

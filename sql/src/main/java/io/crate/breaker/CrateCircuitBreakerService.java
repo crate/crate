@@ -44,7 +44,7 @@ import java.util.function.Consumer;
 @Singleton
 public class CrateCircuitBreakerService extends CircuitBreakerService {
 
-    private static final Logger logger = LogManager.getLogger(CrateCircuitBreakerService.class);
+    private static final Logger LOGGER = LogManager.getLogger(CrateCircuitBreakerService.class);
 
     public static final String QUERY = "query";
 
@@ -149,6 +149,6 @@ public class CrateCircuitBreakerService extends CircuitBreakerService {
         BreakerSettings newSettings = new BreakerSettings(breakerName, newLimitBytes, newOverhead, oldSettings.getType());
         registerBreaker(newSettings);
         settingsConsumer.accept(newSettings);
-        logger.info("[{}] Updated breaker settings: {}", breakerName, newSettings);
+        LOGGER.info("[{}] Updated breaker settings: {}", breakerName, newSettings);
     }
 }

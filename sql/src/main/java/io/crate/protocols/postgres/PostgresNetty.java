@@ -70,7 +70,7 @@ import java.util.function.Function;
 @Singleton
 public class PostgresNetty extends AbstractLifecycleComponent {
 
-    private static final Logger logger = LogManager.getLogger(PostgresNetty.class);
+    private static final Logger LOGGER = LogManager.getLogger(PostgresNetty.class);
 
     public static final CrateSetting<Boolean> PSQL_ENABLED_SETTING = CrateSetting.of(Setting.boolSetting(
         "psql.enabled", true,
@@ -139,7 +139,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
             return;
         }
         bootstrap = CrateChannelBootstrapFactory.newChannelBootstrap("postgres", settings);
-        this.openChannels = new Netty4OpenChannelsHandler(logger);
+        this.openChannels = new Netty4OpenChannelsHandler(LOGGER);
 
         final SslContext sslContext;
         if (sslContextProvider != null) {
@@ -236,8 +236,8 @@ public class PostgresNetty extends AbstractLifecycleComponent {
             throw new BindPostgresException("Failed to bind to [" + port + "]", lastException.get());
         }
 
-        if (logger.isDebugEnabled()) {
-            logger.debug("Bound psql to address {{}}", NetworkAddress.format(boundSocket.get()));
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Bound psql to address {{}}", NetworkAddress.format(boundSocket.get()));
         }
         return new TransportAddress(boundSocket.get());
     }

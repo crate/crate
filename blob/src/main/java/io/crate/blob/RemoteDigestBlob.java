@@ -75,7 +75,7 @@ public class RemoteDigestBlob {
     }
 
 
-    private static final Logger logger = LogManager.getLogger(RemoteDigestBlob.class);
+    private static final Logger LOGGER = LogManager.getLogger(RemoteDigestBlob.class);
 
     private final String digest;
     private final Client client;
@@ -96,7 +96,7 @@ public class RemoteDigestBlob {
     }
 
     public boolean delete() {
-        logger.trace("delete");
+        LOGGER.trace("delete");
         assert transferId == null : "transferId should be null";
         DeleteBlobRequest request = new DeleteBlobRequest(
             index,
@@ -107,7 +107,7 @@ public class RemoteDigestBlob {
     }
 
     private Status start(ByteBuf buffer, boolean last) {
-        logger.trace("start blob upload");
+        LOGGER.trace("start blob upload");
         assert transferId == null : "transferId should be null";
         StartBlobRequest request = new StartBlobRequest(
             index,

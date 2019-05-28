@@ -58,7 +58,7 @@ public class TableCreator {
 
     private static final Long SUCCESS_RESULT = 1L;
 
-    protected static final Logger logger = LogManager.getLogger(TableCreator.class);
+    protected static final Logger LOGGER = LogManager.getLogger(TableCreator.class);
 
     private final ClusterService clusterService;
     private final IndexNameExpressionResolver indexNameExpressionResolver;
@@ -153,7 +153,7 @@ public class TableCreator {
         String fqn = relationName.fqn();
 
         if (metaData.hasAlias(fqn) && isPartition(metaData, fqn)) {
-            logger.debug("Deleting orphaned partitions with alias: {}", fqn);
+            LOGGER.debug("Deleting orphaned partitions with alias: {}", fqn);
             transportDeleteIndexAction.execute(new DeleteIndexRequest(fqn), new ActionListener<AcknowledgedResponse>() {
                 @Override
                 public void onResponse(AcknowledgedResponse response) {
@@ -192,8 +192,8 @@ public class TableCreator {
         String[] orphans = indexNameExpressionResolver.concreteIndexNames(
             clusterService.state(), IndicesOptions.strictExpand(), partitionWildCard);
         if (orphans.length > 0) {
-            if (logger.isDebugEnabled()) {
-                logger.debug("Deleting orphaned partitions: {}", Joiner.on(", ").join(orphans));
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("Deleting orphaned partitions: {}", Joiner.on(", ").join(orphans));
             }
             transportDeleteIndexAction.execute(new DeleteIndexRequest(orphans), new ActionListener<AcknowledgedResponse>() {
                 @Override
@@ -215,8 +215,8 @@ public class TableCreator {
     }
 
     protected void warnNotAcknowledged(String operationName) {
-        logger.warn("{} was not acknowledged. This could lead to inconsistent state.",
-            operationName);
+        LOGGER.warn("{} was not acknowledged. This could lead to inconsistent state.",
+                    operationName);
     }
 
     class CreateTableResponseListener implements ActionListener<Long> {
