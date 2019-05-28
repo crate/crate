@@ -43,7 +43,7 @@ public class CreateUserAnalyzer {
 
     private final Functions functions;
 
-    private static final FieldProvider fieldProvider = new FieldProvider() {
+    private static final FieldProvider FIELD_PROVIDER = new FieldProvider() {
         @Override
         public Symbol resolveField(QualifiedName qualifiedName, @Nullable List path, Operation operation) {
             throw new UnsupportedOperationException("Cannot resolve field references");
@@ -60,7 +60,7 @@ public class CreateUserAnalyzer {
                 functions,
                 txnContext,
                 typeHints,
-                fieldProvider,
+                FIELD_PROVIDER,
                 null
             );
             Map<String, Symbol> rows = new HashMap<>();

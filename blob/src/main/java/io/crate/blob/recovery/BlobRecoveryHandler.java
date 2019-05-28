@@ -66,7 +66,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class BlobRecoveryHandler extends RecoverySourceHandler {
 
-    private static final Logger logger = LogManager.getLogger(BlobRecoveryHandler.class);
+    private static final Logger LOGGER = LogManager.getLogger(BlobRecoveryHandler.class);
     private final StartRecoveryRequest request;
     private final TransportService transportService;
     private final BlobShard blobShard;
@@ -122,8 +122,8 @@ public class BlobRecoveryHandler extends RecoverySourceHandler {
 
     @Override
     protected void blobRecoveryHook() throws Exception {
-        logger.debug("[{}][{}] recovery [phase1] to {}: start",
-            request.shardId().getIndexName(), request.shardId().id(), request.targetNode().getName());
+        LOGGER.debug("[{}][{}] recovery [phase1] to {}: start",
+                     request.shardId().getIndexName(), request.shardId().id(), request.targetNode().getName());
         final StopWatch stopWatch = new StopWatch().start();
         blobTransferTarget.startRecovery();
         blobTransferTarget.createActiveTransfersSnapshot();
@@ -166,9 +166,9 @@ public class BlobRecoveryHandler extends RecoverySourceHandler {
 
         blobTransferTarget.stopRecovery();
         stopWatch.stop();
-        logger.debug("[{}][{}] recovery [phase1] to {}: took [{}]",
-            request.shardId().getIndexName(), request.shardId().id(), request.targetNode().getName(),
-            stopWatch.totalTime());
+        LOGGER.debug("[{}][{}] recovery [phase1] to {}: took [{}]",
+                     request.shardId().getIndexName(), request.shardId().id(), request.targetNode().getName(),
+                     stopWatch.totalTime());
     }
 
     private void syncVarFiles(AtomicReference<Exception> lastException) throws InterruptedException, IOException {
@@ -187,9 +187,9 @@ public class BlobRecoveryHandler extends RecoverySourceHandler {
             final CountDownLatch latch = new CountDownLatch(localButNotRemoteDigests.size());
             for (BytesArray digestBytes : localButNotRemoteDigests) {
                 final String digest = Hex.encodeHexString(BytesReference.toBytes(digestBytes));
-                logger.trace("[{}][{}] start to transfer file var/{} to {}",
-                    request.shardId().getIndexName(), request.shardId().id(), digest,
-                    request.targetNode().getName());
+                LOGGER.trace("[{}][{}] start to transfer file var/{} to {}",
+                             request.shardId().getIndexName(), request.shardId().id(), digest,
+                             request.targetNode().getName());
                 cancellableThreads.executeIO(
                     new TransferFileRunnable(blobShard.blobContainer().getFile(digest),
                         lastException, latch)
@@ -254,8 +254,8 @@ public class BlobRecoveryHandler extends RecoverySourceHandler {
                 long fileSize = file.length();
 
                 if (fileSize == 0) {
-                    logger.warn("[{}][{}] empty file: {}",
-                        request.shardId().getIndexName(), request.shardId().id(), file.getName());
+                    LOGGER.warn("[{}][{}] empty file: {}",
+                                request.shardId().getIndexName(), request.shardId().id(), file.getName());
                 }
 
                 try (FileInputStream fileStream = new FileInputStream(file)) {
@@ -274,11 +274,11 @@ public class BlobRecoveryHandler extends RecoverySourceHandler {
                     if (bytesRead > 0) {
                         bytesReadTotal += bytesRead;
 
-                        logger.trace("[{}][{}] send BlobRecoveryStartTransferRequest to {} for file {} with size {}",
-                            request.shardId().getIndexName(), request.shardId().id(),
-                            request.targetNode().getName(),
-                            relPath,
-                            fileSize
+                        LOGGER.trace("[{}][{}] send BlobRecoveryStartTransferRequest to {} for file {} with size {}",
+                                     request.shardId().getIndexName(), request.shardId().id(),
+                                     request.targetNode().getName(),
+                                     relPath,
+                                     fileSize
                         );
                         transportService.submitRequest(
                             request.targetNode(),
@@ -313,7 +313,7 @@ public class BlobRecoveryHandler extends RecoverySourceHandler {
                         }
 
                         if (!isLast && sentChunks) {
-                            logger.error("Sending isLast because it wasn't sent before for {}", relPath);
+                            LOGGER.error("Sending isLast because it wasn't sent before for {}", relPath);
                             transportService.submitRequest(request.targetNode(),
                                 BlobRecoveryTarget.Actions.TRANSFER_CHUNK,
                                 new BlobRecoveryChunkRequest(request.recoveryId(),
@@ -324,12 +324,12 @@ public class BlobRecoveryHandler extends RecoverySourceHandler {
                         }
                     }
 
-                    logger.trace("[{}][{}] completed to transfer file {} to {}",
-                        request.shardId().getIndexName(), request.shardId().id(), file.getName(),
-                        request.targetNode().getName());
+                    LOGGER.trace("[{}][{}] completed to transfer file {} to {}",
+                                 request.shardId().getIndexName(), request.shardId().id(), file.getName(),
+                                 request.targetNode().getName());
                 }
             } catch (IOException ex) {
-                logger.error("exception while file transfer", ex);
+                LOGGER.error("exception while file transfer", ex);
                 lastException.set(ex);
             } finally {
                 latch.countDown();

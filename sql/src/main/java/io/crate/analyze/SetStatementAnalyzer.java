@@ -48,7 +48,7 @@ import java.util.Set;
 
 class SetStatementAnalyzer {
 
-    private static final Logger logger = LogManager.getLogger(SetStatementAnalyzer.class);
+    private static final Logger LOGGER = LogManager.getLogger(SetStatementAnalyzer.class);
 
     public static AnalyzedStatement analyze(SetStatement node) {
 
@@ -105,7 +105,7 @@ class SetStatementAnalyzer {
                     CrateSettings.checkIfRuntimeSetting(setting);
                 }
                 settingsToRemove.addAll(settingNames);
-                logger.info("resetting [{}]", settingNames);
+                LOGGER.info("resetting [{}]", settingNames);
             }
         }
         return new ResetAnalyzedStatement(settingsToRemove);

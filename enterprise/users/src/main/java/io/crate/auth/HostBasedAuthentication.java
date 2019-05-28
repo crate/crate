@@ -141,9 +141,9 @@ public class HostBasedAuthentication implements Authentication {
     static class Matchers {
 
         // IPv4 127.0.0.1 -> 2130706433
-        private static final int IPv4_LOCALHOST = inetAddressToInt(InetAddresses.forString("127.0.0.1"));
+        private static final int IPV4_LOCALHOST = inetAddressToInt(InetAddresses.forString("127.0.0.1"));
         // IPv6 ::1 -> 1
-        private static final int IPv6_LOCALHOST = inetAddressToInt(InetAddresses.forString("::1"));
+        private static final int IPV6_LOCALHOST = inetAddressToInt(InetAddresses.forString("::1"));
 
         static boolean isValidUser(Map.Entry<String, Map<String, String>> entry, String user) {
             String hbaUser = entry.getValue().get(KEY_USER);
@@ -157,7 +157,7 @@ public class HostBasedAuthentication implements Authentication {
             }
             if (hbaAddress.equals("_local_")) {
                 // special case "_local_" which matches both IPv4 and IPv6 localhost addresses
-                return inetAddressToInt(address) == IPv4_LOCALHOST || inetAddressToInt(address) == IPv6_LOCALHOST;
+                return inetAddressToInt(address) == IPV4_LOCALHOST || inetAddressToInt(address) == IPV6_LOCALHOST;
             }
             int p = hbaAddress.indexOf('/');
             if (p < 0) {

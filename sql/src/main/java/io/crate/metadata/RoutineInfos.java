@@ -38,7 +38,7 @@ import static java.util.Collections.emptyIterator;
 
 public class RoutineInfos implements Iterable<RoutineInfo> {
 
-    private static final Logger logger = LogManager.getLogger(RoutineInfos.class);
+    private static final Logger LOGGER = LogManager.getLogger(RoutineInfos.class);
     private final UserDefinedFunctionsMetaData functionsMetaData;
     private FulltextAnalyzerResolver ftResolver;
 
@@ -161,7 +161,7 @@ public class RoutineInfos implements Iterable<RoutineInfo> {
                     routineSettingsToDefinition(input.getKey(), input.getValue(), RoutineType.TOKENIZER)));
             return Iterators.concat(cAnalyzersIterator, cCharFiltersIterator, cTokenFiltersIterator, cTokenizersIterator);
         } catch (IOException e) {
-            logger.error("Could not retrieve custom routines", e);
+            LOGGER.error("Could not retrieve custom routines", e);
             return null;
         }
     }

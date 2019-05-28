@@ -132,18 +132,18 @@ public class RegexMatcher {
 
 
     // PCRE features
-    public static final String character_classes = "dDsSwW";
-    public static final String boundary_matchers = "bBAGZz";
-    public static final String embedded_flags = "idmsuxU";
+    private static final String CHARACTER_CLASSES = "dDsSwW";
+    private static final String BOUNDARY_MATCHERS = "bBAGZz";
+    private static final String EMBEDDED_FLAGS = "idmsuxU";
 
     // recognize pcre escaped sequences anywhere inside the pattern
-    public static final String escape_sequences_pattern = ".*\\\\[" + character_classes + boundary_matchers + "].*";
+    private static final String ESCAPE_SEQUENCES_PATTERN = ".*\\\\[" + CHARACTER_CLASSES + BOUNDARY_MATCHERS + "].*";
 
     // recognize pcre embedded flags at the beginning of the pattern
-    public static final String embedded_flags_pattern = "^\\(\\?[" + embedded_flags + "]\\).*";
+    private static final String EMBEDDED_FLAGS_PATTERN = "^\\(\\?[" + EMBEDDED_FLAGS + "]\\).*";
 
     // final precompiled java.util.regex.Pattern
-    public static final Pattern pcre_pattern = Pattern.compile(escape_sequences_pattern + "|" + embedded_flags_pattern);
+    private static final Pattern PCRE_PATTERN = Pattern.compile(ESCAPE_SEQUENCES_PATTERN + "|" + EMBEDDED_FLAGS_PATTERN);
 
     /**
      * Determine whether regex pattern contains PCRE features, e.g.
@@ -154,6 +154,6 @@ public class RegexMatcher {
      * @see java.util.regex.Pattern
      */
     public static boolean isPcrePattern(String pattern) {
-        return pcre_pattern.matcher(pattern).matches();
+        return PCRE_PATTERN.matcher(pattern).matches();
     }
 }

@@ -53,10 +53,10 @@ public class NullIfFunction extends ConditionalFunction {
 
     static class Resolver extends BaseFunctionResolver {
 
-        private static final Param paramType = Param.of();
+        private static final Param PARAM_TYPE = Param.of();
 
         protected Resolver() {
-            super(FuncParams.builder(paramType, paramType).build());
+            super(FuncParams.builder(PARAM_TYPE, PARAM_TYPE).build());
         }
 
         @Override
