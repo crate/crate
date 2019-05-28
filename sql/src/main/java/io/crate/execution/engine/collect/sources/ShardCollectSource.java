@@ -28,7 +28,6 @@ import com.google.common.collect.Iterables;
 import io.crate.analyze.OrderBy;
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.breaker.RowAccountingWithEstimators;
-import io.crate.data.AsyncCompositeBatchIterator;
 import io.crate.data.BatchIterator;
 import io.crate.data.CompositeBatchIterator;
 import io.crate.data.InMemoryBatchIterator;
@@ -310,11 +309,14 @@ public class ShardCollectSource implements CollectSource {
                     // in order to process shard-based projections concurrently
 
                     //noinspection unchecked
-                    result = new AsyncCompositeBatchIterator<>(
-                        executor, availableThreads, iterators.toArray(new BatchIterator[0]));
+                    result = CompositeBatchIterator.asyncComposite(
+                        executor,
+                        availableThreads,
+                        iterators.toArray(new BatchIterator[0])
+                    );
                 } else {
                     //noinspection unchecked
-                    result = new CompositeBatchIterator<>(iterators.toArray(new BatchIterator[0]));
+                    result = CompositeBatchIterator.seqComposite(iterators.toArray(new BatchIterator[0]));
                 }
         }
         return projectors.wrap(result);

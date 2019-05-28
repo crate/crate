@@ -57,7 +57,7 @@ public class AsyncCompositeBatchIteratorTest {
         ExecutorService executorService = Executors.newFixedThreadPool(3);
         try {
             BatchIteratorTester tester = new BatchIteratorTester(
-                () -> new AsyncCompositeBatchIterator<>(
+                () -> CompositeBatchIterator.asyncComposite(
                     executorService,
                     () -> 3,
                     TestingBatchIterators.range(0, 5),
@@ -82,7 +82,7 @@ public class AsyncCompositeBatchIteratorTest {
                     TestingBatchIterators.range(0, 5), 2, 2, null)
             );
 
-            AsyncCompositeBatchIterator<Row> batchIterator = new AsyncCompositeBatchIterator<>(
+            BatchIterator<Row> batchIterator = CompositeBatchIterator.asyncComposite(
                 executorService,
                 () -> 3,
                 batchSimulatingItSupplier.get(),

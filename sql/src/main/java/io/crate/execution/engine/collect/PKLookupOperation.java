@@ -209,7 +209,8 @@ public final class PKLookupOperation {
             }
             iterators.add(projectors.wrap(InMemoryBatchIterator.of(rowIterable, SentinelRow.SENTINEL)));
         }
-        CompositeBatchIterator<Row> batchIterator = new CompositeBatchIterator<>(iterators.toArray(new BatchIterator[0]));
+        @SuppressWarnings("unchecked")
+        BatchIterator<Row> batchIterator = CompositeBatchIterator.seqComposite(iterators.toArray(new BatchIterator[0]));
         nodeConsumer.accept(batchIterator, null);
     }
 
