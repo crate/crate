@@ -23,15 +23,15 @@
 package io.crate.protocols.ssl;
 
 import io.netty.handler.ssl.SslContext;
-import org.elasticsearch.common.Nullable;
 
-/**
- * Provides Netty's SslContext.
- */
-public interface SslContextProvider {
+public class SslContextFallbackProvider implements SslContextProvider {
 
-    @Nullable
-    SslContext getSslContext();
+    @Override
+    public SslContext getSslContext() {
+        return null;
+    }
 
-    void reloadSslContext();
+    @Override
+    public void reloadSslContext() {
+    }
 }

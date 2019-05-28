@@ -22,29 +22,12 @@
 
 package io.crate.protocols.ssl;
 
-import io.crate.plugin.EnterpriseLoader;
-import org.elasticsearch.common.Nullable;
+import org.elasticsearch.common.inject.AbstractModule;
 
-/**
- * Creates an instance of {@link SslContextProvider}. The factory is used in
- * bundle with a service provider mechanism. See {@link io.crate.plugin.EnterpriseLoader}.
- *
- * @see PostgresWireProtocol
- * @see PipelineRegistry
- */
-public class SslContextProviderFactory {
+public class SslContextProviderFallbackModule extends AbstractModule {
 
-    private static SslContextProvider sslContextProvider;
-
-    @Nullable
-    public static SslContextProvider getInstance() {
-        if (sslContextProvider == null) {
-            synchronized (SslContextProviderFactory.class) {
-                if (sslContextProvider == null) {
-                    sslContextProvider = EnterpriseLoader.loadSingle(SslContextProvider.class);
-                }
-            }
-        }
-        return sslContextProvider;
+    @Override
+    protected void configure() {
+        bind(SslContextProvider.class).to(SslContextFallbackProvider.class).asEagerSingleton();
     }
 }

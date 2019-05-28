@@ -250,6 +250,9 @@ Deprecations
 Changes
 =======
 
+- Added support for dynamical reloading of SSL certificates.
+  See :ref:`ssl_configure_keystore`.
+
 - Predicates like ``abs(x) = 1`` which require a scalar function evaluation and
   cannot operate on table indices directly are now candidates for the query
   cache. This can result in order of magnitude performance increases on

@@ -131,6 +131,9 @@ auth:
 # The password used to decrypt the truststore_file.jks
 #ssl.truststore_password: myTrustStorePasswd
 
+# The frequency at which SSL files are monitored for changes
+#ssl.resource_poll_interval: 5s
+
 ################################### Cluster ##################################
 
 # Cluster name identifies your cluster for auto-discovery. If you're running

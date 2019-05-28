@@ -53,8 +53,8 @@ public class SslContextProviderTest extends CrateUnitTest {
             .build();
         expectedException.expect(SslConfigurationException.class);
         expectedException.expectMessage("Failed to build SSL configuration");
-        var sslContextProvider = new SslContextProviderImpl();
-        sslContextProvider.getSslContext(settings);
+        var sslContextProvider = new SslContextProviderImpl(settings);
+        sslContextProvider.getSslContext();
     }
 
     @Test
@@ -68,8 +68,8 @@ public class SslContextProviderTest extends CrateUnitTest {
             .put(SslConfigSettings.SSL_KEYSTORE_PASSWORD.getKey(), "keystorePassword")
             .put(SslConfigSettings.SSL_KEYSTORE_KEY_PASSWORD.getKey(), "serverKeyPassword")
             .build();
-        var sslContextProvider = new SslContextProviderImpl();
-        SslContext sslContext = sslContextProvider.getSslContext(settings);
+        var sslContextProvider = new SslContextProviderImpl(settings);
+        SslContext sslContext = sslContextProvider.getSslContext();
         assertThat(sslContext, instanceOf(SslContext.class));
         assertThat(sslContext.isServer(), is(true));
         assertThat(sslContext.cipherSuites(), not(empty()));
