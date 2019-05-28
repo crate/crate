@@ -50,7 +50,7 @@ public final class SQLRequestParser {
         static final String BULK_ARGS = "bulk_args";
     }
 
-    private static final ImmutableMap<String, SQLParseElement> elementParsers = ImmutableMap.of(
+    private static final ImmutableMap<String, SQLParseElement> ELEMENT_PARSERS = ImmutableMap.of(
         Fields.STMT, (SQLParseElement) new SQLStmtParseElement(),
         Fields.ARGS, (SQLParseElement) new SQLArgsParseElement(),
         Fields.BULK_ARGS, (SQLParseElement) new SQLBulkArgsParseElement()
@@ -98,7 +98,7 @@ public final class SQLRequestParser {
             if (token == XContentParser.Token.FIELD_NAME) {
                 String fieldName = parser.currentName();
                 parser.nextToken();
-                SQLParseElement element = elementParsers.get(fieldName);
+                SQLParseElement element = ELEMENT_PARSERS.get(fieldName);
                 if (element == null) {
                     throw new SQLParseException("No parser for element [" + fieldName + "]");
                 }

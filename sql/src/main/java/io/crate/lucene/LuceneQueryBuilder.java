@@ -377,22 +377,22 @@ public class LuceneQueryBuilder {
         }
 
 
-        private static final EqQuery eqQuery = new EqQuery();
-        private static final RangeQuery ltQuery = new RangeQuery("lt");
-        private static final RangeQuery lteQuery = new RangeQuery("lte");
-        private static final RangeQuery gtQuery = new RangeQuery("gt");
-        private static final RangeQuery gteQuery = new RangeQuery("gte");
-        private static final WithinQuery withinQuery = new WithinQuery();
+        private static final EqQuery EQ_QUERY = new EqQuery();
+        private static final RangeQuery LT_QUERY = new RangeQuery("lt");
+        private static final RangeQuery LTE_QUERY = new RangeQuery("lte");
+        private static final RangeQuery GT_QUERY = new RangeQuery("gt");
+        private static final RangeQuery GTE_QUERY = new RangeQuery("gte");
+        private static final WithinQuery WITHIN_QUERY = new WithinQuery();
         private final ImmutableMap<String, FunctionToQuery> functions =
             ImmutableMap.<String, FunctionToQuery>builder()
-                .put(WithinFunction.NAME, withinQuery)
+                .put(WithinFunction.NAME, WITHIN_QUERY)
                 .put(AndOperator.NAME, new AndQuery())
                 .put(OrOperator.NAME, new OrQuery())
-                .put(EqOperator.NAME, eqQuery)
-                .put(LtOperator.NAME, ltQuery)
-                .put(LteOperator.NAME, lteQuery)
-                .put(GteOperator.NAME, gteQuery)
-                .put(GtOperator.NAME, gtQuery)
+                .put(EqOperator.NAME, EQ_QUERY)
+                .put(LtOperator.NAME, LT_QUERY)
+                .put(LteOperator.NAME, LTE_QUERY)
+                .put(GteOperator.NAME, GTE_QUERY)
+                .put(GtOperator.NAME, GT_QUERY)
                 .put(LikeOperator.NAME, new LikeQuery())
                 .put(NotPredicate.NAME, new NotQuery())
                 .put(Ignore3vlFunction.NAME, new Ignore3vlQuery())
@@ -413,7 +413,7 @@ public class LuceneQueryBuilder {
         private final ImmutableMap<String, InnerFunctionToQuery> innerFunctions =
             ImmutableMap.<String, InnerFunctionToQuery>builder()
                 .put(DistanceFunction.NAME, new DistanceQuery())
-                .put(WithinFunction.NAME, withinQuery)
+                .put(WithinFunction.NAME, WITHIN_QUERY)
                 .put(SubscriptFunction.NAME, new SubscriptQuery())
                 .put(ArrayUpperFunction.ARRAY_LENGTH, new ArrayLengthQuery())
                 .put(ArrayUpperFunction.ARRAY_UPPER, new ArrayLengthQuery())

@@ -38,7 +38,7 @@ public class BooleanType extends DataType<Boolean> implements Streamer<Boolean>,
     private BooleanType() {
     }
 
-    private static final Map<String, Boolean> booleanMap = ImmutableMap.<String, Boolean>builder()
+    private static final Map<String, Boolean> BOOLEAN_MAP = ImmutableMap.<String, Boolean>builder()
         .put("f", false)
         .put("false", false)
         .put("t", true)
@@ -82,7 +82,7 @@ public class BooleanType extends DataType<Boolean> implements Streamer<Boolean>,
 
     private Boolean booleanFromString(String value) {
         String lowerValue = value.toLowerCase(Locale.ENGLISH);
-        Boolean boolValue = booleanMap.get(lowerValue);
+        Boolean boolValue = BOOLEAN_MAP.get(lowerValue);
         if (boolValue == null) {
             throw new IllegalArgumentException("Can't convert \"" + value + "\" to boolean");
         } else {

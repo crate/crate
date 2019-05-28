@@ -50,7 +50,7 @@ public class DistanceFunction extends Scalar<Double, Object> {
         DataTypes.STRING, DataTypes.GEO_POINT, new ArrayType(DataTypes.DOUBLE));
 
     private final FunctionInfo info;
-    private static final FunctionInfo geoPointInfo = genInfo(Arrays.asList(DataTypes.GEO_POINT, DataTypes.GEO_POINT));
+    private static final FunctionInfo GEO_POINT_INFO = genInfo(Arrays.asList(DataTypes.GEO_POINT, DataTypes.GEO_POINT));
 
     public static void register(ScalarFunctionModule module) {
         module.register(NAME, new BaseFunctionResolver(FuncParams.builder(ALLOWED_PARAM, ALLOWED_PARAM).build()) {
@@ -150,10 +150,10 @@ public class DistanceFunction extends Scalar<Double, Object> {
 
         // ensure reference is the first argument.
         if (!arg1IsReference) {
-            return new Function(geoPointInfo, Arrays.asList(arg2, arg1));
+            return new Function(GEO_POINT_INFO, Arrays.asList(arg2, arg1));
         }
         if (literalConverted) {
-            return new Function(geoPointInfo, Arrays.asList(arg1, arg2));
+            return new Function(GEO_POINT_INFO, Arrays.asList(arg1, arg2));
         }
         return symbol;
     }

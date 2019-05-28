@@ -39,7 +39,7 @@ import java.util.stream.Collectors;
 @Singleton
 public class DanglingArtifactsService extends AbstractLifecycleComponent implements ClusterStateListener {
 
-    private static final Logger logger = LogManager.getLogger(DanglingArtifactsService.class);
+    private static final Logger LOGGER = LogManager.getLogger(DanglingArtifactsService.class);
 
     private final ClusterService clusterService;
     private final List<Pattern> danglingPatterns;
@@ -68,11 +68,11 @@ public class DanglingArtifactsService extends AbstractLifecycleComponent impleme
 
     @Override
     public void clusterChanged(ClusterChangedEvent event) {
-        if (logger.isInfoEnabled() && event.isNewCluster()) {
+        if (LOGGER.isInfoEnabled() && event.isNewCluster()) {
             for (ObjectCursor<String> key : event.state().metaData().indices().keys()) {
                 for (Pattern pattern : danglingPatterns) {
                     if (pattern.matcher(key.value).matches()) {
-                        logger.info("Dangling artifacts exist in the cluster. Use 'alter cluster gc dangling artifacts;' to remove them");
+                        LOGGER.info("Dangling artifacts exist in the cluster. Use 'alter cluster gc dangling artifacts;' to remove them");
                         doStop();
                         return;
                     }

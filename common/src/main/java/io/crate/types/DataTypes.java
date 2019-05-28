@@ -46,7 +46,7 @@ import static java.util.stream.Collectors.toSet;
 
 public final class DataTypes {
 
-    private static final Logger logger = LogManager.getLogger(DataTypes.class);
+    private static final Logger LOGGER = LogManager.getLogger(DataTypes.class);
 
     /**
      * If you add types here make sure to update the SizeEstimatorFactory in the SQL module.
@@ -181,7 +181,7 @@ public final class DataTypes {
             type.readFrom(in);
             return type;
         } catch (NullPointerException e) {
-            logger.error(String.format(Locale.ENGLISH, "%d is missing in TYPE_REGISTRY", i), e);
+            LOGGER.error(String.format(Locale.ENGLISH, "%d is missing in TYPE_REGISTRY", i), e);
             throw e;
         }
     }

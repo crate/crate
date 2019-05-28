@@ -31,15 +31,15 @@ public class Globs {
     private Globs() {
     }
 
-    private static final String regexMetaChars = ".^$+{[]|()";
-    private static final String globMetaChars = "\\*?[{";
+    private static final String REGEX_META_CHARS = ".^$+{[]|()";
+    private static final String GLOB_META_CHARS = "\\*?[{";
 
     private static boolean isRegexMeta(char c) {
-        return regexMetaChars.indexOf(c) != -1;
+        return REGEX_META_CHARS.indexOf(c) != -1;
     }
 
     private static boolean isGlobMeta(char c) {
-        return globMetaChars.indexOf(c) != -1;
+        return GLOB_META_CHARS.indexOf(c) != -1;
     }
 
     private static char EOL = 0;  //TBD

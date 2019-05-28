@@ -69,7 +69,7 @@ import java.util.stream.StreamSupport;
 @Singleton
 public class Schemas extends AbstractLifecycleComponent implements Iterable<SchemaInfo>, ClusterStateListener {
 
-    private static final Logger logger = LogManager.getLogger(Schemas.class);
+    private static final Logger LOGGER = LogManager.getLogger(Schemas.class);
 
     public static final Collection<String> READ_ONLY_SCHEMAS = ImmutableSet.of(
         SysSchemaInfo.NAME,
@@ -268,7 +268,7 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
                 try {
                     schemas.remove(deletedSchema).close();
                 } catch (Exception e) {
-                    logger.error(e.getMessage(), e);
+                    LOGGER.error(e.getMessage(), e);
                 }
             }
 

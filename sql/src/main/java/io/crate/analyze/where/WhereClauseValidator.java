@@ -46,13 +46,13 @@ import java.util.function.Supplier;
 
 public final class WhereClauseValidator {
 
-    private static final Visitor visitor = new Visitor();
+    private static final Visitor VISITOR = new Visitor();
 
     private WhereClauseValidator() {
     }
 
     public static void validate(Symbol query) {
-        visitor.process(query, new Visitor.Context());
+        VISITOR.process(query, new Visitor.Context());
     }
 
     private static class Visitor extends SymbolVisitor<Visitor.Context, Symbol> {
@@ -65,18 +65,18 @@ public final class WhereClauseValidator {
             }
         }
 
-        private static final String _SCORE = "_score";
+        private static final String SCORE = "_score";
         private static final Set<String> SCORE_ALLOWED_COMPARISONS = ImmutableSet.of(GteOperator.NAME);
 
-        private static final String _VERSION = "_version";
-        private static final String _SEQ_NO = "_seq_no";
-        private static final String _PRIMARY_TERM = "_primary_term";
+        private static final String VERSION = "_version";
+        private static final String SEQ_NO = "_seq_no";
+        private static final String PRIMARY_TERM = "_primary_term";
         private static final Set<String> VERSIONING_ALLOWED_COMPARISONS = ImmutableSet.of(
             EqOperator.NAME, AnyOperators.Names.NEQ);
 
         private static final String SCORE_ERROR = String.format(Locale.ENGLISH,
-            "System column '%s' can only be used within a '%s' comparison without any surrounded predicate",
-            _SCORE, ComparisonExpression.Type.GREATER_THAN_OR_EQUAL.getValue());
+                                                                "System column '%s' can only be used within a '%s' comparison without any surrounded predicate",
+                                                                SCORE, ComparisonExpression.Type.GREATER_THAN_OR_EQUAL.getValue());
 
         @Override
         public Symbol visitField(Field field, Context context) {
@@ -123,11 +123,11 @@ public final class WhereClauseValidator {
         }
 
         private void validateSysReference(Context context, String columnName) {
-            if (columnName.equalsIgnoreCase(_VERSION)) {
+            if (columnName.equalsIgnoreCase(VERSION)) {
                 validateSysReference(context, VERSIONING_ALLOWED_COMPARISONS, VersioninigValidationException::versionInvalidUsage);
-            } else if (columnName.equalsIgnoreCase(_SEQ_NO) || columnName.equalsIgnoreCase(_PRIMARY_TERM)) {
+            } else if (columnName.equalsIgnoreCase(SEQ_NO) || columnName.equalsIgnoreCase(PRIMARY_TERM)) {
                 validateSysReference(context, VERSIONING_ALLOWED_COMPARISONS, VersioninigValidationException::seqNoAndPrimaryTermUsage);
-            } else if (columnName.equalsIgnoreCase(_SCORE)) {
+            } else if (columnName.equalsIgnoreCase(SCORE)) {
                 validateSysReference(context, SCORE_ALLOWED_COMPARISONS, () -> new UnsupportedOperationException(SCORE_ERROR));
             } else if (columnName.equalsIgnoreCase(DocSysColumns.RAW.name())) {
                 throw new UnsupportedOperationException("The _raw column is not searchable and cannot be used inside a query");
