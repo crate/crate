@@ -22,109 +22,203 @@
 
 package io.crate.data;
 
+import com.google.common.collect.Iterables;
 import io.crate.concurrent.CompletableFutures;
 
 import javax.annotation.Nonnull;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Executor;
+import java.util.function.IntSupplier;
+
+import static io.crate.concurrent.CompletableFutures.supplyAsync;
 
 /**
- * BatchIterator implementation that is backed by multiple other BatchIterators.
- * <p>
- * It will consume each iterator to it's end before consuming the next iterator in order to make sure that repeated
- * consumption via {@link #moveToStart()} always returns the same result.
+ * BatchIterator implementations backed by multiple other BatchIterators.
  */
-public class CompositeBatchIterator<T> implements BatchIterator<T> {
-
-    private final BatchIterator<T>[] iterators;
-    private int idx = 0;
+public final class CompositeBatchIterator {
 
     /**
-     * @param iterators underlying iterators to use; order of consumption may change if some of them are unloaded
-     *                  to prefer loaded iterators over unloaded.
+     * Composite batchIterator that consumes each individual iterator fully before moving to the next.
      */
     @SafeVarargs
-    public CompositeBatchIterator(BatchIterator<T>... iterators) {
-        assert iterators.length > 0 : "Must have at least 1 iterator";
-
+    public static <T> BatchIterator<T> seqComposite(BatchIterator<T> ... iterators) {
         // prefer loaded iterators over unloaded to improve performance in case only a subset of data is consumed
         Comparator<BatchIterator<T>> comparing = Comparator.comparing(BatchIterator::allLoaded);
         Arrays.sort(iterators, comparing.reversed());
-        this.iterators = iterators;
+        return new SeqCompositeBI<>(iterators);
     }
 
-    @Override
-    public T currentElement() {
-        return iterators[idx].currentElement();
+    /**
+     * Composite batchIterator that eagerly loads the individual iterators on `loadNext` multi-threaded
+     */
+    @SafeVarargs
+    public static <T> BatchIterator<T> asyncComposite(Executor executor,
+                                                      IntSupplier availableThreads,
+                                                      BatchIterator<T> ... iterators) {
+        return new AsyncCompositeBI<>(executor, availableThreads, iterators);
     }
 
-    @Override
-    public void moveToStart() {
-        for (BatchIterator iterator : iterators) {
-            iterator.moveToStart();
+    private abstract static class AbstractCompositeBI<T> implements BatchIterator<T> {
+
+        protected final BatchIterator<T>[] iterators;
+        protected int idx = 0;
+
+        AbstractCompositeBI(BatchIterator<T>[] iterators) {
+            assert iterators.length > 0 : "Must have at least 1 iterator";
+            this.iterators = iterators;
         }
-        idx = 0;
-    }
 
-    @Override
-    public boolean moveNext() {
-        while (idx < iterators.length) {
-            BatchIterator iterator = iterators[idx];
-            if (iterator.moveNext()) {
-                return true;
+        @Override
+        public T currentElement() {
+            return iterators[idx].currentElement();
+        }
+
+        @Override
+        public void moveToStart() {
+            for (BatchIterator iterator : iterators) {
+                iterator.moveToStart();
             }
-            if (iterator.allLoaded() == false) {
-                return false;
-            }
-            idx++;
+            idx = 0;
         }
-        idx = 0;
-        return false;
-    }
 
-    @Override
-    public void close() {
-        for (BatchIterator iterator : iterators) {
-            iterator.close();
-        }
-    }
-
-    @Override
-    public CompletionStage<?> loadNextBatch() {
-        for (BatchIterator iterator : iterators) {
-            if (iterator.allLoaded()) {
-                continue;
-            }
-            return iterator.loadNextBatch();
-        }
-        return CompletableFutures.failedFuture(new IllegalStateException("BatchIterator already fully loaded"));
-    }
-
-    @Override
-    public boolean allLoaded() {
-        for (BatchIterator iterator : iterators) {
-            if (iterator.allLoaded() == false) {
-                return false;
+        @Override
+        public void close() {
+            for (BatchIterator iterator : iterators) {
+                iterator.close();
             }
         }
-        return true;
-    }
 
-    @Override
-    public void kill(@Nonnull Throwable throwable) {
-        for (BatchIterator iterator : iterators) {
-            iterator.kill(throwable);
+        @Override
+        public boolean allLoaded() {
+            for (BatchIterator iterator : iterators) {
+                if (iterator.allLoaded() == false) {
+                    return false;
+                }
+            }
+            return true;
         }
-    }
 
-    @Override
-    public boolean involvesIO() {
-        for (BatchIterator iterator : iterators) {
-            if (iterator.involvesIO()) {
-                return true;
+        @Override
+        public void kill(@Nonnull Throwable throwable) {
+            for (BatchIterator iterator : iterators) {
+                iterator.kill(throwable);
             }
         }
-        return false;
+
+        @Override
+        public boolean involvesIO() {
+            for (BatchIterator iterator : iterators) {
+                if (iterator.involvesIO()) {
+                    return true;
+                }
+            }
+            return false;
+        }
+    }
+
+    private static class SeqCompositeBI<T> extends AbstractCompositeBI<T> {
+
+        SeqCompositeBI(BatchIterator<T>[] iterators) {
+            super(iterators);
+        }
+
+        @Override
+        public boolean moveNext() {
+            while (idx < iterators.length) {
+                BatchIterator iterator = iterators[idx];
+                if (iterator.moveNext()) {
+                    return true;
+                }
+                if (iterator.allLoaded() == false) {
+                    return false;
+                }
+                idx++;
+            }
+            idx = 0;
+            return false;
+        }
+
+        @Override
+        public CompletionStage<?> loadNextBatch() {
+            for (BatchIterator iterator : iterators) {
+                if (iterator.allLoaded()) {
+                    continue;
+                }
+                return iterator.loadNextBatch();
+            }
+            return CompletableFutures.failedFuture(new IllegalStateException("BatchIterator already fully loaded"));
+        }
+    }
+
+    private static class AsyncCompositeBI<T> extends AbstractCompositeBI<T> {
+
+        private final Executor executor;
+        private final IntSupplier availableThreads;
+
+        AsyncCompositeBI(Executor executor, IntSupplier availableThreads, BatchIterator<T>[] iterators) {
+            super(iterators);
+            this.executor = executor;
+            this.availableThreads = availableThreads;
+        }
+
+        @Override
+        public boolean moveNext() {
+            while (idx < iterators.length) {
+                BatchIterator iterator = iterators[idx];
+                if (iterator.moveNext()) {
+                    return true;
+                }
+                idx++;
+            }
+            idx = 0;
+            return false;
+        }
+
+        @Override
+        public CompletionStage<?> loadNextBatch() {
+            if (allLoaded()) {
+                return CompletableFutures.failedFuture(new IllegalStateException("BatchIterator already loaded"));
+            }
+            int availableThreads = this.availableThreads.getAsInt();
+            List<BatchIterator<T>> itToLoad = getIteratorsToLoad(iterators);
+
+            List<CompletableFuture<CompletableFuture>> nestedFutures = new ArrayList<>();
+            if (availableThreads < itToLoad.size()) {
+                Iterable<List<BatchIterator<T>>> iteratorsPerThread = Iterables.partition(
+                    itToLoad, itToLoad.size() / availableThreads);
+
+                for (List<BatchIterator<T>> batchIterators: iteratorsPerThread) {
+                    CompletableFuture<CompletableFuture> future = supplyAsync(() -> {
+                        ArrayList<CompletableFuture<?>> futures = new ArrayList<>(batchIterators.size());
+                        for (BatchIterator<T> batchIterator: batchIterators) {
+                            futures.add(batchIterator.loadNextBatch().toCompletableFuture());
+                        }
+                        return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
+                    }, executor);
+                    nestedFutures.add(future);
+                }
+            } else {
+                for (BatchIterator<T> iterator: itToLoad) {
+                    nestedFutures.add(supplyAsync(() -> iterator.loadNextBatch().toCompletableFuture(), executor));
+                }
+            }
+            return CompletableFutures.allAsList(nestedFutures)
+                .thenCompose(innerFutures -> CompletableFuture.allOf(innerFutures.toArray(new CompletableFuture[0])));
+        }
+
+        private static <T> List<BatchIterator<T>> getIteratorsToLoad(BatchIterator<T>[] allIterators) {
+            ArrayList<BatchIterator<T>> itToLoad = new ArrayList<>(allIterators.length);
+            for (BatchIterator<T> iterator: allIterators) {
+                if (!iterator.allLoaded()) {
+                    itToLoad.add(iterator);
+                }
+            }
+            return itToLoad;
+        }
     }
 }
