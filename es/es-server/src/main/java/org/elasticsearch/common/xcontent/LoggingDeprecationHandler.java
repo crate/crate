@@ -22,7 +22,6 @@ package org.elasticsearch.common.xcontent;
 import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.common.ParseField;
 import org.elasticsearch.common.logging.DeprecationLogger;
-import org.elasticsearch.common.logging.Loggers;
 
 /**
  * Logs deprecations to the {@link DeprecationLogger}.
@@ -34,7 +33,7 @@ import org.elasticsearch.common.logging.Loggers;
  * though the user sent them.
  */
 public class LoggingDeprecationHandler implements DeprecationHandler {
-    public static LoggingDeprecationHandler INSTANCE = new LoggingDeprecationHandler();
+    public final static LoggingDeprecationHandler INSTANCE = new LoggingDeprecationHandler();
     /**
      * The logger to which to send deprecation messages.
      *
