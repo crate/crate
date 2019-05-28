@@ -116,6 +116,7 @@ public class OrderedLuceneBatchIteratorBenchmark {
         );
     }
 
+    /*
     @Benchmark
     public void measureLoadAndConsumeOrderedLuceneBatchIterator(Blackhole blackhole) {
         BatchIterator<Row> it = OrderedLuceneBatchIteratorFactory.newInstance(
@@ -132,6 +133,7 @@ public class OrderedLuceneBatchIteratorBenchmark {
             blackhole.consume(it.currentElement().get(0));
         }
     }
+    */
 
     private LuceneOrderedDocCollector createOrderedCollector(IndexSearcher searcher,
                                                              String sortByColumnName) {

@@ -28,6 +28,7 @@ import io.crate.data.Input;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.VersioninigValidationException;
 import io.crate.execution.engine.collect.DocInputFactory;
+import io.crate.expression.InputCondition;
 import io.crate.expression.InputFactory;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.operator.AndOperator;
@@ -87,6 +88,7 @@ import org.elasticsearch.index.query.QueryShardContext;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -554,20 +556,38 @@ public class LuceneQueryBuilder {
         // - no docValues are available for the related column, currently only on objects defined as `ignored`
         // - docValues value differs from source, currently happening on GeoPoint types as lucene's internal format
         //   results in precision changes (e.g. longitude 11.0 will be 10.999999966)
-        function = (Function) DocReferences.toSourceLookup(function,
-            r -> r.columnPolicy() == ColumnPolicy.IGNORED
-                 || r.valueType() == DataTypes.GEO_POINT);
-
-        final InputFactory.Context<? extends LuceneCollectorExpression<?>> ctx = context.docInputFactory.getCtx(context.txnCtx);
-        @SuppressWarnings("unchecked")
-        final Input<Boolean> condition = (Input<Boolean>) ctx.add(function);
-        @SuppressWarnings("unchecked")
-        final Collection<? extends LuceneCollectorExpression<?>> expressions = ctx.expressions();
-        final CollectorContext collectorContext = new CollectorContext(context.queryShardContext::getForField);
-        for (LuceneCollectorExpression expression : expressions) {
-            expression.startCollect(collectorContext);
-        }
-        return new GenericFunctionQuery(function, expressions, condition);
+        Function predicate = (Function) DocReferences.toSourceLookup(
+            function,
+            r -> r.columnPolicy() == ColumnPolicy.IGNORED || r.valueType() == DataTypes.GEO_POINT
+        );
+        return new GenericFunctionQuery(
+            predicate,
+            readerContext -> {
+                final InputFactory.Context<? extends LuceneCollectorExpression<?>> ctx = context.docInputFactory.getCtx(context.txnCtx);
+                @SuppressWarnings("unchecked")
+                final Input<Boolean> condition = (Input<Boolean>) ctx.add(predicate);
+                final Collection<? extends LuceneCollectorExpression<?>> expressions = ctx.expressions();
+                final CollectorContext collectorContext = new CollectorContext(context.queryShardContext::getForField);
+                for (LuceneCollectorExpression expression : expressions) {
+                    expression.startCollect(collectorContext);
+                    try {
+                        expression.setNextReader(readerContext);
+                    } catch (IOException e) {
+                        throw new UncheckedIOException(e);
+                    }
+                }
+                return docId -> {
+                    for (LuceneCollectorExpression<?> expression : expressions) {
+                        try {
+                            expression.setNextDocId(docId);
+                        } catch (IOException e) {
+                            throw new UncheckedIOException(e);
+                        }
+                    }
+                    return InputCondition.matches(condition);
+                };
+            }
+        );
     }
 
     private static void raiseUnsupported(Function function) {

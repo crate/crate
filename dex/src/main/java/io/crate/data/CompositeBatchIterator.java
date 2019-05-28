@@ -47,6 +47,9 @@ public final class CompositeBatchIterator {
      */
     @SafeVarargs
     public static <T> BatchIterator<T> seqComposite(BatchIterator<T> ... iterators) {
+        if (iterators.length == 0) {
+            return InMemoryBatchIterator.empty(null);
+        }
         if (iterators.length == 1) {
             return iterators[0];
         }

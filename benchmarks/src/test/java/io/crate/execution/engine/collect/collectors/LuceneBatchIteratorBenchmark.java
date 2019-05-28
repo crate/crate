@@ -23,6 +23,7 @@
 package io.crate.execution.engine.collect.collectors;
 
 import io.crate.breaker.RamAccountingContext;
+import io.crate.expression.InputRow;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.IntegerColumnReference;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
@@ -31,19 +32,27 @@ import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
+import org.apache.lucene.search.ScoreMode;
+import org.apache.lucene.search.Weight;
 import org.apache.lucene.store.ByteBuffersDirectory;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
+import org.openjdk.jmh.annotations.Fork;
+import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.annotations.OutputTimeUnit;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
+import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.Blackhole;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -51,9 +60,12 @@ import java.util.concurrent.TimeUnit;
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 @State(Scope.Benchmark)
+@Warmup(iterations = 3)
+@Fork(2)
+@Measurement(iterations = 7)
 public class LuceneBatchIteratorBenchmark {
 
-    public static final RamAccountingContext RAM_ACCOUNTING_CONTEXT = new RamAccountingContext("dummy", new NoopCircuitBreaker("dummy"));
+    private static final RamAccountingContext RAM_ACCOUNTING_CONTEXT = new RamAccountingContext("dummy", new NoopCircuitBreaker("dummy"));
     private CollectorContext collectorContext;
     private IndexSearcher indexSearcher;
     private List<IntegerColumnReference> columnRefs;
@@ -88,6 +100,39 @@ public class LuceneBatchIteratorBenchmark {
             columnRefs
         );
 
+        while (it.moveNext()) {
+            blackhole.consume(it.currentElement().get(0));
+        }
+    }
+
+    @Benchmark
+    public void measureSegmentBatchIterator(Blackhole blackhole) throws Exception {
+        Weight weight = indexSearcher.createWeight(
+            indexSearcher.rewrite(new MatchAllDocsQuery()),
+            ScoreMode.COMPLETE_NO_SCORES,
+            1f
+        );
+        InputRow row = new InputRow(columnRefs);
+        LeafReaderContext leafReader = indexSearcher.getTopReaderContext().leaves().get(0);
+        for (int i = 0; i < columnRefs.size(); i++) {
+            columnRefs.get(i).setNextReader(leafReader);
+        }
+        var it = new SegmentBatchIterator(
+            weight.scorer(leafReader),
+            leafReader,
+            docId -> {
+                for (int i = 0; i < columnRefs.size(); i++) {
+                    IntegerColumnReference ref = columnRefs.get(i);
+                    try {
+                        ref.setNextDocId(docId);
+                    } catch (IOException e) {
+                        throw new UncheckedIOException(e);
+                    }
+                }
+                return row;
+            },
+            null
+        );
         while (it.moveNext()) {
             blackhole.consume(it.currentElement().get(0));
         }
