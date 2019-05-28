@@ -66,6 +66,11 @@ public class ShardStats implements Streamable, Writeable {
         return this.commonStats;
     }
 
+    @Nullable
+    public SeqNoStats getSeqNoStats() {
+        return this.seqNoStats;
+    }
+
     public String getDataPath() {
         return dataPath;
     }
