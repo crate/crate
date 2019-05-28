@@ -21,7 +21,6 @@
 
 package io.crate.integrationtests;
 
-import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SQLActionException;
 import io.crate.exceptions.SQLExceptions;
@@ -31,8 +30,6 @@ import io.crate.testing.UseRandomizedSchema;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.test.ESIntegTestCase;
@@ -49,7 +46,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.testing.TestingHelpers.printedTable;
@@ -179,9 +175,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectStarEmptyMapping() throws Exception {
-        prepareCreate(getFqn("test")).execute().actionGet();
-        ensureYellow();
-        execute("select * from test");
+        execute("select * from unnest()");
         assertArrayEquals(new String[]{}, response.cols());
         assertEquals(0, response.rowCount());
     }
@@ -290,11 +284,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testFilterByBoolean() throws Exception {
-        prepareCreate(getFqn("test"))
-            .addMapping("default", "sunshine", "type=boolean")
-            .execute().actionGet();
-        ensureYellow();
-
+        execute("create table test (sunshine boolean)");
         execute("insert into test values (?)", new Object[]{true});
         refresh();
 
@@ -605,25 +595,10 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testGetResponseWithObjectColumn() throws Exception {
-        XContentBuilder mapping = XContentFactory.jsonBuilder().startObject()
-            .startObject("default")
-            .startObject("_meta").field("primary_keys", "id").endObject()
-            .startObject("properties")
-            .startObject("id")
-            .field("type", "keyword")
-            .endObject()
-            .startObject("data")
-            .field("type", "object")
-            .field("dynamic", false)
-            .endObject()
-            .endObject()
-            .endObject()
-            .endObject();
-
-        prepareCreate(getFqn("test"))
-            .addMapping("default", mapping)
-            .execute().actionGet();
-        ensureYellow();
+        execute("create table test (" +
+                "   id text primary key," +
+                "   data object " +
+                ")");
 
         Map<String, Object> data = new HashMap<>();
         data.put("foo", "bar");
@@ -655,19 +630,16 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("insert into test (pk_col, message) values ('1', 'foo')");
         execute("insert into test (pk_col, message) values ('2', 'bar')");
         execute("insert into test (pk_col, message) values ('3', 'baz')");
-        refresh();
 
         execute("SELECT * FROM test WHERE pk_col='1' OR pk_col='2'");
-        assertEquals(2, response.rowCount());
+        assertThat(response.rowCount(), is(2L));
 
         execute("SELECT * FROM test WHERE pk_col=? OR pk_col=?", new Object[]{"1", "2"});
-        assertEquals(2, response.rowCount());
+        assertThat(response.rowCount(), is(2L));
 
-        awaitBusy(() -> {
-            execute("SELECT * FROM test WHERE (pk_col=? OR pk_col=?) OR pk_col=?", new Object[]{"1", "2", "3"});
-            return response.rowCount() == 3
-                   && Joiner.on(',').join(Arrays.asList(response.cols())).equals("message,pk_col");
-        }, 10, TimeUnit.SECONDS);
+        execute("SELECT * FROM test WHERE (pk_col=? OR pk_col=?) OR pk_col=?", new Object[]{"1", "2", "3"});
+        assertThat(response.rowCount(), is(3L));
+        assertThat(String.join(", ", List.of(response.cols())), is("pk_col, message"));
     }
 
     @Test
