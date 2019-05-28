@@ -120,7 +120,7 @@ import static io.crate.execution.dsl.projection.Projections.shardProjections;
 @Singleton
 public class JobSetup {
 
-    private static final Logger logger = LogManager.getLogger(JobSetup.class);
+    private static final Logger LOGGER = LogManager.getLogger(JobSetup.class);
 
     private final MapSideDataCollectOperation collectOperation;
     private final ClusterService clusterService;
@@ -183,13 +183,13 @@ public class JobSetup {
             clusterService.localNode().getId(),
             sessionInfo,
             contextBuilder,
-            logger,
+            LOGGER,
             distributingConsumerFactory,
             nodeOperations,
             sharedShardContexts);
         registerContextPhases(nodeOperations, context);
-        logger.trace("prepareOnRemote: nodeOperations={}, targetSourceMap={}",
-            nodeOperations, context.opCtx.targetToSourceMap);
+        LOGGER.trace("prepareOnRemote: nodeOperations={}, targetSourceMap={}",
+                     nodeOperations, context.opCtx.targetToSourceMap);
 
         for (IntCursor cursor : context.opCtx.findLeafs()) {
             prepareSourceOperations(cursor.value, context);
@@ -207,7 +207,7 @@ public class JobSetup {
             clusterService.localNode().getId(),
             sessionInfo,
             taskBuilder,
-            logger,
+            LOGGER,
             distributingConsumerFactory,
             nodeOperations,
             sharedShardContexts);
@@ -215,8 +215,8 @@ public class JobSetup {
             context.registerLeaf(handlerPhase.v1(), handlerPhase.v2());
         }
         registerContextPhases(nodeOperations, context);
-        logger.trace("prepareOnHandler: nodeOperations={}, handlerPhases={}, targetSourceMap={}",
-            nodeOperations, handlerPhases, context.opCtx.targetToSourceMap);
+        LOGGER.trace("prepareOnHandler: nodeOperations={}, handlerPhases={}, targetSourceMap={}",
+                     nodeOperations, handlerPhases, context.opCtx.targetToSourceMap);
 
         IntHashSet leafs = new IntHashSet();
         for (Tuple<ExecutionPhase, RowConsumer> handlerPhase : handlerPhases) {
@@ -255,7 +255,7 @@ public class JobSetup {
         for (NodeOperation nodeOperation : nodeOperations) {
             // context for nodeOperations without dependencies can be built immediately (e.g. FetchPhase)
             if (nodeOperation.downstreamExecutionPhaseId() == NodeOperation.NO_DOWNSTREAM) {
-                logger.trace("Building context for nodeOp without downstream: {}", nodeOperation);
+                LOGGER.trace("Building context for nodeOp without downstream: {}", nodeOperation);
                 if (createContexts(nodeOperation.executionPhase(), context)) {
                     context.opCtx.builtNodeOperations.set(nodeOperation.executionPhase().phaseId());
                 }

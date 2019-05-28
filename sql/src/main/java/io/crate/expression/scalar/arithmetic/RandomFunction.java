@@ -39,7 +39,7 @@ public class RandomFunction extends Scalar<Double, Void> {
 
     public static final String NAME = "random";
 
-    protected static final FunctionInfo info = new FunctionInfo(
+    protected static final FunctionInfo INFO = new FunctionInfo(
         new FunctionIdent(NAME, Collections.emptyList()), DataTypes.DOUBLE,
         FunctionInfo.Type.SCALAR, FunctionInfo.NO_FEATURES);
 
@@ -60,7 +60,7 @@ public class RandomFunction extends Scalar<Double, Void> {
 
     @Override
     public FunctionInfo info() {
-        return info;
+        return INFO;
     }
 
     @Override

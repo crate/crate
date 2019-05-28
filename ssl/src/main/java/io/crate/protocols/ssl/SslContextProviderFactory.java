@@ -22,13 +22,29 @@
 
 package io.crate.protocols.ssl;
 
-import io.netty.handler.ssl.SslContext;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.plugin.EnterpriseLoader;
+import org.elasticsearch.common.Nullable;
 
 /**
- * Provides Netty's SslContext.
+ * Creates an instance of {@link SslContextProvider}. The factory is used in
+ * bundle with a service provider mechanism. See {@link io.crate.plugin.EnterpriseLoader}.
+ *
+ * @see PostgresWireProtocol
+ * @see PipelineRegistry
  */
-public interface SslContextProvider {
+public class SslContextProviderFactory {
 
-    SslContext getSslContext(Settings settings);
+    private static SslContextProvider sslContextProvider;
+
+    @Nullable
+    public static SslContextProvider getInstance() {
+        if (sslContextProvider == null) {
+            synchronized (SslContextProviderFactory.class) {
+                if (sslContextProvider == null) {
+                    sslContextProvider = EnterpriseLoader.loadSingle(SslContextProvider.class);
+                }
+            }
+        }
+        return sslContextProvider;
+    }
 }

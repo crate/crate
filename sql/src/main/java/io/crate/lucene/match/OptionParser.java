@@ -30,7 +30,7 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.unit.Fuzziness;
 import org.elasticsearch.common.xcontent.LoggingDeprecationHandler;
-import org.elasticsearch.index.query.MultiMatchQueryBuilder;
+import org.elasticsearch.index.query.MultiMatchQueryType;
 import org.elasticsearch.index.query.support.QueryParsers;
 import org.elasticsearch.index.search.MatchQuery;
 
@@ -68,7 +68,7 @@ public class OptionParser {
         OPTIONS.ZERO_TERMS_QUERY, OPTIONS.FUZZY_REWRITE, OPTIONS.FUZZY_TRANSPOSITIONS
     ).build();
 
-    public static ParsedOptions parse(MultiMatchQueryBuilder.Type matchType,
+    public static ParsedOptions parse(MultiMatchQueryType matchType,
                                       @Nullable Map options) throws IllegalArgumentException {
         if (options == null) {
             options = Collections.emptyMap();
@@ -198,7 +198,7 @@ public class OptionParser {
         throw new IllegalArgumentException("value for analyzer must be a string");
     }
 
-    private static void raiseIllegalOptions(MultiMatchQueryBuilder.Type matchType, Map options) {
+    private static void raiseIllegalOptions(MultiMatchQueryType matchType, Map options) {
         List<String> unknownOptions = new ArrayList<>();
         List<String> invalidOptions = new ArrayList<>();
         for (Object o : options.keySet()) {

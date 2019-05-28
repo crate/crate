@@ -130,7 +130,7 @@ public final class QueryTester implements AutoCloseable {
         }
 
         void indexValue(String column, Object value) throws IOException {
-            DocumentMapper mapper = indexEnv.mapperService().documentMapperWithAutoCreate("default").getDocumentMapper();
+            DocumentMapper mapper = indexEnv.mapperService().documentMapperSafe();
             InsertSourceGen sourceGen = InsertSourceGen.of(
                 CoordinatorTxnCtx.systemTransactionContext(),
                 sqlExecutor.functions(),
@@ -142,7 +142,6 @@ public final class QueryTester implements AutoCloseable {
             BytesReference source = sourceGen.generateSource(new Object[]{value});
             SourceToParse sourceToParse = new SourceToParse(
                 table.concreteIndices()[0],
-                "default",
                 UUIDs.randomBase64UUID(),
                 source,
                 XContentType.JSON

@@ -57,8 +57,6 @@ import org.elasticsearch.common.component.LifecycleListener;
 import org.elasticsearch.common.io.FileSystemUtils;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.lease.Releasables;
-import org.elasticsearch.common.settings.MockSecureSettings;
-import org.elasticsearch.common.settings.SecureSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.Settings.Builder;
 import org.elasticsearch.common.unit.ByteSizeUnit;
@@ -100,7 +98,6 @@ import org.elasticsearch.transport.TransportSettings;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.net.InetSocketAddress;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -627,11 +624,6 @@ public final class InternalTestCluster extends TestCluster {
         }
         assert reuseExisting == true || nodeAndClient == null : "node name [" + name + "] already exists but not allowed to use it";
 
-        SecureSettings secureSettings = Settings.builder().put(settings).getSecureSettings();
-        if (secureSettings instanceof MockSecureSettings) {
-            // we clone this here since in the case of a node restart we might need it again
-            secureSettings = ((MockSecureSettings) secureSettings).clone();
-        }
         MockNode node = new MockNode(
                 settings,
                 plugins,
@@ -643,11 +635,6 @@ public final class InternalTestCluster extends TestCluster {
                 onTransportServiceStarted.run();
             }
         });
-        try {
-            IOUtils.close(secureSettings);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
         return new NodeAndClient(name, node, settings, nodeId);
     }
 

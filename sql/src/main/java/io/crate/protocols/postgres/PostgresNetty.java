@@ -30,6 +30,7 @@ import io.crate.auth.user.UserManager;
 import io.crate.netty.CrateChannelBootstrapFactory;
 import io.crate.protocols.ssl.SslConfigSettings;
 import io.crate.protocols.ssl.SslContextProvider;
+import io.crate.protocols.ssl.SslContextProviderFactory;
 import io.crate.settings.CrateSetting;
 import io.crate.types.DataTypes;
 import io.netty.bootstrap.ServerBootstrap;
@@ -69,7 +70,7 @@ import java.util.function.Function;
 @Singleton
 public class PostgresNetty extends AbstractLifecycleComponent {
 
-    private static final Logger logger = LogManager.getLogger(PostgresNetty.class);
+    private static final Logger LOGGER = LogManager.getLogger(PostgresNetty.class);
 
     public static final CrateSetting<Boolean> PSQL_ENABLED_SETTING = CrateSetting.of(Setting.boolSetting(
         "psql.enabled", true,
@@ -105,15 +106,21 @@ public class PostgresNetty extends AbstractLifecycleComponent {
                          SQLOperations sqlOperations,
                          UserManager userManager,
                          NetworkService networkService,
-                         Authentication authentication,
-                         SslContextProvider sslContextProvider) {
+                         Authentication authentication) {
         this.settings = settings;
         this.userManager = userManager;
         namedLogger = LogManager.getLogger("psql");
         this.sqlOperations = sqlOperations;
         this.networkService = networkService;
         this.authentication = authentication;
-        this.sslContextProvider = sslContextProvider;
+
+        if (SslConfigSettings.isPSQLSslEnabled(settings)) {
+            namedLogger.info("PSQL SSL support is enabled.");
+            this.sslContextProvider = SslContextProviderFactory.getInstance();
+        } else {
+            namedLogger.info("PSQL SSL support is disabled.");
+            this.sslContextProvider = null;
+        }
 
         enabled = PSQL_ENABLED_SETTING.setting().get(settings);
         bindHosts = NetworkService.GLOBAL_NETWORK_BIND_HOST_SETTING.get(settings).toArray(new String[0]);
@@ -132,19 +139,17 @@ public class PostgresNetty extends AbstractLifecycleComponent {
             return;
         }
         bootstrap = CrateChannelBootstrapFactory.newChannelBootstrap("postgres", settings);
-        this.openChannels = new Netty4OpenChannelsHandler(logger);
+        this.openChannels = new Netty4OpenChannelsHandler(LOGGER);
 
         final SslContext sslContext;
-        if (SslConfigSettings.isPSQLSslEnabled(settings)) {
-            sslContext = sslContextProvider.get();
-            namedLogger.info("PSQL SSL support is enabled.");
+        if (sslContextProvider != null) {
+            sslContext = sslContextProvider.getSslContext(settings);
         } else {
             sslContext = null;
-            namedLogger.info("PSQL SSL support is disabled.");
         }
-        bootstrap.childHandler(new ChannelInitializer<Channel>() {
+        bootstrap.childHandler(new ChannelInitializer<>() {
             @Override
-            protected void initChannel(Channel ch) throws Exception {
+            protected void initChannel(Channel ch) {
                 ChannelPipeline pipeline = ch.pipeline();
                 pipeline.addLast("open_channels", PostgresNetty.this.openChannels);
                 PostgresWireProtocol postgresWireProtocol =
@@ -231,8 +236,8 @@ public class PostgresNetty extends AbstractLifecycleComponent {
             throw new BindPostgresException("Failed to bind to [" + port + "]", lastException.get());
         }
 
-        if (logger.isDebugEnabled()) {
-            logger.debug("Bound psql to address {{}}", NetworkAddress.format(boundSocket.get()));
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Bound psql to address {{}}", NetworkAddress.format(boundSocket.get()));
         }
         return new TransportAddress(boundSocket.get());
     }

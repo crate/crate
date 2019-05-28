@@ -32,21 +32,20 @@ public class ParsedDocument {
 
     private final Field version;
 
-    private final String id, type;
+    private final String id;
     private final SeqNoFieldMapper.SequenceIDFields seqID;
 
     private final String routing;
 
     private final List<Document> documents;
 
-    private BytesReference source;
+    private final BytesReference source;
 
-    private Mapping dynamicMappingsUpdate;
+    private final Mapping dynamicMappingsUpdate;
 
     public ParsedDocument(Field version,
                           SeqNoFieldMapper.SequenceIDFields seqID,
                           String id,
-                          String type,
                           String routing,
                           List<Document> documents,
                           BytesReference source,
@@ -54,7 +53,6 @@ public class ParsedDocument {
         this.version = version;
         this.seqID = seqID;
         this.id = id;
-        this.type = type;
         this.routing = routing;
         this.documents = documents;
         this.source = source;
@@ -63,10 +61,6 @@ public class ParsedDocument {
 
     public String id() {
         return this.id;
-    }
-
-    public String type() {
-        return this.type;
     }
 
     public Field version() {
@@ -112,14 +106,6 @@ public class ParsedDocument {
      */
     public Mapping dynamicMappingsUpdate() {
         return dynamicMappingsUpdate;
-    }
-
-    public void addDynamicMappingsUpdate(Mapping update) {
-        if (dynamicMappingsUpdate == null) {
-            dynamicMappingsUpdate = update;
-        } else {
-            dynamicMappingsUpdate = dynamicMappingsUpdate.merge(update, false);
-        }
     }
 
     @Override

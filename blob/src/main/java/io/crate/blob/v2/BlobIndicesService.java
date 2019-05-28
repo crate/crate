@@ -58,7 +58,7 @@ import static io.crate.blob.v2.BlobIndex.isBlobIndex;
  */
 public class BlobIndicesService implements IndexEventListener {
 
-    private static final Logger logger = LogManager.getLogger(BlobIndicesService.class);
+    private static final Logger LOGGER = LogManager.getLogger(BlobIndicesService.class);
 
     public static final Setting<Boolean> SETTING_INDEX_BLOBS_ENABLED = Setting.boolSetting(
         "index.blobs.enabled", false, Setting.Property.IndexScope);
@@ -98,7 +98,7 @@ public class BlobIndicesService implements IndexEventListener {
     public void afterIndexCreated(IndexService indexService) {
         String indexName = indexService.index().getName();
         if (isBlobIndex(indexName)) {
-            BlobIndex oldBlobIndex = indices.put(indexName, new BlobIndex(logger, globalBlobPath));
+            BlobIndex oldBlobIndex = indices.put(indexName, new BlobIndex(LOGGER, globalBlobPath));
             assert oldBlobIndex == null : "There must not be an index present if a new index is created";
         }
     }
