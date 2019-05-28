@@ -43,6 +43,13 @@ the following steps:
  - :ref:`ssl_configure_keystore`
  - (Optional) :ref:`ssl_configure_truststore`
 
+.. NOTE::
+
+  CrateDB monitors SSL files such as keystore and truststore that are
+  configured as values of the node settings. If any of these files are updated
+  CrateDB dynamically reloads them. The polling frequency of the files is set
+  via the :ref:`ssl.resource_poll_interval <ssl.resource_poll_interval>`
+  setting.
 
 .. _ssl_configure_keystore:
 

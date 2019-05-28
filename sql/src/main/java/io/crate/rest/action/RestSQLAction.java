@@ -26,6 +26,7 @@ import io.crate.action.sql.SQLOperations;
 import io.crate.auth.user.UserManager;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.plugin.PipelineRegistry;
+import io.crate.protocols.ssl.SslContextProvider;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
@@ -39,7 +40,8 @@ public class RestSQLAction {
                          SQLOperations sqlOperations,
                          PipelineRegistry pipelineRegistry,
                          Provider<UserManager> userManagerProvider,
-                         CrateCircuitBreakerService breakerService) {
+                         CrateCircuitBreakerService breakerService,
+                         SslContextProvider sslContextProvider) {
         UserManager userManager = userManagerProvider.get();
         pipelineRegistry.addBefore(new PipelineRegistry.ChannelPipelineItem(
             "handler",
@@ -53,5 +55,6 @@ public class RestSQLAction {
                 corsConfig
             )
         ));
+        pipelineRegistry.setSslContextProvider(sslContextProvider);
     }
 }

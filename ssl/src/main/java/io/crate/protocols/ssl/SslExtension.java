@@ -22,16 +22,14 @@
 
 package io.crate.protocols.ssl;
 
-import io.netty.handler.ssl.SslContext;
-import org.elasticsearch.common.Nullable;
+import org.elasticsearch.common.component.LifecycleComponent;
+import org.elasticsearch.common.inject.Module;
 
-/**
- * Provides Netty's SslContext.
- */
-public interface SslContextProvider {
+import java.util.Collection;
 
-    @Nullable
-    SslContext getSslContext();
+public interface SslExtension {
 
-    void reloadSslContext();
+    Collection<Module> getModules();
+
+    Collection<Class<? extends LifecycleComponent>> getGuiceServiceClasses();
 }

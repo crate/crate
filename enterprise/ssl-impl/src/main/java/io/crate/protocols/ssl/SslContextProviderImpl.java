@@ -19,25 +19,45 @@
 package io.crate.protocols.ssl;
 
 import io.netty.handler.ssl.SslContext;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 
+@Singleton
 public class SslContextProviderImpl implements SslContextProvider {
+
+    private static final Logger LOGGER = LogManager.getLogger(SslContextProvider.class);
 
     private volatile SslContext sslContext;
 
-    // required by service provider
-    public SslContextProviderImpl() {
+    private final Settings settings;
+
+    @Inject
+    public SslContextProviderImpl(Settings settings) {
+        this.settings = settings;
     }
 
     @Override
-    public SslContext getSslContext(Settings settings) {
-        if (sslContext == null) {
+    public SslContext getSslContext() {
+        var localRef = sslContext;
+        if (localRef == null) {
             synchronized (this) {
-                if (sslContext == null) {
-                    sslContext = SslConfiguration.buildSslContext(settings);
+                localRef = sslContext;
+                if (localRef == null) {
+                    sslContext = localRef = SslConfiguration.buildSslContext(this.settings);
                 }
             }
         }
-        return sslContext;
+        return localRef;
+    }
+
+    @Override
+    public void reloadSslContext() {
+        synchronized (this) {
+            sslContext = SslConfiguration.buildSslContext(this.settings);
+            LOGGER.info("SSL configuration is reloaded.");
+        }
     }
 }

@@ -21,6 +21,7 @@ package io.crate.protocols.postgres;
 import io.crate.action.sql.SQLOperations;
 import io.crate.auth.AlwaysOKNullAuthentication;
 import io.crate.auth.user.AccessControl;
+import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.test.integration.CrateUnitTest;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -56,7 +57,7 @@ public class SslReqHandlerTest extends CrateUnitTest {
                 sessionContext -> AccessControl.DISABLED,
                 new AlwaysOKNullAuthentication(),
                 // use a simple ssl context
-                getSelfSignedSslContext());
+                getSelfSignedSslContextProvider());
 
         channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
 
@@ -81,16 +82,26 @@ public class SslReqHandlerTest extends CrateUnitTest {
     /**
      * Uses a simple (and insecure) self-signed certificate.
      */
-    private static SslContext getSelfSignedSslContext () {
-        try {
-            SelfSignedCertificate ssc = new SelfSignedCertificate();
-            return SslContextBuilder
-                    .forServer(ssc.certificate(), ssc.privateKey())
-                    .trustManager(InsecureTrustManagerFactory.INSTANCE)
-                    .startTls(false)
-                    .build();
-        } catch (Exception e) {
-            throw new RuntimeException("Couldn't setup self signed certificate", e);
-        }
+    private static SslContextProvider getSelfSignedSslContextProvider() {
+        return new SslContextProvider() {
+
+            @Override
+            public SslContext getSslContext() {
+                try {
+                    SelfSignedCertificate ssc = new SelfSignedCertificate();
+                    return SslContextBuilder
+                        .forServer(ssc.certificate(), ssc.privateKey())
+                        .trustManager(InsecureTrustManagerFactory.INSTANCE)
+                        .startTls(false)
+                        .build();
+                } catch (Exception e) {
+                    throw new RuntimeException("Couldn't setup self signed certificate", e);
+                }
+            }
+
+            @Override
+            public void reloadSslContext() {
+            }
+        };
     }
 }

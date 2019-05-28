@@ -20,6 +20,7 @@ package io.crate.protocols.http;
 
 import io.crate.plugin.PipelineRegistry;
 import io.crate.protocols.ssl.SslConfigSettings;
+import io.crate.protocols.ssl.SslContextProviderImpl;
 import io.crate.test.integration.CrateUnitTest;
 import io.netty.channel.Channel;
 import io.netty.channel.embedded.EmbeddedChannel;
@@ -80,6 +81,7 @@ public class CrateHttpsTransportTest extends CrateUnitTest {
         }));
 
         PipelineRegistry pipelineRegistry = new PipelineRegistry(settings);
+        pipelineRegistry.setSslContextProvider(new SslContextProviderImpl(settings));
 
         CrateNettyHttpServerTransport transport =
             new CrateNettyHttpServerTransport(

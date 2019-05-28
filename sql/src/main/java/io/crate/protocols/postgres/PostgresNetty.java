@@ -30,7 +30,6 @@ import io.crate.auth.user.UserManager;
 import io.crate.netty.CrateChannelBootstrapFactory;
 import io.crate.protocols.ssl.SslConfigSettings;
 import io.crate.protocols.ssl.SslContextProvider;
-import io.crate.protocols.ssl.SslContextProviderFactory;
 import io.crate.settings.CrateSetting;
 import io.crate.types.DataTypes;
 import io.netty.bootstrap.ServerBootstrap;
@@ -38,7 +37,6 @@ import io.netty.bootstrap.ServerBootstrapConfig;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
-import io.netty.handler.ssl.SslContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
@@ -87,10 +85,11 @@ public class PostgresNetty extends AbstractLifecycleComponent {
     private final String[] publishHosts;
     private final String port;
     private final Authentication authentication;
-    private final SslContextProvider sslContextProvider;
     private final Logger namedLogger;
     private final Settings settings;
     private UserManager userManager;
+    @Nullable
+    private final SslContextProvider sslContextProvider;
 
     private ServerBootstrap bootstrap;
 
@@ -106,7 +105,8 @@ public class PostgresNetty extends AbstractLifecycleComponent {
                          SQLOperations sqlOperations,
                          UserManager userManager,
                          NetworkService networkService,
-                         Authentication authentication) {
+                         Authentication authentication,
+                         SslContextProvider sslContextProvider) {
         this.settings = settings;
         this.userManager = userManager;
         namedLogger = LogManager.getLogger("psql");
@@ -116,7 +116,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
 
         if (SslConfigSettings.isPSQLSslEnabled(settings)) {
             namedLogger.info("PSQL SSL support is enabled.");
-            this.sslContextProvider = SslContextProviderFactory.getInstance();
+            this.sslContextProvider = sslContextProvider;
         } else {
             namedLogger.info("PSQL SSL support is disabled.");
             this.sslContextProvider = null;
@@ -141,19 +141,16 @@ public class PostgresNetty extends AbstractLifecycleComponent {
         bootstrap = CrateChannelBootstrapFactory.newChannelBootstrap("postgres", settings);
         this.openChannels = new Netty4OpenChannelsHandler(LOGGER);
 
-        final SslContext sslContext;
-        if (sslContextProvider != null) {
-            sslContext = sslContextProvider.getSslContext(settings);
-        } else {
-            sslContext = null;
-        }
         bootstrap.childHandler(new ChannelInitializer<>() {
             @Override
             protected void initChannel(Channel ch) {
                 ChannelPipeline pipeline = ch.pipeline();
                 pipeline.addLast("open_channels", PostgresNetty.this.openChannels);
-                PostgresWireProtocol postgresWireProtocol =
-                    new PostgresWireProtocol(sqlOperations, userManager::getAccessControl, authentication, sslContext);
+                PostgresWireProtocol postgresWireProtocol = new PostgresWireProtocol(
+                    sqlOperations,
+                    userManager::getAccessControl,
+                    authentication,
+                    sslContextProvider);
                 pipeline.addLast("frame-decoder", postgresWireProtocol.decoder);
                 pipeline.addLast("handler", postgresWireProtocol.handler);
             }

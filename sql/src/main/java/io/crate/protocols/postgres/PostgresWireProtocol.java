@@ -38,6 +38,7 @@ import io.crate.expression.symbol.Field;
 import io.crate.protocols.http.CrateNettyHttpServerTransport;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
+import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.types.DataType;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
@@ -45,7 +46,6 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.ByteToMessageDecoder;
-import io.netty.handler.ssl.SslContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
@@ -211,11 +211,11 @@ class PostgresWireProtocol {
     PostgresWireProtocol(SQLOperations sqlOperations,
                          Function<SessionContext, AccessControl> getAcessControl,
                          Authentication authService,
-                         @Nullable SslContext sslContext) {
+                         @Nullable SslContextProvider sslContextProvider) {
         this.sqlOperations = sqlOperations;
         this.getAccessControl = getAcessControl;
         this.authService = authService;
-        this.sslReqHandler = new SslReqHandler(sslContext);
+        this.sslReqHandler = new SslReqHandler(sslContextProvider);
         this.decoder = new MessageDecoder();
         this.handler = new MessageHandler();
     }

@@ -24,13 +24,13 @@ package io.crate.plugin;
 
 import io.crate.protocols.ssl.SslConfigSettings;
 import io.crate.protocols.ssl.SslContextProvider;
-import io.crate.protocols.ssl.SslContextProviderFactory;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelPipeline;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslHandler;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.http.netty4.cors.Netty4CorsConfig;
@@ -52,16 +52,19 @@ public class PipelineRegistry {
     private static final Logger LOGGER = LogManager.getLogger(PipelineRegistry.class);
 
     private final List<ChannelPipelineItem> addBeforeList;
-    private final SslContextProvider sslContextProvider;
     private final Settings settings;
+    @Nullable
+    private SslContextProvider sslContextProvider;
 
     public PipelineRegistry(Settings settings) {
         this.addBeforeList = new ArrayList<>();
         this.settings = settings;
+    }
 
+    public void setSslContextProvider(SslContextProvider sslContextProvider) {
         if (SslConfigSettings.isHttpsEnabled(settings)) {
             LOGGER.info("HTTP SSL support is enabled.");
-            this.sslContextProvider = SslContextProviderFactory.getInstance();
+            this.sslContextProvider = sslContextProvider;
         } else {
             LOGGER.info("HTTP SSL support is disabled.");
             this.sslContextProvider = null;
@@ -109,7 +112,7 @@ public class PipelineRegistry {
         }
 
         if (sslContextProvider != null) {
-            SslContext sslContext = sslContextProvider.getSslContext(settings);
+            SslContext sslContext = sslContextProvider.getSslContext();
             if (sslContext != null) {
                 SslHandler sslHandler = sslContext.newHandler(pipeline.channel().alloc());
                 pipeline.addFirst(sslHandler);
