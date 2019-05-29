@@ -250,6 +250,11 @@ Deprecations
 Changes
 =======
 
+- Predicates like ``abs(x) = 1`` which require a scalar function evaluation and
+  cannot operate on table indices directly are now candidates for the query
+  cache. This can result in order of magnitude performance increases on
+  subsequent queries.
+
 - Mask sensitive user account information in
   :ref:`sys.repositories <sys-repositories>` for repository types:
   ``azure``, ``s3``.

@@ -26,6 +26,9 @@ import io.crate.data.Input;
 import io.crate.expression.InputCondition;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.RefVisitor;
+import io.crate.expression.symbol.SymbolVisitors;
+import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.Term;
@@ -40,6 +43,7 @@ import org.apache.lucene.search.TwoPhaseIterator;
 import org.apache.lucene.search.Weight;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Set;
 
@@ -83,7 +87,12 @@ class GenericFunctionQuery extends Query {
         return new Weight(this) {
             @Override
             public boolean isCacheable(LeafReaderContext ctx) {
-                return false;
+                if (SymbolVisitors.any(s -> s instanceof Function && !((Function) s).info().isDeterministic(), function)) {
+                    return false;
+                }
+                var fields = new ArrayList<String>();
+                RefVisitor.visitRefs(function, ref -> fields.add(ref.column().fqn()));
+                return DocValues.isCacheable(ctx, fields.toArray(new String[0]));
             }
 
             @Override
