@@ -23,14 +23,20 @@
 package io.crate.integrationtests.disruption.discovery;
 
 import io.crate.integrationtests.SQLTransportIntegrationTest;
+import org.elasticsearch.action.admin.indices.stats.IndicesStatsResponse;
+import org.elasticsearch.action.admin.indices.stats.ShardStats;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.action.index.MappingUpdatedAction;
 import org.elasticsearch.cluster.coordination.NoMasterBlockService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.InternalTestCluster;
+import org.elasticsearch.test.disruption.BlockMasterServiceOnMaster;
 import org.elasticsearch.test.disruption.IntermittentLongGCDisruption;
 import org.elasticsearch.test.disruption.NetworkDisruption;
 import org.elasticsearch.test.disruption.NetworkDisruption.TwoPartitions;
+import org.elasticsearch.test.disruption.ServiceDisruptionScheme;
 import org.elasticsearch.test.disruption.SingleNodeDisruption;
 import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.junit.Test;
@@ -38,8 +44,10 @@ import org.junit.Test;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
+import static io.crate.metadata.IndexParts.toIndexName;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 
@@ -104,7 +112,7 @@ public class MasterDisruptionIT extends AbstractDisruptionTestCase {
         int numberOfShards = 1 + randomInt(2);
         int numberOfReplicas = randomInt(2);
         logger.info("creating table t with {} shards and {} replicas", numberOfShards, numberOfReplicas);
-        execute("create table t (id int primary key, x string) clustered into "+numberOfShards + " shards with " +
+        execute("create table t (id int primary key, x string) clustered into " + numberOfShards + " shards with " +
                 "(number_of_replicas = " + numberOfReplicas + " )");
         ensureGreen();
 
@@ -235,5 +243,51 @@ public class MasterDisruptionIT extends AbstractDisruptionTestCase {
         // the unresponsive partition causes recoveries to only time out after 15m (default) and these will cause
         // the test to fail due to unfreed resources
         ensureStableCluster(2, nonIsolatedNode);
+    }
+
+    @Test
+    public void testMappingNewFieldsTimeoutDoesntAffectCheckpoints() throws Exception {
+        InternalTestCluster internalCluster = internalCluster();
+        internalCluster.startNodes(3,
+                                   Settings.builder()
+                                       .put(MappingUpdatedAction.INDICES_MAPPING_DYNAMIC_TIMEOUT_SETTING.getKey(),
+                                            "1ms")
+                                       .build()
+        );
+        ensureStableCluster(3);
+
+        logger.info("creating table t with 1 shards and 1 replica");
+        execute("create table t (id int primary key, x object(dynamic)) clustered into 1 shards with " +
+                "(number_of_replicas = 1, \"routing.allocation.exclude._name\" = '" + internalCluster().getMasterName()
+                + "', \"write.wait_for_active_shards\" = 1)");
+        ensureGreen();
+        execute("insert into t values (?, ?)", new Object[]{1, Map.of("first field", "first value")});
+
+        ServiceDisruptionScheme disruption = new BlockMasterServiceOnMaster(random());
+        setDisruptionScheme(disruption);
+
+        disruption.startDisrupting();
+
+        try {
+            execute("insert into t values (?, ?), (?, ?), (?, ?)",
+                    new Object[]{
+                        2, Map.of("2nd field", "2nd value"),
+                        3, Map.of("3rd field", "3rd value"),
+                        4, Map.of("4th field", "4th value"),
+                    });
+        } catch (Exception e) {
+            // failure is acceptable
+        }
+
+        disruption.stopDisrupting();
+
+        String indexName = toIndexName(sqlExecutor.getCurrentSchema(), "t", null);
+        assertBusy(() -> {
+            IndicesStatsResponse stats = client().admin().indices().prepareStats(indexName).clear().get();
+            for (ShardStats shardStats : stats.getShards()) {
+                assertThat(shardStats.getShardRouting().toString(),
+                           shardStats.getSeqNoStats().getGlobalCheckpoint(), equalTo(shardStats.getSeqNoStats().getLocalCheckpoint()));
+            }
+        });
     }
 }
