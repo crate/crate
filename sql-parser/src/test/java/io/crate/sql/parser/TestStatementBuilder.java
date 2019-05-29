@@ -812,8 +812,10 @@ public class TestStatementBuilder {
     public void testSystemInformationFunctionsStmtBuilder() {
         printStatement("select current_schema");
         printStatement("select current_schema()");
+        printStatement("select pg_catalog.current_schema()");
         printStatement("select * from information_schema.tables where table_schema = current_schema");
         printStatement("select * from information_schema.tables where table_schema = current_schema()");
+        printStatement("select * from information_schema.tables where table_schema = pg_catalog.current_schema()");
 
         printStatement("select current_user");
         printStatement("select user");
