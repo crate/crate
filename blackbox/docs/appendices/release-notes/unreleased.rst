@@ -364,4 +364,5 @@ Changes
 Fixes
 =====
 
-None
+- Fixed function resolution for function :ref:`scalar_current_schema` when the schema prefix
+  ``pg_catalog`` is included.
