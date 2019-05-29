@@ -27,8 +27,6 @@ import org.elasticsearch.monitor.process.ProcessStats;
 class NodeProcessCpuStatsExpression extends NestedNodeStatsExpression {
 
     private static final String PERCENT = "percent";
-    private static final String USER = "user";
-    private static final String SYSTEM = "system";
 
     NodeProcessCpuStatsExpression() {
         childImplementations.put(PERCENT, new SimpleNodeStatsExpression<Short>() {
@@ -40,18 +38,6 @@ class NodeProcessCpuStatsExpression extends NestedNodeStatsExpression {
                 } else {
                     return -1;
                 }
-            }
-        });
-        childImplementations.put(USER, new SimpleNodeStatsExpression<Long>() {
-            @Override
-            public Long innerValue(NodeStatsContext nodeStatsContext) {
-                return -1L;
-            }
-        });
-        childImplementations.put(SYSTEM, new SimpleNodeStatsExpression<Long>() {
-            @Override
-            public Long innerValue(NodeStatsContext nodeStatsContext) {
-                return -1L;
             }
         });
     }
