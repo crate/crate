@@ -72,7 +72,7 @@ public final class QueryTester implements AutoCloseable {
     private final BiFunction<ColumnIdent, Query, LuceneBatchIterator> getIterator;
     private final BiFunction<String, Object[], Symbol> expressionToSymbol;
     private final Function<Symbol, Query> symbolToQuery;
-    private final AutoCloseable onClose;
+    private final IndexEnv indexEnv;
 
     public static class Builder {
 
@@ -207,11 +207,15 @@ public final class QueryTester implements AutoCloseable {
     private QueryTester(BiFunction<ColumnIdent, Query, LuceneBatchIterator> getIterator,
                         BiFunction<String, Object[], Symbol> expressionToSymbol,
                         Function<Symbol, Query> symbolToQuery,
-                        AutoCloseable onClose) {
+                        IndexEnv indexEnv) {
         this.getIterator = getIterator;
         this.expressionToSymbol = expressionToSymbol;
         this.symbolToQuery = symbolToQuery;
-        this.onClose = onClose;
+        this.indexEnv = indexEnv;
+    }
+
+    public IndexSearcher searcher() throws IOException {
+        return new IndexSearcher(DirectoryReader.open(indexEnv.writer()));
     }
 
     public Query toQuery(String expression) {
@@ -226,6 +230,8 @@ public final class QueryTester implements AutoCloseable {
         return symbolToQuery.apply(expression);
     }
 
+
+
     public List<Object> runQuery(String resultColumn, String expression) throws Exception {
         Query query = toQuery(expression);
         LuceneBatchIterator batchIterator = getIterator.apply(ColumnIdent.fromPath(resultColumn), query);
@@ -237,6 +243,6 @@ public final class QueryTester implements AutoCloseable {
 
     @Override
     public void close() throws Exception {
-        onClose.close();
+        indexEnv.close();
     }
 }
