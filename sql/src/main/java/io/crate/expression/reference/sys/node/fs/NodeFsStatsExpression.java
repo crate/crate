@@ -41,15 +41,6 @@ public class NodeFsStatsExpression extends SimpleNodeStatsExpression<Map<String,
     static final String USED = "used";
     static final String AVAILABLE = "available";
 
-    @Deprecated // for individual devices
-    static final String READS = "reads";
-    @Deprecated // for individual devices
-    static final String BYTES_READ = "bytes_read";
-    @Deprecated // for individual devices
-    static final String WRITES = "writes";
-    @Deprecated // for individual devices
-    static final String BYTES_WRITTEN = "bytes_written";
-
     private final NodeFsTotalStatsExpression total;
     private final NodeStatsFsDisksExpression disks;
     private final NodeStatsFsDataExpression data;
