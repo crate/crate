@@ -212,6 +212,10 @@ public class WindowAgg extends ForwardingLogicalPlan {
         return outputs;
     }
 
+    public WindowDefinition windowDefinition() {
+        return windowDefinition;
+    }
+
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
         return new WindowAgg(Lists2.getOnlyElement(sources), windowDefinition, windowFunctions, standalone);

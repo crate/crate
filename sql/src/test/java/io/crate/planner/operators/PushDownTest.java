@@ -374,4 +374,19 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
             "Collect[doc.t1 | [x] | (x > 1)]\n";
         assertThat(plan, isPlan(sqlExecutor.functions(), expectedPlan));
     }
+
+    @Test
+    public void testFilterOnSubQueryPartitionKeyIsPushedBeneathPartitionedWindowAgg() {
+        var plan = sqlExecutor.logicalPlan(
+            "SELECT * FROM " +
+            "   (SELECT x, sum(x) over (partition by x) FROM t1) sums " +
+            "WHERE sums.x = 10 "
+        );
+        var expectedPlan =
+            "RootBoundary[x, \"sum(x) OVER (PARTITION BY x)\"]\n" +
+            "Boundary[x, \"sum(x) OVER (PARTITION BY x)\"]\n" +
+            "WindowAgg[sum(x) | PARTITION BY x]\n" +
+            "Collect[doc.t1 | [x] | (x = 10)]\n";
+        assertThat(plan, isPlan(sqlExecutor.functions(), expectedPlan));
+    }
 }
