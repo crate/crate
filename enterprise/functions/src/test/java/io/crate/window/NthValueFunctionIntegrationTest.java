@@ -66,4 +66,20 @@ public class NthValueFunctionIntegrationTest extends SQLTransportIntegrationTest
                                                      "cc| cc| 2\n" +
                                                      "d| d| 1\n"));
     }
+
+    @Test
+    public void testNthValueOverUnboundedFollowingWindow() {
+        execute("SELECT\n" +
+                "col1,\n" +
+                " nth_value(col1, 2) OVER(PARTITION BY col1>2 ORDER BY col1 RANGE BETWEEN CURRENT ROW and UNBOUNDED FOLLOWING)\n" +
+                "FROM unnest(ARRAY[1, 2, 2, 3, 4, 5, null]) col1");
+
+        assertThat(printedTable(response.rows()), is("1| 2\n" +
+                                                    "2| 2\n" +
+                                                    "2| 2\n" +
+                                                    "3| 4\n" +
+                                                    "4| 5\n" +
+                                                    "5| NULL\n" +
+                                                    "NULL| NULL\n"));
+    }
 }

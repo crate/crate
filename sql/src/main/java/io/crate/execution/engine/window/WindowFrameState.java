@@ -41,8 +41,12 @@ public final class WindowFrameState {
         this.rows = rows;
     }
 
-    int lowerBound() {
+    public int lowerBound() {
         return lowerBound;
+    }
+
+    int partitionStart() {
+        return partitionStart;
     }
 
     public int upperBoundExclusive() {

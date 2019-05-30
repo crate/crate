@@ -44,6 +44,7 @@ public class NthValueFunctions implements WindowFunction {
 
     private final FunctionInfo info;
     private final BiFunction<WindowFrameState, Input[], Integer> frameIndexSupplier;
+    private int seenFrameLowerBound = -1;
     private int seenFrameUpperBound = -1;
     private Object resultForCurrentFrame = null;
 
@@ -62,9 +63,25 @@ public class NthValueFunctions implements WindowFunction {
                           WindowFrameState currentFrame,
                           List<? extends CollectExpression<Row, ?>> expressions,
                           Input... args) {
-        if (idxInPartition == 0 || currentFrame.upperBoundExclusive() > seenFrameUpperBound) {
+        boolean shrinkingWindow = isShrinkingWindow(currentFrame);
+        if (idxInPartition == 0 || currentFrame.upperBoundExclusive() > seenFrameUpperBound || shrinkingWindow) {
+            seenFrameLowerBound = currentFrame.lowerBound();
             seenFrameUpperBound = currentFrame.upperBoundExclusive();
-            Object[] nthRowCells = currentFrame.getRowAtIndexOrNull(frameIndexSupplier.apply(currentFrame, args));
+
+            int index = frameIndexSupplier.apply(currentFrame, args);
+            if (shrinkingWindow) {
+                // consecutive shrinking frames (lower bound increments) will can have the following format :
+                //         frame 1: 1 2 3 with lower bound 0
+                //          frame 2:   2 3 with lower bound 1
+                // We represent the frames as a view over the rows in a partition (for frame 2 the element "1" is not
+                // present by virtue of the frame's lower bound being 1 and "hiding"/excluding it)
+                // If we want the 2nd value (index = 1) in every frame we have to request the index _after_  the frame's
+                // lower bound (in our example, to get the 2nd value in the second frame, namely "3", the requested
+                // index needs to be 2)
+                index = currentFrame.lowerBound() + index;
+            }
+
+            Object[] nthRowCells = currentFrame.getRowAtIndexOrNull(index);
             if (nthRowCells == null) {
                 resultForCurrentFrame = null;
                 return null;
@@ -79,6 +96,10 @@ public class NthValueFunctions implements WindowFunction {
         }
 
         return resultForCurrentFrame;
+    }
+
+    private boolean isShrinkingWindow(WindowFrameState frame) {
+        return seenFrameLowerBound < frame.lowerBound() && seenFrameUpperBound == frame.upperBoundExclusive();
     }
 
     public static void register(EnterpriseFunctionsModule module) {

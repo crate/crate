@@ -195,4 +195,22 @@ public class WindowFunctionsIntegrationTest extends SQLTransportIntegrationTest 
                "50| 3.0| 40.0\n")
         );
     }
+
+    @Test
+    public void testCurrentRowUnboundedFollowingWindowFrame() {
+        execute("SELECT\n" +
+                "col1,\n" +
+                "sum(col1) OVER(PARTITION BY col1>2 ORDER BY col1 RANGE BETWEEN CURRENT ROW and UNBOUNDED FOLLOWING)\n" +
+                "FROM unnest(ARRAY[1, 2, 2, 3, 4, 5, null]) col1");
+        assertThat(
+            printedTable(response.rows()),
+            is("1| 5\n" +
+               "2| 4\n" +
+               "2| 4\n" +
+               "3| 12\n" +
+               "4| 9\n" +
+               "5| 5\n" +
+               "NULL| NULL\n")
+        );
+    }
 }

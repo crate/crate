@@ -61,6 +61,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import static io.crate.analyze.WindowDefinition.UNBOUNDED_PRECEDING_CURRENT_ROW;
 import static io.crate.data.SentinelRow.SENTINEL;
 import static io.crate.execution.engine.sort.Comparators.createComparator;
 import static org.hamcrest.Matchers.instanceOf;
@@ -137,6 +138,7 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
         BatchIterator<Row> iterator = WindowFunctionBatchIterator.of(
             InMemoryBatchIterator.of(Arrays.stream(inputRows).map(RowN::new).collect(Collectors.toList()), SENTINEL),
             new IgnoreRowAccounting(),
+            UNBOUNDED_PRECEDING_CURRENT_ROW,
             createComparator(() -> inputFactory.ctxForRefs(txnCtx, referenceResolver), partitionOrderBy),
             createComparator(() -> inputFactory.ctxForRefs(txnCtx, referenceResolver), windowDef.orderBy()),
             numCellsInSourceRows,
