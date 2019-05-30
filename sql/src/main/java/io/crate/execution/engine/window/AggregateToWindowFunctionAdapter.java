@@ -46,6 +46,7 @@ public class AggregateToWindowFunctionAdapter implements WindowFunction {
     private final BigArrays bigArrays;
     private Object accumulatedState;
 
+    private int seenFrameLowerBound = -1;
     private int seenFrameUpperBound = -1;
     private Object resultForCurrentFrame;
 
@@ -75,14 +76,19 @@ public class AggregateToWindowFunctionAdapter implements WindowFunction {
                           WindowFrameState frame,
                           List<? extends CollectExpression<Row, ?>> expressions,
                           Input... args) {
-        if (idxInPartition == 0) {
+        if (idxInPartition == 0 || isShrinkingWindow(frame)) {
             accumulatedState = aggregationFunction.newState(ramAccountingContext, indexVersionCreated, bigArrays);
             seenFrameUpperBound = -1;
+            seenFrameLowerBound = -1;
             executeAggregateForFrame(frame, expressions, args);
         } else if (frame.upperBoundExclusive() > seenFrameUpperBound) {
             executeAggregateForFrame(frame, expressions, args);
         }
         return resultForCurrentFrame;
+    }
+
+    private boolean isShrinkingWindow(WindowFrameState frame) {
+        return seenFrameLowerBound < frame.lowerBound() && seenFrameUpperBound == frame.upperBoundExclusive();
     }
 
     private void executeAggregateForFrame(WindowFrameState frame, List<? extends CollectExpression<Row, ?>> expressions, Input... inputs) {
@@ -103,6 +109,7 @@ public class AggregateToWindowFunctionAdapter implements WindowFunction {
         }
         
         resultForCurrentFrame = aggregationFunction.terminatePartial(ramAccountingContext, accumulatedState);
+        seenFrameLowerBound = frame.lowerBound();
         seenFrameUpperBound = frame.upperBoundExclusive();
     }
 }

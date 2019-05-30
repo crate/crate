@@ -23,6 +23,8 @@
 package io.crate.execution.engine.window;
 
 import com.google.common.collect.Iterables;
+import io.crate.analyze.FrameBoundDefinition;
+import io.crate.analyze.WindowFrameDefinition;
 import io.crate.breaker.RowAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.BatchIterators;
@@ -32,6 +34,7 @@ import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.sort.Sort;
+import io.crate.sql.tree.FrameBound;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 
@@ -76,6 +79,7 @@ public final class WindowFunctionBatchIterator {
 
     public static BatchIterator<Row> of(BatchIterator<Row> source,
                                         RowAccounting<Row> rowAccounting,
+                                        WindowFrameDefinition frameDefinition,
                                         Comparator<Object[]> cmpPartitionBy,
                                         Comparator<Object[]> cmpOrderBy,
                                         int numCellsInSourceRow,
@@ -96,6 +100,7 @@ public final class WindowFunctionBatchIterator {
                 .collect(src, Collectors.mapping(materialize, Collectors.toList()))
                 .thenCompose(rows -> sortAndComputeWindowFunctions(
                     rows,
+                    frameDefinition,
                     cmpPartitionBy,
                     cmpOrderBy,
                     numCellsInSourceRow,
@@ -120,6 +125,7 @@ public final class WindowFunctionBatchIterator {
 
     static CompletableFuture<Iterable<Object[]>> sortAndComputeWindowFunctions(
         List<Object[]> rows,
+        WindowFrameDefinition frameDefinition,
         @Nullable Comparator<Object[]> cmpPartitionBy,
         @Nullable Comparator<Object[]> cmpOrderBy,
         int numCellsInSourceRow,
@@ -131,6 +137,7 @@ public final class WindowFunctionBatchIterator {
 
         Function<List<Object[]>, Iterable<Object[]>> computeWindowsFn = sortedRows -> computeWindowFunctions(
             sortedRows,
+            frameDefinition,
             cmpPartitionBy,
             cmpOrderBy,
             numCellsInSourceRow,
@@ -149,6 +156,7 @@ public final class WindowFunctionBatchIterator {
     }
 
     private static Iterable<Object[]> computeWindowFunctions(List<Object[]> sortedRows,
+                                                             WindowFrameDefinition frameDefinition,
                                                              @Nullable Comparator<Object[]> cmpPartitionBy,
                                                              @Nullable Comparator<Object[]> cmpOrderBy,
                                                              int numCellsInSourceRow,
@@ -168,6 +176,8 @@ public final class WindowFunctionBatchIterator {
             private int i = 0;
             private int idxInPartition = 0;
 
+            private FrameBoundDefinition endBound = frameDefinition.end();
+
             @Override
             public boolean hasNext() {
                 return i < end;
@@ -183,8 +193,32 @@ public final class WindowFunctionBatchIterator {
                     idxInPartition = 0;
                     pEnd = findFirstNonPeer(sortedRows, pStart, end, cmpPartitionBy);
                 }
-                int wBegin = pStart; // UNBOUNDED PRECEDING -> Frame always starts at the start of the partition
-                int wEnd = findFirstNonPeer(sortedRows, i, pEnd, cmpOrderBy);
+
+                int wBegin;
+                int wEnd;
+
+                if (endBound != null && endBound.type() == FrameBound.Type.CURRENT_ROW) {
+                    // UNBOUNDED PRECEDING -> CURRENT ROW - Frame always starts at the start of the partition
+                    wBegin = pStart;
+                    wEnd = findFirstNonPeer(sortedRows, i, pEnd, cmpOrderBy);
+                } else {
+                    // CURRENT ROW -> UNBOUNDED FOLLOWING - Frame start position changes with each window row
+                    if (pStart == i) {
+                        // if we just changed partition, make the beginning of the window be the beginning of the partition
+                        wBegin = pStart;
+                    } else {
+                        if (cmpOrderBy == null) {
+                            wBegin = i;
+                        } else {
+                            // within a partition, we will push the window beginning index forward only when encountering
+                            // non-peers elements
+                            wBegin = arePeers(sortedRows, frame.lowerBound() + frame.partitionStart(), i, cmpOrderBy) ?
+                                (frame.lowerBound() + frame.partitionStart()) : i;
+                        }
+                    }
+                    wEnd = pEnd;
+                }
+
                 frame.updateBounds(pStart, wBegin, wEnd);
                 final Object[] row = computeAndInjectResults(
                     sortedRows, numCellsInSourceRow, windowFunctions, frame, i, idxInPartition, argsExpressions, args);
@@ -228,6 +262,11 @@ public final class WindowFunctionBatchIterator {
             row[numCellsInSourceRow + c] = result;
         }
         return row;
+    }
+
+    private static <T> boolean arePeers(List<T> rows, int pos1, int pos2, Comparator<T> cmp) {
+        T fst = rows.get(pos1);
+        return cmp.compare(fst, rows.get(pos2)) == 0;
     }
 
     static <T> int findFirstNonPeer(List<T> rows, int begin, int end, @Nullable Comparator<T> cmp) {

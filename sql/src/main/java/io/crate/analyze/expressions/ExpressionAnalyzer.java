@@ -146,6 +146,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static io.crate.collections.Lists2.mapTail;
+import static io.crate.sql.tree.FrameBound.Type.UNBOUNDED_FOLLOWING;
+import static io.crate.sql.tree.FrameBound.Type.UNBOUNDED_PRECEDING;
 
 
 /**
@@ -288,15 +290,22 @@ public class ExpressionAnalyzer {
             return symbol;
         });
 
-        WindowFrameDefinition windowFrameDefinition = WindowDefinition.DEFAULT_WINDOW_FRAME;
+        WindowFrameDefinition windowFrameDefinition = WindowDefinition.UNBOUNDED_PRECEDING_CURRENT_ROW;
         if (window.getWindowFrame().isPresent()) {
             WindowFrame windowFrame = window.getWindowFrame().get();
             FrameBound start = windowFrame.getStart();
+            if (start.equals(UNBOUNDED_FOLLOWING)) {
+                throw new IllegalArgumentException("Window frame start cannot be UNBOUNDED FOLLOWING");
+            }
             FrameBoundDefinition startBound = convertToAnalyzedFrameBound(context, start);
 
             FrameBoundDefinition endBound = null;
             if (windowFrame.getEnd().isPresent()) {
-                endBound = convertToAnalyzedFrameBound(context, windowFrame.getEnd().get());
+                FrameBound frameBound = windowFrame.getEnd().get();
+                if (frameBound.equals(UNBOUNDED_PRECEDING)) {
+                    throw new IllegalArgumentException("Window frame end cannot be UNBOUNDED FOLLOWING");
+                }
+                endBound = convertToAnalyzedFrameBound(context, frameBound);
             }
 
             windowFrameDefinition = new WindowFrameDefinition(windowFrame.getType(), startBound, endBound);
