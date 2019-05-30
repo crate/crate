@@ -192,7 +192,10 @@ public class TypeParsers {
                 iterator.remove();
             } else if (propName.equals("position")) {
                 builder.position(nodeIntegerValue(propNode));
-                iterator.remove();;
+                iterator.remove();
+            } else if (propName.equals("default_expr")) {
+                builder.defaultExpression(nodeStringValue(propNode, null));
+                iterator.remove();
             }
         }
     }

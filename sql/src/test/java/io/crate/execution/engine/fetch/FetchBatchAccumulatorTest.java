@@ -63,7 +63,7 @@ import static org.junit.Assert.assertThat;
 public class FetchBatchAccumulatorTest {
 
     private static final Reference ID = new Reference(
-        new ReferenceIdent(USER_TABLE_IDENT, "id"), RowGranularity.DOC, DataTypes.LONG, null
+        new ReferenceIdent(USER_TABLE_IDENT, "id"), RowGranularity.DOC, DataTypes.LONG, null, null
     );
     private DummyFetchOperation fetchOperation = new DummyFetchOperation();
 

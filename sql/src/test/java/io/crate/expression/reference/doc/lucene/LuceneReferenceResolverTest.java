@@ -43,7 +43,7 @@ public class LuceneReferenceResolverTest extends CrateUnitTest {
     public void testGetImplementationWithColumnsOfTypeCollection() {
         Reference arrayRef = new Reference(
             new ReferenceIdent(
-            new RelationName("s", "t"), "a"), RowGranularity.DOC, DataTypes.DOUBLE_ARRAY, null
+            new RelationName("s", "t"), "a"), RowGranularity.DOC, DataTypes.DOUBLE_ARRAY, null, null
         );
         assertThat(luceneReferenceResolver.getImplementation(arrayRef),
             instanceOf(DocCollectorExpression.ChildDocCollectorExpression.class));
@@ -53,7 +53,7 @@ public class LuceneReferenceResolverTest extends CrateUnitTest {
     public void testGetImplementationForSequenceNumber() {
         Reference seqNumberRef = new Reference(
             new ReferenceIdent(
-                new RelationName("s", "t"), "_seq_no"), RowGranularity.DOC, DataTypes.LONG, null
+                new RelationName("s", "t"), "_seq_no"), RowGranularity.DOC, DataTypes.LONG, null, null
         );
         assertThat(luceneReferenceResolver.getImplementation(seqNumberRef), instanceOf(SeqNoCollectorExpression.class));
     }
@@ -62,7 +62,7 @@ public class LuceneReferenceResolverTest extends CrateUnitTest {
     public void testGetImplementationForPrimaryTerm() {
         Reference primaryTerm = new Reference(
             new ReferenceIdent(
-                new RelationName("s", "t"), "_primary_term"), RowGranularity.DOC, DataTypes.LONG, null
+                new RelationName("s", "t"), "_primary_term"), RowGranularity.DOC, DataTypes.LONG, null, null
         );
         assertThat(luceneReferenceResolver.getImplementation(primaryTerm),
                    instanceOf(PrimaryTermCollectorExpression.class));

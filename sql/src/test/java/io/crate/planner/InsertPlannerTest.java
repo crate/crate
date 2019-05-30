@@ -451,7 +451,8 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
             new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, "parted_pks"), "date"),
             RowGranularity.PARTITION,
             DataTypes.TIMESTAMPZ,
-            3)));
+            3,
+            null)));
     }
 
     @Test

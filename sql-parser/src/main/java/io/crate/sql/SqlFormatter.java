@@ -528,9 +528,13 @@ public final class SqlFormatter {
             if (type != null) {
                 type.accept(this, indent);
             }
-            if (node.expression() != null) {
+            if (node.defaultExpression() != null) {
+                builder.append(" DEFAULT ")
+                    .append(formatStandaloneExpression(node.defaultExpression(), parameters));
+            }
+            if (node.generatedExpression() != null) {
                 builder.append(" GENERATED ALWAYS AS ")
-                    .append(formatStandaloneExpression(node.expression(), parameters));
+                    .append(formatStandaloneExpression(node.generatedExpression(), parameters));
             }
 
             if (!node.constraints().isEmpty()) {

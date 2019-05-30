@@ -67,6 +67,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table t1 (x int, y int, z as x + y)")
             .addTable("create table t2 (obj object as (a int, c as obj['a'] + 3), b as obj['a'] + 1)")
             .addPartitionedTable("create table t3 (p int not null) partitioned by (p)")
+            .addTable("create table t4 (x int, y text default 'crate')")
             .build();
         AnalyzedRelation relation = e.normalize("select x, y, z from t1");
         t1 = (DocTableInfo) ((QueriedTable) relation).tableRelation().tableInfo();
@@ -135,5 +136,36 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
 
         // this must pass without error
         sourceFromCells.checkConstraints(new Object[0]);
+    }
+
+    @Test
+    public void testDefaultExpressionIsInjected() throws IOException {
+        AnalyzedRelation relation = e.normalize("select x from t4");
+        DocTableInfo t4 = (DocTableInfo) ((QueriedTable) relation).tableRelation().tableInfo();
+        Reference x = (Reference) relation.outputs().get(0);
+
+        InsertSourceFromCells sourceFromCells = new InsertSourceFromCells(
+            txnCtx, e.functions(), t4, "t4", GeneratedColumns.Validation.VALUE_MATCH, Arrays.asList(x));
+
+        Object[] input = new Object[]{1};
+        sourceFromCells.checkConstraints(input);
+        BytesReference source = sourceFromCells.generateSource(input);
+        assertThat(source.utf8ToString(), is("{\"x\":1,\"y\":\"crate\"}"));
+    }
+
+    @Test
+    public void testDefaultExpressionGivenValueOverridesDefaultValue() throws IOException {
+        AnalyzedRelation relation = e.normalize("select x, y from t4");
+        DocTableInfo t4 = (DocTableInfo) ((QueriedTable) relation).tableRelation().tableInfo();
+        Reference x = (Reference) relation.outputs().get(0);
+        Reference y = (Reference) relation.outputs().get(1);
+
+        InsertSourceFromCells sourceFromCells = new InsertSourceFromCells(
+            txnCtx, e.functions(), t4, "t4", GeneratedColumns.Validation.VALUE_MATCH, Arrays.asList(x, y));
+
+        Object[] input = {1, "cr8"};
+        sourceFromCells.checkConstraints(input);
+        BytesReference source = sourceFromCells.generateSource(input);
+        assertThat(source.utf8ToString(), is("{\"x\":1,\"y\":\"cr8\"}"));
     }
 }

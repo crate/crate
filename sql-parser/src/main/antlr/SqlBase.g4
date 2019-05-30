@@ -485,13 +485,13 @@ blobClusteredInto
     ;
 
 tableElement
-    : columnDefinition                                                               #columndDefinitionDefault
+    : columnDefinition                                                               #columnDefinitionDefault
     | PRIMARY_KEY columns                                                            #primaryKeyConstraint
     | INDEX name=ident USING method=ident columns withProperties?                    #indexDefinition
     ;
 
 columnDefinition
-    : ident dataType? ((GENERATED ALWAYS)? AS expr)? columnConstraint*
+    : ident dataType? (DEFAULT defaultExpr=expr)? ((GENERATED ALWAYS)? AS generatedExpr=expr)? columnConstraint*
     ;
 
 addColumnDefinition
