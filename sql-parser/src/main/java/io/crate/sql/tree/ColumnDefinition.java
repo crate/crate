@@ -30,14 +30,25 @@ import java.util.List;
 public class ColumnDefinition extends TableElement {
 
     private final String ident;
+
+    @Nullable
+    private final Expression defaultExpression;
+
     @Nullable
     private final Expression generatedExpression;
+
     @Nullable
     private final ColumnType type;
+
     private final List<ColumnConstraint> constraints;
 
-    public ColumnDefinition(String ident, @Nullable Expression generatedExpression, @Nullable ColumnType type, List<ColumnConstraint> constraints) {
+    public ColumnDefinition(String ident,
+                            @Nullable Expression defaultExpression,
+                            @Nullable Expression generatedExpression,
+                            @Nullable ColumnType type,
+                            List<ColumnConstraint> constraints) {
         this.ident = ident;
+        this.defaultExpression = defaultExpression;
         this.generatedExpression = generatedExpression;
         this.type = type;
         this.constraints = constraints;
@@ -49,14 +60,25 @@ public class ColumnDefinition extends TableElement {
             throw new IllegalArgumentException("Column [" + ident + "]: data type needs to be provided " +
                                                "or column should be defined as a generated expression");
         }
+
+        if (defaultExpression != null && generatedExpression != null) {
+            throw new IllegalArgumentException("Column [" + ident + "]: the default and generated expressions " +
+                                               "are mutually exclusive");
+        }
     }
 
     public String ident() {
         return ident;
     }
 
-    public Expression expression() {
+    @Nullable
+    public Expression generatedExpression() {
         return generatedExpression;
+    }
+
+    @Nullable
+    public Expression defaultExpression() {
+        return defaultExpression;
     }
 
     @Nullable
@@ -70,7 +92,7 @@ public class ColumnDefinition extends TableElement {
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(ident, generatedExpression, type, constraints);
+        return Objects.hashCode(ident, defaultExpression, generatedExpression, type, constraints);
     }
 
     @Override
@@ -81,6 +103,8 @@ public class ColumnDefinition extends TableElement {
         ColumnDefinition that = (ColumnDefinition) o;
 
         if (!ident.equals(that.ident)) return false;
+        if (defaultExpression != null ? !defaultExpression.equals(that.defaultExpression) :
+            that.defaultExpression != null) return false;
         if (generatedExpression != null ? !generatedExpression.equals(that.generatedExpression) :
             that.generatedExpression != null) return false;
         if (type != null ? !type.equals(that.type) : that.type != null) return false;
@@ -93,6 +117,7 @@ public class ColumnDefinition extends TableElement {
     public String toString() {
         return MoreObjects.toStringHelper(this)
             .add("ident", ident)
+            .add("defaultExpression", defaultExpression)
             .add("generatedExpression", generatedExpression)
             .add("type", type)
             .add("constraints", constraints)

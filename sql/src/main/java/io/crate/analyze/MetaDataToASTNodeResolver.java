@@ -177,7 +177,7 @@ public class MetaDataToASTNodeResolver {
                 }
 
                 String columnName = ident.isTopLevel() ? ident.name() : ident.path().get(ident.path().size() - 1);
-                ColumnDefinition column = new ColumnDefinition(columnName, expression, columnType, constraints);
+                ColumnDefinition column = new ColumnDefinition(columnName, null, expression, columnType, constraints);
                 elements.add(column);
             }
             return elements;
