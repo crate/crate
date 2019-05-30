@@ -515,6 +515,19 @@ public class TestStatementBuilder {
     }
 
     @Test
+    public void testCreateTableDefaultExpression() {
+        printStatement("create table test (col1 int default 1)");
+        printStatement("create table test (col1 int default random())");
+    }
+
+    @Test
+    public void testCreateTableBothDefaultAndGeneratedExpressionsNotAllowed() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Column [col1]: the default and generated expressions are mutually exclusive");
+        printStatement("create table test (col1 int default random() as 1+1)");
+    }
+
+    @Test
     public void testCreateTableOptionsMultipleTimesNotAllowed() {
         expectedException.expect(ParsingException.class);
         expectedException.expectMessage("line 1:83: mismatched input 'partitioned' expecting {<EOF>, ';'}");
@@ -1340,6 +1353,14 @@ public class TestStatementBuilder {
 
         printStatement("alter table t add col2 AS col1['name'] + 1");
     }
+
+    @Test
+    public void testAddColumnWithDefaultExpressionIsNotSupported() {
+        expectedException.expect(ParsingException.class);
+        expectedException.expectMessage("mismatched input 'default'");
+        printStatement("alter table t add col1 text default 'foo'");
+    }
+
 
     @Test
     public void testAlterTableOpenClose() {

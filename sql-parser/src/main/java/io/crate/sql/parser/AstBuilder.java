@@ -700,7 +700,8 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     public Node visitColumnDefinition(SqlBaseParser.ColumnDefinitionContext context) {
         return new ColumnDefinition(
             getIdentText(context.ident()),
-            visitOptionalContext(context.expr(), Expression.class),
+            visitOptionalContext(context.defaultExpr, Expression.class),
+            visitOptionalContext(context.generatedExpr, Expression.class),
             visitOptionalContext(context.dataType(), ColumnType.class),
             visitCollection(context.columnConstraint(), ColumnConstraint.class));
     }
