@@ -101,10 +101,10 @@ public class ColumnIndexWriterProjectionTest {
     }
 
     private Reference ref(ColumnIdent column, DataType type) {
-        return new Reference(new ReferenceIdent(relationName, column), RowGranularity.DOC, type, null);
+        return new Reference(new ReferenceIdent(relationName, column), RowGranularity.DOC, type, null, null);
     }
 
     private Reference partitionRef(ColumnIdent column, DataType type) {
-        return new Reference(new ReferenceIdent(relationName, column), RowGranularity.PARTITION, type, null);
+        return new Reference(new ReferenceIdent(relationName, column), RowGranularity.PARTITION, type, null, null);
     }
 }

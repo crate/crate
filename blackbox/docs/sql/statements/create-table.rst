@@ -31,7 +31,9 @@ Synopsis
 
 where ``base_column_definition``::
 
-    column_name data_type [ column_constraint [ ... ] ]  [ storage_options ]
+    column_name data_type
+    [ DEFAULT default_expr ]
+    [ column_constraint [ ... ] ]  [ storage_options ]
 
 where ``generated_column_definition`` is::
 
@@ -63,7 +65,7 @@ Description
 
 CREATE TABLE will create a new, initially empty table.
 
-If the table_ident does not contain a schema, the table is created in the
+If the ``table_ident`` does not contain a schema, the table is created in the
 ``doc`` schema. Otherwise it is created in the given schema, which is
 implicitly created, if it didn't exist yet.
 
@@ -88,20 +90,32 @@ Table elements
 .. _ref-base-columns:
 
 Base Columns
-............
+~~~~~~~~~~~~
 
 A base column is a persistent column in the table metadata. In relational terms
-it is an attribute of the tuple of the table-relation. It has a name, a type
-and optional constraints.
+it is an attribute of the tuple of the table-relation. It has a name, a type,
+an optional default clause and optional constraints.
 
 Base columns are readable and writable (if the table itself is writable).
 Values for base columns are given in DML statements explicitly or omitted, in
 which case their value is null.
 
+.. _ref-default-clause:
+
+Default clause
+^^^^^^^^^^^^^^
+
+The optional default clause defines the default value of the column. The value
+is inserted when the column is a target of a ``INSERT`` statement that doesn't
+contain an explicit value for it.
+
+The default clause expression is variable-free, it means that subqueries and
+cross-references to other columns are not allowed.
+
 .. _ref-generated-columns:
 
 Generated columns
-.................
+~~~~~~~~~~~~~~~~~
 
 A generated column is a persistent column that is computed as needed from the
 ``generation_expression`` for every ``INSERT`` and ``UPDATE`` operation.
@@ -119,7 +133,7 @@ The ``GENERATED ALWAYS`` part of the syntax is optional.
    For more information, see :ref:`sql-ddl-generated-columns`.
 
 Table constraints
-.................
+~~~~~~~~~~~~~~~~~
 
 Table constraints are constraints that are applied to more than one column or
 to the table as a whole.
@@ -127,7 +141,7 @@ to the table as a whole.
 For further details see :ref:`table_constraints`.
 
 Column constraints
-..................
+~~~~~~~~~~~~~~~~~~
 
 Column constraints are constraints that are applied on each column of the table
 separately.
@@ -135,7 +149,7 @@ separately.
 For further details see :ref:`column_constraints`.
 
 Storage options
-...............
+~~~~~~~~~~~~~~~
 
 Storage options can be applied on each column of the table separately.
 

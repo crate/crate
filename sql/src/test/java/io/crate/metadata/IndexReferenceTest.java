@@ -37,7 +37,7 @@ public class IndexReferenceTest extends CrateUnitTest {
     public void testStreaming() throws Exception {
         RelationName relationName = new RelationName("doc", "test");
         ReferenceIdent referenceIdent = new ReferenceIdent(relationName, "string_col");
-        Reference reference = new Reference(referenceIdent, RowGranularity.DOC, StringType.INSTANCE, null);
+        Reference reference = new Reference(referenceIdent, RowGranularity.DOC, StringType.INSTANCE, null, null);
 
         ReferenceIdent indexReferenceIdent = new ReferenceIdent(relationName, "index_column");
         IndexReference indexReferenceInfo = new IndexReference(

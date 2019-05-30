@@ -72,6 +72,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import static io.crate.analyze.InsertFromSubQueryAnalyzer.getUpdateAssignments;
 import static io.crate.analyze.InsertFromSubQueryAnalyzer.resolveTargetColumns;
@@ -244,25 +245,26 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
     private void validateValuesSize(List<Expression> values,
                                     InsertFromValuesAnalyzedStatement statement,
                                     DocTableRelation tableRelation) {
-        int numValues = values.size();
-        int numInsertColumns = statement.columns().size();
-        int numAddedGeneratedColumns = statement.numAddedGeneratedColumns();
-
-        boolean firstValues = statement.sourceMaps().isEmpty();
+        final int numValues = values.size();
+        final int numInsertColumns = statement.columns().size();
 
         if (numValues != numInsertColumns) {
+            final boolean firstValues = statement.sourceMaps().isEmpty();
+            final boolean noExtraColumnsToAdd = tableRelation.tableInfo().generatedColumns().isEmpty() &&
+                                 tableRelation.tableInfo().defaultExpressionColumns().isEmpty();
+            final int numAddedColumnsWithExpression = statement.numAddedColumnsWithExpression();
+
             if (firstValues
-                || tableRelation.tableInfo().generatedColumns().isEmpty()
-                || numValues != numInsertColumns - numAddedGeneratedColumns) {
+                || noExtraColumnsToAdd
+                || numValues != numInsertColumns - numAddedColumnsWithExpression) {
                 // do not fail here when numbers are different if:
                 //  * we are not at the first values AND
-                //  * we have generated columns in the table AND
-                //  * we are only missing the generated columns which will be added
+                //  * we have either generated columns or columns with default expression in the table AND
+                //  * we are only missing the columns with expression which will be added
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                     "Invalid number of values: Got %d columns specified but %d values",
-                    numInsertColumns - numAddedGeneratedColumns, numValues));
+                    numInsertColumns - numAddedColumnsWithExpression, numValues));
             }
-
         }
     }
 
@@ -351,8 +353,10 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         List<ColumnIdent> primaryKey = tableInfo.primaryKey();
         Object[] insertValues = new Object[node.values().size()];
 
+        List<Reference> columnsProcessed = new ArrayList<>(context.tableInfo().columns().size());
         for (int i = 0, valuesSize = node.values().size(); i < valuesSize; i++) {
             Reference column = context.columns().get(i);
+            columnsProcessed.add(column);
             final ColumnIdent columnIdent = column.column();
             Expression expression = node.values().get(i);
             Symbol valuesSymbol = normalizer.normalize(
@@ -433,16 +437,17 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         }
 
         // process generated column expressions and add columns + values
-        GeneratedExpressionContext ctx = new GeneratedExpressionContext(
+        ColumnExpressionContext ctx = new ColumnExpressionContext(
             tableRelation,
             context,
             normalizer,
             coordinatorTxnCtx,
             refToLiteral,
+            columnsProcessed,
             primaryKeyValues,
             insertValues,
             routingValue);
-        processGeneratedExpressions(ctx);
+        processColumnsWithExpression(ctx);
         insertValues = ctx.insertValues;
         routingValue = ctx.routingValue;
 
@@ -513,7 +518,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         return null;
     }
 
-    private static class GeneratedExpressionContext {
+    private static class ColumnExpressionContext {
 
         private final DocTableRelation tableRelation;
         private final InsertFromValuesAnalyzedStatement analyzedStatement;
@@ -521,19 +526,22 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         private final CoordinatorTxnCtx coordinatorTxnCtx;
         private final String[] primaryKeyValues;
         private final EvaluatingNormalizer normalizer;
+        private final List<Reference> alreadyProcessedColumns;
 
         private Object[] insertValues;
         @Nullable
         private String routingValue;
 
-        private GeneratedExpressionContext(DocTableRelation tableRelation,
-                                           InsertFromValuesAnalyzedStatement analyzedStatement,
-                                           EvaluatingNormalizer normalizer,
-                                           CoordinatorTxnCtx coordinatorTxnCtx,
-                                           ReferenceToLiteralConverter refToLiteral,
-                                           String[] primaryKeyValues,
-                                           Object[] insertValues,
-                                           @Nullable String routingValue) {
+
+        private ColumnExpressionContext(DocTableRelation tableRelation,
+                                        InsertFromValuesAnalyzedStatement analyzedStatement,
+                                        EvaluatingNormalizer normalizer,
+                                        CoordinatorTxnCtx coordinatorTxnCtx,
+                                        ReferenceToLiteralConverter refToLiteral,
+                                        List<Reference> alreadyProcessedColumns,
+                                        String[] primaryKeyValues,
+                                        Object[] insertValues,
+                                        @Nullable String routingValue) {
             this.tableRelation = tableRelation;
             this.analyzedStatement = analyzedStatement;
             this.coordinatorTxnCtx = coordinatorTxnCtx;
@@ -542,44 +550,64 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
             this.routingValue = routingValue;
             this.refToLiteral = refToLiteral;
             this.normalizer = normalizer;
+            this.alreadyProcessedColumns = alreadyProcessedColumns;
             refToLiteral.values(insertValues);
         }
     }
 
-    private void processGeneratedExpressions(GeneratedExpressionContext context) {
+    private void processColumnsWithExpression(ColumnExpressionContext context) {
+
         List<ColumnIdent> primaryKey = context.analyzedStatement.tableInfo().primaryKey();
-        for (GeneratedReference reference : context.tableRelation.tableInfo().generatedColumns()) {
-            Symbol valueSymbol = RefReplacer.replaceRefs(reference.generatedExpression(), context.refToLiteral);
-            valueSymbol = context.normalizer.normalize(valueSymbol, context.coordinatorTxnCtx);
-            if (valueSymbol.symbolType() == SymbolType.LITERAL) {
-                Object value = ((Input) valueSymbol).value();
-                if (primaryKey.contains(reference.column())) {
-                    int idx = primaryKey.indexOf(reference.column());
-                    addPrimaryKeyValue(idx, value, context.primaryKeyValues);
-                }
-                ColumnIdent routingColumn = context.analyzedStatement.tableInfo().clusteredBy();
-                if (routingColumn != null && routingColumn.equals(reference.column())) {
-                    context.routingValue = extractRoutingValue(routingColumn, value, context.analyzedStatement);
-                }
-                if (context.tableRelation.tableInfo().isPartitioned()
-                    && context.tableRelation.tableInfo().partitionedByColumns().contains(reference)) {
-                    addGeneratedPartitionedColumnValue(reference.column(), value,
-                        context.analyzedStatement.currentPartitionMap());
-                } else {
-                    context.insertValues = addGeneratedColumnValue(context.analyzedStatement, reference, value, context.insertValues);
-                }
-            }
-        }
+
+        List<Reference> columnsWithExpessionToProcess = new ArrayList<>(context.analyzedStatement.tableInfo.defaultExpressionColumns());
+        columnsWithExpessionToProcess.removeAll(context.alreadyProcessedColumns);
+        columnsWithExpessionToProcess
+            .forEach(r -> processExpressionForReference(r, r::defaultExpression, context, primaryKey));
+        context.tableRelation.tableInfo().generatedColumns()
+            .forEach(r -> processExpressionForReference(r, r::generatedExpression, context, primaryKey));
     }
 
-    private Object[] addGeneratedColumnValue(InsertFromValuesAnalyzedStatement context,
-                                             Reference reference,
-                                             Object value,
-                                             Object[] insertValues) {
+    private void processExpressionForReference(Reference reference,
+                                               Supplier<Symbol> expressionSupplier,
+                                               ColumnExpressionContext context,
+                                               List<ColumnIdent> primaryKey) {
+        Symbol valueSymbol = RefReplacer.replaceRefs(expressionSupplier.get(), context.refToLiteral);
+        valueSymbol = context.normalizer.normalize(valueSymbol, context.coordinatorTxnCtx);
+        if (valueSymbol.symbolType() == SymbolType.LITERAL) {
+            Object value = ((Input) valueSymbol).value();
+            if (primaryKey.contains(reference.column())) {
+                final int idx = primaryKey.indexOf(reference.column());
+                addPrimaryKeyValue(idx, value, context.primaryKeyValues);
+            }
+            ColumnIdent routingColumn = context.analyzedStatement.tableInfo().clusteredBy();
+            if (routingColumn != null && routingColumn.equals(reference.column())) {
+                context.routingValue = extractRoutingValue(routingColumn, value, context.analyzedStatement);
+            }
+            if (context.tableRelation.tableInfo().isPartitioned()
+                && context.tableRelation.tableInfo().partitionedByColumns().contains(reference)) {
+                addGeneratedPartitionedColumnValue(reference.column(),
+                                                   value,
+                                                   context.analyzedStatement.currentPartitionMap());
+            } else {
+                context.insertValues = addExtraColumnValue(context.analyzedStatement,
+                                                           reference,
+                                                           value,
+                                                           context.insertValues,
+                                                           reference instanceof GeneratedReference);
+            }
+        }
+
+    }
+
+    private Object[] addExtraColumnValue(InsertFromValuesAnalyzedStatement context,
+                                         Reference reference,
+                                         Object value,
+                                         Object[] insertValues,
+                                         boolean isGeneratedExpression) {
         int idx = context.columns().indexOf(reference);
         if (idx == -1) {
             // add column & value
-            context.addGeneratedColumn(reference);
+            context.addColumnWithExpression(reference);
             int valuesIdx = insertValues.length;
             insertValues = Arrays.copyOf(insertValues, insertValues.length + 1);
             insertValues[valuesIdx] = value;
@@ -587,8 +615,9 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
             // only add value
             insertValues = Arrays.copyOf(insertValues, idx + 1);
             insertValues[idx] = value;
-        } else if ((insertValues[idx] == null && value != null) ||
-                   (insertValues[idx] != null && !insertValues[idx].equals(value))) {
+        } else if (isGeneratedExpression && (
+                       (insertValues[idx] == null && value != null) ||
+                       (insertValues[idx] != null && !insertValues[idx].equals(value)))) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                 "Given value %s for generated column does not match defined generated expression value %s",
                 insertValues[idx], value));

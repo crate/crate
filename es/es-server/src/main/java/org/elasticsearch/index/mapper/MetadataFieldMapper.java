@@ -53,7 +53,7 @@ public abstract class MetadataFieldMapper extends FieldMapper {
     }
 
     protected MetadataFieldMapper(String simpleName, Integer position, MappedFieldType fieldType, MappedFieldType defaultFieldType, Settings indexSettings) {
-        super(simpleName, position, fieldType, defaultFieldType, indexSettings, MultiFields.empty(), CopyTo.empty());
+        super(simpleName, position, null, fieldType, defaultFieldType, indexSettings, MultiFields.empty(), CopyTo.empty());
     }
 
     /**

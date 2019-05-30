@@ -162,7 +162,7 @@ public class UnnestFunction {
                 ColumnIdent columnIdent = new ColumnIdent("col" + (i + 1));
                 DataType dataType = ((CollectionType) info.ident().argumentTypes().get(i)).innerType();
                 Reference reference = new Reference(
-                    new ReferenceIdent(TABLE_IDENT, columnIdent), RowGranularity.DOC, dataType, i
+                    new ReferenceIdent(TABLE_IDENT, columnIdent), RowGranularity.DOC, dataType, i, null
                 );
 
                 columns.add(reference);

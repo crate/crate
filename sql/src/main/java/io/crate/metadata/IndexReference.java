@@ -95,7 +95,7 @@ public class IndexReference extends Reference {
                           IndexType indexType,
                           List<Reference> columns,
                           @Nullable String analyzer) {
-        super(ident, RowGranularity.DOC, DataTypes.STRING, ColumnPolicy.DYNAMIC, indexType, false, true, position);
+        super(ident, RowGranularity.DOC, DataTypes.STRING, ColumnPolicy.DYNAMIC, indexType, false, true, position, null);
         this.columns = MoreObjects.firstNonNull(columns, Collections.<Reference>emptyList());
         this.analyzer = analyzer;
     }
