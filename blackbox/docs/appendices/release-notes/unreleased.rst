@@ -369,5 +369,8 @@ Changes
 Fixes
 =====
 
+- Fixed ``NullPointerException`` that could occur when a column is defined as a
+  :ref:`Base Column<ref-base-columns>` and the type is missing from the column definition.
+
 - Fixed function resolution for function :ref:`scalar_current_schema` when the schema prefix
   ``pg_catalog`` is included.

@@ -40,8 +40,15 @@ public class ColumnDefinition extends TableElement {
         this.ident = ident;
         this.generatedExpression = generatedExpression;
         this.type = type;
-        assert type != null || generatedExpression != null : "Either dataType or generatedExpression must be defined";
         this.constraints = constraints;
+        validateColumnDefinition();
+    }
+
+    private void validateColumnDefinition() {
+        if (type == null && generatedExpression == null) {
+            throw new IllegalArgumentException("Column [" + ident + "]: data type needs to be provided " +
+                                               "or column should be defined as a generated expression");
+        }
     }
 
     public String ident() {
