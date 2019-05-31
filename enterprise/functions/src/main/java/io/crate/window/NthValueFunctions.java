@@ -36,6 +36,8 @@ import io.crate.types.DataType;
 import java.util.List;
 import java.util.function.BiFunction;
 
+import static io.crate.execution.engine.window.WindowFrameState.isShrinkingWindow;
+
 public class NthValueFunctions implements WindowFunction {
 
     public static final String LAST_VALUE_NAME = "last_value";
@@ -63,7 +65,7 @@ public class NthValueFunctions implements WindowFunction {
                           WindowFrameState currentFrame,
                           List<? extends CollectExpression<Row, ?>> expressions,
                           Input... args) {
-        boolean shrinkingWindow = isShrinkingWindow(currentFrame);
+        boolean shrinkingWindow = isShrinkingWindow(currentFrame, seenFrameLowerBound, seenFrameUpperBound);
         if (idxInPartition == 0 || currentFrame.upperBoundExclusive() > seenFrameUpperBound || shrinkingWindow) {
             seenFrameLowerBound = currentFrame.lowerBound();
             seenFrameUpperBound = currentFrame.upperBoundExclusive();
@@ -81,7 +83,7 @@ public class NthValueFunctions implements WindowFunction {
                 index = currentFrame.lowerBound() + index;
             }
 
-            Object[] nthRowCells = currentFrame.getRowAtIndexOrNull(index);
+            Object[] nthRowCells = currentFrame.getRowInFrameAtIndexOrNull(index);
             if (nthRowCells == null) {
                 resultForCurrentFrame = null;
                 return null;
@@ -96,10 +98,6 @@ public class NthValueFunctions implements WindowFunction {
         }
 
         return resultForCurrentFrame;
-    }
-
-    private boolean isShrinkingWindow(WindowFrameState frame) {
-        return seenFrameLowerBound < frame.lowerBound() && seenFrameUpperBound == frame.upperBoundExclusive();
     }
 
     public static void register(EnterpriseFunctionsModule module) {

@@ -156,6 +156,35 @@ public final class StringAgg extends AggregationFunction<StringAgg.StringAggStat
     }
 
     @Override
+    public boolean isRemovableCumulative() {
+        return true;
+    }
+
+    @Override
+    public StringAggState removeFromAggregatedState(RamAccountingContext ramAccountingContext,
+                                                    StringAggState previousAggState,
+                                                    Input[] stateToRemove) {
+        String expression = (String) stateToRemove[0].value();
+        if (expression == null) {
+            return previousAggState;
+        }
+        String delimiter = (String) stateToRemove[1].value();
+
+        int indexOfExpression = previousAggState.values.indexOf(expression);
+        if (indexOfExpression > -1) {
+            ramAccountingContext.addBytes(-LIST_ENTRY_OVERHEAD + StringSizeEstimator.estimate(expression));
+            if (delimiter != null) {
+                String elementNextToExpression = previousAggState.values.get(indexOfExpression + 1);
+                if (elementNextToExpression.equalsIgnoreCase(delimiter)) {
+                    previousAggState.values.remove(indexOfExpression + 1);
+                }
+            }
+            previousAggState.values.remove(indexOfExpression);
+        }
+        return previousAggState;
+    }
+
+    @Override
     public StringAggState reduce(RamAccountingContext ramAccountingContext, StringAggState state1, StringAggState state2) {
         if (state1.values.isEmpty()) {
             return state2;

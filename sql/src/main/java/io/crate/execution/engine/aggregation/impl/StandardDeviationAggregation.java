@@ -73,6 +73,10 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
             this.stdDev.increment(val);
         }
 
+        public void removeValue(double val) {
+            this.stdDev.decrement(val);
+        }
+
         private Double value() {
             double result = stdDev.result();
             return (Double.isNaN(result) ? null : result);
@@ -174,6 +178,24 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
         }
         state1.stdDev.merge(state2.stdDev);
         return state1;
+    }
+
+    @Override
+    public boolean isRemovableCumulative() {
+        return true;
+    }
+
+    @Override
+    public StdDevState removeFromAggregatedState(RamAccountingContext ramAccountingContext,
+                                                 StdDevState previousAggState,
+                                                 Input[] stateToRemove) {
+        if (previousAggState != null) {
+            Number value = (Number) stateToRemove[0].value();
+            if (value != null) {
+                previousAggState.removeValue(value.doubleValue());
+            }
+        }
+        return previousAggState;
     }
 
     @Override
