@@ -74,4 +74,21 @@ public class RowNumberWindowFunctionTest extends AbstractWindowFunctionTest {
                        new Object[]{5, 5},
                        new Object[]{null, null});
     }
+
+    @Test
+    public void testRowNumberOverUnboundedFollowingFrames() throws Exception {
+        Object[] expected = new Object[]{1, 2, 3, 1, 2, 3, 1};
+        assertEvaluate("row_number() OVER(" +
+                            "PARTITION BY x>2 ORDER BY x RANGE BETWEEN CURRENT ROW and UNBOUNDED FOLLOWING" +
+                       ")",
+                       contains(expected),
+                       Collections.singletonMap(new ColumnIdent("x"), 0),
+                       new Object[]{1, 1},
+                       new Object[]{2, 2},
+                       new Object[]{2, 2},
+                       new Object[]{3, 3},
+                       new Object[]{4, 4},
+                       new Object[]{5, 5},
+                       new Object[]{null, null});
+    }
 }

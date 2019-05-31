@@ -38,6 +38,8 @@ import org.elasticsearch.common.util.BigArrays;
 import javax.annotation.Nullable;
 import java.util.List;
 
+import static io.crate.execution.engine.window.WindowFrameState.isShrinkingWindow;
+
 public class AggregateToWindowFunctionAdapter implements WindowFunction {
 
     private final AggregationFunction aggregationFunction;
@@ -76,30 +78,65 @@ public class AggregateToWindowFunctionAdapter implements WindowFunction {
                           WindowFrameState frame,
                           List<? extends CollectExpression<Row, ?>> expressions,
                           Input... args) {
-        if (idxInPartition == 0 || isShrinkingWindow(frame)) {
-            accumulatedState = aggregationFunction.newState(ramAccountingContext, indexVersionCreated, bigArrays);
-            seenFrameUpperBound = -1;
-            seenFrameLowerBound = -1;
-            executeAggregateForFrame(frame, expressions, args);
+        if (idxInPartition == 0) {
+            recomputeFunction(frame, expressions, args);
+        } else if (isShrinkingWindow(frame, seenFrameLowerBound, seenFrameUpperBound)) {
+            if (aggregationFunction.isRemovableCumulative()) {
+                removeSeenRowsFromAccumulatedState(frame, expressions, args);
+                resultForCurrentFrame = aggregationFunction.terminatePartial(ramAccountingContext, accumulatedState);
+                seenFrameLowerBound = frame.lowerBound();
+                seenFrameUpperBound = frame.upperBoundExclusive();
+            } else {
+                recomputeFunction(frame, expressions, args);
+            }
         } else if (frame.upperBoundExclusive() > seenFrameUpperBound) {
             executeAggregateForFrame(frame, expressions, args);
         }
         return resultForCurrentFrame;
     }
 
-    private boolean isShrinkingWindow(WindowFrameState frame) {
-        return seenFrameLowerBound < frame.lowerBound() && seenFrameUpperBound == frame.upperBoundExclusive();
+    private void removeSeenRowsFromAccumulatedState(WindowFrameState frame,
+                                                    List<? extends CollectExpression<Row, ?>> expressions,
+                                                    Input[] args) {
+        var row = new ArrayRow();
+        for (int i = seenFrameLowerBound; i < frame.lowerBound(); i++) {
+            Object[] cells = frame.getRowInPartitionAtIndexOrNull(i);
+            assert cells != null : "No row at idx=" + i + " in current partition=" + frame;
+            row.cells(cells);
+            for (int j = 0, expressionsSize = expressions.size(); j < expressionsSize; j++) {
+                expressions.get(j).setNextRow(row);
+            }
+            accumulatedState = aggregationFunction.removeFromAggregatedState(ramAccountingContext,
+                                                                             accumulatedState,
+                                                                             args);
+
+        }
     }
 
-    private void executeAggregateForFrame(WindowFrameState frame, List<? extends CollectExpression<Row, ?>> expressions, Input... inputs) {
+    private void recomputeFunction(WindowFrameState frame,
+                                   List<? extends CollectExpression<Row, ?>> expressions,
+                                   Input[] args) {
+        accumulatedState = aggregationFunction.newState(ramAccountingContext, indexVersionCreated, bigArrays);
+        seenFrameUpperBound = -1;
+        seenFrameLowerBound = -1;
+        executeAggregateForFrame(frame, expressions, args);
+    }
+
+    private void executeAggregateForFrame(WindowFrameState frame,
+                                          List<? extends CollectExpression<Row, ?>> expressions,
+                                          Input... inputs) {
         /*
-         * The successive frames have overlapping rows (especially now as we currently only support UNBOUNDED PRECEDING - CURRENT_ROW frames).
-         * We want to accumulate the rows we haven't processed yet (the difference between the rows in the current frame to the rows in the previous frame, if any).
+         * If the window is not shrinking (eg. UNBOUNDED PRECEDING - CURRENT_ROW) the successive frames will have
+         * overlapping rows. In this case we want to accumulate the rows we haven't processed yet (the difference
+         * between the rows in the current frame to the rows in the previous frame, if any).
          */
-        int unseenRowsInCurrentFrameStart = seenFrameUpperBound > 0 ? seenFrameUpperBound : frame.lowerBound();
+        int unseenRowsInCurrentFrameStart =
+            !isShrinkingWindow(frame, seenFrameLowerBound, seenFrameUpperBound) && seenFrameUpperBound > 0
+                ? seenFrameUpperBound
+                : frame.lowerBound();
         var row = new ArrayRow();
         for (int i = unseenRowsInCurrentFrameStart; i < frame.upperBoundExclusive(); i++) {
-            Object[] cells = frame.getRowAtIndexOrNull(i);
+            Object[] cells = frame.getRowInFrameAtIndexOrNull(i);
             assert cells != null : "No row at idx=" + i + " in current frame=" + frame;
             row.cells(cells);
             for (int j = 0, expressionsSize = expressions.size(); j < expressionsSize; j++) {
