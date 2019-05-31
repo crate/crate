@@ -1355,7 +1355,15 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testAlterTableOpenClose() throws Exception {
+    public void testAlterTableAddColumnTypeOrGeneratedExpressionAreDefined() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Column [\"col2\"]: data type needs to be provided or column should be defined as a generated expression");
+        printStatement("alter table t add column col2");
+    }
+
+
+    @Test
+    public void testAlterTableOpenClose() {
         printStatement("alter table t close");
         printStatement("alter table t open");
 
