@@ -515,6 +515,13 @@ public class TestStatementBuilder {
     }
 
     @Test
+    public void testCreateTableColumnTypeOrGeneratedExpressionAreDefined() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Column [col1]: data type needs to be provided or column should be defined as a generated expression");
+        printStatement("create table test (col1)");
+    }
+
+    @Test
     public void testCreateTableOptionsMultipleTimesNotAllowed() {
         expectedException.expect(ParsingException.class);
         expectedException.expectMessage("line 1:83: mismatched input 'partitioned' expecting {<EOF>, ';'}");
