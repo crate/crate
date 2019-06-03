@@ -192,6 +192,17 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testCreateColumnWithDefaultExpression() throws Exception {
+        execute("create table test (col1 text default 'foo')");
+        String expectedMapping = "{\"default\":{" +
+                                 "\"dynamic\":\"strict\",\"_meta\":{}," +
+                                 "\"dynamic_templates\":[{\"strings\":{\"match_mapping_type\":\"string\",\"mapping\":{\"doc_values\":true,\"store\":false,\"type\":\"keyword\"}}}]," +
+                                 "\"properties\":{\"col1\":{\"type\":\"keyword\",\"position\":1,\"default_expr\":\"'foo'\"}}}}";
+        assertEquals(expectedMapping, getIndexMapping("test"));
+
+    }
+
+    @Test
     public void testCreateGeoShape() throws Exception {
         execute("create table test (col1 geo_shape)");
         ensureYellow();

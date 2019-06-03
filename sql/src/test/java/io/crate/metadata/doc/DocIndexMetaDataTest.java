@@ -67,6 +67,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 
 // @formatter:off
@@ -255,36 +256,47 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
         Reference birthday = md.references().get(new ColumnIdent("person", "birthday"));
         assertThat(birthday.valueType(), is(DataTypes.TIMESTAMPZ));
         assertThat(birthday.indexType(), is(Reference.IndexType.NOT_ANALYZED));
+        assertThat(birthday.defaultExpression(), is(nullValue()) );
 
         Reference integerIndexed = md.references().get(new ColumnIdent("integerIndexed"));
         assertThat(integerIndexed.indexType(), is(Reference.IndexType.NOT_ANALYZED));
+        assertThat(integerIndexed.defaultExpression(), is(nullValue()) );
 
         Reference integerIndexedBWC = md.references().get(new ColumnIdent("integerIndexedBWC"));
         assertThat(integerIndexedBWC.indexType(), is(Reference.IndexType.NOT_ANALYZED));
+        assertThat(integerIndexedBWC.defaultExpression(), is(nullValue()) );
 
         Reference integerNotIndexed = md.references().get(new ColumnIdent("integerNotIndexed"));
         assertThat(integerNotIndexed.indexType(), is(Reference.IndexType.NO));
+        assertThat(integerNotIndexed.defaultExpression(), is(nullValue()) );
 
         Reference integerNotIndexedBWC = md.references().get(new ColumnIdent("integerNotIndexedBWC"));
         assertThat(integerNotIndexedBWC.indexType(), is(Reference.IndexType.NO));
+        assertThat(integerNotIndexedBWC.defaultExpression(), is(nullValue()) );
 
         Reference stringNotIndexed = md.references().get(new ColumnIdent("stringNotIndexed"));
         assertThat(stringNotIndexed.indexType(), is(Reference.IndexType.NO));
+        assertThat(stringNotIndexed.defaultExpression(), is(nullValue()) );
 
         Reference stringNotIndexedBWC = md.references().get(new ColumnIdent("stringNotIndexedBWC"));
         assertThat(stringNotIndexedBWC.indexType(), is(Reference.IndexType.NO));
+        assertThat(stringNotIndexedBWC.defaultExpression(), is(nullValue()) );
 
         Reference stringNotAnalyzed = md.references().get(new ColumnIdent("stringNotAnalyzed"));
         assertThat(stringNotAnalyzed.indexType(), is(Reference.IndexType.NOT_ANALYZED));
+        assertThat(stringNotAnalyzed.defaultExpression(), is(nullValue()) );
 
         Reference stringNotAnalyzedBWC = md.references().get(new ColumnIdent("stringNotAnalyzedBWC"));
         assertThat(stringNotAnalyzedBWC.indexType(), is(Reference.IndexType.NOT_ANALYZED));
+        assertThat(stringNotAnalyzedBWC.defaultExpression(), is(nullValue()) );
 
         Reference stringAnalyzed = md.references().get(new ColumnIdent("stringAnalyzed"));
         assertThat(stringAnalyzed.indexType(), is(Reference.IndexType.ANALYZED));
+        assertThat(stringAnalyzed.defaultExpression(), is(nullValue()) );
 
         Reference stringAnalyzedBWC = md.references().get(new ColumnIdent("stringAnalyzedBWC"));
         assertThat(stringAnalyzedBWC.indexType(), is(Reference.IndexType.ANALYZED));
+        assertThat(stringAnalyzedBWC.defaultExpression(), is(nullValue()) );
 
         ImmutableList<Reference> references = ImmutableList.copyOf(md.references().values());
         List<String> fqns = Lists.transform(references, r -> r.column().fqn());
@@ -294,6 +306,86 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
                 "person", "person.birthday", "person.first_name",
                 "stringAnalyzed", "stringAnalyzedBWC", "stringNotAnalyzed", "stringNotAnalyzedBWC",
                 "stringNotIndexed", "stringNotIndexedBWC")));
+    }
+
+    @Test
+    public void testExtractColumnDefinitionsWithDefaultExpression() throws Exception {
+        // @formatter:off
+        XContentBuilder builder = XContentFactory.jsonBuilder()
+            .startObject()
+                .startObject("_meta")
+                    .field("primary_keys", "integerIndexed")
+                .endObject()
+                .startObject("properties")
+                    .startObject("integerIndexed")
+                        .field("type", "integer")
+                        .field("default_expr", "1")
+                    .endObject()
+                    .startObject("integerNotIndexed")
+                        .field("type", "integer")
+                        .field("index", "false")
+                        .field("default_expr", "1")
+                    .endObject()
+                    .startObject("stringNotIndexed")
+                        .field("type", "string")
+                        .field("index", "false")
+                        .field("default_expr", "'default'")
+                    .endObject()
+                    .startObject("stringNotAnalyzed")
+                        .field("type", "keyword")
+                        .field("default_expr", "'default'")
+                    .endObject()
+                    .startObject("stringAnalyzed")
+                        .field("type", "text")
+                        .field("analyzer", "standard")
+                        .field("default_expr", "'default'")
+                    .endObject()
+
+                    .startObject("birthday")
+                        .field("type", "date")
+                        .field("default_expr", "current_timestamp(3)")
+                    .endObject()
+                .endObject()
+            .endObject();
+        // @formatter:on
+
+        IndexMetaData metaData = getIndexMetaData("test1", builder);
+        DocIndexMetaData md = newMeta(metaData, "test1");
+
+        assertThat(md.columns().size(), is(6));
+        assertThat(md.references().size(), is(16));
+
+        Reference birthday = md.references().get(new ColumnIdent("birthday"));
+        assertThat(birthday.valueType(), is(DataTypes.TIMESTAMPZ));
+        assertThat(birthday.defaultExpression(), isFunction("current_timestamp", List.of(DataTypes.INTEGER)));
+
+        Reference integerIndexed = md.references().get(new ColumnIdent("integerIndexed"));
+        assertThat(integerIndexed.indexType(), is(Reference.IndexType.NOT_ANALYZED));
+        assertThat(integerIndexed.defaultExpression(), isLiteral(1L));
+
+
+        Reference integerNotIndexed = md.references().get(new ColumnIdent("integerNotIndexed"));
+        assertThat(integerNotIndexed.indexType(), is(Reference.IndexType.NO));
+        assertThat(integerNotIndexed.defaultExpression(), isLiteral(1L));
+
+        Reference stringNotIndexed = md.references().get(new ColumnIdent("stringNotIndexed"));
+        assertThat(stringNotIndexed.indexType(), is(Reference.IndexType.NO));
+        assertThat(stringNotIndexed.defaultExpression(), isLiteral("default"));
+
+        Reference stringNotAnalyzed = md.references().get(new ColumnIdent("stringNotAnalyzed"));
+        assertThat(stringNotAnalyzed.indexType(), is(Reference.IndexType.NOT_ANALYZED));
+        assertThat(stringNotAnalyzed.defaultExpression(), isLiteral("default"));
+
+        Reference stringAnalyzed = md.references().get(new ColumnIdent("stringAnalyzed"));
+        assertThat(stringAnalyzed.indexType(), is(Reference.IndexType.ANALYZED));
+        assertThat(stringAnalyzed.defaultExpression(), isLiteral("default"));
+
+        ImmutableList<Reference> references = ImmutableList.copyOf(md.references().values());
+        List<String> fqns = Lists.transform(references, r -> r.column().fqn());
+        assertThat(fqns, Matchers.is(
+            ImmutableList.of("_doc", "_fetchid", "_id", "_raw", "_score", "_uid", "_version", "_docid", "_seq_no",
+                "_primary_term", "birthday", "integerIndexed", "integerNotIndexed",
+                "stringAnalyzed", "stringNotAnalyzed", "stringNotIndexed")));
     }
 
     @Test
@@ -1319,6 +1411,15 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
         DocIndexMetaData md = getDocIndexMetaDataFromStatement("create table t1 (x as ([10, 20]))");
         GeneratedReference generatedReference = md.generatedColumnReferences().get(0);
         assertThat(generatedReference.valueType(), is(new ArrayType(DataTypes.LONG)));
+    }
+
+    @Test
+    public void testColumnWithDefaultExpression() throws Exception {
+        DocIndexMetaData md = getDocIndexMetaDataFromStatement("create table t1 (" +
+                                                               " ts timestamp with time zone default current_timestamp)");
+        Reference reference = md.references().get(new ColumnIdent("ts"));
+        assertThat(reference.valueType(), is(DataTypes.TIMESTAMPZ));
+        assertThat(reference.defaultExpression(), isFunction("current_timestamp", List.of(DataTypes.INTEGER)));
     }
 
     @Test

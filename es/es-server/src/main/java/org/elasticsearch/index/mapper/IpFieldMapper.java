@@ -88,6 +88,7 @@ public class IpFieldMapper extends FieldMapper {
             return new IpFieldMapper(
                 name,
                 position,
+                defaultExpression,
                 fieldType,
                 defaultFieldType,
                 ignoreMalformed(context),
@@ -264,13 +265,14 @@ public class IpFieldMapper extends FieldMapper {
     private IpFieldMapper(
             String simpleName,
             Integer position,
+            String defaultExpression,
             MappedFieldType fieldType,
             MappedFieldType defaultFieldType,
             Explicit<Boolean> ignoreMalformed,
             Settings indexSettings,
             MultiFields multiFields,
             CopyTo copyTo) {
-        super(simpleName, position, fieldType, defaultFieldType, indexSettings, multiFields, copyTo);
+        super(simpleName, position, defaultExpression, fieldType, defaultFieldType, indexSettings, multiFields, copyTo);
         this.ignoreMalformed = ignoreMalformed;
     }
 

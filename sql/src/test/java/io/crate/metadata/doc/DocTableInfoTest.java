@@ -35,6 +35,7 @@ public class DocTableInfoTest extends CrateUnitTest {
                     new ReferenceIdent(relationName, new ColumnIdent("o", ImmutableList.of())),
                     RowGranularity.DOC,
                     ObjectType.untyped(),
+                    null,
                     null
                 )
             ),
@@ -82,6 +83,7 @@ public class DocTableInfoTest extends CrateUnitTest {
             ColumnPolicy.STRICT,
             Reference.IndexType.NOT_ANALYZED,
             true,
+            null,
             null
         );
 

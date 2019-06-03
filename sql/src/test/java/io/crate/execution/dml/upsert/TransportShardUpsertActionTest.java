@@ -90,7 +90,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
     private final static RelationName TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "characters");
     private final static String PARTITION_INDEX = new PartitionName(TABLE_IDENT, Arrays.asList("1395874800000")).asIndexName();
     private final static Reference ID_REF = new Reference(
-        new ReferenceIdent(TABLE_IDENT, "id"), RowGranularity.DOC, DataTypes.SHORT, null);
+        new ReferenceIdent(TABLE_IDENT, "id"), RowGranularity.DOC, DataTypes.SHORT, null, null);
 
     private final static SessionSettings DUMMY_SESSION_INFO = new SessionSettings(
         "dummyUser",

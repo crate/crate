@@ -138,6 +138,7 @@ public class DateFieldMapper extends FieldMapper {
             return new DateFieldMapper(
                 name,
                 position,
+                defaultExpression,
                 fieldType,
                 defaultFieldType,
                 ignoreMalformed(context),
@@ -350,6 +351,7 @@ public class DateFieldMapper extends FieldMapper {
     private DateFieldMapper(
             String simpleName,
             Integer position,
+            @Nullable String defaultExpression,
             MappedFieldType fieldType,
             MappedFieldType defaultFieldType,
             Explicit<Boolean> ignoreMalformed,
@@ -357,7 +359,7 @@ public class DateFieldMapper extends FieldMapper {
             Settings indexSettings,
             MultiFields multiFields,
             CopyTo copyTo) {
-        super(simpleName, position, fieldType, defaultFieldType, indexSettings, multiFields, copyTo);
+        super(simpleName, position, defaultExpression, fieldType, defaultFieldType, indexSettings, multiFields, copyTo);
         this.ignoreMalformed = ignoreMalformed;
         this.ignoreTimezone = ignoreTimezone;
     }
