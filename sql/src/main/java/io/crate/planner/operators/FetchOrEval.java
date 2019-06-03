@@ -426,6 +426,11 @@ public class FetchOrEval extends ForwardingLogicalPlan {
                     : null);
             if (docTableRelation != null) {
                 Symbol symbol = expressionMapping.get(f);
+                if (symbol == null) {
+                    // If we've a subscript like obj['x'] and `obj` isn't in the outputs of the source relation it is
+                    // missing in the expression mapping
+                    symbol = f.pointer();
+                }
                 return RefReplacer.replaceRefs(symbol, ref -> {
                     if (ref.granularity() == RowGranularity.DOC) {
                         ref = DocReferences.toSourceLookup(ref);

@@ -1966,4 +1966,9 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         AnalyzedRelation relation = analyze("select timestamp without time zone '2018-12-12 00:00:00'");
         assertThat(relation.outputs().get(0).valueType(), is(DataTypes.TIMESTAMP));
     }
+
+    @Test
+    public void test_element_within_object_array_of_derived_table_can_be_accessed_using_subscript() {
+        analyze("select s.friends['id'] from (select friends from doc.users) s");
+    }
 }

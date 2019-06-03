@@ -93,7 +93,15 @@ public final class QueriedTable<TR extends AbstractTableRelation> implements Ana
         if (operation != Operation.READ) {
             throw new UnsupportedOperationException("getField on SelectAnalyzedStatement is only supported for READ operations");
         }
-        return fields.get(path);
+        Field field = fields.get(path);
+        if (field == null && !path.isTopLevel()) {
+            Field childField = tableRelation.getField(path, operation);
+            if (childField == null) {
+                return null;
+            }
+            return new Field(this, childField.path(), childField.pointer());
+        }
+        return field;
     }
 
     @Override
