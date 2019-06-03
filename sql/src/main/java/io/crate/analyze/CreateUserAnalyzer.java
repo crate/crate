@@ -28,27 +28,16 @@ import io.crate.analyze.relations.FieldProvider;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
-import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.CreateUser;
 import io.crate.sql.tree.Expression;
-import io.crate.sql.tree.QualifiedName;
-import org.elasticsearch.common.Nullable;
 
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 public class CreateUserAnalyzer {
 
     private final Functions functions;
-
-    private static final FieldProvider FIELD_PROVIDER = new FieldProvider() {
-        @Override
-        public Symbol resolveField(QualifiedName qualifiedName, @Nullable List path, Operation operation) {
-            throw new UnsupportedOperationException("Cannot resolve field references");
-        }
-    };
 
     CreateUserAnalyzer(Functions functions) {
         this.functions = functions;
@@ -60,7 +49,7 @@ public class CreateUserAnalyzer {
                 functions,
                 txnContext,
                 typeHints,
-                FIELD_PROVIDER,
+                FieldProvider.UNSUPPORTED,
                 null
             );
             Map<String, Symbol> rows = new HashMap<>();
