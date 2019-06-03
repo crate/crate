@@ -22,10 +22,12 @@
 package io.crate.analyze;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.TableReferenceResolver;
+import io.crate.analyze.relations.FieldProvider;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.scalar.cast.CastFunctionResolver;
 import io.crate.expression.symbol.Symbol;
@@ -38,6 +40,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
+import io.crate.sql.tree.Expression;
 import io.crate.types.ArrayType;
 import io.crate.types.CollectionType;
 import io.crate.types.DataType;
@@ -56,6 +59,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 
 public class AnalyzedTableElements {
 
@@ -246,7 +250,7 @@ public class AnalyzedTableElements {
                              ParameterContext parameterContext,
                              CoordinatorTxnCtx coordinatorTxnCtx) {
         expandColumnIdents();
-        validateGeneratedColumns(relationName, existingColumns, functions, parameterContext, coordinatorTxnCtx);
+        validateExpressions(relationName, existingColumns, functions, parameterContext, coordinatorTxnCtx);
         for (AnalyzedColumnDefinition column : columns) {
             column.validate();
             addCopyToInfo(column);
@@ -256,11 +260,11 @@ public class AnalyzedTableElements {
         validateColumnStorageDefinitions();
     }
 
-    private void validateGeneratedColumns(RelationName relationName,
-                                          Collection<? extends Reference> existingColumns,
-                                          Functions functions,
-                                          ParameterContext parameterContext,
-                                          CoordinatorTxnCtx coordinatorTxnCtx) {
+    private void validateExpressions(RelationName relationName,
+                                     Collection<? extends Reference> existingColumns,
+                                     Functions functions,
+                                     ParameterContext parameterContext,
+                                     CoordinatorTxnCtx coordinatorTxnCtx) {
         List<Reference> tableReferences = new ArrayList<>();
         for (AnalyzedColumnDefinition columnDefinition : columns) {
             buildReference(relationName, columnDefinition, tableReferences);
@@ -268,44 +272,74 @@ public class AnalyzedTableElements {
         tableReferences.addAll(existingColumns);
 
         TableReferenceResolver tableReferenceResolver = new TableReferenceResolver(tableReferences, relationName);
-        ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
+        ExpressionAnalyzer generatedExpressionAnalyzer = new ExpressionAnalyzer(
             functions, coordinatorTxnCtx, parameterContext, tableReferenceResolver, null);
+        ExpressionAnalysisContext generatedExpressionAnalysisContext = new ExpressionAnalysisContext();
+
+        ExpressionAnalyzer defaultExpressionAnalyzer = new ExpressionAnalyzer(
+            functions, coordinatorTxnCtx, parameterContext, FieldProvider.UNSUPPORTED, null);
+        ExpressionAnalysisContext defaultExpressionAnalysisContext = new ExpressionAnalysisContext();
+
         SymbolPrinter printer = new SymbolPrinter(functions);
-        ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
+
         for (AnalyzedColumnDefinition columnDefinition : columns) {
-            processGeneratedExpressions(
-                columnDefinition,
-                expressionAnalyzer,
-                printer,
-                expressionAnalysisContext
-            );
+            processExpressions(columnDefinition,
+                               generatedExpressionAnalyzer,
+                               generatedExpressionAnalysisContext,
+                               defaultExpressionAnalyzer,
+                               defaultExpressionAnalysisContext,
+                               printer);
         }
     }
 
-    private static void processGeneratedExpressions(AnalyzedColumnDefinition columnDefinition,
-                                                    ExpressionAnalyzer expressionAnalyzer,
-                                                    SymbolPrinter printer,
-                                                    ExpressionAnalysisContext expressionAnalysisContext) {
+    private static void processExpressions(AnalyzedColumnDefinition columnDefinition,
+                                           ExpressionAnalyzer generatedExpressionAnalyzer,
+                                           ExpressionAnalysisContext generatedExpressionAnalysisContext,
+                                           ExpressionAnalyzer defaultExpressionAnalyzer,
+                                           ExpressionAnalysisContext defaultExpressionAnalysisContext,
+                                           SymbolPrinter printer) {
         if (columnDefinition.generatedExpression() != null) {
-            processGeneratedExpression(expressionAnalyzer, printer, columnDefinition, expressionAnalysisContext);
+            processExpression(generatedExpressionAnalyzer,
+                              columnDefinition::generatedExpression,
+                              columnDefinition::formattedGeneratedExpression,
+                              printer,
+                              columnDefinition,
+                              generatedExpressionAnalysisContext);
+        }
+        if (columnDefinition.defaultExpression() != null) {
+            processExpression(defaultExpressionAnalyzer,
+                              columnDefinition::defaultExpression,
+                              columnDefinition::formattedDefaultExpression,
+                              printer,
+                              columnDefinition,
+                              defaultExpressionAnalysisContext);
         }
         for (AnalyzedColumnDefinition child : columnDefinition.children()) {
-            processGeneratedExpressions(
+            processExpressions(
                 child,
-                expressionAnalyzer,
-                printer,
-                expressionAnalysisContext
+                generatedExpressionAnalyzer,
+                generatedExpressionAnalysisContext,
+                defaultExpressionAnalyzer,
+                defaultExpressionAnalysisContext,
+                printer
             );
         }
     }
 
-    private static void processGeneratedExpression(ExpressionAnalyzer expressionAnalyzer,
-                                                   SymbolPrinter symbolPrinter,
-                                                   AnalyzedColumnDefinition columnDefinition,
-                                                   ExpressionAnalysisContext expressionAnalysisContext) {
-        // validate expression
-        Symbol function = expressionAnalyzer.convert(columnDefinition.generatedExpression(), expressionAnalysisContext);
+    private static void processExpression(ExpressionAnalyzer expressionAnalyzer,
+                                          Supplier<Expression> expressionSupplier,
+                                          Consumer<String> formattedExpressionConsumer,
+                                          SymbolPrinter symbolPrinter,
+                                          AnalyzedColumnDefinition columnDefinition,
+                                          ExpressionAnalysisContext expressionAnalysisContext) {
+        Symbol function = expressionAnalyzer.convert(expressionSupplier.get(), expressionAnalysisContext);
+        final String formattedExpression = validateAndFormatExpression(function, columnDefinition, symbolPrinter);
+        formattedExpressionConsumer.accept(formattedExpression);
+    }
 
+    private static String validateAndFormatExpression(Symbol function,
+                                                      AnalyzedColumnDefinition columnDefinition,
+                                                      SymbolPrinter symbolPrinter) {
         String formattedExpression;
         DataType valueType = function.valueType();
         DataType definedType = columnDefinition.dataType();
@@ -313,7 +347,7 @@ public class AnalyzedTableElements {
         // check for optional defined type and add `cast` to expression if possible
         if (definedType != null && !definedType.equals(valueType)) {
             Preconditions.checkArgument(valueType.isConvertableTo(definedType),
-                "generated expression value type '%s' not supported for conversion to '%s'", valueType, definedType.getName());
+                                        "expression value type '%s' not supported for conversion to '%s'", valueType, definedType.getName());
 
             Symbol castFunction = CastFunctionResolver.generateCastFunction(function, definedType, false);
             formattedExpression = symbolPrinter.printUnqualified(castFunction);
@@ -328,9 +362,9 @@ public class AnalyzedTableElements {
             }
             formattedExpression = symbolPrinter.printUnqualified(function);
         }
-
-        columnDefinition.formattedGeneratedExpression(formattedExpression);
+        return formattedExpression;
     }
+
 
     private void buildReference(RelationName relationName, AnalyzedColumnDefinition columnDefinition, List<Reference> references) {
         Reference reference;
@@ -339,7 +373,8 @@ public class AnalyzedTableElements {
                 new ReferenceIdent(relationName, columnDefinition.ident()),
                 RowGranularity.DOC,
                 columnDefinition.dataType(),
-                columnDefinition.position
+                columnDefinition.position,
+                null // not required in this context
             );
         } else {
             reference = new GeneratedReference(

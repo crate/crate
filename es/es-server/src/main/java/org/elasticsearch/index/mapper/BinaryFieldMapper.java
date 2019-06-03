@@ -73,6 +73,7 @@ public class BinaryFieldMapper extends FieldMapper {
             return new BinaryFieldMapper(
                 name,
                 position,
+                defaultExpression,
                 fieldType,
                 defaultFieldType,
                 context.indexSettings(),
@@ -150,12 +151,13 @@ public class BinaryFieldMapper extends FieldMapper {
 
     protected BinaryFieldMapper(String simpleName,
                                 Integer position,
+                                String defaultExpression,
                                 MappedFieldType fieldType,
                                 MappedFieldType defaultFieldType,
                                 Settings indexSettings,
                                 MultiFields multiFields,
                                 CopyTo copyTo) {
-        super(simpleName, position, fieldType, defaultFieldType, indexSettings, multiFields, copyTo);
+        super(simpleName, position, defaultExpression, fieldType, defaultFieldType, indexSettings, multiFields, copyTo);
     }
 
     @Override

@@ -145,6 +145,7 @@ public final class KeywordFieldMapper extends FieldMapper {
             return new KeywordFieldMapper(
                 name,
                 position,
+                defaultExpression,
                 fieldType,
                 defaultFieldType,
                 ignoreAbove,
@@ -326,13 +327,14 @@ public final class KeywordFieldMapper extends FieldMapper {
 
     protected KeywordFieldMapper(String simpleName,
                                  Integer position,
+                                 String defaultExpression,
                                  MappedFieldType fieldType,
                                  MappedFieldType defaultFieldType,
                                  int ignoreAbove,
                                  Settings indexSettings,
                                  MultiFields multiFields,
                                  CopyTo copyTo) {
-        super(simpleName, position, fieldType, defaultFieldType, indexSettings, multiFields, copyTo);
+        super(simpleName, position, defaultExpression, fieldType, defaultFieldType, indexSettings, multiFields, copyTo);
         assert fieldType.indexOptions().compareTo(IndexOptions.DOCS_AND_FREQS) <= 0;
         this.ignoreAbove = ignoreAbove;
     }

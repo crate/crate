@@ -52,7 +52,7 @@ public class GeoReference extends Reference {
                         @Nullable String precision,
                         @Nullable Integer treeLevels,
                         @Nullable Double distanceErrorPct) {
-        super(ident, RowGranularity.DOC, DataTypes.GEO_SHAPE, position);
+        super(ident, RowGranularity.DOC, DataTypes.GEO_SHAPE, position, null);
         this.geoTree = MoreObjects.firstNonNull(tree, DEFAULT_TREE);
         this.precision = precision;
         this.treeLevels = treeLevels;

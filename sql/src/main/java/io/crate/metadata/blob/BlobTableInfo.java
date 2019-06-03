@@ -158,7 +158,7 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
         int pos = 0;
         for (Tuple<String, DataType> column : STATIC_COLUMNS) {
             Reference ref = new Reference(
-                new ReferenceIdent(ident(), column.v1(), null), RowGranularity.DOC, column.v2(), pos
+                new ReferenceIdent(ident(), column.v1(), null), RowGranularity.DOC, column.v2(), pos, null
             );
             assert ref.column().isTopLevel() : "only top-level columns should be added to columns list";
             pos++;

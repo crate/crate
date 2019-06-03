@@ -158,7 +158,11 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
         Reference r = new Reference(
             new ReferenceIdent(
             new RelationName("sys", "table"),
-            new ColumnIdent("column", Arrays.asList("path", "nested"))), RowGranularity.DOC, DataTypes.STRING, null
+            new ColumnIdent("column", Arrays.asList("path", "nested"))),
+            RowGranularity.DOC,
+            DataTypes.STRING,
+            null,
+            null
         );
         assertPrint(r, "sys.\"table\".\"column\"['path']['nested']");
     }
@@ -168,7 +172,11 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
         Reference r = new Reference(
             new ReferenceIdent(
             new RelationName("doc", "table"),
-            new ColumnIdent("column", Arrays.asList("path", "nested"))), RowGranularity.DOC, DataTypes.STRING, null
+            new ColumnIdent("column", Arrays.asList("path", "nested"))),
+            RowGranularity.DOC,
+            DataTypes.STRING,
+            null,
+            null
         );
         assertPrint(r, "doc.\"table\".\"column\"['path']['nested']");
     }
@@ -184,9 +192,12 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testReferenceEscaped() throws Exception {
         Reference r = new Reference(
-            new ReferenceIdent(
-            new RelationName("doc", "table"),
-            new ColumnIdent("colum\"n")), RowGranularity.DOC, DataTypes.STRING, null
+            new ReferenceIdent(new RelationName("doc", "table"),
+            new ColumnIdent("colum\"n")),
+            RowGranularity.DOC,
+            DataTypes.STRING,
+            null,
+            null
         );
         assertPrint(r, "doc.\"table\".\"colum\"\"n\"");
     }

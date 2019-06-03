@@ -87,12 +87,14 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
         new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, TEST_TABLE_NAME), "doc"),
         RowGranularity.DOC,
         DataTypes.INTEGER,
+        null,
         null
     );
     private static final Reference underscoreIdReference = new Reference(
         new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, TEST_TABLE_NAME), "_id"),
         RowGranularity.DOC,
         DataTypes.STRING,
+        null,
         null
     );
 
@@ -214,10 +216,10 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
         RoutedCollectPhase collectNode = getCollectNode(
             Arrays.asList(
                 new Reference(
-                    new ReferenceIdent(relationName, "id"), RowGranularity.DOC, DataTypes.INTEGER, null
+                    new ReferenceIdent(relationName, "id"), RowGranularity.DOC, DataTypes.INTEGER, null, null
                 ),
                 new Reference(
-                    new ReferenceIdent(relationName, "date"), RowGranularity.SHARD, DataTypes.TIMESTAMPZ, null
+                    new ReferenceIdent(relationName, "date"), RowGranularity.SHARD, DataTypes.TIMESTAMPZ, null, null
                 )),
             routing,
             WhereClause.MATCH_ALL
