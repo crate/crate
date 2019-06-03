@@ -25,6 +25,7 @@ package io.crate.analyze.relations;
 import io.crate.analyze.Fields;
 import io.crate.analyze.HavingClause;
 import io.crate.analyze.OrderBy;
+import io.crate.analyze.Relations;
 import io.crate.analyze.WhereClause;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.Field;
@@ -81,7 +82,11 @@ public class UnionSelect implements AnalyzedRelation {
         if (operation != Operation.READ) {
             throw new UnsupportedOperationException("getField on MultiSourceSelect is only supported for READ operations");
         }
-        return fields.get(path);
+        Field field = fields.getWithSubscriptFallback(path, this, left, false);
+        if (field == null && path.isTopLevel() == false) {
+            return Relations.resolveSubscriptOnAliasedField(path, fields, p -> getField(p, operation));
+        }
+        return field;
     }
 
     @Override

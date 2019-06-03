@@ -31,6 +31,7 @@ import io.crate.analyze.relations.OrderedLimitedRelation;
 import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.relations.UnionSelect;
+import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
@@ -38,8 +39,36 @@ import io.crate.metadata.ColumnIdent;
 import java.util.Collection;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 public class Relations {
+
+    // In a query like `select o['id'] from (select obj as o ..)`
+    // `o['id']` is not found in the child (its called `obj` there)
+    public static Field resolveSubscriptOnAliasedField(ColumnIdent path,
+                                                       Fields fields,
+                                                       Function<ColumnIdent, Field> fieldResolver) {
+        Field o = fields.get(path.getRoot());
+        if (o != null) {
+            ColumnIdent obj = resolveOriginalColumnIdent(o);
+            ColumnIdent withoutPrefix = path.shiftRight();
+            assert withoutPrefix != null : "shiftRight must not be null because isTopLevel was false";
+            ColumnIdent renamed = withoutPrefix.prepend(obj.name());
+            return fieldResolver.apply(renamed);
+        }
+        return o;
+    }
+
+    private static ColumnIdent resolveOriginalColumnIdent(Field field) {
+        Symbol symbol = field;
+        ColumnIdent path = field.path();
+        while (path.equals(field.path()) && symbol instanceof Field) {
+            Field f = ((Field) symbol);
+            symbol = f.pointer();
+            path = f.path();
+        }
+        return Symbols.pathFromSymbol(symbol);
+    }
 
     static Collection<? extends ColumnIdent> namesFromOutputs(List<Symbol> outputs) {
         return Lists.transform(outputs, Symbols::pathFromSymbol);

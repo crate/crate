@@ -93,7 +93,7 @@ public final class QueriedTable<TR extends AbstractTableRelation> implements Ana
         if (operation != Operation.READ) {
             throw new UnsupportedOperationException("getField on SelectAnalyzedStatement is only supported for READ operations");
         }
-        return fields.get(path);
+        return fields.getWithSubscriptFallback(path, this, tableRelation, false);
     }
 
     @Override
