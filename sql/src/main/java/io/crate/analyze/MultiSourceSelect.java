@@ -25,9 +25,11 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.JoinPair;
 import io.crate.collections.Lists2;
+import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.FieldReplacer;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
@@ -102,7 +104,31 @@ public class MultiSourceSelect implements AnalyzedRelation {
         if (operation != Operation.READ) {
             throw new UnsupportedOperationException("getField on MultiSourceSelect is only supported for READ operations");
         }
-        return fields.get(path);
+        Field field = fields.get(path);
+        if (field == null && !path.isTopLevel()) {
+            for (AnalyzedRelation value : sources.values()) {
+                try {
+                    Field childField = value.getField(path, operation);
+                    if (childField != null) {
+                        return new Field(this, childField.path(), childField.pointer());
+                    }
+                } catch (ColumnUnknownException ignored) {
+                    // ignore
+                }
+            }
+            // In a query like `select o['id'] from (select obj as o ..)`
+            // `o['id']` is not found in the child (its called `obj` there)
+            // Once we have a proper aliased relation, this shouldn't be necessary anymore
+            Field o = fields.get(path.getRoot());
+            if (o != null) {
+                ColumnIdent obj = Symbols.pathFromSymbol(o.pointer());
+                ColumnIdent withoutPrefix = path.shiftRight();
+                assert withoutPrefix != null : "shiftRight must not be null because isTopLevel was false";
+                ColumnIdent renamed = withoutPrefix.prepend(obj.name());
+                return getField(renamed, operation);
+            }
+        }
+        return field;
     }
 
     @Override

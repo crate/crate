@@ -444,6 +444,9 @@ public class FetchOrEval extends ForwardingLogicalPlan {
             Symbol mapped = expressionMapping.get(output);
             if (mapped == null) {
                 mapped = expressionMapping.get(f);
+                if (mapped == null) {
+                    mapped = f.pointer();
+                }
             }
             assert mapped != null
                 : "Field mapping must exists for " + output + " in " + expressionMapping;

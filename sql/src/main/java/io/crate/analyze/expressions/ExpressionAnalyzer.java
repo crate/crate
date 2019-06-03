@@ -126,7 +126,6 @@ import io.crate.sql.tree.WhenClause;
 import io.crate.sql.tree.Window;
 import io.crate.sql.tree.WindowFrame;
 import io.crate.types.ArrayType;
-import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
@@ -616,62 +615,14 @@ public class ExpressionAnalyzer {
                 }
             } else {
                 Symbol name;
-                try {
-                    name = fieldProvider.resolveField(qualifiedName, parts, operation);
-                    Expression idxExpression = subscriptContext.index();
-                    if (idxExpression != null) {
-                        Symbol index = process(idxExpression, context);
-                        return createSubscript(name, index, context);
-                    }
-                    return name;
-                } catch (ColumnUnknownException e) {
-                    name = resolvePossibleObjectInnerFieldAndReturnParent(qualifiedName, parts);
-                    if (name != null) {
-                        return createSubscript(name, parts, context);
-                    } else {
-                        throw e;
-                    }
+                name = fieldProvider.resolveField(qualifiedName, parts, operation);
+                Expression idxExpression = subscriptContext.index();
+                if (idxExpression != null) {
+                    Symbol index = process(idxExpression, context);
+                    return createSubscript(name, index, context);
                 }
+                return name;
             }
-        }
-
-        /**
-         * This acts as a fallback when the subscript column can not be resolved directly.
-         * If the subscript column can be resolved using the parent's object type, it is ensured that the column
-         * exists and the root column field can be returned to create a subscript function.
-         */
-        @Nullable
-        private Symbol resolvePossibleObjectInnerFieldAndReturnParent(QualifiedName qualifiedName, List<String> parts) {
-            Symbol parent = resolveParentField(qualifiedName, parts);
-            if (parent != null) {
-                DataType parentType = parent.valueType();
-                if (DataTypes.isCollectionType(parentType)) {
-                    parentType = ((CollectionType) parentType).innerType();
-                }
-                if (parentType.id() == ObjectType.ID) {
-                    DataType innerType = ((ObjectType) parentType).resolveInnerType(parts);
-                    if (innerType != null) {
-                        return parent;
-                    }
-                }
-            }
-            return null;
-        }
-
-        @Nullable
-        private Symbol resolveParentField(QualifiedName qualifiedName, List<String> parts) {
-            if (parts.isEmpty()) {
-                return null;
-            }
-            for (int i = parts.size() - 1; i >= 0; i--) {
-                List<String> parentPath = parts.subList(0, i);
-                try {
-                    return fieldProvider.resolveField(qualifiedName, parentPath, operation);
-                } catch (ColumnUnknownException e) {
-                    // ignore, continue to resolve possible upper parent
-                }
-            }
-            return null;
         }
 
         private Symbol createSubscript(Symbol name, Symbol index, ExpressionAnalysisContext context) {

@@ -81,7 +81,7 @@ public class QueriedSelectRelation implements AnalyzedRelation {
         if (operation != Operation.READ) {
             throw new UnsupportedOperationException("getField on QueriedSelectRelation is only supported for READ operations");
         }
-        return fields.get(path);
+        return fields.getWithSubscriptFallback(path, this, subRelation);
     }
 
     @Override

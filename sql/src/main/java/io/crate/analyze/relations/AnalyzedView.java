@@ -84,7 +84,7 @@ public final class AnalyzedView implements AnalyzedRelation {
         if (operation != Operation.READ) {
             throw new UnsupportedOperationException("getField on AnalyzedView is only supported for READ operations");
         }
-        return fields.get(path);
+        return fields.getWithSubscriptFallback(path, this, relation);
     }
 
     @Override
