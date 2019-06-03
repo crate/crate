@@ -34,6 +34,7 @@ import io.crate.analyze.TableParameterInfo;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.TableReferenceResolver;
+import io.crate.analyze.relations.FieldProvider;
 import io.crate.collections.Lists2;
 import io.crate.common.collections.Maps;
 import io.crate.metadata.ColumnIdent;
@@ -73,6 +74,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.elasticsearch.index.mapper.TypeParsers.DOC_VALUES;
 
@@ -165,6 +167,7 @@ public class DocIndexMetaData {
     private void add(Integer position,
                      ColumnIdent column,
                      DataType type,
+                     String defaultExpression,
                      ColumnPolicy columnPolicy,
                      Reference.IndexType indexType,
                      boolean isNotNull,
@@ -176,7 +179,7 @@ public class DocIndexMetaData {
             indexType = Reference.IndexType.NOT_ANALYZED;
         }
         if (generatedExpression == null) {
-            ref = newInfo(position, column, type, columnPolicy, indexType, isNotNull, columnStoreEnabled);
+            ref = newInfo(position, column, type, defaultExpression, columnPolicy, indexType, isNotNull, columnStoreEnabled);
         } else {
             ref = newGeneratedColumnInfo(position, column, type, columnPolicy, indexType, generatedExpression, isNotNull);
         }
@@ -237,12 +240,21 @@ public class DocIndexMetaData {
     private Reference newInfo(Integer position,
                               ColumnIdent column,
                               DataType type,
+                              String formattedDefaultExpression,
                               ColumnPolicy columnPolicy,
                               Reference.IndexType indexType,
                               boolean nullable,
                               boolean columnStoreEnabled) {
         return new Reference(
-            refIdent(column), granularity(column), type, columnPolicy, indexType, nullable, columnStoreEnabled, position
+            refIdent(column),
+            granularity(column),
+            type,
+            columnPolicy,
+            indexType,
+            nullable,
+            columnStoreEnabled,
+            position,
+            formattedDefaultExpression
         );
     }
 
@@ -367,6 +379,7 @@ public class DocIndexMetaData {
             boolean nullable = !notNullColumns.contains(newIdent);
             columnProperties = furtherColumnProperties(columnProperties);
             Integer position = (Integer) columnProperties.getOrDefault("position", null);
+            String defaultExpression = (String) columnProperties.getOrDefault("default_expr", null);
             Reference.IndexType columnIndexType = getColumnIndexType(columnProperties);
             boolean columnsStoreDisabled = !Booleans.parseBoolean(
                 columnProperties.getOrDefault(DOC_VALUES, true).toString());
@@ -380,7 +393,7 @@ public class DocIndexMetaData {
                        || (columnDataType.id() == ArrayType.ID
                            && ((ArrayType) columnDataType).innerType().id() == ObjectType.ID)) {
                 ColumnPolicy columnPolicy = ColumnPolicies.decodeMappingValue(columnProperties.get("dynamic"));
-                add(position, newIdent, columnDataType, columnPolicy, Reference.IndexType.NO, nullable, false);
+                add(position, newIdent, columnDataType, defaultExpression, columnPolicy, Reference.IndexType.NO, nullable, false);
 
                 if (columnProperties.get("properties") != null) {
                     // walk nested
@@ -394,7 +407,7 @@ public class DocIndexMetaData {
                     for (String copyToColumn : copyToColumns) {
                         ColumnIdent targetIdent = ColumnIdent.fromPath(copyToColumn);
                         IndexReference.Builder builder = getOrCreateIndexBuilder(targetIdent);
-                        builder.addColumn(newInfo(position, newIdent, columnDataType, ColumnPolicy.DYNAMIC, columnIndexType, false, columnsStoreDisabled));
+                        builder.addColumn(newInfo(position, newIdent, columnDataType, defaultExpression, ColumnPolicy.DYNAMIC, columnIndexType, false, columnsStoreDisabled));
                     }
                 }
                 // is it an index?
@@ -403,7 +416,7 @@ public class DocIndexMetaData {
                     builder.indexType(columnIndexType)
                         .analyzer((String) columnProperties.get("analyzer"));
                 } else {
-                    add(position, newIdent, columnDataType, ColumnPolicy.DYNAMIC, columnIndexType, nullable, columnsStoreDisabled);
+                    add(position, newIdent, columnDataType, defaultExpression, ColumnPolicy.DYNAMIC, columnIndexType, nullable, columnsStoreDisabled);
                 }
             }
         }
@@ -523,15 +536,28 @@ public class DocIndexMetaData {
         return DocSysColumns.ID;
     }
 
-    private void initializeGeneratedExpressions() {
-        if (generatedColumnReferences.isEmpty()) {
+    private void initializeReferenceExpressions() {
+        Collection<Reference> references = this.references.values();
+        final List<Reference> referencesWithDefaultExpressions = references
+            .stream()
+            .filter(Reference::hasDefaultExpression)
+            .collect(Collectors.toList());
+
+        if (referencesWithDefaultExpressions.isEmpty() && generatedColumnReferences.isEmpty()) {
             return;
         }
-        Collection<Reference> references = this.references.values();
+
+        ExpressionAnalysisContext context = new ExpressionAnalysisContext();
+        ExpressionAnalyzer defaultExpressionAnalyzer = new ExpressionAnalyzer(
+            functions, CoordinatorTxnCtx.systemTransactionContext(), ParamTypeHints.EMPTY, FieldProvider.UNSUPPORTED, null);
+        for (Reference reference : referencesWithDefaultExpressions) {
+            Expression expression = SqlParser.createExpression(reference.formattedDefaultExpression());
+            reference.defaultExpression(defaultExpressionAnalyzer.convert(expression, context));
+        }
+
         TableReferenceResolver tableReferenceResolver = new TableReferenceResolver(references, ident);
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             functions, CoordinatorTxnCtx.systemTransactionContext(), ParamTypeHints.EMPTY, tableReferenceResolver, null);
-        ExpressionAnalysisContext context = new ExpressionAnalysisContext();
         for (Reference reference : generatedColumnReferences) {
             GeneratedReference generatedReference = (GeneratedReference) reference;
             Expression expression = SqlParser.createExpression(generatedReference.formattedGeneratedExpression());
@@ -564,7 +590,7 @@ public class DocIndexMetaData {
         primaryKey = getPrimaryKey();
         routingCol = getRoutingCol();
 
-        initializeGeneratedExpressions();
+        initializeReferenceExpressions();
         return this;
     }
 

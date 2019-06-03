@@ -97,6 +97,7 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
             new Reference(new ReferenceIdent(bulkImportIdent, DocSysColumns.RAW),
                           RowGranularity.DOC,
                           DataTypes.STRING,
+                          null,
                           null),
             Collections.singletonList(ID_IDENT),
             Collections.<Symbol>singletonList(new InputColumn(0)),

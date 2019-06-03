@@ -98,6 +98,12 @@ public class AnalyzedColumnDefinition {
     @Nullable
     private Expression generatedExpression;
 
+    @Nullable
+    private String formattedDefaultExpression;
+
+    @Nullable
+    private Expression defaultExpression;
+
     AnalyzedColumnDefinition(Integer position, @Nullable AnalyzedColumnDefinition parent) {
         this.position = position;
         this.parent = parent;
@@ -257,6 +263,11 @@ public class AnalyzedColumnDefinition {
         if (columnStore == false) {
             mapping.put(DOC_VALUES, "false");
         }
+
+        if (formattedDefaultExpression != null) {
+            mapping.put("default_expr", formattedDefaultExpression);
+        }
+
         return mapping;
     }
 
@@ -393,6 +404,19 @@ public class AnalyzedColumnDefinition {
     @Nullable
     public Expression generatedExpression() {
         return generatedExpression;
+    }
+
+    public void formattedDefaultExpression(String formattedDefaultExpression) {
+        this.formattedDefaultExpression = formattedDefaultExpression;
+    }
+
+    @Nullable
+    public Expression defaultExpression() {
+        return defaultExpression;
+    }
+
+    public void defaultExpression(Expression defaultExpression) {
+        this.defaultExpression = defaultExpression;
     }
 
     void setColumnStore(boolean columnStore) {

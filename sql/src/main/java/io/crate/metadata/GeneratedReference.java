@@ -61,7 +61,7 @@ public class GeneratedReference extends Reference {
                               IndexType indexType,
                               String formattedGeneratedExpression,
                               boolean nullable) {
-        super(ident, granularity, type, columnPolicy, indexType, nullable, position);
+        super(ident, granularity, type, columnPolicy, indexType, nullable, position, null);
         this.formattedGeneratedExpression = formattedGeneratedExpression;
     }
 
@@ -70,7 +70,7 @@ public class GeneratedReference extends Reference {
                               RowGranularity granularity,
                               DataType type,
                               String formattedGeneratedExpression) {
-        super(ident, granularity, type, position);
+        super(ident, granularity, type, position, null);
         this.formattedGeneratedExpression = formattedGeneratedExpression;
     }
 

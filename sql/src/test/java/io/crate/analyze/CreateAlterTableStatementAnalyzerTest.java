@@ -993,7 +993,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     @Test
     public void testCreateTableGeneratedColumnWithInvalidType() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("generated expression value type" +
+        expectedException.expectMessage("expression value type" +
             " 'timestamp with time zone' not supported for conversion to 'ip'");
         e.analyze(
             "create table foo (" +
@@ -1028,6 +1028,61 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             "   ts timestamp with time zone," +
             "   day as date_trunc('day', ts)," +
             "   date_string as cast(unknown_col as string))");
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testCreateTableWithDefaultExpressionLiteral() {
+        CreateTableAnalyzedStatement analysis = e.analyze(
+            "create table foo (name text default 'bar')");
+
+        Map<String, Object> mappingProperties = analysis.mappingProperties();
+
+        Map<String, Object> aMapping = (Map<String, Object>) mappingProperties.get("name");
+        assertThat(aMapping.get("default_expr"), is("'bar'"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testCreateTableWithDefaultExpressionFunction() {
+        CreateTableAnalyzedStatement analysis = e.analyze(
+            "create table foo (name text default upper('bar'))");
+
+        Map<String, Object> mappingProperties = analysis.mappingProperties();
+
+        Map<String, Object> aMapping = (Map<String, Object>) mappingProperties.get("name");
+        assertThat(aMapping.get("default_expr"), is("'BAR'"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testCreateTableWithDefaultExpressionWithCast() {
+        CreateTableAnalyzedStatement analysis = e.analyze(
+            "create table foo (id int default 3.5)");
+
+        Map<String, Object> mappingProperties = analysis.mappingProperties();
+
+        Map<String, Object> aMapping = (Map<String, Object>) mappingProperties.get("id");
+        assertThat(aMapping.get("default_expr"), is("cast(3.5 AS integer)"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testCreateTableWithDefaultExpressionIsNotNormalized() {
+        CreateTableAnalyzedStatement analysis = e.analyze(
+            "create table foo (ts timestamp with time zone default current_timestamp(3))");
+
+        Map<String, Object> mappingProperties = analysis.mappingProperties();
+
+        Map<String, Object> aMapping = (Map<String, Object>) mappingProperties.get("ts");
+        assertThat(aMapping.get("default_expr"), is("current_timestamp(3)"));
+    }
+
+    @Test
+    public void testCreateTableWithDefaultExpressionRefToColumnsNotAllowed() {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("Cannot resolve field references");
+        e.analyze("create table foo (name text, name_def text default upper(name))");
     }
 
     @Test

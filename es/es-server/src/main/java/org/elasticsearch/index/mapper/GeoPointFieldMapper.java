@@ -120,6 +120,7 @@ public class GeoPointFieldMapper extends FieldMapper implements ArrayValueMapper
             return new GeoPointFieldMapper(
                 simpleName,
                 position,
+                defaultExpression,
                 fieldType,
                 defaultFieldType,
                 indexSettings,
@@ -189,6 +190,7 @@ public class GeoPointFieldMapper extends FieldMapper implements ArrayValueMapper
 
     public GeoPointFieldMapper(String simpleName,
                                Integer position,
+                               String defaultExpression,
                                MappedFieldType fieldType,
                                MappedFieldType defaultFieldType,
                                Settings indexSettings,
@@ -196,7 +198,7 @@ public class GeoPointFieldMapper extends FieldMapper implements ArrayValueMapper
                                Explicit<Boolean> ignoreMalformed,
                                Explicit<Boolean> ignoreZValue,
                                CopyTo copyTo) {
-        super(simpleName, position, fieldType, defaultFieldType, indexSettings, multiFields, copyTo);
+        super(simpleName, position, defaultExpression, fieldType, defaultFieldType, indexSettings, multiFields, copyTo);
         this.ignoreMalformed = ignoreMalformed;
         this.ignoreZValue = ignoreZValue;
     }

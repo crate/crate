@@ -72,12 +72,14 @@ public class NodeStatsCollectSourceTest extends CrateUnitTest {
             new Reference(new ReferenceIdent(new RelationName("sys", "nodes"), "id"),
                           RowGranularity.DOC,
                           DataTypes.STRING,
+                          null,
                           null));
         when(tableInfo.getReference(SysNodesTableInfo.Columns.NAME)).thenReturn(
             new Reference(
                 new ReferenceIdent(SysNodesTableInfo.IDENT, SysNodesTableInfo.Columns.NAME),
                 RowGranularity.DOC,
                 DataTypes.STRING,
+                null,
                 null
             )
         );
@@ -86,6 +88,7 @@ public class NodeStatsCollectSourceTest extends CrateUnitTest {
                 new ReferenceIdent(SysNodesTableInfo.IDENT, SysNodesTableInfo.Columns.HOSTNAME),
                 RowGranularity.DOC,
                 DataTypes.STRING,
+                null,
                 null
             )
         );

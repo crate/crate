@@ -84,6 +84,7 @@ public class BooleanFieldMapper extends FieldMapper {
             return new BooleanFieldMapper(
                 name,
                 position,
+                defaultExpression,
                 fieldType,
                 defaultFieldType,
                 context.indexSettings(),
@@ -203,12 +204,13 @@ public class BooleanFieldMapper extends FieldMapper {
 
     protected BooleanFieldMapper(String simpleName,
                                  Integer position,
+                                 String defaultExpression,
                                  MappedFieldType fieldType,
                                  MappedFieldType defaultFieldType,
                                  Settings indexSettings,
                                  MultiFields multiFields,
                                  CopyTo copyTo) {
-        super(simpleName, position, fieldType, defaultFieldType, indexSettings, multiFields, copyTo);
+        super(simpleName, position, defaultExpression, fieldType, defaultFieldType, indexSettings, multiFields, copyTo);
     }
 
     @Override

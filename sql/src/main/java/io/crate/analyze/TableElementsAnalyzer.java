@@ -127,6 +127,9 @@ public class TableElementsAnalyzer {
             if (node.type() != null) {
                 process(node.type(), context);
             }
+            if (node.defaultExpression() != null) {
+                context.analyzedColumnDefinition.defaultExpression(node.defaultExpression());
+            }
             if (node.generatedExpression() != null) {
                 context.analyzedColumnDefinition.generatedExpression(node.generatedExpression());
             }

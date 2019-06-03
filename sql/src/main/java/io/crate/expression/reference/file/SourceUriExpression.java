@@ -49,7 +49,7 @@ public class SourceUriExpression extends LineCollectorExpression<String> {
 
     public static Reference getReferenceForRelation(RelationName relationName) {
         return new Reference(
-            new ReferenceIdent(relationName, COLUMN_IDENT), RowGranularity.DOC, DataTypes.STRING, 0
+            new ReferenceIdent(relationName, COLUMN_IDENT), RowGranularity.DOC, DataTypes.STRING, 0, null
         );
     }
 }
