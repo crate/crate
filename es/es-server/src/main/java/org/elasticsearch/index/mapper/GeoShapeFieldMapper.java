@@ -32,6 +32,7 @@ import org.apache.lucene.spatial.prefix.tree.QuadPrefixTree;
 import org.apache.lucene.spatial.prefix.tree.SpatialPrefixTree;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.Explicit;
+import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.geo.GeoUtils;
 import org.elasticsearch.common.geo.SpatialStrategy;
 import org.elasticsearch.common.geo.XShapeCollection;
@@ -193,6 +194,7 @@ public class GeoShapeFieldMapper extends FieldMapper {
             return new GeoShapeFieldMapper(
                 name,
                 position,
+                defaultExpression,
                 fieldType,
                 ignoreMalformed(context),
                 coerce(context),
@@ -494,6 +496,7 @@ public class GeoShapeFieldMapper extends FieldMapper {
 
     public GeoShapeFieldMapper(String simpleName,
                                Integer position,
+                               @Nullable String defaultExpression,
                                MappedFieldType fieldType,
                                Explicit<Boolean> ignoreMalformed,
                                Explicit<Boolean> coerce,
@@ -501,7 +504,7 @@ public class GeoShapeFieldMapper extends FieldMapper {
                                Settings indexSettings,
                                MultiFields multiFields,
                                CopyTo copyTo) {
-        super(simpleName, position, fieldType, Defaults.FIELD_TYPE, indexSettings, multiFields, copyTo);
+        super(simpleName, position, defaultExpression, fieldType, Defaults.FIELD_TYPE, indexSettings, multiFields, copyTo);
         this.coerce = coerce;
         this.ignoreMalformed = ignoreMalformed;
         this.ignoreZValue = ignoreZValue;

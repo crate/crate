@@ -120,6 +120,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
             new ReferenceIdent(SysClusterTableInfo.IDENT, new ColumnIdent(ClusterNameExpression.NAME)),
             RowGranularity.CLUSTER,
             DataTypes.STRING,
+            null,
             null
         );
         RoutedCollectPhase collectNode = collectNode(routing, Arrays.<Symbol>asList(clusterNameRef), RowGranularity.CLUSTER);

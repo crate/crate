@@ -72,7 +72,8 @@ public class ColumnRegistrar {
             ColumnPolicy.STRICT,
             Reference.IndexType.NOT_ANALYZED,
             nullable,
-            position
+            position,
+            null
         );
         position++;
         if (ref.column().isTopLevel()) {
@@ -104,7 +105,8 @@ public class ColumnRegistrar {
                 ColumnPolicy.STRICT,
                 Reference.IndexType.NOT_ANALYZED,
                 true,
-                pos
+                pos,
+                null
             );
             pos++;
             infosBuilder.put(ref.column(), ref);
