@@ -38,11 +38,11 @@ public class DynamicReference extends Reference {
     }
 
     public DynamicReference(ReferenceIdent ident, RowGranularity granularity) {
-        super(ident, granularity, DataTypes.UNDEFINED, null);
+        super(ident, granularity, DataTypes.UNDEFINED, null, null);
     }
 
     public DynamicReference(ReferenceIdent ident, RowGranularity granularity, ColumnPolicy columnPolicy) {
-        super(ident, granularity, DataTypes.UNDEFINED, columnPolicy, IndexType.NOT_ANALYZED, true, null);
+        super(ident, granularity, DataTypes.UNDEFINED, columnPolicy, IndexType.NOT_ANALYZED, true, null, null);
     }
 
     @Override

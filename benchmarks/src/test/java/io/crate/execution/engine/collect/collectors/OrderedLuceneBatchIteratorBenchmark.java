@@ -25,7 +25,6 @@ package io.crate.execution.engine.collect.collectors;
 import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.analyze.OrderBy;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.breaker.RowAccounting;
 import io.crate.breaker.RowAccountingWithEstimators;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
@@ -107,6 +106,7 @@ public class OrderedLuceneBatchIteratorBenchmark {
             new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, "dummyTable"), columnName),
             RowGranularity.DOC,
             DataTypes.INTEGER,
+            null,
             null
         );
         orderBy = new OrderBy(

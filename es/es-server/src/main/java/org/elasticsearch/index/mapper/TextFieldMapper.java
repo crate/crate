@@ -198,6 +198,7 @@ public class TextFieldMapper extends FieldMapper {
             return new TextFieldMapper(
                 name,
                 position,
+                defaultExpression,
                 fieldType(),
                 defaultFieldType,
                 positionIncrementGap,
@@ -413,7 +414,7 @@ public class TextFieldMapper extends FieldMapper {
     private static final class PhraseFieldMapper extends FieldMapper {
 
         PhraseFieldMapper(PhraseFieldType fieldType, Settings indexSettings) {
-            super(fieldType.name(), null, fieldType, fieldType, indexSettings, MultiFields.empty(), CopyTo.empty());
+            super(fieldType.name(), null, null, fieldType, fieldType, indexSettings, MultiFields.empty(), CopyTo.empty());
         }
 
         @Override
@@ -430,7 +431,7 @@ public class TextFieldMapper extends FieldMapper {
     private static final class PrefixFieldMapper extends FieldMapper {
 
         protected PrefixFieldMapper(PrefixFieldType fieldType, Settings indexSettings) {
-            super(fieldType.name(), null, fieldType, fieldType, indexSettings, MultiFields.empty(), CopyTo.empty());
+            super(fieldType.name(), null, null, fieldType, fieldType, indexSettings, MultiFields.empty(), CopyTo.empty());
         }
 
         void addField(String value, List<IndexableField> fields) {
@@ -682,6 +683,7 @@ public class TextFieldMapper extends FieldMapper {
 
     protected TextFieldMapper(String simpleName,
                               Integer position,
+                              String defaultExpression,
                               TextFieldType fieldType,
                               MappedFieldType defaultFieldType,
                               int positionIncrementGap,
@@ -689,7 +691,7 @@ public class TextFieldMapper extends FieldMapper {
                               Settings indexSettings,
                               MultiFields multiFields,
                               CopyTo copyTo) {
-        super(simpleName, position, fieldType, defaultFieldType, indexSettings, multiFields, copyTo);
+        super(simpleName, position, defaultExpression, fieldType, defaultFieldType, indexSettings, multiFields, copyTo);
         assert fieldType.tokenized();
         assert fieldType.hasDocValues() == false;
         if (fieldType().indexOptions() == IndexOptions.NONE && fieldType().fielddata()) {

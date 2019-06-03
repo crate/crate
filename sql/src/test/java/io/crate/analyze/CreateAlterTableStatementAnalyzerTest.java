@@ -1003,7 +1003,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     @Test
     public void testCreateTableGeneratedColumnWithInvalidType() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("generated expression value type" +
+        expectedException.expectMessage("expression value type" +
             " 'timestamp with time zone' not supported for conversion to 'ip'");
         e.analyze(
             "create table foo (" +
@@ -1038,6 +1038,60 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             "   ts timestamp with time zone," +
             "   day as date_trunc('day', ts)," +
             "   date_string as cast(unknown_col as string))");
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testCreateTableWithDefaultExpressionLiteral() {
+        CreateTableAnalyzedStatement analysis = e.analyze(
+            "create table foo (name text default 'bar')");
+
+        Map<String, Object> mappingProperties = analysis.mappingProperties();
+        assertThat(mapToSortedString(mappingProperties),
+                   is("name={default_expr='bar', position=1, type=keyword}"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testCreateTableWithDefaultExpressionFunction() {
+        CreateTableAnalyzedStatement analysis = e.analyze(
+            "create table foo (name text default upper('bar'))");
+
+        Map<String, Object> mappingProperties = analysis.mappingProperties();
+        assertThat(mapToSortedString(mappingProperties),
+                   is("name={default_expr='BAR', position=1, type=keyword}"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testCreateTableWithDefaultExpressionWithCast() {
+        CreateTableAnalyzedStatement analysis = e.analyze(
+            "create table foo (id int default 3.5)");
+
+        Map<String, Object> mappingProperties = analysis.mappingProperties();
+        assertThat(mapToSortedString(mappingProperties),
+                   is("id={default_expr=cast(3.5 AS integer), position=1, type=integer}"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testCreateTableWithDefaultExpressionIsNotNormalized() {
+        CreateTableAnalyzedStatement analysis = e.analyze(
+            "create table foo (ts timestamp with time zone default current_timestamp(3))");
+
+        Map<String, Object> mappingProperties = analysis.mappingProperties();
+        assertThat(mapToSortedString(mappingProperties),
+                   is("ts={default_expr=current_timestamp(3), " +
+                      "format=epoch_millis||strict_date_optional_time, " +
+                      "position=1, type=date}"));
+    }
+
+    @Test
+    public void testCreateTableWithDefaultExpressionRefToColumnsNotAllowed() {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("Columns cannot be used in this context. " +
+                                        "Maybe you wanted to use a string literal which requires single quotes: 'name'");
+        e.analyze("create table foo (name text, name_def text default upper(name))");
     }
 
     @Test

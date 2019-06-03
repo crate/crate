@@ -35,7 +35,9 @@ import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.TableReferenceResolver;
 import io.crate.common.collections.Lists2;
+import io.crate.analyze.relations.FieldProvider;
 import io.crate.common.collections.Maps;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
@@ -120,6 +122,11 @@ public class DocIndexMetaData {
     @Nullable
     private final Version versionUpgraded;
 
+    /**
+     * Analyzer used for Column Default expressions
+     */
+    private final ExpressionAnalyzer expressionAnalyzer;
+
     DocIndexMetaData(Functions functions, IndexMetaData metaData, RelationName ident) throws IOException {
         this.functions = functions;
         this.ident = ident;
@@ -140,6 +147,13 @@ public class DocIndexMetaData {
         versionCreated = IndexMetaData.SETTING_INDEX_VERSION_CREATED.get(settings);
         versionUpgraded = settings.getAsVersion(IndexMetaData.SETTING_VERSION_UPGRADED, null);
         closed = state == IndexMetaData.State.CLOSE;
+
+        this.expressionAnalyzer = new ExpressionAnalyzer(
+            functions,
+            CoordinatorTxnCtx.systemTransactionContext(),
+            ParamTypeHints.EMPTY,
+            FieldProvider.UNSUPPORTED,
+            null);
     }
 
     private static Map<String, Object> getMappingMap(IndexMetaData metaData) {
@@ -165,6 +179,7 @@ public class DocIndexMetaData {
     private void add(Integer position,
                      ColumnIdent column,
                      DataType type,
+                     @Nullable String defaultExpression,
                      ColumnPolicy columnPolicy,
                      Reference.IndexType indexType,
                      boolean isNotNull,
@@ -176,7 +191,7 @@ public class DocIndexMetaData {
             indexType = Reference.IndexType.NOT_ANALYZED;
         }
         if (generatedExpression == null) {
-            ref = newInfo(position, column, type, columnPolicy, indexType, isNotNull, columnStoreEnabled);
+            ref = newInfo(position, column, type, defaultExpression, columnPolicy, indexType, isNotNull, columnStoreEnabled);
         } else {
             ref = newGeneratedColumnInfo(position, column, type, columnPolicy, indexType, generatedExpression, isNotNull);
         }
@@ -237,12 +252,26 @@ public class DocIndexMetaData {
     private Reference newInfo(Integer position,
                               ColumnIdent column,
                               DataType type,
+                              @Nullable String formattedDefaultExpression,
                               ColumnPolicy columnPolicy,
                               Reference.IndexType indexType,
                               boolean nullable,
                               boolean columnStoreEnabled) {
+        Symbol defaultExpression = null;
+        if (formattedDefaultExpression != null) {
+            Expression expression = SqlParser.createExpression(formattedDefaultExpression);
+            defaultExpression = expressionAnalyzer.convert(expression, new ExpressionAnalysisContext());
+        }
         return new Reference(
-            refIdent(column), granularity(column), type, columnPolicy, indexType, nullable, columnStoreEnabled, position
+            refIdent(column),
+            granularity(column),
+            type,
+            columnPolicy,
+            indexType,
+            nullable,
+            columnStoreEnabled,
+            position,
+            defaultExpression
         );
     }
 
@@ -367,6 +396,7 @@ public class DocIndexMetaData {
             boolean nullable = !notNullColumns.contains(newIdent);
             columnProperties = furtherColumnProperties(columnProperties);
             Integer position = (Integer) columnProperties.getOrDefault("position", null);
+            String defaultExpression = (String) columnProperties.getOrDefault("default_expr", null);
             Reference.IndexType columnIndexType = getColumnIndexType(columnProperties);
             boolean columnsStoreDisabled = !Booleans.parseBoolean(
                 columnProperties.getOrDefault(DOC_VALUES, true).toString());
@@ -380,7 +410,7 @@ public class DocIndexMetaData {
                        || (columnDataType.id() == ArrayType.ID
                            && ((ArrayType) columnDataType).innerType().id() == ObjectType.ID)) {
                 ColumnPolicy columnPolicy = ColumnPolicies.decodeMappingValue(columnProperties.get("dynamic"));
-                add(position, newIdent, columnDataType, columnPolicy, Reference.IndexType.NO, nullable, false);
+                add(position, newIdent, columnDataType, defaultExpression, columnPolicy, Reference.IndexType.NO, nullable, false);
 
                 if (columnProperties.get("properties") != null) {
                     // walk nested
@@ -394,7 +424,7 @@ public class DocIndexMetaData {
                     for (String copyToColumn : copyToColumns) {
                         ColumnIdent targetIdent = ColumnIdent.fromPath(copyToColumn);
                         IndexReference.Builder builder = getOrCreateIndexBuilder(targetIdent);
-                        builder.addColumn(newInfo(position, newIdent, columnDataType, ColumnPolicy.DYNAMIC, columnIndexType, false, columnsStoreDisabled));
+                        builder.addColumn(newInfo(position, newIdent, columnDataType, defaultExpression, ColumnPolicy.DYNAMIC, columnIndexType, false, columnsStoreDisabled));
                     }
                 }
                 // is it an index?
@@ -403,7 +433,7 @@ public class DocIndexMetaData {
                     builder.indexType(columnIndexType)
                         .analyzer((String) columnProperties.get("analyzer"));
                 } else {
-                    add(position, newIdent, columnDataType, ColumnPolicy.DYNAMIC, columnIndexType, nullable, columnsStoreDisabled);
+                    add(position, newIdent, columnDataType, defaultExpression, ColumnPolicy.DYNAMIC, columnIndexType, nullable, columnsStoreDisabled);
                 }
             }
         }
@@ -523,15 +553,15 @@ public class DocIndexMetaData {
         return DocSysColumns.ID;
     }
 
-    private void initializeGeneratedExpressions() {
+    private void initializeReferenceExpressions() {
         if (generatedColumnReferences.isEmpty()) {
             return;
         }
         Collection<Reference> references = this.references.values();
+        ExpressionAnalysisContext context = new ExpressionAnalysisContext();
         TableReferenceResolver tableReferenceResolver = new TableReferenceResolver(references, ident);
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             functions, CoordinatorTxnCtx.systemTransactionContext(), ParamTypeHints.EMPTY, tableReferenceResolver, null);
-        ExpressionAnalysisContext context = new ExpressionAnalysisContext();
         for (Reference reference : generatedColumnReferences) {
             GeneratedReference generatedReference = (GeneratedReference) reference;
             Expression expression = SqlParser.createExpression(generatedReference.formattedGeneratedExpression());
@@ -564,7 +594,7 @@ public class DocIndexMetaData {
         primaryKey = getPrimaryKey();
         routingCol = getRoutingCol();
 
-        initializeGeneratedExpressions();
+        initializeReferenceExpressions();
         return this;
     }
 

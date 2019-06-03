@@ -158,7 +158,8 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
             ColumnPolicy.STRICT,
             Reference.IndexType.NOT_ANALYZED,
             true,
-            3
+            3,
+            null
         );
         assertEquals(info, schemas.getTableInfo(SysShardsTableInfo.IDENT).getReference(SysShardsTableInfo.Columns.ID));
     }
