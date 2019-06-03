@@ -24,10 +24,13 @@ package io.crate.analyze;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
+import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.exceptions.AmbiguousColumnAliasException;
 import io.crate.expression.symbol.Field;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.table.Operation;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -46,6 +49,7 @@ public class Fields {
         fieldsList.add(value);
     }
 
+    @Nullable
     public Field get(ColumnIdent key) {
         Collection<Field> fieldList = fieldsMap.get(key.sqlFqn());
         if (fieldList.size() > 1) {
@@ -55,6 +59,26 @@ public class Fields {
             return null;
         }
         return fieldList.iterator().next();
+    }
+
+    @Nullable
+    public Field getWithSubscriptFallback(ColumnIdent column,
+                                          AnalyzedRelation scope,
+                                          AnalyzedRelation childRelation,
+                                          boolean pointToChild) {
+        Field field = get(column);
+        if (field == null && !column.isTopLevel()) {
+            Field childField = childRelation.getField(column, Operation.READ);
+            if (childField == null) {
+                return null;
+            }
+            if (pointToChild) {
+                return new Field(scope, column, childField);
+            } else {
+                return new Field(scope, childField.path(), childField.pointer());
+            }
+        }
+        return field;
     }
 
     public List<Field> asList() {

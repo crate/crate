@@ -25,6 +25,7 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.JoinPair;
 import io.crate.common.collections.Lists2;
+import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.FieldReplacer;
 import io.crate.expression.symbol.Symbol;
@@ -102,7 +103,21 @@ public class MultiSourceSelect implements AnalyzedRelation {
         if (operation != Operation.READ) {
             throw new UnsupportedOperationException("getField on MultiSourceSelect is only supported for READ operations");
         }
-        return fields.get(path);
+        Field field = fields.get(path);
+        if (field == null && !path.isTopLevel()) {
+            for (AnalyzedRelation value : sources.values()) {
+                try {
+                    Field childField = value.getField(path, operation);
+                    if (childField != null) {
+                        return new Field(this, path, childField);
+                    }
+                } catch (ColumnUnknownException ignored) {
+                    // ignore
+                }
+            }
+            return Relations.resolveSubscriptOnAliasedField(path, fields, p -> getField(p, operation));
+        }
+        return field;
     }
 
     @Override
