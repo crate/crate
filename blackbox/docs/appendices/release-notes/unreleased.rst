@@ -250,6 +250,9 @@ Deprecations
 Changes
 =======
 
+- Added the :ref:`pg_get_userbyid` scalar function to enhance PostgreSQL
+  compatibility.
+
 - Added support for dynamical reloading of SSL certificates.
   See :ref:`ssl_configure_keystore`.
 
