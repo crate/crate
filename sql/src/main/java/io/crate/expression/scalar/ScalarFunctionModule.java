@@ -47,6 +47,7 @@ import io.crate.expression.scalar.geo.IntersectsFunction;
 import io.crate.expression.scalar.geo.WithinFunction;
 import io.crate.expression.scalar.postgres.CurrentSettingFunction;
 import io.crate.expression.scalar.postgres.PgBackendPidFunction;
+import io.crate.expression.scalar.postgres.PgGetUserByIdFunction;
 import io.crate.expression.scalar.regex.MatchesFunction;
 import io.crate.expression.scalar.regex.RegexpReplaceFunction;
 import io.crate.expression.scalar.string.HashFunctions;
@@ -160,6 +161,7 @@ public class ScalarFunctionModule extends AbstractModule {
         CurrentSettingFunction.register(this);
 
         PgBackendPidFunction.register(this);
+        PgGetUserByIdFunction.register(this);
         register(new CurrentDatabaseFunction());
 
         // bind all registered functions and resolver

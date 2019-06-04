@@ -2126,6 +2126,32 @@ Example::
     +---------------------------+
     SELECT 1 row in set (... sec)
 
+.. _pg_get_userbyid:
+
+``pg_get_userbyid``
+-------------------
+
+The function ``pg_get_userbyid`` is implemented to improve compatibility with
+clients that use the PostgreSQL wire protocol. The function always returns
+the default CrateDB user for non-null arguments, otherwise, ``null`` is
+returned.
+
+Returns: ``text``
+
+Synopsis::
+
+   pg_get_userbyid(id integer)
+
+Example::
+
+    cr> select pg_get_userbyid(1);
+    +--------------------+
+    | pg_get_userbyid(1) |
+    +--------------------+
+    |              crate |
+    +--------------------+
+    SELECT 1 row in set (... sec)
+
 Special functions
 =================
 
