@@ -23,6 +23,36 @@ into a single row.
 Window Definition
 =================
 
+.. _over:
+
+OVER
+----
+
+Synopsis
+........
+
+::
+
+   OVER (
+      [ PARTITION BY expression [, ...] ]
+      [ ORDER BY expression [ ASC | DESC ] [ NULLS { FIRST | LAST } ] [, ...] ]
+      [ RANGE BETWEEN frame_start AND frame_end ]
+   )
+
+where ``frame_start`` and ``frame_end`` can be one of
+
+::
+
+   UNBOUNDED PRECEDING
+   CURRENT ROW
+   UNBOUNDED FOLLOWING
+
+The default frame definition is ``RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT
+ROW``. If ``frame_end`` is omitted it defaults to ``CURRENT ROW``.
+
+``frame_start`` cannot be ``UNBOUNDED FOLLOWING`` and ``frame_end`` cannot be
+``UNBOUNDED PRECEDING``.
+
 The ``OVER`` clause defines the ``window`` containing the appropriate rows
 which will take part in the ``window function`` computation.
 
@@ -135,20 +165,37 @@ Example::
    Window definitions order or partitioned by an array column type are
    currently not supported.
 
-.. _over:
+In the ``UNBOUNDED FOLLOWING`` case the ``window`` for each row starts with
+each row and ends with the last row in the current ``partition``. If the
+``current row`` has ``peers`` the ``window`` will include (or start with) all
+the ``current row`` peers and end at the upper bound of the ``partition``.
 
-OVER
-----
+Example::
 
-Synopsis
-........
-
-::
-
-   OVER (
-      [ PARTITION BY expression [, ...] ]
-      [ ORDER BY expression [ ASC | DESC ] [ NULLS { FIRST | LAST } ] [, ...] ]
-   )
+   cr> select dept_id, sex, count(*) OVER(PARTITION BY dept_id ORDER BY sex RANGE BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING) partitionByDeptOrderBySex from employees order by 1,2,3;
+   +---------+-----+---------------------------+
+   | dept_id | sex | partitionbydeptorderbysex |
+   +---------+-----+---------------------------+
+   |    4001 | M   |                         3 |
+   |    4001 | M   |                         3 |
+   |    4001 | M   |                         3 |
+   |    4002 | F   |                         4 |
+   |    4002 | M   |                         3 |
+   |    4002 | M   |                         3 |
+   |    4002 | M   |                         3 |
+   |    4003 | M   |                         5 |
+   |    4003 | M   |                         5 |
+   |    4003 | M   |                         5 |
+   |    4003 | M   |                         5 |
+   |    4003 | M   |                         5 |
+   |    4004 | F   |                         3 |
+   |    4004 | M   |                         2 |
+   |    4004 | M   |                         2 |
+   |    4006 | F   |                         3 |
+   |    4006 | M   |                         2 |
+   |    4006 | M   |                         2 |
+   +---------+-----+---------------------------+
+   SELECT 18 rows in set (... sec)
 
 General-Purpose Window Functions
 ================================

@@ -250,6 +250,9 @@ Deprecations
 Changes
 =======
 
+- Added support for ``CURRENT ROW -> UNBOUNDED FOLLOWING`` window frame
+  definitions in the context of `window functions <window-functions>`_.
+
 - Added the :ref:`pg_get_userbyid` scalar function to enhance PostgreSQL
   compatibility.
 
