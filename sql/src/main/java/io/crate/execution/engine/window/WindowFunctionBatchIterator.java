@@ -23,7 +23,6 @@
 package io.crate.execution.engine.window;
 
 import com.google.common.collect.Iterables;
-import io.crate.analyze.FrameBoundDefinition;
 import io.crate.analyze.WindowFrameDefinition;
 import io.crate.breaker.RowAccounting;
 import io.crate.data.BatchIterator;
@@ -34,7 +33,6 @@ import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.sort.Sort;
-import io.crate.sql.tree.FrameBound;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 
@@ -49,6 +47,9 @@ import java.util.concurrent.Executor;
 import java.util.function.Function;
 import java.util.function.IntSupplier;
 import java.util.stream.Collectors;
+
+import static io.crate.sql.tree.FrameBound.Type.CURRENT_ROW;
+import static io.crate.sql.tree.FrameBound.Type.UNBOUNDED_PRECEDING;
 
 /**
  * BatchIterator which computes window functions (incl. partitioning + ordering)
@@ -176,7 +177,8 @@ public final class WindowFunctionBatchIterator {
             private int i = 0;
             private int idxInPartition = 0;
 
-            private FrameBoundDefinition endBound = frameDefinition.end();
+            private boolean isUnboundedPrecedingCurrentRow = frameDefinition.start().type() == UNBOUNDED_PRECEDING &&
+                                                             frameDefinition.end().type() == CURRENT_ROW;
 
             @Override
             public boolean hasNext() {
@@ -197,7 +199,7 @@ public final class WindowFunctionBatchIterator {
                 int wBegin;
                 int wEnd;
 
-                if (endBound != null && endBound.type() == FrameBound.Type.CURRENT_ROW) {
+                if (isUnboundedPrecedingCurrentRow) {
                     // UNBOUNDED PRECEDING -> CURRENT ROW - Frame always starts at the start of the partition
                     wBegin = pStart;
                     wEnd = findFirstNonPeer(sortedRows, i, pEnd, cmpOrderBy);

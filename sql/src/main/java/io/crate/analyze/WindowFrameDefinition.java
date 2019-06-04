@@ -22,6 +22,7 @@
 
 package io.crate.analyze;
 
+import io.crate.sql.tree.FrameBound;
 import io.crate.sql.tree.WindowFrame.Type;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -47,7 +48,11 @@ public class WindowFrameDefinition implements Writeable {
     public WindowFrameDefinition(Type type, FrameBoundDefinition start, @Nullable FrameBoundDefinition end) {
         this.type = type;
         this.start = start;
-        this.end = end;
+        if (end != null) {
+            this.end = end;
+        } else {
+            this.end = new FrameBoundDefinition(FrameBound.Type.CURRENT_ROW);
+        }
     }
 
     public Type type() {
@@ -58,7 +63,6 @@ public class WindowFrameDefinition implements Writeable {
         return start;
     }
 
-    @Nullable
     public FrameBoundDefinition end() {
         return end;
     }

@@ -146,8 +146,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static io.crate.collections.Lists2.mapTail;
-import static io.crate.sql.tree.FrameBound.Type.UNBOUNDED_FOLLOWING;
-import static io.crate.sql.tree.FrameBound.Type.UNBOUNDED_PRECEDING;
 
 
 /**
@@ -294,20 +292,11 @@ public class ExpressionAnalyzer {
         if (window.getWindowFrame().isPresent()) {
             WindowFrame windowFrame = window.getWindowFrame().get();
             FrameBound start = windowFrame.getStart();
-            if (start.equals(UNBOUNDED_FOLLOWING)) {
-                throw new IllegalArgumentException("Window frame start cannot be UNBOUNDED FOLLOWING");
-            }
             FrameBoundDefinition startBound = convertToAnalyzedFrameBound(context, start);
 
-            FrameBoundDefinition endBound = null;
-            if (windowFrame.getEnd().isPresent()) {
-                FrameBound frameBound = windowFrame.getEnd().get();
-                if (frameBound.equals(UNBOUNDED_PRECEDING)) {
-                    throw new IllegalArgumentException("Window frame end cannot be UNBOUNDED FOLLOWING");
-                }
-                endBound = convertToAnalyzedFrameBound(context, frameBound);
-            }
-
+            FrameBoundDefinition endBound = windowFrame.getEnd()
+                .map(end -> convertToAnalyzedFrameBound(context, end))
+                .orElse(new FrameBoundDefinition(FrameBound.Type.CURRENT_ROW));
             windowFrameDefinition = new WindowFrameDefinition(windowFrame.getType(), startBound, endBound);
         }
 
