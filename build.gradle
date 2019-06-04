@@ -122,8 +122,13 @@ allprojects {
 // intellij configuration
 allprojects {
     apply plugin: 'idea'
+    apply plugin: 'eclipse'
 
     project.ext {
+        isEclipse = (System.getProperty("eclipse.launcher") != null
+            || System.getProperty("eclipse.application") != null
+            || gradle.startParameter.taskNames.contains('eclipse')
+            || gradle.startParameter.taskNames.contains('cleanEclipse'))
         isIdea = (System.getProperty("idea.active") != null
                 || gradle.startParameter.taskNames.contains('idea')
                 || gradle.startParameter.taskNames.contains('cleanIdea')
@@ -133,7 +138,6 @@ allprojects {
     if (isIdea) {
         project.buildDir = file('build-idea')
     }
-
     idea {
         module {
             inheritOutputDirs = false
@@ -141,6 +145,10 @@ allprojects {
             testOutputDir = file('build-idea/classes/test')
             excludeDirs += file('build')
         }
+    }
+
+    if (isEclipse) {
+        project.buildDir = file('build-eclipse')
     }
 
     if (it.name != 'es') {
