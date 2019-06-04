@@ -39,9 +39,16 @@ public class DateTruncFunctionTest extends AbstractScalarFunctionsTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void testDateTruncWithStringLiteral() {
         assertNormalize("date_trunc('day', '2014-06-03')", isLiteral(1401753600000L));
+    }
+
+    @Test
+    public void test_date_trunc_works_with_timestamp_without_timezone() {
+        assertNormalize(
+            "date_trunc('day', cast('2014-06-03' as timestamp without time zone))",
+            isLiteral(1401753600000L)
+        );
     }
 
     @Test
