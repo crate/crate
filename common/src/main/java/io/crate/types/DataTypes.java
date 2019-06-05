@@ -146,8 +146,8 @@ public final class DataTypes {
             NUMBER_CONVERSIONS.stream()
         ).collect(toSet())),
         entry(IP.id(), Set.of(STRING)),
-        entry(TIMESTAMPZ.id(), Set.of(DOUBLE, LONG, STRING)),
-        entry(TIMESTAMP.id(), Set.of(DOUBLE, LONG, STRING)),
+        entry(TIMESTAMPZ.id(), Set.of(DOUBLE, LONG, STRING, TIMESTAMP)),
+        entry(TIMESTAMP.id(), Set.of(DOUBLE, LONG, STRING, TIMESTAMPZ)),
         entry(UNDEFINED.id(), Set.of()), // actually convertible to every type, see NullType
         entry(GEO_POINT.id(), Set.of(new ArrayType(DOUBLE))),
         entry(GEO_SHAPE.id(), Set.of(ObjectType.untyped())),

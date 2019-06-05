@@ -88,7 +88,8 @@ public abstract class AbstractScalarFunctionsTest extends CrateDummyClusterServi
             "  a int," +
             "  x bigint," +
             "  shape geo_shape," +
-            "  timestamp timestamp with time zone," +
+            "  timestamp_tz timestamp with time zone," +
+            "  timestamp timestamp without time zone," +
             "  timezone text," +
             "  interval text," +
             "  time_format text," +
