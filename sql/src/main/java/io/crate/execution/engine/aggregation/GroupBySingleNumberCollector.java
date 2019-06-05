@@ -142,41 +142,40 @@ public final class GroupBySingleNumberCollector implements Collector<Row, GroupB
          * The Ram accounting for new elements takes place in batches when the map is about
          * to grow by doubling its size. See #addWithAccounting()
          */
-
-        final Map statesByKey;
-        long entryOverhead;
         switch (valueType.id()) {
             case ByteType.ID:
-                entryOverhead = 6L;
-                ramAccounting.addBytes(4 * entryOverhead);
-                statesByKey = new ByteObjectHashMap<Object[]>();
-                break;
+                return () -> {
+                    long entryOverhead = 6L;
+                    ramAccounting.addBytes(4 * entryOverhead);
+                    return new Groups((Map) new ByteObjectHashMap<Object[]>(), entryOverhead);
+                };
 
             case ShortType.ID:
-                entryOverhead = 6L;
-                ramAccounting.addBytes(4 * entryOverhead);
-                statesByKey = new ShortObjectHashMap<Object[]>();
-                break;
+                return () -> {
+                    long entryOverhead = 6L;
+                    ramAccounting.addBytes(4 * entryOverhead);
+                    return new Groups((Map) new ShortObjectHashMap<Object[]>(), entryOverhead);
+                };
 
             case IntegerType.ID:
-                entryOverhead = 8L;
-                ramAccounting.addBytes(4 * entryOverhead);
-                statesByKey = new IntObjectHashMap<Object[]>();
-                break;
+                return () -> {
+                    long entryOverhead = 8L;
+                    ramAccounting.addBytes(4 * entryOverhead);
+                    return new Groups((Map) new IntObjectHashMap<Object[]>(), entryOverhead);
+                };
 
             case LongType.ID:
             case TimestampType.ID_WITH_TZ:
             case TimestampType.ID_WITHOUT_TZ:
-                entryOverhead = 12L;
-                ramAccounting.addBytes(4 * entryOverhead);
-                statesByKey = new LongObjectHashMap<Object[]>();
-                break;
+                return () -> {
+                    long entryOverhead = 12L;
+                    ramAccounting.addBytes(4 * entryOverhead);
+                    return new Groups((Map) new LongObjectHashMap<Object[]>(), entryOverhead);
+                };
 
             default:
                 throw new IllegalArgumentException("Unsupported input type " + valueType.getName());
         }
-        //noinspection unchecked
-        return () -> new Groups(statesByKey, entryOverhead);
     }
 
     @Override
