@@ -177,6 +177,17 @@ public abstract class ElasticsearchNodeCommand extends EnvironmentAwareCommand {
         MetaData.FORMAT.cleanupOldFiles(newGeneration, dataPaths);
     }
 
+    protected NodeEnvironment.NodePath[] toNodePaths(Path[] dataPaths) {
+        return Arrays.stream(dataPaths).map(ElasticsearchNodeCommand::createNodePath).toArray(NodeEnvironment.NodePath[]::new);
+    }
+
+    private static NodeEnvironment.NodePath createNodePath(Path path) {
+        try {
+            return new NodeEnvironment.NodePath(path);
+        } catch (IOException e) {
+            throw new ElasticsearchException("Unable to investigate path [" + path + "]", e);
+        }
+    }
 
     //package-private for testing
     OptionParser getParser() {
