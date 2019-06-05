@@ -76,12 +76,12 @@ public class DateFormatFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testEvaluateWithTimezone() {
         assertEvaluate("date_format(time_format, timezone, timestamp_tz)",
-            "Sun Jan 1 1st 01 1 000000 04 04 04 00 001 4 4 January 01 AM 04:00:00 AM " +
-                         "00 00 04:00:00 01 00 01 52 Sunday 0 1871 1870 1871 71",
+            "Sun Jan 1 1st 01 1 000000 03 03 03 00 001 3 3 January 01 AM 03:00:00 AM " +
+                         "00 00 03:00:00 01 00 01 52 Sunday 0 1871 1870 1871 71",
             Literal.of("%a %b %c %D %d %e %f %H %h %I %i %j %k %l %M %m %p %r " +
                        "%S %s %T %U %u %V %v %W %w %X %x %Y %y"),
             Literal.of("EST"),
-            Literal.of(DataTypes.TIMESTAMPZ, DataTypes.TIMESTAMPZ.value("1871-01-01T09:00:00.000Z")));
+            Literal.of(DataTypes.TIMESTAMPZ, DataTypes.TIMESTAMPZ.value("1871-01-01T09:00:00.000+01")));
     }
 
     @Test
@@ -96,6 +96,21 @@ public class DateFormatFunctionTest extends AbstractScalarFunctionsTest {
             Literal.of(DataTypes.STRING, null),
             Literal.of("Europe/Berlin"),
             Literal.of(DataTypes.TIMESTAMPZ, 0L));
+    }
+
+    @Test
+    public void testEvaluateTimestampWithoutTimezone() {
+        assertEvaluate(
+            "date_format(time_format, timezone, timestamp)",
+            "2015-06-10 09:03:00 Z",
+            Literal.of("%Y-%m-%d %H:%i:%S %Z"),
+            Literal.of("Europe/Berlin"),
+            Literal.of(DataTypes.TIMESTAMP, DataTypes.TIMESTAMP.value("2015-06-10T07:03:00+10")));
+        assertEvaluate(
+            "date_format(time_format, timestamp)",
+            "2015-06-10 07:03:00 Z",
+            Literal.of("%Y-%m-%d %H:%i:%S %Z"),
+            Literal.of(DataTypes.TIMESTAMP, DataTypes.TIMESTAMP.value("2015-06-10T07:03:00+10")));
     }
 
     @Test
