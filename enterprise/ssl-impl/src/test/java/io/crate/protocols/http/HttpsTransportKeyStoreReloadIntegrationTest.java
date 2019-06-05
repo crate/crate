@@ -36,6 +36,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.security.KeyStore;
 import java.security.cert.Certificate;
+import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.Matchers.not;
@@ -134,6 +135,6 @@ public class HttpsTransportKeyStoreReloadIntegrationTest extends SQLHttpIntegrat
             } catch (Exception e) {
                 fail();
             }
-        });
+        }, 20, TimeUnit.SECONDS);
     }
 }
