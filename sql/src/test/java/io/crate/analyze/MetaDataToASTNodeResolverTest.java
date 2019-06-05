@@ -362,4 +362,48 @@ public class MetaDataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
                      ")",
             SqlFormatter.formatSql(node));
     }
+
+    @Test
+    public void testBuildCreateTableColumnDefaultClause() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("CREATE TABLE test (" +
+                      "   col1 TEXT," +
+                      "   col2 INTEGER DEFAULT 1 + 1," +
+                      "   col3 TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP(3)," +
+                      "   col4 AS random() + 1.0" +
+                      ")")
+            .build();
+        DocTableInfo tableInfo = e.resolveTableInfo("test");
+        CreateTable node = MetaDataToASTNodeResolver.resolveCreateTable(tableInfo);
+        assertEquals("CREATE TABLE IF NOT EXISTS \"doc\".\"test\" (\n" +
+                     "   \"col1\" TEXT,\n" +
+                     "   \"col2\" INTEGER DEFAULT 2,\n" +
+                     "   \"col3\" TIMESTAMP WITH TIME ZONE DEFAULT current_timestamp(3),\n" +
+                     "   \"col4\" DOUBLE PRECISION GENERATED ALWAYS AS random() + 1.0\n" +
+                     ")\n" +
+                     "CLUSTERED INTO 4 SHARDS\n" +
+                     "WITH (\n" +
+                     "   \"allocation.max_retries\" = 5,\n" +
+                     "   \"blocks.metadata\" = false,\n" +
+                     "   \"blocks.read\" = false,\n" +
+                     "   \"blocks.read_only\" = false,\n" +
+                     "   \"blocks.read_only_allow_delete\" = false,\n" +
+                     "   \"blocks.write\" = false,\n" +
+                     "   column_policy = 'strict',\n" +
+                     "   \"mapping.total_fields.limit\" = 1000,\n" +
+                     "   max_ngram_diff = 1,\n" +
+                     "   max_shingle_diff = 3,\n" +
+                     "   number_of_replicas = '0-1',\n" +
+                     "   refresh_interval = 1000,\n" +
+                     "   \"routing.allocation.enable\" = 'all',\n" +
+                     "   \"routing.allocation.total_shards_per_node\" = -1,\n" +
+                     "   \"translog.durability\" = 'REQUEST',\n" +
+                     "   \"translog.flush_threshold_size\" = 536870912,\n" +
+                     "   \"translog.sync_interval\" = 5000,\n" +
+                     "   \"unassigned.node_left.delayed_timeout\" = 60000,\n" +
+                     "   \"warmer.enabled\" = true,\n" +
+                     "   \"write.wait_for_active_shards\" = 'ALL'\n" +
+                     ")",
+                     SqlFormatter.formatSql(node));
+    }
 }
