@@ -1081,7 +1081,8 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     @Test
     public void testCreateTableWithDefaultExpressionRefToColumnsNotAllowed() {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Cannot resolve field references");
+        expectedException.expectMessage("Columns cannot be used in this context. " +
+                                        "Maybe you wanted to use a string literal which requires single quotes: 'name'");
         e.analyze("create table foo (name text, name_def text default upper(name))");
     }
 
