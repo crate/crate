@@ -23,15 +23,141 @@
 package io.crate.sql.tree;
 
 import javax.annotation.Nullable;
+import java.util.function.BiFunction;
+import java.util.function.BiPredicate;
 
 public class FrameBound extends Node {
 
     public enum Type {
-        UNBOUNDED_PRECEDING,
-        PRECEDING,
-        CURRENT_ROW,
-        FOLLOWING,
-        UNBOUNDED_FOLLOWING
+        UNBOUNDED_PRECEDING {
+            @Override
+            public int getStart(int pStart,
+                                int pEnd,
+                                int currentFrameStartIdx,
+                                int currentRowIdx,
+                                boolean isOrdered,
+                                BiPredicate<Integer, Integer> arePeers) {
+                return pStart;
+            }
+
+            @Override
+            public int getEnd(int pStart,
+                              int pEnd,
+                              int currentRowIdx,
+                              boolean isOrdered,
+                              BiFunction<Integer, Integer, Integer> findFirstNonPeer) {
+                throw new IllegalStateException("UNBOUNDED PRECEDING cannot be the start of a frame");
+            }
+        },
+        PRECEDING {
+            @Override
+            public int getStart(int pStart,
+                                int pEnd,
+                                int currentFrameStartIdx,
+                                int currentRowIdx,
+                                boolean isOrdered,
+                                BiPredicate<Integer, Integer> arePeers) {
+                throw new UnsupportedOperationException("Custom PRECEDING frames are not supported");
+            }
+
+            @Override
+            public int getEnd(int pStart,
+                              int pEnd,
+                              int currentRowIdx,
+                              boolean isOrdered,
+                              BiFunction<Integer, Integer, Integer> findFirstNonPeer) {
+                throw new UnsupportedOperationException("Custom PRECEDING frames are not supported");
+            }
+        },
+        /*
+         * In RANGE mode:
+         *    - Frame starts with the current row's first peer (Row that is equal based on the ORDER BY clause)
+         *    - Frame ends with the current row's first peer
+         * In ROWS mode:
+         *    - The current row
+         */
+        CURRENT_ROW {
+            @Override
+            public int getStart(int pStart,
+                                int pEnd,
+                                int currentFrameStartIdx,
+                                int currentRowIdx,
+                                boolean isOrdered,
+                                BiPredicate<Integer, Integer> arePeers) {
+                if (pStart == currentRowIdx) {
+                    return pStart;
+                } else {
+                    if (isOrdered) {
+                        return arePeers.test(currentFrameStartIdx,
+                                             currentRowIdx) ? currentFrameStartIdx : currentRowIdx;
+                    } else {
+                        return currentRowIdx;
+                    }
+                }
+            }
+
+            @Override
+            public int getEnd(int pStart,
+                              int pEnd,
+                              int currentRowIdx,
+                              boolean isOrdered,
+                              BiFunction<Integer, Integer, Integer> findFirstNonPeer) {
+                return findFirstNonPeer.apply(currentRowIdx, pEnd);
+            }
+        },
+        FOLLOWING {
+            @Override
+            public int getStart(int pStart,
+                                int pEnd,
+                                int currentFrameStartIdx,
+                                int currentRowIdx,
+                                boolean isOrdered,
+                                BiPredicate<Integer, Integer> arePeers) {
+                throw new UnsupportedOperationException("Custom FOLLOWING frames are not supported");
+            }
+
+            @Override
+            public int getEnd(int pStart,
+                              int pEnd,
+                              int currentRowIdx,
+                              boolean isOrdered,
+                              BiFunction<Integer, Integer, Integer> findFirstNonPeer) {
+                throw new UnsupportedOperationException("Custom FOLLOWING frames are not supported");
+            }
+        },
+        UNBOUNDED_FOLLOWING {
+            @Override
+            public int getStart(int pStart,
+                                int pEnd,
+                                int currentFrameStartIdx,
+                                int currentRowIdx,
+                                boolean isOrdered,
+                                BiPredicate<Integer, Integer> arePeers) {
+                throw new IllegalStateException("UNBOUNDED FOLLOWING cannot be the start of a frame");
+            }
+
+            @Override
+            public int getEnd(int pStart,
+                              int pEnd,
+                              int currentRowIdx,
+                              boolean isOrdered,
+                              BiFunction<Integer, Integer, Integer> findFirstNonPeer) {
+                return pEnd;
+            }
+        };
+
+        public abstract int getStart(int pStart,
+                                     int pEnd,
+                                     int currentFrameStartIdx,
+                                     int currentRowIdx,
+                                     boolean isOrdered,
+                                     BiPredicate<Integer, Integer> arePeers);
+
+        public abstract int getEnd(int pStart,
+                                   int pEnd,
+                                   int currentRowIdx,
+                                   boolean isOrdered,
+                                   BiFunction<Integer, Integer, Integer> findFirstNonPeer);
     }
 
     private final Type type;
