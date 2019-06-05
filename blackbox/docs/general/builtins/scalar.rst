@@ -580,7 +580,8 @@ Synopsis
     DATE_FORMAT( [ format_string, [ timezone, ] ] timestamp )
 
 The only mandatory argument is the ``timestamp`` value to format. It can be any
-expression that is safely convertible to timestamp.
+expression that is safely convertible to timestamp data type with or without
+timezone.
 
 Format
 ......
