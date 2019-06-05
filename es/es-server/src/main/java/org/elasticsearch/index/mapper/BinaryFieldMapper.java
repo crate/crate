@@ -30,6 +30,7 @@ import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.store.ByteArrayDataOutput;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.settings.Settings;
@@ -151,7 +152,7 @@ public class BinaryFieldMapper extends FieldMapper {
 
     protected BinaryFieldMapper(String simpleName,
                                 Integer position,
-                                String defaultExpression,
+                                @Nullable String defaultExpression,
                                 MappedFieldType fieldType,
                                 MappedFieldType defaultFieldType,
                                 Settings indexSettings,

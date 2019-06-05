@@ -39,6 +39,7 @@ import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.common.Explicit;
+import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.Numbers;
 import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.common.settings.Setting;
@@ -951,7 +952,7 @@ public class NumberFieldMapper extends FieldMapper {
     private NumberFieldMapper(
             String simpleName,
             Integer position,
-            String defaultExpression,
+            @Nullable String defaultExpression,
             MappedFieldType fieldType,
             MappedFieldType defaultFieldType,
             Explicit<Boolean> ignoreMalformed,

@@ -351,7 +351,7 @@ public class DateFieldMapper extends FieldMapper {
     private DateFieldMapper(
             String simpleName,
             Integer position,
-            String defaultExpression,
+            @Nullable String defaultExpression,
             MappedFieldType fieldType,
             MappedFieldType defaultFieldType,
             Explicit<Boolean> ignoreMalformed,

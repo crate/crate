@@ -32,6 +32,7 @@ import org.apache.lucene.search.NormsFieldExistsQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -327,7 +328,7 @@ public final class KeywordFieldMapper extends FieldMapper {
 
     protected KeywordFieldMapper(String simpleName,
                                  Integer position,
-                                 String defaultExpression,
+                                 @Nullable String defaultExpression,
                                  MappedFieldType fieldType,
                                  MappedFieldType defaultFieldType,
                                  int ignoreAbove,

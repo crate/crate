@@ -32,6 +32,7 @@ import org.apache.lucene.spatial.prefix.tree.QuadPrefixTree;
 import org.apache.lucene.spatial.prefix.tree.SpatialPrefixTree;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.Explicit;
+import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.geo.GeoUtils;
 import org.elasticsearch.common.geo.SpatialStrategy;
 import org.elasticsearch.common.geo.XShapeCollection;
@@ -495,7 +496,7 @@ public class GeoShapeFieldMapper extends FieldMapper {
 
     public GeoShapeFieldMapper(String simpleName,
                                Integer position,
-                               String defaultExpression,
+                               @Nullable String defaultExpression,
                                MappedFieldType fieldType,
                                Explicit<Boolean> ignoreMalformed,
                                Explicit<Boolean> coerce,

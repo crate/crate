@@ -63,6 +63,7 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
         protected final MultiFields.Builder multiFieldsBuilder;
         protected CopyTo copyTo = CopyTo.empty();
         protected Integer position;
+        @Nullable
         protected String defaultExpression;
 
         protected Builder(String name, MappedFieldType fieldType, MappedFieldType defaultFieldType) {
@@ -101,6 +102,7 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
             return builder;
         }
 
+        @Nullable
         protected IndexOptions getDefaultIndexOption() {
             return defaultOptions;
         }

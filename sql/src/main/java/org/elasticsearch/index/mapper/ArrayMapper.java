@@ -23,6 +23,7 @@
 package org.elasticsearch.index.mapper;
 
 import org.apache.lucene.index.IndexableField;
+import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.settings.Settings;
@@ -77,7 +78,7 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
 
     ArrayMapper(String simpleName,
                 Integer position,
-                String defaultExpression,
+                @Nullable String defaultExpression,
                 MappedFieldType fieldType,
                 MappedFieldType defaultFieldType,
                 Settings indexSettings,
