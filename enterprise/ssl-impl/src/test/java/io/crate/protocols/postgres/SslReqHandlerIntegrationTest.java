@@ -34,6 +34,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.security.KeyStore;
 import java.security.cert.Certificate;
+import java.util.concurrent.TimeUnit;
 
 
 @UseJdbc(value = 1)
@@ -111,6 +112,6 @@ public class SslReqHandlerIntegrationTest extends SQLTransportIntegrationTest {
             } catch (Exception e) {
                 fail();
             }
-        });
+        }, 20, TimeUnit.SECONDS);
     }
 }
