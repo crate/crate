@@ -44,12 +44,11 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+import java.util.function.BiFunction;
+import java.util.function.BiPredicate;
 import java.util.function.Function;
 import java.util.function.IntSupplier;
 import java.util.stream.Collectors;
-
-import static io.crate.sql.tree.FrameBound.Type.CURRENT_ROW;
-import static io.crate.sql.tree.FrameBound.Type.UNBOUNDED_PRECEDING;
 
 /**
  * BatchIterator which computes window functions (incl. partitioning + ordering)
@@ -177,8 +176,16 @@ public final class WindowFunctionBatchIterator {
             private int i = 0;
             private int idxInPartition = 0;
 
-            private boolean isUnboundedPrecedingCurrentRow = frameDefinition.start().type() == UNBOUNDED_PRECEDING &&
-                                                             frameDefinition.end().type() == CURRENT_ROW;
+            private BiPredicate<Integer, Integer> arePeersPredicate = (pos1, pos2) -> arePeers(sortedRows,
+                                                                                               pos1,
+                                                                                               pos2,
+                                                                                               cmpOrderBy);
+
+            private BiFunction<Integer, Integer, Integer> findFirstnonPeerFunction = (i, pEnd) -> findFirstNonPeer(
+                sortedRows,
+                i,
+                pEnd,
+                cmpOrderBy);
 
             @Override
             public boolean hasNext() {
@@ -196,30 +203,18 @@ public final class WindowFunctionBatchIterator {
                     pEnd = findFirstNonPeer(sortedRows, pStart, end, cmpPartitionBy);
                 }
 
-                int wBegin;
-                int wEnd;
+                int wBegin = frameDefinition.start().type().getStart(pStart,
+                                                                     pEnd,
+                                                                     frame.partitionStart() + frame.lowerBound(),
+                                                                     i,
+                                                                     cmpOrderBy != null,
+                                                                     arePeersPredicate);
 
-                if (isUnboundedPrecedingCurrentRow) {
-                    // UNBOUNDED PRECEDING -> CURRENT ROW - Frame always starts at the start of the partition
-                    wBegin = pStart;
-                    wEnd = findFirstNonPeer(sortedRows, i, pEnd, cmpOrderBy);
-                } else {
-                    // CURRENT ROW -> UNBOUNDED FOLLOWING - Frame start position changes with each window row
-                    if (pStart == i) {
-                        // if we just changed partition, make the beginning of the window be the beginning of the partition
-                        wBegin = pStart;
-                    } else {
-                        if (cmpOrderBy == null) {
-                            wBegin = i;
-                        } else {
-                            // within a partition, we will push the window beginning index forward only when encountering
-                            // non-peers elements
-                            wBegin = arePeers(sortedRows, frame.lowerBound() + frame.partitionStart(), i, cmpOrderBy) ?
-                                (frame.lowerBound() + frame.partitionStart()) : i;
-                        }
-                    }
-                    wEnd = pEnd;
-                }
+                int wEnd = frameDefinition.end().type().getEnd(pStart,
+                                                               pEnd,
+                                                               i,
+                                                               cmpOrderBy != null,
+                                                               findFirstnonPeerFunction);
 
                 frame.updateBounds(pStart, wBegin, wEnd);
                 final Object[] row = computeAndInjectResults(
