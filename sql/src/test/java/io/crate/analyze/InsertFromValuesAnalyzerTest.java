@@ -118,6 +118,12 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
                 ")" +
                 " partitioned by (part_key__generated)")
             .addTable(
+                "create table doc.default_column (" +
+                "  id int," +
+                "  owner text default 'crate'," +
+                "  two int default 1+1" +
+                ")")
+            .addTable(
                 "create table generated_clustered_by_column(" +
                 "  serial_no int," +
                 "  color text," +
@@ -1112,6 +1118,131 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
             e.analyze("insert into users (id, name) values (1, 'Jon') on conflict DO NOTHING");
         assertThat(statement.isIgnoreDuplicateKeys(), is(true));
         assertThat(statement.onDuplicateKeyAssignments(), is(empty()));
+    }
+
+    @Test
+    public void testInsertColumnsWithDefaultAllValuesGiven() {
+        InsertFromValuesAnalyzedStatement analysis = e.analyze(
+            "insert into default_column (id, owner, two) values (?, ?, ?)",
+            new Object[]{"10", "cr8", "3"});
+        assertThat(analysis.sourceMaps(), hasSize(1));
+
+        var res = analysis.sourceMaps().get(0);
+        assertThat(res.length, is(3));
+        assertThat(res[0], is(10));
+        assertThat(res[1], is("cr8"));
+        assertThat(res[2], is(3));
+    }
+
+    @Test
+    public void testInsertColumnsWithDefaultValuesGivenNoColumnsSpecified() {
+        InsertFromValuesAnalyzedStatement analysis = e.analyze(
+            "insert into default_column values (?, ?, ?)",
+            new Object[]{"1", "cr8", "3"});
+        assertThat(analysis.sourceMaps(), hasSize(1));
+
+        var res = analysis.sourceMaps().get(0);
+        assertThat(res.length, is(3));
+        assertThat(res[0], is(1));
+        assertThat(res[1], is("cr8"));
+        assertThat(res[2], is(3));
+    }
+
+    @Test
+    public void testInsertMultipleValuesWithDefaultAllValuesGiven() {
+        InsertFromValuesAnalyzedStatement analysis = e.analyze(
+            "insert into default_column (id, owner, two) values (?, ?, ?), (?, ?, ?)",
+            new Object[]{"10", "cr8", "3", "20", "cr9", "4"});
+        assertThat(analysis.sourceMaps(), hasSize(2));
+
+        Matcher<Object[]> firstRow = arrayContainingInAnyOrder(10, "cr8", 3);
+        Matcher<Object[]> secondRow = arrayContainingInAnyOrder(20, "cr9", 4);
+        assertThat(analysis.sourceMaps(), contains(firstRow, secondRow));
+    }
+
+    @Test
+    public void testInsertColumnsWithDefaultExpression() {
+        InsertFromValuesAnalyzedStatement analysis = e.analyze(
+            "insert into default_column (id) values (?)",
+            new Object[]{"1"});
+        assertThat(analysis.sourceMaps(), hasSize(1));
+
+        var res = analysis.sourceMaps().get(0);
+        assertThat(res.length, is(3));
+        assertThat(res[0], is(1));
+        assertThat(res[1], is("crate"));
+        assertThat(res[2], is(2));
+    }
+
+    @Test
+    public void testInsertColumnsWithDefaultExpressionNullValueProvided() {
+        InsertFromValuesAnalyzedStatement analysis = e.analyze(
+            "insert into default_column (id, owner) values (?, ?)",
+            new Object[]{"1", null});
+        assertThat(analysis.sourceMaps(), hasSize(1));
+
+        var res = analysis.sourceMaps().get(0);
+        assertThat(res.length, is(3));
+        assertThat(res[0], is(1));
+        assertThat(res[1], nullValue());
+        assertThat(res[2], is(2));
+    }
+
+    @Test
+    public void testInsertColumnsWithDefaultExpressionSomeValuesGiven() {
+        InsertFromValuesAnalyzedStatement analysis = e.analyze(
+            "insert into default_column(id, owner) values (?, ?)",
+            new Object[]{"1", "cr8"});
+        assertThat(analysis.sourceMaps(), hasSize(1));
+
+        var res = analysis.sourceMaps().get(0);
+        assertThat(res.length, is(3));
+        assertThat(res[0], is(1));
+        assertThat(res[1], is("cr8"));
+        assertThat(res[2], is(2));
+    }
+
+    @Test
+    public void testInsertColumnsWithDefaultExpressionNoColumnsSpecified() {
+        InsertFromValuesAnalyzedStatement analysis = e.analyze(
+            "insert into default_column values (?)",
+            new Object[]{"1"});
+        assertThat(analysis.sourceMaps().size(), is(1));
+
+        var res = analysis.sourceMaps().get(0);
+        assertThat(res.length, is(3));
+        assertThat(res[0], is(1));
+        assertThat(res[1], is("crate"));
+        assertThat(res[2], is(2));
+    }
+
+    @Test
+    public void testInsertColumnsWithDefaultExpressionSomeValuesGivenNoColumnsSpecified() {
+        InsertFromValuesAnalyzedStatement analysis = e.analyze(
+            "insert into default_column values (?, ?)",
+            new Object[]{"1", "cr8"});
+        assertThat(analysis.sourceMaps().size(), is(1));
+
+        var res = analysis.sourceMaps().get(0);
+        assertThat(res.length, is(3));
+        assertThat(res[0], is(1));
+        assertThat(res[1], is("cr8"));
+        assertThat(res[2], is(2));
+    }
+
+    @Test
+    public void testInsertMultipleValuesWithDefaultExpressionColumns()  {
+        InsertFromValuesAnalyzedStatement analysis = e.analyze(
+            "insert into default_column (id, owner) values (?, ?), (?, ?)",
+            new Object[]{"10", "cr8", "20", "cr9"});
+
+        assertThat(analysis.columns(), hasSize(3));
+        assertThat(analysis.columns(), containsInAnyOrder(isReference("id"), isReference("owner"), isReference("two")));
+        assertThat(analysis.sourceMaps(), hasSize(2));
+
+        Matcher<Object[]> firstRow = arrayContainingInAnyOrder(10, "cr8", 2);
+        Matcher<Object[]> secondRow = arrayContainingInAnyOrder(20, "cr9", 2);
+        assertThat(analysis.sourceMaps(), contains(firstRow, secondRow));
     }
 
     @Test
