@@ -22,6 +22,9 @@ build-idea/
 reports/
 test-output/
 
+# eclipse files
+bin/
+
 # Python files
 __pycache__/
 .installed.cfg
