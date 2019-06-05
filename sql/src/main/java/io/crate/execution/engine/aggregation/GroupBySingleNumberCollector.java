@@ -29,6 +29,11 @@ import io.crate.data.RowN;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.types.DataType;
+import io.crate.types.ByteType;
+import io.crate.types.ShortType;
+import io.crate.types.IntegerType;
+import io.crate.types.LongType;
+import io.crate.types.TimestampType;
 import io.crate.types.DataTypes;
 import io.netty.util.collection.ByteObjectHashMap;
 import io.netty.util.collection.IntObjectHashMap;
@@ -60,6 +65,15 @@ public final class GroupBySingleNumberCollector implements Collector<Row, GroupB
     private final BigArrays bigArrays;
     private final BiConsumer<Groups, Row> accumulator;
 
+    public static final Set<DataType<?>> SUPPORTED_TYPES = Set.of(
+        DataTypes.BYTE,
+        DataTypes.SHORT,
+        DataTypes.INTEGER,
+        DataTypes.LONG,
+        DataTypes.TIMESTAMP,
+        DataTypes.TIMESTAMPZ
+    );
+
     GroupBySingleNumberCollector(DataType valueType,
                                  CollectExpression<Row, ?>[] expressions,
                                  AggregateMode mode,
@@ -69,7 +83,6 @@ public final class GroupBySingleNumberCollector implements Collector<Row, GroupB
                                  Input keyInput,
                                  Version indexVersionCreated,
                                  BigArrays bigArrays) {
-        validateInputType(valueType);
         this.valueType = valueType;
         this.expressions = expressions;
         this.mode = mode;
@@ -80,17 +93,6 @@ public final class GroupBySingleNumberCollector implements Collector<Row, GroupB
         this.indexVersionCreated = indexVersionCreated;
         this.bigArrays = bigArrays;
         this.accumulator = mode == AggregateMode.PARTIAL_FINAL ? this::reduce : this::iter;
-    }
-
-    private static void validateInputType(DataType valueType) {
-        if (!valueType.equals(DataTypes.BYTE) &&
-            !valueType.equals(DataTypes.SHORT) &&
-            !valueType.equals(DataTypes.INTEGER) &&
-            !valueType.equals(DataTypes.LONG)) {
-            throw new IllegalArgumentException(
-                "Single Number type collector is only supported for Byte, Short, Integer" +
-                " and Long types, but received " + valueType.getName());
-        }
     }
 
     static class Groups {
@@ -143,24 +145,35 @@ public final class GroupBySingleNumberCollector implements Collector<Row, GroupB
 
         final Map statesByKey;
         long entryOverhead;
-        if (valueType.equals(DataTypes.BYTE)) {
-            entryOverhead = 6L;
-            ramAccounting.addBytes(4 * entryOverhead);
-            statesByKey = new ByteObjectHashMap<Object[]>();
-        } else if (valueType.equals(DataTypes.SHORT)) {
-            entryOverhead = 6L;
-            ramAccounting.addBytes(4 * entryOverhead);
-            statesByKey = new ShortObjectHashMap<Object[]>();
-        } else if (valueType.equals(DataTypes.INTEGER)) {
-            entryOverhead = 8L;
-            ramAccounting.addBytes(4 * entryOverhead);
-            statesByKey = new IntObjectHashMap<Object[]>();
-        } else if (valueType.equals(DataTypes.LONG)) {
-            entryOverhead = 12L;
-            ramAccounting.addBytes(4 * entryOverhead);
-            statesByKey = new LongObjectHashMap<Object[]>();
-        } else {
-            throw new IllegalArgumentException("Unsupported input type " + valueType.getName());
+        switch (valueType.id()) {
+            case ByteType.ID:
+                entryOverhead = 6L;
+                ramAccounting.addBytes(4 * entryOverhead);
+                statesByKey = new ByteObjectHashMap<Object[]>();
+                break;
+
+            case ShortType.ID:
+                entryOverhead = 6L;
+                ramAccounting.addBytes(4 * entryOverhead);
+                statesByKey = new ShortObjectHashMap<Object[]>();
+                break;
+
+            case IntegerType.ID:
+                entryOverhead = 8L;
+                ramAccounting.addBytes(4 * entryOverhead);
+                statesByKey = new IntObjectHashMap<Object[]>();
+                break;
+
+            case LongType.ID:
+            case TimestampType.ID_WITH_TZ:
+            case TimestampType.ID_WITHOUT_TZ:
+                entryOverhead = 12L;
+                ramAccounting.addBytes(4 * entryOverhead);
+                statesByKey = new LongObjectHashMap<Object[]>();
+                break;
+
+            default:
+                throw new IllegalArgumentException("Unsupported input type " + valueType.getName());
         }
         //noinspection unchecked
         return () -> new Groups(statesByKey, entryOverhead);
