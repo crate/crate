@@ -23,7 +23,7 @@
 package io.crate.analyze;
 
 
-import io.crate.collections.Lists2;
+import io.crate.common.collections.Lists2;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.planner.ExplainLeaf;

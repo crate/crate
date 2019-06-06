@@ -25,7 +25,7 @@ package io.crate.analyze;
 import io.crate.analyze.user.Privilege;
 import io.crate.analyze.user.Privilege.State;
 import io.crate.auth.user.User;
-import io.crate.collections.Lists2;
+import io.crate.common.collections.Lists2;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.RelationName;

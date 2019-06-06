@@ -28,7 +28,7 @@ import io.crate.expression.symbol.RefReplacer;
 import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
-import io.crate.collections.Lists2;
+import io.crate.common.collections.Lists2;
 
 import java.util.ArrayList;
 import java.util.List;

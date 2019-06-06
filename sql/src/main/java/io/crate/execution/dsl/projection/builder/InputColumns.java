@@ -48,7 +48,7 @@ import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
 
-import static io.crate.collections.Lists2.mapTail;
+import static io.crate.common.collections.Lists2.mapTail;
 import static io.crate.expression.scalar.SubscriptObjectFunction.getNameForReturnType;
 import static io.crate.expression.symbol.Symbols.lookupValueByColumn;
 

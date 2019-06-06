@@ -27,7 +27,7 @@ import com.google.common.annotations.VisibleForTesting;
 import io.crate.analyze.CopyFromAnalyzedStatement;
 import io.crate.analyze.CopyFromReturnSummaryAnalyzedStatement;
 import io.crate.analyze.CopyToAnalyzedStatement;
-import io.crate.collections.Lists2;
+import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.dsl.phases.FileUriCollectPhase;
