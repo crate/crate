@@ -21,7 +21,6 @@
 
 package io.crate.integrationtests;
 
-import io.crate.Constants;
 import io.crate.action.sql.SQLActionException;
 import io.crate.data.ArrayBucket;
 import io.crate.data.Paging;
@@ -31,8 +30,6 @@ import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.core.Is;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.util.HashMap;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiLettersOfLength;
 import static io.crate.testing.TestingHelpers.printedTable;
@@ -1242,4 +1239,16 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
                "2| 2\n")
         );
     }
+
+    @Test
+    public void testSelectAndGroupBySingleStringKeyForLowCardinalityField() {
+        execute("create table t (name string) clustered into 1 shards");
+        // has low cardinality ration: CARDINALITY_RATIO_THRESHOLD (0.5) > 2 terms / 4 docs
+        execute("insert into t (name) values ('a'), ('b'), ('a'), ('b')");
+        execute("refresh table t");
+        execute("select name, count(name) from t group by 1 order by 1");
+        assertThat(printedTable(response.rows()), is(
+            "a| 2\n" +
+            "b| 2\n"));
+        }
 }

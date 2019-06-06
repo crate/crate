@@ -51,4 +51,5 @@ None
 Fixes
 =====
 
-None
+- Fixed a bug that led to failures of group by a single text column queries
+  on columns with the cardinality ration lower than ``0.5``.
