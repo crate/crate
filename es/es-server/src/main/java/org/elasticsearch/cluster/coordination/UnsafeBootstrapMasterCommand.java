@@ -41,9 +41,9 @@ public class UnsafeBootstrapMasterCommand extends ElasticsearchNodeCommand {
 
     private static final Logger logger = LogManager.getLogger(UnsafeBootstrapMasterCommand.class);
 
-    static final String CLUSTER_STATE_TERM_VERSION_MSG_FORMAT =
+    public static final String CLUSTER_STATE_TERM_VERSION_MSG_FORMAT =
             "Current node cluster state (term, version) pair is (%s, %s)";
-    static final String CONFIRMATION_MSG =
+    public static final String CONFIRMATION_MSG =
         DELIMITER +
             "\n" +
             "You should only run this tool if you have permanently lost half or more\n" +
@@ -62,11 +62,11 @@ public class UnsafeBootstrapMasterCommand extends ElasticsearchNodeCommand {
     static final String EMPTY_LAST_COMMITTED_VOTING_CONFIG_MSG =
             "last committed voting voting configuration is empty, cluster has never been bootstrapped?";
 
-    static final String MASTER_NODE_BOOTSTRAPPED_MSG = "Master node was successfully bootstrapped";
-    static final Setting<String> UNSAFE_BOOTSTRAP =
+    public static final String MASTER_NODE_BOOTSTRAPPED_MSG = "Master node was successfully bootstrapped";
+    public static final Setting<String> UNSAFE_BOOTSTRAP =
             ClusterService.USER_DEFINED_META_DATA.getConcreteSetting("cluster.metadata.unsafe-bootstrap");
 
-    UnsafeBootstrapMasterCommand() {
+    public UnsafeBootstrapMasterCommand() {
         super("Forces the successful election of the current node after the permanent loss of the half or more master-eligible nodes");
     }
 
