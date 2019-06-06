@@ -637,12 +637,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             functions,
             statementContext.transactionContext(),
             statementContext.convertParamFunction(),
-            new FieldProvider() {
-                @Override
-                public Symbol resolveField(QualifiedName qualifiedName, @Nullable List path, Operation operation) {
-                    throw new UnsupportedOperationException("Can only resolve literals");
-                }
-            },
+            FieldProvider.UNSUPPORTED,
             null
         );
 
