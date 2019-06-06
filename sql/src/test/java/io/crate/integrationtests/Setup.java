@@ -268,6 +268,15 @@ public class Setup {
         transportExecutor.ensureGreen();
     }
 
+    public void createTestTableWithDefaultExpressions() {
+        transportExecutor.exec("create table t (" +
+                               " id int," +
+                               " owner text default 'crate'," +
+                               " two int default 1+1" +
+                               ") with (number_of_replicas=0)");
+        transportExecutor.ensureGreen();
+    }
+
     public void setUpCharacters() {
         transportExecutor.exec("create table characters (id int primary key, name string, female boolean, details object)");
         transportExecutor.ensureYellowOrGreen();

@@ -1421,4 +1421,75 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into tdst (country, name) (select country, name from tsrc)");
         assertThat(response.rowCount(), is(1L));
     }
+
+    @Test
+    public void testInsertDefaultExpressions() throws Exception {
+        setup.createTestTableWithDefaultExpressions();
+
+        execute("insert into t (id) values (?)",
+                new Object[]{1});
+        execute("refresh table t");
+
+        assertThat(
+            printedTable(execute("select * from t").rows()),
+            is("1| crate| 2\n")
+        );
+    }
+
+    @Test
+    public void testInsertDefaultExpressionsAllValuesGiven() throws Exception {
+        setup.createTestTableWithDefaultExpressions();
+
+        execute("insert into t (id, owner, two) values (?, ?, ?)",
+                new Object[]{1, "cr8", 3});
+        execute("refresh table t");
+
+        assertThat(
+            printedTable(execute("select * from t").rows()),
+            is("1| cr8| 3\n")
+        );
+    }
+
+    @Test
+    public void testInsertDefaultExpressionsNullValueProvided() throws Exception {
+        setup.createTestTableWithDefaultExpressions();
+
+        execute("insert into t (id, owner) values (?, ?)",
+                new Object[]{1, null});
+        execute("refresh table t");
+
+        assertThat(
+            printedTable(execute("select * from t").rows()),
+            is("1| NULL| 2\n")
+        );
+    }
+
+    @Test
+    public void testInsertDefaultExpressionsNoColumnsSpecified() throws Exception {
+        setup.createTestTableWithDefaultExpressions();
+
+        execute("insert into t values (?)",
+                new Object[]{1});
+        execute("refresh table t");
+
+        assertThat(
+            printedTable(execute("select * from t").rows()),
+            is("1| crate| 2\n")
+        );
+    }
+
+    @Test
+    public void testInsertDefaultExpressionsMultipleRows() throws Exception {
+        setup.createTestTableWithDefaultExpressions();
+
+        execute("insert into t(id) values (?), (?)",
+                new Object[]{1, 2});
+        execute("refresh table t");
+
+        assertThat(
+            printedTable(execute("select * from t order by id").rows()),
+            is("1| crate| 2\n" +
+               "2| crate| 2\n")
+        );
+    }
 }

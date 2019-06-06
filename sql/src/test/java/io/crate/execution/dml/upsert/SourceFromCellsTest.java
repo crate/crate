@@ -56,6 +56,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
     private Reference x;
     private Reference y;
     private Reference z;
+    private Reference d;
     private DocTableInfo t2;
     private Reference obj;
     private Reference b;
@@ -64,15 +65,16 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
     @Before
     public void setUpExecutor() throws Exception {
         e = SQLExecutor.builder(clusterService)
-            .addTable("create table t1 (x int, y int, z as x + y)")
+            .addTable("create table t1 (x int, y int, z as x + y, d int default 0)")
             .addTable("create table t2 (obj object as (a int, c as obj['a'] + 3), b as obj['a'] + 1)")
             .addPartitionedTable("create table t3 (p int not null) partitioned by (p)")
             .build();
-        AnalyzedRelation relation = e.normalize("select x, y, z from t1");
+        AnalyzedRelation relation = e.normalize("select x, y, z, d from t1");
         t1 = (DocTableInfo) ((QueriedTable) relation).tableRelation().tableInfo();
         x = (Reference) relation.outputs().get(0);
         y = (Reference) relation.outputs().get(1);
         z = (Reference) relation.outputs().get(2);
+        d = (Reference) relation.outputs().get(3);
 
         relation = e.normalize("select obj, b from t2");
         t2 = (DocTableInfo) ((QueriedTable) relation).tableRelation().tableInfo();
@@ -85,7 +87,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
         InsertSourceFromCells sourceFromCells = new InsertSourceFromCells(
             txnCtx, e.functions(), t1, "t1", GeneratedColumns.Validation.VALUE_MATCH, Arrays.asList(x, y));
         BytesReference source = sourceFromCells.generateSource(new Object[]{1, 2});
-        assertThat(source.utf8ToString(), is("{\"x\":1,\"y\":2,\"z\":3}"));
+        assertThat(source.utf8ToString(), is("{\"d\":0,\"x\":1,\"y\":2,\"z\":3}"));
     }
 
     @Test
