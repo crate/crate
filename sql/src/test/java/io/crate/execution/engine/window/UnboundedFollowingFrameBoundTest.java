@@ -64,7 +64,7 @@ public class UnboundedFollowingFrameBoundTest extends CrateUnitTest {
     public void testUnboundeFollowingCannotBeTheStartOfTheFrame() {
         expectedException.expect(IllegalStateException.class);
         expectedException.expectMessage("UNBOUNDED FOLLOWING cannot be the start of a frame");
-        UNBOUNDED_FOLLOWING.getStart(0, 3, 0, 1, intComparator, partition);
+        UNBOUNDED_FOLLOWING.getStart(0, 3, 1, intComparator, partition);
     }
 
 }

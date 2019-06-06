@@ -23,6 +23,7 @@
 package io.crate.common.collections;
 
 import org.hamcrest.Matchers;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -31,10 +32,18 @@ import java.util.List;
 
 import static io.crate.common.collections.Lists2.arePeers;
 import static io.crate.common.collections.Lists2.findFirstNonPeer;
+import static io.crate.common.collections.Lists2.findFirstPreviousPeer;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
 public class Lists2Test {
+
+    private Comparator<Integer> integerComparator;
+
+    @Before
+    public void setupComparator() {
+        integerComparator = Comparator.comparingInt(x -> x);
+    }
 
     @Test
     public void testConcatReturnsANewListWithOneItemAdded() {
@@ -45,7 +54,7 @@ public class Lists2Test {
     public void testFindFirstWithAllUnique() {
         var numbers = List.of(1, 2, 3, 4, 5, 6, 7, 8);
         assertThat(
-            findFirstNonPeer(numbers, 0, numbers.size() - 1, Comparator.comparingInt(x -> x)),
+            findFirstNonPeer(numbers, 0, numbers.size() - 1, integerComparator),
             is(1)
         );
     }
@@ -53,7 +62,7 @@ public class Lists2Test {
     public void testFindFirstNonPeerAllSame() {
         var numbers = List.of(1, 1, 1, 1, 1, 1, 1, 1);
         assertThat(
-            findFirstNonPeer(numbers, 0, numbers.size() - 1, Comparator.comparingInt(x -> x)),
+            findFirstNonPeer(numbers, 0, numbers.size() - 1, integerComparator),
             is(numbers.size() - 1)
         );
     }
@@ -61,9 +70,9 @@ public class Lists2Test {
     @Test
     public void testEqualValuesArePeers() {
         var numbers = List.of(1, 2, 2, 4, 5, 6, 6, 7);
-        assertThat(arePeers(numbers, 1, 2, Comparator.comparing(x -> x)),
+        assertThat(arePeers(numbers, 1, 2, integerComparator),
                    is(true));
-        assertThat(arePeers(numbers, 5, 6, Comparator.comparing(x -> x)),
+        assertThat(arePeers(numbers, 5, 6, integerComparator),
                    is(true));
     }
 
@@ -83,9 +92,35 @@ public class Lists2Test {
         var numbers = List.of(1, 2, 3, 4, 5, 6, 7, 8);
         for (int i = 0; i < numbers.size() - 1; i++) {
             assertThat(
-                arePeers(numbers, i, i + 1, Comparator.comparingInt(x -> x)),
+                arePeers(numbers, i, i + 1, integerComparator),
                 is(false)
             );
+        }
+    }
+
+    @Test
+    public void testFindFirstPreviousPeerReturnZeroForNullComparator() {
+        var numbers = List.of(1, 1, 2, 4, 4, 4, 4, 5);
+        assertThat(findFirstPreviousPeer(numbers, 5, null), is(0));
+    }
+
+    @Test
+    public void testFindFirstPreviousPeerForFirstElementReturnsZero() {
+        var numbers = List.of(1, 1, 2, 4, 4, 4, 4, 5);
+        assertThat(findFirstPreviousPeer(numbers, 0, integerComparator), is(0));
+    }
+
+    @Test
+    public void testFindFirstPreviousPeerReturnsFirstOccuranceOfPeer() {
+        var numbers = List.of(1, 1, 2, 4, 4, 4, 4, 5);
+        assertThat(findFirstPreviousPeer(numbers, 5, integerComparator), is(3));
+    }
+
+    @Test
+    public void testFindFirstPreviousPeerReturnsItemIndexIfThereAreNoPeers() {
+        var numbers = List.of(1, 2, 3, 4, 5, 6);
+        for (int i = 0; i < numbers.size(); i++) {
+            assertThat(findFirstPreviousPeer(numbers, i, integerComparator), is(i));
         }
     }
 }

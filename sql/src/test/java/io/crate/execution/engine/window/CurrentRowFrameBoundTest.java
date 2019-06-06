@@ -53,22 +53,31 @@ public class CurrentRowFrameBoundTest extends CrateUnitTest {
 
     @Test
     public void testCurrentRowStartForOrderedPartition() {
-        int firstFrameStart = CURRENT_ROW.getStart(0, 3, 0, 0, intComparator, partition);
+        int firstFrameStart = CURRENT_ROW.getStart(0, 3, 0, intComparator, partition);
         assertThat(firstFrameStart, is(0));
-        int secondFrameStart = CURRENT_ROW.getStart(0,3,  0, 1, intComparator, partition);
+        int secondFrameStart = CURRENT_ROW.getStart(0, 3, 1, intComparator, partition);
         assertThat("a new frame starts when encountering a non-peer", secondFrameStart, is(0));
-        int thirdFrameStart = CURRENT_ROW.getStart(0,3,  0, 2, intComparator, partition);
+        int thirdFrameStart = CURRENT_ROW.getStart(0, 3, 2, intComparator, partition);
         assertThat(thirdFrameStart, is(2));
     }
 
     @Test
     public void testCurrentRowStartIsTheRowIdForUnorderedPartitions() {
-        int firstFrameStart = CURRENT_ROW.getStart(0, 3, 0, 0, intComparator, partition);
+        int firstFrameStart = CURRENT_ROW.getStart(0, 3, 0, intComparator, partition);
         assertThat(firstFrameStart, is(0));
-        int secondFrameStart = CURRENT_ROW.getStart(0, 3, 0, 1, intComparator, partition);
+        int secondFrameStart = CURRENT_ROW.getStart(0, 3, 1, intComparator, partition);
         assertThat(secondFrameStart, is(0));
-        int thirdFrameStart = CURRENT_ROW.getStart(0, 3, 1, 2, intComparator, partition);
+        int thirdFrameStart = CURRENT_ROW.getStart(0, 3, 2, intComparator, partition);
         assertThat(thirdFrameStart, is(2));
+    }
+
+    @Test
+    public void testCurrentRowStartForPeersThatSpanMultiplePartitions() {
+        var window = List.of(1, 2, 2, 2, 2, 2, 2, 2, 3);
+        int frameStartForFourthRow = CURRENT_ROW.getStart(1, 4, 3, intComparator, window);
+        assertThat(frameStartForFourthRow, is(1));
+        int frameStartForSixthRow = CURRENT_ROW.getStart(4, 7, 5, intComparator, window);
+        assertThat("frame start shouldn't be outside of the partition bounds", frameStartForSixthRow, is(4));
     }
 
 }

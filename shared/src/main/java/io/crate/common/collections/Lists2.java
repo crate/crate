@@ -180,6 +180,29 @@ public final class Lists2 {
     }
 
     /**
+     * Finds the first peer, in order of appearance in the items list, of the item at the given index.
+     * If the provided comparator is null this will return 0 (all items are peers when no comparator is specified).
+     * If the provided item has no peers amongst the items that appear before it, or if it is the first item in the
+     * list, this will return the itemIdx.
+     */
+    public static <T> int findFirstPreviousPeer(List<T> items, int itemIdx, @Nullable Comparator<T> cmp) {
+        if (cmp == null) {
+            return 0;
+        }
+
+        int firstPeer = itemIdx;
+        T item = items.get(itemIdx);
+        for (int i = itemIdx - 1; i >= 0; i--) {
+            if (cmp.compare(item, items.get(i)) == 0) {
+                firstPeer = i;
+            } else {
+                break;
+            }
+        }
+        return firstPeer;
+    }
+
+    /**
      * Indicates if the items at pos1 and pos2 are equal (ie. peers)  with respect to the provided comparator.
      * @return true if the comparator is null, or true/false if the comparator designates the two items as true or false.
      */
@@ -190,4 +213,5 @@ public final class Lists2 {
         T fst = items.get(pos1);
         return cmp.compare(fst, items.get(pos2)) == 0;
     }
+
 }

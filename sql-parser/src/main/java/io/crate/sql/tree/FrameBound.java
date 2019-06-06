@@ -26,8 +26,8 @@ import javax.annotation.Nullable;
 import java.util.Comparator;
 import java.util.List;
 
-import static io.crate.common.collections.Lists2.arePeers;
 import static io.crate.common.collections.Lists2.findFirstNonPeer;
+import static io.crate.common.collections.Lists2.findFirstPreviousPeer;
 
 public class FrameBound extends Node {
 
@@ -36,7 +36,6 @@ public class FrameBound extends Node {
             @Override
             public <T> int getStart(int pStart,
                                     int pEnd,
-                                    int currentFrameStartIdx,
                                     int currentRowIdx,
                                     @Nullable Comparator<T> cmp,
                                     List<T> rows) {
@@ -52,7 +51,6 @@ public class FrameBound extends Node {
             @Override
             public <T> int getStart(int pStart,
                                     int pEnd,
-                                    int currentFrameStartIdx,
                                     int currentRowIdx,
                                     @Nullable Comparator<T> cmp,
                                     List<T> rows) {
@@ -75,7 +73,6 @@ public class FrameBound extends Node {
             @Override
             public <T> int getStart(int pStart,
                                     int pEnd,
-                                    int currentFrameStartIdx,
                                     int currentRowIdx,
                                     @Nullable Comparator<T> cmp,
                                     List<T> rows) {
@@ -83,9 +80,7 @@ public class FrameBound extends Node {
                     return pStart;
                 } else {
                     if (cmp != null) {
-                        return arePeers(rows, currentFrameStartIdx, currentRowIdx, cmp) ?
-                            currentFrameStartIdx :
-                            currentRowIdx;
+                        return Math.max(pStart, findFirstPreviousPeer(rows, currentRowIdx, cmp));
                     } else {
                         return currentRowIdx;
                     }
@@ -101,7 +96,6 @@ public class FrameBound extends Node {
             @Override
             public <T> int getStart(int pStart,
                                     int pEnd,
-                                    int currentFrameStartIdx,
                                     int currentRowIdx,
                                     @Nullable Comparator<T> cmp,
                                     List<T> rows) {
@@ -117,7 +111,6 @@ public class FrameBound extends Node {
             @Override
             public <T> int getStart(int pStart,
                                     int pEnd,
-                                    int currentFrameStartIdx,
                                     int currentRowIdx,
                                     @Nullable Comparator<T> cmp,
                                     List<T> rows) {
@@ -132,7 +125,6 @@ public class FrameBound extends Node {
 
         public abstract <T> int getStart(int pStart,
                                      int pEnd,
-                                     int currentFrameStartIdx,
                                      int currentRowIdx,
                                      @Nullable Comparator<T> cmp,
                                      List<T> rows);
