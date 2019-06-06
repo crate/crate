@@ -22,7 +22,6 @@
 package io.crate.analyze;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
@@ -40,7 +39,6 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
-import io.crate.sql.tree.Expression;
 import io.crate.types.ArrayType;
 import io.crate.types.CollectionType;
 import io.crate.types.DataType;
@@ -59,7 +57,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Consumer;
 
 public class AnalyzedTableElements {
 
@@ -276,6 +273,8 @@ public class AnalyzedTableElements {
             functions, coordinatorTxnCtx, parameterContext, tableReferenceResolver, null);
         ExpressionAnalysisContext generatedExpressionAnalysisContext = new ExpressionAnalysisContext();
 
+        // Default expressions must not contain column references,
+        // so a separate instance with FieldProvider.UNSUPPORTED is used.
         ExpressionAnalyzer defaultExpressionAnalyzer = new ExpressionAnalyzer(
             functions, coordinatorTxnCtx, parameterContext, FieldProvider.UNSUPPORTED, null);
         ExpressionAnalysisContext defaultExpressionAnalysisContext = new ExpressionAnalysisContext();
@@ -299,20 +298,14 @@ public class AnalyzedTableElements {
                                            ExpressionAnalysisContext defaultExpressionAnalysisContext,
                                            SymbolPrinter printer) {
         if (columnDefinition.generatedExpression() != null) {
-            processExpression(generatedExpressionAnalyzer,
-                              columnDefinition::generatedExpression,
-                              columnDefinition::formattedGeneratedExpression,
-                              printer,
-                              columnDefinition,
-                              generatedExpressionAnalysisContext);
+            Symbol function = generatedExpressionAnalyzer.convert(columnDefinition.generatedExpression(), generatedExpressionAnalysisContext);
+            final String formattedExpression = validateAndFormatExpression(function, columnDefinition, printer);
+            columnDefinition.formattedGeneratedExpression(formattedExpression);
         }
         if (columnDefinition.defaultExpression() != null) {
-            processExpression(defaultExpressionAnalyzer,
-                              columnDefinition::defaultExpression,
-                              columnDefinition::formattedDefaultExpression,
-                              printer,
-                              columnDefinition,
-                              defaultExpressionAnalysisContext);
+            Symbol function = defaultExpressionAnalyzer.convert(columnDefinition.defaultExpression(), defaultExpressionAnalysisContext);
+            final String formattedExpression = validateAndFormatExpression(function, columnDefinition, printer);
+            columnDefinition.formattedDefaultExpression(formattedExpression);
         }
         for (AnalyzedColumnDefinition child : columnDefinition.children()) {
             processExpressions(
@@ -324,17 +317,6 @@ public class AnalyzedTableElements {
                 printer
             );
         }
-    }
-
-    private static void processExpression(ExpressionAnalyzer expressionAnalyzer,
-                                          Supplier<Expression> expressionSupplier,
-                                          Consumer<String> formattedExpressionConsumer,
-                                          SymbolPrinter symbolPrinter,
-                                          AnalyzedColumnDefinition columnDefinition,
-                                          ExpressionAnalysisContext expressionAnalysisContext) {
-        Symbol function = expressionAnalyzer.convert(expressionSupplier.get(), expressionAnalysisContext);
-        final String formattedExpression = validateAndFormatExpression(function, columnDefinition, symbolPrinter);
-        formattedExpressionConsumer.accept(formattedExpression);
     }
 
     private static String validateAndFormatExpression(Symbol function,

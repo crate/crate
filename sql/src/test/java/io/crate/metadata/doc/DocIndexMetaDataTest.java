@@ -67,6 +67,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 
 // @formatter:off
@@ -255,47 +256,47 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
         Reference birthday = md.references().get(new ColumnIdent("person", "birthday"));
         assertThat(birthday.valueType(), is(DataTypes.TIMESTAMPZ));
         assertThat(birthday.indexType(), is(Reference.IndexType.NOT_ANALYZED));
-        assertThat(birthday.hasDefaultExpression(), is(false));
+        assertThat(birthday.defaultExpression(), is(nullValue()) );
 
         Reference integerIndexed = md.references().get(new ColumnIdent("integerIndexed"));
         assertThat(integerIndexed.indexType(), is(Reference.IndexType.NOT_ANALYZED));
-        assertThat(integerIndexed.hasDefaultExpression(), is(false));
+        assertThat(integerIndexed.defaultExpression(), is(nullValue()) );
 
         Reference integerIndexedBWC = md.references().get(new ColumnIdent("integerIndexedBWC"));
         assertThat(integerIndexedBWC.indexType(), is(Reference.IndexType.NOT_ANALYZED));
-        assertThat(integerIndexedBWC.hasDefaultExpression(), is(false));
+        assertThat(integerIndexedBWC.defaultExpression(), is(nullValue()) );
 
         Reference integerNotIndexed = md.references().get(new ColumnIdent("integerNotIndexed"));
         assertThat(integerNotIndexed.indexType(), is(Reference.IndexType.NO));
-        assertThat(integerNotIndexed.hasDefaultExpression(), is(false));
+        assertThat(integerNotIndexed.defaultExpression(), is(nullValue()) );
 
         Reference integerNotIndexedBWC = md.references().get(new ColumnIdent("integerNotIndexedBWC"));
         assertThat(integerNotIndexedBWC.indexType(), is(Reference.IndexType.NO));
-        assertThat(integerNotIndexedBWC.hasDefaultExpression(), is(false));
+        assertThat(integerNotIndexedBWC.defaultExpression(), is(nullValue()) );
 
         Reference stringNotIndexed = md.references().get(new ColumnIdent("stringNotIndexed"));
         assertThat(stringNotIndexed.indexType(), is(Reference.IndexType.NO));
-        assertThat(stringNotIndexed.hasDefaultExpression(), is(false));
+        assertThat(stringNotIndexed.defaultExpression(), is(nullValue()) );
 
         Reference stringNotIndexedBWC = md.references().get(new ColumnIdent("stringNotIndexedBWC"));
         assertThat(stringNotIndexedBWC.indexType(), is(Reference.IndexType.NO));
-        assertThat(stringNotIndexedBWC.hasDefaultExpression(), is(false));
+        assertThat(stringNotIndexedBWC.defaultExpression(), is(nullValue()) );
 
         Reference stringNotAnalyzed = md.references().get(new ColumnIdent("stringNotAnalyzed"));
         assertThat(stringNotAnalyzed.indexType(), is(Reference.IndexType.NOT_ANALYZED));
-        assertThat(stringNotAnalyzed.hasDefaultExpression(), is(false));
+        assertThat(stringNotAnalyzed.defaultExpression(), is(nullValue()) );
 
         Reference stringNotAnalyzedBWC = md.references().get(new ColumnIdent("stringNotAnalyzedBWC"));
         assertThat(stringNotAnalyzedBWC.indexType(), is(Reference.IndexType.NOT_ANALYZED));
-        assertThat(stringNotAnalyzedBWC.hasDefaultExpression(), is(false));
+        assertThat(stringNotAnalyzedBWC.defaultExpression(), is(nullValue()) );
 
         Reference stringAnalyzed = md.references().get(new ColumnIdent("stringAnalyzed"));
         assertThat(stringAnalyzed.indexType(), is(Reference.IndexType.ANALYZED));
-        assertThat(stringAnalyzed.hasDefaultExpression(), is(false));
+        assertThat(stringAnalyzed.defaultExpression(), is(nullValue()) );
 
         Reference stringAnalyzedBWC = md.references().get(new ColumnIdent("stringAnalyzedBWC"));
         assertThat(stringAnalyzedBWC.indexType(), is(Reference.IndexType.ANALYZED));
-        assertThat(stringAnalyzedBWC.hasDefaultExpression(), is(false));
+        assertThat(stringAnalyzedBWC.defaultExpression(), is(nullValue()) );
 
         ImmutableList<Reference> references = ImmutableList.copyOf(md.references().values());
         List<String> fqns = Lists.transform(references, r -> r.column().fqn());
@@ -356,39 +357,27 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
 
         Reference birthday = md.references().get(new ColumnIdent("birthday"));
         assertThat(birthday.valueType(), is(DataTypes.TIMESTAMPZ));
-        assertThat(birthday.hasDefaultExpression(), is(true));
-        assertThat(birthday.formattedDefaultExpression(), is("current_timestamp(3)"));
         assertThat(birthday.defaultExpression(), isFunction("current_timestamp", List.of(DataTypes.INTEGER)));
 
         Reference integerIndexed = md.references().get(new ColumnIdent("integerIndexed"));
         assertThat(integerIndexed.indexType(), is(Reference.IndexType.NOT_ANALYZED));
-        assertThat(integerIndexed.hasDefaultExpression(), is(true));
-        assertThat(integerIndexed.formattedDefaultExpression(), is("1"));
         assertThat(integerIndexed.defaultExpression(), isLiteral(1L));
 
 
         Reference integerNotIndexed = md.references().get(new ColumnIdent("integerNotIndexed"));
         assertThat(integerNotIndexed.indexType(), is(Reference.IndexType.NO));
-        assertThat(integerNotIndexed.hasDefaultExpression(), is(true));
-        assertThat(integerNotIndexed.formattedDefaultExpression(), is("1"));
         assertThat(integerNotIndexed.defaultExpression(), isLiteral(1L));
 
         Reference stringNotIndexed = md.references().get(new ColumnIdent("stringNotIndexed"));
         assertThat(stringNotIndexed.indexType(), is(Reference.IndexType.NO));
-        assertThat(stringNotIndexed.hasDefaultExpression(), is(true));
-        assertThat(stringNotIndexed.formattedDefaultExpression(), is("'default'"));
         assertThat(stringNotIndexed.defaultExpression(), isLiteral("default"));
 
         Reference stringNotAnalyzed = md.references().get(new ColumnIdent("stringNotAnalyzed"));
         assertThat(stringNotAnalyzed.indexType(), is(Reference.IndexType.NOT_ANALYZED));
-        assertThat(stringNotAnalyzed.hasDefaultExpression(), is(true));
-        assertThat(stringNotAnalyzed.formattedDefaultExpression(), is("'default'"));
         assertThat(stringNotAnalyzed.defaultExpression(), isLiteral("default"));
 
         Reference stringAnalyzed = md.references().get(new ColumnIdent("stringAnalyzed"));
         assertThat(stringAnalyzed.indexType(), is(Reference.IndexType.ANALYZED));
-        assertThat(stringAnalyzed.hasDefaultExpression(), is(true));
-        assertThat(stringAnalyzed.formattedDefaultExpression(), is("'default'"));
         assertThat(stringAnalyzed.defaultExpression(), isLiteral("default"));
 
         ImmutableList<Reference> references = ImmutableList.copyOf(md.references().values());
@@ -1430,8 +1419,6 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
                                                                " ts timestamp with time zone default current_timestamp)");
         Reference reference = md.references().get(new ColumnIdent("ts"));
         assertThat(reference.valueType(), is(DataTypes.TIMESTAMPZ));
-        assertThat(reference.hasDefaultExpression(), is(true));
-        assertThat(reference.formattedDefaultExpression(), is("current_timestamp(3)"));
         assertThat(reference.defaultExpression(), isFunction("current_timestamp", List.of(DataTypes.INTEGER)));
     }
 

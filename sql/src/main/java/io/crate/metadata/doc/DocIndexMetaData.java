@@ -37,6 +37,7 @@ import io.crate.analyze.expressions.TableReferenceResolver;
 import io.crate.analyze.relations.FieldProvider;
 import io.crate.collections.Lists2;
 import io.crate.common.collections.Maps;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
@@ -74,7 +75,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import static org.elasticsearch.index.mapper.TypeParsers.DOC_VALUES;
 
@@ -167,7 +167,7 @@ public class DocIndexMetaData {
     private void add(Integer position,
                      ColumnIdent column,
                      DataType type,
-                     String defaultExpression,
+                     @Nullable String defaultExpression,
                      ColumnPolicy columnPolicy,
                      Reference.IndexType indexType,
                      boolean isNotNull,
@@ -240,11 +240,22 @@ public class DocIndexMetaData {
     private Reference newInfo(Integer position,
                               ColumnIdent column,
                               DataType type,
-                              String formattedDefaultExpression,
+                              @Nullable String formattedDefaultExpression,
                               ColumnPolicy columnPolicy,
                               Reference.IndexType indexType,
                               boolean nullable,
                               boolean columnStoreEnabled) {
+        Symbol defaultExpression = null;
+        if (formattedDefaultExpression != null) {
+            ExpressionAnalyzer expressionAnalyzer
+                = new ExpressionAnalyzer(functions,
+                                         CoordinatorTxnCtx.systemTransactionContext(),
+                                         ParamTypeHints.EMPTY,
+                                         FieldProvider.UNSUPPORTED, null);
+
+            Expression expression = SqlParser.createExpression(formattedDefaultExpression);
+            defaultExpression = expressionAnalyzer.convert(expression, new ExpressionAnalysisContext());
+        }
         return new Reference(
             refIdent(column),
             granularity(column),
@@ -254,7 +265,7 @@ public class DocIndexMetaData {
             nullable,
             columnStoreEnabled,
             position,
-            formattedDefaultExpression
+            defaultExpression
         );
     }
 
@@ -537,24 +548,11 @@ public class DocIndexMetaData {
     }
 
     private void initializeReferenceExpressions() {
-        Collection<Reference> references = this.references.values();
-        final List<Reference> referencesWithDefaultExpressions = references
-            .stream()
-            .filter(Reference::hasDefaultExpression)
-            .collect(Collectors.toList());
-
-        if (referencesWithDefaultExpressions.isEmpty() && generatedColumnReferences.isEmpty()) {
+        if (generatedColumnReferences.isEmpty()) {
             return;
         }
-
+        Collection<Reference> references = this.references.values();
         ExpressionAnalysisContext context = new ExpressionAnalysisContext();
-        ExpressionAnalyzer defaultExpressionAnalyzer = new ExpressionAnalyzer(
-            functions, CoordinatorTxnCtx.systemTransactionContext(), ParamTypeHints.EMPTY, FieldProvider.UNSUPPORTED, null);
-        for (Reference reference : referencesWithDefaultExpressions) {
-            Expression expression = SqlParser.createExpression(reference.formattedDefaultExpression());
-            reference.defaultExpression(defaultExpressionAnalyzer.convert(expression, context));
-        }
-
         TableReferenceResolver tableReferenceResolver = new TableReferenceResolver(references, ident);
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             functions, CoordinatorTxnCtx.systemTransactionContext(), ParamTypeHints.EMPTY, tableReferenceResolver, null);

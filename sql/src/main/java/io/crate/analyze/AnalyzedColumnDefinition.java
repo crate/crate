@@ -264,6 +264,9 @@ public class AnalyzedColumnDefinition {
             mapping.put(DOC_VALUES, "false");
         }
 
+        assert ((formattedDefaultExpression != null && defaultExpression != null) ||
+               (formattedDefaultExpression == null && defaultExpression == null))
+            : "Default Expression is not properly initialized";
         if (formattedDefaultExpression != null) {
             mapping.put("default_expr", formattedDefaultExpression);
         }

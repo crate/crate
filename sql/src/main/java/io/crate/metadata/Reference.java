@@ -58,10 +58,7 @@ public class Reference extends Symbol {
     private final boolean columnStoreDisabled;
 
     @Nullable
-    private final String formattedDefaultExpression;
-
-    @Nullable
-    private Symbol defaultExpression;
+    private final Symbol defaultExpression;
 
     public Reference(StreamInput in) throws IOException {
         ident = new ReferenceIdent(in);
@@ -73,17 +70,17 @@ public class Reference extends Symbol {
         indexType = IndexType.values()[in.readVInt()];
         nullable = in.readBoolean();
         columnStoreDisabled = in.readBoolean();
-        formattedDefaultExpression = in.readOptionalString();
-        if (hasDefaultExpression()) {
-            defaultExpression = Symbols.fromStream(in);
-        }
+        final boolean hasDefaultExpression = in.readBoolean();
+        defaultExpression = hasDefaultExpression
+            ? Symbols.fromStream(in)
+            : null;
     }
 
     public Reference(ReferenceIdent ident,
                      RowGranularity granularity,
                      DataType type,
                      @Nullable Integer position,
-                     @Nullable String formattedDefaultExpression) {
+                     @Nullable Symbol defaultExpression) {
         this(ident,
              granularity,
              type,
@@ -91,7 +88,7 @@ public class Reference extends Symbol {
              IndexType.NOT_ANALYZED,
              true,
              position,
-             formattedDefaultExpression);
+             defaultExpression);
     }
 
     public Reference(ReferenceIdent ident,
@@ -101,7 +98,7 @@ public class Reference extends Symbol {
                      IndexType indexType,
                      boolean nullable,
                      @Nullable Integer position,
-                     @Nullable String formattedDefaultExpression) {
+                     @Nullable Symbol defaultExpression) {
         this(ident,
              granularity,
              type,
@@ -110,7 +107,7 @@ public class Reference extends Symbol {
              nullable,
              false,
              position,
-             formattedDefaultExpression);
+             defaultExpression);
     }
 
     public Reference(ReferenceIdent ident,
@@ -121,7 +118,7 @@ public class Reference extends Symbol {
                      boolean nullable,
                      boolean columnStoreDisabled,
                      @Nullable Integer position,
-                     @Nullable String formattedDefaultExpression) {
+                     @Nullable Symbol defaultExpression) {
         this.position = position;
         this.ident = ident;
         this.type = type;
@@ -130,7 +127,7 @@ public class Reference extends Symbol {
         this.indexType = indexType;
         this.nullable = nullable;
         this.columnStoreDisabled = columnStoreDisabled;
-        this.formattedDefaultExpression = formattedDefaultExpression;
+        this.defaultExpression = defaultExpression;
     }
 
     /**
@@ -145,7 +142,7 @@ public class Reference extends Symbol {
                              nullable,
                              columnStoreDisabled,
                              position,
-                             formattedDefaultExpression
+                             defaultExpression
                              );
     }
 
@@ -198,21 +195,7 @@ public class Reference extends Symbol {
         return position;
     }
 
-    @Nullable
-    public String formattedDefaultExpression() {
-        return formattedDefaultExpression;
-    }
-
-    public boolean hasDefaultExpression() {
-        return formattedDefaultExpression != null;
-    }
-
-    public void defaultExpression(Symbol defaultExpression) {
-        this.defaultExpression = defaultExpression;
-    }
-
     public Symbol defaultExpression() {
-        assert defaultExpression != null : "Default expression symbol must not be NULL, initialize first";
         return defaultExpression;
     }
 
@@ -226,7 +209,6 @@ public class Reference extends Symbol {
                columnStoreDisabled == reference.columnStoreDisabled &&
                Objects.equals(type, reference.type) &&
                Objects.equals(ident, reference.ident) &&
-               Objects.equals(formattedDefaultExpression, reference.formattedDefaultExpression) &&
                Objects.equals(defaultExpression, reference.defaultExpression) &&
                columnPolicy == reference.columnPolicy &&
                granularity == reference.granularity &&
@@ -243,7 +225,6 @@ public class Reference extends Symbol {
                             indexType,
                             nullable,
                             columnStoreDisabled,
-                            formattedDefaultExpression,
                             defaultExpression);
     }
 
@@ -258,7 +239,7 @@ public class Reference extends Symbol {
             .add("ident", ident)
             .add("granularity", granularity)
             .add("position", position)
-            .add("default expression", formattedDefaultExpression)
+            .add("default expression", defaultExpression)
             .add("type", type);
         if (type.id() == ObjectType.ID) {
             helper.add("column policy", columnPolicy.name());
@@ -280,8 +261,9 @@ public class Reference extends Symbol {
         out.writeVInt(indexType.ordinal());
         out.writeBoolean(nullable);
         out.writeBoolean(columnStoreDisabled);
-        out.writeOptionalString(formattedDefaultExpression);
-        if (hasDefaultExpression()) {
+        final boolean hasDefaultExpression = defaultExpression != null;
+        out.writeBoolean(hasDefaultExpression);
+        if (hasDefaultExpression) {
             Symbols.toStream(defaultExpression, out);
         }
     }

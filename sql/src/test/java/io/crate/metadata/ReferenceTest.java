@@ -21,8 +21,15 @@
 
 package io.crate.metadata;
 
+import io.crate.analyze.ParamTypeHints;
+import io.crate.analyze.expressions.ExpressionAnalysisContext;
+import io.crate.analyze.expressions.ExpressionAnalyzer;
+import io.crate.analyze.relations.FieldProvider;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.table.TableInfo;
+import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.ColumnPolicy;
+import io.crate.sql.tree.Expression;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.ArrayType;
@@ -90,7 +97,15 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testStreamingWithDefaultExpression() throws Exception {
         ReferenceIdent referenceIdent = new ReferenceIdent(tableInfo.ident(), "int_column");
-        final String formattedDefaultExpression = "1+1";
+        ExpressionAnalyzer analyzer
+            = new ExpressionAnalyzer(executor.functions(),
+                                     CoordinatorTxnCtx.systemTransactionContext(),
+                                     ParamTypeHints.EMPTY,
+                                     FieldProvider.UNSUPPORTED,
+                                     null);
+        Expression expression = SqlParser.createExpression("1+1");
+        Symbol defaultExpression = analyzer.convert(expression, new ExpressionAnalysisContext());
+
         Reference reference = new Reference(
             referenceIdent,
             RowGranularity.DOC,
@@ -99,9 +114,8 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
             Reference.IndexType.ANALYZED,
             false,
             null,
-            formattedDefaultExpression
+            defaultExpression
         );
-        reference.defaultExpression(executor.asSymbol(formattedDefaultExpression));
 
         BytesStreamOutput out = new BytesStreamOutput();
         Reference.toStream(reference, out);

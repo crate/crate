@@ -1037,9 +1037,8 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             "create table foo (name text default 'bar')");
 
         Map<String, Object> mappingProperties = analysis.mappingProperties();
-
-        Map<String, Object> aMapping = (Map<String, Object>) mappingProperties.get("name");
-        assertThat(aMapping.get("default_expr"), is("'bar'"));
+        assertThat(mapToSortedString(mappingProperties),
+                   is("name={default_expr='bar', position=1, type=keyword}"));
     }
 
     @Test
@@ -1049,9 +1048,8 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             "create table foo (name text default upper('bar'))");
 
         Map<String, Object> mappingProperties = analysis.mappingProperties();
-
-        Map<String, Object> aMapping = (Map<String, Object>) mappingProperties.get("name");
-        assertThat(aMapping.get("default_expr"), is("'BAR'"));
+        assertThat(mapToSortedString(mappingProperties),
+                   is("name={default_expr='BAR', position=1, type=keyword}"));
     }
 
     @Test
@@ -1061,9 +1059,8 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             "create table foo (id int default 3.5)");
 
         Map<String, Object> mappingProperties = analysis.mappingProperties();
-
-        Map<String, Object> aMapping = (Map<String, Object>) mappingProperties.get("id");
-        assertThat(aMapping.get("default_expr"), is("cast(3.5 AS integer)"));
+        assertThat(mapToSortedString(mappingProperties),
+                   is("id={default_expr=cast(3.5 AS integer), position=1, type=integer}"));
     }
 
     @Test
@@ -1073,9 +1070,10 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             "create table foo (ts timestamp with time zone default current_timestamp(3))");
 
         Map<String, Object> mappingProperties = analysis.mappingProperties();
-
-        Map<String, Object> aMapping = (Map<String, Object>) mappingProperties.get("ts");
-        assertThat(aMapping.get("default_expr"), is("current_timestamp(3)"));
+        assertThat(mapToSortedString(mappingProperties),
+                   is("ts={default_expr=current_timestamp(3), " +
+                      "format=epoch_millis||strict_date_optional_time, " +
+                      "position=1, type=date}"));
     }
 
     @Test

@@ -157,7 +157,7 @@ public abstract class AbstractTableRelation<T extends TableInfo> implements Anal
                 reference.isNullable(),
                 reference.isColumnStoreDisabled(),
                 reference.position(),
-                reference.formattedDefaultExpression()
+                reference.defaultExpression()
             );
     }
 
