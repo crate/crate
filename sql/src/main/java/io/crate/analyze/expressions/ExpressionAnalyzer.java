@@ -145,7 +145,7 @@ import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static io.crate.collections.Lists2.mapTail;
+import static io.crate.common.collections.Lists2.mapTail;
 
 
 /**

@@ -27,7 +27,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import io.crate.Constants;
 import io.crate.action.FutureActionListener;
-import io.crate.collections.Lists2;
+import io.crate.common.collections.Lists2;
 import io.crate.execution.support.ActionListeners;
 import io.crate.metadata.IndexMappings;
 import io.crate.metadata.IndexParts;

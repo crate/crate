@@ -24,7 +24,7 @@ package io.crate.testing;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Ordering;
 import io.crate.analyze.where.DocKeys;
-import io.crate.collections.Lists2;
+import io.crate.common.collections.Lists2;
 import io.crate.common.collections.Sorted;
 import io.crate.data.Bucket;
 import io.crate.data.Buckets;

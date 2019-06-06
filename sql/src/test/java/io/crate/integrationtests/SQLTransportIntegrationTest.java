@@ -35,7 +35,7 @@ import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParameterContext;
 import io.crate.auth.user.User;
 import io.crate.auth.user.UserLookup;
-import io.crate.collections.Lists2;
+import io.crate.common.collections.Lists2;
 import io.crate.data.Paging;
 import io.crate.data.Row;
 import io.crate.execution.dml.TransportShardAction;
