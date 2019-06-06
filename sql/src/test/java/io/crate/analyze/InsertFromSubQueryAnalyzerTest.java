@@ -42,9 +42,11 @@ import java.util.List;
 import java.util.Map;
 
 import static io.crate.testing.SymbolMatchers.isFunction;
+import static io.crate.testing.SymbolMatchers.isInputColumn;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.SymbolMatchers.isReference;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
@@ -71,6 +73,12 @@ public class InsertFromSubQueryAnalyzerTest extends CrateDummyClusterServiceUnit
                 "  c int," +
                 "  d int," +
                 "  primary key (a, b, c)" +
+                ")")
+            .addTable(
+                "create table doc.default_column_pk (" +
+                "  id int primary key," +
+                "  owner text default 'crate' primary key," +
+                "  two int default 1+1" +
                 ")")
             .build();
     }
@@ -323,4 +331,14 @@ public class InsertFromSubQueryAnalyzerTest extends CrateDummyClusterServiceUnit
                   "on conflict (a, b) DO NOTHING");
     }
 
+    @Test
+    public void testInsertFromQueryMissingPrimaryKeyHavingDefaultExpressionSymbolIsAdded() {
+        InsertFromSubQueryAnalyzedStatement statement = e.analyze("insert into default_column_pk (id) (select 1)");
+        assertCompatibleColumns(statement);
+
+        List<Symbol> pkSymbols = statement.primaryKeySymbols();
+        assertThat(pkSymbols, hasSize(2));
+        assertThat(pkSymbols.get(0), isInputColumn(0));
+        assertThat(pkSymbols.get(1), isLiteral("crate"));
+    }
 }
