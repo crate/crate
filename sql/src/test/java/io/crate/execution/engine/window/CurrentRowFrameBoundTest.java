@@ -23,41 +23,51 @@
 package io.crate.execution.engine.window;
 
 import io.crate.test.integration.CrateUnitTest;
+import org.junit.Before;
 import org.junit.Test;
+
+import java.util.Comparator;
+import java.util.List;
 
 import static io.crate.sql.tree.FrameBound.Type.CURRENT_ROW;
 import static org.hamcrest.core.Is.is;
 
 public class CurrentRowFrameBoundTest extends CrateUnitTest {
 
+    private List<Integer> partition;
+    private Comparator<Integer> intComparator;
+
+    @Before
+    public void setupPartitionAndComparator() {
+        intComparator = Comparator.comparing(x -> x);
+        partition = List.of(1, 1, 2);
+    }
+
     @Test
     public void testCurrentRowEndIsFirstNonPeer() {
-        // partition: 1, 1, 2
-        int firstFrameEnd = CURRENT_ROW.getEnd(0, 3, 0, true, (pos1, pos2) -> 2);
+        int firstFrameEnd = CURRENT_ROW.getEnd(0, 3, 0, intComparator, partition);
         assertThat(firstFrameEnd, is(2));
-        int secondFrameEnd = CURRENT_ROW.getEnd(0, 3, 1, true, (pos1, pos2) -> 3);
-        assertThat(secondFrameEnd, is(3));
+        int secondFrameEnd = CURRENT_ROW.getEnd(0, 3, 1, intComparator, partition);
+        assertThat(secondFrameEnd, is(2));
     }
 
     @Test
     public void testCurrentRowStartForOrderedPartition() {
-        // partition: 1, 1, 2
-        int firstFrameStart = CURRENT_ROW.getStart(0, 3, 0, 0, true, (pos1, pos2) -> true);
+        int firstFrameStart = CURRENT_ROW.getStart(0, 3, 0, 0, intComparator, partition);
         assertThat(firstFrameStart, is(0));
-        int secondFrameStart = CURRENT_ROW.getStart(0,3,  0, 1, true, (pos1, pos2) -> true);
+        int secondFrameStart = CURRENT_ROW.getStart(0,3,  0, 1, intComparator, partition);
         assertThat("a new frame starts when encountering a non-peer", secondFrameStart, is(0));
-        int thirdFrameStart = CURRENT_ROW.getStart(0,3,  0, 2, true, (pos1, pos2) -> false);
+        int thirdFrameStart = CURRENT_ROW.getStart(0,3,  0, 2, intComparator, partition);
         assertThat(thirdFrameStart, is(2));
     }
 
     @Test
     public void testCurrentRowStartIsTheRowIdForUnorderedPartitions() {
-        // partition: 1, 1, 2
-        int firstFrameStart = CURRENT_ROW.getStart(0, 3, 0, 0, false, (pos1, pos2) -> true);
+        int firstFrameStart = CURRENT_ROW.getStart(0, 3, 0, 0, intComparator, partition);
         assertThat(firstFrameStart, is(0));
-        int secondFrameStart = CURRENT_ROW.getStart(0, 3, 0, 1, false, (pos1, pos2) -> true);
-        assertThat(secondFrameStart, is(1));
-        int thirdFrameStart = CURRENT_ROW.getStart(0, 3, 1, 2, false, (pos1, pos2) -> true);
+        int secondFrameStart = CURRENT_ROW.getStart(0, 3, 0, 1, intComparator, partition);
+        assertThat(secondFrameStart, is(0));
+        int thirdFrameStart = CURRENT_ROW.getStart(0, 3, 1, 2, intComparator, partition);
         assertThat(thirdFrameStart, is(2));
     }
 

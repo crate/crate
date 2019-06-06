@@ -23,49 +23,44 @@
 package io.crate.sql.tree;
 
 import javax.annotation.Nullable;
-import java.util.function.BiFunction;
-import java.util.function.BiPredicate;
+import java.util.Comparator;
+import java.util.List;
+
+import static io.crate.common.collections.Lists2.arePeers;
+import static io.crate.common.collections.Lists2.findFirstNonPeer;
 
 public class FrameBound extends Node {
 
     public enum Type {
         UNBOUNDED_PRECEDING {
             @Override
-            public int getStart(int pStart,
-                                int pEnd,
-                                int currentFrameStartIdx,
-                                int currentRowIdx,
-                                boolean isOrdered,
-                                BiPredicate<Integer, Integer> arePeers) {
+            public <T> int getStart(int pStart,
+                                    int pEnd,
+                                    int currentFrameStartIdx,
+                                    int currentRowIdx,
+                                    @Nullable Comparator<T> cmp,
+                                    List<T> rows) {
                 return pStart;
             }
 
             @Override
-            public int getEnd(int pStart,
-                              int pEnd,
-                              int currentRowIdx,
-                              boolean isOrdered,
-                              BiFunction<Integer, Integer, Integer> findFirstNonPeer) {
+            public <T> int getEnd(int pStart, int pEnd, int currentRowIdx, @Nullable Comparator<T> cmp, List<T> rows) {
                 throw new IllegalStateException("UNBOUNDED PRECEDING cannot be the start of a frame");
             }
         },
         PRECEDING {
             @Override
-            public int getStart(int pStart,
-                                int pEnd,
-                                int currentFrameStartIdx,
-                                int currentRowIdx,
-                                boolean isOrdered,
-                                BiPredicate<Integer, Integer> arePeers) {
+            public <T> int getStart(int pStart,
+                                    int pEnd,
+                                    int currentFrameStartIdx,
+                                    int currentRowIdx,
+                                    @Nullable Comparator<T> cmp,
+                                    List<T> rows) {
                 throw new UnsupportedOperationException("Custom PRECEDING frames are not supported");
             }
 
             @Override
-            public int getEnd(int pStart,
-                              int pEnd,
-                              int currentRowIdx,
-                              boolean isOrdered,
-                              BiFunction<Integer, Integer, Integer> findFirstNonPeer) {
+            public <T> int getEnd(int pStart, int pEnd, int currentRowIdx, @Nullable Comparator<T> cmp, List<T> rows) {
                 throw new UnsupportedOperationException("Custom PRECEDING frames are not supported");
             }
         },
@@ -78,18 +73,19 @@ public class FrameBound extends Node {
          */
         CURRENT_ROW {
             @Override
-            public int getStart(int pStart,
-                                int pEnd,
-                                int currentFrameStartIdx,
-                                int currentRowIdx,
-                                boolean isOrdered,
-                                BiPredicate<Integer, Integer> arePeers) {
+            public <T> int getStart(int pStart,
+                                    int pEnd,
+                                    int currentFrameStartIdx,
+                                    int currentRowIdx,
+                                    @Nullable Comparator<T> cmp,
+                                    List<T> rows) {
                 if (pStart == currentRowIdx) {
                     return pStart;
                 } else {
-                    if (isOrdered) {
-                        return arePeers.test(currentFrameStartIdx,
-                                             currentRowIdx) ? currentFrameStartIdx : currentRowIdx;
+                    if (cmp != null) {
+                        return arePeers(rows, currentFrameStartIdx, currentRowIdx, cmp) ?
+                            currentFrameStartIdx :
+                            currentRowIdx;
                     } else {
                         return currentRowIdx;
                     }
@@ -97,67 +93,55 @@ public class FrameBound extends Node {
             }
 
             @Override
-            public int getEnd(int pStart,
-                              int pEnd,
-                              int currentRowIdx,
-                              boolean isOrdered,
-                              BiFunction<Integer, Integer, Integer> findFirstNonPeer) {
-                return findFirstNonPeer.apply(currentRowIdx, pEnd);
+            public <T> int getEnd(int pStart, int pEnd, int currentRowIdx, @Nullable Comparator<T> cmp, List<T> rows) {
+                return findFirstNonPeer(rows, currentRowIdx, pEnd, cmp);
             }
         },
         FOLLOWING {
             @Override
-            public int getStart(int pStart,
-                                int pEnd,
-                                int currentFrameStartIdx,
-                                int currentRowIdx,
-                                boolean isOrdered,
-                                BiPredicate<Integer, Integer> arePeers) {
+            public <T> int getStart(int pStart,
+                                    int pEnd,
+                                    int currentFrameStartIdx,
+                                    int currentRowIdx,
+                                    @Nullable Comparator<T> cmp,
+                                    List<T> rows) {
                 throw new UnsupportedOperationException("Custom FOLLOWING frames are not supported");
             }
 
             @Override
-            public int getEnd(int pStart,
-                              int pEnd,
-                              int currentRowIdx,
-                              boolean isOrdered,
-                              BiFunction<Integer, Integer, Integer> findFirstNonPeer) {
+            public <T> int getEnd(int pStart, int pEnd, int currentRowIdx, @Nullable Comparator<T> cmp, List<T> rows) {
                 throw new UnsupportedOperationException("Custom FOLLOWING frames are not supported");
             }
         },
         UNBOUNDED_FOLLOWING {
             @Override
-            public int getStart(int pStart,
-                                int pEnd,
-                                int currentFrameStartIdx,
-                                int currentRowIdx,
-                                boolean isOrdered,
-                                BiPredicate<Integer, Integer> arePeers) {
+            public <T> int getStart(int pStart,
+                                    int pEnd,
+                                    int currentFrameStartIdx,
+                                    int currentRowIdx,
+                                    @Nullable Comparator<T> cmp,
+                                    List<T> rows) {
                 throw new IllegalStateException("UNBOUNDED FOLLOWING cannot be the start of a frame");
             }
 
             @Override
-            public int getEnd(int pStart,
-                              int pEnd,
-                              int currentRowIdx,
-                              boolean isOrdered,
-                              BiFunction<Integer, Integer, Integer> findFirstNonPeer) {
+            public <T> int getEnd(int pStart, int pEnd, int currentRowIdx, @Nullable Comparator<T> cmp, List<T> rows) {
                 return pEnd;
             }
         };
 
-        public abstract int getStart(int pStart,
+        public abstract <T> int getStart(int pStart,
                                      int pEnd,
                                      int currentFrameStartIdx,
                                      int currentRowIdx,
-                                     boolean isOrdered,
-                                     BiPredicate<Integer, Integer> arePeers);
+                                     @Nullable Comparator<T> cmp,
+                                     List<T> rows);
 
-        public abstract int getEnd(int pStart,
+        public abstract <T> int getEnd(int pStart,
                                    int pEnd,
                                    int currentRowIdx,
-                                   boolean isOrdered,
-                                   BiFunction<Integer, Integer, Integer> findFirstNonPeer);
+                                   @Nullable Comparator<T> cmp,
+                                   List<T> rows);
     }
 
     private final Type type;
