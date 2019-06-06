@@ -378,6 +378,9 @@ Changes
 Fixes
 =====
 
+- Fixed a bug that led to failures of group by a single text column queries
+  on columns with the cardinality ration lower than ``0.5``.
+
 - Fixed ``NullPointerException`` that could occur when a column is defined as a
   :ref:`Base Column<ref-base-columns>` and the type is missing from the column definition.
 
