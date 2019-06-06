@@ -44,6 +44,7 @@ import org.elasticsearch.common.xcontent.XContentFactory;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -103,7 +104,8 @@ final class UpdateSourceGen {
                 GeneratedColumns.Validation.VALUE_MATCH,
                 refResolver,
                 this.updateColumns,
-                table.generatedColumns()
+                table.generatedColumns(),
+                List.of()
             );
         }
     }

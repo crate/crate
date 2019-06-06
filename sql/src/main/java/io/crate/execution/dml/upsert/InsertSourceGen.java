@@ -46,10 +46,10 @@ public interface InsertSourceGen {
                               GeneratedColumns.Validation validation,
                               List<Reference> targets) {
         if (targets.size() == 1 && targets.get(0).column().equals(DocSysColumns.RAW)) {
-            if (table.generatedColumns().isEmpty()) {
+            if (table.generatedColumns().isEmpty() && table.defaultExpressionColumns().isEmpty()) {
                 return new FromRawInsertSource();
             } else {
-                return new GeneratedColsFromRawInsertSource(txnCtx, functions, table.generatedColumns());
+                return new GeneratedColsFromRawInsertSource(txnCtx, functions, table.generatedColumns(), table.defaultExpressionColumns());
             }
         }
         return new InsertSourceFromCells(txnCtx, functions, table, indexName, validation, targets);

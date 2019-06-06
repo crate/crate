@@ -1421,4 +1421,29 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into tdst (country, name) (select country, name from tsrc)");
         assertThat(response.rowCount(), is(1L));
     }
+
+    @Test
+    public void testInsertDefaultExpressions() {
+        execute("create table t (" +
+                " id int," +
+                " owner text default 'crate'" +
+                ") with (number_of_replicas=0)");
+        
+        execute("insert into t (id) values (?)",
+                new Object[]{1});
+        execute("insert into t (id) select 2");
+        execute("insert into t(id) values (?), (?)",
+                new Object[]{3, 4});
+        execute("insert into t (id, owner) select 5, 'cr8'");
+        execute("refresh table t");
+
+        assertThat(
+            printedTable(execute("select * from t order by id").rows()),
+            is("1| crate\n" +
+               "2| crate\n" +
+               "3| crate\n" +
+               "4| crate\n" +
+               "5| cr8\n")
+        );
+    }
 }

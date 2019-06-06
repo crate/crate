@@ -93,7 +93,10 @@ abstract class AbstractInsertAnalyzer {
             }
         }
         ColumnIdent clusteredBy = context.tableInfo().clusteredBy();
-        if (clusteredBy != null && !clusteredBy.name().equalsIgnoreCase("_id") && context.routingColumnIndex() < 0) {
+        if (clusteredBy != null &&
+            !clusteredBy.name().equalsIgnoreCase("_id") &&
+            context.routingColumnIndex() < 0 &&
+            context.tableInfo().getReference(clusteredBy).defaultExpression() == null) {
             if (!checkReferencesForGeneratedColumn(clusteredBy, context)) {
                 throw new IllegalArgumentException("Clustered by value is required but is missing from the insert statement");
             }

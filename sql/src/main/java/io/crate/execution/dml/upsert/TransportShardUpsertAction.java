@@ -371,7 +371,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         }
 
         for (Reference reference : tableInfo.columns()) {
-            if (!(reference instanceof GeneratedReference) && !reference.isNullable()) {
+            if (!reference.isNullable() && !(reference instanceof GeneratedReference || reference.defaultExpression() != null)) {
                 if (!targetColumnsSet.contains(reference.column().fqn())) {
                     columnsNotUsed.add(reference.column());
                 }

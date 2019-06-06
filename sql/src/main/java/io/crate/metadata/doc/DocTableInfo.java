@@ -52,6 +52,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 
 /**
@@ -111,6 +112,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     private final Collection<Reference> columns;
     private final List<GeneratedReference> generatedColumns;
     private final List<Reference> partitionedByColumns;
+    private final List<Reference> defaultExpressionColumns;
     private final Collection<ColumnIdent> notNullColumns;
     private final Map<ColumnIdent, IndexReference> indexColumns;
     private final Map<ColumnIdent, Reference> references;
@@ -192,6 +194,10 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         this.supportedOperations = supportedOperations;
         // scale the fetchrouting timeout by n# of partitions
         this.docColumn = new TableColumn(DocSysColumns.DOC, references);
+        this.defaultExpressionColumns = columns
+            .stream()
+            .filter(r -> r.defaultExpression() != null)
+            .collect(Collectors.toList());
     }
 
     @Nullable
@@ -207,6 +213,10 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     @Override
     public Collection<Reference> columns() {
         return columns;
+    }
+
+    public List<Reference> defaultExpressionColumns() {
+        return defaultExpressionColumns;
     }
 
     public List<GeneratedReference> generatedColumns() {
