@@ -23,6 +23,7 @@
 package io.crate.execution.engine.window;
 
 import com.carrotsearch.randomizedtesting.annotations.Repeat;
+import io.crate.common.collections.Lists2;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.execution.engine.collect.CollectExpression;
@@ -40,10 +41,8 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import static io.crate.analyze.WindowDefinition.UNBOUNDED_PRECEDING_CURRENT_ROW;
-import static io.crate.execution.engine.window.WindowFunctionBatchIterator.findFirstNonPeer;
 import static io.crate.execution.engine.window.WindowFunctionBatchIterator.sortAndComputeWindowFunctions;
 import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.core.Is.is;
 
 public class WindowFunctionBatchIteratorTest extends CrateUnitTest {
 
@@ -93,23 +92,6 @@ public class WindowFunctionBatchIteratorTest extends CrateUnitTest {
     }
 
     @Test
-    public void testFindFirstWithAllUnique() {
-        var numbers = List.of(1, 2, 3, 4, 5, 6, 7, 8);
-        assertThat(
-            findFirstNonPeer(numbers, 0, numbers.size() - 1, Comparator.comparingInt(x -> x)),
-            is(1)
-        );
-    }
-    @Test
-    public void testFindFirstNonPeerAllSame() {
-        var numbers = List.of(1, 1, 1, 1, 1, 1, 1, 1);
-        assertThat(
-            findFirstNonPeer(numbers, 0, numbers.size() - 1, Comparator.comparingInt(x -> x)),
-            is(numbers.size() - 1)
-        );
-    }
-
-    @Test
     @Repeat (iterations = 100)
     public void testOptimizedFindFirstNonPeerMatchesBehaviorOfTrivial() {
         int length = randomIntBetween(10, 1000);
@@ -126,8 +108,7 @@ public class WindowFunctionBatchIteratorTest extends CrateUnitTest {
         assertThat(
             "Expected firstNonPeer position=" + expectedPosition + " for " + numbers + "[" + begin + ":" + end + "]",
             expectedPosition,
-            Matchers.is(WindowFunctionBatchIterator.findFirstNonPeer(
-                numbers, begin, end, comparingInt)
+            Matchers.is(Lists2.findFirstNonPeer(numbers, begin, end, comparingInt)
             )
         );
     }

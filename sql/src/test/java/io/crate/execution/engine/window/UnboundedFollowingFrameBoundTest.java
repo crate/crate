@@ -23,16 +23,30 @@
 package io.crate.execution.engine.window;
 
 import io.crate.test.integration.CrateUnitTest;
+import org.junit.Before;
 import org.junit.Test;
+
+import java.util.Comparator;
+import java.util.List;
 
 import static io.crate.sql.tree.FrameBound.Type.UNBOUNDED_FOLLOWING;
 import static org.hamcrest.core.Is.is;
 
 public class UnboundedFollowingFrameBoundTest extends CrateUnitTest {
 
+    private List<Integer> partition;
+    private Comparator<Integer> intComparator;
+
+    @Before
+    public void setupPartitionAndComparator() {
+        intComparator = Comparator.comparing(x -> x);
+        partition = List.of(1, 2, 2);
+    }
+
     @Test
     public void testEndForFirstFrame() {
-        int end = UNBOUNDED_FOLLOWING.getEnd(0, 3, 0, true, (pos1, pos2) -> 1);
+        var partition = List.of(1, 2, 2);
+        int end = UNBOUNDED_FOLLOWING.getEnd(0, 3, 0, intComparator, partition);
         assertThat("the end boundary should always be the end of the partition for the UNBOUNDED FOLLOWING frames",
                    end,
                    is(3));
@@ -40,7 +54,7 @@ public class UnboundedFollowingFrameBoundTest extends CrateUnitTest {
 
     @Test
     public void testEndForSecondFrame() {
-        int end = UNBOUNDED_FOLLOWING.getEnd(0, 3, 1, true, (pos1, pos2) -> 2);
+        int end = UNBOUNDED_FOLLOWING.getEnd(0, 3, 1, intComparator, partition);
         assertThat("the end boundary should always be the end of the partition for the UNBOUNDED FOLLOWING frames",
                    end,
                    is(3));
@@ -50,7 +64,7 @@ public class UnboundedFollowingFrameBoundTest extends CrateUnitTest {
     public void testUnboundeFollowingCannotBeTheStartOfTheFrame() {
         expectedException.expect(IllegalStateException.class);
         expectedException.expectMessage("UNBOUNDED FOLLOWING cannot be the start of a frame");
-        UNBOUNDED_FOLLOWING.getStart(0, 3, 0, 1, true, (pos1, pos2) -> true);
+        UNBOUNDED_FOLLOWING.getStart(0, 3, 0, 1, intComparator, partition);
     }
 
 }

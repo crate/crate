@@ -44,11 +44,11 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
-import java.util.function.BiFunction;
-import java.util.function.BiPredicate;
 import java.util.function.Function;
 import java.util.function.IntSupplier;
 import java.util.stream.Collectors;
+
+import static io.crate.common.collections.Lists2.findFirstNonPeer;
 
 /**
  * BatchIterator which computes window functions (incl. partitioning + ordering)
@@ -176,17 +176,6 @@ public final class WindowFunctionBatchIterator {
             private int i = 0;
             private int idxInPartition = 0;
 
-            private BiPredicate<Integer, Integer> arePeersPredicate = (pos1, pos2) -> arePeers(sortedRows,
-                                                                                               pos1,
-                                                                                               pos2,
-                                                                                               cmpOrderBy);
-
-            private BiFunction<Integer, Integer, Integer> findFirstnonPeerFunction = (i, pEnd) -> findFirstNonPeer(
-                sortedRows,
-                i,
-                pEnd,
-                cmpOrderBy);
-
             @Override
             public boolean hasNext() {
                 return i < end;
@@ -207,14 +196,14 @@ public final class WindowFunctionBatchIterator {
                                                                      pEnd,
                                                                      frame.partitionStart() + frame.lowerBound(),
                                                                      i,
-                                                                     cmpOrderBy != null,
-                                                                     arePeersPredicate);
+                                                                     cmpOrderBy,
+                                                                     sortedRows);
 
                 int wEnd = frameDefinition.end().type().getEnd(pStart,
                                                                pEnd,
                                                                i,
-                                                               cmpOrderBy != null,
-                                                               findFirstnonPeerFunction);
+                                                               cmpOrderBy,
+                                                               sortedRows);
 
                 frame.updateBounds(pStart, wBegin, wEnd);
                 final Object[] row = computeAndInjectResults(
@@ -259,61 +248,5 @@ public final class WindowFunctionBatchIterator {
             row[numCellsInSourceRow + c] = result;
         }
         return row;
-    }
-
-    private static <T> boolean arePeers(List<T> rows, int pos1, int pos2, Comparator<T> cmp) {
-        T fst = rows.get(pos1);
-        return cmp.compare(fst, rows.get(pos2)) == 0;
-    }
-
-    static <T> int findFirstNonPeer(List<T> rows, int begin, int end, @Nullable Comparator<T> cmp) {
-        if (cmp == null || (begin + 1) >= end) {
-            return end;
-        }
-        T fst = rows.get(begin);
-        if (cmp.compare(fst, rows.get(begin + 1)) != 0) {
-            return begin + 1;
-        }
-        /*
-         * Adapted binarySearch algorithm to find the first non peer (instead of the first match)
-         * This depends on there being at least some EQ values;
-         * Whenever we find a EQ pair we check if the following element isn't EQ anymore.
-         *
-         * E.g.
-         *
-         * i:     0  1  2  3  4  5  6  7
-         * rows: [1, 1, 1, 1, 4, 4, 5, 6]
-         *        ^ [1  1  1  4  4  5  6]
-         *        +-----------^
-         *           cmp: -1
-         *        1 [1  1  1  4] 4  5  6
-         *        ^     ^
-         *        +-----+
-         *           cmp: 0 --> cmp (mid +1) != 0 --> false
-         *        1  1  1 [1  4] 4  5  6
-         *        ^        ^
-         *        +--------+
-         *           cmp: 0 --> cmp (mid +1) != 0 --> true
-         */
-        int low = begin + 1;
-        int high = end;
-        while (low <= high) {
-            int mid = (low + high) >>> 1;
-            T t = rows.get(mid);
-            int cmpResult = cmp.compare(fst, t);
-            if (cmpResult == 0) {
-                int next = mid + 1;
-                if (next == high || cmp.compare(fst, rows.get(next)) != 0) {
-                    return next;
-                } else {
-                    low = next;
-                }
-            } else if (cmpResult < 0) {
-                high = mid;
-            } else {
-                low = mid;
-            }
-        }
-        return end;
     }
 }
