@@ -29,8 +29,8 @@ import java.nio.file.Path;
 
 public class DetachClusterCommand extends ElasticsearchNodeCommand {
 
-    static final String NODE_DETACHED_MSG = "Node was successfully detached from the cluster";
-    static final String CONFIRMATION_MSG =
+    public static final String NODE_DETACHED_MSG = "Node was successfully detached from the cluster";
+    public static final String CONFIRMATION_MSG =
         DELIMITER +
             "\n" +
             "You should only run this tool if you have permanently lost all of the\n" +

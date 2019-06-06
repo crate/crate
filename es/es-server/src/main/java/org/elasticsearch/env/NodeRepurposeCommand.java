@@ -18,7 +18,6 @@
  */
 package org.elasticsearch.env;
 
-import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -220,10 +219,5 @@ public class NodeRepurposeCommand extends ElasticsearchNodeCommand {
     private Set<Path> uniqueParentPaths(Collection<Path>... paths) {
         // equals on Path is good enough here due to the way these are collected.
         return Arrays.stream(paths).flatMap(Collection::stream).map(Path::getParent).collect(Collectors.toSet());
-    }
-
-    //package-private for testing
-    OptionParser getParser() {
-        return parser;
     }
 }
