@@ -46,12 +46,12 @@ public abstract class ElasticsearchNodeCommand extends EnvironmentAwareCommand {
     protected final NamedXContentRegistry namedXContentRegistry;
     static final String DELIMITER = "------------------------------------------------------------------------\n";
 
-    static final String STOP_WARNING_MSG =
+    public static final String STOP_WARNING_MSG =
             DELIMITER +
                     "\n" +
                     "    WARNING: CrateDB MUST be stopped before running this tool." +
                     "\n";
-    protected static final String FAILED_TO_OBTAIN_NODE_LOCK_MSG = "failed to lock node's directory, is CrateDB still running?";
+    public static final String FAILED_TO_OBTAIN_NODE_LOCK_MSG = "failed to lock node's directory, is CrateDB still running?";
     static final String NO_NODE_FOLDER_FOUND_MSG = "no node folder is found in data folder(s), node has not been started yet?";
     static final String NO_MANIFEST_FILE_FOUND_MSG = "no manifest file is found, do you run pre 4.0 CrateDB?";
     protected static final String GLOBAL_GENERATION_MISSING_MSG =
@@ -116,7 +116,7 @@ public abstract class ElasticsearchNodeCommand extends EnvironmentAwareCommand {
     }
 
     @Override
-    protected final void execute(Terminal terminal, OptionSet options, Environment env) throws Exception {
+    public final void execute(Terminal terminal, OptionSet options, Environment env) throws Exception {
         terminal.println(STOP_WARNING_MSG);
         if (validateBeforeLock(terminal, env)) {
             processNodePathsWithLock(terminal, options, env);
@@ -189,8 +189,7 @@ public abstract class ElasticsearchNodeCommand extends EnvironmentAwareCommand {
         }
     }
 
-    //package-private for testing
-    OptionParser getParser() {
+    public OptionParser getParser() {
         return parser;
     }
 }
