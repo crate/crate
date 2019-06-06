@@ -194,7 +194,6 @@ public final class WindowFunctionBatchIterator {
 
                 int wBegin = frameDefinition.start().type().getStart(pStart,
                                                                      pEnd,
-                                                                     frame.partitionStart() + frame.lowerBound(),
                                                                      i,
                                                                      cmpOrderBy,
                                                                      sortedRows);
