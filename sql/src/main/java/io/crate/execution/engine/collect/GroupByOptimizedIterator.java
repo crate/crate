@@ -144,7 +144,7 @@ final class GroupByOptimizedIterator {
             collectTask.addSearcher(sharedShardContext.readerId(), searcher);
 
             InputFactory.Context<? extends LuceneCollectorExpression<?>> docCtx = docInputFactory.getCtx(collectTask.txnCtx());
-            docCtx.add(collectPhase.toCollect().stream().filter(s -> !s.equals(keyRef))::iterator);
+            docCtx.add(collectPhase.toCollect().stream()::iterator);
             IndexOrdinalsFieldData keyIndexFieldData = queryShardContext.getForField(keyFieldType);
 
             InputFactory.Context<CollectExpression<Row, ?>> ctxForAggregations = inputFactory.ctxForAggregations(collectTask.txnCtx());
