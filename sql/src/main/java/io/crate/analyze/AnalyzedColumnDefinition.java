@@ -141,6 +141,10 @@ public class AnalyzedColumnDefinition {
         this.collectionType = type;
     }
 
+    String collectionType() {
+        return collectionType;
+    }
+
     boolean isIndexColumn() {
         return isIndex;
     }

@@ -46,6 +46,7 @@ import io.crate.sql.tree.ObjectColumnType;
 import io.crate.sql.tree.PrimaryKeyColumnConstraint;
 import io.crate.sql.tree.PrimaryKeyConstraint;
 import io.crate.sql.tree.TableElement;
+import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.Settings;
 
@@ -147,7 +148,7 @@ public class TableElementsAnalyzer {
                         Reference parentRef = context.tableInfo.getReference(parent.ident());
                         if (parentRef != null) {
                             if (parentRef.valueType().equals(DataTypes.OBJECT_ARRAY)) {
-                                parent.collectionType("array");
+                                parent.collectionType(ArrayType.NAME);
                             } else {
                                 parent.objectType(String.valueOf(parentRef.columnPolicy().mappingValue()));
                             }
@@ -221,7 +222,7 @@ public class TableElementsAnalyzer {
                 throw new UnsupportedOperationException("the SET dataType is currently not supported");
             }
 
-            context.analyzedColumnDefinition.collectionType("array");
+            context.analyzedColumnDefinition.collectionType(ArrayType.NAME);
 
             if (node.innerType().type() != ColumnType.Type.PRIMITIVE) {
                 throw new UnsupportedOperationException("Nesting ARRAY or SET types is not supported");

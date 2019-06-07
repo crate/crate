@@ -924,6 +924,16 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         assertThat(tsMapping.get("type"), is("date"));
     }
 
+    @Test
+    public void testCreateTableWithColumnOfArrayTypeAndGeneratedExpression() {
+        CreateTableAnalyzedStatement analysis = e.analyze(
+            "create table foo (arr array(integer) generated always as ([1.0, 2.0]))");
+
+        assertThat(
+            mapToSortedString(analysis.mappingProperties()),
+            is("arr={inner={type=integer}, type=array}"));
+    }
+
     @SuppressWarnings("unchecked")
     @Test
     public void testCreateTableGeneratedColumnWithCast() {

@@ -69,5 +69,11 @@ Fixes
 - Fixed a bug that led to ``is null`` predicates against ``ignored`` objects
   fields to always evaluate to true.
 
+- Fixed an issue that caused an error when trying to create a table with
+  a column definition that contains a predefined array data type and generated
+  expression. For instance, a statement like
+  ``CREATE TABLE foo (col ARRAY(TEXT) GENERATED ALWAYS AS ['bar'])`` would
+  fail.
+
 - Fixed a bug that led to failures of group by a single text column queries
   on columns with the cardinality ration lower than ``0.5``.
