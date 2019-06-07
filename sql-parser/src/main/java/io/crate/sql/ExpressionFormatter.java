@@ -349,7 +349,7 @@ public final class ExpressionFormatter {
 
         @Override
         public String visitWindowFrame(WindowFrame node, @Nullable List<Expression> parameters) {
-            StringBuilder builder = new StringBuilder();
+            StringBuilder builder = new StringBuilder(" ");
 
             builder.append(node.getType().toString()).append(' ');
 

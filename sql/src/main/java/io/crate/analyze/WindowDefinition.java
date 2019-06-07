@@ -23,7 +23,7 @@
 package io.crate.analyze;
 
 
-import io.crate.collections.Lists2;
+import io.crate.common.collections.Lists2;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.planner.ExplainLeaf;
@@ -38,6 +38,7 @@ import java.util.Objects;
 import java.util.function.Function;
 
 import static io.crate.sql.tree.FrameBound.Type.CURRENT_ROW;
+import static io.crate.sql.tree.FrameBound.Type.UNBOUNDED_FOLLOWING;
 import static io.crate.sql.tree.FrameBound.Type.UNBOUNDED_PRECEDING;
 import static io.crate.sql.tree.WindowFrame.Type.RANGE;
 
@@ -46,10 +47,16 @@ import static io.crate.sql.tree.WindowFrame.Type.RANGE;
  */
 public class WindowDefinition implements Writeable {
 
-    public static final WindowFrameDefinition DEFAULT_WINDOW_FRAME = new WindowFrameDefinition(
+    public static final WindowFrameDefinition UNBOUNDED_PRECEDING_CURRENT_ROW = new WindowFrameDefinition(
         RANGE,
         new FrameBoundDefinition(UNBOUNDED_PRECEDING),
         new FrameBoundDefinition(CURRENT_ROW)
+    );
+
+    public static final WindowFrameDefinition CURRENT_ROW_UNBOUNDED_FOLLOWING = new WindowFrameDefinition(
+        RANGE,
+        new FrameBoundDefinition(CURRENT_ROW),
+        new FrameBoundDefinition(UNBOUNDED_FOLLOWING)
     );
 
     private final List<Symbol> partitions;
@@ -68,7 +75,7 @@ public class WindowDefinition implements Writeable {
                             @Nullable WindowFrameDefinition windowFrameDefinition) {
         this.partitions = partitions;
         this.orderBy = orderBy;
-        this.windowFrameDefinition = windowFrameDefinition == null ? DEFAULT_WINDOW_FRAME : windowFrameDefinition;
+        this.windowFrameDefinition = windowFrameDefinition == null ? UNBOUNDED_PRECEDING_CURRENT_ROW : windowFrameDefinition;
     }
 
     public List<Symbol> partitions() {

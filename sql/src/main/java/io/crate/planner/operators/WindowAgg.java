@@ -24,7 +24,7 @@ package io.crate.planner.operators;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WindowDefinition;
-import io.crate.collections.Lists2;
+import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.execution.dsl.phases.MergePhase;
@@ -69,8 +69,10 @@ public class WindowAgg extends ForwardingLogicalPlan {
 
         for (WindowFunction windowFunction : windowFunctions) {
             WindowDefinition windowDefinition = windowFunction.windowDefinition();
-            if (!windowDefinition.windowFrameDefinition().equals(WindowDefinition.DEFAULT_WINDOW_FRAME)) {
-                throw new UnsupportedFeatureException("Custom frame definitions are not supported");
+            if (!windowDefinition.windowFrameDefinition().equals(WindowDefinition.UNBOUNDED_PRECEDING_CURRENT_ROW) &&
+                !windowDefinition.windowFrameDefinition().equals(WindowDefinition.CURRENT_ROW_UNBOUNDED_FOLLOWING)) {
+                throw new UnsupportedFeatureException("Only unbounded preceding -> current row and current row -> " +
+                                                      "unbounded following frame definitions are supported");
             }
         }
 

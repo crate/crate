@@ -23,15 +23,117 @@
 package io.crate.sql.tree;
 
 import javax.annotation.Nullable;
+import java.util.Comparator;
+import java.util.List;
+
+import static io.crate.common.collections.Lists2.findFirstNonPeer;
+import static io.crate.common.collections.Lists2.findFirstPreviousPeer;
 
 public class FrameBound extends Node {
 
     public enum Type {
-        UNBOUNDED_PRECEDING,
-        PRECEDING,
-        CURRENT_ROW,
-        FOLLOWING,
-        UNBOUNDED_FOLLOWING
+        UNBOUNDED_PRECEDING {
+            @Override
+            public <T> int getStart(int pStart,
+                                    int pEnd,
+                                    int currentRowIdx,
+                                    @Nullable Comparator<T> cmp,
+                                    List<T> rows) {
+                return pStart;
+            }
+
+            @Override
+            public <T> int getEnd(int pStart, int pEnd, int currentRowIdx, @Nullable Comparator<T> cmp, List<T> rows) {
+                throw new IllegalStateException("UNBOUNDED PRECEDING cannot be the start of a frame");
+            }
+        },
+        PRECEDING {
+            @Override
+            public <T> int getStart(int pStart,
+                                    int pEnd,
+                                    int currentRowIdx,
+                                    @Nullable Comparator<T> cmp,
+                                    List<T> rows) {
+                throw new UnsupportedOperationException("Custom PRECEDING frames are not supported");
+            }
+
+            @Override
+            public <T> int getEnd(int pStart, int pEnd, int currentRowIdx, @Nullable Comparator<T> cmp, List<T> rows) {
+                throw new UnsupportedOperationException("Custom PRECEDING frames are not supported");
+            }
+        },
+        /*
+         * In RANGE mode:
+         *    - Frame starts with the current row's first peer (Row that is equal based on the ORDER BY clause)
+         *    - Frame ends with the current row's first peer
+         * In ROWS mode:
+         *    - The current row
+         */
+        CURRENT_ROW {
+            @Override
+            public <T> int getStart(int pStart,
+                                    int pEnd,
+                                    int currentRowIdx,
+                                    @Nullable Comparator<T> cmp,
+                                    List<T> rows) {
+                if (pStart == currentRowIdx) {
+                    return pStart;
+                } else {
+                    if (cmp != null) {
+                        return Math.max(pStart, findFirstPreviousPeer(rows, currentRowIdx, cmp));
+                    } else {
+                        return currentRowIdx;
+                    }
+                }
+            }
+
+            @Override
+            public <T> int getEnd(int pStart, int pEnd, int currentRowIdx, @Nullable Comparator<T> cmp, List<T> rows) {
+                return findFirstNonPeer(rows, currentRowIdx, pEnd, cmp);
+            }
+        },
+        FOLLOWING {
+            @Override
+            public <T> int getStart(int pStart,
+                                    int pEnd,
+                                    int currentRowIdx,
+                                    @Nullable Comparator<T> cmp,
+                                    List<T> rows) {
+                throw new UnsupportedOperationException("Custom FOLLOWING frames are not supported");
+            }
+
+            @Override
+            public <T> int getEnd(int pStart, int pEnd, int currentRowIdx, @Nullable Comparator<T> cmp, List<T> rows) {
+                throw new UnsupportedOperationException("Custom FOLLOWING frames are not supported");
+            }
+        },
+        UNBOUNDED_FOLLOWING {
+            @Override
+            public <T> int getStart(int pStart,
+                                    int pEnd,
+                                    int currentRowIdx,
+                                    @Nullable Comparator<T> cmp,
+                                    List<T> rows) {
+                throw new IllegalStateException("UNBOUNDED FOLLOWING cannot be the start of a frame");
+            }
+
+            @Override
+            public <T> int getEnd(int pStart, int pEnd, int currentRowIdx, @Nullable Comparator<T> cmp, List<T> rows) {
+                return pEnd;
+            }
+        };
+
+        public abstract <T> int getStart(int pStart,
+                                     int pEnd,
+                                     int currentRowIdx,
+                                     @Nullable Comparator<T> cmp,
+                                     List<T> rows);
+
+        public abstract <T> int getEnd(int pStart,
+                                   int pEnd,
+                                   int currentRowIdx,
+                                   @Nullable Comparator<T> cmp,
+                                   List<T> rows);
     }
 
     private final Type type;

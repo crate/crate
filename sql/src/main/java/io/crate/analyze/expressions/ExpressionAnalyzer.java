@@ -145,7 +145,7 @@ import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static io.crate.collections.Lists2.mapTail;
+import static io.crate.common.collections.Lists2.mapTail;
 
 
 /**
@@ -288,17 +288,15 @@ public class ExpressionAnalyzer {
             return symbol;
         });
 
-        WindowFrameDefinition windowFrameDefinition = WindowDefinition.DEFAULT_WINDOW_FRAME;
+        WindowFrameDefinition windowFrameDefinition = WindowDefinition.UNBOUNDED_PRECEDING_CURRENT_ROW;
         if (window.getWindowFrame().isPresent()) {
             WindowFrame windowFrame = window.getWindowFrame().get();
             FrameBound start = windowFrame.getStart();
             FrameBoundDefinition startBound = convertToAnalyzedFrameBound(context, start);
 
-            FrameBoundDefinition endBound = null;
-            if (windowFrame.getEnd().isPresent()) {
-                endBound = convertToAnalyzedFrameBound(context, windowFrame.getEnd().get());
-            }
-
+            FrameBoundDefinition endBound = windowFrame.getEnd()
+                .map(end -> convertToAnalyzedFrameBound(context, end))
+                .orElse(new FrameBoundDefinition(FrameBound.Type.CURRENT_ROW));
             windowFrameDefinition = new WindowFrameDefinition(windowFrame.getType(), startBound, endBound);
         }
 
