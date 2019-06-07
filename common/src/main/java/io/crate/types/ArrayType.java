@@ -26,6 +26,7 @@ import java.util.Collection;
 
 public class ArrayType extends CollectionType {
 
+    public static final String NAME = "array";
     public static final int ID = 100;
 
     public ArrayType(DataType<?> innerType) {
@@ -48,7 +49,7 @@ public class ArrayType extends CollectionType {
 
     @Override
     public String getCollectionName() {
-        return "array";
+        return NAME;
     }
 
     @Override

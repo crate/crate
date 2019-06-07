@@ -156,7 +156,7 @@ public class TableElementsAnalyzer {
                     if (parentRef != null) {
                         parent.position = parentRef.column().isTopLevel() ? parentRef.position() : null;
                         if (parentRef.valueType().equals(new ArrayType(ObjectType.untyped()))) {
-                            parent.collectionType("array");
+                            parent.collectionType(ArrayType.NAME);
                         } else {
                             parent.objectType(parentRef.columnPolicy());
                         }
@@ -218,7 +218,7 @@ public class TableElementsAnalyzer {
                 throw new UnsupportedOperationException("the SET dataType is currently not supported");
             }
 
-            context.analyzedColumnDefinition.collectionType("array");
+            context.analyzedColumnDefinition.collectionType(ArrayType.NAME);
 
             if (node.innerType().type() != ColumnType.Type.PRIMITIVE &&
                 node.innerType().type() != ColumnType.Type.OBJECT) {
