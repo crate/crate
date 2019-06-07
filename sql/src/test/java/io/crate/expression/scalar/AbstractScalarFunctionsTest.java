@@ -93,6 +93,7 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
             .add("long_array", new ArrayType(DataTypes.LONG))
             .add("int_array", new ArrayType(DataTypes.INTEGER))
             .add("array_string_array", new ArrayType(new ArrayType(DataTypes.STRING)))
+            .add("array_undefined", new ArrayType(DataTypes.UNDEFINED))
             .add("long_set", new SetType(DataTypes.LONG))
             .add("regex_pattern", DataTypes.STRING)
             .add("geoshape", DataTypes.GEO_SHAPE)
@@ -104,6 +105,7 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
             .add("short_val", DataTypes.SHORT)
             .add("obj", DataTypes.OBJECT, ImmutableList.of())
             .build();
+
         DocTableRelation tableRelation = new DocTableRelation(tableInfo);
         tableSources = ImmutableMap.of(new QualifiedName("users"), tableRelation);
         sqlExpressions = new SqlExpressions(tableSources);

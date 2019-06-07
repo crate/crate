@@ -51,5 +51,8 @@ None
 Fixes
 =====
 
+- Fixed a bug that led to ``is null`` predicates against ``ignored`` objects
+  fields to always evaluate to true.
+
 - Fixed a bug that led to failures of group by a single text column queries
   on columns with the cardinality ration lower than ``0.5``.
