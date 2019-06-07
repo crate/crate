@@ -312,14 +312,22 @@ public class AnalyzedTableElements {
 
         // check for optional defined type and add `cast` to expression if possible
         if (definedType != null && !definedType.equals(valueType)) {
-            Preconditions.checkArgument(valueType.isConvertableTo(definedType),
-                "generated expression value type '%s' not supported for conversion to '%s'", valueType, definedType.getName());
+            final DataType columnDataType;
+            if (ArrayType.NAME.equals(columnDefinition.collectionType())) {
+                columnDataType = new ArrayType(definedType);
+            } else {
+                columnDataType = definedType;
+            }
+            Preconditions.checkArgument(
+                valueType.isConvertableTo(columnDataType),
+                "generated expression value type '%s' not supported for conversion to '%s'",
+                valueType, columnDataType.getName());
 
-            Symbol castFunction = CastFunctionResolver.generateCastFunction(function, definedType, false);
+            Symbol castFunction = CastFunctionResolver.generateCastFunction(function, columnDataType, false);
             formattedExpression = symbolPrinter.printUnqualified(castFunction);
         } else {
             if (valueType instanceof ArrayType) {
-                columnDefinition.collectionType("array");
+                columnDefinition.collectionType(ArrayType.NAME);
                 columnDefinition.dataType(CollectionType.unnest(valueType).getName());
             } else if (valueType instanceof SetType) {
                 throw new UnsupportedOperationException("SET type is not supported in CREATE TABLE statements");
