@@ -1041,7 +1041,6 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void testCreateTableWithDefaultExpressionLiteral() {
         CreateTableAnalyzedStatement analysis = e.analyze(
             "create table foo (name text default 'bar')");
@@ -1052,7 +1051,6 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void testCreateTableWithDefaultExpressionFunction() {
         CreateTableAnalyzedStatement analysis = e.analyze(
             "create table foo (name text default upper('bar'))");
@@ -1063,7 +1061,6 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void testCreateTableWithDefaultExpressionWithCast() {
         CreateTableAnalyzedStatement analysis = e.analyze(
             "create table foo (id int default 3.5)");
@@ -1074,7 +1071,6 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void testCreateTableWithDefaultExpressionIsNotNormalized() {
         CreateTableAnalyzedStatement analysis = e.analyze(
             "create table foo (ts timestamp with time zone default current_timestamp(3))");
@@ -1084,6 +1080,30 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
                    is("ts={default_expr=current_timestamp(3), " +
                       "format=epoch_millis||strict_date_optional_time, " +
                       "position=1, type=date}"));
+    }
+
+    @Test
+    public void testCreateTableWithDefaultExpressionAsCompoundTypes() {
+        CreateTableAnalyzedStatement analysis = e.analyze(
+            "create table foo (" +
+            "   obj object as (key text) default {key=''}," +
+            "   arr array(long) default [1, 2])");
+
+        assertThat(mapToSortedString(analysis.mappingProperties()), is(
+            "arr={inner={position=2, type=long}, type=array}, " +
+            "obj={default_expr={\"key\"=''}, dynamic=true, position=1, properties={key={type=keyword}}, type=object}"));
+    }
+
+    @Test
+    public void testCreateTableWithDefaultExpressionAsGeoTypes() {
+        CreateTableAnalyzedStatement analysis = e.analyze(
+            "create table foo (" +
+            "   p geo_point default [0,0]," +
+            "   s geo_shape default 'LINESTRING (0 0, 1 1)')");
+
+        assertThat(mapToSortedString(analysis.mappingProperties()), is(
+            "p={default_expr=cast([0, 0] AS geo_point), position=1, type=geo_point}, " +
+            "s={default_expr=cast('LINESTRING (0 0, 1 1)' AS geo_shape), position=2, type=geo_shape}"));
     }
 
     @Test
