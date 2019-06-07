@@ -378,6 +378,9 @@ Changes
 Fixes
 =====
 
+- Fixed a bug that led to ``is null`` predicates against ``ignored`` objects
+  fields to always evaluate to true.
+
 - Fixed ``collect_set`` to return an ``array`` type in order to be able to
   return the results over ``JDBC``. ``collection_count`` and ``collection_avg``
   are also changed to receive ``arrays`` as arguments, instead of ``sets``.
