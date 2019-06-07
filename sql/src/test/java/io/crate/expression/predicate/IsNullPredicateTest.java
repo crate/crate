@@ -21,8 +21,8 @@
 
 package io.crate.expression.predicate;
 
-import io.crate.expression.symbol.Literal;
 import io.crate.expression.scalar.AbstractScalarFunctionsTest;
+import io.crate.expression.symbol.Literal;
 import io.crate.types.DataTypes;
 import org.junit.Test;
 
@@ -44,6 +44,11 @@ public class IsNullPredicateTest extends AbstractScalarFunctionsTest {
     @Test
     public void testNormalizeReference() throws Exception {
         assertNormalize("name is null", isFunction(IsNullPredicate.NAME));
+    }
+
+    @Test
+    public void testNormalizeUndefinedType() {
+        assertNormalize("obj_ignored['column'] is null", isFunction(IsNullPredicate.NAME));
     }
 
     @Test

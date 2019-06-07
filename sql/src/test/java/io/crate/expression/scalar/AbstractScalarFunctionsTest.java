@@ -103,7 +103,8 @@ public abstract class AbstractScalarFunctionsTest extends CrateDummyClusterServi
             "  double_val double precision," +
             "  float_val real," +
             "  short_val smallint," +
-            "  obj object" +
+            "  obj object," +
+            "  obj_ignored object(ignored)" +
             ")";
 
         DocTableInfo tableInfo = SQLExecutor.tableInfo(
