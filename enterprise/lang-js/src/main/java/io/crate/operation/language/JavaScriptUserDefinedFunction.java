@@ -26,14 +26,12 @@ import io.crate.metadata.Scalar;
 import io.crate.types.ArrayType;
 import io.crate.types.GeoPointType;
 import io.crate.types.ObjectType;
-import io.crate.types.SetType;
 import jdk.nashorn.api.scripting.ScriptObjectMirror;
 import jdk.nashorn.internal.runtime.ECMAException;
 import jdk.nashorn.internal.runtime.Undefined;
 
 import javax.script.Bindings;
 import javax.script.ScriptException;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -150,8 +148,6 @@ public class JavaScriptUserDefinedFunction extends Scalar<Object, Object> {
                     return GeoPointType.INSTANCE.value(scriptObject.values().toArray());
                 }
                 break;
-            case SetType.ID:
-                return new HashSet<>(scriptObject.values());
             default:
         }
         throw new IllegalArgumentException(String.format(Locale.ENGLISH,

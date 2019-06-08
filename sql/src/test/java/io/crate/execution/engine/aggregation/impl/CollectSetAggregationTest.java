@@ -27,17 +27,16 @@ import io.crate.expression.symbol.Literal;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.SearchPath;
 import io.crate.operation.aggregation.AggregationTest;
+import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.SetType;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.util.BigArrays;
 import org.junit.Test;
 
-import java.util.Set;
-
-import static org.hamcrest.core.IsInstanceOf.instanceOf;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 
 public class CollectSetAggregationTest extends AggregationTest {
 
@@ -49,16 +48,13 @@ public class CollectSetAggregationTest extends AggregationTest {
     public void testReturnType() throws Exception {
         FunctionImplementation collectSet = functions.get(
             null, "collect_set", ImmutableList.of(Literal.of(DataTypes.INTEGER, null)), SearchPath.pathWithPGCatalogAndDoc());
-        assertEquals(new SetType(DataTypes.INTEGER), collectSet.info().returnType());
+        assertEquals(new ArrayType(DataTypes.INTEGER), collectSet.info().returnType());
     }
 
     @Test
     public void testDouble() throws Exception {
-        Object[][] result = executeAggregation(DataTypes.DOUBLE, new Object[][]{{0.7d}, {0.3d}, {0.3d}});
-
-        assertThat(result[0][0], instanceOf(Set.class));
-        assertEquals(2, ((Set) result[0][0]).size());
-        assertTrue(((Set) result[0][0]).contains(0.7d));
+        assertThat((Object[]) executeAggregation(DataTypes.DOUBLE, new Object[][]{{0.7d}, {0.3d}, {0.3d}}),
+                   is(arrayContainingInAnyOrder(0.3d, 0.7d)));
     }
 
     @Test
@@ -77,66 +73,45 @@ public class CollectSetAggregationTest extends AggregationTest {
 
     @Test
     public void testFloat() throws Exception {
-        Object[][] result = executeAggregation(DataTypes.FLOAT, new Object[][]{{0.7f}, {0.3f}, {0.3f}});
-
-        assertThat(result[0][0], instanceOf(Set.class));
-        assertEquals(2, ((Set) result[0][0]).size());
-        assertTrue(((Set) result[0][0]).contains(0.7f));
+        assertThat((Object[]) executeAggregation(DataTypes.FLOAT, new Object[][]{{0.7f}, {0.3f}, {0.3f}}),
+                   is(arrayContainingInAnyOrder(0.3f, 0.7f)));
     }
 
     @Test
     public void testInteger() throws Exception {
-        Object[][] result = executeAggregation(DataTypes.INTEGER, new Object[][]{{7}, {3}, {3}});
-
-        assertThat(result[0][0], instanceOf(Set.class));
-        assertEquals(2, ((Set) result[0][0]).size());
-        assertTrue(((Set) result[0][0]).contains(7));
+        assertThat((Object[]) executeAggregation(DataTypes.INTEGER, new Object[][]{{7}, {3}, {3}}),
+                   is(arrayContainingInAnyOrder(3, 7)));
     }
 
     @Test
     public void testLong() throws Exception {
-        Object[][] result = executeAggregation(DataTypes.LONG, new Object[][]{{7L}, {3L}, {3L}});
-
-        assertThat(result[0][0], instanceOf(Set.class));
-        assertEquals(2, ((Set) result[0][0]).size());
-        assertTrue(((Set) result[0][0]).contains(7L));
+        assertThat((Object[]) executeAggregation(DataTypes.LONG, new Object[][]{{7L}, {3L}, {3L}}),
+                   is(arrayContainingInAnyOrder(3L, 7L)));
     }
 
     @Test
     public void testShort() throws Exception {
-        Object[][] result = executeAggregation(DataTypes.SHORT, new Object[][]{{(short) 7}, {(short) 3}, {(short) 3}});
-
-        assertThat(result[0][0], instanceOf(Set.class));
-        assertEquals(2, ((Set) result[0][0]).size());
-        assertTrue(((Set) result[0][0]).contains((short) 7));
+        assertThat((Object[]) executeAggregation(DataTypes.SHORT,
+                                                 new Object[][]{{(short) 7}, {(short) 3}, {(short) 3}}),
+                   is(arrayContainingInAnyOrder((short) 3, (short) 7)));
     }
 
     @Test
     public void testString() throws Exception {
-        Object[][] result = executeAggregation(DataTypes.STRING,
-            new Object[][]{{"Youri"}, {"Ruben"}, {"Ruben"}});
-
-        assertThat(result[0][0], instanceOf(Set.class));
-        assertEquals(2, ((Set) result[0][0]).size());
-        assertTrue(((Set) result[0][0]).contains("Youri"));
+        assertThat((Object[]) executeAggregation(DataTypes.STRING, new Object[][]{{"Youri"}, {"Ruben"}, {"Ruben"}}),
+                   is(arrayContainingInAnyOrder("Youri", "Ruben")));
     }
 
     @Test
     public void testBoolean() throws Exception {
-        Object[][] result = executeAggregation(DataTypes.BOOLEAN, new Object[][]{{true}, {false}, {false}});
-
-        assertThat(result[0][0], instanceOf(Set.class));
-        assertEquals(2, ((Set) result[0][0]).size());
-        assertTrue(((Set) result[0][0]).contains(true));
+        assertThat((Object[]) executeAggregation(DataTypes.BOOLEAN, new Object[][]{{true}, {false}, {false}}),
+                   is(arrayContainingInAnyOrder(true, false)));
     }
 
     @Test
     public void testNullValue() throws Exception {
-        Object[][] result = executeAggregation(DataTypes.STRING,
-            new Object[][]{{"Youri"}, {"Ruben"}, {null}});
-        // null values currently ignored
-        assertThat(result[0][0], instanceOf(Set.class));
-        assertEquals(2, ((Set) result[0][0]).size());
-        assertFalse(((Set) result[0][0]).contains(null));
+        assertThat("null values currently ignored",
+                   (Object[]) executeAggregation(DataTypes.STRING, new Object[][]{{"Youri"}, {"Ruben"}, {null}}),
+                   is(arrayContainingInAnyOrder("Youri", "Ruben")));
     }
 }

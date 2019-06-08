@@ -28,7 +28,6 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
-import io.crate.types.SetType;
 import org.elasticsearch.index.mapper.KeywordFieldMapper;
 import org.junit.Test;
 
@@ -49,11 +48,5 @@ public class LuceneReferenceResolverTest extends CrateUnitTest {
         assertThat(luceneReferenceResolver.getImplementation(arrayRef),
             instanceOf(DocCollectorExpression.ChildDocCollectorExpression.class));
 
-        Reference setRef = new Reference(new ReferenceIdent(
-            new RelationName("s", "t"), "a"),
-            RowGranularity.DOC,
-            new SetType(DataTypes.DOUBLE));
-        assertThat(luceneReferenceResolver.getImplementation(setRef),
-            instanceOf(DocCollectorExpression.ChildDocCollectorExpression.class));
     }
 }

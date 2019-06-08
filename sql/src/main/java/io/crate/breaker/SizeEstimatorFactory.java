@@ -27,7 +27,6 @@ import io.crate.types.FixedWidthType;
 import io.crate.types.GeoShapeType;
 import io.crate.types.IpType;
 import io.crate.types.ObjectType;
-import io.crate.types.SetType;
 import io.crate.types.StringType;
 import io.crate.types.UndefinedType;
 
@@ -52,8 +51,6 @@ public class SizeEstimatorFactory {
                 return (SizeEstimator<T>) new ConstSizeEstimator(120);
             case ArrayType.ID:
                 return (SizeEstimator<T>) new ArraySizeEstimator(create(((ArrayType) type).innerType()));
-            case SetType.ID:
-                return (SizeEstimator<T>) new SetSizeEstimator(create(((SetType) type).innerType()));
             default:
                 if (type instanceof FixedWidthType) {
                     return (SizeEstimator<T>) new ConstSizeEstimator(((FixedWidthType) type).fixedSize());

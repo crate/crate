@@ -37,6 +37,9 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.junit.Test;
 
+import static io.crate.types.DataTypes.GEO_POINT;
+import static io.crate.types.DataTypes.GEO_SHAPE;
+import static io.crate.types.DataTypes.PRIMITIVE_TYPES;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 
@@ -55,8 +58,6 @@ public class PGTypesTest extends CrateUnitTest {
         assertThat("Crate IP type is mapped to PG varchar", PGTypes.get(DataTypes.IP),
             instanceOf(VarCharType.class));
         assertThat("Crate array type is mapped to PGArray", PGTypes.get(new ArrayType(DataTypes.BYTE)),
-            instanceOf(PGArray.class));
-        assertThat("Crate set type is mapped to PGArray", PGTypes.get(new SetType(DataTypes.BYTE)),
             instanceOf(PGArray.class));
     }
 
@@ -78,6 +79,13 @@ public class PGTypesTest extends CrateUnitTest {
     public void testTextOidIsMappedToString() {
         assertThat(PGTypes.fromOID(25), is(DataTypes.STRING));
         assertThat(PGTypes.fromOID(1009), is(new ArrayType(DataTypes.STRING)));
+    }
+
+    @Test
+    public void testCrateSetCannotBeMappedToPgType() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("No type mapping from 'integer_set' to pg_type");
+        PGTypes.get(new SetType(DataTypes.INTEGER));
     }
 
     private static class Entry {
@@ -109,9 +117,7 @@ public class PGTypesTest extends CrateUnitTest {
             new Entry(new ArrayType(DataTypes.INTEGER), new Integer[]{10, null, 20}),
             new Entry(new ArrayType(DataTypes.INTEGER), new Integer[0]),
             new Entry(new ArrayType(DataTypes.INTEGER), new Integer[]{null, null}),
-            new Entry(new ArrayType(DataTypes.INTEGER), new Integer[][]{new Integer[]{10, null, 20}, new Integer[]{1, 2, 3}}),
-            new Entry(new SetType(DataTypes.STRING), new Object[]{"test"}),
-            new Entry(new SetType(DataTypes.INTEGER), new Integer[]{10, null, 20})
+            new Entry(new ArrayType(DataTypes.INTEGER), new Integer[][]{new Integer[]{10, null, 20}, new Integer[]{1, 2, 3}})
         )) {
 
             PGType pgType = PGTypes.get(entry.type);

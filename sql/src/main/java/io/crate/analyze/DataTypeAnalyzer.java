@@ -58,9 +58,6 @@ public final class DataTypeAnalyzer extends DefaultTraversalVisitor<DataType, Vo
 
     @Override
     public DataType visitCollectionColumnType(CollectionColumnType node, Void context) {
-        if (node.type() == ColumnType.Type.SET) {
-            throw new UnsupportedOperationException("the SET dataType is currently not supported");
-        }
         DataType innerType = process(node.innerType(), context);
         return new ArrayType(innerType);
     }

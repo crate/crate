@@ -21,11 +21,6 @@
 
 package io.crate.expression.scalar;
 
-import com.google.common.collect.ImmutableSet;
-import io.crate.expression.symbol.Literal;
-import io.crate.exceptions.ConversionException;
-import io.crate.types.DataTypes;
-import io.crate.types.SetType;
 import org.junit.Test;
 
 import static io.crate.testing.SymbolMatchers.isFunction;
@@ -47,16 +42,6 @@ public class SubscriptFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testIndexOutOfRange() throws Exception {
         assertNormalize("subscript(['Youri', 'Ruben'], cast(3 as integer))", isLiteral(null));
-    }
-
-    @Test
-    public void testNotRegisteredForSets() throws Exception {
-        expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast long_set to type undefined_array");
-        assertEvaluate("subscript(long_set, a)", 3L,
-            Literal.of(ImmutableSet.of(3L, 7L), new SetType(DataTypes.LONG)),
-            Literal.of(DataTypes.INTEGER, 1)
-        );
     }
 
     @Test
