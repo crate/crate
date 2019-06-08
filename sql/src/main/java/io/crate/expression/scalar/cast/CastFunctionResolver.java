@@ -29,7 +29,6 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.ObjectType;
-import io.crate.types.SetType;
 
 import java.util.HashMap;
 import java.util.List;
@@ -54,9 +53,6 @@ public class CastFunctionResolver {
 
             var arrayType = new ArrayType(type);
             CAST_SIGNATURES.put(arrayType, castFuncName(arrayType));
-
-            var setType = new SetType(type);
-            CAST_SIGNATURES.put(setType, castFuncName(setType));
         }
         CAST_SIGNATURES.put(ObjectType.untyped(), castFuncName(ObjectType.untyped()));
         CAST_SIGNATURES.put(GEO_POINT, castFuncName(GEO_POINT));

@@ -152,8 +152,7 @@ public final class DataTypes {
         entry(GEO_POINT.id(), Set.of(new ArrayType(DOUBLE))),
         entry(GEO_SHAPE.id(), Set.of(ObjectType.untyped())),
         entry(ObjectType.ID, Set.of(GEO_SHAPE)),
-        entry(ArrayType.ID, Set.of()), // convertability handled in ArrayType
-        entry(SetType.ID, Set.of())); // convertability handled in SetType
+        entry(ArrayType.ID, Set.of())); // convertability handled in ArrayType
 
     /**
      * Contains number conversions which are "safe" (= a conversion would not reduce the number of bytes

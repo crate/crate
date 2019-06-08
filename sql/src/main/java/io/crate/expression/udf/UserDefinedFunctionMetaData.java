@@ -27,7 +27,6 @@ import io.crate.types.ArrayType;
 import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.SetType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
@@ -270,8 +269,6 @@ public class UserDefinedFunctionMetaData implements Streamable, ToXContent {
             }
             if (id == ArrayType.ID) {
                 return new ArrayType(innerType);
-            } else if (id == SetType.ID) {
-                return new SetType(innerType);
             }
             return DataTypes.fromId(id);
         }
