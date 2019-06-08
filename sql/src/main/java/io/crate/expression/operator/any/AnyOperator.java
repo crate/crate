@@ -35,7 +35,6 @@ import io.crate.types.BooleanType;
 import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.SetType;
 
 import java.util.List;
 import java.util.function.IntPredicate;
@@ -103,8 +102,7 @@ public final class AnyOperator extends Operator<Object> {
             super(FuncParams.builder(
                 Param.ANY,
                 Param.of(
-                    new ArrayType(DataTypes.UNDEFINED),
-                    new SetType(DataTypes.UNDEFINED))
+                    new ArrayType(DataTypes.UNDEFINED))
                     .withInnerType(Param.ANY))
                 .build());
             this.name = name;
