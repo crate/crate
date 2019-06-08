@@ -20,17 +20,21 @@
  * agreement.
  */
 
-package io.crate.expression.scalar.cast;
+package io.crate.expression.scalar;
 
+import io.crate.expression.symbol.Literal;
 import io.crate.types.ArrayType;
-import io.crate.types.DataTypes;
-import io.crate.types.SetType;
+import io.crate.types.LongType;
 import org.junit.Test;
 
-public class CastFunctionResolverTest {
+public class CollectionAvgFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
-    public void testCastRegistration() throws Exception {
-        CastFunctionResolver.functionInfo(new ArrayType(DataTypes.LONG), new SetType(DataTypes.LONG), false);
+    public void testEvaluate() throws Exception {
+        assertEvaluate("collection_avg(long_array)",
+                       5.0,
+                       Literal.of(new Long[]{3L, 7L}, new ArrayType(LongType.INSTANCE))
+        );
     }
+
 }

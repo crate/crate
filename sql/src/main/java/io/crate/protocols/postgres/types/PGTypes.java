@@ -29,7 +29,6 @@ import io.crate.types.ArrayType;
 import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.SetType;
 
 import java.util.HashSet;
 import java.util.Locale;
@@ -65,18 +64,6 @@ public class PGTypes {
         .put(new ArrayType(DataTypes.GEO_POINT), PGArray.FLOAT8_ARRAY)
         .put(new ArrayType(DataTypes.GEO_SHAPE), PGArray.JSON_ARRAY)
         .put(new ArrayType(DataTypes.OBJECT), JsonType.INSTANCE)
-        .put(new SetType(DataTypes.BYTE), PGArray.CHAR_ARRAY) // postgres has no Set type, so map it to array
-        .put(new SetType(DataTypes.SHORT), PGArray.INT2_ARRAY)
-        .put(new SetType(DataTypes.INTEGER), PGArray.INT4_ARRAY)
-        .put(new SetType(DataTypes.LONG), PGArray.INT8_ARRAY)
-        .put(new SetType(DataTypes.FLOAT), PGArray.FLOAT4_ARRAY)
-        .put(new SetType(DataTypes.DOUBLE), PGArray.FLOAT8_ARRAY)
-        .put(new SetType(DataTypes.BOOLEAN), PGArray.BOOL_ARRAY)
-        .put(new SetType(DataTypes.TIMESTAMP), PGArray.TIMESTAMPZ_ARRAY)
-        .put(new SetType(DataTypes.STRING), PGArray.VARCHAR_ARRAY)
-        .put(new SetType(DataTypes.GEO_POINT), PGArray.FLOAT8_ARRAY)
-        .put(new SetType(DataTypes.GEO_SHAPE), PGArray.JSON_ARRAY)
-        .put(new SetType(DataTypes.OBJECT), JsonType.INSTANCE)
         .build();
 
     private static final IntObjectMap<DataType> PG_TYPES_TO_CRATE_TYPE = new IntObjectHashMap<>();

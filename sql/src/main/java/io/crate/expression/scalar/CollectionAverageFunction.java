@@ -21,30 +21,44 @@
 
 package io.crate.expression.scalar;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.data.Input;
+import io.crate.metadata.BaseFunctionResolver;
 import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.TransactionContext;
+import io.crate.metadata.FunctionResolver;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.params.FuncParams;
+import io.crate.metadata.functions.params.Param;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.SetType;
 
-import java.util.Set;
+import java.util.List;
 
-public class CollectionAverageFunction extends Scalar<Double, Set<Number>> {
+public class CollectionAverageFunction extends Scalar<Double, Object> {
 
     public static final String NAME = "collection_avg";
     private final FunctionInfo info;
 
+    private static final FunctionResolver COLLECTION_AVG_RESOLVER = new CollectionAvgResolver();
+
     public static void register(ScalarFunctionModule mod) {
-        for (DataType t : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
-            mod.register(
-                new CollectionAverageFunction(
-                    new FunctionInfo(new FunctionIdent(
-                        NAME, ImmutableList.<DataType>of(new SetType(t))), DataTypes.DOUBLE))
-            );
+        mod.register(NAME, COLLECTION_AVG_RESOLVER);
+    }
+
+    static class CollectionAvgResolver extends BaseFunctionResolver {
+
+        CollectionAvgResolver() {
+            super(FuncParams.builder(Param.ANY_ARRAY).build());
+        }
+
+        @Override
+        public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
+            return new CollectionAverageFunction(new FunctionInfo(
+                new FunctionIdent(NAME, dataTypes),
+                DataTypes.DOUBLE
+            ));
         }
     }
 
@@ -53,16 +67,16 @@ public class CollectionAverageFunction extends Scalar<Double, Set<Number>> {
     }
 
     @Override
-    public Double evaluate(TransactionContext txnCtx, Input<Set<Number>>... args) {
+    public Double evaluate(TransactionContext txnCtx, Input<Object>... args) {
         // NOTE: always returning double ignoring the input type, maybe better implement type safe
-        Set<Number> arg0Value = args[0].value();
+        Object[] arg0Value = (Object[]) args[0].value();
         if (arg0Value == null) {
             return null;
         }
         double sum = 0;
         long count = 0;
-        for (Number value : arg0Value) {
-            sum += value.doubleValue();
+        for (Object value : arg0Value) {
+            sum += ((Number) value).doubleValue();
             count++;
         }
         if (count > 0) {

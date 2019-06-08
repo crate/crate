@@ -24,7 +24,7 @@ package io.crate.breaker;
 
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
-import io.crate.types.SetType;
+import io.crate.types.ObjectType;
 import org.junit.Test;
 
 import java.util.Collections;
@@ -39,13 +39,6 @@ public class SizeEstimatorFactoryTest {
         ArrayType arrayType = new ArrayType(DataTypes.INTEGER);
         SizeEstimator<Object> estimator = SizeEstimatorFactory.create(arrayType);
         assertThat(estimator.estimateSize(new Integer[]{10, 20, 30}), is(64L));
-    }
-
-    @Test
-    public void testSizeEstimationForSetType() throws Exception {
-        SetType setType = new SetType(DataTypes.INTEGER);
-        SizeEstimator<Object> estimator = SizeEstimatorFactory.create(setType);
-        assertThat(estimator.estimateSize(Collections.emptyList()), is(64L));
     }
 
     @Test

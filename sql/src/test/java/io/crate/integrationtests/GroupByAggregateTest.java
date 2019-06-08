@@ -27,6 +27,7 @@ import io.crate.data.Paging;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.test.ESIntegTestCase;
+import org.hamcrest.Matchers;
 import org.hamcrest.core.Is;
 import org.junit.Before;
 import org.junit.Test;
@@ -1250,5 +1251,23 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
         assertThat(printedTable(response.rows()), is(
             "a| 2\n" +
             "b| 2\n"));
-        }
+    }
+
+    @Test
+    public void testSelectCollectSetAndGroupBy() {
+        execute("SELECT\n" +
+                "col1,\n" +
+                "collect_set(col1)\n" +
+                "FROM unnest(ARRAY[1, 2, 2, 3, 4, 5, null]) col1 " +
+                "GROUP BY col1");
+        assertThat(
+            printedTable(response.rows()),
+            Matchers.is("1| [1]\n" +
+                        "2| [2]\n" +
+                        "3| [3]\n" +
+                        "4| [4]\n" +
+                        "5| [5]\n" +
+                        "NULL| []\n")
+        );
+    }
 }
