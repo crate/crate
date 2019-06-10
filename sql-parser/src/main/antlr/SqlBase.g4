@@ -541,7 +541,6 @@ dataType
     | nonReserved
     | objectTypeDefinition
     | arrayTypeDefinition
-    | setTypeDefinition
     ;
 
 objectTypeDefinition
@@ -551,10 +550,6 @@ objectTypeDefinition
 
 arrayTypeDefinition
     : ARRAY '(' dataType ')'
-    ;
-
-setTypeDefinition
-    : SET '(' dataType ')'
     ;
 
 columnConstraint
