@@ -1618,8 +1618,6 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
                 visitCollection(context.objectTypeDefinition().columnDefinition(), ColumnDefinition.class));
         } else if (context.arrayTypeDefinition() != null) {
             return CollectionColumnType.array((ColumnType) visit(context.arrayTypeDefinition().dataType()));
-        } else if (context.setTypeDefinition() != null) {
-            return CollectionColumnType.set((ColumnType) visit(context.setTypeDefinition().dataType()));
         }
         return new ColumnType(context.getText().toLowerCase(Locale.ENGLISH));
     }
