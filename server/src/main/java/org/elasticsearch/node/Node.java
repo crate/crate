@@ -474,18 +474,22 @@ public class Node implements Closeable {
                 xContentRegistry, threadPool)
             );
 
-            final DiscoveryModule discoveryModule = new DiscoveryModule(this.settings,
-                                                                        threadPool,
-                                                                        transportService,
-                                                                        namedWriteableRegistry,
-                                                                        networkService,
-                                                                        clusterService.getMasterService(),
-                                                                        clusterService.getClusterApplierService(),
-                                                                        clusterService.getClusterSettings(),
-                                                                        pluginsService.filterPlugins(DiscoveryPlugin.class),
-                                                                        clusterModule.getAllocationService(),
-                                                                        environment.configFile(),
-                                                                        gatewayMetaState);
+            final RoutingService routingService = new RoutingService(clusterService, clusterModule.getAllocationService());
+            final DiscoveryModule discoveryModule = new DiscoveryModule(
+                this.settings,
+                threadPool,
+                transportService,
+                namedWriteableRegistry,
+                networkService,
+                clusterService.getMasterService(),
+                clusterService.getClusterApplierService(),
+                clusterService.getClusterSettings(),
+                pluginsService.filterPlugins(DiscoveryPlugin.class),
+                clusterModule.getAllocationService(),
+                environment.configFile(),
+                gatewayMetaState,
+                routingService
+            );
             this.nodeService = new NodeService(monitorService, indicesService, transportService);
 
             modules.add(b -> {
@@ -530,6 +534,7 @@ public class Node implements Closeable {
                     b.bind(HttpServerTransport.class).toInstance(httpServerTransport);
                     b.bind(ShardLimitValidator.class).toInstance(shardLimitValidator);
                     b.bind(EventLoopGroups.class).toInstance(eventLoopGroups);
+                    b.bind(RoutingService.class).toInstance(routingService);
                     pluginComponents.stream().forEach(p -> b.bind((Class) p.getClass()).toInstance(p));
                 }
             );
