@@ -444,7 +444,8 @@ Synopsis
   that should be extracted.
 
 :expression:
-  An expression that resolves to a timestamp or is castable to timestamp.
+  An expression that resolves to a timestamp data type with or without
+  timezone or is castable to timestamp data types.
 
 ::
 
