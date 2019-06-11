@@ -29,6 +29,7 @@ import java.util.Collections;
 import java.util.Set;
 
 import static io.crate.analyze.WindowDefinition.CURRENT_ROW_UNBOUNDED_FOLLOWING;
+import static io.crate.analyze.WindowDefinition.UNBOUNDED_PRECEDING_UNBOUNDED_FOLLOWING;
 import static org.hamcrest.Matchers.contains;
 
 public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
@@ -42,6 +43,18 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
         new Object[]{5, 5},
         new Object[]{null, null}
     };
+
+    @Test
+    public void testSumOverUnboundedPrecedingToUnboundedFollowingFrames() throws Exception {
+        Object[] expected = new Object[]{5L, 5L, 5L, 12L, 12L, 12L, null};
+        assertEvaluate("sum(x) OVER(" +
+                       "PARTITION BY x>2 ORDER BY x RANGE BETWEEN UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING" +
+                       ")",
+                       contains(expected),
+                       Collections.singletonMap(new ColumnIdent("x"), 0),
+                       UNBOUNDED_PRECEDING_UNBOUNDED_FOLLOWING,
+                       INPUT_ROWS);
+    }
 
     @Test
     public void testCountOverUnboundedFollowingFrames() throws Exception {

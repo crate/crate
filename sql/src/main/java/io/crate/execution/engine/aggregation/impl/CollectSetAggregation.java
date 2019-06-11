@@ -26,9 +26,10 @@ import io.crate.breaker.RamAccountingContext;
 import io.crate.breaker.SizeEstimator;
 import io.crate.breaker.SizeEstimatorFactory;
 import io.crate.data.Input;
+import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
-import io.crate.execution.engine.aggregation.AggregationFunction;
+import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.SetType;
@@ -40,24 +41,29 @@ import javax.annotation.Nullable;
 import java.util.HashSet;
 import java.util.Set;
 
-public class CollectSetAggregation extends AggregationFunction<Set<Object>, Set<Object>> {
+public class CollectSetAggregation extends AggregationFunction<Set<Object>, Object[]> {
 
     public static final String NAME = "collect_set";
     private final SizeEstimator<Object> innerTypeEstimator;
 
-    private FunctionInfo info;
+    private final FunctionInfo info;
+    private final DataType partialReturnType;
 
     public static void register(AggregationImplModule mod) {
         for (final DataType dataType : DataTypes.PRIMITIVE_TYPES) {
-            mod.register(new CollectSetAggregation(new FunctionInfo(new FunctionIdent(NAME,
-                ImmutableList.of(dataType)),
-                new SetType(dataType), FunctionInfo.Type.AGGREGATE)));
+            mod.register(new CollectSetAggregation(
+                             new FunctionInfo(new FunctionIdent(NAME, ImmutableList.of(dataType)),
+                                              new ArrayType(dataType),
+                                              FunctionInfo.Type.AGGREGATE)
+                         )
+            );
         }
     }
 
     CollectSetAggregation(FunctionInfo info) {
-        this.innerTypeEstimator = SizeEstimatorFactory.create(((SetType) info.returnType()).innerType());
+        this.innerTypeEstimator = SizeEstimatorFactory.create(((ArrayType) info.returnType()).innerType());
         this.info = info;
+        this.partialReturnType = new SetType(((ArrayType) info.returnType()).innerType());
     }
 
     @Override
@@ -90,7 +96,7 @@ public class CollectSetAggregation extends AggregationFunction<Set<Object>, Set<
 
     @Override
     public DataType partialType() {
-        return info.returnType();
+        return partialReturnType;
     }
 
     @Override
@@ -106,7 +112,7 @@ public class CollectSetAggregation extends AggregationFunction<Set<Object>, Set<
     }
 
     @Override
-    public Set<Object> terminatePartial(RamAccountingContext ramAccountingContext, Set<Object> state) {
-        return state;
+    public Object[] terminatePartial(RamAccountingContext ramAccountingContext, Set<Object> state) {
+        return state.toArray(new Object[0]);
     }
 }

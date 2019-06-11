@@ -509,7 +509,6 @@ dataType
     | ident                     #dataTypeIdent
     | objectTypeDefinition      #objectDataType
     | arrayTypeDefinition       #arrayDataType
-    | setTypeDefinition         #setDataType
     ;
 
 definedDataType
@@ -525,10 +524,6 @@ objectTypeDefinition
 
 arrayTypeDefinition
     : ARRAY '(' dataType ')'
-    ;
-
-setTypeDefinition
-    : SET '(' dataType ')'
     ;
 
 columnConstraint

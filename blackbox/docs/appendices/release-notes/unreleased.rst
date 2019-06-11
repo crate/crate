@@ -251,7 +251,7 @@ Changes
 =======
 
 - Added support for ``CURRENT ROW -> UNBOUNDED FOLLOWING`` window frame
-  definitions in the context of `window functions <window-functions>`_.
+  definitions in the context of :ref:`window-functions`.
 
 - Added the :ref:`pg_get_userbyid` scalar function to enhance PostgreSQL
   compatibility.
@@ -377,6 +377,10 @@ Changes
 
 Fixes
 =====
+
+- Fixed ``collect_set`` to return an ``array`` type in order to be able to
+  return the results over ``JDBC``. ``collection_count`` and ``collection_avg``
+  are also changed to receive ``arrays`` as arguments, instead of ``sets``.
 
 - Fixed an issue that caused an error when trying to create a table with
   a column definition that contains a predefined array data type and generated

@@ -22,18 +22,18 @@
 package io.crate.expression.scalar;
 
 import io.crate.expression.symbol.Literal;
+import io.crate.types.ArrayType;
 import io.crate.types.LongType;
-import io.crate.types.SetType;
 import org.junit.Test;
-
-import java.util.HashSet;
 
 public class CollectionCountFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testEvaluate() throws Exception {
-        assertEvaluate("collection_count(cast(long_array as set(bigint)))", 2L,
-            Literal.of(new HashSet<Long>() {{ add(3L); add(7L);}}, new SetType(LongType.INSTANCE)));
+        assertEvaluate("collection_count(long_array)",
+                       2L,
+                       Literal.of(new Long[]{3L, 7L}, new ArrayType(LongType.INSTANCE))
+        );
     }
 
 }

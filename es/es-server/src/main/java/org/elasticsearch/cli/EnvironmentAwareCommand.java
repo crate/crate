@@ -34,6 +34,8 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
+import static java.util.Objects.requireNonNullElseGet;
+
 /** A cli command which requires an {@link org.elasticsearch.env.Environment} to use current paths and settings. */
 public abstract class EnvironmentAwareCommand extends Command {
 
@@ -84,9 +86,12 @@ public abstract class EnvironmentAwareCommand extends Command {
 
     /** Create an {@link Environment} for the command to use. Overrideable for tests. */
     protected Environment createEnv(final Map<String, String> settings) throws UserException {
-        final String esPathConf = System.getProperty("es.path.conf");
+        String esPathConf = requireNonNullElseGet(
+            System.getProperty("es.path.conf"),
+            () -> settings.getOrDefault("path.conf", null)
+        );
         if (esPathConf == null) {
-            throw new UserException(ExitCodes.CONFIG, "the system property [es.path.conf] must be set");
+            throw new UserException(ExitCodes.CONFIG, "the system property [es.path.conf] must be set. Specify with -Cpath.conf=<path>");
         }
         return InternalSettingsPreparer.prepareEnvironment(Settings.EMPTY, settings,
                                                            getConfigPath(esPathConf),

@@ -27,8 +27,11 @@ import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.QueriedTable;
 import io.crate.analyze.TableDefinitions;
 import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.execution.dsl.projection.Projection;
+import io.crate.execution.dsl.projection.WindowAggProjection;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.WindowFunction;
+import io.crate.planner.node.dql.Collect;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.junit.Before;
@@ -38,6 +41,11 @@ import java.io.IOException;
 import java.util.List;
 
 import static io.crate.sql.tree.FrameBound.Type.CURRENT_ROW;
+import static io.crate.sql.tree.FrameBound.Type.UNBOUNDED_FOLLOWING;
+import static io.crate.sql.tree.FrameBound.Type.UNBOUNDED_PRECEDING;
+import static org.elasticsearch.common.inject.matcher.Matchers.not;
+import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 
@@ -56,7 +64,8 @@ public class WindowDefinitionTest extends CrateDummyClusterServiceUnitTest {
     public void testStartUnboundedFollowingIsIllegal() {
         expectedException.expect(UnsupportedFeatureException.class);
         expectedException.expectMessage(
-            "Only unbounded preceding -> current row and current row -> unbounded following frame definitions are supported");
+            "The only supported frame definitions are unbounded preceding -> current row, " +
+            "current row -> unbounded following and unbounded preceding -> unbounded following");
         e.plan(
             "select sum(col1) over(RANGE BETWEEN UNBOUNDED FOLLOWING and CURRENT ROW) FROM " +
             "unnest([1, 2, 1, 1, 1, 4])");
@@ -67,7 +76,8 @@ public class WindowDefinitionTest extends CrateDummyClusterServiceUnitTest {
     public void testEndUnboundedPrecedingIsIllegal() {
         expectedException.expect(UnsupportedFeatureException.class);
         expectedException.expectMessage(
-            "Only unbounded preceding -> current row and current row -> unbounded following frame definitions are supported");
+            "The only supported frame definitions are unbounded preceding -> current row, " +
+            "current row -> unbounded following and unbounded preceding -> unbounded following");
         e.plan(
             "select sum(col1) over(RANGE BETWEEN CURRENT ROW and UNBOUNDED PRECEDING) FROM " +
             "unnest([1, 2, 1, 1, 1, 4])");
@@ -90,10 +100,39 @@ public class WindowDefinitionTest extends CrateDummyClusterServiceUnitTest {
     public void testRowsFrameDefinitionIsNotSupported() {
         expectedException.expect(UnsupportedFeatureException.class);
         expectedException.expectMessage(
-            "Only unbounded preceding -> current row and current row -> unbounded following frame definitions are supported");
+            "The only supported frame definitions are unbounded preceding -> current row, " +
+            "current row -> unbounded following and unbounded preceding -> unbounded following");
         e.plan(
             "select sum(col1) over(ROWS 2 PRECEDING) FROM " +
             "unnest([1, 2, 1, 1, 1, 4])");
+    }
+
+    @Test
+    public void testUnboundedPrecedingUnboundedFollowingFrameIsAllowed() {
+        Collect collect = e.plan(
+            "select sum(col1) over(RANGE BETWEEN UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING) FROM " +
+            "unnest([1, 2, 1, 1, 1, 4])");
+        List<Projection> projections = collect.collectPhase().projections();
+        assertThat(projections.size(), is(2));
+        WindowAggProjection windowProjection = null;
+        for (Projection projection : projections) {
+            if(projection instanceof WindowAggProjection) {
+                windowProjection = (WindowAggProjection) projection;
+                break;
+            }
+        }
+        assertThat(windowProjection, is(notNullValue()));
+        List<? extends Symbol> outputs = windowProjection.outputs();
+        assertThat(outputs.size(), is(2)); // IC and window function
+        WindowFunction windowFunction = null;
+        for (Symbol output : outputs) {
+            if(output instanceof WindowFunction) {
+                windowFunction = (WindowFunction) output;
+            }
+        }
+        assertThat(windowFunction, is(notNullValue()));
+        assertThat(windowFunction.windowDefinition().windowFrameDefinition().start().type(), is(UNBOUNDED_PRECEDING));
+        assertThat(windowFunction.windowDefinition().windowFrameDefinition().end().type(), is(UNBOUNDED_FOLLOWING));
     }
 
 }

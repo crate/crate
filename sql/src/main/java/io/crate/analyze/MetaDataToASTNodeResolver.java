@@ -59,7 +59,6 @@ import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
-import io.crate.types.SetType;
 import org.elasticsearch.common.Nullable;
 
 import java.util.ArrayList;
@@ -127,9 +126,6 @@ public class MetaDataToASTNodeResolver {
                         innerColumnType = new ColumnType(innerType.getName());
                     }
                     columnType = CollectionColumnType.array(innerColumnType);
-                } else if (info.valueType().id() == SetType.ID) {
-                    ColumnType innerColumnType = new ColumnType(((CollectionType) info.valueType()).innerType().getName());
-                    columnType = CollectionColumnType.set(innerColumnType);
                 } else {
                     columnType = new ColumnType(info.valueType().getName());
                 }

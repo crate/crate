@@ -70,9 +70,11 @@ public class WindowAgg extends ForwardingLogicalPlan {
         for (WindowFunction windowFunction : windowFunctions) {
             WindowDefinition windowDefinition = windowFunction.windowDefinition();
             if (!windowDefinition.windowFrameDefinition().equals(WindowDefinition.UNBOUNDED_PRECEDING_CURRENT_ROW) &&
-                !windowDefinition.windowFrameDefinition().equals(WindowDefinition.CURRENT_ROW_UNBOUNDED_FOLLOWING)) {
-                throw new UnsupportedFeatureException("Only unbounded preceding -> current row and current row -> " +
-                                                      "unbounded following frame definitions are supported");
+                !windowDefinition.windowFrameDefinition().equals(WindowDefinition.CURRENT_ROW_UNBOUNDED_FOLLOWING) &&
+                !windowDefinition.windowFrameDefinition().equals(WindowDefinition.UNBOUNDED_PRECEDING_UNBOUNDED_FOLLOWING)) {
+                throw new UnsupportedFeatureException(
+                    "The only supported frame definitions are unbounded preceding -> current row, " +
+                    "current row -> unbounded following and unbounded preceding -> unbounded following");
             }
         }
 
