@@ -7,7 +7,7 @@
 
 Define a new fulltext analyzer.
 
-.. rubric:: Table of Contents
+.. rubric:: Table of contents
 
 .. contents::
    :local:

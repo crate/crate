@@ -5,7 +5,7 @@
 Optimistic Concurrency Control
 ==============================
 
-.. rubric:: Table of Contents
+.. rubric:: Table of contents
 
 .. contents::
    :local:

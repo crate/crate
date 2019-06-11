@@ -7,7 +7,7 @@
 
 Export table contents to files on CrateDB node machines.
 
-.. rubric:: Table of Contents
+.. rubric:: Table of contents
 
 .. contents::
    :local:

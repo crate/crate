@@ -21,7 +21,7 @@ limitations.
     For more detailed licensing information, please contact us directly or
     consult the information in the `NOTICE`_ and `LICENSE`_ files.
 
-.. rubric:: Table of Contents
+.. rubric:: Table of contents
 
 .. contents::
    :local:

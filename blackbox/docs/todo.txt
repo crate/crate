@@ -1,0 +1,354 @@
+admin/optimization.rst:.. highlight:: psql
+admin/optimization.rst:.. rubric:: Table of contents
+admin/index.rst:.. rubric:: Table of contents
+admin/auth/index.rst:.. rubric:: Table of contents
+admin/auth/hba.rst:.. rubric:: Table of contents
+admin/auth/hba.rst:.. code-block:: yaml
+admin/auth/hba.rst:.. code-block:: yaml
+admin/auth/methods.rst:.. rubric:: Table of contents
+admin/auth/methods.rst:.. code-block:: yaml
+admin/snapshots.rst:.. highlight:: psql
+admin/snapshots.rst:.. rubric:: Table of contents
+admin/monitoring.rst:.. rubric:: Table of contents
+admin/monitoring.rst:.. highlight:: psql
+admin/monitoring.rst:.. highlight:: none
+admin/monitoring.rst:.. highlight:: sh
+admin/monitoring.rst:.. highlight:: none
+admin/jobs-management.rst:.. highlight:: psql
+admin/system-information.rst:.. highlight:: psql
+admin/system-information.rst:.. rubric:: Table of contents
+admin/privileges.rst:.. highlight:: psql
+admin/privileges.rst:.. rubric:: Table of contents
+admin/privileges.rst:.. code-block:: none
+admin/discovery.rst:.. rubric:: Table of contents
+admin/discovery.rst:.. code-block:: groovy
+admin/discovery.rst:.. code-block:: yaml
+admin/user-management.rst:.. rubric:: Table of contents
+admin/ssl.rst:.. rubric:: Table of contents
+admin/udc.rst:.. rubric:: Table of contents
+admin/udc.rst:.. highlight:: yaml
+appendices/index.rst:.. rubric:: Table of contents
+appendices/compliance.rst:.. highlight:: psql
+appendices/release-notes/unreleased.rst:.. rubric:: Table of contents
+appendices/release-notes/3.2.8.rst:.. rubric:: Table of contents
+appendices/release-notes/2.1.8.rst:.. rubric:: Table of contents
+appendices/release-notes/2.1.9.rst:.. rubric:: Table of contents
+appendices/release-notes/2.3.9.rst:.. rubric:: Table of contents
+appendices/release-notes/2.3.8.rst:.. rubric:: Table of contents
+appendices/release-notes/2.3.3.rst:.. rubric:: Table of contents
+appendices/release-notes/3.1.4.rst:.. rubric:: Table of contents
+appendices/release-notes/1.0.1.rst:.. rubric:: Table of contents
+appendices/release-notes/2.1.1.rst:.. rubric:: Table of contents
+appendices/release-notes/2.1.0.rst:.. rubric:: Table of contents
+appendices/release-notes/1.0.0.rst:.. rubric:: Table of contents
+appendices/release-notes/3.1.5.rst:.. rubric:: Table of contents
+appendices/release-notes/2.3.2.rst:.. rubric:: Table of contents
+appendices/release-notes/2.3.0.rst:.. rubric:: Table of contents
+appendices/release-notes/1.0.2.rst:.. rubric:: Table of contents
+appendices/release-notes/2.1.2.rst:.. rubric:: Table of contents
+appendices/release-notes/2.1.3.rst:.. rubric:: Table of contents
+appendices/release-notes/1.0.3.rst:.. rubric:: Table of contents
+appendices/release-notes/2.3.1.rst:.. rubric:: Table of contents
+appendices/release-notes/3.1.6.rst:.. rubric:: Table of contents
+appendices/release-notes/3.1.2.rst:.. rubric:: Table of contents
+appendices/release-notes/2.3.5.rst:.. rubric:: Table of contents
+appendices/release-notes/3.3.0.rst:.. rubric:: Table of contents
+appendices/release-notes/2.1.7.rst:.. rubric:: Table of contents
+appendices/release-notes/2.1.6.rst:.. rubric:: Table of contents
+appendices/release-notes/3.3.1.rst:.. rubric:: Table of contents
+appendices/release-notes/1.0.6.rst:.. rubric:: Table of contents
+appendices/release-notes/2.3.4.rst:.. rubric:: Table of contents
+appendices/release-notes/3.1.3.rst:.. rubric:: Table of contents
+appendices/release-notes/2.3.6.rst:.. rubric:: Table of contents
+appendices/release-notes/3.1.1.rst:.. rubric:: Table of contents
+appendices/release-notes/1.0.4.rst:.. rubric:: Table of contents
+appendices/release-notes/2.1.4.rst:.. rubric:: Table of contents
+appendices/release-notes/3.3.2.rst:.. rubric:: Table of contents
+appendices/release-notes/2.1.5.rst:.. rubric:: Table of contents
+appendices/release-notes/1.0.5.rst:.. rubric:: Table of contents
+appendices/release-notes/3.1.0.rst:.. rubric:: Table of contents
+appendices/release-notes/2.3.7.rst:.. rubric:: Table of contents
+appendices/release-notes/1.1.2.rst:.. rubric:: Table of contents
+appendices/release-notes/2.1.10.rst:.. rubric:: Table of contents
+appendices/release-notes/3.2.5.rst:.. rubric:: Table of contents
+appendices/release-notes/2.0.2.rst:.. rubric:: Table of contents
+appendices/release-notes/3.0.7.rst:.. rubric:: Table of contents
+appendices/release-notes/2.2.0.rst:.. rubric:: Table of contents
+appendices/release-notes/2.2.1.rst:.. rubric:: Table of contents
+appendices/release-notes/3.0.6.rst:.. rubric:: Table of contents
+appendices/release-notes/2.0.3.rst:.. rubric:: Table of contents
+appendices/release-notes/3.2.4.rst:.. rubric:: Table of contents
+appendices/release-notes/1.1.3.rst:.. rubric:: Table of contents
+appendices/release-notes/1.1.1.rst:.. rubric:: Table of contents
+appendices/release-notes/2.0.1.rst:.. rubric:: Table of contents
+appendices/release-notes/3.2.6.rst:.. rubric:: Table of contents
+appendices/release-notes/2.2.3.rst:.. rubric:: Table of contents
+appendices/release-notes/3.0.4.rst:.. rubric:: Table of contents
+appendices/release-notes/3.0.5.rst:.. rubric:: Table of contents
+appendices/release-notes/2.2.2.rst:.. rubric:: Table of contents
+appendices/release-notes/3.2.7.rst:.. rubric:: Table of contents
+appendices/release-notes/2.0.0.rst:.. rubric:: Table of contents
+appendices/release-notes/1.1.0.rst:.. rubric:: Table of contents
+appendices/release-notes/1.1.4.rst:.. rubric:: Table of contents
+appendices/release-notes/2.0.4.rst:.. rubric:: Table of contents
+appendices/release-notes/3.2.3.rst:.. rubric:: Table of contents
+appendices/release-notes/2.2.6.rst:.. rubric:: Table of contents
+appendices/release-notes/3.0.1.rst:.. rubric:: Table of contents
+appendices/release-notes/3.0.0.rst:.. rubric:: Table of contents
+appendices/release-notes/2.2.7.rst:.. rubric:: Table of contents
+appendices/release-notes/3.2.2.rst:.. rubric:: Table of contents
+appendices/release-notes/2.0.5.rst:.. rubric:: Table of contents
+appendices/release-notes/1.1.5.rst:.. rubric:: Table of contents
+appendices/release-notes/3.2.0.rst:.. rubric:: Table of contents
+appendices/release-notes/2.0.7.rst:.. rubric:: Table of contents
+appendices/release-notes/3.0.2.rst:.. rubric:: Table of contents
+appendices/release-notes/2.2.5.rst:.. rubric:: Table of contents
+appendices/release-notes/2.2.4.rst:.. rubric:: Table of contents
+appendices/release-notes/3.0.3.rst:.. rubric:: Table of contents
+appendices/release-notes/2.0.6.rst:.. rubric:: Table of contents
+appendices/release-notes/3.2.1.rst:.. rubric:: Table of contents
+appendices/release-notes/1.1.6.rst:.. rubric:: Table of contents
+appendices/compatibility.rst:.. rubric:: Table of contents
+config/index.rst:.. code-block:: sh
+config/index.rst:.. code-block:: sh
+config/index.rst:.. code-block:: yaml
+config/index.rst:.. rubric:: Table of contents
+config/cluster.rst:.. highlight:: sh
+config/cluster.rst:.. rubric:: Table of contents
+config/session.rst:.. rubric:: Table of contents
+config/session.rst:.. code-block:: sql
+config/session.rst:.. code-block:: sql
+config/node.rst:.. highlight:: sh
+config/node.rst:.. rubric:: Table of contents
+config/node.rst:.. code-block:: yaml
+config/logging.rst:.. rubric:: Table of contents
+config/logging.rst:.. code-block:: yaml
+config/logging.rst:.. code-block:: sql
+config/environment.rst:.. rubric:: Table of contents
+editions.rst:.. rubric:: Table of contents
+editions.rst:.. code-block:: console
+general/dql/index.rst:.. highlight:: psql
+general/dql/index.rst:.. rubric:: Table of contents
+general/dql/fulltext.rst:.. highlight:: psql
+general/dql/fulltext.rst:.. rubric:: Table of contents
+general/dql/selects.rst:.. highlight:: psql
+general/dql/selects.rst:.. rubric:: Table of contents
+general/dql/joins.rst:.. highlight:: psql
+general/dql/joins.rst:.. rubric:: Table of contents
+general/dql/refresh.rst:.. highlight:: psql
+general/dql/refresh.rst:.. rubric:: Table of contents
+general/dql/geo.rst:.. highlight:: psql
+general/dql/geo.rst:.. rubric:: Table of contents
+general/dql/union.rst:.. highlight:: psql
+general/index.rst:.. rubric:: Table of contents
+general/user-defined-functions.rst:.. rubric:: Table of contents
+general/user-defined-functions.rst:.. code-block:: js
+general/user-defined-functions.rst:.. code-block:: js
+general/dml.rst:.. highlight:: psql
+general/dml.rst:.. rubric:: Table of contents
+general/dml.rst:.. highlight:: psql
+general/information-schema.rst:.. highlight:: psql
+general/information-schema.rst:.. rubric:: Table of contents
+general/information-schema.rst:.. rubric:: Schema
+general/information-schema.rst:.. rubric:: Schema
+general/information-schema.rst:.. rubric:: Schema
+general/information-schema.rst:.. rubric:: Schema
+general/information-schema.rst:.. rubric:: Schema
+general/ddl/index.rst:.. highlight:: psql
+general/ddl/index.rst:.. rubric:: Table of contents
+general/ddl/partitioned-tables.rst:.. highlight:: psql
+general/ddl/partitioned-tables.rst:.. rubric:: Table of contents
+general/ddl/create-table.rst:.. rubric:: Table of contents
+general/ddl/data-types.rst:.. highlight:: psql
+general/ddl/data-types.rst:.. rubric:: Table of contents
+general/ddl/data-types.rst:.. code-block:: text
+general/ddl/fulltext-indices.rst:.. rubric:: Table of contents
+general/ddl/fulltext-indices.rst:.. code-block:: sql
+general/ddl/views.rst:.. rubric:: Table of contents
+general/ddl/replication.rst:.. rubric:: Table of contents
+general/ddl/analyzers.rst:.. rubric:: Table of contents
+general/ddl/analyzers.rst:.. rubric:: Parameters
+general/ddl/analyzers.rst:.. rubric:: Parameters
+general/ddl/analyzers.rst:.. rubric:: Parameters
+general/ddl/analyzers.rst:.. rubric:: Parameters
+general/ddl/analyzers.rst:.. rubric:: Parameters
+general/ddl/analyzers.rst:.. rubric:: Parameters
+general/ddl/analyzers.rst:.. rubric:: Parameters
+general/ddl/analyzers.rst:.. rubric:: Parameters
+general/ddl/analyzers.rst:.. rubric:: Parameters
+general/ddl/analyzers.rst:.. rubric:: Parameters
+general/ddl/analyzers.rst:.. rubric:: Parameters
+general/ddl/analyzers.rst:.. rubric:: Parameters
+general/ddl/analyzers.rst:.. rubric:: Parameters
+general/ddl/analyzers.rst:.. rubric:: Parameters
+general/ddl/analyzers.rst:.. rubric:: Parameters
+general/ddl/analyzers.rst:.. rubric:: Parameters
+general/ddl/analyzers.rst:.. rubric:: Parameters
+general/ddl/analyzers.rst:.. rubric:: Parameters
+general/ddl/analyzers.rst:.. rubric:: Parameters
+general/ddl/analyzers.rst:.. rubric:: Parameters
+general/ddl/analyzers.rst:.. rubric:: Parameters
+general/ddl/analyzers.rst:.. rubric:: Parameters
+general/ddl/analyzers.rst:.. rubric:: Parameters
+general/ddl/analyzers.rst:.. rubric:: Parameters
+general/ddl/analyzers.rst:.. rubric:: Parameters
+general/ddl/analyzers.rst:.. rubric:: Parameters
+general/ddl/analyzers.rst:.. rubric:: Parameters
+general/ddl/analyzers.rst:.. rubric:: Parameters
+general/ddl/analyzers.rst:.. rubric:: Parameters
+general/ddl/analyzers.rst:.. rubric:: Parameters
+general/ddl/analyzers.rst:.. rubric:: Parameters
+general/ddl/analyzers.rst:.. rubric:: Parameters
+general/ddl/analyzers.rst:.. rubric:: Parameters
+general/ddl/analyzers.rst:.. rubric:: Parameters
+general/ddl/analyzers.rst:.. rubric:: Parameters
+general/ddl/analyzers.rst:.. rubric:: Parameters
+general/ddl/analyzers.rst:.. rubric:: Parameters
+general/ddl/analyzers.rst:.. rubric:: Parameters
+general/ddl/analyzers.rst:.. rubric:: Parameters
+general/ddl/analyzers.rst:.. rubric:: Parameters
+general/ddl/analyzers.rst:.. rubric:: Parameters
+general/ddl/analyzers.rst:.. rubric:: Parameters
+general/ddl/analyzers.rst:.. rubric:: Parameters
+general/ddl/analyzers.rst:.. rubric:: Parameters
+general/ddl/analyzers.rst:.. rubric:: Parameters
+general/ddl/analyzers.rst:.. rubric:: Parameters
+general/ddl/analyzers.rst:.. rubric:: Parameters
+general/ddl/sharding.rst:.. rubric:: Table of contents
+general/ddl/alter-table.rst:.. rubric:: Table of contents
+general/blobs.rst:.. highlight:: sh
+general/blobs.rst:.. rubric:: Table of contents
+general/builtins/index.rst:.. highlight:: psql
+general/builtins/index.rst:.. rubric:: Table of contents
+general/builtins/array-comparisons.rst:.. highlight:: psql
+general/builtins/array-comparisons.rst:.. rubric:: Table of contents
+general/builtins/array-comparisons.rst:.. code-block:: sql
+general/builtins/array-comparisons.rst:.. code-block:: sql
+general/builtins/table-functions.rst:.. highlight:: psql
+general/builtins/table-functions.rst:.. rubric:: Table of contents
+general/builtins/arithmetic.rst:.. highlight:: psql
+general/builtins/arithmetic.rst:.. rubric:: Table of contents
+general/builtins/operators.rst:.. highlight:: psql
+general/builtins/aggregation.rst:.. highlight:: psql
+general/builtins/aggregation.rst:.. rubric:: Table of contents
+general/builtins/subquery-expressions.rst:.. highlight:: psql
+general/builtins/subquery-expressions.rst:.. rubric:: Table of contents
+general/builtins/subquery-expressions.rst:.. code-block:: sql
+general/builtins/subquery-expressions.rst:.. code-block:: sql
+general/builtins/scalar.rst:.. highlight:: psql
+general/builtins/scalar.rst:.. rubric:: Table of contents
+general/builtins/scalar.rst:.. csv-table:: date_format Format
+general/builtins/scalar.rst:.. rubric:: Footnotes
+general/builtins/window-functions.rst:.. highlight:: psql
+general/builtins/window-functions.rst:.. rubric:: Table of contents
+general/occ.rst:.. highlight:: psql
+general/occ.rst:.. rubric:: Table of contents
+index.rst:.. rubric:: Table of contents
+interfaces/index.rst:.. rubric:: Table of contents
+interfaces/http.rst:.. highlight:: sh
+interfaces/http.rst:.. rubric:: Table of contents
+interfaces/postgres.rst:.. rubric:: Table of contents
+run.rst:.. highlight:: sh
+run.rst:.. rubric:: Table of contents
+sql/general/index.rst:.. rubric:: Table of contents
+sql/general/value-expressions.rst:.. highlight:: psql
+sql/general/value-expressions.rst:.. rubric:: Table of contents
+sql/general/constraints.rst:.. highlight:: psql
+sql/general/constraints.rst:.. rubric:: Table of contents
+sql/general/lexical-structure.rst:.. highlight:: psql
+sql/general/lexical-structure.rst:.. rubric:: Table of contents
+sql/statements/grant.rst:.. rubric:: Table of contents
+sql/statements/grant.rst:.. code-block:: psql
+sql/statements/show-columns.rst:.. rubric:: Table of contents
+sql/statements/index.rst:.. rubric:: Table of contents
+sql/statements/create-table.rst:.. highlight:: psql
+sql/statements/create-table.rst:.. rubric:: Table of contents
+sql/statements/insert.rst:.. highlight:: psql
+sql/statements/insert.rst:.. rubric:: Table of contents
+sql/statements/drop-view.rst:.. highlight:: psql
+sql/statements/drop-view.rst:.. rubric:: Table of contents
+sql/statements/explain.rst:.. highlight:: psql
+sql/statements/explain.rst:.. rubric:: Table of contents
+sql/statements/create-repository.rst:.. highlight:: psql
+sql/statements/create-repository.rst:.. rubric:: Table of contents
+sql/statements/create-repository.rst:.. rubric:: Parameters
+sql/statements/create-repository.rst:.. rubric:: Parameters
+sql/statements/create-repository.rst:.. rubric:: Parameters
+sql/statements/create-repository.rst:.. rubric:: Parameters
+sql/statements/create-repository.rst:.. rubric:: Parameters
+sql/statements/create-repository.rst:.. rubric:: Parameters
+sql/statements/update.rst:.. highlight:: psql
+sql/statements/update.rst:.. rubric:: Table of contents
+sql/statements/kill.rst:.. highlight:: psql
+sql/statements/kill.rst:.. rubric:: Table of contents
+sql/statements/copy-from.rst:.. highlight:: psql
+sql/statements/copy-from.rst:.. rubric:: Table of contents
+sql/statements/copy-from.rst:.. code-block:: text
+sql/statements/copy-from.rst:.. code-block:: text
+sql/statements/copy-from.rst:    .. code-block:: text
+sql/statements/copy-from.rst:.. code-block:: text
+sql/statements/copy-from.rst:.. rubric:: Schema
+sql/statements/set-license.rst:.. highlight:: psql
+sql/statements/set-license.rst:.. rubric:: Table of contents
+sql/statements/restore-snapshot.rst:.. highlight:: psql
+sql/statements/restore-snapshot.rst:.. rubric:: Table of contents
+sql/statements/copy-to.rst:.. highlight:: psql
+sql/statements/copy-to.rst:.. rubric:: Table of contents
+sql/statements/commit.rst:.. highlight:: psql
+sql/statements/commit.rst:.. rubric:: Table of contents
+sql/statements/show-tables.rst:.. rubric:: Table of contents
+sql/statements/show.rst:.. highlight:: psql
+sql/statements/show.rst:.. rubric:: Table of contents
+sql/statements/drop-repository.rst:.. highlight:: psql
+sql/statements/drop-repository.rst:.. rubric:: Table of contents
+sql/statements/create-view.rst:.. highlight:: psql
+sql/statements/create-view.rst:.. rubric:: Table of contents
+sql/statements/set-transaction.rst:.. highlight:: psql
+sql/statements/set-transaction.rst:.. rubric:: Table of contents
+sql/statements/delete.rst:.. highlight:: psql
+sql/statements/delete.rst:.. rubric:: Table of contents
+sql/statements/create-analyzer.rst:.. highlight:: psql
+sql/statements/create-analyzer.rst:.. rubric:: Table of contents
+sql/statements/create-snapshot.rst:.. highlight:: psql
+sql/statements/create-snapshot.rst:.. rubric:: Table of contents
+sql/statements/set.rst:.. highlight:: psql
+sql/statements/set.rst:.. rubric:: Table of contents
+sql/statements/alter-user.rst:.. highlight:: psql
+sql/statements/alter-user.rst:.. rubric:: Table of contents
+sql/statements/revoke.rst:.. rubric:: Table of contents
+sql/statements/revoke.rst:.. code-block:: psql
+sql/statements/drop-table.rst:.. rubric:: Table of contents
+sql/statements/drop-table.rst:.. code-block:: sql
+sql/statements/create-function.rst:.. highlight:: psql
+sql/statements/create-function.rst:.. rubric:: Table of contents
+sql/statements/create-user.rst:.. rubric:: Table of contents
+sql/statements/create-user.rst:.. code-block:: psql
+sql/statements/deny.rst:.. rubric:: Table of contents
+sql/statements/deny.rst:.. code-block:: psql
+sql/statements/create-blob-table.rst:.. highlight:: psql
+sql/statements/create-blob-table.rst:.. rubric:: Table of contents
+sql/statements/deallocate.rst:.. highlight:: psql
+sql/statements/deallocate.rst:.. rubric:: Table of contents
+sql/statements/drop-snapshot.rst:.. highlight:: psql
+sql/statements/drop-snapshot.rst:.. rubric:: Table of contents
+sql/statements/drop-analyzer.rst:.. rubric:: Table of contents
+sql/statements/drop-analyzer.rst:.. code-block:: sql
+sql/statements/alter-cluster.rst:.. highlight:: psql
+sql/statements/alter-cluster.rst:.. rubric:: Table of contents
+sql/statements/refresh.rst:.. highlight:: psql
+sql/statements/refresh.rst:.. rubric:: Table of contents
+sql/statements/drop-function.rst:.. highlight:: psql
+sql/statements/drop-function.rst:.. rubric:: Table of contents
+sql/statements/show-schemas.rst:.. rubric:: Table of contents
+sql/statements/select.rst:.. highlight:: psql
+sql/statements/select.rst:.. rubric:: Table of contents
+sql/statements/drop-user.rst:.. rubric:: Table of contents
+sql/statements/drop-user.rst:.. code-block:: psql
+sql/statements/begin.rst:.. highlight:: psql
+sql/statements/begin.rst:.. rubric:: Table of contents
+sql/statements/optimize.rst:.. highlight:: psql
+sql/statements/optimize.rst:.. rubric:: Table of contents
+sql/statements/alter-table.rst:.. highlight:: psql
+sql/statements/alter-table.rst:.. rubric:: Table of contents
+sql/statements/show-create-table.rst:.. highlight:: psql
+sql/statements/show-create-table.rst:.. rubric:: Table of contents

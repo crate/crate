@@ -33,7 +33,7 @@ Unreleased Changes
 .. Remember to give the right level of information: Users should understand
 .. the impact of the change without going into the depth of tech.
 
-.. rubric:: Table of Contents
+.. rubric:: Table of contents
 
 .. contents::
    :local:

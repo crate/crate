@@ -22,7 +22,7 @@ usage, please consult the :ref:`admin_hba`.
 
    Secured Communications is an Enterprise Edition feature.
 
-.. rubric:: Table of Contents
+.. rubric:: Table of contents
 
 .. contents::
    :local:

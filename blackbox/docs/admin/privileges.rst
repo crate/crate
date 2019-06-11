@@ -24,7 +24,7 @@ Any statements which are not allowed with those privileges, such as ``GRANT``,
    privilege checks, and every statement will be executed without the
    validation of privileges.
 
-.. rubric:: Table of Contents
+.. rubric:: Table of contents
 
 .. contents::
    :local:

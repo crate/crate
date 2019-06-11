@@ -7,7 +7,7 @@
 
 Drop a function.
 
-.. rubric:: Table of Contents
+.. rubric:: Table of contents
 
 .. contents::
    :local:

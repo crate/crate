@@ -7,7 +7,7 @@
 
 Deallocate a prepared statement
 
-.. rubric:: Table of Contents
+.. rubric:: Table of contents
 
 .. contents::
    :local:

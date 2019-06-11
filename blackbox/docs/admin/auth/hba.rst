@@ -36,7 +36,7 @@ See: :ref:`applying-cluster-settings`.
    :ref:`auth.trust.http_default_user<auth_trust_http_default_user>` if no user
    is provided.
 
-.. rubric:: Table of Contents
+.. rubric:: Table of contents
 
 .. contents::
    :local:

@@ -6,7 +6,7 @@ Appendices
 
 Supplementary information for the CrateDB reference manual.
 
-.. rubric:: Table of Contents
+.. rubric:: Table of contents
 
 .. toctree::
     :maxdepth: 2

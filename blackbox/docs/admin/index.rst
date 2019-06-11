@@ -7,7 +7,7 @@ Administration
 This section of the documentation covers any feature primarily of interest to a
 database administrator.
 
-.. rubric:: Table of Contents
+.. rubric:: Table of contents
 
 .. toctree::
     :maxdepth: 2

@@ -9,7 +9,7 @@ CrateDB provides the ``sys`` schema which contains virtual tables. These tables
 are read-only and can be queried to get statistical real-time information about
 the cluster, its nodes and their shards:
 
-.. rubric:: Table of Contents
+.. rubric:: Table of contents
 
 .. contents::
    :local:

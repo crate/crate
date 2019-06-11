@@ -7,7 +7,7 @@
 Denies privilege to an existing user on the whole cluster or on a specific
 object.
 
-.. rubric:: Table of Contents
+.. rubric:: Table of contents
 
 .. contents::
    :local:

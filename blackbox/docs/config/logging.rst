@@ -15,7 +15,7 @@ application and the JVM itself, which runs CrateDB.
 Because garbage collection logging is a native feature of the JVM it behaves
 differently and is configured differently.
 
-.. rubric:: Table of Contents
+.. rubric:: Table of contents
 
 .. contents::
    :local:

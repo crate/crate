@@ -12,7 +12,7 @@ separate tokens is done by an analyzer. In order to create fulltext search
 queries a :ref:`fulltext index with an analyzer <sql_ddl_index_fulltext>` must
 be defined for the related columns.
 
-.. rubric:: Table of Contents
+.. rubric:: Table of contents
 
 .. contents::
    :local:

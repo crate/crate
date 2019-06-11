@@ -61,7 +61,7 @@ settings will override configuration file settings.
    documentation. The rest of this configuration documentation assumes a basic
    familiarity with the relevant parts of CrateDB.
 
-.. rubric:: Table of Contents
+.. rubric:: Table of contents
 
 .. toctree::
    :maxdepth: 2

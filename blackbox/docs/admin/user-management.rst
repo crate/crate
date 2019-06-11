@@ -10,7 +10,7 @@ User Management
    :ref:`enterprise feature <enterprise-features>`.
 
 
-.. rubric:: Table of Contents
+.. rubric:: Table of contents
 
 .. contents::
    :local:

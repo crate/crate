@@ -11,7 +11,7 @@ There are multiple ways to authenticate against CrateDB.
    Authentication methods are an :ref:`enterprise feature
    <enterprise-features>`.
 
-.. rubric:: Table of Contents
+.. rubric:: Table of contents
 
 .. contents::
    :local:
