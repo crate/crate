@@ -1250,7 +1250,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
             getComparisonOperator(((TerminalNode) context.cmpOp().getChild(0)).getSymbol()),
             getComparisonQuantifier(((TerminalNode) context.setCmpQuantifier().getChild(0)).getSymbol()),
             (Expression) visit(context.value),
-            (Expression) visit(context.parenthesizedPrimaryExpressionOrSubquery()));
+            (Expression) visit(context.primaryExpression()));
     }
 
     @Override
@@ -1432,11 +1432,6 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     @Override
     public Node visitSubqueryExpression(SqlBaseParser.SubqueryExpressionContext context) {
         return new SubqueryExpression((Query) visit(context.query()));
-    }
-
-    @Override
-    public Node visitParenthesizedPrimaryExpression(SqlBaseParser.ParenthesizedPrimaryExpressionContext context) {
-        return visit(context.primaryExpression());
     }
 
     @Override

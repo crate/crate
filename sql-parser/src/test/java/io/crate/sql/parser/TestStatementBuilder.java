@@ -1163,7 +1163,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testArrayComparisonSubselect() {
+    public void testArrayComparisonSubSelect() {
         Expression anyExpression = SqlParser.createExpression("1 = ANY ((SELECT 5))");
         assertThat(anyExpression, instanceOf(ArrayComparisonExpression.class));
         ArrayComparisonExpression arrayComparisonExpression = (ArrayComparisonExpression) anyExpression;
@@ -1171,7 +1171,7 @@ public class TestStatementBuilder {
         assertThat(arrayComparisonExpression.getLeft(), instanceOf(LongLiteral.class));
         assertThat(arrayComparisonExpression.getRight(), instanceOf(SubqueryExpression.class));
 
-        // It's possible to ommit the parenthesis
+        // It's possible to omit the parenthesis
         anyExpression = SqlParser.createExpression("1 = ANY (SELECT 5)");
         assertThat(anyExpression, instanceOf(ArrayComparisonExpression.class));
         arrayComparisonExpression = (ArrayComparisonExpression) anyExpression;
