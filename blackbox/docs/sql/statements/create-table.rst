@@ -93,12 +93,14 @@ Base Columns
 ~~~~~~~~~~~~
 
 A base column is a persistent column in the table metadata. In relational terms
-it is an attribute of the tuple of the table-relation. It has a name, type
+it is an attribute of the tuple of the table-relation. It has a name, type,
 optional default clause and constraints.
 
 Base columns are readable and writable (if the table itself is writable).
-Values for base columns are given in DML statements explicitly or omitted, in
+Values for base columns are given in DML statements explicitly or omitted in
 which case their value is null.
+
+.. _ref-default-clause:
 
 Default clause
 ^^^^^^^^^^^^^^
