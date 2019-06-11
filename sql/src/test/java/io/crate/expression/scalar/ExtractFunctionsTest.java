@@ -49,6 +49,14 @@ public class ExtractFunctionsTest extends AbstractScalarFunctionsTest {
     }
 
     @Test
+    public void testExtractCenturyFromTimestampWithoutTimeZone() {
+        assertEvaluate(
+            "extract(day from timestamp)",
+            25,
+            Literal.of(DataTypes.TIMESTAMP, DataTypes.TIMESTAMP.value("2014-03-25")));
+    }
+
+    @Test
     public void testExtractYear() throws Exception {
         assertEvaluate("extract(year from timestamp_tz)", 2014);
     }
