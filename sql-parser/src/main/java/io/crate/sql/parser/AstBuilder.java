@@ -1586,11 +1586,6 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     }
 
     @Override
-    public Node visitSetTypeDefinition(SqlBaseParser.SetTypeDefinitionContext context) {
-        return CollectionColumnType.set((ColumnType) visit(context.dataType()));
-    }
-
-    @Override
     public Node visitDefinedDataType(SqlBaseParser.DefinedDataTypeContext context) {
         String type = context.children.stream()
             .map(c -> c.getText().toLowerCase(Locale.ENGLISH))

@@ -42,7 +42,6 @@ import io.crate.types.ArrayType;
 import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.SetType;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
@@ -329,8 +328,6 @@ public class AnalyzedTableElements {
             if (valueType instanceof ArrayType) {
                 columnDefinition.collectionType(ArrayType.NAME);
                 columnDefinition.dataType(CollectionType.unnest(valueType).getName());
-            } else if (valueType instanceof SetType) {
-                throw new UnsupportedOperationException("SET type is not supported in CREATE TABLE statements");
             } else {
                 columnDefinition.dataType(valueType.getName());
             }

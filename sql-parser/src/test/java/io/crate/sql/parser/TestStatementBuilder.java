@@ -499,10 +499,6 @@ public class TestStatementBuilder {
         printStatement("create table test (col1 string, col2 string," +
             "index col1_col2_ft using fulltext(col1, col2) with (analyzer='custom'))");
 
-        printStatement("create table test (prime long, primes array(long), unique_dates set(timestamp with time zone))");
-        printStatement("create table test (nested set(set(array(boolean))))");
-        printStatement("create table test (object_array array(object(dynamic) as (i integer, s set(string))))");
-
         printStatement("create table test (col1 int, col2 timestamp with time zone) partitioned by (col1)");
         printStatement("create table test (col1 int, col2 timestamp with time zone) partitioned by (col1, col2)");
         printStatement("create table test (col1 int, col2 timestamp with time zone) partitioned by (col1) clustered by (col2)");

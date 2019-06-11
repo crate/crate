@@ -32,7 +32,6 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.IntegerType;
 import io.crate.types.LongType;
-import io.crate.types.SetType;
 import io.crate.types.StringType;
 
 import javax.annotation.Nullable;
@@ -76,7 +75,6 @@ public final class Param {
     public static final Param ANY = of();
     public static final Param NUMERIC = of(DataTypes.NUMERIC_PRIMITIVE_TYPES);
     public static final Param ANY_ARRAY = of(new ArrayType(DataTypes.UNDEFINED));
-    public static final Param ANY_SET = of(new SetType(DataTypes.UNDEFINED));
     public static final Param INTEGER = of(IntegerType.INSTANCE);
     public static final Param LONG = of(LongType.INSTANCE);
     public static final Param STRING = of(StringType.INSTANCE);
