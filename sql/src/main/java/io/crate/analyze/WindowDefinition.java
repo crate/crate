@@ -59,6 +59,12 @@ public class WindowDefinition implements Writeable {
         new FrameBoundDefinition(UNBOUNDED_FOLLOWING)
     );
 
+    public static final WindowFrameDefinition UNBOUNDED_PRECEDING_UNBOUNDED_FOLLOWING = new WindowFrameDefinition(
+        RANGE,
+        new FrameBoundDefinition(UNBOUNDED_PRECEDING),
+        new FrameBoundDefinition(UNBOUNDED_FOLLOWING)
+    );
+
     private final List<Symbol> partitions;
     @Nullable
     private final OrderBy orderBy;
