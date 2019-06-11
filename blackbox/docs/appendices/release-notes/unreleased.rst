@@ -251,7 +251,7 @@ Changes
 =======
 
 - Added support for ``CURRENT ROW -> UNBOUNDED FOLLOWING`` window frame
-  definitions in the context of `window functions <window-functions>`_.
+  definitions in the context of :ref:`window-functions`.
 
 - Added the :ref:`pg_get_userbyid` scalar function to enhance PostgreSQL
   compatibility.
