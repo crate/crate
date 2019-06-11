@@ -196,7 +196,7 @@ predicated
 
 predicate[ParserRuleContext value]
     : cmpOp right=valueExpression                                                    #comparison
-    | cmpOp setCmpQuantifier parenthesizedPrimaryExpressionOrSubquery                #quantifiedComparison
+    | cmpOp setCmpQuantifier primaryExpression                                       #quantifiedComparison
     | NOT? BETWEEN lower=valueExpression AND upper=valueExpression                   #between
     | NOT? IN '(' expr (',' expr)* ')'                                               #inList
     | NOT? IN subqueryExpression                                                     #inSubquery
@@ -252,17 +252,8 @@ explicitFunction
     | ARRAY subqueryExpression                                                       #arraySubquery
     ;
 
-parenthesizedPrimaryExpressionOrSubquery
-    : parenthesizedPrimaryExpression
-    | subqueryExpression
-    ;
-
 subqueryExpression
     : '(' query ')'
-    ;
-
-parenthesizedPrimaryExpression
-    : '(' primaryExpression ')'
     ;
 
 parameterOrLiteral
