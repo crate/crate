@@ -44,6 +44,7 @@ public class SslReqHandlerTest extends CrateUnitTest {
     @After
     public void dispose() {
         if (channel != null) {
+            channel.releaseInbound();
             channel.close().awaitUninterruptibly();
             channel = null;
         }
@@ -67,6 +68,7 @@ public class SslReqHandlerTest extends CrateUnitTest {
         ByteBuf responseBuffer = channel.readOutbound();
         byte response = responseBuffer.readByte();
         assertEquals(response, 'S');
+        responseBuffer.release();
 
         // ...and continue encrypted (ssl handler)
         assertThat(channel.pipeline().first(), instanceOf(SslHandler.class));
