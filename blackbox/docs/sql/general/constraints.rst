@@ -10,12 +10,12 @@ Constraints
 .. contents::
    :local:
 
-.. _primary_key_constraint:
-
 Tables Constraints
 ==================
 
 Table constraints are constraints that are applied to the table as a whole.
+
+.. _primary_key_constraint:
 
 ``PRIMARY KEY``
 ---------------
