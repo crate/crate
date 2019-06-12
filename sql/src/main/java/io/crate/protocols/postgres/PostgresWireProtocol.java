@@ -292,6 +292,9 @@ class PostgresWireProtocol {
                 dispatchState(buffer, channel);
             } catch (Throwable t) {
                 ignoreTillSync = true;
+                if (session != null) {
+                    t = SQLExceptions.forWireTransmission(getAccessControl.apply(session.sessionContext()), t);
+                }
                 try {
                     Messages.sendErrorResponse(channel, t);
                 } catch (Throwable ti) {
