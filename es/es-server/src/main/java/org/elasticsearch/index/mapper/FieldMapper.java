@@ -63,6 +63,8 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
         protected final MultiFields.Builder multiFieldsBuilder;
         protected CopyTo copyTo = CopyTo.empty();
         protected Integer position;
+        @Nullable
+        protected String defaultExpression;
 
         protected Builder(String name, MappedFieldType fieldType, MappedFieldType defaultFieldType) {
             super(name);
@@ -100,6 +102,7 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
             return builder;
         }
 
+        @Nullable
         protected IndexOptions getDefaultIndexOption() {
             return defaultOptions;
         }
@@ -225,6 +228,10 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
         public void position(int position) {
             this.position = position;
         }
+
+        public void defaultExpression(String defaultExpression) {
+            this.defaultExpression = defaultExpression;
+        }
     }
 
     protected final Version indexCreatedVersion;
@@ -241,8 +248,14 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
     @Nullable
     protected Integer position;
 
+    /**
+     * Expression that is used as the default value for a field
+     */
+    @Nullable String defaultExpression;
+
     protected FieldMapper(String simpleName,
                           @Nullable Integer position,
+                          @Nullable String defaultExpression,
                           MappedFieldType fieldType,
                           MappedFieldType defaultFieldType,
                           Settings indexSettings,
@@ -251,6 +264,7 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
         super(simpleName);
         assert indexSettings != null;
         this.position = position;
+        this.defaultExpression = defaultExpression;
         this.indexCreatedVersion = Version.indexCreated(indexSettings);
         if (simpleName.isEmpty()) {
             throw new IllegalArgumentException("name cannot be empty string");
@@ -405,6 +419,9 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
         }
         if (position != null) {
             builder.field("position", position);
+        }
+        if (defaultExpression != null) {
+            builder.field("default_expr", defaultExpression);
         }
         if (includeDefaults || fieldType().stored() != defaultFieldType.stored()) {
             builder.field("store", fieldType().stored());

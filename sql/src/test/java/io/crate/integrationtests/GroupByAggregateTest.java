@@ -21,18 +21,16 @@
 
 package io.crate.integrationtests;
 
-import io.crate.Constants;
 import io.crate.action.sql.SQLActionException;
 import io.crate.data.ArrayBucket;
 import io.crate.data.Paging;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.test.ESIntegTestCase;
+import org.hamcrest.Matchers;
 import org.hamcrest.core.Is;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.util.HashMap;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiLettersOfLength;
 import static io.crate.testing.TestingHelpers.printedTable;
@@ -1240,6 +1238,36 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
             is("NULL| 4\n" +
                "1| 3\n" +
                "2| 2\n")
+        );
+    }
+
+    @Test
+    public void testSelectAndGroupBySingleStringKeyForLowCardinalityField() {
+        execute("create table t (name string) clustered into 1 shards");
+        // has low cardinality ration: CARDINALITY_RATIO_THRESHOLD (0.5) > 2 terms / 4 docs
+        execute("insert into t (name) values ('a'), ('b'), ('a'), ('b')");
+        execute("refresh table t");
+        execute("select name, count(name) from t group by 1 order by 1");
+        assertThat(printedTable(response.rows()), is(
+            "a| 2\n" +
+            "b| 2\n"));
+    }
+
+    @Test
+    public void testSelectCollectSetAndGroupBy() {
+        execute("SELECT\n" +
+                "col1,\n" +
+                "collect_set(col1)\n" +
+                "FROM unnest(ARRAY[1, 2, 2, 3, 4, 5, null]) col1 " +
+                "GROUP BY col1");
+        assertThat(
+            printedTable(response.rows()),
+            Matchers.is("1| [1]\n" +
+                        "2| [2]\n" +
+                        "3| [3]\n" +
+                        "4| [4]\n" +
+                        "5| [5]\n" +
+                        "NULL| []\n")
         );
     }
 }

@@ -71,6 +71,7 @@ public class InternalViewInfoFactory implements ViewInfoFactory {
                     new Reference(new ReferenceIdent(ident, field.path().sqlFqn()),
                                   RowGranularity.DOC,
                                   field.valueType(),
+                                  null,
                                   null)));
             columns = collectedColumns;
         } catch (ResourceUnknownException e) {

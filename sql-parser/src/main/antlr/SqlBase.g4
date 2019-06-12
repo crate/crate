@@ -196,7 +196,7 @@ predicated
 
 predicate[ParserRuleContext value]
     : cmpOp right=valueExpression                                                    #comparison
-    | cmpOp setCmpQuantifier parenthesizedPrimaryExpressionOrSubquery                #quantifiedComparison
+    | cmpOp setCmpQuantifier primaryExpression                                       #quantifiedComparison
     | NOT? BETWEEN lower=valueExpression AND upper=valueExpression                   #between
     | NOT? IN '(' expr (',' expr)* ')'                                               #inList
     | NOT? IN subqueryExpression                                                     #inSubquery
@@ -219,6 +219,7 @@ valueExpression
 
 primaryExpression
     : parameterOrLiteral                                                             #defaultParamOrLiteral
+    | explicitFunction                                                               #explicitFunctionDefault
     | qname '(' ASTERISK ')' over?                                                   #functionCall
     | ident                                                                          #columnReference
     | qname '(' (setQuant? expr (',' expr)*)? ')' over?                              #functionCall
@@ -229,17 +230,20 @@ primaryExpression
     | EXISTS '(' query ')'                                                           #exists
     | value=primaryExpression '[' index=valueExpression ']'                          #subscript
     | ident ('.' ident)*                                                             #dereference
-    | name=CURRENT_DATE                                                              #specialDateTimeFunction
+    | primaryExpression CAST_OPERATOR dataType                                       #doubleColonCast
+    ;
+
+explicitFunction
+    : name=CURRENT_DATE                                                              #specialDateTimeFunction
     | name=CURRENT_TIME ('(' precision=integerLiteral')')?                           #specialDateTimeFunction
     | name=CURRENT_TIMESTAMP ('(' precision=integerLiteral')')?                      #specialDateTimeFunction
-    | CURRENT_SCHEMA ('(' ')')?                                                      #currentSchema
+    | CURRENT_SCHEMA                                                                 #currentSchema
     | (CURRENT_USER | USER)                                                          #currentUser
     | SESSION_USER                                                                   #sessionUser
     | SUBSTRING '(' expr FROM expr (FOR expr)? ')'                                   #substring
     | TRIM '(' ((trimMode=(LEADING | TRAILING | BOTH))?
                 (charsToTrim=expr)? FROM)? target=expr ')'                           #trim
     | EXTRACT '(' stringLiteralOrIdentifier FROM expr ')'                            #extract
-    | primaryExpression CAST_OPERATOR dataType                                       #doubleColonCast
     | CAST '(' expr AS dataType ')'                                                  #cast
     | TRY_CAST '(' expr AS dataType ')'                                              #cast
     | CASE operand=expr whenClause+ (ELSE elseExpr=expr)? END                        #simpleCase
@@ -248,17 +252,8 @@ primaryExpression
     | ARRAY subqueryExpression                                                       #arraySubquery
     ;
 
-parenthesizedPrimaryExpressionOrSubquery
-    : parenthesizedPrimaryExpression
-    | subqueryExpression
-    ;
-
 subqueryExpression
     : '(' query ')'
-    ;
-
-parenthesizedPrimaryExpression
-    : '(' primaryExpression ')'
     ;
 
 parameterOrLiteral
@@ -490,13 +485,13 @@ blobClusteredInto
     ;
 
 tableElement
-    : columnDefinition                                                               #columndDefinitionDefault
+    : columnDefinition                                                               #columnDefinitionDefault
     | PRIMARY_KEY columns                                                            #primaryKeyConstraint
     | INDEX name=ident USING method=ident columns withProperties?                    #indexDefinition
     ;
 
 columnDefinition
-    : ident dataType? ((GENERATED ALWAYS)? AS expr)? columnConstraint*
+    : ident dataType? (DEFAULT defaultExpr=expr)? ((GENERATED ALWAYS)? AS generatedExpr=expr)? columnConstraint*
     ;
 
 addColumnDefinition
@@ -514,7 +509,6 @@ dataType
     | ident                     #dataTypeIdent
     | objectTypeDefinition      #objectDataType
     | arrayTypeDefinition       #arrayDataType
-    | setTypeDefinition         #setDataType
     ;
 
 definedDataType
@@ -530,10 +524,6 @@ objectTypeDefinition
 
 arrayTypeDefinition
     : ARRAY '(' dataType ')'
-    ;
-
-setTypeDefinition
-    : SET '(' dataType ')'
     ;
 
 columnConstraint
@@ -643,7 +633,7 @@ nonReserved
     | DO | NOTHING | CONFLICT | TRANSACTION_ISOLATION | RETURN | SUMMARY
     | WORK | SERIALIZABLE | REPEATABLE | COMMITTED | UNCOMMITTED | READ | WRITE | DEFERRABLE
     | STRING_TYPE | IP | DOUBLE | FLOAT | TIMESTAMP | LONG | INT | INTEGER | SHORT | BYTE | BOOLEAN | PRECISION
-    | REPLACE | SWAP | GC | DANGLING | ARTIFACTS | DECOMMISSION | LEADING | TRAILING | BOTH | TRIM
+    | REPLACE | SWAP | GC | DANGLING | ARTIFACTS | DECOMMISSION | LEADING | TRAILING | BOTH | TRIM | CURRENT_SCHEMA
     ;
 
 SELECT: 'SELECT';

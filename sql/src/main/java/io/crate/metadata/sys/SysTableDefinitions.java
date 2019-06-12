@@ -57,11 +57,13 @@ public class SysTableDefinitions {
                                TableHealthService tableHealthService) {
         tableDefinitions.put(SysJobsTableInfo.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(jobsLogs.activeJobs()),
-            SysJobsTableInfo.expressions(clusterService::localNode)
+            SysJobsTableInfo.expressions(clusterService::localNode),
+            (user, jobCtx) -> user.isSuperUser() || user.name().equals(jobCtx.username())
         ));
         tableDefinitions.put(SysJobsLogTableInfo.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(jobsLogs.jobsLog()),
-            SysJobsLogTableInfo.expressions()
+            SysJobsLogTableInfo.expressions(),
+            (user, jobCtx) -> user.isSuperUser() || user.name().equals(jobCtx.username())
         ));
         tableDefinitions.put(SysOperationsTableInfo.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(jobsLogs.activeOperations()),
@@ -84,7 +86,7 @@ public class SysTableDefinitions {
         ));
         tableDefinitions.put(SysRepositoriesTableInfo.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(repositoriesService.getRepositoriesList()),
-            SysRepositoriesTableInfo.expressions()
+            SysRepositoriesTableInfo.expressions(clusterService.getClusterSettings().maskedSettings())
         ));
         tableDefinitions.put(SysSnapshotsTableInfo.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(sysSnapshots.currentSnapshots()),

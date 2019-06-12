@@ -47,10 +47,6 @@ public class AzureStorageServiceMock extends AzureStorageService {
 
     protected final Map<String, ByteArrayOutputStream> blobs = new ConcurrentHashMap<>();
 
-    AzureStorageServiceMock() {
-        super(Settings.EMPTY);
-    }
-
     @Override
     public boolean doesContainerExist(String container) {
         return true;
@@ -148,7 +144,7 @@ public class AzureStorageServiceMock extends AzureStorageService {
     }
 
     @Override
-    public AzureStorageSettings refreshAndClearCache(AzureStorageSettings clientsSettings) {
-        return AzureStorageSettings.getClientSettings(Settings.EMPTY);
+    public void refreshSettings(AzureStorageSettings clientsSettings) {
+        AzureStorageSettings.getClientSettings(Settings.EMPTY);
     }
 }

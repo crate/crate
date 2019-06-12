@@ -32,8 +32,8 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.FunctionResolver;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.functions.params.Param;
 import io.crate.types.DataType;
@@ -72,7 +72,7 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> implements FunctionFo
         assert symbol.arguments().size() == 1 : "function's number of arguments must be 1";
 
         Symbol arg = symbol.arguments().get(0);
-        if (arg.equals(Literal.NULL) || arg.valueType().equals(DataTypes.UNDEFINED)) {
+        if (arg.equals(Literal.NULL)) {
             return Literal.of(true);
         } else if (arg.symbolType().isValueSymbol()) {
             return Literal.of(((Input) arg).value() == null);

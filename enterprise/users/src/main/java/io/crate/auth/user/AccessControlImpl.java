@@ -39,6 +39,7 @@ import io.crate.analyze.CreateFunctionAnalyzedStatement;
 import io.crate.analyze.CreateRepositoryAnalyzedStatement;
 import io.crate.analyze.CreateSnapshotAnalyzedStatement;
 import io.crate.analyze.CreateTableAnalyzedStatement;
+import io.crate.analyze.CreateUserAnalyzedStatement;
 import io.crate.analyze.CreateViewStmt;
 import io.crate.analyze.DeallocateAnalyzedStatement;
 import io.crate.analyze.DropBlobTableAnalyzedStatement;
@@ -46,12 +47,14 @@ import io.crate.analyze.DropFunctionAnalyzedStatement;
 import io.crate.analyze.DropRepositoryAnalyzedStatement;
 import io.crate.analyze.DropSnapshotAnalyzedStatement;
 import io.crate.analyze.DropTableAnalyzedStatement;
+import io.crate.analyze.DropUserAnalyzedStatement;
 import io.crate.analyze.DropViewStmt;
 import io.crate.analyze.ExplainAnalyzedStatement;
 import io.crate.analyze.InsertFromSubQueryAnalyzedStatement;
 import io.crate.analyze.InsertFromValuesAnalyzedStatement;
 import io.crate.analyze.KillAnalyzedStatement;
 import io.crate.analyze.MultiSourceSelect;
+import io.crate.analyze.PrivilegesAnalyzedStatement;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.QueriedTable;
 import io.crate.analyze.RefreshTableAnalyzedStatement;
@@ -241,7 +244,6 @@ public final class AccessControlImpl implements AccessControl {
         private void visitRelation(AnalyzedRelation relation, User user, Privilege.Type type) {
             relationVisitor.process(relation, new RelationContext(user, type));
         }
-
 
         @Override
         protected Void visitAnalyzedStatement(AnalyzedStatement analyzedStatement, User user) {
@@ -460,8 +462,13 @@ public final class AccessControlImpl implements AccessControl {
         @Override
         public Void visitSetStatement(SetAnalyzedStatement analysis, User user) {
             if (analysis.scope().equals(SetStatement.Scope.GLOBAL)) {
-                throwRequiresSuperUserPermission(user.name());
-                return null;
+                Privileges.ensureUserHasPrivilege(
+                    Privilege.Type.AL,
+                    Privilege.Clazz.CLUSTER,
+                    null,
+                    user,
+                    defaultSchema
+                );
             }
             return null;
         }
@@ -584,6 +591,53 @@ public final class AccessControlImpl implements AccessControl {
                 user,
                 defaultSchema);
             visitRelation(createViewStmt.analyzedQuery(), user, Privilege.Type.DQL);
+            return null;
+        }
+
+        @Override
+        protected Void visitCreateUserStatement(CreateUserAnalyzedStatement createUser, User user) {
+            Privileges.ensureUserHasPrivilege(
+                Privilege.Type.AL,
+                Privilege.Clazz.CLUSTER,
+                null,
+                user,
+                defaultSchema
+            );
+            return null;
+        }
+
+        @Override
+        protected Void visitDropUserStatement(DropUserAnalyzedStatement dropUser, User user) {
+            Privileges.ensureUserHasPrivilege(
+                Privilege.Type.AL,
+                Privilege.Clazz.CLUSTER,
+                null,
+                user,
+                defaultSchema
+            );
+            return null;
+        }
+
+        @Override
+        public Void visitPrivilegesStatement(PrivilegesAnalyzedStatement changePrivileges, User user) {
+            Privileges.ensureUserHasPrivilege(
+                Privilege.Type.AL,
+                Privilege.Clazz.CLUSTER,
+                null,
+                user,
+                defaultSchema
+            );
+            for (Privilege privilege : changePrivileges.privileges()) {
+                if (privilege.state() == Privilege.State.GRANT) {
+                    Privileges.ensureUserHasPrivilege(
+                        privilege.ident().type(),
+                        privilege.ident().clazz(),
+                        privilege.ident().ident(),
+                        user,
+                        defaultSchema
+                    );
+                }
+            }
             return null;
         }
 

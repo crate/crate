@@ -45,48 +45,92 @@ Discovery Changes
 -----------------
 
 This version of CrateDB uses a new cluster coordination (discovery)
-implementation known as `zen2` which improves resiliency and master election
-times.
-Due to this some discovery settings are renamed, removed and added.
+implementation which improves resiliency and master election times.
+A new voting mechanism is used when a node is removed or added which makes the
+system capable of automatically maintaining an optimal level of fault
+tolerance even in situations of network partitions.
+This eliminates the need of the easily misconfigured ``minimum_master_nodes``
+setting.
+Additionally a very rare resiliency failure, recorded as `Repeated cluster
+partitions can cause cluster state updates to be lost
+<https://crate.io/docs/crate/guide/en/latest/architecture/resilience.html#repeated-cluster-partitions-can-cause-lost-cluster-updates>`_
+can no longer occur.
 
-Added Settings
-~~~~~~~~~~~~~~
+Due to this some discovery settings are added, renamed and removed.
 
- - Added :ref:`cluster.initial_master_nodes <cluster_initial_master_nodes>`.
+   +----------------------------------------+----------------------------------+
+   | Old Name                               | New Name                         |
+   +========================================+==================================+
+   | New, required on upgrade.              | ``cluster.initial_master_nodes`` |
+   +----------------------------------------+----------------------------------+
+   | ``discovery.zen.hosts_provider``       | ``discovery.seed_providers``     |
+   +----------------------------------------+----------------------------------+
+   | ``discovery.zen.ping.unicast.hosts``   | ``discovery.seed_hosts``         |
+   +----------------------------------------+----------------------------------+
+   | ``discovery.zen.minimum_master_nodes`` | Removed                          |
+   +----------------------------------------+----------------------------------+
+   | ``discovery.zen.ping_interval``        | Removed                          |
+   +----------------------------------------+----------------------------------+
+   | ``discovery.zen.ping_timeout``         | Removed                          |
+   +----------------------------------------+----------------------------------+
+   | ``discovery.zen.ping_retries``         | Removed                          |
+   +----------------------------------------+----------------------------------+
+   | ``discovery.zen.publish_timeout``      | Removed                          |
+   +----------------------------------------+----------------------------------+
 
 .. CAUTION::
 
-   This setting is required to be set at production (non loopback bound)
-   clusters on upgrade, see
-   :ref:`cluster.initial_master_nodes <cluster_initial_master_nodes>` for
-   details.
+   The :ref:`cluster.initial_master_nodes <cluster_initial_master_nodes>`
+   setting is required to be set at production (non loopback bound) clusters on
+   upgrade, see the :ref:`setting documentation <cluster_initial_master_nodes>`
+   for details.
 
-Renamed Settings
-~~~~~~~~~~~~~~~~
+.. NOTE::
 
- - Renamed ``discovery.zen.ping.unicast.hosts`` to ``discovery.seed_hosts``.
+   Only a single port value is allowed for each ``discovery.seed_hosts`` setting
+   entry. Defining a port range as it was allowed but ignored in previous
+   versions under the old setting name ``discovery.zen.ping.unicast.hosts``,
+   will be rejected.
 
-   .. NOTE::
+.. NOTE::
 
-      Apart from the rename, only a single port value on each entry is
-      allowed. Defining a port range as it was allowed but ignored in previous
-      versions will be rejected.
+   CrateDB will refuse to start when it encounters an unknown setting, like the
+   above mentioned removed ones. Please make sure to adjust your ``crate.yml``
+   or CMD arguments upfront.
 
- - Renamed ``discovery.zen.hosts_provider`` to ``discovery.seed_providers``.
-
-Removed Settings
-~~~~~~~~~~~~~~~~
-
-The following settings are removed:
-
- - ``discovery.zen.minimum_master_nodes``
- - ``discovery.zen.ping_interval``
- - ``discovery.zen.ping_timeout``
- - ``discovery.zen.ping_retries``
- - ``discovery.zen.publish_timeout``
 
 Breaking Changes
 ----------------
+
+- Removed deprecated metrics from :ref:`sys.nodes <sys-nodes>`:
+
+   +--------------------------------+
+   | Metric name                    |
+   +================================+
+   |``fs['disks']['reads']``        |
+   +--------------------------------+
+   |``fs['disks']['bytes_read']``   |
+   +--------------------------------+
+   |``fs['disks']['writes']``       |
+   +--------------------------------+
+   |``fs['disks']['bytes_written']``|
+   +--------------------------------+
+   |``os['cpu']['system']``         |
+   +--------------------------------+
+   |``os['cpu']['user']``           |
+   +--------------------------------+
+   |``os['cpu']['idle']``           |
+   +--------------------------------+
+   |``os['cpu']['stolen']``         |
+   +--------------------------------+
+   |``process['cpu']['user']``      |
+   +--------------------------------+
+   |``process['cpu']['system']``    |
+   +--------------------------------+
+
+- Removed the possibility of configuring the AWS S3 repository client via the
+  ``crate.yaml`` configuration file and command line arguments. Please, use
+  the :ref:`ref-create-repository` statement parameters for this purpose.
 
 - Removed :ref:`HDFS repository setting<ref-create-repository-types-hdfs>`:
   ``concurrent_streams`` as it is no longer supported.
@@ -206,6 +250,47 @@ Deprecations
 Changes
 =======
 
+- Added support for column :ref:`ref-default-clause` for :ref:`ref-create-table`.
+
+- Added support for ``CURRENT ROW -> UNBOUNDED FOLLOWING`` window frame
+  definitions in the context of :ref:`window-functions`.
+
+- Added the :ref:`pg_get_userbyid` scalar function to enhance PostgreSQL
+  compatibility.
+
+- Added support for dynamical reloading of SSL certificates.
+  See :ref:`ssl_configure_keystore`.
+
+- Predicates like ``abs(x) = 1`` which require a scalar function evaluation and
+  cannot operate on table indices directly are now candidates for the query
+  cache. This can result in order of magnitude performance increases on
+  subsequent queries.
+
+- Mask sensitive user account information in
+  :ref:`sys.repositories <sys-repositories>` for repository types:
+  ``azure``, ``s3``.
+
+- Routing awareness attributes are now also taken into consideration for
+  primary key lookups. (Queries like ``SELECT * FROM t WHERE pk = 1``)
+
+- By introducing :ref:`_seq_no <sql_administration_system_columns_seq_no>` and
+  :ref:`_primary_term <sql_administration_system_columns_primary_term>`, the
+  following resiliency issues were fixed:
+
+   - `Version Number Representing Ambiguous Row Versions
+     <https://crate.io/docs/crate/guide/en/latest/architecture/resilience.html#version-number-representing-ambiguous-row-versions>`_
+
+   - `Replicas can fall out of sync when a primary shard fails
+     <https://crate.io/docs/crate/guide/en/latest/architecture/resilience.html#replicas-can-fall-out-of-sync-when-a-primary-shard-fails>`_
+
+- Restrict access to log entries in :ref:`sys.jobs <sys-jobs>` and
+  :ref:`sys.jobs_log <sys-logs>` to the current user.
+  This doesn't apply to superusers.
+
+- Added a new ``Administration Language (AL)`` privilege type which allows
+  users to manage other users and use ``SET GLOBAL``. See
+  :ref:`administration-privileges`.
+
 - Changed the circuit breaker logic to measure the real heap usage instead of
   the memory reserved by child circuit breakers. This should reduce the chance
   of nodes running into an out of memory error.
@@ -295,34 +380,23 @@ Changes
 Fixes
 =====
 
-- Fixed an issue that prevented parameter placeholders from being resolved when
-  creating a view. A view definition like ``CREATE VIEW v1 AS SELECT ?`` would
-  get stored without the ``?`` being resolved to the actual parameter value,
-  causing queries on the view to fail and also breaking
-  ``information_schema.views``.
+- Fixed a bug that led to ``is null`` predicates against ``ignored`` objects
+  fields to always evaluate to true.
 
-- Fixed an issue that will prevent CrateDB from bootstrapping when running on
-  java 8 and a javaagent is specificed using ``JAVA_OPTS`` or
-  ``CRATE_JAVA_OPTS``.
+- Fixed ``collect_set`` to return an ``array`` type in order to be able to
+  return the results over ``JDBC``. ``collection_count`` and ``collection_avg``
+  are also changed to receive ``arrays`` as arguments, instead of ``sets``.
 
-- Increased the precedence of the double colon cast operator, so that a
-  statement like ``x::double / y::double`` applies both casts before the
-  division.
+- Fixed an issue that caused an error when trying to create a table with
+  a column definition that contains a predefined array data type and generated
+  expression. For instance, a statement like
+  ``CREATE TABLE foo (col ARRAY(TEXT) AS ['bar'])`` would fail.
 
-- Fixed an issue with the disk watermark sys checks which would incorrectly
-  report all of them as failed if
-  :ref:`cluster.routing.allocation.disk.threshold_enabled
-  <cluster.routing.allocation.disk.threshold_enabled>` was set to false.
+- Fixed a bug that led to failures of group by a single text column queries
+  on columns with the cardinality ration lower than ``0.5``.
 
-- Fixed an issue were a query on a sub-query with ambiguous columns would
-  return the same values for all of the ambiguous columns. An example is
-  ``SELECT * FROM (SELECT * FROM t1, t2) AS tjoin`` where both ``t1`` and
-  ``t2`` have a column named ``x``. In this case the value for ``t1.x`` would
-  be output twice.
+- Fixed ``NullPointerException`` that could occur when a column is defined as a
+  :ref:`Base Column<ref-base-columns>` and the type is missing from the column definition.
 
-- Fixed a race condition when setting an enterprise license very early on node
-  startup while a trial license is generated concurrently and such may used
-  instead of the user given license.
-
-- Improve error message for the unsupported :ref:`window-definition` ordered or
-  partitioned by an array column type in the context of :ref:`window-functions`
+- Fixed function resolution for function :ref:`scalar_current_schema` when the schema prefix
+  ``pg_catalog`` is included.

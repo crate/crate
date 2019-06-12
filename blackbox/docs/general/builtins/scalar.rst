@@ -444,7 +444,8 @@ Synopsis
   that should be extracted.
 
 :expression:
-  An expression that resolves to a timestamp or is castable to timestamp.
+  An expression that resolves to a timestamp data type with or without
+  timezone or is castable to timestamp data types.
 
 ::
 
@@ -580,7 +581,8 @@ Synopsis
     DATE_FORMAT( [ format_string, [ timezone, ] ] timestamp )
 
 The only mandatory argument is the ``timestamp`` value to format. It can be any
-expression that is safely convertible to timestamp.
+expression that is safely convertible to timestamp data type with or without
+timezone.
 
 Format
 ......
@@ -2124,6 +2126,32 @@ Example::
     +---------------------------+
     |                      NULL |
     +---------------------------+
+    SELECT 1 row in set (... sec)
+
+.. _pg_get_userbyid:
+
+``pg_get_userbyid``
+-------------------
+
+The function ``pg_get_userbyid`` is implemented to improve compatibility with
+clients that use the PostgreSQL wire protocol. The function always returns
+the default CrateDB user for non-null arguments, otherwise, ``null`` is
+returned.
+
+Returns: ``text``
+
+Synopsis::
+
+   pg_get_userbyid(id integer)
+
+Example::
+
+    cr> select pg_get_userbyid(1);
+    +--------------------+
+    | pg_get_userbyid(1) |
+    +--------------------+
+    |              crate |
+    +--------------------+
     SELECT 1 row in set (... sec)
 
 Special functions

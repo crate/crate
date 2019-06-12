@@ -41,8 +41,12 @@ public final class WindowFrameState {
         this.rows = rows;
     }
 
-    int lowerBound() {
+    public int lowerBound() {
         return lowerBound;
+    }
+
+    int partitionStart() {
+        return partitionStart;
     }
 
     public int upperBoundExclusive() {
@@ -64,12 +68,21 @@ public final class WindowFrameState {
      * Return the row at the given index in the frame or null if the index is out of bounds.
      */
     @Nullable
-    public Object[] getRowAtIndexOrNull(int index) {
+    public Object[] getRowInFrameAtIndexOrNull(int index) {
         if (index < lowerBound || index >= upperBoundExclusive) {
             return null;
         }
         int globalIdx = partitionStart + index;
         return rows.get(globalIdx);
+    }
+
+    @Nullable
+    Object[] getRowInPartitionAtIndexOrNull(int index) {
+        try {
+            return rows.get(partitionStart + index);
+        } catch (IndexOutOfBoundsException e) {
+            return null;
+        }
     }
 
     void updateBounds(int pStart, int wBegin, int wEnd) {
@@ -85,5 +98,9 @@ public final class WindowFrameState {
                ", upperBoundExclusive=" + upperBoundExclusive +
                ", partitionStart=" + partitionStart +
                '}';
+    }
+
+    public static boolean isShrinkingWindow(WindowFrameState frame, int prevLowerBound, int prevUpperBound) {
+        return prevLowerBound < frame.lowerBound() && prevUpperBound == frame.upperBoundExclusive();
     }
 }

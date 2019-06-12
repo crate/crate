@@ -98,6 +98,7 @@ public class DocSysColumns {
                              ColumnPolicy.STRICT,
                              Reference.IndexType.NOT_ANALYZED,
                              false,
+                             null,
                              null
         );
     }

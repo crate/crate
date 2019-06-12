@@ -82,4 +82,19 @@ public abstract class AggregationFunction<TPartial, TFinal> implements FunctionI
     public abstract TFinal terminatePartial(RamAccountingContext ramAccountingContext, TPartial state);
 
     public abstract DataType partialType();
+
+    /**
+     * Indicates if this aggregation permits the reemoval of state from the previous aggregate state as defined in
+     * http://www.vldb.org/pvldb/vol8/p1058-leis.pdf
+     */
+    public boolean isRemovableCumulative() {
+        return false;
+    }
+
+    public TPartial removeFromAggregatedState(RamAccountingContext ramAccountingContext,
+                                              TPartial previousAggState,
+                                              Input[] stateToRemove) {
+        throw new UnsupportedOperationException("Cannot remove state from the functions aggregated state as the it is " +
+                                                "not removable cumulative");
+    }
 }

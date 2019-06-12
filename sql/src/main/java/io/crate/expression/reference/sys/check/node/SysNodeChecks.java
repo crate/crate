@@ -41,7 +41,7 @@ import java.util.function.BiConsumer;
 public class SysNodeChecks implements SysRowUpdater<SysNodeCheck>, Iterable<SysNodeCheck> {
 
     private final Map<String, SysNodeCheck> checks;
-    private static final BiConsumer<SysNodeCheck, Input<?>> ackWriter =
+    private static final BiConsumer<SysNodeCheck, Input<?>> ACK_WRITER =
         (row, input) -> row.acknowledged((Boolean) input.value());
 
     @Inject
@@ -68,7 +68,7 @@ public class SysNodeChecks implements SysRowUpdater<SysNodeCheck>, Iterable<SysN
     @Override
     public BiConsumer<SysNodeCheck, Input<?>> getWriter(ColumnIdent ci) {
         if (SysNodeChecksTableInfo.Columns.ACKNOWLEDGED.equals(ci)) {
-            return ackWriter;
+            return ACK_WRITER;
         }
         return null;
     }

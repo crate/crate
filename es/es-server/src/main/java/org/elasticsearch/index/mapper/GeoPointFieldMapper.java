@@ -29,6 +29,7 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.common.Explicit;
+import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.ParseField;
 import org.elasticsearch.common.geo.GeoPoint;
 import org.elasticsearch.common.geo.GeoUtils;
@@ -120,6 +121,7 @@ public class GeoPointFieldMapper extends FieldMapper implements ArrayValueMapper
             return new GeoPointFieldMapper(
                 simpleName,
                 position,
+                defaultExpression,
                 fieldType,
                 defaultFieldType,
                 indexSettings,
@@ -189,6 +191,7 @@ public class GeoPointFieldMapper extends FieldMapper implements ArrayValueMapper
 
     public GeoPointFieldMapper(String simpleName,
                                Integer position,
+                               @Nullable String defaultExpression,
                                MappedFieldType fieldType,
                                MappedFieldType defaultFieldType,
                                Settings indexSettings,
@@ -196,7 +199,7 @@ public class GeoPointFieldMapper extends FieldMapper implements ArrayValueMapper
                                Explicit<Boolean> ignoreMalformed,
                                Explicit<Boolean> ignoreZValue,
                                CopyTo copyTo) {
-        super(simpleName, position, fieldType, defaultFieldType, indexSettings, multiFields, copyTo);
+        super(simpleName, position, defaultExpression, fieldType, defaultFieldType, indexSettings, multiFields, copyTo);
         this.ignoreMalformed = ignoreMalformed;
         this.ignoreZValue = ignoreZValue;
     }

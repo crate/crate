@@ -90,6 +90,7 @@ import org.elasticsearch.transport.TransportSettings;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.function.Predicate;
 
@@ -97,14 +98,24 @@ import java.util.function.Predicate;
  * Encapsulates all valid cluster level settings.
  */
 public final class ClusterSettings extends AbstractScopedSettings {
+
+    private final List<Setting<?>> maskedSettings;
+
     public ClusterSettings(final Settings nodeSettings, final Set<Setting<?>> settingsSet) {
-        this(nodeSettings, settingsSet, Collections.emptySet());
+        this(nodeSettings, List.of(), settingsSet, Collections.emptySet());
     }
 
-    public ClusterSettings(
-            final Settings nodeSettings, final Set<Setting<?>> settingsSet, final Set<SettingUpgrader<?>> settingUpgraders) {
+    public ClusterSettings(final Settings nodeSettings,
+                           final List<Setting<?>> maskedSettings,
+                           final Set<Setting<?>> settingsSet,
+                           final Set<SettingUpgrader<?>> settingUpgraders) {
         super(nodeSettings, settingsSet, settingUpgraders, Property.NodeScope);
+        this.maskedSettings = maskedSettings;
         addSettingsUpdater(new LoggingSettingUpdater(nodeSettings));
+    }
+
+    public List<Setting<?>> maskedSettings() {
+        return maskedSettings;
     }
 
     private static final class LoggingSettingUpdater implements SettingUpdater<Settings> {

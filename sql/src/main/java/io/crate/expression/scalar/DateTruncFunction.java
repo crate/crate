@@ -61,9 +61,9 @@ public class DateTruncFunction extends Scalar<Long, Object> {
         .immutableMap();
 
     public static void register(ScalarFunctionModule module) {
-        List<DataType> supportedTimestampTypes = ImmutableList.of(
-            DataTypes.TIMESTAMPZ, DataTypes.LONG, DataTypes.STRING);
-        for (DataType dataType : supportedTimestampTypes) {
+        List<DataType<?>> supportedTimestampTypes = ImmutableList.of(
+            DataTypes.TIMESTAMP, DataTypes.TIMESTAMPZ, DataTypes.LONG, DataTypes.STRING);
+        for (DataType<?> dataType : supportedTimestampTypes) {
             module.register(new DateTruncFunction(info(DataTypes.STRING, dataType)));
             // time zone aware variant
             module.register(new DateTruncFunction(info(DataTypes.STRING, DataTypes.STRING, dataType)));
@@ -104,13 +104,13 @@ public class DateTruncFunction extends Scalar<Long, Object> {
         }
 
         // all validation is already done by {@link #normalizeSymbol()}
-        String interval = (String) ((Input) arguments.get(0)).value();
+        String interval = (String) ((Input<?>) arguments.get(0)).value();
         if (interval == null) {
             return this;
         }
         String timeZone = TimeZoneParser.DEFAULT_TZ_LITERAL.value();
         if (arguments.size() == 3) {
-            timeZone = (String) ((Input) arguments.get(1)).value();
+            timeZone = (String) ((Input<?>) arguments.get(1)).value();
         }
 
         return new DateTruncFunction(this.info, rounding(interval, timeZone));
@@ -197,6 +197,4 @@ public class DateTruncFunction extends Scalar<Long, Object> {
         }
         return intervalAsUnit;
     }
-
-
 }

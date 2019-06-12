@@ -22,7 +22,7 @@
 
 package io.crate.execution.dml.upsert;
 
-import io.crate.collections.Lists2;
+import io.crate.common.collections.Lists2;
 import io.crate.common.collections.Maps;
 import io.crate.data.ArrayRow;
 import io.crate.data.Input;
@@ -65,7 +65,7 @@ public final class InsertSourceFromCells implements InsertSourceGen {
         this.targets = targets;
         ReferencesFromInputRow referenceResolver = new ReferencesFromInputRow(targets, table.partitionedByColumns(), indexName);
         InputFactory inputFactory = new InputFactory(functions);
-        if (table.generatedColumns().isEmpty()) {
+        if (table.generatedColumns().isEmpty() && table.defaultExpressionColumns().isEmpty()) {
             generatedColumns = GeneratedColumns.empty();
         } else {
             generatedColumns = new GeneratedColumns<>(
@@ -74,7 +74,8 @@ public final class InsertSourceFromCells implements InsertSourceGen {
                 validation,
                 referenceResolver,
                 targets,
-                table.generatedColumns()
+                table.generatedColumns(),
+                table.defaultExpressionColumns()
             );
         }
         checks = new CheckConstraints<>(txnCtx, inputFactory, referenceResolver, table);

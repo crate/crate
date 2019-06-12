@@ -7,7 +7,3 @@ dependencies {
     testImplementation "junit:junit:${versions.junit}"
     testImplementation "org.hamcrest:hamcrest:${versions.hamcrest}"
 }
-
-test {
-    testLogging.exceptionFormat = 'full'
-}

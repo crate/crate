@@ -56,8 +56,8 @@ public class HttpTransportPlugin extends Plugin implements NetworkPlugin, Action
 
     private final PipelineRegistry pipelineRegistry;
 
-    public HttpTransportPlugin() {
-        this.pipelineRegistry = new PipelineRegistry();
+    public HttpTransportPlugin(Settings settings) {
+        this.pipelineRegistry = new PipelineRegistry(settings);
     }
 
     public String name() {

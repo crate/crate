@@ -21,27 +21,31 @@ package io.crate.protocols.ssl;
 import io.crate.test.integration.CrateUnitTest;
 import io.netty.handler.ssl.SslContext;
 import org.elasticsearch.common.settings.Settings;
+import org.hamcrest.Matchers;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import javax.net.ssl.KeyManager;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URL;
 import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.security.KeyStore;
 import java.security.PrivateKey;
+import java.security.Security;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.X509Certificate;
 
-import static io.crate.protocols.ssl.SslConfiguration.KeyStoreSettings;
-import static io.crate.protocols.ssl.SslConfiguration.TrustStoreSettings;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
 
 public class SslConfigurationTest extends CrateUnitTest {
 
@@ -54,10 +58,23 @@ public class SslConfigurationTest extends CrateUnitTest {
     private static File trustStoreFile;
     private static File keyStoreFile;
 
+    private String originalKeyStoreType;
+
     @BeforeClass
     public static void beforeTests() throws IOException {
         trustStoreFile = getAbsoluteFilePathFromClassPath("truststore.jks");
         keyStoreFile = getAbsoluteFilePathFromClassPath("keystore.jks");
+    }
+
+    @Before
+    public void setKeyStoreType() throws Exception {
+        originalKeyStoreType = Security.getProperty("keystore.type");
+        Security.setProperty("keystore.type", "jks");
+    }
+
+    @After
+    public void resetKeyStoreType() throws Exception {
+        Security.setProperty("keystore.type", originalKeyStoreType);
     }
 
     @Test
@@ -77,49 +94,13 @@ public class SslConfigurationTest extends CrateUnitTest {
     }
 
     @Test
-    public void testTrustStoreLoading() throws Exception {
-        Settings.Builder settingsBuilder = Settings.builder();
-        settingsBuilder.put(SslConfigSettings.SSL_TRUSTSTORE_FILEPATH_SETTING_NAME, trustStoreFile.getAbsolutePath());
-        settingsBuilder.put(SslConfigSettings.SSL_TRUSTSTORE_PASSWORD_SETTING_NAME, TRUSTSTORE_PASSWORD);
-
-        TrustStoreSettings trustStoreSettings =
-            TrustStoreSettings.tryLoad(settingsBuilder.build()).orElse(null);
-
-        assertThat(trustStoreSettings, is(notNullValue()));
-        assertThat(trustStoreSettings.trustManagers.length, is(1));
-        assertThat(trustStoreSettings.keyStore.getType(), is("jks"));
-    }
-
-    @Test
-    public void testTrustStoreOptional() throws Exception {
-        TrustStoreSettings trustStoreSettings =
-            TrustStoreSettings.tryLoad(Settings.EMPTY).orElse(null);
-        assertThat(trustStoreSettings, is(nullValue()));
-    }
-
-    @Test
-    public void testTrustStoreLoadingFail() throws Exception {
-        expectedException.expect(IOException.class);
-        expectedException.expectMessage("Keystore was tampered with, or password was incorrect");
-
-        Settings.Builder settingsBuilder = Settings.builder();
-        settingsBuilder.put(SslConfigSettings.SSL_TRUSTSTORE_FILEPATH_SETTING_NAME, trustStoreFile.getAbsolutePath());
-        settingsBuilder.put(SslConfigSettings.SSL_TRUSTSTORE_PASSWORD_SETTING_NAME, "wrongpassword");
-
-        TrustStoreSettings.tryLoad(settingsBuilder.build());
-    }
-
-    @Test
     public void testKeyStoreLoading() throws Exception {
-        Settings.Builder settingsBuilder = Settings.builder();
-        settingsBuilder.put(SslConfigSettings.SSL_KEYSTORE_FILEPATH_SETTING_NAME, keyStoreFile.getAbsolutePath());
-        settingsBuilder.put(SslConfigSettings.SSL_KEYSTORE_PASSWORD_SETTING_NAME, KEYSTORE_PASSWORD);
-        settingsBuilder.put(SslConfigSettings.SSL_KEYSTORE_KEY_PASSWORD_SETTING_NAME, KEYSTORE_KEY_PASSWORD);
+        KeyStore keyStore = SslConfiguration.loadKeyStore(keyStoreFile.getAbsolutePath(), KEYSTORE_PASSWORD.toCharArray());
+        assertThat(keyStore.getType(), is("jks"));
+        assertThat(keyStore.getCertificate(ROOT_CA_ALIAS), notNullValue());
 
-        KeyStoreSettings keyStoreSettings = new KeyStoreSettings(settingsBuilder.build());
-        assertThat(keyStoreSettings.keyManagers.length, is(1));
-        assertThat(keyStoreSettings.keyStore.getType(), is("jks"));
-        assertThat(keyStoreSettings.keyStore.getCertificate(ROOT_CA_ALIAS), notNullValue());
+        KeyManager[] keyManagers = SslConfiguration.createKeyManagers(keyStore, KEYSTORE_KEY_PASSWORD.toCharArray());
+        assertThat(keyManagers.length, is(1));
     }
 
     @Test
@@ -127,109 +108,59 @@ public class SslConfigurationTest extends CrateUnitTest {
         expectedException.expect(IOException.class);
         expectedException.expectMessage("Keystore was tampered with, or password was incorrect");
 
-        Settings.Builder settingsBuilder = Settings.builder();
-        settingsBuilder.put(SslConfigSettings.SSL_KEYSTORE_FILEPATH_SETTING_NAME, keyStoreFile.getAbsolutePath());
-        settingsBuilder.put(SslConfigSettings.SSL_KEYSTORE_PASSWORD_SETTING_NAME, "wrongpassword");
-        settingsBuilder.put(SslConfigSettings.SSL_KEYSTORE_KEY_PASSWORD_SETTING_NAME, KEYSTORE_KEY_PASSWORD);
-
-        new KeyStoreSettings(settingsBuilder.build());
+        SslConfiguration.loadKeyStore(keyStoreFile.getAbsolutePath(), "wrongpassword".toCharArray());
     }
 
     @Test
     public void testKeyStoreLoadingFailWrongKeyPassword() throws Exception {
+        KeyStore keyStore = SslConfiguration.loadKeyStore(keyStoreFile.getAbsolutePath(), KEYSTORE_PASSWORD.toCharArray());
+
         expectedException.expect(UnrecoverableKeyException.class);
         expectedException.expectMessage("Cannot recover key");
-
-        Settings.Builder settingsBuilder = Settings.builder();
-        settingsBuilder.put(SslConfigSettings.SSL_KEYSTORE_FILEPATH_SETTING_NAME, keyStoreFile.getAbsolutePath());
-        settingsBuilder.put(SslConfigSettings.SSL_KEYSTORE_PASSWORD_SETTING_NAME, KEYSTORE_PASSWORD);
-        settingsBuilder.put(SslConfigSettings.SSL_KEYSTORE_KEY_PASSWORD_SETTING_NAME, "wrongpassword");
-
-        KeyStoreSettings ks = new KeyStoreSettings(settingsBuilder.build());
-        assertThat(ks.exportDecryptedKey(), is(notNullValue()));
-    }
-
-    @Test
-    public void testKeyStoreLoadingNoKeyPasswordFail() throws Exception {
-        expectedException.expect(UnrecoverableKeyException.class);
-        expectedException.expectMessage("Cannot recover key");
-
-        Settings.Builder settingsBuilder = Settings.builder();
-        settingsBuilder.put(SslConfigSettings.SSL_KEYSTORE_FILEPATH_SETTING_NAME, keyStoreFile.getAbsolutePath());
-        settingsBuilder.put(SslConfigSettings.SSL_KEYSTORE_PASSWORD_SETTING_NAME, KEYSTORE_PASSWORD);
-        settingsBuilder.put(SslConfigSettings.SSL_KEYSTORE_KEY_PASSWORD_SETTING_NAME, "wrongpassword");
-
-        KeyStoreSettings ks = new KeyStoreSettings(settingsBuilder.build());
-        assertThat(ks.exportDecryptedKey(), is(notNullValue()));
+        SslConfiguration.createKeyManagers(keyStore, "wrongpassword".toCharArray());
     }
 
     @Test
     public void testExportRootCertificates() throws Exception {
-        Settings.Builder settingsBuilder = Settings.builder();
-        settingsBuilder.put(SslConfigSettings.SSL_TRUSTSTORE_FILEPATH_SETTING_NAME, trustStoreFile.getAbsolutePath());
-        settingsBuilder.put(SslConfigSettings.SSL_TRUSTSTORE_PASSWORD_SETTING_NAME, TRUSTSTORE_PASSWORD);
-        settingsBuilder.put(SslConfigSettings.SSL_KEYSTORE_FILEPATH_SETTING_NAME, keyStoreFile.getAbsolutePath());
-        settingsBuilder.put(SslConfigSettings.SSL_KEYSTORE_PASSWORD_SETTING_NAME, KEYSTORE_PASSWORD);
-        settingsBuilder.put(SslConfigSettings.SSL_KEYSTORE_KEY_PASSWORD_SETTING_NAME, KEYSTORE_KEY_PASSWORD);
+        KeyStore keyStore = SslConfiguration.loadKeyStore(keyStoreFile.getAbsolutePath(), KEYSTORE_PASSWORD.toCharArray());
 
-        KeyStoreSettings keyStoreSettings = new KeyStoreSettings(settingsBuilder.build());
+        X509Certificate[] certificates = SslConfiguration.getRootCertificates(keyStore);
+        assertThat(certificates.length, is(1));
 
-        TrustStoreSettings trustStoreSettings =
-            TrustStoreSettings.tryLoad(settingsBuilder.build()).orElse(null);
-
-        assertThat(trustStoreSettings, is(notNullValue()));
-        X509Certificate[] x509Certificates = keyStoreSettings.exportRootCertificates(
-            trustStoreSettings.exportRootCertificates());
-
-        assertEquals(2, x509Certificates.length);
-        assertThat(x509Certificates[0].getIssuerDN().getName(), containsString("CN=*.crate.io"));
-        assertThat(x509Certificates[0].getNotAfter().getTime(), is(4651463625000L));
-        assertThat(x509Certificates[1].getIssuerDN().getName(), containsString("CN=*.crate.io"));
-        assertThat(x509Certificates[1].getNotAfter().getTime(), is(4651463625000L));
+        assertThat(certificates[0].getIssuerDN().getName(), containsString("CN=*.crate.io"));
+        assertThat(certificates[0].getNotAfter().getTime(), is(4651463625000L));
     }
 
     @Test
     public void testExportServerCertChain() throws Exception {
-        Settings.Builder settingsBuilder = Settings.builder();
-        settingsBuilder.put(SslConfigSettings.SSL_KEYSTORE_FILEPATH_SETTING_NAME, keyStoreFile.getAbsolutePath());
-        settingsBuilder.put(SslConfigSettings.SSL_KEYSTORE_PASSWORD_SETTING_NAME, KEYSTORE_PASSWORD);
-        settingsBuilder.put(SslConfigSettings.SSL_KEYSTORE_KEY_PASSWORD_SETTING_NAME, KEYSTORE_KEY_PASSWORD);
+        KeyStore keyStore = SslConfiguration.loadKeyStore(keyStoreFile.getAbsolutePath(), KEYSTORE_PASSWORD.toCharArray());
 
-        KeyStoreSettings keyStoreSettings = new KeyStoreSettings(settingsBuilder.build());
+        X509Certificate[] certificates = SslConfiguration.getCertificateChain(keyStore);
 
-        X509Certificate[] x509Certificates = keyStoreSettings.exportServerCertChain();
-
-        assertThat(x509Certificates.length, is(4));
-        assertThat(x509Certificates[0].getIssuerDN().getName(), containsString("CN=*.crate.io"));
-        assertThat(x509Certificates[1].getIssuerDN().getName(), containsString("CN=*.crate.io"));
-        assertThat(x509Certificates[2].getIssuerDN().getName(), containsString("CN=*.crate.io"));
-        assertThat(x509Certificates[3].getIssuerDN().getName(), containsString("CN=*.crate.io"));
-        assertThat(x509Certificates[0].getSubjectDN().getName(), containsString("CN=localhost"));
-        assertThat(x509Certificates[0].getSubjectDN().getName(), containsString("OU=Testing Department"));
-        assertThat(x509Certificates[0].getSubjectDN().getName(), containsString("L=San Francisco"));
-        assertThat(x509Certificates[1].getSubjectDN().getName(), containsString("CN=*.crate.io"));
-        assertThat(x509Certificates[1].getSubjectDN().getName(), containsString("OU=Cryptography Department"));
-        assertThat(x509Certificates[1].getSubjectDN().getName(), containsString("L=Dornbirn"));
-        assertThat(x509Certificates[2].getSubjectDN().getName(), containsString("CN=ssl.crate.io"));
-        assertThat(x509Certificates[2].getSubjectDN().getName(), containsString("OU=Cryptography Department"));
-        assertThat(x509Certificates[2].getSubjectDN().getName(), containsString("L=Berlin"));
-        assertThat(x509Certificates[3].getSubjectDN().getName(), containsString("CN=*.crate.io"));
-        assertThat(x509Certificates[3].getSubjectDN().getName(), containsString("OU=Cryptography Department"));
-        assertThat(x509Certificates[3].getSubjectDN().getName(), containsString("L=Dornbirn"));
+        assertThat(certificates.length, is(4));
+        assertThat(certificates[0].getIssuerDN().getName(), containsString("CN=*.crate.io"));
+        assertThat(certificates[1].getIssuerDN().getName(), containsString("CN=*.crate.io"));
+        assertThat(certificates[2].getIssuerDN().getName(), containsString("CN=*.crate.io"));
+        assertThat(certificates[3].getIssuerDN().getName(), containsString("CN=*.crate.io"));
+        assertThat(certificates[0].getSubjectDN().getName(), containsString("CN=localhost"));
+        assertThat(certificates[0].getSubjectDN().getName(), containsString("OU=Testing Department"));
+        assertThat(certificates[0].getSubjectDN().getName(), containsString("L=San Francisco"));
+        assertThat(certificates[1].getSubjectDN().getName(), containsString("CN=*.crate.io"));
+        assertThat(certificates[1].getSubjectDN().getName(), containsString("OU=Cryptography Department"));
+        assertThat(certificates[1].getSubjectDN().getName(), containsString("L=Dornbirn"));
+        assertThat(certificates[2].getSubjectDN().getName(), containsString("CN=ssl.crate.io"));
+        assertThat(certificates[2].getSubjectDN().getName(), containsString("OU=Cryptography Department"));
+        assertThat(certificates[2].getSubjectDN().getName(), containsString("L=Berlin"));
+        assertThat(certificates[3].getSubjectDN().getName(), containsString("CN=*.crate.io"));
+        assertThat(certificates[3].getSubjectDN().getName(), containsString("OU=Cryptography Department"));
+        assertThat(certificates[3].getSubjectDN().getName(), containsString("L=Dornbirn"));
     }
 
     @Test
     public void testExportDecryptedKey() throws Exception {
-        Settings.Builder settingsBuilder = Settings.builder();
-        settingsBuilder.put(SslConfigSettings.SSL_KEYSTORE_FILEPATH_SETTING_NAME, keyStoreFile.getAbsolutePath());
-        settingsBuilder.put(SslConfigSettings.SSL_KEYSTORE_PASSWORD_SETTING_NAME, KEYSTORE_PASSWORD);
-        settingsBuilder.put(SslConfigSettings.SSL_KEYSTORE_KEY_PASSWORD_SETTING_NAME, KEYSTORE_KEY_PASSWORD);
-
-        KeyStoreSettings keyStoreSettings = new KeyStoreSettings(settingsBuilder.build());
-
-        PrivateKey privateKey = keyStoreSettings.exportDecryptedKey();
-
-        assertNotNull(privateKey);
+        KeyStore keyStore = SslConfiguration.loadKeyStore(keyStoreFile.getAbsolutePath(), KEYSTORE_PASSWORD.toCharArray());
+        PrivateKey privateKey = SslConfiguration.getPrivateKey(keyStore, KEYSTORE_KEY_PASSWORD.toCharArray());
+        assertThat(privateKey, Matchers.notNullValue());
     }
 
     public static File getAbsoluteFilePathFromClassPath(final String fileNameFromClasspath) throws IOException {
@@ -237,6 +168,6 @@ public class SslConfigurationTest extends CrateUnitTest {
         if (fileUrl == null) {
             throw new FileNotFoundException("Resource was not found: " + fileNameFromClasspath);
         }
-        return new File(URLDecoder.decode(fileUrl.getFile(), "UTF-8"));
+        return new File(URLDecoder.decode(fileUrl.getFile(), StandardCharsets.UTF_8));
     }
 }

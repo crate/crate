@@ -62,7 +62,7 @@ import java.util.Map;
  */
 public class EvaluatingNormalizer {
 
-    private static final Logger logger = LogManager.getLogger(EvaluatingNormalizer.class);
+    private static final Logger LOGGER = LogManager.getLogger(EvaluatingNormalizer.class);
     private final Functions functions;
     private final RowGranularity granularity;
     private final ReferenceResolver<? extends Input<?>> referenceResolver;
@@ -143,8 +143,8 @@ public class EvaluatingNormalizer {
                 return Literal.of(symbol.valueType(), input.value());
             }
 
-            if (logger.isTraceEnabled()) {
-                logger.trace(SymbolFormatter.format("Can't resolve reference %s", symbol));
+            if (LOGGER.isTraceEnabled()) {
+                LOGGER.trace(SymbolFormatter.format("Can't resolve reference %s", symbol));
             }
             return symbol;
         }

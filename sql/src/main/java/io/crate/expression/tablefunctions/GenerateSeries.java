@@ -123,7 +123,8 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
         Reference reference = new Reference(new ReferenceIdent(RELATION_NAME, col1),
                                             RowGranularity.DOC,
                                             info.returnType(),
-                                            1);
+                                            1,
+                                            null);
         Map<ColumnIdent, Reference> referenceByColumn = Collections.singletonMap(col1, reference);
         return new StaticTableInfo(RELATION_NAME, referenceByColumn, Collections.singletonList(reference), Collections.emptyList()) {
             @Override

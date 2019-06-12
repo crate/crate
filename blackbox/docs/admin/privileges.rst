@@ -5,16 +5,34 @@
 Privileges
 ==========
 
-The superuser is allowed to execute any statement without any privilege checks.
+To execute statements in CrateDB a user needs to have the required privileges
+to do so.
 
-The superuser uses ``GRANT``, ``DENY`` and ``REVOKE`` statements to control
-access to the resource. The privileges are either applied on the whole cluster
-or on instances of objects such as schema, or table.
+There is a superuser (``crate``) which has the privilege to do anything. The
+privileges of other users have to be managed using the ``GRANT``, ``DENY`` or
+``REVOKE`` statements.
 
-Currently, only ``DQL``, ``DML`` and ``DDL`` privileges can be granted.
+The privileges that can be granted, denied or revoked are:
 
-Any statements which are not allowed with those privileges, such as ``GRANT``,
-``DENY`` and ``REVOKE``, can only be issued by a superuser.
+- ``DQL``
+- ``DML``
+- ``DDL``
+- ``AL``
+
+Skip to :ref:`privilege_types` for details.
+
+These privileges can be granted on different levels:
+
+- ``CLUSTER``
+- ``SCHEMA``
+- ``TABLE`` and ``VIEW``
+
+Skip to :ref:`hierarchical_privileges_inheritance` for details.
+
+
+A user with ``AL`` on level ``CLUSTER`` can grant privileges they themselves
+have to other users as well.
+
 
 .. NOTE::
 
@@ -29,6 +47,8 @@ Any statements which are not allowed with those privileges, such as ``GRANT``,
 .. contents::
    :local:
 
+.. _privilege_types:
+
 Privilege types
 ===============
 
@@ -36,14 +56,10 @@ Privilege types
 .......
 
 Granting ``Data Query Language (DQL)`` privilege to a user, indicates that this
-user is allowed to execute ``SELECT``, ``SHOW``, ``REFRESH``, ``COPY TO``,
-and ``SET SESSION`` statements, as well as using the available user defined
-functions, on the object for which the privilege applies.
+user is allowed to execute ``SELECT``, ``SHOW``, ``REFRESH`` and ``COPY TO``
+statements, as well as using the available user defined functions, on the
+object for which the privilege applies.
 
-.. NOTE::
-
-   :ref:`SET GLOBAL <ref-set-desc>` privileges cannot be granted because ``SET
-   GLOBAL`` statements can only be issued by the superuser.
 
 ``DML``
 .......
@@ -56,11 +72,35 @@ and ``DELETE`` statements, on the object for which the privilege applies.
 .......
 
 Granting ``Data Definition Language (DDL)`` privilege to a user, indicates that
-this user is allowed to execute ``CREATE TABLE``, ``DROP TABLE``,
-``CREATE VIEW``, ``DROP VIEW``, ``CREATE FUNCTION``, ``DROP FUNCTION``,
-``CREATE REPOSITORY``, ``DROP REPOSITORY``, ``CREATE SNAPSHOT``,
-``DROP SNAPSHOT``, ``RESTORE SNAPSHOT``, and ``ALTER`` statements, on the
-object for which the privilege applies.
+this user is allowed to execute the following statements on objects for which
+the privilege applies:
+
+- ``CREATE TABLE``
+- ``DROP TABLE``
+- ``CREATE VIEW``
+- ``DROP VIEW``
+- ``CREATE FUNCTION``
+- ``DROP FUNCTION``
+- ``CREATE REPOSITORY``
+- ``DROP REPOSITORY``
+- ``CREATE SNAPSHOT``
+- ``DROP SNAPSHOT``
+- ``RESTORE SNAPSHOT``
+- ``ALTER TABLE``
+
+``AL``
+......
+
+Granting ``Administration Language (AL)`` privilege to a user, enables the user
+to execute the following statements:
+
+- ``CREATE USER``
+- ``DROP USER``
+- ``SET GLOBAL``
+
+All statements enabled via the ``AL`` privilege operate on a cluster level. So
+granting this on a schema or table level will have no effect.
+
 
 .. _hierarchical_privileges_inheritance:
 
@@ -208,7 +248,7 @@ The following statement will grant all privileges on table doc.books to user
 wolfgang::
 
     cr> GRANT ALL PRIVILEGES ON TABLE doc.books TO wolfgang;
-    GRANT OK, 3 rows affected (... sec)
+    GRANT OK, 4 rows affected (... sec)
 
 Using "ALL PRIVILEGES" is a shortcut to grant all the currently grantable
 privileges to a user, namely ``DQL``, ``DML`` and ``DDL``.
@@ -228,7 +268,7 @@ To grant ``ALL PRIVILEGES`` to user will on the cluster, we can use the
 following syntax::
 
     cr> GRANT ALL PRIVILEGES TO will;
-    GRANT OK, 3 rows affected (... sec)
+    GRANT OK, 4 rows affected (... sec)
 
 Using ``ALL PRIVILEGES`` is a shortcut to grant all the currently grantable
 privileges to a user, namely ``DQL``, ``DML`` and ``DDL``.
@@ -263,7 +303,7 @@ wolfgang::
 on the cluster it can be used like this::
 
     cr> DENY ALL TO will;
-    DENY OK, 2 rows affected (... sec)
+    DENY OK, 3 rows affected (... sec)
 
 ``REVOKE``
 ..........
@@ -280,13 +320,13 @@ The privileges that were granted and denied to user wolfgang on doc.books
 can be revoked like this::
 
     cr> REVOKE ALL ON TABLE doc.books FROM wolfgang;
-    REVOKE OK, 3 rows affected (... sec)
+    REVOKE OK, 4 rows affected (... sec)
 
 The privileges that were granted to user will on the cluster can be revoked
 like this::
 
     cr> REVOKE ALL FROM will;
-    REVOKE OK, 3 rows affected (... sec)
+    REVOKE OK, 4 rows affected (... sec)
 
 .. NOTE::
 

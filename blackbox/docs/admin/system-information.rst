@@ -409,22 +409,6 @@ The table schema is as follows:
 +----------------------------------+------------------------------------------------+-------------+
 | ``fs['disks']['available']``     | Available space of the disk in bytes.          | ``BIGINT``  |
 +----------------------------------+------------------------------------------------+-------------+
-| ``fs['disks']['reads']``         | Number of reads on the disk.                   | ``BIGINT``  |
-|                                  |                                                |             |
-|                                  | DEPRECATED: always returns -1                  |             |
-+----------------------------------+------------------------------------------------+-------------+
-| ``fs['disks']['bytes_read']``    | Total size of reads on the disk in bytes.      | ``BIGINT``  |
-|                                  |                                                |             |
-|                                  | DEPRECATED: always returns -1                  |             |
-+----------------------------------+------------------------------------------------+-------------+
-| ``fs['disks']['writes']``        | Number of writes on the disk.                  | ``BIGINT``  |
-|                                  |                                                |             |
-|                                  | DEPRECATED: always returns -1                  |             |
-+----------------------------------+------------------------------------------------+-------------+
-| ``fs['disks']['bytes_written']`` | Total size of writes on the disk in bytes.     | ``BIGINT``  |
-|                                  |                                                |             |
-|                                  | DEPRECATED: always returns -1                  |             |
-+----------------------------------+------------------------------------------------+-------------+
 | ``fs['data']``                   | Information about data paths used by the node. | ``ARRAY``   |
 +----------------------------------+------------------------------------------------+-------------+
 | ``fs['data']['dev']``            | Device name                                    | ``TEXT``    |
@@ -477,23 +461,6 @@ The table schema is as follows:
 | ``os['cpu']``                                   | Information about CPU utilization                    | ``OBJECT``   |
 +-------------------------------------------------+------------------------------------------------------+--------------+
 | ``os['cpu']['used']``                           | System CPU usage as percentage                       | ``SMALLINT`` |
-+-------------------------------------------------+------------------------------------------------------+--------------+
-| ``os['cpu']['system']``                         | CPU time used by the system                          | ``SMALLINT`` |
-|                                                 |                                                      |              |
-|                                                 | DEPRECATED: always returns -1                        |              |
-+-------------------------------------------------+------------------------------------------------------+--------------+
-| ``os['cpu']['user']``                           | CPU time used by applications                        | ``SMALLINT`` |
-|                                                 |                                                      |              |
-|                                                 | DEPRECATED: always returns -1                        |              |
-+-------------------------------------------------+------------------------------------------------------+--------------+
-| ``os['cpu']['idle']``                           | Idle CPU time                                        | ``SMALLINT`` |
-|                                                 |                                                      |              |
-|                                                 | DEPRECATED: always returns -1                        |              |
-+-------------------------------------------------+------------------------------------------------------+--------------+
-| ``os['cpu']['stolen']``                         | The amount of CPU 'stolen' from this virtual         | ``SMALLINT`` |
-|                                                 | machine by the hypervisor for other tasks.           |              |
-|                                                 |                                                      |              |
-|                                                 | DEPRECATED: always returns -1                        |              |
 +-------------------------------------------------+------------------------------------------------------+--------------+
 | ``os['probe_timestamp']``                       | Unix timestamp at the time of collection             | ``BIGINT``   |
 |                                                 | of the OS probe.                                     |              |
@@ -721,14 +688,6 @@ in subsequent versions. All ``BIGINT`` columns always return ``0``.
 +------------------------------------------+------------------------------------------------+--------------+
 | ``process['cpu']['percent']``            | The CPU usage of the CrateDB JVM process given | ``SMALLINT`` |
 |                                          | in percent.                                    |              |
-+------------------------------------------+------------------------------------------------+--------------+
-| ``process['cpu']['user']``               | The process CPU user time in milliseconds.     | ``BIGINT``   |
-|                                          |                                                |              |
-|                                          | DEPRECATED: always returns -1                  |              |
-+------------------------------------------+------------------------------------------------+--------------+
-| ``process['cpu']['system']``             | The process CPU kernel time in milliseconds.   | ``BIGINT``   |
-|                                          |                                                |              |
-|                                          | DEPRECATED: always returns -1                  |              |
 +------------------------------------------+------------------------------------------------+--------------+
 
 The cpu information values are cached for 1s. They might differ from the actual
@@ -1164,6 +1123,10 @@ Every request that queries data or manipulates data is considered a "job" if it
 is a valid query. Requests that are not valid queries (for example, a request
 that tries to query a non-existent table) will not show up as jobs.
 
+.. NOTE::
+
+   The ``sys.jobs`` table is subject to :ref:`jobs_table_permissions`.
+
 .. _sys-jobs-metrics:
 
 Jobs metrics
@@ -1348,6 +1311,9 @@ have corresponding log tables: ``sys.jobs_log`` and ``sys.operations_log``.
   You can control which jobs are recorded using the :ref:`stats.jobs_log_filter
   <stats.jobs_log_filter>`
 
+.. NOTE::
+
+   The ``sys.jobs_log`` table is subject to :ref:`jobs_table_permissions`.
 
 ``sys.operations_log`` Table schema
 ...................................
@@ -1628,6 +1594,10 @@ used to create, manage and restore snapshots (see :ref:`snapshot-restore`).
     +---------+------+---------------------------------------------------...--+
     SELECT 1 row in set (... sec)
 
+.. NOTE::
+
+    Sensitive user account information will be masked and thus not visible to the user.
+
 .. _sys-snapshots:
 
 Snapshots
@@ -1847,6 +1817,20 @@ For example, if the user ``john`` has any privilege on the ``doc.books`` table
 but no privilege at all on ``doc.locations``, when ``john`` issues a
 ``SELECT * FROM sys.shards`` statement, the shards information related to the
 ``doc.locations`` table will not be returned.
+
+.. _jobs_table_permissions:
+
+Sys jobs tables permissions
+===========================
+
+Accessing :ref:`sys.jobs <sys-jobs>` and :ref:`sys.jobs_log <sys-logs>` tables
+is subjected to the same privileges constraints as other tables. To query
+them, the current user needs to have the ``DQL`` privilege on that particular
+table, either directly or inherited from the ``SCHEMA`` or ``CLUSTER``.
+
+A user that doesn't have superuser privileges is allowed to retrieve only
+their own job logs entries, while a user with superuser privileges has access
+to all.
 
 Before upgrading
 ================

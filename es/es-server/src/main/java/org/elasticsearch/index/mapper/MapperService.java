@@ -21,20 +21,16 @@ package org.elasticsearch.index.mapper;
 
 import com.carrotsearch.hppc.ObjectHashSet;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
-import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.DelegatingAnalyzerWrapper;
 import org.apache.lucene.index.Term;
 import org.elasticsearch.Assertions;
-import org.elasticsearch.ElasticsearchGenerationException;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
-import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.compress.CompressedXContent;
-import org.elasticsearch.common.logging.DeprecationLogger;
 import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
@@ -48,7 +44,6 @@ import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.analysis.IndexAnalyzers;
 import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.indices.InvalidTypeNameException;
-import org.elasticsearch.indices.TypeMissingException;
 import org.elasticsearch.indices.mapper.MapperRegistry;
 
 import java.io.Closeable;
@@ -92,9 +87,6 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
         Setting.longSetting("index.mapping.total_fields.limit", 1000L, 0, Property.Dynamic, Property.IndexScope);
     public static final Setting<Long> INDEX_MAPPING_DEPTH_LIMIT_SETTING =
             Setting.longSetting("index.mapping.depth.limit", 20L, 1, Property.Dynamic, Property.IndexScope);
-    public static final boolean INDEX_MAPPER_DYNAMIC_DEFAULT = true;
-    public static final Setting<Boolean> INDEX_MAPPER_DYNAMIC_SETTING =
-        Setting.boolSetting("index.mapper.dynamic", INDEX_MAPPER_DYNAMIC_DEFAULT, Property.Dynamic, Property.IndexScope);
 
     //TODO this needs to be cleaned up: _timestamp and _ttl are not supported anymore, _field_names, _seq_no, _version and _source are
     //also missing, not sure if on purpose. See IndicesModule#getMetadataMappers
@@ -103,16 +95,7 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
             "_size", "_timestamp", "_ttl", IgnoredFieldMapper.NAME
     );
 
-    private static final DeprecationLogger DEPRECATION_LOGGER = new DeprecationLogger(LogManager.getLogger(MapperService.class));
-
     private final IndexAnalyzers indexAnalyzers;
-
-    /**
-     * Will create types automatically if they do not exists in the mapping definition yet
-     */
-    private final boolean dynamic;
-
-    private volatile String defaultMappingSource;
 
     private volatile Map<String, DocumentMapper> mappers = emptyMap();
 
@@ -135,22 +118,10 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
         this.fieldTypes = new FieldTypeLookup();
         this.documentParser = new DocumentMapperParser(indexSettings, this, indexAnalyzers, xContentRegistry,
                 mapperRegistry, queryShardContextSupplier);
-        this.indexAnalyzer = new MapperAnalyzerWrapper(indexAnalyzers.getDefaultIndexAnalyzer(), p -> p.indexAnalyzer());
-        this.searchAnalyzer = new MapperAnalyzerWrapper(indexAnalyzers.getDefaultSearchAnalyzer(), p -> p.searchAnalyzer());
-        this.searchQuoteAnalyzer = new MapperAnalyzerWrapper(indexAnalyzers.getDefaultSearchQuoteAnalyzer(), p -> p.searchQuoteAnalyzer());
+        this.indexAnalyzer = new MapperAnalyzerWrapper(indexAnalyzers.getDefaultIndexAnalyzer(), MappedFieldType::indexAnalyzer);
+        this.searchAnalyzer = new MapperAnalyzerWrapper(indexAnalyzers.getDefaultSearchAnalyzer(), MappedFieldType::searchAnalyzer);
+        this.searchQuoteAnalyzer = new MapperAnalyzerWrapper(indexAnalyzers.getDefaultSearchQuoteAnalyzer(), MappedFieldType::searchQuoteAnalyzer);
         this.mapperRegistry = mapperRegistry;
-
-        if (INDEX_MAPPER_DYNAMIC_SETTING.exists(indexSettings.getSettings())) {
-            DEPRECATION_LOGGER.deprecated("Setting " + INDEX_MAPPER_DYNAMIC_SETTING.getKey() + " is deprecated since indices may not have more than one type anymore.");
-        }
-        this.dynamic = INDEX_MAPPER_DYNAMIC_DEFAULT;
-        defaultMappingSource = "{\"_default_\":{}}";
-
-        if (logger.isTraceEnabled()) {
-            logger.trace("using dynamic[{}], default mapping source[{}]", dynamic, defaultMappingSource);
-        } else if (logger.isDebugEnabled()) {
-            logger.debug("using dynamic[{}]", dynamic);
-        }
     }
 
     /**
@@ -314,31 +285,6 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
     }
 
     private synchronized Map<String, DocumentMapper> internalMerge(Map<String, CompressedXContent> mappings, MergeReason reason, boolean updateAllTypes) {
-        DocumentMapper defaultMapper = null;
-        String defaultMappingSource = null;
-
-        if (mappings.containsKey(DEFAULT_MAPPING)) {
-            // verify we can parse it
-            // NOTE: never apply the default here
-            try {
-                defaultMapper = documentParser.parse(DEFAULT_MAPPING, mappings.get(DEFAULT_MAPPING));
-            } catch (Exception e) {
-                throw new MapperParsingException("Failed to parse mapping [{}]: {}", e, DEFAULT_MAPPING, e.getMessage());
-            }
-            try {
-                defaultMappingSource = mappings.get(DEFAULT_MAPPING).string();
-            } catch (IOException e) {
-                throw new ElasticsearchGenerationException("failed to un-compress", e);
-            }
-        }
-
-        final String defaultMappingSourceOrLastStored;
-        if (defaultMappingSource != null) {
-            defaultMappingSourceOrLastStored = defaultMappingSource;
-        } else {
-            defaultMappingSourceOrLastStored = this.defaultMappingSource;
-        }
-
         List<DocumentMapper> documentMappers = new ArrayList<>();
         for (Map.Entry<String, CompressedXContent> entry : mappings.entrySet()) {
             String type = entry.getKey();
@@ -346,22 +292,16 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
                 continue;
             }
 
-            final boolean applyDefault =
-                // the default was already applied if we are recovering
-                reason != MergeReason.MAPPING_RECOVERY
-                    // only apply the default mapping if we don't have the type yet
-                    && mappers.containsKey(type) == false;
 
             try {
-                DocumentMapper documentMapper =
-                    documentParser.parse(type, entry.getValue(), applyDefault ? defaultMappingSourceOrLastStored : null);
+                DocumentMapper documentMapper = documentParser.parse(type, entry.getValue());
                 documentMappers.add(documentMapper);
             } catch (Exception e) {
                 throw new MapperParsingException("Failed to parse mapping [{}]: {}", e, entry.getKey(), e.getMessage());
             }
         }
 
-        return internalMerge(defaultMapper, defaultMappingSource, documentMappers, reason, updateAllTypes);
+        return internalMerge(documentMappers, reason, updateAllTypes);
     }
 
     static void validateTypeName(String type) {
@@ -385,23 +325,13 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
         }
     }
 
-    private synchronized Map<String, DocumentMapper> internalMerge(@Nullable DocumentMapper defaultMapper, @Nullable String defaultMappingSource,
-                                                                   List<DocumentMapper> documentMappers, MergeReason reason, boolean updateAllTypes) {
+    private synchronized Map<String, DocumentMapper> internalMerge(List<DocumentMapper> documentMappers,
+                                                                   MergeReason reason,
+                                                                   boolean updateAllTypes) {
         Map<String, ObjectMapper> fullPathObjectMappers = this.fullPathObjectMappers;
         FieldTypeLookup fieldTypes = this.fieldTypes;
         Map<String, DocumentMapper> mappers = new HashMap<>(this.mappers);
-
         Map<String, DocumentMapper> results = new LinkedHashMap<>(documentMappers.size() + 1);
-
-        if (defaultMapper != null) {
-            if (reason == MergeReason.MAPPING_UPDATE) { // only log in case of explicit mapping updates
-                DEPRECATION_LOGGER.deprecated("[_default_] mapping is deprecated since it is not useful anymore now that indexes " +
-                        "cannot have more than one type");
-            }
-            assert defaultMapper.type().equals(DEFAULT_MAPPING);
-            mappers.put(DEFAULT_MAPPING, defaultMapper);
-            results.put(DEFAULT_MAPPING, defaultMapper);
-        }
 
         Set<String> actualTypes = new HashSet<>(mappers.keySet());
         documentMappers.forEach(mapper -> actualTypes.add(mapper.type()));
@@ -497,10 +427,6 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
             fullPathObjectMappers = Collections.unmodifiableMap(fullPathObjectMappers);
         }
 
-        // commit the change
-        if (defaultMappingSource != null) {
-            this.defaultMappingSource = defaultMappingSource;
-        }
         this.mappers = mappers;
         this.fieldTypes = fieldTypes;
         this.fullPathObjectMappers = fullPathObjectMappers;
@@ -526,7 +452,7 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
     private boolean assertSerialization(DocumentMapper mapper) {
         // capture the source now, it may change due to concurrent parsing
         final CompressedXContent mappingSource = mapper.mappingSource();
-        DocumentMapper newMapper = parse(mapper.type(), mappingSource, false);
+        DocumentMapper newMapper = parse(mapper.type(), mappingSource);
 
         if (newMapper.mappingSource().equals(mappingSource) == false) {
             throw new IllegalStateException("DocumentMapper serialization result is different from source. \n--> Source ["
@@ -573,12 +499,8 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
         }
     }
 
-    public DocumentMapper parse(String mappingType, CompressedXContent mappingSource, boolean applyDefault) throws MapperParsingException {
-        return documentParser.parse(mappingType, mappingSource, applyDefault ? defaultMappingSource : null);
-    }
-
-    public boolean hasMapping(String mappingType) {
-        return mappers.containsKey(mappingType);
+    public DocumentMapper parse(String mappingType, CompressedXContent mappingSource) throws MapperParsingException {
+        return documentParser.parse(mappingType, mappingSource);
     }
 
     /**
@@ -604,17 +526,12 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
      * Returns the document mapper created, including a mapping update if the
      * type has been dynamically created.
      */
-    public DocumentMapperForType documentMapperWithAutoCreate(String type) {
-        DocumentMapper mapper = mappers.get(type);
-        if (mapper != null) {
-            return new DocumentMapperForType(mapper, null);
+    public DocumentMapper documentMapperSafe() {
+        DocumentMapper mapper = mappers.get("default");
+        if (mapper == null) {
+            throw new IllegalArgumentException("Mapper for type `default` not found.");
         }
-        if (!dynamic) {
-            throw new TypeMissingException(index(),
-                    new IllegalStateException("trying to auto create mapping, but dynamic mapping is disabled"), type);
-        }
-        mapper = parse(type, null, true);
-        return new DocumentMapperForType(mapper, mapper.mapping());
+        return mapper;
     }
 
     /**
@@ -698,11 +615,4 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
         }
     }
 
-    /** Return a term that uniquely identifies the document, or {@code null} if the type is not allowed. */
-    public Term createUidTerm(String type, String id) {
-        if (hasMapping(type) == false) {
-            return null;
-        }
-        return new Term(IdFieldMapper.NAME, Uid.encodeId(id));
-    }
 }

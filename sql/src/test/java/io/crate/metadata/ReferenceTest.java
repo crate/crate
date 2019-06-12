@@ -21,6 +21,8 @@
 
 package io.crate.metadata;
 
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.ArrayType;
@@ -30,19 +32,23 @@ import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
+import java.util.Map;
+
 import static org.hamcrest.core.Is.is;
 
 public class ReferenceTest extends CrateUnitTest {
 
     @Test
-    public void testEquals() throws Exception {
+    public void testEquals()  {
         RelationName relationName = new RelationName("doc", "test");
         ReferenceIdent referenceIdent = new ReferenceIdent(relationName, "object_column");
         DataType dataType1 = new ArrayType(ObjectType.untyped());
         DataType dataType2 = new ArrayType(ObjectType.untyped());
-        Reference reference1 = new Reference(referenceIdent, RowGranularity.DOC, dataType1, null);
-        Reference reference2 = new Reference(referenceIdent, RowGranularity.DOC, dataType2, null);
-        assertTrue(reference1.equals(reference2));
+        Symbol defaultExpression1 = Literal.of(Map.of("f", 10));
+        Symbol defaultExpression2 = Literal.of(Map.of("f", 10));
+        Reference reference1 = new Reference(referenceIdent, RowGranularity.DOC, dataType1, null, defaultExpression1);
+        Reference reference2 = new Reference(referenceIdent, RowGranularity.DOC, dataType2, null, defaultExpression2);
+        assertThat(reference1, is(reference2));
     }
 
     @Test
@@ -56,7 +62,9 @@ public class ReferenceTest extends CrateUnitTest {
             ColumnPolicy.STRICT,
             Reference.IndexType.ANALYZED,
             false,
-            null
+            null,
+            Literal.of(Map.of("f", 10)
+            )
         );
 
         BytesStreamOutput out = new BytesStreamOutput();

@@ -602,14 +602,23 @@ public class InternalEngine extends Engine {
                         return GetResult.NOT_EXISTS;
                     }
                     if (get.versionType().isVersionConflictForReads(versionValue.version, get.version())) {
-                        throw new VersionConflictEngineException(shardId, get.type(), get.id(),
-                            get.versionType().explainConflictForReads(versionValue.version, get.version()));
+                        throw new VersionConflictEngineException(
+                            shardId,
+                            get.id(),
+                            get.versionType().explainConflictForReads(versionValue.version, get.version())
+                        );
                     }
                     if (get.getIfSeqNo() != SequenceNumbers.UNASSIGNED_SEQ_NO && (
                         get.getIfSeqNo() != versionValue.seqNo || get.getIfPrimaryTerm() != versionValue.term
                     )) {
-                        throw new VersionConflictEngineException(shardId, get.type(), get.id(),
-                                                                 get.getIfSeqNo(), get.getIfPrimaryTerm(), versionValue.seqNo, versionValue.term);
+                        throw new VersionConflictEngineException(
+                            shardId,
+                            get.id(),
+                            get.getIfSeqNo(),
+                            get.getIfPrimaryTerm(),
+                            versionValue.seqNo,
+                            versionValue.term
+                        );
                     }
                     if (get.isReadFromTranslog()) {
                         // this is only used for updates - API _GET calls will always read form a reader for consistency
@@ -976,14 +985,26 @@ public class InternalEngine extends Engine {
                 currentNotFoundOrDeleted = versionValue.isDelete();
             }
             if (index.getIfSeqNoMatch() != SequenceNumbers.UNASSIGNED_SEQ_NO && versionValue == null) {
-                final VersionConflictEngineException e = new VersionConflictEngineException(shardId, index.type(), index.id(),
-                                                                                            index.getIfSeqNoMatch(), index.getIfPrimaryTermMatch(), SequenceNumbers.UNASSIGNED_SEQ_NO, 0);
+                final VersionConflictEngineException e = new VersionConflictEngineException(
+                    shardId,
+                    index.id(),
+                    index.getIfSeqNoMatch(),
+                    index.getIfPrimaryTermMatch(),
+                    SequenceNumbers.UNASSIGNED_SEQ_NO,
+                    0
+                );
                 plan = IndexingStrategy.skipDueToVersionConflict(e, currentNotFoundOrDeleted, currentVersion, getPrimaryTerm());
             } else if (versionValue != null && index.getIfSeqNoMatch() != SequenceNumbers.UNASSIGNED_SEQ_NO && (
                 versionValue.seqNo != index.getIfSeqNoMatch() || versionValue.term != index.getIfPrimaryTermMatch()
             )) {
-                final VersionConflictEngineException e = new VersionConflictEngineException(shardId, index.type(), index.id(),
-                                                                                            index.getIfSeqNoMatch(), index.getIfPrimaryTermMatch(), versionValue.seqNo, versionValue.term);
+                final VersionConflictEngineException e = new VersionConflictEngineException(
+                    shardId,
+                    index.id(),
+                    index.getIfSeqNoMatch(),
+                    index.getIfPrimaryTermMatch(),
+                    versionValue.seqNo,
+                    versionValue.term
+                );
                 plan = IndexingStrategy.skipDueToVersionConflict(e, currentNotFoundOrDeleted, currentVersion, getPrimaryTerm());
             } else if (index.versionType().isVersionConflictForWrites(
                 currentVersion, index.version(), currentNotFoundOrDeleted)) {
@@ -1310,14 +1331,26 @@ public class InternalEngine extends Engine {
         }
         final DeletionStrategy plan;
         if (delete.getIfSeqNoMatch() != SequenceNumbers.UNASSIGNED_SEQ_NO && versionValue == null) {
-            final VersionConflictEngineException e = new VersionConflictEngineException(shardId, delete.type(), delete.id(),
-                                                                                        delete.getIfSeqNoMatch(), delete.getIfPrimaryTermMatch(), SequenceNumbers.UNASSIGNED_SEQ_NO, 0);
+            final VersionConflictEngineException e = new VersionConflictEngineException(
+                shardId,
+                delete.id(),
+                delete.getIfSeqNoMatch(),
+                delete.getIfPrimaryTermMatch(),
+                SequenceNumbers.UNASSIGNED_SEQ_NO,
+                0
+            );
             plan = DeletionStrategy.skipDueToVersionConflict(e, currentVersion, getPrimaryTerm(), currentlyDeleted);
         } else if (versionValue != null &&  delete.getIfSeqNoMatch() != SequenceNumbers.UNASSIGNED_SEQ_NO && (
             versionValue.seqNo != delete.getIfSeqNoMatch() || versionValue.term != delete.getIfPrimaryTermMatch()
         )) {
-            final VersionConflictEngineException e = new VersionConflictEngineException(shardId, delete.type(), delete.id(),
-                                                                                        delete.getIfSeqNoMatch(), delete.getIfPrimaryTermMatch(), versionValue.seqNo, versionValue.term);
+            final VersionConflictEngineException e = new VersionConflictEngineException(
+                shardId,
+                delete.id(),
+                delete.getIfSeqNoMatch(),
+                delete.getIfPrimaryTermMatch(),
+                versionValue.seqNo,
+                versionValue.term
+            );
             plan = DeletionStrategy.skipDueToVersionConflict(e, currentVersion, getPrimaryTerm(), currentlyDeleted);
         } else if (delete.versionType().isVersionConflictForWrites(currentVersion, delete.version(), currentlyDeleted)) {
             final VersionConflictEngineException e = new VersionConflictEngineException(shardId, delete, currentVersion, currentlyDeleted);
@@ -1336,7 +1369,7 @@ public class InternalEngine extends Engine {
         assert assertMaxSeqNoOfUpdatesIsAdvanced(delete.uid(), plan.seqNoOfDeletion, false, false);
         try {
             if (softDeleteEnabled) {
-                final ParsedDocument tombstone = engineConfig.getTombstoneDocSupplier().newDeleteTombstoneDoc(delete.type(), delete.id());
+                final ParsedDocument tombstone = engineConfig.getTombstoneDocSupplier().newDeleteTombstoneDoc(delete.id());
                 assert tombstone.docs().size() == 1 : "Tombstone doc should have single doc [" + tombstone + "]";
                 tombstone.updateSeqID(plan.seqNoOfDeletion, delete.primaryTerm());
                 tombstone.version().setLongValue(plan.versionOfDeletion);

@@ -42,7 +42,7 @@ public class DateFormatFunction extends Scalar<String, Object> {
 
     public static void register(ScalarFunctionModule module) {
         List<DataType> supportedTimestampTypes = List.of(
-            DataTypes.TIMESTAMPZ, DataTypes.LONG, DataTypes.STRING);
+            DataTypes.TIMESTAMPZ, DataTypes.TIMESTAMP, DataTypes.LONG, DataTypes.STRING);
         for (DataType dataType : supportedTimestampTypes) {
             // without format
             module.register(new DateFormatFunction(new FunctionInfo(

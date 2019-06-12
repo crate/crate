@@ -22,7 +22,6 @@
 
 package io.crate.execution.dml.upsert;
 
-import io.crate.Constants;
 import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.execution.ddl.SchemaUpdateClient;
 import io.crate.execution.dml.ShardResponse;
@@ -52,7 +51,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
-import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.index.mapper.ContentPath;
 import org.elasticsearch.index.mapper.Mapper;
@@ -92,7 +90,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
     private final static RelationName TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "characters");
     private final static String PARTITION_INDEX = new PartitionName(TABLE_IDENT, Arrays.asList("1395874800000")).asIndexName();
     private final static Reference ID_REF = new Reference(
-        new ReferenceIdent(TABLE_IDENT, "id"), RowGranularity.DOC, DataTypes.SHORT, null);
+        new ReferenceIdent(TABLE_IDENT, "id"), RowGranularity.DOC, DataTypes.SHORT, null, null);
 
     private final static SessionSettings DUMMY_SESSION_INFO = new SessionSettings(
         "dummyUser",
@@ -131,7 +129,6 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
                                               boolean isRetry) throws Exception {
              throw new VersionConflictEngineException(
                 indexShard.shardId(),
-                 Constants.DEFAULT_MAPPING_TYPE,
                 item.id(),
                 "document with id: " + item.id() + " already exists in '" + request.shardId().getIndexName() + '\'');
         }
@@ -220,7 +217,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         ShardResponse response = result.finalResponseIfSuccessful;
         assertThat(response.failures().size(), is(1));
         assertThat(response.failures().get(0).message(),
-            is("[default][1]: version conflict, document with id: 1 already exists in 'characters'"));
+            is("[1]: version conflict, document with id: 1 already exists in 'characters'"));
     }
 
     @Test

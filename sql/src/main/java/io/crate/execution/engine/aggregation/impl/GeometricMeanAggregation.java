@@ -84,6 +84,11 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
             n++;
         }
 
+        private void subValue(double val) {
+            this.value -= FastMath.log(val);
+            n--;
+        }
+
         private Double value() {
             if (n > 0) {
                 return FastMath.exp(value / n);
@@ -213,6 +218,24 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
     @Override
     public Double terminatePartial(RamAccountingContext ramAccountingContext, GeometricMeanState state) {
         return state.value();
+    }
+
+    @Override
+    public boolean isRemovableCumulative() {
+        return true;
+    }
+
+    @Override
+    public GeometricMeanState removeFromAggregatedState(RamAccountingContext ramAccountingContext,
+                                                        GeometricMeanState previousAggState,
+                                                        Input[] stateToRemove) {
+        if (previousAggState != null) {
+            Number value = (Number) stateToRemove[0].value();
+            if (value != null) {
+                previousAggState.subValue(value.doubleValue());
+            }
+        }
+        return previousAggState;
     }
 
     @Override

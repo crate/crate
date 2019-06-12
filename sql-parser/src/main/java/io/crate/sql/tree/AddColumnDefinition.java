@@ -43,6 +43,14 @@ public class AddColumnDefinition extends TableElement {
         this.generatedExpression = generatedExpression;
         this.type = type;
         this.constraints = constraints;
+        validateColumnDefinition();
+    }
+
+    private void validateColumnDefinition() {
+        if (type == null && generatedExpression == null) {
+            throw new IllegalArgumentException("Column [" + name + "]: data type needs to be provided " +
+                                               "or column should be defined as a generated expression");
+        }
     }
 
     public Expression name() {

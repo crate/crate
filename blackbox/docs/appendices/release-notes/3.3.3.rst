@@ -1,0 +1,83 @@
+.. _version_3.3.3:
+
+=============
+Version 3.3.3
+=============
+
+Released on 2019/05/23.
+
+.. NOTE::
+
+    If you are upgrading a cluster, you must be running CrateDB 2.0.4 or higher
+    before you upgrade to 3.3.3.
+
+    We recommend that you upgrade to the latest 3.2 release before moving to
+    3.3.3.
+
+    If you want to perform a `rolling upgrade`_, your current CrateDB version
+    number must be at least :ref:`version_3.3.0`. Any upgrade from a version
+    prior to this will require a `full restart upgrade`_.
+
+    When restarting, CrateDB will migrate indexes to a newer format. Depending
+    on the amount of data, this may delay node start-up time.
+
+    Please consult the :ref:`version_3.3.0_upgrade_notes` before upgrading.
+
+.. WARNING::
+
+    Tables that were created prior to upgrading to CrateDB 2.x will not
+    function with 3.3 and must be recreated before moving to 3.3.x.
+
+    You can recreate tables using ``COPY TO`` and ``COPY FROM`` while running a
+    2.x release into a new table, or by `inserting the data into a new table`_.
+
+    Before upgrading, you should `back up your data`_.
+
+.. _rolling upgrade: http://crate.io/docs/crate/guide/best_practices/rolling_upgrade.html
+.. _full restart upgrade: http://crate.io/docs/crate/guide/best_practices/full_restart_upgrade.html
+.. _back up your data: https://crate.io/a/backing-up-and-restoring-crate/
+.. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+Changelog
+=========
+
+Fixes
+-----
+
+- Fixed an issue that will prevent CrateDB from bootstrapping when running on
+  java 8 and a javaagent is specificed using ``JAVA_OPTS`` or
+  ``CRATE_JAVA_OPTS``.
+
+- Fixed an issue that prevented parameter placeholders from being resolved when
+  creating a view. A view definition like ``CREATE VIEW v1 AS SELECT ?`` would
+  get stored without the ``?`` being resolved to the actual parameter value,
+  causing queries on the view to fail and also breaking
+  ``information_schema.views``.
+
+- Increased the precedence of the double colon cast operator, so that a
+  statement like ``x::double / y::double`` applies both casts before the
+  division.
+
+- Fixed an issue with the disk watermark sys checks which would incorrectly
+  report all of them as failed if
+  :ref:`cluster.routing.allocation.disk.threshold_enabled
+  <cluster.routing.allocation.disk.threshold_enabled>` was set to false.
+
+- Fixed an issue were a query on a sub-query with ambiguous columns would
+  return the same values for all of the ambiguous columns. An example is
+  ``SELECT * FROM (SELECT * FROM t1, t2) AS tjoin`` where both ``t1`` and
+  ``t2`` have a column named ``x``. In this case the value for ``t1.x`` would
+  be output twice.
+
+- Fixed a race condition when setting an enterprise license very early on node
+  startup while a trial license is generated concurrently and such may used
+  instead of the user given license.
+
+- Improve error message for the unsupported :ref:`window-definition` ordered or
+  partitioned by an array column type in the context of :ref:`window-functions`

@@ -23,6 +23,7 @@
 package io.crate.execution.engine.window;
 
 import com.google.common.collect.Iterables;
+import io.crate.analyze.WindowFrameDefinition;
 import io.crate.breaker.RowAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.BatchIterators;
@@ -46,6 +47,8 @@ import java.util.concurrent.Executor;
 import java.util.function.Function;
 import java.util.function.IntSupplier;
 import java.util.stream.Collectors;
+
+import static io.crate.common.collections.Lists2.findFirstNonPeer;
 
 /**
  * BatchIterator which computes window functions (incl. partitioning + ordering)
@@ -76,6 +79,7 @@ public final class WindowFunctionBatchIterator {
 
     public static BatchIterator<Row> of(BatchIterator<Row> source,
                                         RowAccounting<Row> rowAccounting,
+                                        WindowFrameDefinition frameDefinition,
                                         Comparator<Object[]> cmpPartitionBy,
                                         Comparator<Object[]> cmpOrderBy,
                                         int numCellsInSourceRow,
@@ -96,6 +100,7 @@ public final class WindowFunctionBatchIterator {
                 .collect(src, Collectors.mapping(materialize, Collectors.toList()))
                 .thenCompose(rows -> sortAndComputeWindowFunctions(
                     rows,
+                    frameDefinition,
                     cmpPartitionBy,
                     cmpOrderBy,
                     numCellsInSourceRow,
@@ -120,6 +125,7 @@ public final class WindowFunctionBatchIterator {
 
     static CompletableFuture<Iterable<Object[]>> sortAndComputeWindowFunctions(
         List<Object[]> rows,
+        WindowFrameDefinition frameDefinition,
         @Nullable Comparator<Object[]> cmpPartitionBy,
         @Nullable Comparator<Object[]> cmpOrderBy,
         int numCellsInSourceRow,
@@ -131,6 +137,7 @@ public final class WindowFunctionBatchIterator {
 
         Function<List<Object[]>, Iterable<Object[]>> computeWindowsFn = sortedRows -> computeWindowFunctions(
             sortedRows,
+            frameDefinition,
             cmpPartitionBy,
             cmpOrderBy,
             numCellsInSourceRow,
@@ -149,6 +156,7 @@ public final class WindowFunctionBatchIterator {
     }
 
     private static Iterable<Object[]> computeWindowFunctions(List<Object[]> sortedRows,
+                                                             WindowFrameDefinition frameDefinition,
                                                              @Nullable Comparator<Object[]> cmpPartitionBy,
                                                              @Nullable Comparator<Object[]> cmpOrderBy,
                                                              int numCellsInSourceRow,
@@ -183,8 +191,19 @@ public final class WindowFunctionBatchIterator {
                     idxInPartition = 0;
                     pEnd = findFirstNonPeer(sortedRows, pStart, end, cmpPartitionBy);
                 }
-                int wBegin = pStart; // UNBOUNDED PRECEDING -> Frame always starts at the start of the partition
-                int wEnd = findFirstNonPeer(sortedRows, i, pEnd, cmpOrderBy);
+
+                int wBegin = frameDefinition.start().type().getStart(pStart,
+                                                                     pEnd,
+                                                                     i,
+                                                                     cmpOrderBy,
+                                                                     sortedRows);
+
+                int wEnd = frameDefinition.end().type().getEnd(pStart,
+                                                               pEnd,
+                                                               i,
+                                                               cmpOrderBy,
+                                                               sortedRows);
+
                 frame.updateBounds(pStart, wBegin, wEnd);
                 final Object[] row = computeAndInjectResults(
                     sortedRows, numCellsInSourceRow, windowFunctions, frame, i, idxInPartition, argsExpressions, args);
@@ -228,56 +247,5 @@ public final class WindowFunctionBatchIterator {
             row[numCellsInSourceRow + c] = result;
         }
         return row;
-    }
-
-    static <T> int findFirstNonPeer(List<T> rows, int begin, int end, @Nullable Comparator<T> cmp) {
-        if (cmp == null || (begin + 1) >= end) {
-            return end;
-        }
-        T fst = rows.get(begin);
-        if (cmp.compare(fst, rows.get(begin + 1)) != 0) {
-            return begin + 1;
-        }
-        /*
-         * Adapted binarySearch algorithm to find the first non peer (instead of the first match)
-         * This depends on there being at least some EQ values;
-         * Whenever we find a EQ pair we check if the following element isn't EQ anymore.
-         *
-         * E.g.
-         *
-         * i:     0  1  2  3  4  5  6  7
-         * rows: [1, 1, 1, 1, 4, 4, 5, 6]
-         *        ^ [1  1  1  4  4  5  6]
-         *        +-----------^
-         *           cmp: -1
-         *        1 [1  1  1  4] 4  5  6
-         *        ^     ^
-         *        +-----+
-         *           cmp: 0 --> cmp (mid +1) != 0 --> false
-         *        1  1  1 [1  4] 4  5  6
-         *        ^        ^
-         *        +--------+
-         *           cmp: 0 --> cmp (mid +1) != 0 --> true
-         */
-        int low = begin + 1;
-        int high = end;
-        while (low <= high) {
-            int mid = (low + high) >>> 1;
-            T t = rows.get(mid);
-            int cmpResult = cmp.compare(fst, t);
-            if (cmpResult == 0) {
-                int next = mid + 1;
-                if (next == high || cmp.compare(fst, rows.get(next)) != 0) {
-                    return next;
-                } else {
-                    low = next;
-                }
-            } else if (cmpResult < 0) {
-                high = mid;
-            } else {
-                low = mid;
-            }
-        }
-        return end;
     }
 }

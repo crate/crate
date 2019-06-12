@@ -22,7 +22,7 @@
 
 package io.crate.planner.optimizer;
 
-import io.crate.collections.Lists2;
+import io.crate.common.collections.Lists2;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Match;

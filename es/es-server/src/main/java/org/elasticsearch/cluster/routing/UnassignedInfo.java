@@ -19,7 +19,6 @@
 
 package org.elasticsearch.cluster.routing;
 
-import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.MetaData;
@@ -28,7 +27,6 @@ import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.logging.DeprecationLogger;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
@@ -49,20 +47,14 @@ import java.util.Objects;
  */
 public final class UnassignedInfo implements ToXContentFragment, Writeable {
 
-    private static final DeprecationLogger DEPRECATION_LOGGER = new DeprecationLogger(LogManager.getLogger(UnassignedInfo.class));
-
     public static final DateFormatter DATE_TIME_FORMATTER = DateFormatters.forPattern("dateOptionalTime").withZone(ZoneOffset.UTC);
 
-    public static final Setting<TimeValue> INDEX_DELAYED_NODE_LEFT_TIMEOUT_SETTING =
-        new Setting<>("index.unassigned.node_left.delayed_timeout", (s) -> TimeValue.timeValueMinutes(1).getStringRep(), (s) -> {
-            TimeValue parsedValue = TimeValue.parseTimeValue(s, "index.unassigned.node_left.delayed_timeout");
-            if (parsedValue.getNanos() < 0) {
-                DEPRECATION_LOGGER.deprecated(
-                    "Negative values for index.unassigned.node_left.delayed_timeout [{}]" +
-                        " are deprecated and should now be set to \"0\".", s);
-            }
-            return parsedValue;
-        }, Property.Dynamic, Property.IndexScope);
+    public static final Setting<TimeValue> INDEX_DELAYED_NODE_LEFT_TIMEOUT_SETTING = Setting.positiveTimeSetting(
+            "index.unassigned.node_left.delayed_timeout",
+        TimeValue.timeValueMinutes(1),
+        Property.Dynamic,
+        Property.IndexScope
+    );
 
     /**
      * Reason why the shard is in unassigned state.

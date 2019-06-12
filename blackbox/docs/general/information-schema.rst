@@ -371,7 +371,7 @@ infinite recursion of your mind, beware!)::
 |                               |                                               |               |
 |                               | For further information see :ref:`data-types` |               |
 +-------------------------------+-----------------------------------------------+---------------+
-| ``column_default``            | Not implemented (always returns ``NULL``)     | ``TEXT``      |
+| ``column_default``            | The default expression of the column          | ``TEXT``      |
 +-------------------------------+-----------------------------------------------+---------------+
 | ``character_maximum_length``  | Not implemented (always returns ``NULL``)     | ``INTEGER``   |
 |                               |                                               |               |

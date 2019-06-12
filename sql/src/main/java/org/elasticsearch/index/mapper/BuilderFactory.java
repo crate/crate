@@ -54,6 +54,7 @@ public class BuilderFactory implements DynamicArrayFieldMapperBuilderFactory {
             return new ArrayMapper(
                 name,
                 fieldMapper.position(),
+                null,
                 mappedFieldType,
                 mappedFieldType.clone(),
                 context.indexSettings().getSettings(),

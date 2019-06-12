@@ -499,10 +499,6 @@ public class TestStatementBuilder {
         printStatement("create table test (col1 string, col2 string," +
             "index col1_col2_ft using fulltext(col1, col2) with (analyzer='custom'))");
 
-        printStatement("create table test (prime long, primes array(long), unique_dates set(timestamp with time zone))");
-        printStatement("create table test (nested set(set(array(boolean))))");
-        printStatement("create table test (object_array array(object(dynamic) as (i integer, s set(string))))");
-
         printStatement("create table test (col1 int, col2 timestamp with time zone) partitioned by (col1)");
         printStatement("create table test (col1 int, col2 timestamp with time zone) partitioned by (col1, col2)");
         printStatement("create table test (col1 int, col2 timestamp with time zone) partitioned by (col1) clustered by (col2)");
@@ -512,6 +508,26 @@ public class TestStatementBuilder {
         printStatement("create table test (col1 int, col2 timestamp without time zone not null)");
 
         printStatement("create table test (col1 string storage with (columnstore = false))");
+    }
+
+    @Test
+    public void testCreateTableColumnTypeOrGeneratedExpressionAreDefined() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Column [col1]: data type needs to be provided or column should be defined as a generated expression");
+        printStatement("create table test (col1)");
+    }
+
+    @Test
+    public void testCreateTableDefaultExpression() {
+        printStatement("create table test (col1 int default 1)");
+        printStatement("create table test (col1 int default random())");
+    }
+
+    @Test
+    public void testCreateTableBothDefaultAndGeneratedExpressionsNotAllowed() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Column [col1]: the default and generated expressions are mutually exclusive");
+        printStatement("create table test (col1 int default random() as 1+1)");
     }
 
     @Test
@@ -812,8 +828,10 @@ public class TestStatementBuilder {
     public void testSystemInformationFunctionsStmtBuilder() {
         printStatement("select current_schema");
         printStatement("select current_schema()");
+        printStatement("select pg_catalog.current_schema()");
         printStatement("select * from information_schema.tables where table_schema = current_schema");
         printStatement("select * from information_schema.tables where table_schema = current_schema()");
+        printStatement("select * from information_schema.tables where table_schema = pg_catalog.current_schema()");
 
         printStatement("select current_user");
         printStatement("select user");
@@ -1154,7 +1172,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testArrayComparisonSubselect() {
+    public void testArrayComparisonSubSelect() {
         Expression anyExpression = SqlParser.createExpression("1 = ANY ((SELECT 5))");
         assertThat(anyExpression, instanceOf(ArrayComparisonExpression.class));
         ArrayComparisonExpression arrayComparisonExpression = (ArrayComparisonExpression) anyExpression;
@@ -1162,7 +1180,7 @@ public class TestStatementBuilder {
         assertThat(arrayComparisonExpression.getLeft(), instanceOf(LongLiteral.class));
         assertThat(arrayComparisonExpression.getRight(), instanceOf(SubqueryExpression.class));
 
-        // It's possible to ommit the parenthesis
+        // It's possible to omit the parenthesis
         anyExpression = SqlParser.createExpression("1 = ANY (SELECT 5)");
         assertThat(anyExpression, instanceOf(ArrayComparisonExpression.class));
         arrayComparisonExpression = (ArrayComparisonExpression) anyExpression;
@@ -1338,6 +1356,22 @@ public class TestStatementBuilder {
 
         printStatement("alter table t add col2 AS col1['name'] + 1");
     }
+
+    @Test
+    public void testAlterTableAddColumnTypeOrGeneratedExpressionAreDefined() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Column [\"col2\"]: data type needs to be provided or column should be defined as a generated expression");
+        printStatement("alter table t add column col2");
+    }
+
+
+    @Test
+    public void testAddColumnWithDefaultExpressionIsNotSupported() {
+        expectedException.expect(ParsingException.class);
+        expectedException.expectMessage("mismatched input 'default'");
+        printStatement("alter table t add col1 text default 'foo'");
+    }
+
 
     @Test
     public void testAlterTableOpenClose() {

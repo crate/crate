@@ -37,11 +37,9 @@ import com.microsoft.azure.storage.blob.ListBlobItem;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
-import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.blobstore.BlobMetaData;
 import org.elasticsearch.common.blobstore.support.PlainBlobMetaData;
 import org.elasticsearch.common.collect.Tuple;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.SettingsException;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
@@ -71,12 +69,6 @@ public class AzureStorageService {
     @VisibleForTesting
     volatile AzureStorageSettings storageSettings;
 
-    public AzureStorageService(Settings settings) {
-        // eagerly load client settings so that secure settings are read
-        final AzureStorageSettings clientSettings = AzureStorageSettings.getClientSettings(settings);
-        refreshAndClearCache(clientSettings);
-    }
-
     /**
      * Creates a {@code CloudBlobClient} on each invocation using the current client
      * settings. CloudBlobClient is not thread safe and the settings can change,
@@ -85,6 +77,7 @@ public class AzureStorageService {
      * specify the proxy, but a new context is *required* for each call.
      */
     public Tuple<CloudBlobClient, Supplier<OperationContext>> client() {
+        assert this.storageSettings != null : "must be initialized before fetching a new client";
         final AzureStorageSettings azureStorageSettings = this.storageSettings;
         if (azureStorageSettings == null) {
             throw new SettingsException("Client settings are not provided");
@@ -125,22 +118,8 @@ public class AzureStorageService {
         return context;
     }
 
-    /**
-     * Updates settings for building a client. Any client cache is cleared. Future
-     * client requests will use the new refreshed settings.
-     *
-     * @param clientSettings the settings for a new client
-     * @return the old settings
-     */
-    public AzureStorageSettings refreshAndClearCache(@Nullable AzureStorageSettings clientSettings) {
-        final AzureStorageSettings prevSettings = this.storageSettings;
-        if (clientSettings == null) {
-            this.storageSettings = null;
-        } else {
-            this.storageSettings = AzureStorageSettings.copy(clientSettings);
-        }
-        // clients are built lazily by {@link client()}
-        return prevSettings;
+    public void refreshSettings(AzureStorageSettings clientSettings) {
+        this.storageSettings = AzureStorageSettings.copy(clientSettings);
     }
 
     public boolean doesContainerExist(String container) throws URISyntaxException, StorageException {

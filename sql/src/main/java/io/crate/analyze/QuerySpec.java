@@ -21,7 +21,7 @@
 
 package io.crate.analyze;
 
-import io.crate.collections.Lists2;
+import io.crate.common.collections.Lists2;
 import io.crate.expression.symbol.Symbol;
 
 import javax.annotation.Nullable;

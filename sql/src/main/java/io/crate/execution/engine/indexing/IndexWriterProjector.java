@@ -150,7 +150,7 @@ public class IndexWriterProjector implements Projector {
         private final Input<Map<String, Object>> sourceInput;
         private final String[] includes;
         private final String[] excludes;
-        private static final Logger logger = LogManager.getLogger(MapInput.class);
+        private static final Logger LOGGER = LogManager.getLogger(MapInput.class);
         private int lastSourceSize;
 
         private MapInput(Input<Map<String, Object>> sourceInput, String[] includes, String[] excludes) {
@@ -173,7 +173,7 @@ public class IndexWriterProjector implements Projector {
                 lastSourceSize = bytes.length();
                 return bytes.utf8ToString();
             } catch (IOException ex) {
-                logger.error("could not parse xContent", ex);
+                LOGGER.error("could not parse xContent", ex);
             }
             return null;
         }

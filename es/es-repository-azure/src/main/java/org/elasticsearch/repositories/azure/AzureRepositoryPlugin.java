@@ -19,17 +19,13 @@
 
 package org.elasticsearch.repositories.azure;
 
-import com.google.common.annotations.VisibleForTesting;
 import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.plugins.Plugin;
-import org.elasticsearch.plugins.ReloadablePlugin;
 import org.elasticsearch.plugins.RepositoryPlugin;
 import org.elasticsearch.repositories.Repository;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -37,14 +33,12 @@ import java.util.Map;
 /**
  * A plugin to add a repository type that writes to and from the Azure cloud storage service.
  */
-public class AzureRepositoryPlugin extends Plugin implements RepositoryPlugin, ReloadablePlugin {
+public class AzureRepositoryPlugin extends Plugin implements RepositoryPlugin {
 
-    @VisibleForTesting
-    final AzureStorageService azureStoreService;
+    private final AzureStorageService azureStoreService;
 
-    public AzureRepositoryPlugin(Settings settings) {
-        // eagerly load client settings so that secure settings are read
-        this.azureStoreService = new AzureStorageService(settings);
+    public AzureRepositoryPlugin() {
+        this.azureStoreService = new AzureStorageService();
     }
 
     @Override
@@ -56,21 +50,6 @@ public class AzureRepositoryPlugin extends Plugin implements RepositoryPlugin, R
 
     @Override
     public List<Setting<?>> getSettings() {
-        return Arrays.asList(
-            AzureStorageSettings.ACCOUNT_SETTING,
-            AzureStorageSettings.KEY_SETTING,
-            AzureStorageSettings.ENDPOINT_SUFFIX_SETTING,
-            AzureStorageSettings.TIMEOUT_SETTING,
-            AzureStorageSettings.MAX_RETRIES_SETTING,
-            AzureStorageSettings.PROXY_TYPE_SETTING,
-            AzureStorageSettings.PROXY_HOST_SETTING,
-            AzureStorageSettings.PROXY_PORT_SETTING
-        );
-    }
-
-    @Override
-    public void reload(Settings settings) {
-        final AzureStorageSettings clientsSettings = AzureStorageSettings.getClientSettings(settings);
-        azureStoreService.refreshAndClearCache(clientsSettings);
+        return List.of(AzureRepository.Repository.ACCOUNT_SETTING, AzureRepository.Repository.KEY_SETTING);
     }
 }

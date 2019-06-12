@@ -28,7 +28,6 @@ import com.google.common.collect.Iterables;
 import io.crate.analyze.OrderBy;
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.breaker.RowAccountingWithEstimators;
-import io.crate.data.AsyncCompositeBatchIterator;
 import io.crate.data.BatchIterator;
 import io.crate.data.CompositeBatchIterator;
 import io.crate.data.InMemoryBatchIterator;
@@ -109,7 +108,7 @@ import static io.crate.execution.support.ThreadPools.numIdleThreads;
  * Used to create BatchIterators to gather documents stored within shards or to gather information about shards themselves.
  *
  * <p>
- *     The data is always exposed as a single BachIterator.
+ *     The data is always exposed as a single BatchIterator.
  * </p>
  *
  * <h2>Concurrent consumption</h2>
@@ -140,7 +139,7 @@ import static io.crate.execution.support.ThreadPools.numIdleThreads;
 @Singleton
 public class ShardCollectSource implements CollectSource {
 
-    private static final Logger logger = LogManager.getLogger(ShardCollectSource.class);
+    private static final Logger LOGGER = LogManager.getLogger(ShardCollectSource.class);
 
     private final IndicesService indicesService;
     private final ClusterService clusterService;
@@ -223,7 +222,7 @@ public class ShardCollectSource implements CollectSource {
 
         @Override
         public void afterIndexShardCreated(IndexShard indexShard) {
-            logger.debug("creating shard in {} {} {}", ShardCollectSource.this, indexShard.shardId(), shards.size());
+            LOGGER.debug("creating shard in {} {} {}", ShardCollectSource.this, indexShard.shardId(), shards.size());
             assert !shards.containsKey(indexShard.shardId()) : "shard entry already exists upon add";
 
             /* The creation of a ShardCollectorProvider accesses the clusterState, which leads to an
@@ -241,7 +240,7 @@ public class ShardCollectSource implements CollectSource {
 
         @Override
         public void beforeIndexShardClosed(ShardId shardId, @Nullable IndexShard indexShard, Settings indexSettings) {
-            logger.debug("removing shard upon close in {} shard={} numShards={}", ShardCollectSource.this, shardId, shards.size());
+            LOGGER.debug("removing shard upon close in {} shard={} numShards={}", ShardCollectSource.this, shardId, shards.size());
             assert shards.containsKey(shardId) : "shard entry missing upon close";
             shards.remove(shardId);
         }
@@ -249,9 +248,9 @@ public class ShardCollectSource implements CollectSource {
         @Override
         public void beforeIndexShardDeleted(ShardId shardId, Settings indexSettings) {
             if (shards.remove(shardId) != null) {
-                logger.debug("removed shard upon delete in {} shard={} remainingShards={}", ShardCollectSource.this, shardId, shards.size());
+                LOGGER.debug("removed shard upon delete in {} shard={} remainingShards={}", ShardCollectSource.this, shardId, shards.size());
             } else {
-                logger.debug("shard not found upon delete in {} shard={} remainingShards={}", ShardCollectSource.this, shardId, shards.size());
+                LOGGER.debug("shard not found upon delete in {} shard={} remainingShards={}", ShardCollectSource.this, shardId, shards.size());
             }
         }
     }
@@ -310,11 +309,14 @@ public class ShardCollectSource implements CollectSource {
                     // in order to process shard-based projections concurrently
 
                     //noinspection unchecked
-                    result = new AsyncCompositeBatchIterator<>(
-                        executor, availableThreads, iterators.toArray(new BatchIterator[0]));
+                    result = CompositeBatchIterator.asyncComposite(
+                        executor,
+                        availableThreads,
+                        iterators.toArray(new BatchIterator[0])
+                    );
                 } else {
                     //noinspection unchecked
-                    result = new CompositeBatchIterator<>(iterators.toArray(new BatchIterator[0]));
+                    result = CompositeBatchIterator.seqComposite(iterators.toArray(new BatchIterator[0]));
                 }
         }
         return projectors.wrap(result);

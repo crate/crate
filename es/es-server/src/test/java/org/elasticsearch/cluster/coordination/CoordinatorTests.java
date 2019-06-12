@@ -76,12 +76,12 @@ import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.MockLogAppender;
 import org.elasticsearch.test.disruption.DisruptableMockTransport;
 import org.elasticsearch.test.disruption.DisruptableMockTransport.ConnectionStatus;
+import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.elasticsearch.transport.TransportService;
 import org.hamcrest.Matcher;
 import org.hamcrest.core.IsCollectionContaining;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -148,10 +148,6 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.hamcrest.Matchers.startsWith;
 
-/**
- * TODO: Fix flakiness of the test suite
- */
-@Ignore("Flaky test suite, fix asap")
 public class CoordinatorTests extends ESTestCase {
 
     private final List<NodeEnvironment> nodeEnvironments = new ArrayList<>();
@@ -1069,6 +1065,7 @@ public class CoordinatorTests extends ESTestCase {
         cluster1.stabilise();
     }
 
+    @AwaitsFix(bugUrl = "https://github.com/elastic/elasticsearch/issues/41967")
     public void testDiscoveryUsesNodesFromLastClusterState() {
         final Cluster cluster = new Cluster(randomIntBetween(3, 5));
         cluster.runRandomly();
@@ -1869,7 +1866,7 @@ public class CoordinatorTests extends ESTestCase {
                 final Collection<BiConsumer<DiscoveryNode, ClusterState>> onJoinValidators =
                     Collections.singletonList((dn, cs) -> extraJoinValidators.forEach(validator -> validator.accept(dn, cs)));
                 coordinator = new Coordinator("test_node", settings, clusterSettings, transportService, writableRegistry(),
-                    ESAllocationTestCase.createAllocationService(Settings.EMPTY), masterService, this::getPersistedState,
+                    ESAllocationTestCase.createAllocationService(Settings.EMPTY, clusterSettings, random()), masterService, this::getPersistedState,
                     Cluster.this::provideSeedHosts, clusterApplierService, onJoinValidators, Randomness.get());
                 masterService.setClusterStatePublisher(coordinator);
 

@@ -26,6 +26,7 @@ import io.crate.settings.CrateSetting;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.unit.TimeValue;
 
 /**
  * Settings for configuring Postgres SSL. Only applicable to the ssl-impl module.
@@ -42,6 +43,8 @@ public final class SslConfigSettings {
     static final String SSL_KEYSTORE_FILEPATH_SETTING_NAME = "ssl.keystore_filepath";
     static final String SSL_KEYSTORE_PASSWORD_SETTING_NAME = "ssl.keystore_password";
     static final String SSL_KEYSTORE_KEY_PASSWORD_SETTING_NAME = "ssl.keystore_key_password";
+
+    private static final String SSL_RESOURCE_POLL_INTERVAL_NAME = "ssl.resource_poll_interval";
 
     public static final CrateSetting<Boolean> SSL_HTTP_ENABLED = CrateSetting.of(
         Setting.boolSetting(SSL_HTTP_ENABLED_SETTING_NAME, false, Setting.Property.NodeScope),
@@ -63,14 +66,21 @@ public final class SslConfigSettings {
         DataTypes.STRING);
 
     public static final CrateSetting<String> SSL_KEYSTORE_PASSWORD = CrateSetting.of(
-        Setting.simpleString(SSL_KEYSTORE_PASSWORD_SETTING_NAME, Setting.Property.NodeScope),
+        Setting.simpleString(SSL_KEYSTORE_PASSWORD_SETTING_NAME, "", Setting.Property.NodeScope),
         DataTypes.STRING);
 
     public static final CrateSetting<String> SSL_KEYSTORE_KEY_PASSWORD = CrateSetting.of(
         Setting.simpleString(SSL_KEYSTORE_KEY_PASSWORD_SETTING_NAME, Setting.Property.NodeScope),
         DataTypes.STRING);
 
-    static boolean isHttpsEnabled(Settings settings) {
+    public static final CrateSetting<TimeValue> SSL_RESOURCE_POLL_INTERVAL = CrateSetting.of(
+        Setting.timeSetting(
+            SSL_RESOURCE_POLL_INTERVAL_NAME,
+            TimeValue.timeValueSeconds(5),
+            Setting.Property.NodeScope),
+        DataTypes.STRING);
+
+    public static boolean isHttpsEnabled(Settings settings) {
         return SSL_HTTP_ENABLED.setting().get(settings);
     }
 

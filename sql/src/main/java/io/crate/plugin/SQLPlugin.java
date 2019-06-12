@@ -63,7 +63,9 @@ import io.crate.metadata.upgrade.MetaDataIndexUpgrader;
 import io.crate.metadata.view.ViewsMetaData;
 import io.crate.monitor.MonitorModule;
 import io.crate.protocols.postgres.PostgresNetty;
+import io.crate.protocols.ssl.SslContextProviderFallbackModule;
 import io.crate.protocols.ssl.SslConfigSettings;
+import io.crate.protocols.ssl.SslExtension;
 import io.crate.settings.CrateSetting;
 import io.crate.user.UserExtension;
 import io.crate.user.UserFallbackModule;
@@ -106,11 +108,14 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
     private final UserExtension userExtension;
     @Nullable
     private final LicenseExtension licenseExtension;
+    @Nullable
+    private final SslExtension sslExtension;
 
     public SQLPlugin(Settings settings) {
         this.settings = settings;
         userExtension = EnterpriseLoader.loadSingle(UserExtension.class);
         licenseExtension = EnterpriseLoader.loadSingle(LicenseExtension.class);
+        sslExtension = EnterpriseLoader.loadSingle(SslExtension.class);
     }
 
     @Override
@@ -136,6 +141,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
         settings.add(SslConfigSettings.SSL_KEYSTORE_FILEPATH.setting());
         settings.add(SslConfigSettings.SSL_KEYSTORE_PASSWORD.setting());
         settings.add(SslConfigSettings.SSL_KEYSTORE_KEY_PASSWORD.setting());
+        settings.add(SslConfigSettings.SSL_RESOURCE_POLL_INTERVAL.setting());
 
         // also add CrateSettings
         for (CrateSetting crateSetting : CrateSettings.CRATE_CLUSTER_SETTINGS) {
@@ -160,6 +166,9 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
             .add(DanglingArtifactsService.class);
         if (licenseExtension != null) {
             builder.addAll(licenseExtension.getGuiceServiceClasses());
+        }
+        if (sslExtension != null) {
+            builder.addAll(sslExtension.getGuiceServiceClasses());
         }
         return builder.build();
     }
@@ -200,6 +209,11 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
             modules.addAll(licenseExtension.getModules(settings));
         } else {
             modules.add(new CeLicenseModule());
+        }
+        if (sslExtension != null) {
+            modules.addAll(sslExtension.getModules());
+        } else {
+            modules.add(new SslContextProviderFallbackModule());
         }
         return modules;
     }

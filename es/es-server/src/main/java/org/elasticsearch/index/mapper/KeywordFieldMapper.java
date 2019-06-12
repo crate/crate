@@ -32,6 +32,7 @@ import org.apache.lucene.search.NormsFieldExistsQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -145,6 +146,7 @@ public final class KeywordFieldMapper extends FieldMapper {
             return new KeywordFieldMapper(
                 name,
                 position,
+                defaultExpression,
                 fieldType,
                 defaultFieldType,
                 ignoreAbove,
@@ -174,7 +176,7 @@ public final class KeywordFieldMapper extends FieldMapper {
                     builder.ignoreAbove(XContentMapValues.nodeIntegerValue(propNode, -1));
                     iterator.remove();
                 } else if (propName.equals("norms")) {
-                    TypeParsers.parseNorms(builder, name, propName, propNode, parserContext);
+                    TypeParsers.parseNorms(builder, name, propNode);
                     iterator.remove();
                 } else if (propName.equals("eager_global_ordinals")) {
                     builder.eagerGlobalOrdinals(XContentMapValues.nodeBooleanValue(propNode, "eager_global_ordinals"));
@@ -326,13 +328,14 @@ public final class KeywordFieldMapper extends FieldMapper {
 
     protected KeywordFieldMapper(String simpleName,
                                  Integer position,
+                                 @Nullable String defaultExpression,
                                  MappedFieldType fieldType,
                                  MappedFieldType defaultFieldType,
                                  int ignoreAbove,
                                  Settings indexSettings,
                                  MultiFields multiFields,
                                  CopyTo copyTo) {
-        super(simpleName, position, fieldType, defaultFieldType, indexSettings, multiFields, copyTo);
+        super(simpleName, position, defaultExpression, fieldType, defaultFieldType, indexSettings, multiFields, copyTo);
         assert fieldType.indexOptions().compareTo(IndexOptions.DOCS_AND_FREQS) <= 0;
         this.ignoreAbove = ignoreAbove;
     }

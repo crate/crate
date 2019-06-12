@@ -27,7 +27,3 @@ task jarTest (type: Jar) {
 artifacts {
     testOutput jarTest
 }
-
-test {
-    testLogging.exceptionFormat = 'full'
-}

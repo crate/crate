@@ -45,7 +45,7 @@ public class RamAccountingContext implements RamAccounting {
     private volatile boolean closed = false;
     private volatile boolean tripped = false;
 
-    private static final Logger logger = LogManager.getLogger(RamAccountingContext.class);
+    private static final Logger LOGGER = LogManager.getLogger(RamAccountingContext.class);
 
     public static RamAccountingContext forExecutionPhase(CircuitBreaker breaker, ExecutionPhase executionPhase) {
         String ramAccountingContextId = executionPhase.name() + ": " + executionPhase.phaseId();
@@ -155,8 +155,8 @@ public class RamAccountingContext implements RamAccounting {
         }
         closed = true;
         if (totalBytes.get() != 0) {
-            if (logger.isTraceEnabled() && totalBytes() > FLUSH_BUFFER_SIZE) {
-                logger.trace("context: {} bytes; breaker: {} of {} bytes", totalBytes(), breaker.getUsed(), breaker.getLimit());
+            if (LOGGER.isTraceEnabled() && totalBytes() > FLUSH_BUFFER_SIZE) {
+                LOGGER.trace("context: {} bytes; breaker: {} of {} bytes", totalBytes(), breaker.getUsed(), breaker.getLimit());
             }
             breaker.addWithoutBreaking(-totalBytes.get());
         }
@@ -174,8 +174,8 @@ public class RamAccountingContext implements RamAccounting {
     @Override
     public void release() {
         if (totalBytes.get() != 0) {
-            if (logger.isTraceEnabled() && totalBytes() > FLUSH_BUFFER_SIZE) {
-                logger.trace("context: {} bytes; breaker: {} of {} bytes", totalBytes(), breaker.getUsed(), breaker.getLimit());
+            if (LOGGER.isTraceEnabled() && totalBytes() > FLUSH_BUFFER_SIZE) {
+                LOGGER.trace("context: {} bytes; breaker: {} of {} bytes", totalBytes(), breaker.getUsed(), breaker.getLimit());
             }
             breaker.addWithoutBreaking(-totalBytes.getAndSet(0));
         }

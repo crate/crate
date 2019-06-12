@@ -700,7 +700,8 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     public Node visitColumnDefinition(SqlBaseParser.ColumnDefinitionContext context) {
         return new ColumnDefinition(
             getIdentText(context.ident()),
-            visitOptionalContext(context.expr(), Expression.class),
+            visitOptionalContext(context.defaultExpr, Expression.class),
+            visitOptionalContext(context.generatedExpr, Expression.class),
             visitOptionalContext(context.dataType(), ColumnType.class),
             visitCollection(context.columnConstraint(), ColumnConstraint.class));
     }
@@ -1250,7 +1251,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
             getComparisonOperator(((TerminalNode) context.cmpOp().getChild(0)).getSymbol()),
             getComparisonQuantifier(((TerminalNode) context.setCmpQuantifier().getChild(0)).getSymbol()),
             (Expression) visit(context.value),
-            (Expression) visit(context.parenthesizedPrimaryExpressionOrSubquery()));
+            (Expression) visit(context.primaryExpression()));
     }
 
     @Override
@@ -1435,11 +1436,6 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     }
 
     @Override
-    public Node visitParenthesizedPrimaryExpression(SqlBaseParser.ParenthesizedPrimaryExpressionContext context) {
-        return visit(context.primaryExpression());
-    }
-
-    @Override
     public Node visitDereference(SqlBaseParser.DereferenceContext context) {
         return new QualifiedNameReference(
             QualifiedName.of(identsToStrings(context.ident()))
@@ -1583,11 +1579,6 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         return new ObjectColumnType(
             getObjectType(context.type),
             visitCollection(context.columnDefinition(), ColumnDefinition.class));
-    }
-
-    @Override
-    public Node visitSetTypeDefinition(SqlBaseParser.SetTypeDefinitionContext context) {
-        return CollectionColumnType.set((ColumnType) visit(context.dataType()));
     }
 
     @Override

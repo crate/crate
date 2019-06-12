@@ -139,22 +139,32 @@ public class UserManagementIntegrationTest extends BaseUsersIntegrationTest {
     @Test
     public void testDropUserUnAuthorized() throws Exception {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("User \"normal\" is not authorized to execute the statement");
+        expectedException.expectMessage("Missing 'AL' privilege for user 'normal'");
         executeAsNormalUser("drop user ford");
     }
 
     @Test
     public void testCreateUserUnAuthorized() throws Exception {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("User \"normal\" is not authorized to execute the statement");
+        expectedException.expectMessage("Missing 'AL' privilege for user 'normal'");
         executeAsNormalUser("create user ford");
     }
 
     @Test
     public void testCreateNormalUserUnAuthorized() throws Exception {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("User \"normal\" is not authorized to execute the statement");
+        expectedException.expectMessage("Missing 'AL' privilege for user 'normal'");
         executeAsNormalUser("create user ford");
+    }
+
+    @Test
+    public void test_create_user_as_regular_user_with_al_privileges() throws Exception {
+        executeAsSuperuser("CREATE USER trillian");
+        executeAsSuperuser("GRANT AL TO trillian");
+        executeAs("CREATE USER arthur", "trillian");
+        assertUserIsCreated("arthur");
+        executeAs("DROP USER arthur", "trillian");
+        assertUserDoesntExist("arthur");
     }
 
     @Test

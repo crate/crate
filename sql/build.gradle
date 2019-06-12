@@ -62,7 +62,6 @@ artifacts {
 }
 
 test {
-    testLogging.exceptionFormat = 'full'
     outputs.dir("$projectDir/data")
 
     jacoco.excludes = ["*Test*"]

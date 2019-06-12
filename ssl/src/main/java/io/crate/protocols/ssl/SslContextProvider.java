@@ -22,92 +22,16 @@
 
 package io.crate.protocols.ssl;
 
-import io.crate.plugin.PipelineRegistry;
 import io.netty.handler.ssl.SslContext;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Provider;
-import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.Settings;
-
-import java.lang.reflect.InvocationTargetException;
+import org.elasticsearch.common.Nullable;
 
 /**
- * Registers Netty's SslContext or provides it for dependency injection.
- * See PostgresWireProtocol
- * See PipelineRegistry
+ * Provides Netty's SslContext.
  */
-@Singleton
-public class SslContextProvider implements Provider<SslContext> {
+public interface SslContextProvider {
 
-    private static final String SSL_CONTEXT_CLAZZ = "io.crate.protocols.ssl.SslConfiguration";
-    private static final String SSL_CONTEXT_METHOD_NAME = "buildSslContext";
+    @Nullable
+    SslContext getSslContext();
 
-    private final Settings settings;
-    private SslContext sslContext;
-
-    @Inject
-    public SslContextProvider(Settings settings, PipelineRegistry pipelineRegistry) {
-        this.settings = settings;
-        Logger logger = LogManager.getLogger(getClass().getPackage().getName());
-
-        if (SslConfigSettings.isHttpsEnabled(settings)) {
-            pipelineRegistry.registerSslContextProvider(this);
-            logger.info("HTTP SSL support is enabled.");
-        } else {
-            logger.info("HTTP SSL support is disabled.");
-        }
-    }
-
-    private static SslContext load(Settings settings) {
-        ClassLoader classLoader = ClassLoader.getSystemClassLoader();
-        try {
-            final Object value = classLoader
-                .loadClass(SSL_CONTEXT_CLAZZ)
-                .getDeclaredMethod(SSL_CONTEXT_METHOD_NAME, Settings.class)
-                .invoke(null, settings);
-            Class<SslContext> returnType = SslContext.class;
-            if (!returnType.isAssignableFrom(value.getClass())) {
-                throw new SslHandlerLoadingException("Returned type did not match the expected type: " + returnType);
-            }
-            return (SslContext) value;
-        } catch (Throwable e) {
-            // The JVM wraps the exception of dynamically loaded classes into an InvocationTargetException
-            // which we need to unpack first to see if we have an SslConfigurationException.
-            tryUnwrapSslConfigurationException(e);
-            throw new SslHandlerLoadingException(e);
-        }
-    }
-
-
-    private static void tryUnwrapSslConfigurationException(Throwable e) {
-        if (e instanceof InvocationTargetException) {
-            Throwable cause = e.getCause();
-            if (cause instanceof SslConfigurationException) {
-                throw (SslConfigurationException) cause;
-            }
-        }
-    }
-
-    private static class SslHandlerLoadingException extends RuntimeException {
-
-        SslHandlerLoadingException(String msg) {
-            super(msg);
-        }
-
-        SslHandlerLoadingException(Throwable cause) {
-            super("Loading the SslConfiguringHandler failed although enterprise is enabled.", cause);
-        }
-    }
-
-    @Override
-    public SslContext get() {
-        synchronized (this) {
-            if (sslContext == null) {
-                sslContext = load(settings);
-            }
-        }
-        return sslContext;
-    }
+    void reloadSslContext();
 }

@@ -104,7 +104,16 @@ public final class RoutingProvider {
     public ShardRouting forId(ClusterState state, String index, String id, @Nullable String routing) {
         IndexMetaData indexMetaData = indexMetaData(state, index);
         ShardId shardId = new ShardId(indexMetaData.getIndex(), generateShardId(indexMetaData, id, routing));
-        return state.getRoutingTable().shardRoutingTable(shardId).primaryShard();
+        IndexShardRoutingTable routingTable = state.getRoutingTable().shardRoutingTable(shardId);
+        ShardRouting shardRouting;
+        if (awarenessAttributes.isEmpty()) {
+            shardRouting = routingTable.activeInitializingShardsIt(seed).nextOrNull();
+        } else {
+            shardRouting = routingTable
+                .preferAttributesActiveInitializingShardsIt(awarenessAttributes, state.nodes(), seed)
+                .nextOrNull();
+        }
+        return shardRouting == null ? routingTable.primaryShard() : shardRouting;
     }
 
     public Routing forIndices(ClusterState state,

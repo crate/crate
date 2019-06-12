@@ -25,7 +25,7 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
-import io.crate.collections.Lists2;
+import io.crate.common.collections.Lists2;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.execution.engine.collect.CollectExpression;
@@ -88,7 +88,8 @@ public abstract class AbstractScalarFunctionsTest extends CrateDummyClusterServi
             "  a int," +
             "  x bigint," +
             "  shape geo_shape," +
-            "  timestamp timestamp with time zone," +
+            "  timestamp_tz timestamp with time zone," +
+            "  timestamp timestamp without time zone," +
             "  timezone text," +
             "  interval text," +
             "  time_format text," +
@@ -102,7 +103,8 @@ public abstract class AbstractScalarFunctionsTest extends CrateDummyClusterServi
             "  double_val double precision," +
             "  float_val real," +
             "  short_val smallint," +
-            "  obj object" +
+            "  obj object," +
+            "  obj_ignored object(ignored)" +
             ")";
 
         DocTableInfo tableInfo = SQLExecutor.tableInfo(

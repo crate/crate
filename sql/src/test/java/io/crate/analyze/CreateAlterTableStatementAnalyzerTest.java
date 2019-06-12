@@ -938,6 +938,16 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         assertThat(tsMapping.get("type"), is("date"));
     }
 
+    @Test
+    public void testCreateTableWithColumnOfArrayTypeAndGeneratedExpression() {
+        CreateTableAnalyzedStatement analysis = e.analyze(
+            "create table foo (arr array(integer) as ([1.0, 2.0]))");
+
+        assertThat(
+            mapToSortedString(analysis.mappingProperties()),
+            is("arr={inner={position=1, type=integer}, type=array}"));
+    }
+
     @SuppressWarnings("unchecked")
     @Test
     public void testCreateTableGeneratedColumnWithCast() {
@@ -993,7 +1003,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     @Test
     public void testCreateTableGeneratedColumnWithInvalidType() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("generated expression value type" +
+        expectedException.expectMessage("expression value type" +
             " 'timestamp with time zone' not supported for conversion to 'ip'");
         e.analyze(
             "create table foo (" +
@@ -1028,6 +1038,80 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             "   ts timestamp with time zone," +
             "   day as date_trunc('day', ts)," +
             "   date_string as cast(unknown_col as string))");
+    }
+
+    @Test
+    public void testCreateTableWithDefaultExpressionLiteral() {
+        CreateTableAnalyzedStatement analysis = e.analyze(
+            "create table foo (name text default 'bar')");
+
+        Map<String, Object> mappingProperties = analysis.mappingProperties();
+        assertThat(mapToSortedString(mappingProperties),
+                   is("name={default_expr='bar', position=1, type=keyword}"));
+    }
+
+    @Test
+    public void testCreateTableWithDefaultExpressionFunction() {
+        CreateTableAnalyzedStatement analysis = e.analyze(
+            "create table foo (name text default upper('bar'))");
+
+        Map<String, Object> mappingProperties = analysis.mappingProperties();
+        assertThat(mapToSortedString(mappingProperties),
+                   is("name={default_expr='BAR', position=1, type=keyword}"));
+    }
+
+    @Test
+    public void testCreateTableWithDefaultExpressionWithCast() {
+        CreateTableAnalyzedStatement analysis = e.analyze(
+            "create table foo (id int default 3.5)");
+
+        Map<String, Object> mappingProperties = analysis.mappingProperties();
+        assertThat(mapToSortedString(mappingProperties),
+                   is("id={default_expr=cast(3.5 AS integer), position=1, type=integer}"));
+    }
+
+    @Test
+    public void testCreateTableWithDefaultExpressionIsNotNormalized() {
+        CreateTableAnalyzedStatement analysis = e.analyze(
+            "create table foo (ts timestamp with time zone default current_timestamp(3))");
+
+        Map<String, Object> mappingProperties = analysis.mappingProperties();
+        assertThat(mapToSortedString(mappingProperties),
+                   is("ts={default_expr=current_timestamp(3), " +
+                      "format=epoch_millis||strict_date_optional_time, " +
+                      "position=1, type=date}"));
+    }
+
+    @Test
+    public void testCreateTableWithDefaultExpressionAsCompoundTypes() {
+        CreateTableAnalyzedStatement analysis = e.analyze(
+            "create table foo (" +
+            "   obj object as (key text) default {key=''}," +
+            "   arr array(long) default [1, 2])");
+
+        assertThat(mapToSortedString(analysis.mappingProperties()), is(
+            "arr={inner={position=2, type=long}, type=array}, " +
+            "obj={default_expr={\"key\"=''}, dynamic=true, position=1, properties={key={type=keyword}}, type=object}"));
+    }
+
+    @Test
+    public void testCreateTableWithDefaultExpressionAsGeoTypes() {
+        CreateTableAnalyzedStatement analysis = e.analyze(
+            "create table foo (" +
+            "   p geo_point default [0,0]," +
+            "   s geo_shape default 'LINESTRING (0 0, 1 1)')");
+
+        assertThat(mapToSortedString(analysis.mappingProperties()), is(
+            "p={default_expr=cast([0, 0] AS geo_point), position=1, type=geo_point}, " +
+            "s={default_expr=cast('LINESTRING (0 0, 1 1)' AS geo_shape), position=2, type=geo_shape}"));
+    }
+
+    @Test
+    public void testCreateTableWithDefaultExpressionRefToColumnsNotAllowed() {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("Columns cannot be used in this context. " +
+                                        "Maybe you wanted to use a string literal which requires single quotes: 'name'");
+        e.analyze("create table foo (name text, name_def text default upper(name))");
     }
 
     @Test

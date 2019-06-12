@@ -47,7 +47,7 @@ import java.util.concurrent.ConcurrentMap;
 
 public class BlobRecoveryTarget {
 
-    private static final Logger logger = LogManager.getLogger(BlobRecoveryTarget.class);
+    private static final Logger LOGGER = LogManager.getLogger(BlobRecoveryTarget.class);
 
     /*
     * @startuml
@@ -108,8 +108,8 @@ public class BlobRecoveryTarget {
     class StartRecoveryRequestHandler implements TransportRequestHandler<BlobStartRecoveryRequest> {
         @Override
         public void messageReceived(BlobStartRecoveryRequest request, TransportChannel channel, Task task) throws Exception {
-            logger.info("[{}] StartRecoveryRequestHandler start recovery with recoveryId {}",
-                request.shardId().getId(), request.recoveryId);
+            LOGGER.info("[{}] StartRecoveryRequestHandler start recovery with recoveryId {}",
+                        request.shardId().getId(), request.recoveryId);
 
             try (RecoveriesCollection.RecoveryRef statusSafe = peerRecoveryTargetService.onGoingRecoveries.getRecoverySafe(
                 request.recoveryId(), request.shardId())) {
@@ -189,8 +189,8 @@ public class BlobRecoveryTarget {
         @Override
         public void messageReceived(BlobRecoveryStartTransferRequest request, TransportChannel channel, Task task) throws Exception {
             BlobRecoveryStatus status = onGoingBlobRecoveries.get(request.recoveryId());
-            logger.debug("received BlobRecoveryStartTransferRequest for file {} with size {}",
-                request.path(), request.size());
+            LOGGER.debug("received BlobRecoveryStartTransferRequest for file {} with size {}",
+                         request.path(), request.size());
             if (status == null) {
                 throw new IllegalBlobRecoveryStateException("Could not retrieve onGoingRecoveryStatus");
             }

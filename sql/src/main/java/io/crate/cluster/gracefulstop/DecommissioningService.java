@@ -66,7 +66,7 @@ import java.util.function.IntSupplier;
 @Singleton
 public class DecommissioningService extends AbstractLifecycleComponent implements ClusterStateListener {
 
-    private static final Logger logger = LogManager.getLogger(DecommissioningService.class);
+    private static final Logger LOGGER = LogManager.getLogger(DecommissioningService.class);
 
     static final String DECOMMISSION_PREFIX = "crate.internal.decommission.";
     public static final CrateSetting<Settings> DECOMMISSION_INTERNAL_SETTING_GROUP = CrateSetting.of(Setting.groupSetting(
@@ -194,7 +194,7 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
 
         return clusterSetDecommissionNodeSetting()
             .exceptionally(e -> {
-                logger.error("Couldn't set settings. Graceful shutdown failed", e);
+                LOGGER.error("Couldn't set settings. Graceful shutdown failed", e);
                 throw new IllegalStateException("Graceful shutdown failed", e);
             })
             // changing settings triggers AllocationService.reroute -> shards will be relocated
@@ -214,7 +214,7 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
         if (forceStop) {
             exit();
         } else {
-            logger.warn("Aborting graceful shutdown due to error", e);
+            LOGGER.warn("Aborting graceful shutdown due to error", e);
             removeDecommissioningSetting();
             sqlOperations.enable();
         }
@@ -231,7 +231,7 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
             return;
         }
 
-        logger.info("There are still active requests on this node, delaying graceful shutdown");
+        LOGGER.info("There are still active requests on this node, delaying graceful shutdown");
         // use scheduler instead of busy loop to avoid blocking a listener thread
         executorService.schedule(() -> exitIfNoActiveRequests(startTime), 5, TimeUnit.SECONDS);
     }

@@ -65,10 +65,16 @@ public final class GeneratedColumns<T> {
                             Validation validation,
                             ReferenceResolver<CollectExpression<T, ?>> refResolver,
                             Collection<Reference> presentColumns,
-                            List<GeneratedReference> allGeneratedColumns) {
+                            List<GeneratedReference> allGeneratedColumns,
+                            List<Reference> allDefaultExpressionColumns) {
         toValidate = validation == Validation.NONE ? Collections.emptyMap() : new HashMap<>();
         InputFactory.Context<CollectExpression<T, ?>> ctx = inputFactory.ctxForRefs(txnCtx, refResolver);
         toInject = new HashMap<>();
+        for (Reference colWithDefault : allDefaultExpressionColumns) {
+            if (!presentColumns.contains(colWithDefault)) {
+                toInject.put(colWithDefault, ctx.add(colWithDefault.defaultExpression()));
+            }
+        }
         for (GeneratedReference generatedCol : allGeneratedColumns) {
             if (presentColumns.contains(generatedCol)) {
                 if (validation == Validation.VALUE_MATCH) {

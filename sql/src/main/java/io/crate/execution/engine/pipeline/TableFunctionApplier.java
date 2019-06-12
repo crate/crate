@@ -22,7 +22,7 @@
 
 package io.crate.execution.engine.pipeline;
 
-import io.crate.collections.Lists2;
+import io.crate.common.collections.Lists2;
 import io.crate.data.Bucket;
 import io.crate.data.Input;
 import io.crate.data.Row;

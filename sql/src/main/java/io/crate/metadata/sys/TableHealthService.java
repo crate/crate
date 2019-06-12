@@ -58,7 +58,7 @@ import static java.util.concurrent.CompletableFuture.completedFuture;
 @Singleton
 public class TableHealthService {
 
-    private static final Logger logger = LogManager.getLogger(TableHealthService.class);
+    private static final Logger LOGGER = LogManager.getLogger(TableHealthService.class);
 
     private static final String STMT = "select table_name, schema_name, partition_ident, routing_state," +
                                        " \"primary\", relocating_node, count(*) from sys.shards " +
@@ -85,7 +85,7 @@ public class TableHealthService {
               During a long startup (e.g. during an upgrade process) the localNode() may be null
               and this would lead to NullPointerException in the TransportExecutor.
              */
-            logger.debug("Could not retrieve tables health information. localNode is not fully available yet.");
+            LOGGER.debug("Could not retrieve tables health information. localNode is not fully available yet.");
             return completedFuture(Collections.emptyList());
         }
         if (clusterService.state().getBlocks().hasGlobalBlockWithStatus(RestStatus.SERVICE_UNAVAILABLE)) {
@@ -97,7 +97,7 @@ public class TableHealthService {
             session().quickExec(STMT, stmt -> PARSED_STMT, resultReceiver, Row.EMPTY);
             return future.thenApply(this::buildTablesHealth);
         } catch (Throwable t) {
-            logger.error("error retrieving tables health information", t);
+            LOGGER.error("error retrieving tables health information", t);
             return completedFuture(allAsUnavailable());
         }
     }
