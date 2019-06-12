@@ -57,8 +57,6 @@ import org.elasticsearch.common.component.LifecycleListener;
 import org.elasticsearch.common.io.FileSystemUtils;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.lease.Releasables;
-import org.elasticsearch.common.settings.MockSecureSettings;
-import org.elasticsearch.common.settings.SecureSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.Settings.Builder;
 import org.elasticsearch.common.unit.ByteSizeUnit;
@@ -100,7 +98,6 @@ import org.elasticsearch.transport.TransportSettings;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.net.InetSocketAddress;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -127,6 +124,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static java.util.Collections.emptyList;
@@ -224,6 +222,8 @@ public final class InternalTestCluster extends TestCluster {
     private final Collection<Class<? extends Plugin>> mockPlugins;
 
     private final boolean forbidPrivateIndexSettings;
+
+    private final int numDataPaths;
 
     /**
      * All nodes started by the cluster will have their name set to nodePrefix followed by a positive number
@@ -340,20 +340,9 @@ public final class InternalTestCluster extends TestCluster {
             numSharedDedicatedMasterNodes, numSharedDataNodes, numSharedCoordOnlyNodes,
             autoManageMinMasterNodes ? "auto-managed" : "manual");
         this.nodeConfigurationSource = nodeConfigurationSource;
+        numDataPaths = random.nextInt(5) == 0 ? 2 + random.nextInt(3) : 1;
         Builder builder = Settings.builder();
-        if (random.nextInt(5) == 0) { // sometimes set this
-            // randomize (multi/single) data path, special case for 0, don't set it at all...
-            final int numOfDataPaths = random.nextInt(5);
-            if (numOfDataPaths > 0) {
-                StringBuilder dataPath = new StringBuilder();
-                for (int i = 0; i < numOfDataPaths; i++) {
-                    dataPath.append(baseDir.resolve("d" + i).toAbsolutePath()).append(',');
-                }
-                builder.put(Environment.PATH_DATA_SETTING.getKey(), dataPath.toString());
-            }
-        }
         builder.put(NodeEnvironment.MAX_LOCAL_STORAGE_NODES_SETTING.getKey(), Integer.MAX_VALUE);
-        builder.put(Environment.PATH_SHARED_DATA_SETTING.getKey(), baseDir.resolve("custom"));
         builder.put(Environment.PATH_HOME_SETTING.getKey(), baseDir);
         builder.put(Environment.PATH_REPO_SETTING.getKey(), baseDir.resolve("repos"));
         builder.put(TransportSettings.PORT.getKey(), 0);
@@ -590,14 +579,27 @@ public final class InternalTestCluster extends TestCluster {
 
         final String name = buildNodeName(nodeId, settings);
 
-        final Settings.Builder updatedSettings = Settings.builder()
-                .put(Environment.PATH_HOME_SETTING.getKey(), baseDir) // allow overriding path.home
-                .put(settings)
-                .put("node.name", name)
-                .put(NodeEnvironment.NODE_ID_SEED_SETTING.getKey(), seed);
+        final Settings.Builder updatedSettings = Settings.builder();
+
+        updatedSettings.put(Environment.PATH_HOME_SETTING.getKey(), baseDir);
+
+        if (numDataPaths > 1) {
+            updatedSettings.putList(Environment.PATH_DATA_SETTING.getKey(), IntStream.range(0, numDataPaths).mapToObj(i ->
+                baseDir.resolve(name).resolve("d" + i).toString()).collect(Collectors.toList()));
+        } else {
+            updatedSettings.put(Environment.PATH_DATA_SETTING.getKey(), baseDir.resolve(name));
+        }
+
+        updatedSettings.put(Environment.PATH_SHARED_DATA_SETTING.getKey(), baseDir.resolve(name + "-shared"));
+
+        // allow overriding the above
+        updatedSettings.put(settings);
+        // force certain settings
+        updatedSettings.put("node.name", name);
+        updatedSettings.put(NodeEnvironment.NODE_ID_SEED_SETTING.getKey(), seed);
 
         if (autoManageMinMasterNodes) {
-            assertThat("automatically managing min master nodes require nodes to complete a join cycle when starting",
+            assertThat("if master nodes are automatically managed then nodes must complete a join cycle when starting",
                 updatedSettings.get(INITIAL_STATE_TIMEOUT_SETTING.getKey()), nullValue());
         }
 
@@ -627,11 +629,6 @@ public final class InternalTestCluster extends TestCluster {
         }
         assert reuseExisting == true || nodeAndClient == null : "node name [" + name + "] already exists but not allowed to use it";
 
-        SecureSettings secureSettings = Settings.builder().put(settings).getSecureSettings();
-        if (secureSettings instanceof MockSecureSettings) {
-            // we clone this here since in the case of a node restart we might need it again
-            secureSettings = ((MockSecureSettings) secureSettings).clone();
-        }
         MockNode node = new MockNode(
                 settings,
                 plugins,
@@ -643,11 +640,6 @@ public final class InternalTestCluster extends TestCluster {
                 onTransportServiceStarted.run();
             }
         });
-        try {
-            IOUtils.close(secureSettings);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
         return new NodeAndClient(name, node, settings, nodeId);
     }
 
@@ -1389,6 +1381,15 @@ public final class InternalTestCluster extends TestCluster {
     private static <T> T getInstanceFromNode(Class<T> clazz, Node node) {
         return node.injector().getInstance(clazz);
     }
+
+    public Settings dataPathSettings(String node) {
+        return nodes.values()
+            .stream()
+            .filter(nc -> nc.name.equals(node))
+            .findFirst().get().node().settings()
+            .filter(key -> key.equals(Environment.PATH_DATA_SETTING.getKey()) ||  key.equals(Environment.PATH_SHARED_DATA_SETTING.getKey()));
+    }
+
 
     @Override
     public int size() {

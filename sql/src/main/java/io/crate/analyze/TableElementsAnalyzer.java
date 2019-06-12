@@ -127,8 +127,11 @@ public class TableElementsAnalyzer {
             if (node.type() != null) {
                 process(node.type(), context);
             }
-            if (node.expression() != null) {
-                context.analyzedColumnDefinition.generatedExpression(node.expression());
+            if (node.defaultExpression() != null) {
+                context.analyzedColumnDefinition.defaultExpression(node.defaultExpression());
+            }
+            if (node.generatedExpression() != null) {
+                context.analyzedColumnDefinition.generatedExpression(node.generatedExpression());
             }
             return null;
         }
@@ -156,7 +159,7 @@ public class TableElementsAnalyzer {
                     if (parentRef != null) {
                         parent.position = parentRef.column().isTopLevel() ? parentRef.position() : null;
                         if (parentRef.valueType().equals(new ArrayType(ObjectType.untyped()))) {
-                            parent.collectionType("array");
+                            parent.collectionType(ArrayType.NAME);
                         } else {
                             parent.objectType(parentRef.columnPolicy());
                         }
@@ -218,7 +221,7 @@ public class TableElementsAnalyzer {
                 throw new UnsupportedOperationException("the SET dataType is currently not supported");
             }
 
-            context.analyzedColumnDefinition.collectionType("array");
+            context.analyzedColumnDefinition.collectionType(ArrayType.NAME);
 
             if (node.innerType().type() != ColumnType.Type.PRIMITIVE &&
                 node.innerType().type() != ColumnType.Type.OBJECT) {

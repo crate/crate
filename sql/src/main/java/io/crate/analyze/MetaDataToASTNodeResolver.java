@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import io.crate.expression.symbol.format.SymbolPrinter;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.GeneratedReference;
@@ -59,7 +60,6 @@ import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
-import io.crate.types.SetType;
 import org.elasticsearch.common.Nullable;
 
 import java.util.ArrayList;
@@ -127,9 +127,6 @@ public class MetaDataToASTNodeResolver {
                         innerColumnType = new ColumnType(innerType.getName());
                     }
                     columnType = CollectionColumnType.array(innerColumnType);
-                } else if (info.valueType().id() == SetType.ID) {
-                    ColumnType innerColumnType = new ColumnType(((CollectionType) info.valueType()).innerType().getName());
-                    columnType = CollectionColumnType.set(innerColumnType);
                 } else {
                     columnType = new ColumnType(info.valueType().getName());
                 }
@@ -164,10 +161,16 @@ public class MetaDataToASTNodeResolver {
                     }
                     constraints.add(new IndexColumnConstraint(geoReference.geoTree(), properties));
                 }
-                Expression expression = null;
+
+                Expression generatedExpression = null;
                 if (info instanceof GeneratedReference) {
                     String formattedExpression = ((GeneratedReference) info).formattedGeneratedExpression();
-                    expression = SqlParser.createExpression(formattedExpression);
+                    generatedExpression = SqlParser.createExpression(formattedExpression);
+                }
+                Expression defaultExpression = null;
+                if (info.defaultExpression() != null) {
+                    String symbol = SymbolPrinter.INSTANCE.printUnqualified(info.defaultExpression());
+                    defaultExpression = SqlParser.createExpression(symbol);
                 }
 
                 if (info.isColumnStoreDisabled()) {
@@ -177,8 +180,13 @@ public class MetaDataToASTNodeResolver {
                 }
 
                 String columnName = ident.isTopLevel() ? ident.name() : ident.path().get(ident.path().size() - 1);
-                ColumnDefinition column = new ColumnDefinition(columnName, expression, columnType, constraints);
-                elements.add(column);
+                elements.add(new ColumnDefinition(
+                    columnName,
+                    defaultExpression,
+                    generatedExpression,
+                    columnType,
+                    constraints)
+                );
             }
             return elements;
         }

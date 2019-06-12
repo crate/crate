@@ -23,7 +23,7 @@ package io.crate.lucene.match;
 
 import com.google.common.collect.ImmutableMap;
 import org.apache.lucene.search.Query;
-import org.elasticsearch.index.query.MultiMatchQueryBuilder;
+import org.elasticsearch.index.query.MultiMatchQueryType;
 import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.search.MatchQuery;
 import org.elasticsearch.index.search.MultiMatchQuery;
@@ -36,13 +36,13 @@ import java.util.Map;
 public final class MatchQueries {
 
 
-    private static final Map<String, MultiMatchQueryBuilder.Type> SUPPORTED_TYPES =
-        ImmutableMap.<String, MultiMatchQueryBuilder.Type>builder()
-            .put("best_fields", MultiMatchQueryBuilder.Type.BEST_FIELDS)
-            .put("most_fields", MultiMatchQueryBuilder.Type.MOST_FIELDS)
-            .put("cross_fields", MultiMatchQueryBuilder.Type.CROSS_FIELDS)
-            .put("phrase", MultiMatchQueryBuilder.Type.PHRASE)
-            .put("phrase_prefix", MultiMatchQueryBuilder.Type.PHRASE_PREFIX)
+    private static final Map<String, MultiMatchQueryType> SUPPORTED_TYPES =
+        ImmutableMap.<String, MultiMatchQueryType>builder()
+            .put("best_fields", MultiMatchQueryType.BEST_FIELDS)
+            .put("most_fields", MultiMatchQueryType.MOST_FIELDS)
+            .put("cross_fields", MultiMatchQueryType.CROSS_FIELDS)
+            .put("phrase", MultiMatchQueryType.PHRASE)
+            .put("phrase_prefix", MultiMatchQueryType.PHRASE_PREFIX)
             .build();
 
     public static Query singleMatch(QueryShardContext queryShardContext,
@@ -50,7 +50,7 @@ public final class MatchQueries {
                                     String queryString,
                                     @Nullable String matchType,
                                     @Nullable Map<String, Object> options) throws IOException {
-        MultiMatchQueryBuilder.Type type = getType(matchType);
+        MultiMatchQueryType type = getType(matchType);
         ParsedOptions parsedOptions = OptionParser.parse(type, options);
 
         MatchQuery matchQuery = new MatchQuery(queryShardContext);
@@ -77,7 +77,7 @@ public final class MatchQueries {
                                    Map<String, Float> fieldNames,
                                    String queryString,
                                    Map<String, Object> options) throws IOException {
-        MultiMatchQueryBuilder.Type type = MatchQueries.getType(matchType);
+        MultiMatchQueryType type = MatchQueries.getType(matchType);
         ParsedOptions parsedOptions = OptionParser.parse(type, options);
 
         MultiMatchQuery multiMatchQuery = new MultiMatchQuery(queryShardContext);
@@ -102,11 +102,11 @@ public final class MatchQueries {
         return multiMatchQuery.parse(type, fieldNames, queryString, parsedOptions.minimumShouldMatch());
     }
 
-    private static MultiMatchQueryBuilder.Type getType(@Nullable String matchType) {
+    private static MultiMatchQueryType getType(@Nullable String matchType) {
         if (matchType == null) {
-            return MultiMatchQueryBuilder.Type.BEST_FIELDS;
+            return MultiMatchQueryType.BEST_FIELDS;
         }
-        MultiMatchQueryBuilder.Type type = SUPPORTED_TYPES.get(matchType);
+        MultiMatchQueryType type = SUPPORTED_TYPES.get(matchType);
         if (type == null) {
             throw illegalMatchType(matchType);
         }

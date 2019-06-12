@@ -22,22 +22,28 @@ import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.protocols.ssl.SslConfigSettings;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
+import io.netty.handler.ssl.util.SelfSignedCertificate;
+import org.elasticsearch.common.CheckedConsumer;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.File;
-import java.io.IOException;
-
-import static io.crate.protocols.ssl.SslConfigurationTest.getAbsoluteFilePathFromClassPath;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.security.KeyStore;
+import java.security.cert.Certificate;
+import java.util.concurrent.TimeUnit;
 
 
 @UseJdbc(value = 1)
 @ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 0, supportsDedicatedMasters = false)
 public class SslReqHandlerIntegrationTest extends SQLTransportIntegrationTest {
 
-    private static File trustStoreFile;
+    private final static char[] EMPTY_PASS = new char[]{};
+
+    private static SelfSignedCertificate trustedCert;
     private static File keyStoreFile;
 
     public SslReqHandlerIntegrationTest() {
@@ -45,9 +51,32 @@ public class SslReqHandlerIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @BeforeClass
-    public static void beforeIntegrationTest() throws IOException {
-        keyStoreFile = getAbsoluteFilePathFromClassPath("keystore.jks");
-        trustStoreFile = getAbsoluteFilePathFromClassPath("truststore.jks");
+    public static void beforeTest() throws Exception {
+        trustedCert = new SelfSignedCertificate();
+        keyStoreFile = createTempFile().toFile();
+
+        updateKeyStore(
+            keyStoreFile,
+            store -> {
+                SelfSignedCertificate fakeCert = new SelfSignedCertificate();
+                store.setKeyEntry(
+                    "key",
+                    trustedCert.key(),
+                    EMPTY_PASS,
+                    new Certificate[]{fakeCert.cert()});
+            });
+    }
+
+    private static void updateKeyStore(File keyStoreFile, CheckedConsumer<KeyStore, Exception> consumer)
+        throws Exception {
+        var keyStore = KeyStore.getInstance("JKS");
+        try (var is = new FileInputStream(keyStoreFile)) {
+            keyStore.load(is, EMPTY_PASS);
+        } catch (Exception e) {
+            keyStore.load(null);
+        }
+        consumer.accept(keyStore);
+        keyStore.store(new FileOutputStream(keyStoreFile), EMPTY_PASS);
     }
 
     @Override
@@ -56,16 +85,33 @@ public class SslReqHandlerIntegrationTest extends SQLTransportIntegrationTest {
             .put(super.nodeSettings(nodeOrdinal))
             .put(SslConfigSettings.SSL_PSQL_ENABLED.getKey(), true)
             .put(SslConfigSettings.SSL_KEYSTORE_FILEPATH.getKey(), keyStoreFile.getAbsolutePath())
-            .put(SslConfigSettings.SSL_KEYSTORE_PASSWORD.getKey(), "keystorePassword")
-            .put(SslConfigSettings.SSL_KEYSTORE_KEY_PASSWORD.getKey(), "serverKeyPassword")
-            .put(SslConfigSettings.SSL_TRUSTSTORE_FILEPATH.getKey(), trustStoreFile.getAbsolutePath())
-            .put(SslConfigSettings.SSL_TRUSTSTORE_PASSWORD.getKey(), "truststorePassword")
+            .put(SslConfigSettings.SSL_RESOURCE_POLL_INTERVAL.getKey(), 1)
             .build();
     }
 
     @Test
-    public void testCheckEncryptedConnection() throws Throwable {
-        SQLResponse response = execute("select name from sys.nodes");
-        assertEquals(1, response.rowCount());
+    public void testReloadSslContextOnKeyStoreChange() throws Throwable {
+        try {
+            execute("select name from sys.nodes");
+            fail("Unknown certificate in the certificate chain");
+        } catch (Exception ignored) {
+        }
+
+        updateKeyStore(
+            keyStoreFile,
+            keyStore -> keyStore.setKeyEntry(
+                "key",
+                trustedCert.key(),
+                EMPTY_PASS,
+                new Certificate[]{trustedCert.cert()}));
+
+        assertBusy(() -> {
+            try {
+                SQLResponse response = execute("select name from sys.nodes");
+                assertEquals(1, response.rowCount());
+            } catch (Exception e) {
+                fail();
+            }
+        }, 20, TimeUnit.SECONDS);
     }
 }

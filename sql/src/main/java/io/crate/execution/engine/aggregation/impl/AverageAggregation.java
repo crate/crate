@@ -172,6 +172,25 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
     }
 
     @Override
+    public boolean isRemovableCumulative() {
+        return true;
+    }
+
+    @Override
+    public AverageState removeFromAggregatedState(RamAccountingContext ramAccountingContext,
+                                                  AverageState previousAggState,
+                                                  Input[] stateToRemove) {
+        if (previousAggState != null) {
+            Number value = (Number) stateToRemove[0].value();
+            if (value != null) {
+                previousAggState.count--;
+                previousAggState.sum -= value.doubleValue();
+            }
+        }
+        return previousAggState;
+    }
+
+    @Override
     public AverageState reduce(RamAccountingContext ramAccountingContext, AverageState state1, AverageState state2) {
         if (state1 == null) {
             return state2;

@@ -47,7 +47,7 @@ public class InsertFromValuesAnalyzedStatement extends AbstractInsertAnalyzedSta
 
     private final int numBulkResponses;
 
-    private int numAddedGeneratedColumns = 0;
+    private int numAddedColumnsWithExpression = 0;
 
     public InsertFromValuesAnalyzedStatement(DocTableInfo tableInfo, int numBulkResponses, boolean ignoreDuplicateKeys) {
         this.numBulkResponses = numBulkResponses;
@@ -158,13 +158,13 @@ public class InsertFromValuesAnalyzedStatement extends AbstractInsertAnalyzedSta
         return numBulkResponses;
     }
 
-    public void addGeneratedColumn(Reference reference) {
+    public void addColumnWithExpression(Reference reference) {
         columns().add(reference);
-        numAddedGeneratedColumns++;
+        numAddedColumnsWithExpression++;
     }
 
-    public int numAddedGeneratedColumns() {
-        return numAddedGeneratedColumns;
+    public int numAddedColumnsWithExpression() {
+        return numAddedColumnsWithExpression;
     }
 
     public List<Integer> bulkIndices() {

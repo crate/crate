@@ -179,6 +179,11 @@ public class CountAggregation extends AggregationFunction<CountAggregation.LongS
             return this;
         }
 
+        public LongState sub(long value) {
+            this.value = this.value - value;
+            return this;
+        }
+
         public LongState merge(LongState otherState) {
             add(otherState.value);
             return this;
@@ -253,5 +258,20 @@ public class CountAggregation extends AggregationFunction<CountAggregation.LongS
         public int fixedSize() {
             return DataTypes.LONG.fixedSize();
         }
+    }
+
+    @Override
+    public boolean isRemovableCumulative() {
+        return true;
+    }
+
+    @Override
+    public LongState removeFromAggregatedState(RamAccountingContext ramAccountingContext,
+                                               LongState previousAggState,
+                                               Input[] stateToRemove) {
+        if (!hasArgs || stateToRemove[0].value() != null) {
+            return previousAggState.sub(1L);
+        }
+        return previousAggState;
     }
 }

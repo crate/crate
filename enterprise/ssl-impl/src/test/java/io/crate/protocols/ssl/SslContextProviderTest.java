@@ -18,20 +18,20 @@
 
 package io.crate.protocols.ssl;
 
-import io.crate.plugin.PipelineRegistry;
 import io.crate.test.integration.CrateUnitTest;
 import io.netty.handler.ssl.SslContext;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.mockito.Mockito;
 
 import java.io.File;
 import java.io.IOException;
 
 import static io.crate.protocols.ssl.SslConfigurationTest.getAbsoluteFilePathFromClassPath;
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.instanceOf;
-import static org.mockito.ArgumentMatchers.any;
+import static org.hamcrest.Matchers.is;
 
 public class SslContextProviderTest extends CrateUnitTest {
 
@@ -51,10 +51,10 @@ public class SslContextProviderTest extends CrateUnitTest {
             .put(SslConfigSettings.SSL_HTTP_ENABLED.getKey(), true)
             .put(SslConfigSettings.SSL_PSQL_ENABLED.getKey(), true)
             .build();
-        PipelineRegistry pipelineRegistry = new PipelineRegistry();
         expectedException.expect(SslConfigurationException.class);
         expectedException.expectMessage("Failed to build SSL configuration");
-        new SslContextProvider(settings, pipelineRegistry).get();
+        var sslContextProvider = new SslContextProviderImpl(settings);
+        sslContextProvider.getSslContext();
     }
 
     @Test
@@ -68,9 +68,10 @@ public class SslContextProviderTest extends CrateUnitTest {
             .put(SslConfigSettings.SSL_KEYSTORE_PASSWORD.getKey(), "keystorePassword")
             .put(SslConfigSettings.SSL_KEYSTORE_KEY_PASSWORD.getKey(), "serverKeyPassword")
             .build();
-        PipelineRegistry pipelineRegistry = Mockito.mock(PipelineRegistry.class);
-        SslContext sslContext = new SslContextProvider(settings, pipelineRegistry).get();
+        var sslContextProvider = new SslContextProviderImpl(settings);
+        SslContext sslContext = sslContextProvider.getSslContext();
         assertThat(sslContext, instanceOf(SslContext.class));
-        Mockito.verify(pipelineRegistry).registerSslContextProvider(any());
+        assertThat(sslContext.isServer(), is(true));
+        assertThat(sslContext.cipherSuites(), not(empty()));
     }
 }

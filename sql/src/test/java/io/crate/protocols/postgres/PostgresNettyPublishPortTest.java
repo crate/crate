@@ -33,7 +33,6 @@ import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.http.BindHttpException;
 import org.elasticsearch.transport.BindTransportException;
 import org.junit.Test;
-import org.mockito.Mockito;
 
 import java.net.UnknownHostException;
 import java.util.Collections;
@@ -43,6 +42,7 @@ import static java.net.InetAddress.getByName;
 import static java.util.Arrays.asList;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
+import static org.mockito.Mockito.mock;
 
 public class PostgresNettyPublishPortTest extends CrateUnitTest {
 
@@ -79,12 +79,11 @@ public class PostgresNettyPublishPortTest extends CrateUnitTest {
         NetworkService networkService = new NetworkService(Collections.emptyList());
         PostgresNetty psql = new PostgresNetty(
             Settings.EMPTY,
-            Mockito.mock(SQLOperations.class),
+            mock(SQLOperations.class),
             new StubUserManager(),
             networkService,
             new AlwaysOKNullAuthentication(),
-            Mockito.mock(SslContextProvider.class)
-        );
+            mock(SslContextProvider.class));
         try {
             psql.doStart();
         } finally {
@@ -99,12 +98,11 @@ public class PostgresNettyPublishPortTest extends CrateUnitTest {
         NetworkService networkService = new NetworkService(Collections.emptyList());
         PostgresNetty psql = new PostgresNetty(
             settingsWithCustomHost,
-            Mockito.mock(SQLOperations.class),
+            mock(SQLOperations.class),
             new StubUserManager(),
             networkService,
             new AlwaysOKNullAuthentication(),
-            Mockito.mock(SslContextProvider.class)
-        );
+            mock(SslContextProvider.class));
         try {
             psql.doStart();
             fail("Should have failed due to custom hostname");
@@ -123,12 +121,11 @@ public class PostgresNettyPublishPortTest extends CrateUnitTest {
         NetworkService networkService = new NetworkService(Collections.emptyList());
         PostgresNetty psql = new PostgresNetty(
             settingsWithCustomBind,
-            Mockito.mock(SQLOperations.class),
+            mock(SQLOperations.class),
             new StubUserManager(),
             networkService,
             new AlwaysOKNullAuthentication(),
-            Mockito.mock(SslContextProvider.class)
-        );
+            mock(SslContextProvider.class));
         try {
             psql.doStart();
             fail("Should have failed due to custom hostname");
@@ -147,12 +144,11 @@ public class PostgresNettyPublishPortTest extends CrateUnitTest {
         NetworkService networkService = new NetworkService(Collections.emptyList());
         PostgresNetty psql = new PostgresNetty(
             settingsWithCustomPublish,
-            Mockito.mock(SQLOperations.class),
+            mock(SQLOperations.class),
             new StubUserManager(),
             networkService,
             new AlwaysOKNullAuthentication(),
-            Mockito.mock(SslContextProvider.class)
-        );
+            mock(SslContextProvider.class));
         try {
             psql.doStart();
             fail("Should have failed due to custom hostname");

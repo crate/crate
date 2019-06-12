@@ -17,7 +17,7 @@ Synopsis
 
 .. code-block:: psql
 
-  DENY { { DQL | DML | DDL [,...] } | ALL [ PRIVILEGES ] }
+  DENY { { DQL | DML | DDL | AL [,...] } | ALL [ PRIVILEGES ] }
   [ON {SCHEMA | TABLE} identifier [, ...]]
   TO user_name [, ...];
 

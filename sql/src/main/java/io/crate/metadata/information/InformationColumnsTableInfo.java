@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.reference.information.ColumnContext;
+import io.crate.expression.symbol.format.SymbolPrinter;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.RelationName;
@@ -135,8 +136,14 @@ public class InformationColumnsTableInfo extends InformationTableInfo {
                 () -> NestableCollectExpression.forFunction(ColumnContext::getOrdinal))
             .put(Columns.DATA_TYPE,
                 () -> NestableCollectExpression.forFunction(r -> r.info.valueType().getName()))
-            .put(Columns.COLUMN_DEFAULT,
-                () -> NestableCollectExpression.constant(null))
+            .put(Columns.COLUMN_DEFAULT, () -> NestableCollectExpression.forFunction(
+                r -> {
+                    if (r.info.defaultExpression() != null) {
+                        return SymbolPrinter.INSTANCE.printUnqualified(r.info.defaultExpression());
+                    } else {
+                        return null;
+                    }
+                }))
             .put(Columns.CHARACTER_MAXIMUM_LENGTH,
                 () -> NestableCollectExpression.constant(null))
             .put(Columns.CHARACTER_OCTET_LENGTH,

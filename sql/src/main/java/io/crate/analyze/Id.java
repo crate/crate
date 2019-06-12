@@ -21,7 +21,7 @@
 
 package io.crate.analyze;
 
-import io.crate.collections.Lists2;
+import io.crate.common.collections.Lists2;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.doc.DocSysColumns;
 import org.apache.lucene.util.BytesRef;
@@ -36,7 +36,7 @@ import java.util.Base64;
 import java.util.List;
 import java.util.function.Function;
 
-import static io.crate.collections.Lists2.getOnlyElement;
+import static io.crate.common.collections.Lists2.getOnlyElement;
 
 
 public class Id {

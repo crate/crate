@@ -388,12 +388,7 @@ public abstract class AbstractScopedSettings {
                 }
             }
             CollectionUtil.timSort(scoredKeys, (a,b) -> b.v1().compareTo(a.v1()));
-            String msgPrefix = "unknown setting";
-            SecureSettings secureSettings = settings.getSecureSettings();
-            if (secureSettings != null && settings.getSecureSettings().getSettingNames().contains(key)) {
-                msgPrefix = "unknown secure setting";
-            }
-            String msg = msgPrefix + " [" + key + "]";
+            String msg = "unknown setting [" + key + "]";
             List<String> keys = scoredKeys.stream().map((a) -> a.v2()).collect(Collectors.toList());
             if (keys.isEmpty() == false) {
                 msg += " did you mean " + (keys.size() == 1 ? "[" + keys.get(0) + "]": "any of " + keys.toString()) + "?";

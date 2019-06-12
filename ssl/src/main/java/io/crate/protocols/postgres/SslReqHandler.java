@@ -22,11 +22,13 @@
 
 package io.crate.protocols.postgres;
 
+import io.crate.protocols.ssl.SslContextProvider;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelPipeline;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslHandler;
+import org.elasticsearch.common.Nullable;
 
 /**
  * The handler for dealing with Postgres SSLRequest messages.
@@ -51,10 +53,10 @@ public final class SslReqHandler {
         DONE
     }
 
-    private final SslContext sslContext;
+    private final SslContextProvider sslContextProvider;
 
-    SslReqHandler(SslContext sslContext) {
-        this.sslContext = sslContext;
+    SslReqHandler(@Nullable SslContextProvider sslContextProvider) {
+        this.sslContextProvider = sslContextProvider;
     }
 
     /**
@@ -78,6 +80,12 @@ public final class SslReqHandler {
         buffer.markReaderIndex();
         // reads the total message length (int) and the SSL request code (int)
         if (buffer.readInt() == SSL_REQUEST_BYTE_LENGTH && buffer.readInt() == SSL_REQUEST_CODE) {
+            final SslContext sslContext;
+            if (sslContextProvider != null) {
+                sslContext = sslContextProvider.getSslContext();
+            } else {
+                sslContext = null;
+            }
             // received optional SSL negotiation pkg
             if (sslContext != null) {
                 writeByteAndFlushMessage(pipeline.channel(), 'S');

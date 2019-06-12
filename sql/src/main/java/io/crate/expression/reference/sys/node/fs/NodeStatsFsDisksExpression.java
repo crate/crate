@@ -48,12 +48,6 @@ public class NodeStatsFsDisksExpression extends NodeStatsArrayTypeExpression<FsI
             .put(NodeFsStatsExpression.SIZE, FsInfoHelpers.Path.size(path))
             .put(NodeFsStatsExpression.USED, FsInfoHelpers.Path.used(path))
             .put(NodeFsStatsExpression.AVAILABLE, FsInfoHelpers.Path.available(path))
-
-            .put(NodeFsStatsExpression.READS, -1L)
-            .put(NodeFsStatsExpression.BYTES_READ, -1L)
-            .put(NodeFsStatsExpression.WRITES, -1L)
-            .put(NodeFsStatsExpression.BYTES_WRITTEN, -1L)
-
             .build();
     }
 }

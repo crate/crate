@@ -16,9 +16,9 @@ dependencies {
     compile project(path: ':enterprise:functions', configuration: 'testOutput')
     compile project(':integration-testing')
 
-    compile 'org.openjdk.jmh:jmh-core:1.20'
-    implementation 'org.openjdk.jmh:jmh-generator-annprocess:1.20'
-    annotationProcessor 'org.openjdk.jmh:jmh-generator-annprocess:1.20'
+    compile 'org.openjdk.jmh:jmh-core:1.21'
+    implementation 'org.openjdk.jmh:jmh-generator-annprocess:1.21'
+    annotationProcessor 'org.openjdk.jmh:jmh-generator-annprocess:1.21'
 
     // Dependencies of JMH
     runtime 'net.sf.jopt-simple:jopt-simple:4.6'

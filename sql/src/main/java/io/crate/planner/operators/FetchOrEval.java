@@ -29,7 +29,7 @@ import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedView;
 import io.crate.analyze.relations.DocTableRelation;
-import io.crate.collections.Lists2;
+import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.FetchPhase;
 import io.crate.execution.dsl.projection.EvalProjection;

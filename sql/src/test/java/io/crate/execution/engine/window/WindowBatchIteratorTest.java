@@ -25,7 +25,7 @@ package io.crate.execution.engine.window;
 import com.google.common.collect.Lists;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.breaker.RowAccountingWithEstimators;
-import io.crate.collections.Lists2;
+import io.crate.common.collections.Lists2;
 import io.crate.data.BatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Row;
@@ -51,6 +51,8 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
+import static io.crate.analyze.WindowDefinition.CURRENT_ROW_UNBOUNDED_FOLLOWING;
+import static io.crate.analyze.WindowDefinition.UNBOUNDED_PRECEDING_CURRENT_ROW;
 import static io.crate.execution.engine.window.WindowFunctionBatchIterator.sortAndComputeWindowFunctions;
 import static org.elasticsearch.common.collect.Tuple.tuple;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -76,6 +78,7 @@ public class WindowBatchIteratorTest {
             () -> WindowFunctionBatchIterator.of(
                 TestingBatchIterators.range(0, 10),
                 new IgnoreRowAccounting(),
+                UNBOUNDED_PRECEDING_CURRENT_ROW,
                 null,
                 OrderingByPosition.arrayOrdering(0, false, false),
                 1,
@@ -94,6 +97,7 @@ public class WindowBatchIteratorTest {
             () -> WindowFunctionBatchIterator.of(
                 new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 10), 4, 2, null),
                 new IgnoreRowAccounting(),
+                UNBOUNDED_PRECEDING_CURRENT_ROW,
                 null,
                 OrderingByPosition.arrayOrdering(0, false, false),
                 1,
@@ -111,6 +115,7 @@ public class WindowBatchIteratorTest {
         var rows = IntStream.range(0, 10).mapToObj(i -> new Object[]{i, null}).collect(Collectors.toList());
         var result = Lists.newArrayList(sortAndComputeWindowFunctions(
             new ArrayList<>(rows),
+            UNBOUNDED_PRECEDING_CURRENT_ROW,
             null,
             null,
             1,
@@ -130,6 +135,7 @@ public class WindowBatchIteratorTest {
         var rowsWithSpare = Lists2.map(rows, i -> new Object[] { i, null });
         var result = sortAndComputeWindowFunctions(
             rowsWithSpare,
+            UNBOUNDED_PRECEDING_CURRENT_ROW,
             OrderingByPosition.arrayOrdering(0, false, false),
             null,
             1,
@@ -173,6 +179,7 @@ public class WindowBatchIteratorTest {
         );
         var result = sortAndComputeWindowFunctions(
             rows,
+            UNBOUNDED_PRECEDING_CURRENT_ROW,
             OrderingByPosition.arrayOrdering(0, false, false),
             OrderingByPosition.arrayOrdering(1, false, false),
             2,
@@ -200,10 +207,101 @@ public class WindowBatchIteratorTest {
     }
 
     @Test
+    public void testFrameBoundsForUnboundedFollowingWindow() throws Exception {
+        // window: partition by IC0, order by IC1
+        var rows = Arrays.asList(
+            $(-1 , -1, null),
+            $(1, 0, null),
+            $(1, 1, null),
+            $(1, 1, null),
+            $(2, 2, null),
+            $(2, -1, null),
+            $(3, 3, null),
+            $(4, 4, null),
+            $(5, 5, null),
+            $(null, null, null),
+            $(null, null, null)
+        );
+        var result = sortAndComputeWindowFunctions(
+            rows,
+            CURRENT_ROW_UNBOUNDED_FOLLOWING,
+            OrderingByPosition.arrayOrdering(0, false, false),
+            OrderingByPosition.arrayOrdering(1, false, false),
+            2,
+            () -> 1,
+            Runnable::run,
+            List.of(frameBoundsWindowFunction()),
+            List.of(),
+            args
+        ).get(5, TimeUnit.SECONDS);
+        assertThat(
+            result,
+            contains(
+                $(-1, -1, tuple(0, 1)),
+                $(1, 0, tuple(0, 3)),
+                $(1, 1, tuple(1, 3)),
+                $(1, 1, tuple(1, 3)),
+                $(2, -1, tuple(0, 2)),
+                $(2, 2, tuple(1, 2)),
+                $(3, 3, tuple(0, 1)),
+                $(4, 4, tuple(0, 1)),
+                $(5, 5, tuple(0, 1)),
+                $(null, null, tuple(0, 2)),
+                $(null, null, tuple(0, 2))
+            )
+        );
+    }
+
+    @Test
+    public void testFrameBoundsForUnboundedFollowingUnorderedWindow() throws Exception {
+        // window: partition by IC0
+        var rows = Arrays.asList(
+            $(-1, null),
+            $(1, null),
+            $(1, null),
+            $(2, null),
+            $(2, null),
+            $(3, null),
+            $(4, null),
+            $(5, null),
+            $(null, null),
+            $(null, null)
+        );
+        var result = sortAndComputeWindowFunctions(
+            rows,
+            CURRENT_ROW_UNBOUNDED_FOLLOWING,
+            OrderingByPosition.arrayOrdering(0, false, false),
+            null,
+            1,
+            () -> 1,
+            Runnable::run,
+            List.of(frameBoundsWindowFunction()),
+            List.of(),
+            args
+        ).get(5, TimeUnit.SECONDS);
+        assertThat(
+            result,
+            contains(
+                $(-1, tuple(0, 1)),
+                $(1, tuple(0, 2)),
+                $(1, tuple(1, 2)),
+                $(2, tuple(0, 2)),
+                $(2, tuple(1, 2)),
+                $(3, tuple(0, 1)),
+                $(4, tuple(0, 1)),
+                $(5, tuple(0, 1)),
+                $(null, tuple(0, 2)),
+                $(null, tuple(1, 2))
+            )
+        );
+    }
+
+    @Test
     public void testWindowBatchIteratorAccountsUsedMemory() {
         BatchIterator<Row> iterator = WindowFunctionBatchIterator.of(
             TestingBatchIterators.range(0, 10),
             new RowAccountingWithEstimators(List.of(DataTypes.INTEGER), ramAccountingContext, 32),
+            UNBOUNDED_PRECEDING_CURRENT_ROW,
             null,
             null,
             1,
@@ -227,6 +325,7 @@ public class WindowBatchIteratorTest {
         );
         var result = sortAndComputeWindowFunctions(
             rows,
+            UNBOUNDED_PRECEDING_CURRENT_ROW,
             null,
             OrderingByPosition.arrayOrdering(0, true, true),
             1,

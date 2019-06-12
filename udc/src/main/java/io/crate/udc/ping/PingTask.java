@@ -54,7 +54,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public class PingTask extends TimerTask {
 
     private static final TimeValue HTTP_TIMEOUT = new TimeValue(5, TimeUnit.SECONDS);
-    private static final Logger logger = LogManager.getLogger(PingTask.class);
+    private static final Logger LOGGER = LogManager.getLogger(PingTask.class);
 
     private final ClusterService clusterService;
     private final ExtendedNodeInfo extendedNodeInfo;
@@ -128,8 +128,8 @@ public class PingTask extends TimerTask {
             queryMap.put("enterprise_edition", String.valueOf(false));
         }
 
-        if (logger.isDebugEnabled()) {
-            logger.debug("Sending data: {}", queryMap);
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Sending data: {}", queryMap);
         }
 
         List<String> params = new ArrayList<>(queryMap.size());
@@ -151,8 +151,8 @@ public class PingTask extends TimerTask {
     public void run() {
         try {
             URL url = buildPingUrl();
-            if (logger.isDebugEnabled()) {
-                logger.debug("Sending UDC information to {}...", url);
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("Sending UDC information to {}...", url);
             }
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setConnectTimeout((int) HTTP_TIMEOUT.millis());
@@ -161,11 +161,11 @@ public class PingTask extends TimerTask {
             if (conn.getResponseCode() >= 300) {
                 throw new Exception(String.format(Locale.ENGLISH, "%s Responded with Code %d", url.getHost(), conn.getResponseCode()));
             }
-            if (logger.isDebugEnabled()) {
+            if (LOGGER.isDebugEnabled()) {
                 BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8));
                 String line = reader.readLine();
                 while (line != null) {
-                    logger.debug(line);
+                    LOGGER.debug(line);
                     line = reader.readLine();
                 }
                 reader.close();
@@ -174,8 +174,8 @@ public class PingTask extends TimerTask {
             }
             successCounter.incrementAndGet();
         } catch (Exception e) {
-            if (logger.isDebugEnabled()) {
-                logger.debug("Error sending UDC information", e);
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("Error sending UDC information", e);
             }
             failCounter.incrementAndGet();
         }

@@ -23,7 +23,7 @@
 package io.crate.execution.engine.collect.collectors;
 
 import io.crate.breaker.RowAccounting;
-import io.crate.collections.Lists2;
+import io.crate.common.collections.Lists2;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.execution.engine.distribution.merge.BatchPagingIterator;

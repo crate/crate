@@ -191,9 +191,6 @@ public class TypeConversionTest extends CrateUnitTest {
 
             ArrayType arrayType = new ArrayType(type);
             assertTrue(arrayType.isConvertableTo(arrayType));
-
-            SetType setType = new SetType(type);
-            assertTrue(setType.isConvertableTo(setType));
         }
     }
 

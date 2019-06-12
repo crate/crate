@@ -397,12 +397,15 @@ final class BootstrapChecks {
         public BootstrapCheckResult check(final Settings settings) {
             // we only enforce the check if mmapfs is an allowed store type
             if (IndexModule.NODE_STORE_ALLOW_MMAPFS.get(settings)) {
-                if (getMaxMapCount() != -1 && getMaxMapCount() < LIMIT) {
+                long maxMapCount = getMaxMapCount();
+                if (maxMapCount != -1 && maxMapCount < LIMIT) {
                     final String message = String.format(
-                            Locale.ROOT,
-                            "max virtual memory areas vm.max_map_count [%d] is too low, increase to at least [%d]",
-                            getMaxMapCount(),
-                            LIMIT);
+                        Locale.ROOT,
+                        "max virtual memory areas vm.max_map_count [%d] is too low, " +
+                        "increase to at least [%d] by adding `vm.max_map_count = 262144` to `/etc/sysctl.conf` " +
+                        "or invoking `sysctl -w vm.max_map_count=262144`",
+                        maxMapCount,
+                        LIMIT);
                     return BootstrapCheckResult.failure(message);
                 } else {
                     return BootstrapCheckResult.success();

@@ -54,7 +54,7 @@ import java.util.stream.Stream;
 @Singleton
 public class TasksService extends AbstractLifecycleComponent {
 
-    private static final Logger logger = LogManager.getLogger(TasksService.class);
+    private static final Logger LOGGER = LogManager.getLogger(TasksService.class);
 
     private final ClusterService clusterService;
     private final JobsLogs jobsLogs;
@@ -122,11 +122,11 @@ public class TasksService extends AbstractLifecycleComponent {
 
     @VisibleForTesting
     public RootTask.Builder newBuilder(UUID jobId) {
-        return new RootTask.Builder(logger, jobId, clusterService.localNode().getId(), Collections.emptySet(), jobsLogs);
+        return new RootTask.Builder(LOGGER, jobId, clusterService.localNode().getId(), Collections.emptySet(), jobsLogs);
     }
 
     public RootTask.Builder newBuilder(UUID jobId, String coordinatorNodeId, Collection<String> participatingNodes) {
-        return new RootTask.Builder(logger, jobId, coordinatorNodeId, participatingNodes, jobsLogs);
+        return new RootTask.Builder(LOGGER, jobId, coordinatorNodeId, participatingNodes, jobsLogs);
     }
 
     public int numActive() {
@@ -148,9 +148,9 @@ public class TasksService extends AbstractLifecycleComponent {
             throw new IllegalArgumentException(
                 String.format(Locale.ENGLISH, "task for job %s already exists:%n%s", jobId, existing));
         }
-        if (logger.isTraceEnabled()) {
-            logger.trace("Task created for job {},  activeTasks: {}",
-                jobId, activeTasks.size());
+        if (LOGGER.isTraceEnabled()) {
+            LOGGER.trace("Task created for job {},  activeTasks: {}",
+                         jobId, activeTasks.size());
         }
         return newRootTask;
     }
@@ -167,7 +167,7 @@ public class TasksService extends AbstractLifecycleComponent {
             try {
                 killAllListener.killAllJobs();
             } catch (Throwable t) {
-                logger.error("Failed to call killAllJobs on listener {}", t, killAllListener);
+                LOGGER.error("Failed to call killAllJobs on listener {}", t, killAllListener);
             }
         }
         Collection<UUID> toKill = ImmutableList.copyOf(activeTasks.keySet());
@@ -203,7 +203,7 @@ public class TasksService extends AbstractLifecycleComponent {
                 try {
                     killAllListener.killJob(job);
                 } catch (Throwable t) {
-                    logger.error("Failed to call killJob on listener {}", t, killAllListener);
+                    LOGGER.error("Failed to call killJob on listener {}", t, killAllListener);
                 }
             }
         }
@@ -234,9 +234,9 @@ public class TasksService extends AbstractLifecycleComponent {
             if (throwable != null) {
                 recentlyFailed.put(jobId, failedSentinel);
             }
-            if (logger.isTraceEnabled()) {
-                logger.trace("RootTask removed from active tasks: jobId={} remainingTasks={} failure={}",
-                    jobId, activeTasks.size(), throwable);
+            if (LOGGER.isTraceEnabled()) {
+                LOGGER.trace("RootTask removed from active tasks: jobId={} remainingTasks={} failure={}",
+                             jobId, activeTasks.size(), throwable);
             }
         }
     }

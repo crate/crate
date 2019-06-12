@@ -55,7 +55,7 @@ public class PutHeadChunkRunnable implements Runnable {
     private final UUID transferId;
     private WatchKey watchKey;
     private WatchService watcher;
-    private static final Logger logger = LogManager.getLogger(PutHeadChunkRunnable.class);
+    private static final Logger LOGGER = LogManager.getLogger(PutHeadChunkRunnable.class);
 
     public PutHeadChunkRunnable(DigestBlob digestBlob, long bytesToSend,
                                 TransportService transportService,
@@ -119,21 +119,21 @@ public class PutHeadChunkRunnable implements Runnable {
             }
 
         } catch (IOException ex) {
-            logger.error("IOException in PutHeadChunkRunnable", ex);
+            LOGGER.error("IOException in PutHeadChunkRunnable", ex);
         } finally {
             blobTransferTarget.putHeadChunkTransferFinished(transferId);
             if (watcher != null) {
                 try {
                     watcher.close();
                 } catch (IOException e) {
-                    logger.error("Error closing WatchService in {}", e, getClass().getSimpleName());
+                    LOGGER.error("Error closing WatchService in {}", e, getClass().getSimpleName());
                 }
             }
             if (fileInputStream != null) {
                 try {
                     fileInputStream.close();
                 } catch (IOException e) {
-                    logger.error("Error closing HeadChunk", e);
+                    LOGGER.error("Error closing HeadChunk", e);
                 }
             }
         }
@@ -164,7 +164,7 @@ public class PutHeadChunkRunnable implements Runnable {
                 }
             }
         } catch (IOException | InterruptedException ex) {
-            logger.warn(ex.getMessage(), ex);
+            LOGGER.warn(ex.getMessage(), ex);
         }
     }
 

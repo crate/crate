@@ -32,3 +32,9 @@ include 'es',
         'enterprise:licensing',
         'http',
         'benchmarks'
+
+buildCache {
+    local {
+        enabled = !System.getenv().containsKey("CI_RUN")
+    }
+}

@@ -16,7 +16,7 @@ Synopsis
 
 .. code-block:: psql
 
-  GRANT { { DQL | DML | DDL [,...] } | ALL [ PRIVILEGES ] }
+  GRANT { { DQL | DML | DDL | AL [,...] } | ALL [ PRIVILEGES ] }
   [ON {SCHEMA | TABLE} identifier [, ...]]
   TO user_name [, ...];
 

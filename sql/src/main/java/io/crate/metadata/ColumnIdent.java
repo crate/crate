@@ -45,7 +45,7 @@ public class ColumnIdent implements Comparable<ColumnIdent> {
     private static final Pattern UNDERSCORE_PATTERN = Pattern.compile("^_([a-z][_a-z]*)*[a-z]$");
     private static final Pattern SUBSCRIPT_PATTERN = Pattern.compile("^\\w+(\\[[^\\]]+\\])+");
 
-    private static final Ordering<Iterable<String>> ordering = Ordering.<String>natural().lexicographical();
+    private static final Ordering<Iterable<String>> ORDERING = Ordering.<String>natural().lexicographical();
 
     private final String name;
     private final List<String> path;
@@ -379,7 +379,7 @@ public class ColumnIdent implements Comparable<ColumnIdent> {
     public int compareTo(ColumnIdent o) {
         return ComparisonChain.start()
             .compare(name, o.name)
-            .compare(path, o.path, ordering)
+            .compare(path, o.path, ORDERING)
             .result();
     }
 

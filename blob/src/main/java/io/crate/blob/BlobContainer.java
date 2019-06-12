@@ -43,7 +43,7 @@ import java.util.concurrent.Semaphore;
 
 public class BlobContainer {
 
-    private static final Logger logger = LogManager.getLogger(BlobContainer.class);
+    private static final Logger LOGGER = LogManager.getLogger(BlobContainer.class);
     private static final String[] SUB_DIRS = new String[256];
 
     public static final byte[] PREFIXES = new byte[256];
@@ -71,14 +71,14 @@ public class BlobContainer {
             Files.createDirectories(this.varDirectory);
             createSubDirectories(this.varDirectory);
         } catch (IOException e) {
-            logger.error("Could not create 'var' path {}", this.varDirectory);
+            LOGGER.error("Could not create 'var' path {}", this.varDirectory);
             throw new RuntimeException(e);
         }
 
         try {
             Files.createDirectories(this.tmpDirectory);
         } catch (IOException e) {
-            logger.error("Could not create 'tmp' path {}", this.tmpDirectory);
+            LOGGER.error("Could not create 'tmp' path {}", this.tmpDirectory);
             throw new RuntimeException(e);
         }
     }
@@ -119,7 +119,7 @@ public class BlobContainer {
             try {
                 digests[i] = Hex.decodeHex(names[i]);
             } catch (IllegalStateException ex) {
-                logger.error("Can't convert string {} to byte array", names[i]);
+                LOGGER.error("Can't convert string {} to byte array", names[i]);
                 throw ex;
             }
         }
@@ -138,7 +138,7 @@ public class BlobContainer {
         for (String name : names) {
             if (name.contains(".")) {
                 if (!new File(subDirs[index], name).delete()) {
-                    logger.error("Could not delete {}/{}", subDirs[index], name);
+                    LOGGER.error("Could not delete {}/{}", subDirs[index], name);
                 }
             } else {
                 newNames.add(name);

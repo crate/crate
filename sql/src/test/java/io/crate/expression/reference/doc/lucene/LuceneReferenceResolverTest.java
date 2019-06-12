@@ -28,7 +28,6 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
-import io.crate.types.SetType;
 import org.elasticsearch.index.mapper.KeywordFieldMapper;
 import org.junit.Test;
 
@@ -44,16 +43,9 @@ public class LuceneReferenceResolverTest extends CrateUnitTest {
     public void testGetImplementationWithColumnsOfTypeCollection() {
         Reference arrayRef = new Reference(
             new ReferenceIdent(
-            new RelationName("s", "t"), "a"), RowGranularity.DOC, DataTypes.DOUBLE_ARRAY, null
+            new RelationName("s", "t"), "a"), RowGranularity.DOC, DataTypes.DOUBLE_ARRAY, null, null
         );
         assertThat(luceneReferenceResolver.getImplementation(arrayRef),
-            instanceOf(DocCollectorExpression.ChildDocCollectorExpression.class));
-
-        Reference setRef = new Reference(
-            new ReferenceIdent(
-            new RelationName("s", "t"), "a"), RowGranularity.DOC, new SetType(DataTypes.DOUBLE), null
-        );
-        assertThat(luceneReferenceResolver.getImplementation(setRef),
             instanceOf(DocCollectorExpression.ChildDocCollectorExpression.class));
     }
 
@@ -61,7 +53,7 @@ public class LuceneReferenceResolverTest extends CrateUnitTest {
     public void testGetImplementationForSequenceNumber() {
         Reference seqNumberRef = new Reference(
             new ReferenceIdent(
-                new RelationName("s", "t"), "_seq_no"), RowGranularity.DOC, DataTypes.LONG, null
+                new RelationName("s", "t"), "_seq_no"), RowGranularity.DOC, DataTypes.LONG, null, null
         );
         assertThat(luceneReferenceResolver.getImplementation(seqNumberRef), instanceOf(SeqNoCollectorExpression.class));
     }
@@ -70,7 +62,7 @@ public class LuceneReferenceResolverTest extends CrateUnitTest {
     public void testGetImplementationForPrimaryTerm() {
         Reference primaryTerm = new Reference(
             new ReferenceIdent(
-                new RelationName("s", "t"), "_primary_term"), RowGranularity.DOC, DataTypes.LONG, null
+                new RelationName("s", "t"), "_primary_term"), RowGranularity.DOC, DataTypes.LONG, null, null
         );
         assertThat(luceneReferenceResolver.getImplementation(primaryTerm),
                    instanceOf(PrimaryTermCollectorExpression.class));

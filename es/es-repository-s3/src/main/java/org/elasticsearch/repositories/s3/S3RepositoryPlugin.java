@@ -26,23 +26,23 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.plugins.Plugin;
-import org.elasticsearch.plugins.ReloadablePlugin;
 import org.elasticsearch.plugins.RepositoryPlugin;
 import org.elasticsearch.repositories.Repository;
 
 import java.io.IOException;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+
+import static org.elasticsearch.repositories.s3.S3RepositorySettings.ACCESS_KEY_SETTING;
+import static org.elasticsearch.repositories.s3.S3RepositorySettings.SECRET_KEY_SETTING;
 
 /**
  * A plugin to add a repository type that writes to and from the AWS S3.
  */
-public class S3RepositoryPlugin extends Plugin implements RepositoryPlugin, ReloadablePlugin {
+public class S3RepositoryPlugin extends Plugin implements RepositoryPlugin {
 
     static {
         AccessController.doPrivileged((PrivilegedAction<Void>) () -> {
@@ -61,15 +61,8 @@ public class S3RepositoryPlugin extends Plugin implements RepositoryPlugin, Relo
 
     protected final S3Service service;
 
-    public S3RepositoryPlugin(final Settings settings) {
-        this(settings, new S3Service());
-    }
-
-    S3RepositoryPlugin(final Settings settings, final S3Service service) {
-        this.service = Objects.requireNonNull(service, "S3 service must not be null");
-        // eagerly load client settings so that secure settings are read
-        final Map<String, S3ClientSettings> clientsSettings = S3ClientSettings.load(settings);
-        this.service.refreshAndClearCache(clientsSettings);
+    public S3RepositoryPlugin() {
+        this.service = new S3Service();
     }
 
     // proxy method for testing
@@ -80,35 +73,13 @@ public class S3RepositoryPlugin extends Plugin implements RepositoryPlugin, Relo
     }
 
     @Override
+    public List<Setting<?>> getSettings() {
+        return List.of(ACCESS_KEY_SETTING, SECRET_KEY_SETTING);
+    }
+
+    @Override
     public Map<String, Repository.Factory> getRepositories(final Environment env, final NamedXContentRegistry registry) {
         return Collections.singletonMap(S3Repository.TYPE, (metadata) -> createRepository(metadata, env.settings(), registry));
-    }
-
-    @Override
-    public List<Setting<?>> getSettings() {
-        return Arrays.asList(
-            // named s3 client configuration settings
-            S3ClientSettings.ACCESS_KEY_SETTING,
-            S3ClientSettings.SECRET_KEY_SETTING,
-            S3ClientSettings.SESSION_TOKEN_SETTING,
-            S3ClientSettings.ENDPOINT_SETTING,
-            S3ClientSettings.PROTOCOL_SETTING,
-            S3ClientSettings.PROXY_HOST_SETTING,
-            S3ClientSettings.PROXY_PORT_SETTING,
-            S3ClientSettings.PROXY_USERNAME_SETTING,
-            S3ClientSettings.PROXY_PASSWORD_SETTING,
-            S3ClientSettings.READ_TIMEOUT_SETTING,
-            S3ClientSettings.MAX_RETRIES_SETTING,
-            S3ClientSettings.USE_THROTTLE_RETRIES_SETTING,
-            S3Repository.ACCESS_KEY_SETTING,
-            S3Repository.SECRET_KEY_SETTING);
-    }
-
-    @Override
-    public void reload(Settings settings) {
-        // secure settings should be readable
-        final Map<String, S3ClientSettings> clientsSettings = S3ClientSettings.load(settings);
-        service.refreshAndClearCache(clientsSettings);
     }
 
     @Override

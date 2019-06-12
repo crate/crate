@@ -23,7 +23,7 @@
 package io.crate.execution.dsl.phases;
 
 import io.crate.analyze.OrderBy;
-import io.crate.collections.Lists2;
+import io.crate.common.collections.Lists2;
 import io.crate.data.Paging;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.expression.eval.EvaluatingNormalizer;

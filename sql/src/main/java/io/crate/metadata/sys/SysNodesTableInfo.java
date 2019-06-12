@@ -149,10 +149,6 @@ public class SysNodesTableInfo extends StaticTableInfo {
         static final ColumnIdent FS_DISKS_SIZE = new ColumnIdent(SYS_COL_FS, ImmutableList.of("disks", "size"));
         static final ColumnIdent FS_DISKS_USED = new ColumnIdent(SYS_COL_FS, ImmutableList.of("disks", "used"));
         static final ColumnIdent FS_DISKS_AVAILABLE = new ColumnIdent(SYS_COL_FS, ImmutableList.of("disks", "available"));
-        static final ColumnIdent FS_DISKS_READS = new ColumnIdent(SYS_COL_FS, ImmutableList.of("disks", "reads"));
-        static final ColumnIdent FS_DISKS_BYTES_READ = new ColumnIdent(SYS_COL_FS, ImmutableList.of("disks", "bytes_read"));
-        static final ColumnIdent FS_DISKS_WRITES = new ColumnIdent(SYS_COL_FS, ImmutableList.of("disks", "writes"));
-        static final ColumnIdent FS_DISKS_BYTES_WRITTEN = new ColumnIdent(SYS_COL_FS, ImmutableList.of("disks", "bytes_written"));
         static final ColumnIdent FS_DATA = new ColumnIdent(SYS_COL_FS, ImmutableList.of("data"));
         static final ColumnIdent FS_DATA_DEV = new ColumnIdent(SYS_COL_FS, ImmutableList.of("data", "dev"));
         static final ColumnIdent FS_DATA_PATH = new ColumnIdent(SYS_COL_FS, ImmutableList.of("data", "path"));
@@ -265,30 +261,6 @@ public class SysNodesTableInfo extends StaticTableInfo {
                 @Override
                 protected Long valueForItem(FsInfo.Path input) {
                     return FsInfoHelpers.Path.available(input);
-                }
-            })
-            .put(Columns.FS_DISKS_READS, () -> new NodeStatsFsArrayExpression<Long>() {
-                @Override
-                protected Long valueForItem(FsInfo.Path input) {
-                    return -1L;
-                }
-            })
-            .put(Columns.FS_DISKS_BYTES_READ, () -> new NodeStatsFsArrayExpression<Long>() {
-                @Override
-                protected Long valueForItem(FsInfo.Path input) {
-                    return -1L;
-                }
-            })
-            .put(Columns.FS_DISKS_WRITES, () -> new NodeStatsFsArrayExpression<Long>() {
-                @Override
-                protected Long valueForItem(FsInfo.Path input) {
-                    return -1L;
-                }
-            })
-            .put(Columns.FS_DISKS_BYTES_WRITTEN, () -> new NodeStatsFsArrayExpression<Long>() {
-                @Override
-                protected Long valueForItem(FsInfo.Path input) {
-                    return -1L;
                 }
             })
             .put(Columns.FS_DATA, NodeStatsFsDataExpression::new)
@@ -442,11 +414,7 @@ public class SysNodesTableInfo extends StaticTableInfo {
                     .setInnerType("timestamp", DataTypes.TIMESTAMPZ)
                     .setInnerType("probe_timestamp", DataTypes.TIMESTAMPZ)
                     .setInnerType("cpu", ObjectType.builder()
-                        .setInnerType("system", DataTypes.SHORT)
-                        .setInnerType("user", DataTypes.SHORT)
-                        .setInnerType("idle", DataTypes.SHORT)
                         .setInnerType("used", DataTypes.SHORT)
-                        .setInnerType("stolen", DataTypes.SHORT)
                         .build())
                     .setInnerType("cgroup", ObjectType.builder()
                         .setInnerType("cpuacct", ObjectType.builder()
@@ -488,8 +456,6 @@ public class SysNodesTableInfo extends StaticTableInfo {
                     .setInnerType("probe_timestamp", DataTypes.TIMESTAMPZ)
                     .setInnerType("cpu", ObjectType.builder()
                         .setInnerType("percent", DataTypes.SHORT)
-                        .setInnerType("user", DataTypes.LONG)
-                        .setInnerType("system", DataTypes.LONG)
                         .build())
                     .build())
 
@@ -508,10 +474,6 @@ public class SysNodesTableInfo extends StaticTableInfo {
                         .setInnerType("size", DataTypes.LONG)
                         .setInnerType("used", DataTypes.LONG)
                         .setInnerType("available", DataTypes.LONG)
-                        .setInnerType("reads", DataTypes.LONG)
-                        .setInnerType("bytes_read", DataTypes.LONG)
-                        .setInnerType("writes", DataTypes.LONG)
-                        .setInnerType("bytes_written", DataTypes.LONG)
                         .build()))
                     .setInnerType("data", new ArrayType(ObjectType.builder()
                         .setInnerType("dev", DataTypes.STRING)

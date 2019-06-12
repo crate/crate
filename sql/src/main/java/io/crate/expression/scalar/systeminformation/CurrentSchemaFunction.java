@@ -31,8 +31,10 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.format.FunctionFormatSpec;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.FunctionName;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
@@ -43,8 +45,10 @@ public class CurrentSchemaFunction extends Scalar<String, Object> implements Fun
 
     public static final String NAME = "current_schema";
 
+    private static final FunctionName FQN = new FunctionName(PgCatalogSchemaInfo.NAME, NAME);
+
     public static final FunctionInfo INFO = new FunctionInfo(
-        new FunctionIdent(NAME, ImmutableList.of()),
+        new FunctionIdent(FQN, ImmutableList.of()),
         DataTypes.STRING,
         FunctionInfo.Type.SCALAR,
         Collections.emptySet());

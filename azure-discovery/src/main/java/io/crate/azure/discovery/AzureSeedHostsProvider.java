@@ -54,7 +54,7 @@ import java.util.List;
 
 public class AzureSeedHostsProvider implements SeedHostsProvider {
 
-    private static final Logger logger = LogManager.getLogger(AzureSeedHostsProvider.class);
+    private static final Logger LOGGER = LogManager.getLogger(AzureSeedHostsProvider.class);
 
     public enum HostType {
         PRIVATE_IP("private_ip"),
@@ -128,10 +128,10 @@ public class AzureSeedHostsProvider implements SeedHostsProvider {
             InetAddress ipAddress;
             try {
                 ipAddress = networkService.resolvePublishHostAddresses(null);
-                logger.trace("ip of current node: [{}]", ipAddress);
+                LOGGER.trace("ip of current node: [{}]", ipAddress);
             } catch (IOException e) {
                 // We can't find the publish host address... Hmmm. Too bad :-(
-                logger.warn("Cannot find publish host address/ip", e);
+                LOGGER.warn("Cannot find publish host address/ip", e);
                 return Collections.emptyList();
             }
 
@@ -145,27 +145,28 @@ public class AzureSeedHostsProvider implements SeedHostsProvider {
                 final HashMap<String, String> networkNameOfCurrentHost = retrieveNetInfo(client, resourceGroup, NetworkAddress.format(ipAddress));
 
                 if (networkNameOfCurrentHost.size() == 0) {
-                    logger.error("Could not find vnet or subnet of current host");
+                    LOGGER.error("Could not find vnet or subnet of current host");
                     return Collections.emptyList();
                 }
 
                 List<String> ipAddresses = listIPAddresses(client, resourceGroup, networkNameOfCurrentHost.get(AzureConfiguration.VNET),
-                    networkNameOfCurrentHost.get(AzureConfiguration.SUBNET), discoveryMethod, hostType, logger);
+                                                           networkNameOfCurrentHost.get(AzureConfiguration.SUBNET), discoveryMethod, hostType,
+                                                           LOGGER);
                 for (String networkAddress : ipAddresses) {
                     for (TransportAddress transportAddress : transportService.addressesFromString(networkAddress)) {
-                        if (logger.isTraceEnabled()) {
-                            logger.trace("adding {}, transport_address {}", networkAddress, transportAddress);
+                        if (LOGGER.isTraceEnabled()) {
+                            LOGGER.trace("adding {}, transport_address {}", networkAddress, transportAddress);
                         }
                         nodes.add(transportAddress);
                     }
                 }
             } catch (UnknownHostException e) {
-                logger.error("Error occurred in getting hostname");
+                LOGGER.error("Error occurred in getting hostname");
             } catch (Exception e) {
-                logger.error(e.getMessage());
+                LOGGER.error(e.getMessage());
             }
 
-            logger.debug("{} node(s) added", nodes.size());
+            LOGGER.debug("{} node(s) added", nodes.size());
             return nodes;
         }
     }

@@ -357,10 +357,7 @@ public class MetaDataCreateIndexService {
                 // now, put the request settings, so they override templates
                 indexSettingsBuilder.put(request.settings());
                 if (indexSettingsBuilder.get(SETTING_NUMBER_OF_SHARDS) == null) {
-                    deprecationLogger.deprecated("the default number of shards will change from [5] to [1] in 7.0.0; "
-                            + "if you wish to continue using the default of [5] shards, "
-                            + "you must manage this on the create index request or with an index template");
-                    indexSettingsBuilder.put(SETTING_NUMBER_OF_SHARDS, settings.getAsInt(SETTING_NUMBER_OF_SHARDS, 5));
+                    throw new IllegalArgumentException("Number of shards must be supplied");
                 }
                 if (indexSettingsBuilder.get(SETTING_NUMBER_OF_REPLICAS) == null) {
                     indexSettingsBuilder.put(SETTING_NUMBER_OF_REPLICAS, settings.getAsInt(SETTING_NUMBER_OF_REPLICAS, 1));

@@ -22,12 +22,17 @@
 
 package io.crate.plugin;
 
+import io.crate.protocols.ssl.SslConfigSettings;
+import io.crate.protocols.ssl.SslContextProvider;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelPipeline;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslHandler;
-import org.elasticsearch.common.inject.Provider;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.http.netty4.cors.Netty4CorsConfig;
 
 import java.util.ArrayList;
@@ -44,11 +49,26 @@ import java.util.function.Function;
 @Singleton
 public class PipelineRegistry {
 
-    private final List<ChannelPipelineItem> addBeforeList;
-    private Provider<SslContext> sslContextProvider;
+    private static final Logger LOGGER = LogManager.getLogger(PipelineRegistry.class);
 
-    public PipelineRegistry() {
+    private final List<ChannelPipelineItem> addBeforeList;
+    private final Settings settings;
+    @Nullable
+    private SslContextProvider sslContextProvider;
+
+    public PipelineRegistry(Settings settings) {
         this.addBeforeList = new ArrayList<>();
+        this.settings = settings;
+    }
+
+    public void setSslContextProvider(SslContextProvider sslContextProvider) {
+        if (SslConfigSettings.isHttpsEnabled(settings)) {
+            LOGGER.info("HTTP SSL support is enabled.");
+            this.sslContextProvider = sslContextProvider;
+        } else {
+            LOGGER.info("HTTP SSL support is disabled.");
+            this.sslContextProvider = null;
+        }
     }
 
     /**
@@ -86,17 +106,13 @@ public class PipelineRegistry {
         }
     }
 
-    public void registerSslContextProvider(Provider<SslContext> sslContextProvider) {
-        this.sslContextProvider = sslContextProvider;
-    }
-
     public void registerItems(ChannelPipeline pipeline, Netty4CorsConfig corsConfig) {
         for (PipelineRegistry.ChannelPipelineItem item : addBeforeList) {
             pipeline.addBefore(item.base, item.name, item.handlerFactory.apply(corsConfig));
         }
 
         if (sslContextProvider != null) {
-            SslContext sslContext = sslContextProvider.get();
+            SslContext sslContext = sslContextProvider.getSslContext();
             if (sslContext != null) {
                 SslHandler sslHandler = sslContext.newHandler(pipeline.channel().alloc());
                 pipeline.addFirst(sslHandler);

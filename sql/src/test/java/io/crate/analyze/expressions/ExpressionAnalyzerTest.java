@@ -207,6 +207,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             new Reference(new ReferenceIdent(new RelationName("doc", "t"), "id"),
                           RowGranularity.DOC,
                           DataTypes.INTEGER,
+                          null,
                           null));
         when(tableInfo.ident()).thenReturn(new RelationName("doc", "t"));
         TableRelation tr1 = new TableRelation(tableInfo);

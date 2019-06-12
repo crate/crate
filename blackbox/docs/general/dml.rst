@@ -66,16 +66,18 @@ When inserting multiple rows, if an error occurs for some of these rows there
 is no error returned but instead the number of rows affected would be decreased
 by the number of rows that failed to be inserted.
 
-When inserting into tables containing :ref:`ref-generated-columns`, their value
-can be safely omitted. It is *generated* upon insert:
+When inserting into tables containing :ref:`ref-generated-columns`
+or :ref:`ref-base-columns` having the :ref:`ref-default-clause` specified,
+their values can be safely omitted. They are *generated* upon insert:
 
-.. Hidden: create debit_card table::
+::
 
     cr> CREATE TABLE debit_card (
     ...   owner text,
     ...   num_part1 integer,
     ...   num_part2 integer,
-    ...   check_sum integer GENERATED ALWAYS AS ((num_part1 + num_part2) * 42)
+    ...   check_sum integer GENERATED ALWAYS AS ((num_part1 + num_part2) * 42),
+    ...   "user" text DEFAULT 'crate'
     ... );
     CREATE OK, 1 row affected (... sec)
 
@@ -85,8 +87,23 @@ can be safely omitted. It is *generated* upon insert:
     ... ('Zaphod Beeblebrox', 1234, 5678);
     INSERT OK, 1 row affected (... sec)
 
-If a value is given, it is validated against the *generation clause* of the
-column and the currently inserted row::
+.. Hidden: refresh debit_card
+
+    cr> refresh table debit_card
+    REFRESH OK, 1 row affected (... sec)
+
+::
+
+    cr> select * from debit_card;
+    +-------------------+-----------+-----------+-----------+-------+
+    | owner             | num_part1 | num_part2 | check_sum | user  |
+    +-------------------+-----------+-----------+-----------+-------+
+    | Zaphod Beeblebrox |      1234 |      5678 |    290304 | crate |
+    +-------------------+-----------+-----------+-----------+-------+
+    SELECT 1 row in set (... sec)
+
+For :ref:`ref-generated-columns`, if the value is given, it is validated
+against the *generation clause* of the column and the currently inserted row::
 
     cr> insert into debit_card (owner, num_part1, num_part2, check_sum) values
     ... ('Arthur Dent', 9876, 5432, 642935);
@@ -191,7 +208,7 @@ Upserts (``ON CONFLICT DO UPDATE SET``)
 
 The ``ON CONFLICT DO UPDATE SET`` clause is used to update the existing row if
 inserting is not possible because of a duplicate-key conflict if a document
-with the same ``PRIMARY KEY`` already exists. This is type of opperation is
+with the same ``PRIMARY KEY`` already exists. This is type of operation is
 commonly referred to as an *upsert*, being a combination of "update" and
 "insert".
 
@@ -243,7 +260,7 @@ commonly referred to as an *upsert*, being a combination of "update" and
     SELECT 1 row in set (... sec)
 
 It's possible to refer to values which would be inserted if no duplicate-key
-conflict occured, by using the special ``excluded`` table. This table is
+conflict occurred, by using the special ``excluded`` table. This table is
 especially useful in multiple-row inserts, to refer to the current rows
 values::
 

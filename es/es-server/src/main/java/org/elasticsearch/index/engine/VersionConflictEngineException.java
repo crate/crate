@@ -28,14 +28,16 @@ import java.io.IOException;
 public class VersionConflictEngineException extends EngineException {
 
     public VersionConflictEngineException(ShardId shardId, Engine.Operation op, long currentVersion, boolean deleted) {
-        this(shardId, op.type(), op.id(), op.versionType().explainConflictForWrites(currentVersion, op.version(), deleted));
+        this(shardId, op.id(), op.versionType().explainConflictForWrites(currentVersion, op.version(), deleted));
     }
 
-    public VersionConflictEngineException(ShardId shardId, String type, String id,
-                                          long compareAndWriteSeqNo, long compareAndWriteTerm,
-                                          long currentSeqNo, long currentTerm) {
+    public VersionConflictEngineException(ShardId shardId,
+                                          String id,
+                                          long compareAndWriteSeqNo,
+                                          long compareAndWriteTerm,
+                                          long currentSeqNo,
+                                          long currentTerm) {
         this(shardId,
-             type,
              id,
              "required seqNo [" + compareAndWriteSeqNo + "], primary term [" + compareAndWriteTerm + "]." +
              (currentSeqNo == SequenceNumbers.UNASSIGNED_SEQ_NO ?
@@ -44,12 +46,12 @@ public class VersionConflictEngineException extends EngineException {
              ));
     }
 
-    public VersionConflictEngineException(ShardId shardId, String type, String id, String explanation) {
-        this(shardId, null, type, id, explanation);
+    public VersionConflictEngineException(ShardId shardId, String id, String explanation) {
+        this(shardId, null, id, explanation);
     }
 
-    public VersionConflictEngineException(ShardId shardId, Throwable cause, String type, String id, String explanation) {
-        this(shardId, "[{}][{}]: version conflict, {}", cause, type, id, explanation);
+    public VersionConflictEngineException(ShardId shardId, Throwable cause, String id, String explanation) {
+        this(shardId, "[{}]: version conflict, {}", cause, id, explanation);
     }
 
     public VersionConflictEngineException(ShardId shardId, String msg, Throwable cause, Object... params) {

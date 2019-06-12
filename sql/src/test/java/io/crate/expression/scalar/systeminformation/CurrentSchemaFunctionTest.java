@@ -23,13 +23,8 @@
 package io.crate.expression.scalar.systeminformation;
 
 import io.crate.expression.scalar.AbstractScalarFunctionsTest;
-import io.crate.expression.symbol.Function;
-import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Functions;
-import io.crate.metadata.Scalar;
-import io.crate.metadata.TransactionContext;
 import io.crate.testing.SqlExpressions;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import static io.crate.testing.SymbolMatchers.isLiteral;
@@ -54,11 +49,11 @@ public class CurrentSchemaFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testEvaluateCurrentSchema() throws Exception {
-        Function function = (Function) sqlExpressions.asSymbol("current_schema()");
-        FunctionIdent ident = function.info().ident();
-        Scalar impl = (Scalar) functions.getQualified(ident);
-        assertThat(
-            impl.evaluate(TransactionContext.of(DUMMY_SESSION_INFO)),
-            Matchers.is("dummySchema"));
+        assertEvaluate("current_schema()", "doc");
+    }
+
+    @Test
+    public void testEvaluateCurrentSchemaWithFQNFunctionName() throws Exception {
+        assertEvaluate("pg_catalog.current_schema()", "doc");
     }
 }

@@ -514,6 +514,15 @@ Layer Security (TLS).
   The password used to decrypt the truststore file defined with
   ``ssl.truststore_filepath``.
 
+.. _ssl.resource_poll_interval:
+
+**ssl.resource_poll_interval**
+  | *Runtime:* ``no``
+  | *Default:* ``5s``
+
+  The frequency at which SSL files such as keystore and truststore are polled
+  for changes.
+
 Cross-origin resource sharing (CORS)
 ====================================
 

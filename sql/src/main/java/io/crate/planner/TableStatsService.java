@@ -55,7 +55,7 @@ import java.util.function.Consumer;
 @Singleton
 public class TableStatsService implements Runnable {
 
-    private static final Logger logger = LogManager.getLogger(TableStatsService.class);
+    private static final Logger LOGGER = LogManager.getLogger(TableStatsService.class);
 
     public static final CrateSetting<TimeValue> STATS_SERVICE_REFRESH_INTERVAL_SETTING = CrateSetting.of(Setting.timeSetting(
         "stats.service.interval", TimeValue.timeValueHours(1), Setting.Property.NodeScope, Setting.Property.Dynamic),
@@ -103,14 +103,14 @@ public class TableStatsService implements Runnable {
               During a long startup (e.g. during an upgrade process) the localNode() may be null
               and this would lead to NullPointerException in the TransportExecutor.
              */
-            logger.debug("Could not retrieve table stats. localNode is not fully available yet.");
+            LOGGER.debug("Could not retrieve table stats. localNode is not fully available yet.");
             return;
         }
 
         try {
             session.quickExec(STMT, stmt -> PARSED_STMT, resultReceiver, Row.EMPTY);
         } catch (Throwable t) {
-            logger.error("error retrieving table stats", t);
+            LOGGER.error("error retrieving table stats", t);
         }
     }
 

@@ -53,13 +53,8 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testInsertWithColumnNames() throws Exception {
-        prepareCreate(getFqn("test"))
-            .addMapping("default",
-                "firstName", "type=keyword",
-                "lastName", "type=keyword")
-            .execute().actionGet();
-        ensureYellow();
-        execute("insert into test (\"firstName\", \"lastName\") values('Youri', 'Zoon')");
+        execute("create table test (\"firstName\" text, \"lastName\" text)");
+        execute("insert into test (\"firstName\", \"lastName\") values ('Youri', 'Zoon')");
         assertEquals(1, response.rowCount());
         refresh();
 
@@ -87,18 +82,16 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testInsertAllCoreDatatypes() throws Exception {
-        prepareCreate(getFqn("test"))
-            .addMapping("default",
-                "boolean", "type=boolean",
-                "datetime", "type=date",
-                "double", "type=double",
-                "float", "type=float",
-                "integer", "type=integer",
-                "long", "type=long",
-                "short", "type=short",
-                "string", "type=keyword")
-            .execute().actionGet();
-        ensureYellow();
+        execute("create table test (" +
+                "   boolean boolean," +
+                "   datetime timestamptz," +
+                "   double double," +
+                "   float real," +
+                "   integer integer," +
+                "   long bigint," +
+                "   short smallint," +
+                "   string text" +
+                ")");
 
         execute("insert into test values(true, '2013-09-10T21:51:43', 1.79769313486231570e+308, 3.402, 2147483647, 9223372036854775807, 32767, 'Youri')");
         execute("insert into test values(?, ?, ?, ?, ?, ?, ?, ?)",
@@ -197,12 +190,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testInsertMultipleRows() throws Exception {
-        prepareCreate(getFqn("test"))
-            .addMapping("default",
-                "age", "type=integer",
-                "name", "type=keyword")
-            .execute().actionGet();
-        ensureYellow();
+        execute("create table test (age integer, name text)");
 
         execute("insert into test values(32, 'Youri'), (42, 'Ruben')");
         assertEquals(2, response.rowCount());
@@ -217,12 +205,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testInsertWithParams() throws Exception {
-        prepareCreate(getFqn("test"))
-            .addMapping("default",
-                "age", "type=integer",
-                "name", "type=keyword")
-            .execute().actionGet();
-        ensureYellow();
+        execute("create table test (age integer, name text)");
 
         Object[] args = new Object[]{32, "Youri"};
         execute("insert into test values(?, ?)", args);
@@ -1437,5 +1420,30 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("insert into tdst (country, name) (select country, name from tsrc)");
         assertThat(response.rowCount(), is(1L));
+    }
+
+    @Test
+    public void testInsertDefaultExpressions() {
+        execute("create table t (" +
+                " id int," +
+                " owner text default 'crate'" +
+                ") with (number_of_replicas=0)");
+        
+        execute("insert into t (id) values (?)",
+                new Object[]{1});
+        execute("insert into t (id) select 2");
+        execute("insert into t(id) values (?), (?)",
+                new Object[]{3, 4});
+        execute("insert into t (id, owner) select 5, 'cr8'");
+        execute("refresh table t");
+
+        assertThat(
+            printedTable(execute("select * from t order by id").rows()),
+            is("1| crate\n" +
+               "2| crate\n" +
+               "3| crate\n" +
+               "4| crate\n" +
+               "5| cr8\n")
+        );
     }
 }

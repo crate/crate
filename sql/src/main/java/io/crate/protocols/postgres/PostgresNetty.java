@@ -37,7 +37,6 @@ import io.netty.bootstrap.ServerBootstrapConfig;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
-import io.netty.handler.ssl.SslContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
@@ -69,7 +68,7 @@ import java.util.function.Function;
 @Singleton
 public class PostgresNetty extends AbstractLifecycleComponent {
 
-    private static final Logger logger = LogManager.getLogger(PostgresNetty.class);
+    private static final Logger LOGGER = LogManager.getLogger(PostgresNetty.class);
 
     public static final CrateSetting<Boolean> PSQL_ENABLED_SETTING = CrateSetting.of(Setting.boolSetting(
         "psql.enabled", true,
@@ -86,10 +85,11 @@ public class PostgresNetty extends AbstractLifecycleComponent {
     private final String[] publishHosts;
     private final String port;
     private final Authentication authentication;
-    private final SslContextProvider sslContextProvider;
     private final Logger namedLogger;
     private final Settings settings;
     private UserManager userManager;
+    @Nullable
+    private final SslContextProvider sslContextProvider;
 
     private ServerBootstrap bootstrap;
 
@@ -113,7 +113,14 @@ public class PostgresNetty extends AbstractLifecycleComponent {
         this.sqlOperations = sqlOperations;
         this.networkService = networkService;
         this.authentication = authentication;
-        this.sslContextProvider = sslContextProvider;
+
+        if (SslConfigSettings.isPSQLSslEnabled(settings)) {
+            namedLogger.info("PSQL SSL support is enabled.");
+            this.sslContextProvider = sslContextProvider;
+        } else {
+            namedLogger.info("PSQL SSL support is disabled.");
+            this.sslContextProvider = null;
+        }
 
         enabled = PSQL_ENABLED_SETTING.setting().get(settings);
         bindHosts = NetworkService.GLOBAL_NETWORK_BIND_HOST_SETTING.get(settings).toArray(new String[0]);
@@ -132,23 +139,18 @@ public class PostgresNetty extends AbstractLifecycleComponent {
             return;
         }
         bootstrap = CrateChannelBootstrapFactory.newChannelBootstrap("postgres", settings);
-        this.openChannels = new Netty4OpenChannelsHandler(logger);
+        this.openChannels = new Netty4OpenChannelsHandler(LOGGER);
 
-        final SslContext sslContext;
-        if (SslConfigSettings.isPSQLSslEnabled(settings)) {
-            sslContext = sslContextProvider.get();
-            namedLogger.info("PSQL SSL support is enabled.");
-        } else {
-            sslContext = null;
-            namedLogger.info("PSQL SSL support is disabled.");
-        }
-        bootstrap.childHandler(new ChannelInitializer<Channel>() {
+        bootstrap.childHandler(new ChannelInitializer<>() {
             @Override
-            protected void initChannel(Channel ch) throws Exception {
+            protected void initChannel(Channel ch) {
                 ChannelPipeline pipeline = ch.pipeline();
                 pipeline.addLast("open_channels", PostgresNetty.this.openChannels);
-                PostgresWireProtocol postgresWireProtocol =
-                    new PostgresWireProtocol(sqlOperations, userManager::getAccessControl, authentication, sslContext);
+                PostgresWireProtocol postgresWireProtocol = new PostgresWireProtocol(
+                    sqlOperations,
+                    userManager::getAccessControl,
+                    authentication,
+                    sslContextProvider);
                 pipeline.addLast("frame-decoder", postgresWireProtocol.decoder);
                 pipeline.addLast("handler", postgresWireProtocol.handler);
             }
@@ -231,8 +233,8 @@ public class PostgresNetty extends AbstractLifecycleComponent {
             throw new BindPostgresException("Failed to bind to [" + port + "]", lastException.get());
         }
 
-        if (logger.isDebugEnabled()) {
-            logger.debug("Bound psql to address {{}}", NetworkAddress.format(boundSocket.get()));
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Bound psql to address {{}}", NetworkAddress.format(boundSocket.get()));
         }
         return new TransportAddress(boundSocket.get());
     }

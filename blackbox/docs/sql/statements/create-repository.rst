@@ -30,7 +30,8 @@ Description
    If the repository configuration points to a location with existing
    snapshots, these are made available to the cluster.
 
-Repositories are declared using a ``repository_name`` and ``type``.
+Repositories are declared using a ``repository_name``, ``type`` and set of
+parameters.
 
 Further configuration parameters are given in the WITH Clause.
 
@@ -41,6 +42,14 @@ Further configuration parameters are given in the WITH Clause.
 
 :type:
   The type of the repository, see :ref:`ref-create-repository-types`.
+
+It is not possible to change parameters that were used to create a repository.
+Any changes to repository parameters that would prevent it from functioning
+would require removing the old and creating a new repository with the same
+type, name, and adjusted parameters. Please use the :ref:`ref-drop-repository`
+and :ref:`ref-create-repository` for this purpose. Note that the repository's
+snapshots won't be affected by this change and can be accessed via the new
+repository.
 
 Clauses
 =======
@@ -191,12 +200,34 @@ A repository that stores its snapshot on the Amazon S3 service.
 
 .. rubric:: Parameters
 
+**access_key**
+  | *Type:*    ``text``
+  | *Required:* ``true``
+
+  Access key used for authentication against AWS. Note that this setting is
+  masked and thus will not be visible when querying the ``sys.repositories``
+  table.
+
+**secret_key**
+  | *Type:*    ``text``
+  | *Required:* ``true``
+
+  Secret key used for authentication against AWS. Note that this setting is
+  masked and thus will not be visible when querying the ``sys.repositories``
+  table.
+
 **bucket**
   | *Type:*    ``text``
 
   Name of the S3 bucket used for storing snapshots. If the bucket
   does not yet exist, a new bucket will be created on S3 (assuming the
   required permissions are set).
+
+**base_path**
+  | *Type:*    ``text``
+  | *Default:* ``root directory``
+
+  Specifies the path within bucket to repository data.
 
 **endpoint**
   | *Type:*    ``text``
@@ -211,37 +242,6 @@ A repository that stores its snapshot on the Amazon S3 service.
   | *Default:* ``https``
 
   Protocol to be used.
-
-**base_path**
-  | *Type:*    ``text``
-
-  Path within the bucket to the repository.
-
-**access_key**
-  | *Type:*    ``text``
-  | *Default:* Value defined through :ref:`s3.client.default.access_key
-        <s3-credentials-access-key>` setting.
-
-  Access key used for authentication against AWS.
-
-  .. WARNING::
-
-     If the secret key is set explicitly (not via :ref:`configuration setting
-     <s3-credentials-access-key>`) it will be visible in plain text when
-     querying the ``sys.repositories`` table.
-
-**secret_key**
-  | *Type:*    ``text``
-  | *Default:* Value defined through :ref:`s3.client.default.secret_key
-     <s3-credentials-secret-key>` setting.
-
-  Secret key used for authentication against AWS.
-
-  .. WARNING::
-
-     If the secret key is set explicitly (not via :ref:`configuration setting
-     <s3-credentials-secret-key>`) it will be visible in plain text when
-     querying the ``sys.repositories`` table.
 
 **chunk_size**
   | *Type:*    ``bigint`` or ``text``
@@ -322,6 +322,7 @@ A repository type that stores its snapshots on the Azure Storage service.
 
 **base_path**
   | *Type:* ``text``
+  | *Default:* ``root directory``
 
   The path within the Azure Storage container to repository data.
 
@@ -362,15 +363,20 @@ Azure client settings
 All the setting values are specified via ``azure.client.`` in the crate.yaml
 configuration file.
 
+Client specific settings
+........................
+
 **account**
   | *Type:*    ``text``
 
-  The Azure Storage account name.
+  The Azure Storage account name. Note that this setting is masked and
+  thus will not be visible when querying the ``sys.repositories`` table.
 
 **key**
   | *Type:*    ``text``
 
-  The Azure Storage account secret key.
+  The Azure Storage account secret key. Note that this setting is masked and
+  thus will not be visible when querying the ``sys.repositories`` table.
 
 **endpoint_suffix**
   | *Type:*    ``text``
@@ -392,19 +398,19 @@ configuration file.
   The initial backoff period. Time to wait before retrying after a first
   timeout or failure.
 
-**proxy.type**
+**proxy_type**
   | *Type:*    ``text``
   | *Values:* ``http``, ``socks``, or ``direct``
   | *Default:* ``direct``
 
   The type of the proxy to connect to the Azure Storage account through.
 
-**proxy.host**
+**proxy_host**
   | *Type:* ``text``
 
   The host name of a proxy to connect to the Azure Storage account through.
 
-**proxy.port**
+**proxy_port**
   | *Type:* ``integer``
   | *Default:* ``0``
 

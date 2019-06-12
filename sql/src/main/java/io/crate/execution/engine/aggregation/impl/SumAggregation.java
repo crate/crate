@@ -52,26 +52,30 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
             return r;
         };
 
-        mod.register(new SumAggregation<Float>(DataTypes.FLOAT, (n1, n2) -> n1 + n2));
-        mod.register(new SumAggregation<Double>(DataTypes.DOUBLE, (n1, n2) -> n1 + n2));
-        mod.register(new SumAggregation<>(DataTypes.BYTE, DataTypes.LONG, longAddImpl));
-        mod.register(new SumAggregation<>(DataTypes.SHORT, DataTypes.LONG, longAddImpl));
-        mod.register(new SumAggregation<>(DataTypes.INTEGER, DataTypes.LONG, longAddImpl));
-        mod.register(new SumAggregation<>(DataTypes.LONG, longAddImpl));
+        final BinaryOperator<Long> longSubImpl = (n1, n2) -> n1 - n2;
+
+        mod.register(new SumAggregation<Float>(DataTypes.FLOAT, (n1, n2) -> n1 + n2, (n1, n2) -> n1 - n2));
+        mod.register(new SumAggregation<Double>(DataTypes.DOUBLE, (n1, n2) -> n1 + n2, (n1, n2) -> n1 - n2));
+        mod.register(new SumAggregation<>(DataTypes.BYTE, DataTypes.LONG, longAddImpl, longSubImpl));
+        mod.register(new SumAggregation<>(DataTypes.SHORT, DataTypes.LONG, longAddImpl, longSubImpl));
+        mod.register(new SumAggregation<>(DataTypes.INTEGER, DataTypes.LONG, longAddImpl, longSubImpl));
+        mod.register(new SumAggregation<>(DataTypes.LONG, longAddImpl, longSubImpl));
     }
 
     private final FunctionInfo info;
     private final BinaryOperator<T> addition;
+    private final BinaryOperator<T> subtraction;
     private final DataType<T> returnType;
     private final int bytesSize;
 
     @VisibleForTesting
-    private SumAggregation(final DataType returnType, final BinaryOperator<T> addition) {
-        this(returnType, returnType, addition);
+    private SumAggregation(final DataType returnType, final BinaryOperator<T> addition, final BinaryOperator<T> subtraction) {
+        this(returnType, returnType, addition, subtraction);
     }
 
-    private SumAggregation(final DataType inputType, final DataType returnType, final BinaryOperator<T> addition) {
+    private SumAggregation(final DataType inputType, final DataType returnType, final BinaryOperator<T> addition, final BinaryOperator<T> subtraction) {
         this.addition = addition;
+        this.subtraction = subtraction;
         this.returnType = returnType;
 
         if (returnType == DataTypes.FLOAT) {
@@ -125,5 +129,15 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
     @Override
     public FunctionInfo info() {
         return info;
+    }
+
+    @Override
+    public boolean isRemovableCumulative() {
+        return true;
+    }
+
+    @Override
+    public T removeFromAggregatedState(RamAccountingContext ramAccountingContext, T previousAggState, Input[] stateToRemove) {
+        return subtraction.apply(previousAggState, returnType.value(stateToRemove[0].value()));
     }
 }

@@ -25,7 +25,7 @@ package io.crate.execution.engine.indexing;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
-import io.crate.collections.Lists2;
+import io.crate.common.collections.Lists2;
 import io.crate.data.Input;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;

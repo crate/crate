@@ -22,8 +22,11 @@ import io.crate.action.sql.Option;
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
 import io.crate.auth.user.User;
+import io.crate.auth.user.UserManager;
 import io.crate.testing.SQLResponse;
 import org.junit.Before;
+
+import java.util.Objects;
 
 public abstract class BaseUsersIntegrationTest extends SQLTransportIntegrationTest {
 
@@ -60,5 +63,13 @@ public abstract class BaseUsersIntegrationTest extends SQLTransportIntegrationTe
 
     public SQLResponse executeAsNormalUser(String stmt) {
         return execute(stmt, null, normalUserSession);
+    }
+
+    public SQLResponse executeAs(String stmt, String userName) {
+        SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class);
+        UserManager userManager = internalCluster().getInstance(UserManager.class);
+        User user = Objects.requireNonNull(userManager.findUser(userName), "User " + userName + " must exist");
+        Session session = sqlOperations.createSession(null, user, Option.NONE);
+        return execute(stmt, null, session);
     }
 }

@@ -29,6 +29,7 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TermRangeQuery;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -84,6 +85,7 @@ public class BooleanFieldMapper extends FieldMapper {
             return new BooleanFieldMapper(
                 name,
                 position,
+                defaultExpression,
                 fieldType,
                 defaultFieldType,
                 context.indexSettings(),
@@ -203,12 +205,13 @@ public class BooleanFieldMapper extends FieldMapper {
 
     protected BooleanFieldMapper(String simpleName,
                                  Integer position,
+                                 @Nullable String defaultExpression,
                                  MappedFieldType fieldType,
                                  MappedFieldType defaultFieldType,
                                  Settings indexSettings,
                                  MultiFields multiFields,
                                  CopyTo copyTo) {
-        super(simpleName, position, fieldType, defaultFieldType, indexSettings, multiFields, copyTo);
+        super(simpleName, position, defaultExpression, fieldType, defaultFieldType, indexSettings, multiFields, copyTo);
     }
 
     @Override

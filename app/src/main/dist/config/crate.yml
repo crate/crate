@@ -131,6 +131,9 @@ auth:
 # The password used to decrypt the truststore_file.jks
 #ssl.truststore_password: myTrustStorePasswd
 
+# The frequency at which SSL files are monitored for changes
+#ssl.resource_poll_interval: 5s
+
 ################################### Cluster ##################################
 
 # Cluster name identifies your cluster for auto-discovery. If you're running
@@ -762,25 +765,6 @@ auth:
 # URL repsoitories.
 # "file" urls must be prefixed with an entry configured in ``path.repo``
 #repositories.url.allowed_urls: ["http://example.org/root/*", "https://*.mydomain.com/*?*#*"]
-
-# If S3 buckets are used for snapshot repositories the following settings provide
-# default credentials to be used if no credentials are defined as parameters in the
-# SQL  ``CREATE REPOSITORY`` statement.
-#s3.client.default.access_key: Access_Key
-#s3.client.default.secret_key: Secret_Key
-
-# If Azure Storage is used for snapshot repositories the following settings
-# must be provided:
-#azure.client.account: azure_account_name
-#azure.client.key: azure_account_key
-#
-# Additional Azure Storage client settings:
-#azure.client.max_retries: 3
-#azure.client.endpoint_suffix: core.windows.net
-#azure.client.timeout: 30s
-#azure.client.proxy.host: proxy.host
-#azure.client.proxy.port: 8888
-#azure.client.proxy.type: http
 
 ###################### POSTGRES WIRE PROTOCOL SUPPORT ########################
 

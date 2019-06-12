@@ -74,6 +74,10 @@ public class VarianceAggregation extends AggregationFunction<VarianceAggregation
             variance.increment(val);
         }
 
+        private void removeValue(double val) {
+            variance.decrement(val);
+        }
+
         private Double value() {
             double result = variance.result();
             return (Double.isNaN(result) ? null : result);
@@ -176,6 +180,24 @@ public class VarianceAggregation extends AggregationFunction<VarianceAggregation
         }
         state1.variance.merge(state2.variance);
         return state1;
+    }
+
+    @Override
+    public boolean isRemovableCumulative() {
+        return true;
+    }
+
+    @Override
+    public VarianceState removeFromAggregatedState(RamAccountingContext ramAccountingContext,
+                                                   VarianceState previousAggState,
+                                                   Input[] stateToRemove) {
+        if (previousAggState != null) {
+            Number value = (Number) stateToRemove[0].value();
+            if (value != null) {
+                previousAggState.removeValue(value.doubleValue());
+            }
+        }
+        return previousAggState;
     }
 
     @Override

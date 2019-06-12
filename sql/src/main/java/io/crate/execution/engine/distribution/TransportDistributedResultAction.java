@@ -61,7 +61,7 @@ import static io.crate.concurrent.CompletableFutures.failedFuture;
 
 public class TransportDistributedResultAction implements NodeAction<DistributedResultRequest, DistributedResultResponse> {
 
-    private static final Logger logger = LogManager.getLogger(TransportDistributedResultAction.class);
+    private static final Logger LOGGER = LogManager.getLogger(TransportDistributedResultAction.class);
     private static final String DISTRIBUTED_RESULT_ACTION = "internal:crate:sql/node/merge";
 
     private final Transports transports;
@@ -171,9 +171,9 @@ public class TransportDistributedResultAction implements NodeAction<DistributedR
         }
         if (retryDelay.hasNext()) {
             TimeValue delay = retryDelay.next();
-            if (logger.isTraceEnabled()) {
-                logger.trace("scheduling retry to start node operation for jobId: {} in {}ms",
-                    request.jobId(), delay.getMillis());
+            if (LOGGER.isTraceEnabled()) {
+                LOGGER.trace("scheduling retry to start node operation for jobId: {} in {}ms",
+                             request.jobId(), delay.getMillis());
             }
             NodeOperationRunnable operationRunnable = new NodeOperationRunnable(request, retryDelay);
             scheduler.schedule(operationRunnable::run, delay.getMillis(), TimeUnit.MILLISECONDS);
@@ -193,7 +193,7 @@ public class TransportDistributedResultAction implements NodeAction<DistributedR
 
                 @Override
                 public void onFailure(Exception e) {
-                    logger.debug("Could not kill " + request.jobId(), e);
+                    LOGGER.debug("Could not kill " + request.jobId(), e);
                 }
             }, excludedNodeIds);
             return failedFuture(
@@ -206,7 +206,7 @@ public class TransportDistributedResultAction implements NodeAction<DistributedR
 
         @Override
         public void needMore(boolean needMore) {
-            logger.trace("sending needMore response, need more? {}", needMore);
+            LOGGER.trace("sending needMore response, need more? {}", needMore);
             future.complete(new DistributedResultResponse(needMore));
         }
     }

@@ -37,7 +37,7 @@ public class ExtractFunctionsTest extends AbstractScalarFunctionsTest {
     @Test
     public void testYayNullValue() {
         assertEvaluate(
-            "extract(day from timestamp)",
+            "extract(day from timestamp_tz)",
             null,
             Literal.of(DataTypes.TIMESTAMPZ, null));
     }
@@ -45,60 +45,68 @@ public class ExtractFunctionsTest extends AbstractScalarFunctionsTest {
     @Test
     public void testExtractCentury() throws Exception {
         // ISO century, see http://joda-time.sourceforge.net/field.html
-        assertEvaluate("extract(century from timestamp)", 20);
+        assertEvaluate("extract(century from timestamp_tz)", 20);
+    }
+
+    @Test
+    public void testExtractCenturyFromTimestampWithoutTimeZone() {
+        assertEvaluate(
+            "extract(day from timestamp)",
+            25,
+            Literal.of(DataTypes.TIMESTAMP, DataTypes.TIMESTAMP.value("2014-03-25")));
     }
 
     @Test
     public void testExtractYear() throws Exception {
-        assertEvaluate("extract(year from timestamp)", 2014);
+        assertEvaluate("extract(year from timestamp_tz)", 2014);
     }
 
     @Test
     public void testExtractQuarter() throws Exception {
-        assertEvaluate("extract(quarter from timestamp)", 1);
+        assertEvaluate("extract(quarter from timestamp_tz)", 1);
     }
 
     @Test
     public void testExtractMonth() throws Exception {
-        assertEvaluate("extract(month from timestamp)", 2);
+        assertEvaluate("extract(month from timestamp_tz)", 2);
     }
 
     @Test
     public void testExtractWeek() throws Exception {
-        assertEvaluate("extract(week from timestamp)", 7);
+        assertEvaluate("extract(week from timestamp_tz)", 7);
     }
 
     @Test
     public void testExtractDay() throws Exception {
-        assertEvaluate("extract(day from timestamp)", 15);
-        assertEvaluate("extract(day_of_month from timestamp)", 15);
+        assertEvaluate("extract(day from timestamp_tz)", 15);
+        assertEvaluate("extract(day_of_month from timestamp_tz)", 15);
     }
 
     @Test
     public void testDayOfWeek() throws Exception {
-        assertEvaluate("extract(day_of_week from timestamp)", 6);
-        assertEvaluate("extract(dow from timestamp)", 6);
+        assertEvaluate("extract(day_of_week from timestamp_tz)", 6);
+        assertEvaluate("extract(dow from timestamp_tz)", 6);
     }
 
     @Test
     public void testDayOfYear() throws Exception {
-        assertEvaluate("extract(day_of_year from timestamp)", 46);
-        assertEvaluate("extract(doy from timestamp)", 46);
+        assertEvaluate("extract(day_of_year from timestamp_tz)", 46);
+        assertEvaluate("extract(doy from timestamp_tz)", 46);
     }
 
     @Test
     public void testHour() throws Exception {
-        assertEvaluate("extract(hour from timestamp)", 21);
+        assertEvaluate("extract(hour from timestamp_tz)", 21);
     }
 
     @Test
     public void testMinute() throws Exception {
-        assertEvaluate("extract(minute from timestamp)", 33);
+        assertEvaluate("extract(minute from timestamp_tz)", 33);
     }
 
     @Test
     public void testSecond() throws Exception {
-        assertEvaluate("extract(second from timestamp)", 23);
+        assertEvaluate("extract(second from timestamp_tz)", 23);
     }
 
     @Test
@@ -107,7 +115,6 @@ public class ExtractFunctionsTest extends AbstractScalarFunctionsTest {
         assertEvaluate("extract(epoch from '1970-01-01T00:00:00.5')", 0.5);
         assertEvaluate("extract(epoch from '1970-01-01T00:00:00')", 0.0);
         assertEvaluate("extract(epoch from '1969-12-31T23:59:59')", -1.0);
-        assertEvaluate("extract(epoch from timestamp)", 1392500003.0);
+        assertEvaluate("extract(epoch from timestamp_tz)", 1392500003.0);
     }
-
 }

@@ -45,6 +45,12 @@ public class Variance implements Streamable {
         count++;
     }
 
+    public void decrement(double value) {
+        sumOfSqrs -= (value * value);
+        sum -= value;
+        count--;
+    }
+
     public double result() {
         if (count == 0) {
             return Double.NaN;

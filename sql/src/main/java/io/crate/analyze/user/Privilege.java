@@ -47,7 +47,11 @@ public class Privilege implements Writeable {
     public enum Type {
         DQL,
         DML,
-        DDL;
+        DDL,
+        /**
+         * Administration Language
+         */
+        AL;
 
         public static final List<Type> VALUES = ImmutableList.copyOf(values());
     }

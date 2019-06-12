@@ -134,7 +134,12 @@ public class Setting<T> implements ToXContentObject {
         /**
          * Indicates an index-level setting that is privately managed. Such a setting can not even be set on index creation.
          */
-        PrivateIndex
+        PrivateIndex,
+
+        /**
+         * Indicates a setting that contains sensitive information. Such a setting will be masked when shown to the users.
+         */
+        Masked
     }
 
     private final Key key;
@@ -149,7 +154,7 @@ public class Setting<T> implements ToXContentObject {
 
     private Setting(Key key, @Nullable Setting<T> fallbackSetting, Function<Settings, String> defaultValue, Function<String, T> parser,
                     Validator<T> validator, Property... properties) {
-        assert this instanceof SecureSetting || this.isGroupSetting() || parser.apply(defaultValue.apply(Settings.EMPTY)) != null
+        assert this.isGroupSetting() || parser.apply(defaultValue.apply(Settings.EMPTY)) != null
                : "parser returned null";
         this.key = key;
         this.fallbackSetting = fallbackSetting;
@@ -335,6 +340,10 @@ public class Setting<T> implements ToXContentObject {
      */
     public boolean isDeprecated() {
         return properties.contains(Property.Deprecated);
+    }
+
+    public final boolean isMasked() {
+        return properties.contains(Property.Masked);
     }
 
     /**
@@ -906,8 +915,8 @@ public class Setting<T> implements ToXContentObject {
             Set<String> leftGroup = get(source).keySet();
             Settings defaultGroup = get(defaultSettings);
 
-            builder.put(Settings.builder().put(defaultGroup.filter(k -> leftGroup.contains(k) == false), false)
-                    .normalizePrefix(getKey()).build(), false);
+            builder.put(Settings.builder().put(defaultGroup.filter(k -> leftGroup.contains(k) == false))
+                    .normalizePrefix(getKey()).build());
         }
 
         @Override
@@ -1068,6 +1077,10 @@ public class Setting<T> implements ToXContentObject {
             final Function<String, String> parser,
             final Property... properties) {
         return new Setting<>(key, fallback, parser, properties);
+    }
+
+    public static Setting<SecureString> maskedString(String name) {
+        return new Setting<>(name, "", SecureString::new, Property.Masked, Property.NodeScope);
     }
 
     /**

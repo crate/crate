@@ -19,25 +19,22 @@
 
 package org.elasticsearch.index.mapper;
 
-import org.apache.logging.log4j.LogManager;
 import org.apache.lucene.index.IndexOptions;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.common.joda.FormatDateTimeFormatter;
 import org.elasticsearch.common.joda.Joda;
-import org.elasticsearch.common.logging.DeprecationLogger;
+import org.elasticsearch.common.xcontent.support.XContentMapValues;
 import org.elasticsearch.index.analysis.NamedAnalyzer;
 
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import static org.elasticsearch.common.xcontent.support.XContentMapValues.isArray;
 import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeBooleanValue;
 import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeFloatValue;
 import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeIntegerValue;
-import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeMapValue;
 import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeStringValue;
 
 public class TypeParsers {
@@ -47,8 +44,6 @@ public class TypeParsers {
     public static final String INDEX_OPTIONS_FREQS = "freqs";
     public static final String INDEX_OPTIONS_POSITIONS = "positions";
     public static final String INDEX_OPTIONS_OFFSETS = "offsets";
-
-    private static final DeprecationLogger DEPRECATION_LOGGER = new DeprecationLogger(LogManager.getLogger(TypeParsers.class));
 
     private static void parseAnalyzersAndTermVectors(FieldMapper.Builder builder, String name, Map<String, Object> fieldNode,
                                                      Mapper.TypeParser.ParserContext parserContext) {
@@ -127,37 +122,8 @@ public class TypeParsers {
         }
     }
 
-    public static boolean parseNorms(FieldMapper.Builder builder, String fieldName, String propName, Object propNode,
-                                     Mapper.TypeParser.ParserContext parserContext) {
-        if (propName.equals("norms")) {
-            if (propNode instanceof Map) {
-                final Map<String, Object> properties = nodeMapValue(propNode, "norms");
-                for (Iterator<Entry<String, Object>> propsIterator = properties.entrySet().iterator(); propsIterator.hasNext(); ) {
-                    Entry<String, Object> entry2 = propsIterator.next();
-                    final String propName2 = entry2.getKey();
-                    final Object propNode2 = entry2.getValue();
-                    if (propName2.equals("enabled")) {
-                        builder.omitNorms(nodeBooleanValue(propNode2, fieldName + ".enabled") == false);
-                        propsIterator.remove();
-                    } else if (propName2.equals("loading")) {
-                        // ignore for bw compat
-                        propsIterator.remove();
-                    }
-                }
-                DocumentMapperParser.checkNoRemainingFields(propName, properties, parserContext.indexVersionCreated());
-                DEPRECATION_LOGGER.deprecated("The [norms{enabled:true/false}] way of specifying norms is deprecated, please use " +
-                    "[norms:true/false] instead");
-            } else {
-                builder.omitNorms(nodeBooleanValue(propNode, fieldName + ".norms") == false);
-            }
-            return true;
-        } else if (propName.equals("omit_norms")) {
-            builder.omitNorms(nodeBooleanValue(propNode, fieldName + "norms"));
-            DEPRECATION_LOGGER.deprecated("[omit_norms] is deprecated, please use [norms] instead with the opposite boolean value");
-            return true;
-        } else {
-            return false;
-        }
+    public static void parseNorms(FieldMapper.Builder builder, String fieldName, Object propNode) {
+        builder.omitNorms(XContentMapValues.nodeBooleanValue(propNode, fieldName + ".norms") == false);
     }
 
     /**
@@ -172,7 +138,8 @@ public class TypeParsers {
             Map.Entry<String, Object> entry = iterator.next();
             final String propName = entry.getKey();
             final Object propNode = entry.getValue();
-            if (parseNorms(builder, name, propName, propNode, parserContext)) {
+            if ("norms".equals(propName)) {
+                parseNorms(builder, name, propNode);
                 iterator.remove();
             }
         }
@@ -207,13 +174,7 @@ public class TypeParsers {
                 builder.boost(nodeFloatValue(propNode));
                 iterator.remove();
             } else if (propName.equals("index_options")) {
-                if (builder.allowsIndexOptions()) {
-                    builder.indexOptions(nodeIndexOptionValue(propNode));
-                } else {
-                    DEPRECATION_LOGGER.deprecated(
-                            "index_options are deprecated for field [{}] of type [{}] and will be removed in the next major version.",
-                            name, builder.fieldType.typeName());
-                }
+                builder.indexOptions(nodeIndexOptionValue(propNode));
                 iterator.remove();
             } else if (propName.equals("include_in_all")) {
                 throw new MapperParsingException("[include_in_all] is not allowed for indices created on or after version 6.0.0 as " +
@@ -231,7 +192,10 @@ public class TypeParsers {
                 iterator.remove();
             } else if (propName.equals("position")) {
                 builder.position(nodeIntegerValue(propNode));
-                iterator.remove();;
+                iterator.remove();
+            } else if (propName.equals("default_expr")) {
+                builder.defaultExpression(nodeStringValue(propNode, null));
+                iterator.remove();
             }
         }
     }

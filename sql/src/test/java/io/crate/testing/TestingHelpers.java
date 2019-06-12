@@ -24,7 +24,7 @@ package io.crate.testing;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Ordering;
 import io.crate.analyze.where.DocKeys;
-import io.crate.collections.Lists2;
+import io.crate.common.collections.Lists2;
 import io.crate.common.collections.Sorted;
 import io.crate.data.Bucket;
 import io.crate.data.Buckets;
@@ -188,6 +188,7 @@ public class TestingHelpers {
             new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, tableName), columnIdent),
             RowGranularity.DOC,
             dataType,
+            null,
             null
         );
     }
@@ -290,7 +291,7 @@ public class TestingHelpers {
             default:
                 throw new IllegalArgumentException("fqColumnName must contain <table>.<column> or <schema>.<table>.<column>");
         }
-        return new Reference(refIdent, rowGranularity, dataType, null);
+        return new Reference(refIdent, rowGranularity, dataType, null, null);
     }
 
     public static <T> Matcher<T> isSQL(final String stmt) {

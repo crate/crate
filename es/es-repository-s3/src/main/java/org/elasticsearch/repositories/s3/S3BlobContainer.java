@@ -50,9 +50,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import static org.elasticsearch.repositories.s3.S3Repository.MAX_FILE_SIZE;
-import static org.elasticsearch.repositories.s3.S3Repository.MAX_FILE_SIZE_USING_MULTIPART;
-import static org.elasticsearch.repositories.s3.S3Repository.MIN_PART_SIZE_USING_MULTIPART;
+import static org.elasticsearch.repositories.s3.S3RepositorySettings.MAX_FILE_SIZE;
+import static org.elasticsearch.repositories.s3.S3RepositorySettings.MAX_FILE_SIZE_USING_MULTIPART;
+import static org.elasticsearch.repositories.s3.S3RepositorySettings.MIN_PART_SIZE_USING_MULTIPART;
 
 class S3BlobContainer extends AbstractBlobContainer {
 

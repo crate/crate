@@ -28,9 +28,7 @@ class NodeOsCpuStatsExpression extends NestedNodeStatsExpression {
 
     private static final String SYS = "system";
     private static final String USER = "user";
-    private static final String IDLE = "idle";
     private static final String USAGE = "used";
-    private static final String STOLEN = "stolen";
 
     NodeOsCpuStatsExpression() {
         childImplementations.put(SYS, new SimpleNodeStatsExpression<Short>() {
@@ -55,34 +53,12 @@ class NodeOsCpuStatsExpression extends NestedNodeStatsExpression {
                 }
             }
         });
-        childImplementations.put(IDLE, new SimpleNodeStatsExpression<Short>() {
-            @Override
-            public Short innerValue(NodeStatsContext nodeStatsContext) {
-                ExtendedOsStats.Cpu cpu = nodeStatsContext.extendedOsStats().cpu();
-                if (cpu != null) {
-                    return cpu.idle();
-                } else {
-                    return -1;
-                }
-            }
-        });
         childImplementations.put(USAGE, new SimpleNodeStatsExpression<Short>() {
             @Override
             public Short innerValue(NodeStatsContext nodeStatsContext) {
                 ExtendedOsStats.Cpu cpu = nodeStatsContext.extendedOsStats().cpu();
                 if (cpu != null) {
                     return cpu.percent();
-                } else {
-                    return -1;
-                }
-            }
-        });
-        childImplementations.put(STOLEN, new SimpleNodeStatsExpression<Short>() {
-            @Override
-            public Short innerValue(NodeStatsContext nodeStatsContext) {
-                ExtendedOsStats.Cpu cpu = nodeStatsContext.extendedOsStats().cpu();
-                if (cpu != null) {
-                    return cpu.stolen();
                 } else {
                     return -1;
                 }

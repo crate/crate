@@ -83,14 +83,18 @@ public class PGTypesTest extends CrateUnitTest {
     public void testCrateCollection2PgType() {
         for (DataType type : PRIMITIVE_TYPES) {
             assertThat(PGTypes.get(new ArrayType(type)), instanceOf(PGArray.class));
-            assertThat(PGTypes.get(new SetType(type)), instanceOf(PGArray.class));
         }
 
         assertThat(PGTypes.get(new ArrayType(GEO_POINT)), instanceOf(PGArray.class));
-        assertThat(PGTypes.get(new SetType(GEO_POINT)), instanceOf(PGArray.class));
 
         assertThat(PGTypes.get(new ArrayType(GEO_SHAPE)), instanceOf(PGArray.class));
-        assertThat(PGTypes.get(new SetType(GEO_SHAPE)), instanceOf(PGArray.class));
+    }
+
+    @Test
+    public void testCrateSetCannotBeMappedToPgType() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("No type mapping from 'integer_set' to pg_type");
+        PGTypes.get(new SetType(DataTypes.INTEGER));
     }
 
     @Test
@@ -141,9 +145,7 @@ public class PGTypesTest extends CrateUnitTest {
             new Entry(new ArrayType(DataTypes.INTEGER), new Integer[]{10, null, 20}),
             new Entry(new ArrayType(DataTypes.INTEGER), new Integer[0]),
             new Entry(new ArrayType(DataTypes.INTEGER), new Integer[]{null, null}),
-            new Entry(new ArrayType(DataTypes.INTEGER), new Integer[][]{new Integer[]{10, null, 20}, new Integer[]{1, 2, 3}}),
-            new Entry(new SetType(DataTypes.STRING), new Object[]{"test"}),
-            new Entry(new SetType(DataTypes.INTEGER), new Integer[]{10, null, 20})
+            new Entry(new ArrayType(DataTypes.INTEGER), new Integer[][]{new Integer[]{10, null, 20}, new Integer[]{1, 2, 3}})
         )) {
             PGType pgType = PGTypes.get(entry.type);
             assertEntryOfPgType(entry, pgType);

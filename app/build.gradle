@@ -63,6 +63,7 @@ dependencies {
         exclude group: 'org.slf4j', module: 'jcl-over-slf4j'
     }
     testImplementation "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${versions.jackson}"
+    testImplementation project(path: ':dex', configuration: 'testOutput')
 
     compileNotTransitive project(':common')
     compileNotTransitive project(':es:es-core')
@@ -168,6 +169,7 @@ task chooseReleaseNotes(dependsOn: [':es:es-server:getVersion']) {
 tasks.withType(Tar) {
     dependsOn ':es:es-server:getVersion'
     dependsOn 'chooseReleaseNotes'
+    dependsOn 'createCrateNodeScripts'
     compression = Compression.GZIP
     extension = 'tar.gz'
 }
@@ -175,6 +177,7 @@ tasks.withType(Tar) {
 tasks.withType(Zip) {
     dependsOn ':es:es-server:getVersion'
     dependsOn 'chooseReleaseNotes'
+    dependsOn 'createCrateNodeScripts'
 }
 
 installDist.dependsOn(chooseReleaseNotes)
@@ -200,6 +203,9 @@ distributions {
                         includeEmptyDirs = true
                     }
                 }
+            }
+            into("bin") {
+                from(project.buildDir.path + "/bin")
             }
             into("lib") {
                 from libs
@@ -244,6 +250,9 @@ distributions {
                         includeEmptyDirs = true
                     }
                 }
+            }
+            into("bin") {
+                from(project.buildDir.path + "/bin")
             }
             into("lib") {
                 from libs
@@ -408,11 +417,14 @@ task(run, dependsOn: 'classes', type: JavaExec) {
     systemProperties System.getProperties()
 }
 
-test {
-    testLogging {
-        exceptionFormat = 'full'
-    }
+task createCrateNodeScripts(type: CreateStartScripts) {
+    outputDir = file('build/bin')
+    mainClassName = 'org.elasticsearch.cluster.coordination.NodeToolCli'
+    applicationName = 'crate-node'
+    classpath = sourceSets.main.runtimeClasspath + files('lib/crate-app.jar')
+}
 
+test {
     jacoco {
         excludes = ["*Test*"]
     }

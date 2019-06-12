@@ -28,9 +28,9 @@ supports the following statements to create, alter and drop users:
     * `ALTER USER`_
     * `DROP USER`_
 
-These statements are database management statements that can only be invoked by
-superusers that already exist in the CrateDB cluster. Also the users table
-``sys.users`` is only readable by superusers.
+These statements are database management statements that can be invoked by
+superusers that already exist in the CrateDB cluster. The `CREATE USER`_ and
+`DROP USER`_ statements can also be invoked by users with the ``AL`` privilege.
 
 When CrateDB is started, the cluster contains one predefined superuser. This
 user is called ``crate``. It is not possible to create any other superusers
@@ -54,12 +54,12 @@ To create a new user for the CrateDB database cluster use the
     For example, to grant all privileges to the ``user_a`` user, run::
 
         cr> GRANT ALL PRIVILEGES TO user_a;
-        GRANT OK, 3 rows affected (... sec)
+        GRANT OK, 4 rows affected (... sec)
 
 .. hide:
 
     cr> REVOKE ALL PRIVILEGES FROM user_a;
-    REVOKE OK, 3 rows affected (... sec)
+    REVOKE OK, 4 rows affected (... sec)
 
 It can be used to connect to the database cluster using available authentication
 methods. You can specify the user's password in the ``WITH`` clause of the

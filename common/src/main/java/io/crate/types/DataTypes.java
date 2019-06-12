@@ -46,7 +46,7 @@ import static java.util.stream.Collectors.toSet;
 
 public final class DataTypes {
 
-    private static final Logger logger = LogManager.getLogger(DataTypes.class);
+    private static final Logger LOGGER = LogManager.getLogger(DataTypes.class);
 
     /**
      * If you add types here make sure to update the SizeEstimatorFactory in the SQL module.
@@ -146,14 +146,13 @@ public final class DataTypes {
             NUMBER_CONVERSIONS.stream()
         ).collect(toSet())),
         entry(IP.id(), Set.of(STRING)),
-        entry(TIMESTAMPZ.id(), Set.of(DOUBLE, LONG, STRING)),
-        entry(TIMESTAMP.id(), Set.of(DOUBLE, LONG, STRING)),
+        entry(TIMESTAMPZ.id(), Set.of(DOUBLE, LONG, STRING, TIMESTAMP)),
+        entry(TIMESTAMP.id(), Set.of(DOUBLE, LONG, STRING, TIMESTAMPZ)),
         entry(UNDEFINED.id(), Set.of()), // actually convertible to every type, see NullType
         entry(GEO_POINT.id(), Set.of(new ArrayType(DOUBLE))),
         entry(GEO_SHAPE.id(), Set.of(ObjectType.untyped())),
         entry(ObjectType.ID, Set.of(GEO_SHAPE)),
-        entry(ArrayType.ID, Set.of()), // convertability handled in ArrayType
-        entry(SetType.ID, Set.of())); // convertability handled in SetType
+        entry(ArrayType.ID, Set.of())); // convertability handled in ArrayType
 
     /**
      * Contains number conversions which are "safe" (= a conversion would not reduce the number of bytes
@@ -181,7 +180,7 @@ public final class DataTypes {
             type.readFrom(in);
             return type;
         } catch (NullPointerException e) {
-            logger.error(String.format(Locale.ENGLISH, "%d is missing in TYPE_REGISTRY", i), e);
+            LOGGER.error(String.format(Locale.ENGLISH, "%d is missing in TYPE_REGISTRY", i), e);
             throw e;
         }
     }

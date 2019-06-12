@@ -27,25 +27,24 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.FunctionResolver;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.functions.params.Param;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
-import java.util.Collection;
 import java.util.List;
 
-public class CollectionCountFunction extends Scalar<Long, Collection<DataType>> {
+public class CollectionCountFunction extends Scalar<Long, Object> {
 
     public static final String NAME = "collection_count";
     private final FunctionInfo info;
 
-    private static final FunctionResolver collectionCountResolver = new CollectionCountResolver();
+    private static final FunctionResolver COLLECTION_COUNT_RESOLVER = new CollectionCountResolver();
 
     public static void register(ScalarFunctionModule mod) {
-        mod.register(NAME, collectionCountResolver);
+        mod.register(NAME, COLLECTION_COUNT_RESOLVER);
     }
 
     CollectionCountFunction(FunctionInfo info) {
@@ -53,13 +52,12 @@ public class CollectionCountFunction extends Scalar<Long, Collection<DataType>> 
     }
 
     @Override
-    public Long evaluate(TransactionContext txnCtx, Input<Collection<DataType>>... args) {
-        // TODO: eliminate Integer.MAX_VALUE limitation of Set.size()
-        Collection<DataType> arg0Value = args[0].value();
-        if (arg0Value == null) {
+    public Long evaluate(TransactionContext txnCtx, Input<Object>... args) {
+        Object[] argArray = (Object[]) args[0].value();
+        if (argArray == null) {
             return null;
         }
-        return ((Integer) (arg0Value.size())).longValue();
+        return Long.valueOf(argArray.length);
     }
 
     @Override
@@ -70,7 +68,7 @@ public class CollectionCountFunction extends Scalar<Long, Collection<DataType>> 
     static class CollectionCountResolver extends BaseFunctionResolver {
 
         CollectionCountResolver() {
-            super(FuncParams.builder(Param.ANY_SET).build());
+            super(FuncParams.builder(Param.ANY_ARRAY).build());
         }
 
         @Override

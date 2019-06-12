@@ -24,6 +24,7 @@ package io.crate.execution.engine.window;
 
 import com.google.common.base.Supplier;
 import io.crate.analyze.OrderBy;
+import io.crate.analyze.WindowFrameDefinition;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.breaker.RowAccounting;
 import io.crate.breaker.RowAccountingWithEstimators;
@@ -64,6 +65,7 @@ public class WindowProjector implements Projector {
     private final IntSupplier numThreads;
     private final Executor executor;
     private final RowAccounting<Row> rowAccounting;
+    private final WindowFrameDefinition frameDefinition;
 
     public static WindowProjector fromProjection(WindowAggProjection projection,
                                                  Functions functions,
@@ -110,6 +112,7 @@ public class WindowProjector implements Projector {
             Symbols.typeView(projection.standalone()), ramAccountingContext, arrayListElementOverHead);
         return new WindowProjector(
             accounting,
+            windowDefinition.windowFrameDefinition(),
             partitions.isEmpty() ? null : createComparator(createInputFactoryContext, new OrderBy(windowDefinition.partitions())),
             createComparator(createInputFactoryContext, windowDefinition.orderBy()),
             projection.standalone().size(),
@@ -122,6 +125,7 @@ public class WindowProjector implements Projector {
     }
 
     private WindowProjector(RowAccounting<Row> rowAccounting,
+                            WindowFrameDefinition frameDefinition,
                             Comparator<Object[]> cmpPartitionBy,
                             Comparator<Object[]> cmpOrderBy,
                             int cellOffset,
@@ -131,6 +135,7 @@ public class WindowProjector implements Projector {
                             IntSupplier numThreads,
                             Executor executor) {
         this.rowAccounting = rowAccounting;
+        this.frameDefinition = frameDefinition;
         this.cmpPartitionBy = cmpPartitionBy;
         this.cmpOrderBy = cmpOrderBy;
         this.cellOffset = cellOffset;
@@ -146,6 +151,7 @@ public class WindowProjector implements Projector {
         return WindowFunctionBatchIterator.of(
             source,
             rowAccounting,
+            frameDefinition,
             cmpPartitionBy,
             cmpOrderBy,
             cellOffset,

@@ -79,13 +79,13 @@ public final class CmpOperator extends Operator<Object> {
 
     protected static class CmpResolver extends BaseFunctionResolver {
 
-        private static final Param primitiveTypes = Param.of(DataTypes.PRIMITIVE_TYPES);
+        private static final Param PRIMITIVE_TYPES = Param.of(DataTypes.PRIMITIVE_TYPES);
 
         private final String name;
         private final IntPredicate isMatch;
 
         CmpResolver(String name, IntPredicate isMatch) {
-            this(name, FuncParams.builder(primitiveTypes, primitiveTypes).build(), isMatch);
+            this(name, FuncParams.builder(PRIMITIVE_TYPES, PRIMITIVE_TYPES).build(), isMatch);
         }
 
         CmpResolver(String name, FuncParams funcParams, IntPredicate isMatch) {

@@ -39,7 +39,7 @@ import java.util.function.Predicate;
 public class S3FileInput implements FileInput {
 
     private AmazonS3 client; // to prevent early GC during getObjectContent() in getStream()
-    private static final Logger logger = LogManager.getLogger(S3FileInput.class);
+    private static final Logger LOGGER = LogManager.getLogger(S3FileInput.class);
 
     final S3ClientHelper clientBuilder;
 
@@ -77,8 +77,8 @@ public class S3FileInput implements FileInput {
                 URI keyUri = uri.resolve("/" + key);
                 if (uriPredicate.test(keyUri)) {
                     uris.add(keyUri);
-                    if (logger.isDebugEnabled()) {
-                        logger.debug("{}", keyUri);
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug("{}", keyUri);
                     }
                 }
             }

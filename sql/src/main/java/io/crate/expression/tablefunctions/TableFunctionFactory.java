@@ -107,7 +107,8 @@ public class TableFunctionFactory {
             Reference reference = new Reference(new ReferenceIdent(TABLE_IDENT, col),
                                                 RowGranularity.DOC,
                                                 info().returnType(),
-                                                1);
+                                                1,
+                                                null);
             Map<ColumnIdent, Reference> referenceByColumn = Collections.singletonMap(col, reference);
             return new StaticTableInfo(TABLE_IDENT, referenceByColumn, List.of(reference), List.of()) {
                 @Override
