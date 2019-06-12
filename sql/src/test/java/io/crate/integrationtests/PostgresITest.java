@@ -608,7 +608,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
             conn.setAutoCommit(true);
             PreparedStatement stmt = conn.prepareStatement("create table test(a integer)");
             expectedException.expect(PSQLException.class);
-            expectedException.expectMessage("ERROR: Only read operations are allowed on this node");
+            expectedException.expectMessage("Only read operations are allowed on this node");
             stmt.executeQuery();
         }
     }
