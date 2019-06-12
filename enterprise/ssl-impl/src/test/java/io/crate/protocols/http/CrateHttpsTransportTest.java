@@ -93,7 +93,7 @@ public class CrateHttpsTransportTest extends CrateUnitTest {
                 pipelineRegistry,
                 mock(NodeClient.class));
 
-        Channel channel = new EmbeddedChannel();
+        EmbeddedChannel channel = new EmbeddedChannel();
         try {
             transport.start();
 
@@ -107,6 +107,7 @@ public class CrateHttpsTransportTest extends CrateUnitTest {
         } finally {
             transport.stop();
             transport.close();
+            channel.releaseInbound();
             channel.close().awaitUninterruptibly();
         }
     }
