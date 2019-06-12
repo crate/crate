@@ -20,18 +20,32 @@
  * agreement.
  */
 
-package io.crate.data;
+package io.crate.action.sql;
 
-import java.util.ArrayList;
-import java.util.List;
+import io.crate.protocols.postgres.Portal;
 
-public class Rows {
+public final class DeferredExecution {
 
-    public static List<Row> of(Object[][] rows) {
-        List<Row> rowList = new ArrayList<>(rows.length);
-        for (Object[] row : rows) {
-            rowList.add(new RowN(row));
-        }
-        return rowList;
+    private final Portal portal;
+    private final int maxRows;
+    private final ResultReceiver<?> resultReceiver;
+
+    public DeferredExecution(Portal portal, int maxRows, ResultReceiver<?> resultReceiver) {
+        this.portal = portal;
+        this.maxRows = maxRows;
+        this.resultReceiver = resultReceiver;
     }
+
+    public Portal portal() {
+        return portal;
+    }
+
+    public int maxRows() {
+        return maxRows;
+    }
+
+    public ResultReceiver<?> resultReceiver() {
+        return resultReceiver;
+    }
+
 }

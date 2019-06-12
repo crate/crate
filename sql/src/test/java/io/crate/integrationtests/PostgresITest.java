@@ -436,7 +436,6 @@ public class PostgresITest extends SQLTransportIntegrationTest {
         try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
             Statement stmt = conn.createStatement();
             stmt.executeUpdate("create table t (x int) with (number_of_replicas = 0)");
-            ensureYellow();
             PreparedStatement preparedStatement = conn.prepareStatement("insert into t (x) values (cast(? as integer))");
             preparedStatement.setString(1, Integer.toString(1));
             preparedStatement.addBatch();
@@ -540,7 +539,6 @@ public class PostgresITest extends SQLTransportIntegrationTest {
             conn.setAutoCommit(true);
             Statement stmt = conn.createStatement();
             stmt.executeUpdate("create table t (x int) with (number_of_replicas = 0)");
-            ensureYellow();
             Statement statement = conn.createStatement();
             statement.addBatch("insert into t(x) values(1), (2)");
             statement.addBatch("refresh table t");

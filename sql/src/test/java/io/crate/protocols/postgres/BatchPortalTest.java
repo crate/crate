@@ -39,6 +39,7 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
+import org.mockito.Answers;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -76,7 +77,7 @@ public class BatchPortalTest extends CrateDummyClusterServiceUnitTest {
             }
         };
 
-        DependencyCarrier executor = mock(DependencyCarrier.class);
+        DependencyCarrier executor = mock(DependencyCarrier.class, Answers.RETURNS_MOCKS.get());
         Session session = new Session(
             sqlExecutor.analyzer,
             planner,

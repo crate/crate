@@ -77,6 +77,7 @@ public class ReadOnlyNodeIntegrationTest extends SQLTransportIntegrationTest {
     protected Settings nodeSettings(int nodeOrdinal) {
         Settings.Builder builder = Settings.builder();
         builder.put(super.nodeSettings(nodeOrdinal));
+        builder.put("path.repo", folder.getRoot().getParent());
         if ((nodeOrdinal + 1) % 2 == 0) {
             builder.put(SQLOperations.NODE_READ_ONLY_SETTING.getKey(), true);
         }
@@ -88,7 +89,7 @@ public class ReadOnlyNodeIntegrationTest extends SQLTransportIntegrationTest {
         executeWrite("create table write_test (id int primary key, name string) with (number_of_replicas=0)");
         executeWrite("create table write_test2 (id int, name string) with (number_of_replicas=0)");
         executeWrite("create blob table write_blob_test with (number_of_replicas=0)");
-        executeWrite("create repository existing_repo TYPE \"fs\" with (location=?, compress=True)", new Object[]{folder});
+        executeWrite("create repository existing_repo TYPE \"fs\" with (location=?, compress=True)", new Object[]{folder.getRoot().getAbsolutePath()});
         ensureYellow();
     }
 
