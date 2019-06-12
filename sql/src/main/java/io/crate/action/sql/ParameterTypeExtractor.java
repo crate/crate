@@ -73,7 +73,7 @@ class ParameterTypeExtractor extends DefaultTraversalSymbolVisitor<Void, Void> i
         consumer.accept(this);
         Preconditions.checkState(parameterSymbols.isEmpty() ||
                                  parameterSymbols.last().index() == parameterSymbols.size() - 1,
-            "The assembled list of ParameterSymbols is invalid. Missing parameters.");
+                                 "The assembled list of ParameterSymbols is invalid. Missing parameters.");
         DataType[] dataTypes = parameterSymbols.stream()
             .map(ParameterSymbol::getBoundType)
             .toArray(DataType[]::new);

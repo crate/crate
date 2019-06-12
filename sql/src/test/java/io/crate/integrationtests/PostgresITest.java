@@ -32,6 +32,7 @@ import io.crate.shade.org.postgresql.util.PSQLState;
 import io.crate.testing.UseJdbc;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -53,8 +54,8 @@ import java.util.UUID;
 
 import static io.crate.protocols.postgres.PostgresNetty.PSQL_PORT_SETTING;
 import static org.hamcrest.Matchers.emptyIterable;
+import static org.hamcrest.Matchers.emptyOrNullString;
 import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.isEmptyOrNullString;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.core.Is.is;
 
@@ -436,7 +437,6 @@ public class PostgresITest extends SQLTransportIntegrationTest {
         try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
             Statement stmt = conn.createStatement();
             stmt.executeUpdate("create table t (x int) with (number_of_replicas = 0)");
-            ensureYellow();
             PreparedStatement preparedStatement = conn.prepareStatement("insert into t (x) values (cast(? as integer))");
             preparedStatement.setString(1, Integer.toString(1));
             preparedStatement.addBatch();
@@ -540,7 +540,6 @@ public class PostgresITest extends SQLTransportIntegrationTest {
             conn.setAutoCommit(true);
             Statement stmt = conn.createStatement();
             stmt.executeUpdate("create table t (x int) with (number_of_replicas = 0)");
-            ensureYellow();
             Statement statement = conn.createStatement();
             statement.addBatch("insert into t(x) values(1), (2)");
             statement.addBatch("refresh table t");
@@ -636,8 +635,8 @@ public class PostgresITest extends SQLTransportIntegrationTest {
             conn.setAutoCommit(true);
             conn.createStatement().executeUpdate("select sqrt('abcd') from sys.cluster");
         } catch (PSQLException e) {
-            assertThat(e.getServerErrorMessage().getFile(), not(isEmptyOrNullString()));
-            assertThat(e.getServerErrorMessage().getRoutine(), not(isEmptyOrNullString()));
+            assertThat(e.getServerErrorMessage().getFile(), not(is(emptyOrNullString())));
+            assertThat(e.getServerErrorMessage().getRoutine(), not(is(emptyOrNullString())));
             assertThat(e.getServerErrorMessage().getLine(), greaterThan(0));
         }
     }

@@ -31,21 +31,22 @@ import io.crate.types.DataType;
 import javax.annotation.Nullable;
 import java.util.List;
 
-class PreparedStmt {
+public class PreparedStmt {
 
-    private final Statement statement;
-    private final String query;
+    private final Statement parsedStatement;
+    private final String rawStatement;
     private final ParamTypeHints paramTypes;
+
     @Nullable
     private DataType[] describedParameterTypes;
 
     @Nullable
-    private AnalyzedStatement analyzedStatement = null;
+    private AnalyzedStatement unboundStatement = null;
     private boolean relationInitialized = false;
 
-    PreparedStmt(Statement statement, String query, List<DataType> paramTypes) {
-        this.statement = statement;
-        this.query = query;
+    PreparedStmt(Statement parsedStatement, String query, List<DataType> paramTypes) {
+        this.parsedStatement = parsedStatement;
+        this.rawStatement = query;
         this.paramTypes = new ParamTypeHints(paramTypes);
     }
 
@@ -57,8 +58,8 @@ class PreparedStmt {
         this.describedParameterTypes = describedParameters;
     }
 
-    public Statement statement() {
-        return statement;
+    public Statement parsedStatement() {
+        return parsedStatement;
     }
 
     ParamTypeHints paramTypes() {
@@ -79,8 +80,8 @@ class PreparedStmt {
         return describedParameterTypes[idx];
     }
 
-    public String query() {
-        return query;
+    public String rawStatement() {
+        return rawStatement;
     }
 
     boolean isRelationInitialized() {
@@ -88,12 +89,18 @@ class PreparedStmt {
     }
 
     @Nullable
-    public AnalyzedStatement analyzedStatement() {
-        return analyzedStatement;
+    public AnalyzedStatement unboundStatement() {
+        return unboundStatement;
     }
 
-    public void analyzedStatement(@Nullable AnalyzedStatement analyzedStatement) {
+    /**
+     * Set the unbound analyzed statement (or null if unbound analysis is not supported)
+     *
+     * This must not be set to a bound statement because a `preparedStmt` instance can be re-used
+     * for multiple `bind` messages (so there would be different parameters)
+     */
+    public void unboundStatement(@Nullable AnalyzedStatement unboundStatement) {
         relationInitialized = true;
-        this.analyzedStatement = analyzedStatement;
+        this.unboundStatement = unboundStatement;
     }
 }

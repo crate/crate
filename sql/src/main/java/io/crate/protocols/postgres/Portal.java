@@ -22,60 +22,78 @@
 
 package io.crate.protocols.postgres;
 
-import io.crate.action.sql.ResultReceiver;
+import io.crate.action.sql.PreparedStmt;
+import io.crate.action.sql.RowConsumerToResultReceiver;
 import io.crate.analyze.AnalyzedStatement;
-import io.crate.execution.engine.collect.stats.JobsLogs;
-import io.crate.expression.symbol.Field;
-import io.crate.planner.Planner;
-import io.crate.sql.tree.Statement;
-import io.crate.types.DataType;
 
 import javax.annotation.Nullable;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 
-/**
- * A portal is the entry point for submitting queries to the cluster.
- *
- * It models the portal objects of the PostgreSQL Wire Protocol:
- * https://www.postgresql.org/docs/current/static/protocol-flow.html
- */
-public interface Portal {
+public final class Portal {
 
-    FormatCodes.FormatCode[] getLastResultFormatCodes();
+    private String portalName;
+    private final PreparedStmt preparedStmt;
+    private final List<Object> params;
+    private final AnalyzedStatement boundOrUnboundStatement;
 
-    List<? extends DataType> getLastOutputTypes();
+    @Nullable
+    private final FormatCodes.FormatCode[] resultFormatCodes;
 
-    String getLastQuery();
+    private RowConsumerToResultReceiver consumer;
 
-    AnalyzedStatement getLastAnalyzedStatement();
+    public Portal(String portalName,
+                  PreparedStmt preparedStmt,
+                  List<Object> params,
+                  AnalyzedStatement boundOrUnboundStatement,
+                  @Nullable FormatCodes.FormatCode[] resultFormatCodes) {
+        this.portalName = portalName;
+        this.preparedStmt = preparedStmt;
+        this.params = params;
+        this.boundOrUnboundStatement = boundOrUnboundStatement;
+        this.resultFormatCodes = resultFormatCodes;
+    }
 
-    /**
-     * If bind() is called on a synced portal, all pending result receiving operations must be stopped.
-     * This is primarily relevant for the UNNAMED simple portal.
-     */
-    Portal bind(String statementName,
-                String query,
-                Statement statement,
-                @Nullable AnalyzedStatement analyzedStatement,
-                List<Object> params,
-                @Nullable FormatCodes.FormatCode[] resultFormatCodes);
+    public String name() {
+        return portalName;
+    }
 
-    List<Field> describe();
+    public PreparedStmt preparedStmt() {
+        return preparedStmt;
+    }
 
-    void execute(ResultReceiver resultReceiver, int maxRows);
+    public List<Object> params() {
+        return params;
+    }
 
-    /**
-     * @return Future which will be completed when the results have been received.
-     *         Note: The future is either completed successfully or with an
-     *         exception. The return value is not relevant.
-     */
-    CompletableFuture<?> sync(Planner planner, JobsLogs jobsLogs);
+    @Nullable
+    public FormatCodes.FormatCode[] resultFormatCodes() {
+        return resultFormatCodes;
+    }
 
-    void close();
+    public AnalyzedStatement boundOrUnboundStatement() {
+        return boundOrUnboundStatement;
+    }
 
-    /**
-     * @return boolean whether the portal has already been synced.
-     */
-    boolean synced();
+    public void setActiveConsumer(RowConsumerToResultReceiver consumer) {
+        this.consumer = consumer;
+    }
+
+    @Nullable
+    public RowConsumerToResultReceiver activeConsumer() {
+        return consumer;
+    }
+
+    public void closeActiveConsumer() {
+        if (consumer != null) {
+            consumer.closeAndFinishIfSuspended();
+        }
+    }
+
+    @Override
+    public String toString() {
+        return "Portal{" +
+               "portalName=" + portalName +
+               ", preparedStmt=" + preparedStmt.rawStatement() +
+               '}';
+    }
 }
