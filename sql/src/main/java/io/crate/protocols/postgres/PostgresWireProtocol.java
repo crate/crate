@@ -32,6 +32,7 @@ import io.crate.auth.AuthenticationMethod;
 import io.crate.auth.Protocol;
 import io.crate.auth.user.User;
 import io.crate.collections.Lists2;
+import io.crate.exceptions.SQLExceptions;
 import io.crate.expression.symbol.Field;
 import io.crate.protocols.http.CrateNettyHttpServerTransport;
 import io.crate.protocols.postgres.types.PGType;
@@ -44,8 +45,8 @@ import io.netty.channel.ChannelPipeline;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.ByteToMessageDecoder;
 import io.netty.handler.ssl.SslContext;
-import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import javax.annotation.Nullable;
 import javax.net.ssl.SSLSession;
@@ -283,6 +284,9 @@ class PostgresWireProtocol {
                 dispatchState(buffer, channel);
             } catch (Throwable t) {
                 ignoreTillSync = true;
+                if (session != null) {
+                    t = SQLExceptions.createSQLActionException(t, session.sessionContext());
+                }
                 try {
                     Messages.sendErrorResponse(channel, t);
                 } catch (Throwable ti) {
