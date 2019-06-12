@@ -42,6 +42,12 @@ public class InformationTableInfo extends StaticTableInfo {
         super(ident, columnRegistrar, primaryKey);
     }
 
+    InformationTableInfo(RelationName ident,
+                         ColumnRegistrar columnRegistrar,
+                         String... primaryKey) {
+        super(ident, columnRegistrar, primaryKey);
+    }
+
     @Override
     public RowGranularity rowGranularity() {
         return RowGranularity.DOC;

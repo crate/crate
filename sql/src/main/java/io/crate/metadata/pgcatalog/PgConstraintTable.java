@@ -22,10 +22,8 @@
 
 package io.crate.metadata.pgcatalog;
 
-import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
-import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
@@ -35,16 +33,21 @@ import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.ConstraintInfo;
 import io.crate.metadata.table.StaticTableInfo;
-import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 import org.elasticsearch.cluster.ClusterState;
 
-import java.util.Collections;
 import java.util.Map;
 
 import static io.crate.metadata.pgcatalog.OidHash.constraintOid;
 import static io.crate.metadata.pgcatalog.OidHash.relationOid;
 import static io.crate.metadata.pgcatalog.OidHash.schemaOid;
+import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
+import static io.crate.execution.engine.collect.NestableCollectExpression.constant;
+import static io.crate.types.DataTypes.STRING;
+import static io.crate.types.DataTypes.BOOLEAN;
+import static io.crate.types.DataTypes.SHORT_ARRAY;
+import static io.crate.types.DataTypes.INTEGER_ARRAY;
+import static io.crate.types.DataTypes.INTEGER;
 
 public class PgConstraintTable extends StaticTableInfo {
 
@@ -53,93 +56,42 @@ public class PgConstraintTable extends StaticTableInfo {
     private static final String NO_ACTION = "a";
     private static final String MATCH_SIMPLE = "s";
 
-    static class Columns {
-        static final ColumnIdent OID = new ColumnIdent("oid");
-        static final ColumnIdent CONNAME = new ColumnIdent("conname");
-        static final ColumnIdent CONNAMESPACE = new ColumnIdent("connamespace");
-        static final ColumnIdent CONTYPE = new ColumnIdent("contype");
-        static final ColumnIdent CONDEFERRABLE = new ColumnIdent("condeferrable");
-        static final ColumnIdent CONDEFERRED = new ColumnIdent("condeferred");
-        static final ColumnIdent CONVALIDATED = new ColumnIdent("convalidated");
-        static final ColumnIdent CONRELID = new ColumnIdent("conrelid");
-        static final ColumnIdent CONTYPID = new ColumnIdent("contypid");
-        static final ColumnIdent CONINDID = new ColumnIdent("conindid");
-        static final ColumnIdent CONFRELID = new ColumnIdent("confrelid");
-        static final ColumnIdent CONFUPDTYPE = new ColumnIdent("confupdtype");
-        static final ColumnIdent CONFDELTYPE = new ColumnIdent("confdeltype");
-        static final ColumnIdent CONFMATCHTYPE = new ColumnIdent("confmatchtype");
-        static final ColumnIdent CONISLOCAL = new ColumnIdent("conislocal");
-        static final ColumnIdent CONINHCOUNT = new ColumnIdent("coninhcount");
-        static final ColumnIdent CONNOINHERIT = new ColumnIdent("connoinherit");
-        static final ColumnIdent CONKEY = new ColumnIdent("conkey");
-        static final ColumnIdent CONFKEY = new ColumnIdent("confkey");
-        static final ColumnIdent CONPFEQOP = new ColumnIdent("conpfeqop");
-        static final ColumnIdent CONPPEQOP = new ColumnIdent("conppeqop");
-        static final ColumnIdent CONFFEQOP = new ColumnIdent("conffeqop");
-        static final ColumnIdent CONEXCLOP = new ColumnIdent("conexclop");
-        static final ColumnIdent CONBIN = new ColumnIdent("conbin");
-        static final ColumnIdent CONSRC = new ColumnIdent("consrc");
+    static Map<ColumnIdent, RowCollectExpressionFactory<ConstraintInfo>> expressions() {
+        return columnRegistrar().expressions();
     }
 
-    public static Map<ColumnIdent, RowCollectExpressionFactory<ConstraintInfo>> expressions() {
-        return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<ConstraintInfo>>builder()
-            .put(Columns.OID, () -> NestableCollectExpression.forFunction(
-                c -> constraintOid(c.relationName().fqn(), c.constraintName(), c.constraintType().toString())))
-            .put(Columns.CONNAME, () -> NestableCollectExpression.forFunction(ConstraintInfo::constraintName))
-            .put(Columns.CONNAMESPACE, () -> NestableCollectExpression.forFunction(c -> schemaOid(c.relationName().schema())))
-            .put(Columns.CONTYPE, () -> NestableCollectExpression.forFunction(c -> c.constraintType().postgresChar()))
-            .put(Columns.CONDEFERRABLE, () -> NestableCollectExpression.constant(false))
-            .put(Columns.CONDEFERRED, () -> NestableCollectExpression.constant(false))
-            .put(Columns.CONVALIDATED, () -> NestableCollectExpression.constant(true))
-            .put(Columns.CONRELID, () -> NestableCollectExpression.forFunction(c -> relationOid(c.relationInfo())))
-            .put(Columns.CONTYPID, () -> NestableCollectExpression.constant(0))
-            .put(Columns.CONINDID, () -> NestableCollectExpression.constant(0))
-            .put(Columns.CONFRELID, () -> NestableCollectExpression.constant(0))
-            .put(Columns.CONFUPDTYPE, () -> NestableCollectExpression.constant(NO_ACTION))
-            .put(Columns.CONFDELTYPE, () -> NestableCollectExpression.constant(NO_ACTION))
-            .put(Columns.CONFMATCHTYPE, () -> NestableCollectExpression.constant(MATCH_SIMPLE))
-            .put(Columns.CONISLOCAL, () -> NestableCollectExpression.constant(true))
-            .put(Columns.CONINHCOUNT, () -> NestableCollectExpression.constant(0))
-            .put(Columns.CONNOINHERIT, () -> NestableCollectExpression.constant(true))
-            .put(Columns.CONKEY, () -> NestableCollectExpression.constant(null))
-            .put(Columns.CONFKEY, () -> NestableCollectExpression.constant(null))
-            .put(Columns.CONPFEQOP, () -> NestableCollectExpression.constant(null))
-            .put(Columns.CONPPEQOP, () -> NestableCollectExpression.constant(null))
-            .put(Columns.CONFFEQOP, () -> NestableCollectExpression.constant(null))
-            .put(Columns.CONEXCLOP, () -> NestableCollectExpression.constant(null))
-            .put(Columns.CONBIN, () -> NestableCollectExpression.constant(null))
-            .put(Columns.CONSRC, () -> NestableCollectExpression.constant(null))
-            .build();
+    @SuppressWarnings({"unchecked"})
+    private static ColumnRegistrar<ConstraintInfo> columnRegistrar() {
+        return new ColumnRegistrar<ConstraintInfo>(IDENT, RowGranularity.DOC)
+           .register("oid", INTEGER, () -> forFunction(c -> constraintOid(c.relationName().fqn(), c.constraintName(), c.constraintType().toString())))
+           .register("conname", STRING, () -> forFunction(ConstraintInfo::constraintName))
+           .register("connamespace", INTEGER, () -> forFunction(c -> schemaOid(c.relationName().schema())))
+           .register("contype", STRING, () -> forFunction(c -> c.constraintType().postgresChar()))
+           .register("condeferrable", BOOLEAN, () -> constant(false))
+           .register("condeferred", BOOLEAN, () -> constant(false))
+           .register("convalidated", BOOLEAN, () -> constant(true))
+           .register("conrelid", INTEGER, () -> forFunction(c -> relationOid(c.relationInfo())))
+           .register("contypid", INTEGER, () -> constant(0))
+           .register("conindid", INTEGER, () -> constant(0))
+           .register("confrelid", INTEGER, () -> constant(0))
+           .register("confupdtype", STRING, () -> constant(NO_ACTION))
+           .register("confdeltype", STRING, () -> constant(NO_ACTION))
+           .register("confmatchtype", STRING, () -> constant(MATCH_SIMPLE))
+           .register("conislocal", BOOLEAN, () -> constant(true))
+           .register("coninhcount", INTEGER, () -> constant(0))
+           .register("connoinherit", BOOLEAN, () -> constant(true))
+           .register("conkey", SHORT_ARRAY, () -> constant(null))
+           .register("confkey", SHORT_ARRAY, () -> constant(null))
+           .register("conpfeqop", INTEGER_ARRAY, () -> constant(null))
+           .register("conppeqop", INTEGER_ARRAY, () -> constant(null))
+           .register("conffeqop", INTEGER_ARRAY, () -> constant(null))
+           .register("conexclop", INTEGER_ARRAY, () -> constant(null))
+           .register("conbin", ObjectType.untyped(), () -> constant(null))
+           .register("consrc", STRING, () -> constant(null));
     }
 
     PgConstraintTable() {
-        super(IDENT, new ColumnRegistrar(IDENT, RowGranularity.DOC)
-                .register(Columns.OID.name(), DataTypes.INTEGER)
-                .register(Columns.CONNAME.name(), DataTypes.STRING)
-                .register(Columns.CONNAMESPACE.name(), DataTypes.INTEGER)
-                .register(Columns.CONTYPE.name(), DataTypes.STRING)
-                .register(Columns.CONDEFERRABLE.name(), DataTypes.BOOLEAN)
-                .register(Columns.CONDEFERRED.name(), DataTypes.BOOLEAN)
-                .register(Columns.CONVALIDATED.name(), DataTypes.BOOLEAN)
-                .register(Columns.CONRELID.name(), DataTypes.INTEGER)
-                .register(Columns.CONTYPID.name(), DataTypes.INTEGER)
-                .register(Columns.CONINDID.name(), DataTypes.INTEGER)
-                .register(Columns.CONFRELID.name(), DataTypes.INTEGER)
-                .register(Columns.CONFUPDTYPE.name(), DataTypes.STRING)
-                .register(Columns.CONFDELTYPE.name(), DataTypes.STRING)
-                .register(Columns.CONFMATCHTYPE.name(), DataTypes.STRING)
-                .register(Columns.CONISLOCAL.name(), DataTypes.BOOLEAN)
-                .register(Columns.CONINHCOUNT.name(), DataTypes.INTEGER)
-                .register(Columns.CONNOINHERIT.name(), DataTypes.BOOLEAN)
-                .register(Columns.CONKEY.name(), DataTypes.SHORT_ARRAY)
-                .register(Columns.CONFKEY.name(), DataTypes.SHORT_ARRAY)
-                .register(Columns.CONPFEQOP.name(), DataTypes.INTEGER_ARRAY)
-                .register(Columns.CONPPEQOP.name(), DataTypes.INTEGER_ARRAY)
-                .register(Columns.CONFFEQOP.name(), DataTypes.INTEGER_ARRAY)
-                .register(Columns.CONEXCLOP.name(), DataTypes.INTEGER_ARRAY)
-                .register(Columns.CONBIN.name(), ObjectType.untyped())
-                .register(Columns.CONSRC.name(), DataTypes.STRING),
-            Collections.emptyList());
+        super(IDENT,columnRegistrar());
     }
 
 

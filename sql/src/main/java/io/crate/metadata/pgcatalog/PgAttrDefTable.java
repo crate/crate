@@ -22,10 +22,8 @@
 
 package io.crate.metadata.pgcatalog;
 
-import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
-import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
@@ -34,43 +32,34 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
-import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterState;
 
 import java.util.Collections;
 import java.util.Map;
+import static io.crate.types.DataTypes.STRING;
+import static io.crate.types.DataTypes.INTEGER;
+import static io.crate.execution.engine.collect.NestableCollectExpression.constant;
+
 
 public class PgAttrDefTable extends StaticTableInfo {
 
     public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_attrdef");
 
-    static class Columns {
-        static final ColumnIdent OID = new ColumnIdent("oid");
-        static final ColumnIdent ADRELID = new ColumnIdent("adrelid");
-        static final ColumnIdent ADNUM = new ColumnIdent("adnum");
-        static final ColumnIdent ADBIN = new ColumnIdent("adbin");
-        static final ColumnIdent ADSRC = new ColumnIdent("adsrc");
+    static Map<ColumnIdent, RowCollectExpressionFactory<Void>> expressions() {
+        return columnRegistrar().expressions();
     }
 
-    public static Map<ColumnIdent, RowCollectExpressionFactory<Void>> expressions() {
-        return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<Void>>builder()
-            .put(Columns.OID, () -> NestableCollectExpression.constant(0))
-            .put(Columns.ADRELID, () -> NestableCollectExpression.constant(0))
-            .put(Columns.ADNUM, () -> NestableCollectExpression.constant(0))
-            .put(Columns.ADBIN, () -> NestableCollectExpression.constant(null))
-            .put(Columns.ADSRC, () -> NestableCollectExpression.constant(null))
-            .build();
-
+    private static ColumnRegistrar<Void> columnRegistrar() {
+        return new ColumnRegistrar<Void>(IDENT, RowGranularity.DOC)
+            .register("oid", INTEGER, () -> constant(0))
+            .register("adrelid", INTEGER, () -> constant(0))
+            .register("adnum", INTEGER, () -> constant(0))
+            .register("adbin", STRING, () -> constant(null))
+            .register("adsrc", STRING, () -> constant(null));
     }
 
     PgAttrDefTable() {
-        super(IDENT, new ColumnRegistrar(IDENT, RowGranularity.DOC)
-                .register(Columns.OID.name(), DataTypes.INTEGER)
-                .register(Columns.ADRELID.name(), DataTypes.INTEGER)
-                .register(Columns.ADNUM.name(), DataTypes.INTEGER)
-                .register(Columns.ADBIN.name(), DataTypes.STRING)
-                .register(Columns.ADSRC.name(), DataTypes.STRING),
-            Collections.emptyList());
+        super(IDENT, columnRegistrar(), Collections.emptyList());
     }
 
     @Override

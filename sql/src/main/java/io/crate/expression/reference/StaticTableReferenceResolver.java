@@ -58,7 +58,6 @@ public class StaticTableReferenceResolver<R> implements ReferenceResolver<Nestab
         return getImplementationByRootTraversal(factories, columnIdent);
     }
 
-
     private static <R> NestableCollectExpression<R, ?> getImplementationByRootTraversal(
         Map<ColumnIdent, ? extends RowCollectExpressionFactory<R>> innerFactories,
         ColumnIdent columnIdent) {

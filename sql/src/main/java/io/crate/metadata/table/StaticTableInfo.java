@@ -27,12 +27,14 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 
 import javax.annotation.Nullable;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import static io.crate.common.collections.Lists2.map;
 
 public abstract class StaticTableInfo implements TableInfo {
 
@@ -57,6 +59,10 @@ public abstract class StaticTableInfo implements TableInfo {
 
     public StaticTableInfo(RelationName ident, ColumnRegistrar columnRegistrar, List<ColumnIdent> primaryKey) {
         this(ident, columnRegistrar.infos(), columnRegistrar.columns(), primaryKey);
+    }
+
+    public StaticTableInfo(RelationName ident, ColumnRegistrar columnRegistrar, String... primaryKey) {
+        this(ident, columnRegistrar.infos(), columnRegistrar.columns(), map(Arrays.asList(primaryKey), ColumnIdent::new));
     }
 
     @Nullable

@@ -22,10 +22,8 @@
 
 package io.crate.metadata.pgcatalog;
 
-import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
-import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
@@ -35,13 +33,17 @@ import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
 import io.crate.protocols.postgres.types.PGType;
-import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterState;
 
-import java.util.Collections;
 import java.util.Map;
 
+import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
+import static io.crate.execution.engine.collect.NestableCollectExpression.constant;
 import static io.crate.metadata.pgcatalog.OidHash.schemaOid;
+import static io.crate.types.DataTypes.STRING;
+import static io.crate.types.DataTypes.INTEGER;
+import static io.crate.types.DataTypes.BOOLEAN;
+import static io.crate.types.DataTypes.SHORT;
 
 public class PgTypeTable extends StaticTableInfo {
 
@@ -49,63 +51,29 @@ public class PgTypeTable extends StaticTableInfo {
 
     private static final Integer TYPE_NAMESPACE_OID = schemaOid(PgCatalogSchemaInfo.NAME);
 
-    static class Columns {
-        static final ColumnIdent OID = new ColumnIdent("oid");
-        static final ColumnIdent TYPNAME = new ColumnIdent("typname");
-        static final ColumnIdent TYPDELIM = new ColumnIdent("typdelim");
-        static final ColumnIdent TYPELEM = new ColumnIdent("typelem");
-        static final ColumnIdent TYPLEN = new ColumnIdent("typlen");
-        static final ColumnIdent TYPTYPE = new ColumnIdent("typtype");
-        static final ColumnIdent TYPBASETYPE = new ColumnIdent("typbasetype");
-        static final ColumnIdent TYPTYPMOD = new ColumnIdent("typtypmod");
-        static final ColumnIdent TYPNAMESPACE = new ColumnIdent("typnamespace");
-        static final ColumnIdent TYPARRAY = new ColumnIdent("typarray");
-        static final ColumnIdent TYPNOTNULL = new ColumnIdent("typnotnull");
-    }
-
     private static final String TYPTYPE = "b";
 
-    public static Map<ColumnIdent, RowCollectExpressionFactory<PGType>> expressions() {
-        return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<PGType>>builder()
-            .put(Columns.OID,
-                () -> NestableCollectExpression.forFunction(PGType::oid))
-            .put(Columns.TYPNAME,
-                () -> NestableCollectExpression.forFunction(PGType::typName))
-            .put(Columns.TYPDELIM,
-                () -> NestableCollectExpression.forFunction(PGType::typDelim))
-            .put(Columns.TYPELEM,
-                () -> NestableCollectExpression.forFunction(PGType::typElem))
-            .put(Columns.TYPLEN,
-                () -> NestableCollectExpression.forFunction(PGType::typeLen))
-            .put(Columns.TYPTYPE,
-                () -> NestableCollectExpression.constant(TYPTYPE))
-            .put(Columns.TYPBASETYPE,
-                () -> NestableCollectExpression.constant(0))
-            .put(Columns.TYPTYPMOD,
-                () -> NestableCollectExpression.constant(-1))
-            .put(Columns.TYPNAMESPACE,
-                () -> NestableCollectExpression.constant(TYPE_NAMESPACE_OID))
-            .put(Columns.TYPARRAY,
-                () -> NestableCollectExpression.forFunction(PGType::typArray))
-            .put(Columns.TYPNOTNULL,
-                () -> NestableCollectExpression.constant(false))
-            .build();
+    static Map<ColumnIdent, RowCollectExpressionFactory<PGType>> expressions() {
+        return columnRegistrar().expressions();
+    }
+
+    private static ColumnRegistrar<PGType> columnRegistrar() {
+        return new ColumnRegistrar<PGType>(IDENT, RowGranularity.DOC)
+            .register("oid", INTEGER, () -> forFunction(PGType::oid))
+            .register("typname", STRING, () -> forFunction(PGType::typName))
+            .register("typdelim", STRING, () -> forFunction(PGType::typDelim))
+            .register("typelem", INTEGER, () -> forFunction(PGType::typElem))
+            .register("typlen", SHORT, () -> forFunction(PGType::typeLen))
+            .register("typtype", STRING, () -> constant(TYPTYPE))
+            .register("typbasetype", INTEGER, () -> constant(0))
+            .register("typtypmod", INTEGER, () -> constant(-1))
+            .register("typnamespace", INTEGER, () -> constant(TYPE_NAMESPACE_OID))
+            .register("typarray", INTEGER, () -> forFunction(PGType::typArray))
+            .register("typnotnull", BOOLEAN, () -> constant(false));
     }
 
     PgTypeTable() {
-        super(IDENT, new ColumnRegistrar(IDENT, RowGranularity.DOC)
-                .register(Columns.OID.name(), DataTypes.INTEGER)
-                .register(Columns.TYPNAME.name(), DataTypes.STRING)
-                .register(Columns.TYPDELIM.name(), DataTypes.STRING)
-                .register(Columns.TYPELEM.name(), DataTypes.INTEGER)
-                .register(Columns.TYPLEN.name(), DataTypes.SHORT)
-                .register(Columns.TYPTYPE.name(), DataTypes.STRING)
-                .register(Columns.TYPBASETYPE.name(), DataTypes.INTEGER)
-                .register(Columns.TYPTYPMOD.name(), DataTypes.INTEGER)
-                .register(Columns.TYPNAMESPACE.name(), DataTypes.INTEGER)
-                .register(Columns.TYPARRAY.name(), DataTypes.INTEGER)
-                .register(Columns.TYPNOTNULL.name(), DataTypes.BOOLEAN),
-            Collections.emptyList());
+        super(IDENT, columnRegistrar());
     }
 
     @Override

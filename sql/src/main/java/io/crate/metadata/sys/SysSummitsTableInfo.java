@@ -22,11 +22,8 @@
 
 package io.crate.metadata.sys;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
-import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
@@ -36,64 +33,39 @@ import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
 import io.crate.execution.engine.collect.files.SummitsContext;
-import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterState;
 
-import java.util.List;
 import java.util.Map;
+
+import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
+import static io.crate.types.DataTypes.STRING;
+import static io.crate.types.DataTypes.INTEGER;
+import static io.crate.types.DataTypes.GEO_POINT;
 
 public class SysSummitsTableInfo extends StaticTableInfo {
 
     public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "summits");
-    private static final List<ColumnIdent> PRIMARY_KEYS = ImmutableList.of(Columns.MOUNTAIN);
     private static final RowGranularity GRANULARITY = RowGranularity.DOC;
 
-    public static class Columns {
-        static final ColumnIdent MOUNTAIN = new ColumnIdent("mountain");
-        static final ColumnIdent HEIGHT = new ColumnIdent("height");
-        static final ColumnIdent PROMINENCE = new ColumnIdent("prominence");
-        static final ColumnIdent COORDINATES = new ColumnIdent("coordinates");
-        static final ColumnIdent RANGE = new ColumnIdent("range");
-        static final ColumnIdent CLASSIFICATION = new ColumnIdent("classification");
-        static final ColumnIdent REGION = new ColumnIdent("region");
-        static final ColumnIdent COUNTRY = new ColumnIdent("country");
-        static final ColumnIdent FIRST_ASCENT = new ColumnIdent("first_ascent");
-    }
-
     public static Map<ColumnIdent, RowCollectExpressionFactory<SummitsContext>> expressions() {
-        return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<SummitsContext>>builder()
-            .put(SysSummitsTableInfo.Columns.MOUNTAIN,
-                () -> NestableCollectExpression.forFunction(SummitsContext::mountain))
-            .put(SysSummitsTableInfo.Columns.HEIGHT,
-                () -> NestableCollectExpression.forFunction(SummitsContext::height))
-            .put(SysSummitsTableInfo.Columns.PROMINENCE,
-                () -> NestableCollectExpression.forFunction(SummitsContext::prominence))
-            .put(SysSummitsTableInfo.Columns.COORDINATES,
-                () -> NestableCollectExpression.forFunction(SummitsContext::coordinates))
-            .put(SysSummitsTableInfo.Columns.RANGE,
-                () -> NestableCollectExpression.forFunction(SummitsContext::range))
-            .put(SysSummitsTableInfo.Columns.CLASSIFICATION,
-                () -> NestableCollectExpression.forFunction(SummitsContext::classification))
-            .put(SysSummitsTableInfo.Columns.REGION,
-                () -> NestableCollectExpression.forFunction(SummitsContext::region))
-            .put(SysSummitsTableInfo.Columns.COUNTRY,
-                () -> NestableCollectExpression.forFunction(SummitsContext::country))
-            .put(SysSummitsTableInfo.Columns.FIRST_ASCENT,
-                () -> NestableCollectExpression.forFunction(SummitsContext::firstAscent))
-            .build();
+        return columnRegistrar().expressions();
     }
 
     public SysSummitsTableInfo() {
-        super(IDENT, new ColumnRegistrar(IDENT, GRANULARITY)
-            .register(Columns.MOUNTAIN, DataTypes.STRING)
-            .register(Columns.HEIGHT, DataTypes.INTEGER)
-            .register(Columns.PROMINENCE, DataTypes.INTEGER)
-            .register(Columns.COORDINATES, DataTypes.GEO_POINT)
-            .register(Columns.RANGE, DataTypes.STRING)
-            .register(Columns.CLASSIFICATION, DataTypes.STRING)
-            .register(Columns.REGION, DataTypes.STRING)
-            .register(Columns.COUNTRY, DataTypes.STRING)
-            .register(Columns.FIRST_ASCENT, DataTypes.INTEGER), PRIMARY_KEYS);
+        super(IDENT, columnRegistrar(), "mountain");
+    }
+
+    private static ColumnRegistrar<SummitsContext> columnRegistrar() {
+        return new ColumnRegistrar<SummitsContext>(IDENT, GRANULARITY)
+            .register("mountain", STRING, () -> forFunction(SummitsContext::mountain))
+            .register("height", INTEGER, () -> forFunction(SummitsContext::height))
+            .register("prominence", INTEGER, () -> forFunction(SummitsContext::prominence))
+            .register("coordinates", GEO_POINT, () -> forFunction(SummitsContext::coordinates))
+            .register("range", STRING, () -> forFunction(SummitsContext::range))
+            .register("classification", STRING, () -> forFunction(SummitsContext::classification))
+            .register("region", STRING, () -> forFunction(SummitsContext::region))
+            .register("country", STRING, () -> forFunction(SummitsContext::country))
+            .register("first_ascent", INTEGER, () -> forFunction(SummitsContext::firstAscent));
     }
 
     @Override

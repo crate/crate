@@ -21,11 +21,8 @@
 
 package io.crate.metadata.sys;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
-import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.reference.sys.check.SysCheck;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
@@ -37,40 +34,30 @@ import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterState;
+import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
+
+import java.util.Map;
 
 public class SysChecksTableInfo extends StaticTableInfo {
 
     public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "checks");
-    private static final ImmutableList<ColumnIdent> PRIMARY_KEYS = ImmutableList.of(Columns.ID);
     private static final RowGranularity GRANULARITY = RowGranularity.DOC;
 
-    public static class Columns {
-        public static final ColumnIdent ID = new ColumnIdent("id");
-        static final ColumnIdent SEVERITY = new ColumnIdent("severity");
-        public static final ColumnIdent DESCRIPTION = new ColumnIdent("description");
-        static final ColumnIdent PASSED = new ColumnIdent("passed");
+
+    public static Map<ColumnIdent, RowCollectExpressionFactory<SysCheck>> expressions() {
+        return columnRegistrar().expressions();
     }
 
-    public static ImmutableMap<ColumnIdent, RowCollectExpressionFactory<SysCheck>> expressions() {
-        return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<SysCheck>>builder()
-            .put(SysChecksTableInfo.Columns.ID,
-                () -> NestableCollectExpression.forFunction(SysCheck::id))
-            .put(SysChecksTableInfo.Columns.DESCRIPTION,
-                () -> NestableCollectExpression.forFunction(SysCheck::description))
-            .put(SysChecksTableInfo.Columns.SEVERITY,
-                () -> NestableCollectExpression.forFunction((SysCheck r) -> r.severity().value()))
-            .put(SysChecksTableInfo.Columns.PASSED,
-                () -> NestableCollectExpression.forFunction(SysCheck::isValid))
-            .build();
+    public static ColumnRegistrar<SysCheck> columnRegistrar() {
+        return new ColumnRegistrar<SysCheck>(IDENT, GRANULARITY)
+            .register("id", DataTypes.INTEGER, () -> forFunction(SysCheck::id))
+            .register("severity", DataTypes.INTEGER, () -> forFunction((SysCheck r) -> r.severity().value()))
+            .register("description", DataTypes.STRING, () -> forFunction(SysCheck::description))
+            .register("passed", DataTypes.BOOLEAN, () -> forFunction(SysCheck::isValid));
     }
 
     SysChecksTableInfo() {
-        super(IDENT, new ColumnRegistrar(IDENT, GRANULARITY)
-                .register(Columns.ID, DataTypes.INTEGER)
-                .register(Columns.SEVERITY, DataTypes.INTEGER)
-                .register(Columns.DESCRIPTION, DataTypes.STRING)
-                .register(Columns.PASSED, DataTypes.BOOLEAN),
-            PRIMARY_KEYS);
+        super(IDENT, columnRegistrar(),"id");
     }
 
     @Override

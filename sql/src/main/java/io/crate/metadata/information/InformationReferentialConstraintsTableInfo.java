@@ -21,14 +21,14 @@
 
 package io.crate.metadata.information;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.types.DataTypes;
+
+import java.util.Map;
 
 import static io.crate.execution.engine.collect.NestableCollectExpression.constant;
 
@@ -37,51 +37,24 @@ public class InformationReferentialConstraintsTableInfo extends InformationTable
     public static final String NAME = "referential_constraints";
     public static final RelationName IDENT = new RelationName(InformationSchemaInfo.NAME, NAME);
 
-    public static class Columns {
-        static final ColumnIdent CONSTRAINT_CATALOG = new ColumnIdent("constraint_catalog");
-        static final ColumnIdent CONSTRAINT_SCHEMA = new ColumnIdent("constraint_schema");
-        static final ColumnIdent CONSTRAINT_NAME = new ColumnIdent("constraint_name");
-        static final ColumnIdent UNIQUE_CONSTRAINT_CATALOG = new ColumnIdent("unique_constraint_catalog");
-        static final ColumnIdent UNIQUE_CONSTRAINT_SCHEMA = new ColumnIdent("unique_constraint_schema");
-        static final ColumnIdent UNIQUE_CONSTRAINT_NAME = new ColumnIdent("unique_constraint_name");
-        static final ColumnIdent MATCH_OPTION = new ColumnIdent("match_option");
-        static final ColumnIdent UPDATE_RULE = new ColumnIdent("update_rule");
-        static final ColumnIdent DELETE_RULE = new ColumnIdent("delete_rule");
+    private static ColumnRegistrar<Void> columnRegistrar() {
+        return new ColumnRegistrar<Void>(IDENT, RowGranularity.DOC)
+            .register("constraint_catalog", DataTypes.STRING, () -> constant(null))
+            .register("constraint_schema", DataTypes.STRING, () -> constant(null))
+            .register("constraint_name", DataTypes.STRING, () -> constant(null))
+            .register("unique_constraint_catalog", DataTypes.STRING, () -> constant(null))
+            .register("unique_constraint_schema", DataTypes.STRING, () -> constant(null))
+            .register("unique_constraint_name", DataTypes.STRING, () -> constant(null))
+            .register("match_option", DataTypes.STRING, () -> constant(null))
+            .register("update_rule", DataTypes.STRING, () -> constant(null))
+            .register("delete_rule", DataTypes.STRING, () -> constant(null));
     }
 
-    private static ColumnRegistrar columnRegistrar() {
-        return new ColumnRegistrar(IDENT, RowGranularity.DOC)
-            .register(Columns.CONSTRAINT_CATALOG, DataTypes.STRING)
-            .register(Columns.CONSTRAINT_SCHEMA, DataTypes.STRING)
-            .register(Columns.CONSTRAINT_NAME, DataTypes.STRING)
-            .register(Columns.UNIQUE_CONSTRAINT_CATALOG, DataTypes.STRING)
-            .register(Columns.UNIQUE_CONSTRAINT_SCHEMA, DataTypes.STRING)
-            .register(Columns.UNIQUE_CONSTRAINT_NAME, DataTypes.STRING)
-            .register(Columns.MATCH_OPTION, DataTypes.STRING)
-            .register(Columns.UPDATE_RULE, DataTypes.STRING)
-            .register(Columns.DELETE_RULE, DataTypes.STRING);
-
-    }
-
-    public static ImmutableMap<ColumnIdent, RowCollectExpressionFactory<Void>> expressions() {
-        return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<Void>>builder()
-            .put(Columns.CONSTRAINT_CATALOG, () -> constant(null))
-            .put(Columns.CONSTRAINT_SCHEMA, () -> constant(null))
-            .put(Columns.CONSTRAINT_NAME, () -> constant(null))
-            .put(Columns.UNIQUE_CONSTRAINT_CATALOG, () -> constant(null))
-            .put(Columns.UNIQUE_CONSTRAINT_SCHEMA, () -> constant(null))
-            .put(Columns.UNIQUE_CONSTRAINT_NAME, () -> constant(null))
-            .put(Columns.MATCH_OPTION, () -> constant(null))
-            .put(Columns.UPDATE_RULE, () -> constant(null))
-            .put(Columns.DELETE_RULE, () -> constant(null))
-            .build();
+    static Map<ColumnIdent, RowCollectExpressionFactory<Void>> expressions() {
+        return columnRegistrar().expressions();
     }
 
     InformationReferentialConstraintsTableInfo() {
-        super(
-            IDENT,
-            columnRegistrar(),
-            ImmutableList.of(Columns.CONSTRAINT_CATALOG, Columns.CONSTRAINT_SCHEMA, Columns.CONSTRAINT_NAME)
-        );
+        super(IDENT, columnRegistrar(), "constraint_catalog", "constraint_schema", "constraint_name");
     }
 }

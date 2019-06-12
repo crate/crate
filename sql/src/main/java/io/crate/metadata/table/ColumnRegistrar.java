@@ -29,20 +29,23 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
+import org.elasticsearch.common.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class ColumnRegistrar {
+public class ColumnRegistrar<T> {
     private final ImmutableSortedMap.Builder<ColumnIdent, Reference> infosBuilder;
     private final ImmutableSortedSet.Builder<Reference> columnsBuilder;
+    private final ImmutableSortedMap.Builder<ColumnIdent, RowCollectExpressionFactory<T>> expressionBuilder;
 
     private final RelationName relationName;
     private final RowGranularity rowGranularity;
@@ -54,17 +57,44 @@ public class ColumnRegistrar {
         this.rowGranularity = rowGranularity;
         this.infosBuilder = ImmutableSortedMap.naturalOrder();
         this.columnsBuilder = ImmutableSortedSet.orderedBy(Reference.COMPARE_BY_COLUMN_IDENT);
+        this.expressionBuilder = ImmutableSortedMap.naturalOrder();
     }
 
-    public ColumnRegistrar register(String column, DataType type) {
-        return register(new ColumnIdent(column), type);
+    public ColumnRegistrar<T> register(String column, DataType type) {
+        return register(column, type, true, null);
     }
 
-    public ColumnRegistrar register(ColumnIdent column, DataType type) {
-        return register(column, type, true);
+    public ColumnRegistrar<T> register(ColumnIdent column, DataType type, boolean nullable) {
+        return register(column, type, nullable, null);
     }
 
-    public ColumnRegistrar register(ColumnIdent column, DataType type, boolean nullable) {
+    public ColumnRegistrar<T> register(ColumnIdent column, DataType type) {
+        return register(column, type, true, null);
+    }
+
+    public <R> ColumnRegistrar<T> register(ColumnIdent column,
+                                           DataType<R> type,
+                                           @Nullable RowCollectExpressionFactory<T> expression) {
+        return register(column, type, true, expression);
+    }
+
+    public <R> ColumnRegistrar<T> register(String column,
+                                           DataType<R> type,
+                                           @Nullable RowCollectExpressionFactory<T> expression) {
+        return register(new ColumnIdent(column), type, true, expression);
+    }
+
+    public <R> ColumnRegistrar<T> register(String column,
+                                           DataType<R> type,
+                                           boolean nullable,
+                                           @Nullable RowCollectExpressionFactory<T> expression) {
+        return register(new ColumnIdent(column), type, nullable, expression);
+    }
+
+    public <R> ColumnRegistrar<T> register(ColumnIdent column,
+                                           DataType type,
+                                           boolean nullable,
+                                           @Nullable RowCollectExpressionFactory<T> expression) {
         Reference ref = new Reference(
             new ReferenceIdent(relationName, column),
             rowGranularity,
@@ -81,10 +111,14 @@ public class ColumnRegistrar {
         }
         infosBuilder.put(ref.column(), ref);
         registerPossibleObjectInnerTypes(column.name(), column.path(), type);
+
+        if (expression != null) {
+            expressionBuilder.put(column, expression);
+        }
         return this;
     }
 
-    private void registerPossibleObjectInnerTypes(String topLevelName, List<String> path, DataType dataType) {
+    private void registerPossibleObjectInnerTypes(String topLevelName, List<String> path, DataType<?> dataType) {
         if (DataTypes.isCollectionType(dataType)) {
             dataType = ((CollectionType) dataType).innerType();
         }
@@ -125,5 +159,9 @@ public class ColumnRegistrar {
 
     public Set<Reference> columns() {
         return columnsBuilder.build();
+    }
+
+    public Map<ColumnIdent, RowCollectExpressionFactory<T>> expressions() {
+        return expressionBuilder.build();
     }
 }
