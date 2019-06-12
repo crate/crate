@@ -301,7 +301,7 @@ public class Session implements AutoCloseable {
             }
         } catch (Throwable t) {
             jobsLogs.logPreExecutionFailure(UUID.randomUUID(), portal.getLastQuery(), SQLExceptions.messageOf(t), sessionContext.user());
-            throw SQLExceptions.createSQLActionException(t, sessionContext);
+            throw t;
         }
     }
 
@@ -342,12 +342,8 @@ public class Session implements AutoCloseable {
                 if (preparedStmt.isRelationInitialized()) {
                     analyzedStatement = preparedStmt.analyzedStatement();
                 } else {
-                    try {
-                        analyzedStatement = analyzer.unboundAnalyze(statement, sessionContext, preparedStmt.paramTypes());
-                        preparedStmt.analyzedStatement(analyzedStatement);
-                    } catch (Throwable t) {
-                        throw SQLExceptions.createSQLActionException(t, sessionContext);
-                    }
+                    analyzedStatement = analyzer.unboundAnalyze(statement, sessionContext, preparedStmt.paramTypes());
+                    preparedStmt.analyzedStatement(analyzedStatement);
                 }
                 if (analyzedStatement == null) {
                     // statement without result set -> return null for NoData msg
