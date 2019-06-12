@@ -21,16 +21,15 @@
 
 package io.crate.metadata.information;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.SchemaInfo;
-import io.crate.types.DataTypes;
+
+import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
+import static io.crate.types.DataTypes.STRING;
 
 import java.util.Map;
 
@@ -39,26 +38,16 @@ public class InformationSchemataTableInfo extends InformationTableInfo {
     public static final String NAME = "schemata";
     public static final RelationName IDENT = new RelationName(InformationSchemaInfo.NAME, NAME);
 
-    public static class Columns {
-        static final ColumnIdent SCHEMA_NAME = new ColumnIdent("schema_name");
+    private static ColumnRegistrar<SchemaInfo> columnRegistrar() {
+        return new ColumnRegistrar<SchemaInfo>(IDENT, RowGranularity.DOC)
+            .register("schema_name", STRING, () -> forFunction(SchemaInfo::name));
     }
 
-    public static Map<ColumnIdent, RowCollectExpressionFactory<SchemaInfo>> expressions() {
-        return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<SchemaInfo>>builder()
-            .put(Columns.SCHEMA_NAME,
-                () -> NestableCollectExpression.forFunction(SchemaInfo::name)).build();
-    }
-
-    private static ColumnRegistrar columnRegistrar() {
-        return new ColumnRegistrar(IDENT, RowGranularity.DOC)
-            .register(Columns.SCHEMA_NAME, DataTypes.STRING);
+    static Map<ColumnIdent, RowCollectExpressionFactory<SchemaInfo>> expressions() {
+        return columnRegistrar().expressions();
     }
 
     InformationSchemataTableInfo() {
-        super(
-            IDENT,
-            columnRegistrar(),
-            ImmutableList.of(Columns.SCHEMA_NAME)
-        );
+        super(IDENT, columnRegistrar(), "schema_name");
     }
 }

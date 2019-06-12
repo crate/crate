@@ -22,16 +22,16 @@
 
 package io.crate.metadata.information;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.execution.engine.collect.files.SqlFeatureContext;
 import io.crate.metadata.table.ColumnRegistrar;
-import io.crate.types.DataTypes;
+
+import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
+import static io.crate.types.DataTypes.STRING;
+import static io.crate.types.DataTypes.BOOLEAN;
 
 import java.util.Map;
 
@@ -41,53 +41,23 @@ public class InformationSqlFeaturesTableInfo extends InformationTableInfo {
     public static final String NAME = "sql_features";
     public static final RelationName IDENT = new RelationName(InformationSchemaInfo.NAME, NAME);
 
-    public static class Columns {
-        static final ColumnIdent FEATURE_ID = new ColumnIdent("feature_id");
-        static final ColumnIdent FEATURE_NAME = new ColumnIdent("feature_name");
-        static final ColumnIdent SUB_FEATURE_ID = new ColumnIdent("sub_feature_id");
-        static final ColumnIdent SUB_FEATURE_NAME = new ColumnIdent("sub_feature_name");
-        static final ColumnIdent IS_SUPPORTED = new ColumnIdent("is_supported");
-        static final ColumnIdent IS_VERIFIED_BY = new ColumnIdent("is_verified_by");
-        static final ColumnIdent COMMENTS = new ColumnIdent("comments");
+    private static ColumnRegistrar<SqlFeatureContext> columnRegistrar() {
+        return new ColumnRegistrar<SqlFeatureContext>(IDENT, RowGranularity.DOC)
+            .register("feature_id", STRING, () -> forFunction(SqlFeatureContext::getFeatureId))
+            .register("feature_name", STRING, () -> forFunction(SqlFeatureContext::getFeatureName))
+            .register("sub_feature_id", STRING, () -> forFunction(SqlFeatureContext::getSubFeatureId))
+            .register("sub_feature_name", STRING, () -> forFunction(SqlFeatureContext::getSubFeatureName))
+            .register("is_supported", BOOLEAN, () -> forFunction(SqlFeatureContext::isSupported))
+            .register("is_verified_by", STRING, () -> forFunction(SqlFeatureContext::getIsVerifiedBy))
+            .register("comments", STRING, () -> forFunction(SqlFeatureContext::getComments));
     }
 
-    private static ColumnRegistrar columnRegistrar() {
-        return new ColumnRegistrar(IDENT, RowGranularity.DOC)
-            .register(Columns.FEATURE_ID, DataTypes.STRING)
-            .register(Columns.FEATURE_NAME, DataTypes.STRING)
-            .register(Columns.SUB_FEATURE_ID, DataTypes.STRING)
-            .register(Columns.SUB_FEATURE_NAME, DataTypes.STRING)
-            .register(Columns.IS_SUPPORTED, DataTypes.BOOLEAN)
-            .register(Columns.IS_VERIFIED_BY, DataTypes.STRING)
-            .register(Columns.COMMENTS, DataTypes.STRING);
-    }
-
-    public static Map<ColumnIdent, RowCollectExpressionFactory<SqlFeatureContext>> expressions() {
-        return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<SqlFeatureContext>>builder()
-            .put(Columns.FEATURE_ID,
-                () -> NestableCollectExpression.forFunction(SqlFeatureContext::getFeatureId))
-            .put(Columns.FEATURE_NAME,
-                () -> NestableCollectExpression.forFunction(SqlFeatureContext::getFeatureName))
-            .put(Columns.SUB_FEATURE_ID,
-                () -> NestableCollectExpression.forFunction(SqlFeatureContext::getSubFeatureId))
-            .put(Columns.SUB_FEATURE_NAME,
-                () -> NestableCollectExpression.forFunction(SqlFeatureContext::getSubFeatureName))
-            .put(Columns.IS_SUPPORTED,
-                () -> NestableCollectExpression.forFunction(SqlFeatureContext::isSupported))
-            .put(Columns.IS_VERIFIED_BY,
-                () -> NestableCollectExpression.forFunction(SqlFeatureContext::getIsVerifiedBy))
-            .put(Columns.COMMENTS,
-                () -> NestableCollectExpression.forFunction(SqlFeatureContext::getComments))
-            .build();
+    static Map<ColumnIdent, RowCollectExpressionFactory<SqlFeatureContext>> expressions() {
+        return columnRegistrar().expressions();
     }
 
     InformationSqlFeaturesTableInfo() {
-        super(
-            IDENT,
-            columnRegistrar(),
-            ImmutableList.of(Columns.FEATURE_ID, Columns.FEATURE_NAME,
-                Columns.SUB_FEATURE_ID, Columns.SUB_FEATURE_NAME,
-                Columns.IS_SUPPORTED, Columns.IS_VERIFIED_BY)
-        );
+        super(IDENT, columnRegistrar(), "feature_id", "feature_name", "sub_feature_id", "sub_feature_name",
+              "is_supported", "is_verified_by");
     }
 }

@@ -87,7 +87,7 @@ public class SysAllocationsTableInfo extends StaticTableInfo {
             .put(Columns.EXPLANATION,
                 () -> NestableCollectExpression.forFunction(SysAllocation::explanation))
             .put(Columns.DECISIONS,
-                () -> new SysAllocationDecisionsExpression<Map<String, Object>>() {
+                () -> new SysAllocationDecisionsExpression<>() {
 
                     @Override
                     protected Map<String, Object> valueForItem(SysAllocation.SysAllocationNodeDecision input) {
