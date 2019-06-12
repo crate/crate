@@ -292,13 +292,13 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(session.portals.size(), is(2));
         assertThat(session.preparedStatements.size(), is(2));
-        assertThat(session.pendingExecutions.size(), is(1));
+        assertThat(session.deferredExecutions.size(), is(1));
 
         session.close();
 
         assertThat(session.portals.size(), is(0));
         assertThat(session.preparedStatements.size(), is(0));
-        assertThat(session.pendingExecutions.size(), is(0));
+        assertThat(session.deferredExecutions.size(), is(0));
     }
 
     @Test
@@ -353,6 +353,6 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(session.portals.size(), greaterThan(0));
         assertThat(session.preparedStatements.size(), is(1));
-        assertThat(session.preparedStatements.get("stmt").query(), is("DEALLOCATE test_prep_stmt;"));
+        assertThat(session.preparedStatements.get("stmt").rawStatement(), is("DEALLOCATE test_prep_stmt;"));
     }
 }

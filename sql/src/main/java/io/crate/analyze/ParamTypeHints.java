@@ -64,4 +64,9 @@ public class ParamTypeHints implements Function<ParameterExpression, Symbol> {
         }
         return new ParameterSymbol(input.index(), getType(input.index()));
     }
+
+    @Override
+    public String toString() {
+        return "ParamTypeHints{" + types + '}';
+    }
 }

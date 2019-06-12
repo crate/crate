@@ -297,6 +297,10 @@ class PostgresWireProtocol {
                     t = SQLExceptions.forWireTransmission(getAccessControl.apply(session.sessionContext()), t);
                 }
                 try {
+                    if (session != null) {
+                        AccessControl accessControl = getAccessControl.apply(session.sessionContext());
+                        t = SQLExceptions.forWireTransmission(accessControl, t);
+                    }
                     Messages.sendErrorResponse(channel, t);
                 } catch (Throwable ti) {
                     LOGGER.error("Error trying to send error to client: {}", t, ti);
@@ -589,7 +593,8 @@ class PostgresWireProtocol {
         if (fields == null) {
             Messages.sendNoData(channel);
         } else {
-            Messages.sendRowDescription(channel, fields, session.getResultFormatCodes(portalOrStatement));
+            var resultFormatCodes = type == 'P' ? session.getResultFormatCodes(portalOrStatement) : null;
+            Messages.sendRowDescription(channel, fields, resultFormatCodes);
         }
     }
 
@@ -638,7 +643,16 @@ class PostgresWireProtocol {
     private void handleSync(final Channel channel) {
         if (ignoreTillSync) {
             ignoreTillSync = false;
-            session.clearState();
+            // If an error happens all sub-sequent messages can be ignored until the client sends a sync message
+            // We need to discard any deferred executions to make sure that the *next* sync isn't executing
+            // something we had previously deferred.
+            // E.g. JDBC client:
+            //  1) `addBatch` -> success (results in bind+execute -> we defer execution)
+            //  2) `addBatch` -> failure (ignoreTillSync=true; we stop after bind, no execute, etc..)
+            //  3) `sync`     -> sendReadyForQuery (this if branch)
+            //  4) p, b, e    -> We've a new query deferred.
+            //  5) `sync`     -> We must execute the query from 4, but not 1)
+            session.resetDeferredExecutions();
             Messages.sendReadyForQuery(channel);
             return;
         }
@@ -709,7 +723,6 @@ class PostgresWireProtocol {
             }
             return session.sync();
         } catch (Throwable t) {
-            session.clearState();
             Messages.sendErrorResponse(channel, t);
             result.completeExceptionally(t);
             return result;
