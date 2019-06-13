@@ -50,7 +50,7 @@ public class S3RepositoryTests extends ESTestCase {
 
     private static class DummyS3Service extends S3Service {
         @Override
-        public AmazonS3Reference client(String repositoryMetaData) {
+        public AmazonS3Reference client(RepositoryMetaData metadata) {
             return new AmazonS3Reference(new DummyS3Client());
         }
 

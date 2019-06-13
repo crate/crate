@@ -102,8 +102,6 @@ public class S3Repository extends BlobStoreRepository {
 
     private final String cannedACL;
 
-    private final AmazonS3Reference reference;
-
     /**
      * Constructs an s3 backed repository
      */
@@ -141,9 +139,6 @@ public class S3Repository extends BlobStoreRepository {
         this.storageClass = STORAGE_CLASS_SETTING.get(metadata.settings());
         this.cannedACL = CANNED_ACL_SETTING.get(metadata.settings());
 
-        final S3ClientSettings s3ClientSettings = S3ClientSettings.getClientSettings(metadata.settings());
-        this.reference = new AmazonS3Reference(service.buildClient(s3ClientSettings));
-
         LOGGER.debug(
                 "using bucket [{}], chunk_size [{}], server_side_encryption [{}], buffer_size [{}], cannedACL [{}], storageClass [{}]",
                 bucket,
@@ -156,22 +151,7 @@ public class S3Repository extends BlobStoreRepository {
 
     @Override
     protected S3BlobStore createBlobStore() {
-        // TODO remove support for multiple client
-        String clientName = "default";
-        if (reference != null) {
-            return new S3BlobStore(service, clientName, bucket, serverSideEncryption, bufferSize, cannedACL, storageClass) {
-                @Override
-                public AmazonS3Reference clientReference() {
-                    if (reference.tryIncRef()) {
-                        return reference;
-                    } else {
-                        throw new IllegalStateException("S3 client is closed");
-                    }
-                }
-            };
-        } else {
-            return new S3BlobStore(service, clientName, bucket, serverSideEncryption, bufferSize, cannedACL, storageClass);
-        }
+        return new S3BlobStore(service, bucket, serverSideEncryption, bufferSize, cannedACL, storageClass, metadata);
     }
 
     // only use for testing
@@ -198,10 +178,6 @@ public class S3Repository extends BlobStoreRepository {
 
     @Override
     protected void doClose() {
-        if (reference != null) {
-            reference.decRef();
-        }
         super.doClose();
     }
-
 }

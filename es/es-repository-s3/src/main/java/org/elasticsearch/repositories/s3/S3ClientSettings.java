@@ -23,9 +23,12 @@ import com.amazonaws.Protocol;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.auth.BasicSessionCredentials;
+import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.settings.SecureString;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
+
+import java.util.Objects;
 
 import static org.elasticsearch.repositories.s3.S3RepositorySettings.ACCESS_KEY_SETTING;
 import static org.elasticsearch.repositories.s3.S3RepositorySettings.ENDPOINT_SETTING;
@@ -154,4 +157,33 @@ final class S3ClientSettings {
         return clientSetting.get(settings);
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        S3ClientSettings that = (S3ClientSettings) o;
+        return proxyPort == that.proxyPort &&
+               readTimeoutMillis == that.readTimeoutMillis &&
+               maxRetries == that.maxRetries &&
+               throttleRetries == that.throttleRetries &&
+               compareCredentials(credentials, that.credentials) &&
+               Objects.equals(endpoint, that.endpoint) &&
+               protocol == that.protocol &&
+               Objects.equals(proxyHost, that.proxyHost) &&
+               Objects.equals(proxyUsername, that.proxyUsername) &&
+               Objects.equals(proxyPassword, that.proxyPassword);
+    }
+
+    private boolean compareCredentials(@Nullable AWSCredentials first, @Nullable AWSCredentials second) {
+        if (first != null && second != null) {
+            return first.getAWSAccessKeyId().equals(second.getAWSAccessKeyId()) &&
+                   first.getAWSSecretKey().equals(second.getAWSSecretKey());
+        } else {
+            return first == second;
+        }
+    }
 }
