@@ -33,11 +33,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.collect.MapBuilder;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
 
 import java.io.Closeable;
-import java.io.IOException;
 import java.util.Map;
 
 import static java.util.Collections.emptyMap;
@@ -48,23 +45,6 @@ class S3Service implements Closeable {
 
     private volatile Map<String, AmazonS3Reference> clientsCache = emptyMap();
     private volatile Map<String, S3ClientSettings> clientsSettings = emptyMap();
-
-    /**
-     * Refreshes the settings for the AmazonS3 clients and clears the cache of
-     * existing clients. New clients will be build using these new settings. Old
-     * clients are usable until released. On release they will be destroyed instead
-     * to being returned to the cache.
-     */
-    public synchronized Map<String, S3ClientSettings> refreshAndClearCache(Map<String, S3ClientSettings> clientsSettings) {
-        // shutdown all unused clients
-        // others will shutdown on their respective release
-        releaseCachedClients();
-        final Map<String, S3ClientSettings> prevSettings = this.clientsSettings;
-        this.clientsSettings = MapBuilder.newMapBuilder(clientsSettings).immutableMap();
-        assert this.clientsSettings.containsKey("default") : "always at least have 'default'";
-        // clients are built lazily by {@link client(String)}
-        return prevSettings;
-    }
 
     /**
      * Attempts to retrieve a client by name from the cache. If the client does not
@@ -150,14 +130,6 @@ class S3Service implements Closeable {
         }
     }
 
-    /** Returns the value for a given setting from the repository, or returns the fallback value. */
-    private static <T> T getRepoValue(Settings repositorySettings, Setting<T> repositorySetting, T fallback) {
-        if (repositorySetting.exists(repositorySettings)) {
-            return repositorySetting.get(repositorySettings);
-        }
-        return fallback;
-    }
-
     protected synchronized void releaseCachedClients() {
         // the clients will shutdown when they will not be used anymore
         for (final AmazonS3Reference clientReference : clientsCache.values()) {
@@ -171,8 +143,7 @@ class S3Service implements Closeable {
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
         releaseCachedClients();
     }
-
 }
