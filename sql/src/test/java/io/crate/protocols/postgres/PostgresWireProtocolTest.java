@@ -22,6 +22,7 @@
 
 package io.crate.protocols.postgres;
 
+import io.crate.action.sql.DescribeResult;
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
 import io.crate.action.sql.SessionContext;
@@ -482,7 +483,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         SessionContext sessionContext = new SessionContext(Set.of(), User.CRATE_USER);
         when(session.sessionContext()).thenReturn(sessionContext);
         when(sqlOperations.createSession(any(String.class), any(User.class))).thenReturn(session);
-        Session.DescribeResult describeResult = mock(Session.DescribeResult.class);
+        DescribeResult describeResult = mock(DescribeResult.class);
         when(describeResult.getFields()).thenReturn(null);
         when(session.describe(anyChar(), anyString())).thenReturn(describeResult);
 
