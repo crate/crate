@@ -17,6 +17,9 @@ def main():
             .replace('diff --git a/server/', 'diff --git a/es/es-server/')
             .replace('--- a/server/', '--- a/es/es-server/')
             .replace('+++ b/server/', '+++ b/es/es-server/')
+            .replace('diff --git a/test/framework', 'diff --git a/es/es-testing/')
+            .replace('--- a/test/framework', '--- a/es/es-testing/')
+            .replace('+++ b/test/framework', '+++ b/es/es-testing/')
         )
 
 
