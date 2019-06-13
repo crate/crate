@@ -23,7 +23,6 @@
 package io.crate.action.sql;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
 import io.crate.analyze.AnalyzedBegin;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.Analyzer;
@@ -35,11 +34,6 @@ import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.engine.collect.stats.JobsLogs;
-import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
-import io.crate.expression.symbol.Field;
-import io.crate.expression.symbol.ParameterSymbol;
-import io.crate.expression.symbol.SelectSymbol;
-import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.RoutingProvider;
 import io.crate.planner.DependencyCarrier;
@@ -61,20 +55,15 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.common.Randomness;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
@@ -142,7 +131,7 @@ public class Session implements AutoCloseable {
         this.isReadOnly = isReadOnly;
         this.executor = executor;
         this.sessionContext = sessionContext;
-        this.parameterTypeExtractor = new Session.ParameterTypeExtractor();
+        this.parameterTypeExtractor = new ParameterTypeExtractor();
     }
 
     /**
@@ -489,82 +478,4 @@ public class Session implements AutoCloseable {
         pendingExecutions.clear();
     }
 
-    static class ParameterTypeExtractor extends DefaultTraversalSymbolVisitor<Void, Void> implements Consumer<Symbol> {
-
-        private final SortedSet<ParameterSymbol> parameterSymbols;
-
-        ParameterTypeExtractor() {
-            this.parameterSymbols = new TreeSet<>(Comparator.comparing(ParameterSymbol::index));
-        }
-
-        @Override
-        public void accept(Symbol symbol) {
-            process(symbol, null);
-        }
-
-        @Override
-        public Void visitSelectSymbol(SelectSymbol selectSymbol, Void context) {
-            Relations.traverseDeepSymbols(selectSymbol.relation(), this);
-            return null;
-        }
-
-        @Override
-        public Void visitParameterSymbol(ParameterSymbol parameterSymbol, Void context) {
-            parameterSymbols.add(parameterSymbol);
-            return null;
-        }
-
-        /**
-         * Gets the parameters from the AnalyzedStatement, if possible.
-         * @param consumer A consumer which takes a symbolVisitor;
-         *                 This symbolVisitor should visit all {@link ParameterSymbol}s in a {@link AnalyzedStatement}
-         * @return A sorted array with the parameters ($1 comes first, then $2, etc.) or null if
-         *         parameters can't be obtained.
-         */
-        DataType[] getParameterTypes(@Nonnull Consumer<Consumer<? super Symbol>> consumer) {
-            consumer.accept(this);
-            Preconditions.checkState(parameterSymbols.isEmpty() ||
-                                     parameterSymbols.last().index() == parameterSymbols.size() - 1,
-                "The assembled list of ParameterSymbols is invalid. Missing parameters.");
-            DataType[] dataTypes = parameterSymbols.stream()
-                .map(ParameterSymbol::getBoundType)
-                .toArray(DataType[]::new);
-            parameterSymbols.clear();
-            return dataTypes;
-        }
-    }
-
-    /**
-     * Encapsulates the result of a DescribePortal or DescribeParameter message.
-     */
-    public static class DescribeResult {
-
-        @Nullable
-        private final List<Field> fields;
-        @Nullable
-        private DataType[] parameters;
-
-        DescribeResult(@Nullable List<Field> fields) {
-            this.fields = fields;
-        }
-
-        DescribeResult(@Nullable List<Field> fields, @Nullable DataType[] parameters) {
-            this.fields = fields;
-            this.parameters = parameters;
-        }
-
-        @Nullable
-        public List<Field> getFields() {
-            return fields;
-        }
-
-        /**
-         * Returns the described parameters in sorted order ($1, $2, etc.)
-         * @return An array containing the parameters, or null if they could not be obtained.
-         */
-        @Nullable
-        public DataType[] getParameters() {
-            return parameters;
-        }
-    }
 }

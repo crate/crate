@@ -24,6 +24,7 @@ package io.crate.protocols.postgres;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.Version;
+import io.crate.action.sql.DescribeResult;
 import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
@@ -571,7 +572,7 @@ class PostgresWireProtocol {
     private void handleDescribeMessage(ByteBuf buffer, Channel channel) {
         byte type = buffer.readByte();
         String portalOrStatement = readCString(buffer);
-        Session.DescribeResult describeResult = session.describe((char) type, portalOrStatement);
+        DescribeResult describeResult = session.describe((char) type, portalOrStatement);
         Collection<Field> fields = describeResult.getFields();
         DataType[] parameterTypes = describeResult.getParameters();
         if (parameterTypes != null) {
@@ -670,7 +671,7 @@ class PostgresWireProtocol {
         try {
             session.parse("", query, Collections.emptyList());
             session.bind("", "", Collections.emptyList(), null);
-            Session.DescribeResult describeResult = session.describe('P', "");
+            DescribeResult describeResult = session.describe('P', "");
             List<Field> fields = describeResult.getFields();
             if (fields == null) {
                 RowCountReceiver rowCountReceiver = new RowCountReceiver(query, channel, session.sessionContext());
