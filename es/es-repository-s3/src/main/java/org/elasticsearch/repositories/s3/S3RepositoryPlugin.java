@@ -29,7 +29,6 @@ import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.plugins.RepositoryPlugin;
 import org.elasticsearch.repositories.Repository;
 
-import java.io.IOException;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.Collections;
@@ -65,10 +64,9 @@ public class S3RepositoryPlugin extends Plugin implements RepositoryPlugin {
         this.service = new S3Service();
     }
 
-    // proxy method for testing
-    protected S3Repository createRepository(final RepositoryMetaData metadata,
-                                            final Settings settings,
-                                            final NamedXContentRegistry registry) {
+    private S3Repository createRepository(final RepositoryMetaData metadata,
+                                          final Settings settings,
+                                          final NamedXContentRegistry registry) {
         return new S3Repository(metadata, settings, registry, service);
     }
 
@@ -83,7 +81,7 @@ public class S3RepositoryPlugin extends Plugin implements RepositoryPlugin {
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
         service.close();
     }
 }

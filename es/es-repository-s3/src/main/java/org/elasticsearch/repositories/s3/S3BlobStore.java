@@ -27,6 +27,7 @@ import com.amazonaws.services.s3.model.HeadBucketRequest;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.services.s3.model.StorageClass;
+import org.elasticsearch.cluster.metadata.RepositoryMetaData;
 import org.elasticsearch.common.blobstore.BlobContainer;
 import org.elasticsearch.common.blobstore.BlobPath;
 import org.elasticsearch.common.blobstore.BlobStore;
@@ -40,33 +41,27 @@ import java.util.Locale;
 class S3BlobStore implements BlobStore {
 
     private final S3Service service;
-
-    private final String clientName;
-
     private final String bucket;
-
     private final ByteSizeValue bufferSize;
-
     private final boolean serverSideEncryption;
-
     private final CannedAccessControlList cannedACL;
-
     private final StorageClass storageClass;
+    private final RepositoryMetaData metadata;
 
     S3BlobStore(S3Service service,
-                String clientName,
                 String bucket,
                 boolean serverSideEncryption,
                 ByteSizeValue bufferSize,
                 String cannedACL,
-                String storageClass) {
+                String storageClass,
+                RepositoryMetaData metadata) {
         this.service = service;
-        this.clientName = clientName;
         this.bucket = bucket;
         this.serverSideEncryption = serverSideEncryption;
         this.bufferSize = bufferSize;
         this.cannedACL = initCannedACL(cannedACL);
         this.storageClass = initStorageClass(storageClass);
+        this.metadata = metadata;
 
         // Note: the method client.doesBucketExist() may return 'true' is the bucket exists
         // but we don't have access to it (ie, 403 Forbidden response code)
@@ -96,7 +91,7 @@ class S3BlobStore implements BlobStore {
     }
 
     public AmazonS3Reference clientReference() {
-        return service.client(clientName);
+        return service.client(metadata);
     }
 
     public String bucket() {
