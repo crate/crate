@@ -26,14 +26,62 @@ import com.amazonaws.ClientConfiguration;
 import com.amazonaws.Protocol;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.internal.StaticCredentialsProvider;
+import org.elasticsearch.cluster.metadata.RepositoryMetaData;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
+import org.junit.Before;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 
 public class AwsS3ServiceImplTests extends ESTestCase {
+
+    private S3Service service;
+
+    @Before
+    public void beforeTest() {
+        service = new S3Service();
+    }
+
+    public void afterTest() {
+        service.close();
+        service = null;
+    }
+
+    @Test
+    public void testGetClientForSameSettingsReturnsCachedClient() {
+        RepositoryMetaData metadata = new RepositoryMetaData("", "", Settings.EMPTY);
+
+        var clientRef = service.client(metadata);
+        assertThat(clientRef.refCount(), is(1));
+        var newClientRef = service.client(metadata);
+        assertThat(newClientRef.refCount(), is(2));
+
+        assertThat(clientRef.client(), is(newClientRef.client()));
+
+        clientRef.client().shutdown();
+        newClientRef.client().shutdown();
+    }
+
+    @Test
+    public void testGetClientForUpdatedSettingsReturnsNewClient() {
+        S3Service service = new S3Service();
+        RepositoryMetaData metadata = new RepositoryMetaData("", "", Settings.EMPTY);
+        RepositoryMetaData newMetadata = new RepositoryMetaData(
+            "", "", Settings.builder().put("max_retries", 10).build());
+
+        AmazonS3Reference clientRef = service.client(metadata);
+        assertThat(clientRef.refCount(), is(1));
+        AmazonS3Reference newClientRef = service.client(newMetadata);
+        assertThat(newClientRef.refCount(), is(1));
+
+        assertThat(clientRef.client(), is(not(newClientRef.client())));
+
+        clientRef.client().shutdown();
+        newClientRef.client().shutdown();
+    }
 
     @Test
     public void testSetDefaultCredential() {
@@ -52,8 +100,16 @@ public class AwsS3ServiceImplTests extends ESTestCase {
 
     @Test
     public void testAWSDefaultConfiguration() {
-        launchAWSConfigurationTest(Settings.EMPTY, Protocol.HTTPS, null, -1, null, null, 3,
-                                   ClientConfiguration.DEFAULT_THROTTLE_RETRIES, ClientConfiguration.DEFAULT_SOCKET_TIMEOUT);
+        launchAWSConfigurationTest(
+            Settings.EMPTY,
+            Protocol.HTTPS,
+            null,
+            -1,
+            null,
+            null,
+            3,
+            ClientConfiguration.DEFAULT_THROTTLE_RETRIES,
+            ClientConfiguration.DEFAULT_SOCKET_TIMEOUT);
     }
 
     @Test
@@ -66,7 +122,8 @@ public class AwsS3ServiceImplTests extends ESTestCase {
             .put("proxy_port", 8080)
             .put("read_timeout", "10s")
             .build();
-        launchAWSConfigurationTest(settings, Protocol.HTTP, "aws_proxy_host", 8080, "aws_proxy_username",
+        launchAWSConfigurationTest(
+            settings, Protocol.HTTP, "aws_proxy_host", 8080, "aws_proxy_username",
             "aws_proxy_password", 3, ClientConfiguration.DEFAULT_THROTTLE_RETRIES, 10000);
     }
 

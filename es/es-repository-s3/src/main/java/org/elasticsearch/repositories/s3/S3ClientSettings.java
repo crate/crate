@@ -27,6 +27,8 @@ import org.elasticsearch.common.settings.SecureString;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 
+import java.util.Objects;
+
 import static org.elasticsearch.repositories.s3.S3RepositorySettings.ACCESS_KEY_SETTING;
 import static org.elasticsearch.repositories.s3.S3RepositorySettings.ENDPOINT_SETTING;
 import static org.elasticsearch.repositories.s3.S3RepositorySettings.MAX_RETRIES_SETTING;
@@ -154,4 +156,38 @@ final class S3ClientSettings {
         return clientSetting.get(settings);
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        S3ClientSettings that = (S3ClientSettings) o;
+        return proxyPort == that.proxyPort &&
+               readTimeoutMillis == that.readTimeoutMillis &&
+               maxRetries == that.maxRetries &&
+               throttleRetries == that.throttleRetries &&
+               Objects.equals(credentials, that.credentials) &&
+               Objects.equals(endpoint, that.endpoint) &&
+               protocol == that.protocol &&
+               Objects.equals(proxyHost, that.proxyHost) &&
+               Objects.equals(proxyUsername, that.proxyUsername) &&
+               Objects.equals(proxyPassword, that.proxyPassword);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(credentials,
+                            endpoint,
+                            protocol,
+                            proxyHost,
+                            proxyPort,
+                            proxyUsername,
+                            proxyPassword,
+                            readTimeoutMillis,
+                            maxRetries,
+                            throttleRetries);
+    }
 }
