@@ -66,6 +66,7 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -609,6 +610,17 @@ public class Session implements AutoCloseable {
     /**
      * Close a portal or prepared statement
      *
+     * <p>
+     *     From PostgreSQL ExtendedQuery protocol spec:
+     * </p>
+     *
+     * <p>
+     *     The Close message closes an existing prepared statement or portal and releases resources.
+     *     It is not an error to issue Close against a nonexistent statement or portal name.
+     *     [..]
+     *     Note that closing a prepared statement implicitly closes any open portals that were constructed from that statement.
+     * </p>
+     *
      * @param type <b>S</b> for prepared statement, <b>P</b> for portal.
      * @param name name of the prepared statement or the portal (depending on type)
      */
@@ -618,17 +630,30 @@ public class Session implements AutoCloseable {
         }
 
         switch (type) {
-            case 'P':
+            case 'P': {
                 Portal portal = portals.remove(name);
                 if (portal != null) {
                     portal.closeActiveConsumer();
                 }
                 return;
-            case 'S':
-                preparedStatements.remove(name);
+            }
+            case 'S': {
+                PreparedStmt preparedStmt = preparedStatements.remove(name);
+                if (preparedStmt != null) {
+                    Iterator<Map.Entry<String, Portal>> it = portals.entrySet().iterator();
+                    while (it.hasNext()) {
+                        Map.Entry<String, Portal> entry = it.next();
+                        Portal portal = entry.getValue();
+                        if (portal.preparedStmt().equals(preparedStmt)) {
+                            portal.closeActiveConsumer();
+                            it.remove();
+                        }
+                    }
+                }
                 return;
+            }
             default:
-                throw new IllegalArgumentException("Invalid type: " + type);
+                throw new IllegalArgumentException("Invalid type: " + type + ", valid types are: [P, S]");
         }
     }
 

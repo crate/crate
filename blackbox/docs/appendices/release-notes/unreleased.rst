@@ -51,6 +51,11 @@ None
 Fixes
 =====
 
+- Fixed an issue in the PostgreSQL wire protocol implementation that could
+  cause clients to receive a ``Only write operations are allowed in Batch
+  statements`` if the client relied on the behavior that closing prepared
+  statements should implicitly close related portals.
+
 - Fixed a bug that led to ``is null`` predicates against ``ignored`` objects
   fields to always evaluate to true.
 
