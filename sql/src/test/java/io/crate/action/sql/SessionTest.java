@@ -55,13 +55,13 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testParameterTypeExtractorNotApplicable() {
-        Session.ParameterTypeExtractor typeExtractor = new Session.ParameterTypeExtractor();
+        ParameterTypeExtractor typeExtractor = new ParameterTypeExtractor();
         assertThat(typeExtractor.getParameterTypes(s -> {}).length, is(0));
     }
 
     @Test
     public void testParameterTypeExtractor() {
-        Session.ParameterTypeExtractor typeExtractor = new Session.ParameterTypeExtractor();
+        ParameterTypeExtractor typeExtractor = new ParameterTypeExtractor();
         List<Symbol> symbolsToVisit = new ArrayList<>();
         symbolsToVisit.add(Literal.of(1));
         symbolsToVisit.add(Literal.of("foo"));
@@ -121,7 +121,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         assertThat(session.getParamType("S_1", 0), is(DataTypes.UNDEFINED));
         assertThat(session.getParamType("S_1", 2), is(DataTypes.UNDEFINED));
 
-        Session.DescribeResult describe = session.describe('S', "S_1");
+        DescribeResult describe = session.describe('S', "S_1");
         assertThat(describe.getParameters(), equalTo(new DataType[] { DataTypes.LONG, DataTypes.LONG }));
 
         assertThat(session.getParamType("S_1", 0), is(DataTypes.LONG));
@@ -140,7 +140,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
             SessionContext.systemSessionContext(),
             ParamTypeHints.EMPTY
         );
-        Session.ParameterTypeExtractor typeExtractor = new Session.ParameterTypeExtractor();
+        ParameterTypeExtractor typeExtractor = new ParameterTypeExtractor();
         DataType[] parameterTypes = typeExtractor.getParameterTypes(analyzedStatement::visitSymbols);
 
         assertThat(parameterTypes, is(new DataType[] { DataTypes.STRING }));
@@ -154,7 +154,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
             SessionContext.systemSessionContext(),
             ParamTypeHints.EMPTY
         );
-        Session.ParameterTypeExtractor typeExtractor = new Session.ParameterTypeExtractor();
+        ParameterTypeExtractor typeExtractor = new ParameterTypeExtractor();
         DataType[] parameterTypes = typeExtractor.getParameterTypes(analyzedStatement::visitSymbols);
 
         assertThat(parameterTypes, is(new DataType[] { DataTypes.STRING, DataTypes.LONG }));
@@ -168,7 +168,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
             SessionContext.systemSessionContext(),
             ParamTypeHints.EMPTY
         );
-        Session.ParameterTypeExtractor typeExtractor = new Session.ParameterTypeExtractor();
+        ParameterTypeExtractor typeExtractor = new ParameterTypeExtractor();
         DataType[] parameterTypes = typeExtractor.getParameterTypes(analyzedStatement::visitSymbols);
 
         assertThat(parameterTypes, is(new DataType[] { DataTypes.LONG, DataTypes.STRING }));
@@ -186,7 +186,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
             SessionContext.systemSessionContext(),
             ParamTypeHints.EMPTY
         );
-        Session.ParameterTypeExtractor typeExtractor = new Session.ParameterTypeExtractor();
+        ParameterTypeExtractor typeExtractor = new ParameterTypeExtractor();
         DataType[] parameterTypes = typeExtractor.getParameterTypes(analyzedStatement::visitSymbols);
 
         assertThat(parameterTypes, is(new DataType[]{DataTypes.STRING}));
@@ -204,7 +204,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
             SessionContext.systemSessionContext(),
             ParamTypeHints.EMPTY
         );
-        Session.ParameterTypeExtractor typeExtractor = new Session.ParameterTypeExtractor();
+        ParameterTypeExtractor typeExtractor = new ParameterTypeExtractor();
         DataType[] parameterTypes = typeExtractor.getParameterTypes(analyzedStatement::visitSymbols);
 
         assertThat(parameterTypes, is(new DataType[]{DataTypes.LONG, DataTypes.STRING, DataTypes.STRING}));
@@ -215,7 +215,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
             SessionContext.systemSessionContext(),
             ParamTypeHints.EMPTY
         );
-        typeExtractor = new Session.ParameterTypeExtractor();
+        typeExtractor = new ParameterTypeExtractor();
         parameterTypes = typeExtractor.getParameterTypes(analyzedStatement::visitSymbols);
 
         assertThat(parameterTypes, is(new DataType[]{DataTypes.STRING, DataTypes.STRING}));
@@ -230,7 +230,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
             SessionContext.systemSessionContext(),
             ParamTypeHints.EMPTY
         );
-        DataType[] parameterTypes = new Session.ParameterTypeExtractor().getParameterTypes(
+        DataType[] parameterTypes = new ParameterTypeExtractor().getParameterTypes(
             consumer -> Relations.traverseDeepSymbols(stmt, consumer));
         assertThat(parameterTypes, arrayContaining(is(DataTypes.INTEGER), is(DataTypes.INTEGER)));
     }
@@ -246,7 +246,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
             SessionContext.systemSessionContext(),
             ParamTypeHints.EMPTY
         );
-        DataType[] parameterTypes = new Session.ParameterTypeExtractor().getParameterTypes(
+        DataType[] parameterTypes = new ParameterTypeExtractor().getParameterTypes(
             consumer -> Relations.traverseDeepSymbols(stmt, consumer));
         assertThat(parameterTypes, arrayContaining(is(DataTypes.INTEGER), is(DataTypes.INTEGER)));
     }
@@ -262,7 +262,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
             SessionContext.systemSessionContext(),
             ParamTypeHints.EMPTY
         );
-        DataType[] parameterTypes = new Session.ParameterTypeExtractor().getParameterTypes(
+        DataType[] parameterTypes = new ParameterTypeExtractor().getParameterTypes(
             consumer -> Relations.traverseDeepSymbols(stmt, consumer));
         assertThat(parameterTypes, arrayContaining(is(DataTypes.LONG)));
     }

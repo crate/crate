@@ -23,6 +23,7 @@
 package io.crate.protocols.postgres;
 
 import io.crate.Version;
+import io.crate.action.sql.DescribeResult;
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
 import io.crate.auth.AlwaysOKNullAuthentication;
@@ -469,7 +470,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         SQLOperations sqlOperations = Mockito.mock(SQLOperations.class);
         Session session = mock(Session.class);
         when(sqlOperations.createSession(any(String.class), any(User.class))).thenReturn(session);
-        Session.DescribeResult describeResult = mock(Session.DescribeResult.class);
+        DescribeResult describeResult = mock(DescribeResult.class);
         when(describeResult.getFields()).thenReturn(null);
         when(session.describe(anyChar(), anyString())).thenReturn(describeResult);
 
