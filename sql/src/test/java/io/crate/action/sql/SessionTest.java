@@ -38,7 +38,9 @@ import io.crate.testing.SQLExecutor;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.hamcrest.Matchers;
 import org.junit.Test;
+import org.mockito.Answers;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -56,13 +58,13 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testParameterTypeExtractorNotApplicable() {
-        Session.ParameterTypeExtractor typeExtractor = new Session.ParameterTypeExtractor();
+        ParameterTypeExtractor typeExtractor = new ParameterTypeExtractor();
         assertThat(typeExtractor.getParameterTypes(s -> {}).length, is(0));
     }
 
     @Test
     public void testParameterTypeExtractor() {
-        Session.ParameterTypeExtractor typeExtractor = new Session.ParameterTypeExtractor();
+        ParameterTypeExtractor typeExtractor = new ParameterTypeExtractor();
         List<Symbol> symbolsToVisit = new ArrayList<>();
         symbolsToVisit.add(Literal.of(1));
         symbolsToVisit.add(Literal.of("foo"));
@@ -123,7 +125,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         assertThat(session.getParamType("S_1", 0), is(DataTypes.UNDEFINED));
         assertThat(session.getParamType("S_1", 2), is(DataTypes.UNDEFINED));
 
-        Session.DescribeResult describe = session.describe('S', "S_1");
+        DescribeResult describe = session.describe('S', "S_1");
         assertThat(describe.getParameters(), equalTo(new DataType[] { DataTypes.LONG, DataTypes.LONG }));
 
         assertThat(session.getParamType("S_1", 0), is(DataTypes.LONG));
@@ -142,7 +144,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
             SessionContext.systemSessionContext(),
             ParamTypeHints.EMPTY
         );
-        Session.ParameterTypeExtractor typeExtractor = new Session.ParameterTypeExtractor();
+        ParameterTypeExtractor typeExtractor = new ParameterTypeExtractor();
         DataType[] parameterTypes = typeExtractor.getParameterTypes(analyzedStatement::visitSymbols);
 
         assertThat(parameterTypes, is(new DataType[] { DataTypes.STRING }));
@@ -156,7 +158,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
             SessionContext.systemSessionContext(),
             ParamTypeHints.EMPTY
         );
-        Session.ParameterTypeExtractor typeExtractor = new Session.ParameterTypeExtractor();
+        ParameterTypeExtractor typeExtractor = new ParameterTypeExtractor();
         DataType[] parameterTypes = typeExtractor.getParameterTypes(analyzedStatement::visitSymbols);
 
         assertThat(parameterTypes, is(new DataType[] { DataTypes.STRING, DataTypes.LONG }));
@@ -170,7 +172,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
             SessionContext.systemSessionContext(),
             ParamTypeHints.EMPTY
         );
-        Session.ParameterTypeExtractor typeExtractor = new Session.ParameterTypeExtractor();
+        ParameterTypeExtractor typeExtractor = new ParameterTypeExtractor();
         DataType[] parameterTypes = typeExtractor.getParameterTypes(analyzedStatement::visitSymbols);
 
         assertThat(parameterTypes, is(new DataType[] { DataTypes.LONG, DataTypes.STRING }));
@@ -187,7 +189,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
             SessionContext.systemSessionContext(),
             ParamTypeHints.EMPTY
         );
-        Session.ParameterTypeExtractor typeExtractor = new Session.ParameterTypeExtractor();
+        ParameterTypeExtractor typeExtractor = new ParameterTypeExtractor();
         DataType[] parameterTypes = typeExtractor.getParameterTypes(analyzedStatement::visitSymbols);
 
         assertThat(parameterTypes, is(new DataType[]{DataTypes.STRING}));
@@ -204,7 +206,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
             SessionContext.systemSessionContext(),
             ParamTypeHints.EMPTY
         );
-        Session.ParameterTypeExtractor typeExtractor = new Session.ParameterTypeExtractor();
+        ParameterTypeExtractor typeExtractor = new ParameterTypeExtractor();
         DataType[] parameterTypes = typeExtractor.getParameterTypes(analyzedStatement::visitSymbols);
 
         assertThat(parameterTypes, is(new DataType[]{DataTypes.LONG, DataTypes.STRING, DataTypes.STRING}));
@@ -215,7 +217,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
             SessionContext.systemSessionContext(),
             ParamTypeHints.EMPTY
         );
-        typeExtractor = new Session.ParameterTypeExtractor();
+        typeExtractor = new ParameterTypeExtractor();
         parameterTypes = typeExtractor.getParameterTypes(analyzedStatement::visitSymbols);
 
         assertThat(parameterTypes, is(new DataType[]{DataTypes.STRING, DataTypes.STRING}));
@@ -230,7 +232,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
             SessionContext.systemSessionContext(),
             ParamTypeHints.EMPTY
         );
-        DataType[] parameterTypes = new Session.ParameterTypeExtractor().getParameterTypes(
+        DataType[] parameterTypes = new ParameterTypeExtractor().getParameterTypes(
             consumer -> Relations.traverseDeepSymbols(stmt, consumer));
         assertThat(parameterTypes, arrayContaining(is(DataTypes.INTEGER), is(DataTypes.INTEGER)));
     }
@@ -246,7 +248,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
             SessionContext.systemSessionContext(),
             ParamTypeHints.EMPTY
         );
-        DataType[] parameterTypes = new Session.ParameterTypeExtractor().getParameterTypes(
+        DataType[] parameterTypes = new ParameterTypeExtractor().getParameterTypes(
             consumer -> Relations.traverseDeepSymbols(stmt, consumer));
         assertThat(parameterTypes, arrayContaining(is(DataTypes.INTEGER), is(DataTypes.INTEGER)));
     }
@@ -262,7 +264,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
             SessionContext.systemSessionContext(),
             ParamTypeHints.EMPTY
         );
-        DataType[] parameterTypes = new Session.ParameterTypeExtractor().getParameterTypes(
+        DataType[] parameterTypes = new ParameterTypeExtractor().getParameterTypes(
             consumer -> Relations.traverseDeepSymbols(stmt, consumer));
         assertThat(parameterTypes, arrayContaining(is(DataTypes.LONG)));
     }
@@ -292,13 +294,13 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(session.portals.size(), is(2));
         assertThat(session.preparedStatements.size(), is(2));
-        assertThat(session.pendingExecutions.size(), is(1));
+        assertThat(session.deferredExecutions.size(), is(1));
 
         session.close();
 
         assertThat(session.portals.size(), is(0));
         assertThat(session.preparedStatements.size(), is(0));
-        assertThat(session.pendingExecutions.size(), is(0));
+        assertThat(session.deferredExecutions.size(), is(0));
     }
 
     @Test
@@ -353,6 +355,30 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(session.portals.size(), greaterThan(0));
         assertThat(session.preparedStatements.size(), is(1));
-        assertThat(session.preparedStatements.get("stmt").query(), is("DEALLOCATE test_prep_stmt;"));
+        assertThat(session.preparedStatements.get("stmt").rawStatement(), is("DEALLOCATE test_prep_stmt;"));
+    }
+
+    @Test
+    public void test_closing_a_statement_closes_related_portals() {
+        SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService).build();
+        DependencyCarrier executor = mock(DependencyCarrier.class, Answers.RETURNS_MOCKS);
+        Session session = new Session(
+            sqlExecutor.analyzer,
+            sqlExecutor.planner,
+            new JobsLogs(() -> false),
+            false,
+            executor,
+            AccessControl.DISABLED,
+            SessionContext.systemSessionContext());
+
+        session.parse("S_1", "SELECT 1", List.of());
+        session.bind("P_1", "S_1", List.of(), null);
+
+        assertThat(session.portals.size(), is(1));
+        assertThat(session.preparedStatements.size(), is(1));
+
+        session.close((byte) 'S', "S_1");
+        assertThat(session.portals.entrySet(), Matchers.empty());
+        assertThat(session.preparedStatements.entrySet(), Matchers.empty());
     }
 }

@@ -20,18 +20,44 @@
  * agreement.
  */
 
-package io.crate.data;
+package io.crate.action.sql;
 
-import java.util.ArrayList;
+import io.crate.expression.symbol.Field;
+import io.crate.types.DataType;
+
+import javax.annotation.Nullable;
 import java.util.List;
 
-public class Rows {
+/**
+ * Encapsulates the result of a DescribePortal or DescribeParameter message.
+ */
+public class DescribeResult {
 
-    public static List<Row> of(Object[][] rows) {
-        List<Row> rowList = new ArrayList<>(rows.length);
-        for (Object[] row : rows) {
-            rowList.add(new RowN(row));
-        }
-        return rowList;
+    @Nullable
+    private final List<Field> fields;
+    @Nullable
+    private DataType[] parameters;
+
+    DescribeResult(@Nullable List<Field> fields) {
+        this.fields = fields;
+    }
+
+    DescribeResult(@Nullable List<Field> fields, @Nullable DataType[] parameters) {
+        this.fields = fields;
+        this.parameters = parameters;
+    }
+
+    @Nullable
+    public List<Field> getFields() {
+        return fields;
+    }
+
+    /**
+     * Returns the described parameters in sorted order ($1, $2, etc.)
+     * @return An array containing the parameters, or null if they could not be obtained.
+     */
+    @Nullable
+    public DataType[] getParameters() {
+        return parameters;
     }
 }

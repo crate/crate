@@ -22,6 +22,7 @@
 
 package io.crate.rest.action;
 
+import io.crate.action.sql.DescribeResult;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SQLActionException;
@@ -243,7 +244,7 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         long startTimeInNs = System.nanoTime();
         session.parse(UNNAMED, stmt, emptyList());
         session.bind(UNNAMED, UNNAMED, args == null ? emptyList() : asList(args), null);
-        Session.DescribeResult description = session.describe('P', UNNAMED);
+        DescribeResult description = session.describe('P', UNNAMED);
         List<Field> resultFields = description.getFields();
         ResultReceiver<XContentBuilder> resultReceiver;
         if (resultFields == null) {
@@ -277,7 +278,7 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
             session.execute(UNNAMED, 0, resultReceiver);
         }
         if (results.length > 0) {
-            Session.DescribeResult describeResult = session.describe('P', UNNAMED);
+            DescribeResult describeResult = session.describe('P', UNNAMED);
             if (describeResult.getFields() != null) {
                 return failedFuture(new UnsupportedOperationException(
                     "Bulk operations for statements that return result sets is not supported"));
