@@ -22,6 +22,7 @@
 
 package io.crate.action.sql;
 
+import com.google.common.collect.ImmutableList;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.Relations;
@@ -37,7 +38,9 @@ import io.crate.testing.SQLExecutor;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.hamcrest.Matchers;
 import org.junit.Test;
+import org.mockito.Answers;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -351,5 +354,28 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         assertThat(session.portals.size(), greaterThan(0));
         assertThat(session.preparedStatements.size(), is(1));
         assertThat(session.preparedStatements.get("stmt").rawStatement(), is("DEALLOCATE test_prep_stmt;"));
+    }
+
+    @Test
+    public void test_closing_a_statement_closes_related_portals() {
+        SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService).build();
+        DependencyCarrier executor = mock(DependencyCarrier.class, Answers.RETURNS_MOCKS.get());
+        Session session = new Session(
+            sqlExecutor.analyzer,
+            sqlExecutor.planner,
+            new JobsLogs(() -> false),
+            false,
+            executor,
+            SessionContext.systemSessionContext());
+
+        session.parse("S_1", "SELECT 1", ImmutableList.of());
+        session.bind("P_1", "S_1", ImmutableList.of(), null);
+
+        assertThat(session.portals.size(), is(1));
+        assertThat(session.preparedStatements.size(), is(1));
+
+        session.close((byte) 'S', "S_1");
+        assertThat(session.portals.entrySet(), Matchers.empty());
+        assertThat(session.preparedStatements.entrySet(), Matchers.empty());
     }
 }
