@@ -342,7 +342,6 @@ public final class InternalTestCluster extends TestCluster {
         this.nodeConfigurationSource = nodeConfigurationSource;
         numDataPaths = random.nextInt(5) == 0 ? 2 + random.nextInt(3) : 1;
         Builder builder = Settings.builder();
-        builder.put(NodeEnvironment.MAX_LOCAL_STORAGE_NODES_SETTING.getKey(), Integer.MAX_VALUE);
         builder.put(Environment.PATH_HOME_SETTING.getKey(), baseDir);
         builder.put(Environment.PATH_REPO_SETTING.getKey(), baseDir.resolve("repos"));
         builder.put(TransportSettings.PORT.getKey(), 0);
@@ -880,7 +879,7 @@ public final class InternalTestCluster extends TestCluster {
             if (closed.get() == false) {
                 throw new IllegalStateException("node " + name + " should be closed before recreating it");
             }
-            // use a new seed to make sure we have new node id
+            // use a new seed to make sure we generate a fresh new node id if the data folder has been wiped
             final long newIdSeed = NodeEnvironment.NODE_ID_SEED_SETTING.get(node.settings()) + 1;
             Settings finalSettings = Settings.builder()
                     .put(originalNodeSettings)
