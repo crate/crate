@@ -20,8 +20,9 @@ Inserting data to CrateDB is done by using the SQL ``INSERT`` statement.
 
 .. NOTE::
 
-    The column list is always ordered alphabetically by column name. If the
-    insert columns are omitted, the values in the ``VALUES`` clauses must
+    The column list is always ordered based on the column position
+    in the :ref:`ref-create-table` statement of the table. If the insert
+    columns are omitted, the values in the ``VALUES`` clauses must
     correspond to the table columns in that order.
 
 Inserting a row::
