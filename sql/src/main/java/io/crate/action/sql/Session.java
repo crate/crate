@@ -71,7 +71,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 /**
  * Stateful Session
@@ -120,7 +119,7 @@ public class Session implements AutoCloseable {
     final Map<String, Portal> portals = new HashMap<>();
 
     @VisibleForTesting
-    final List<DeferredExecution> deferredExecutions = new ArrayList<>();
+    final Map<Statement, List<DeferredExecution>> deferredExecutionsByStmt = new HashMap<>();
 
     private final Analyzer analyzer;
     private final Planner planner;
@@ -403,50 +402,56 @@ public class Session implements AutoCloseable {
              *          preparedStatement.execute(args)
              *      conn.commit()
              */
-            deferredExecutions.add(new DeferredExecution(portal, maxRows, resultReceiver));
+            deferredExecutionsByStmt.compute(
+                portal.preparedStmt().parsedStatement(), (key, oldValue) -> {
+                    DeferredExecution deferredExecution = new DeferredExecution(portal, maxRows, resultReceiver);
+                    if (oldValue == null) {
+                        ArrayList<DeferredExecution> deferredExecutions = new ArrayList<>();
+                        deferredExecutions.add(deferredExecution);
+                        return deferredExecutions;
+                    } else {
+                        oldValue.add(deferredExecution);
+                        return oldValue;
+                    }
+                }
+            );
         }
     }
 
     public CompletableFuture<?> sync() {
-        switch (deferredExecutions.size()) {
+        switch (deferredExecutionsByStmt.size()) {
             case 0:
-                LOGGER.debug("method=sync pendingExecutions=0");
+                LOGGER.debug("method=sync deferredExecutions=0");
                 return CompletableFuture.completedFuture(null);
 
-            case 1:
-                DeferredExecution deferredExecution = deferredExecutions.get(0);
-                deferredExecutions.clear();
-                Portal portal = deferredExecution.portal();
-                LOGGER.debug("method=sync portal={}", portal);
-                return singleExec(portal, deferredExecution.resultReceiver(), deferredExecution.maxRows());
+            case 1: {
+                var entry = deferredExecutionsByStmt.entrySet().iterator().next();
+                deferredExecutionsByStmt.clear();
+                return exec(entry.getKey(), entry.getValue());
+            }
 
-            default:
-                List<DeferredExecution> deferredExecutions = List.copyOf(this.deferredExecutions);
-                this.deferredExecutions.clear();
-                Map<Statement, List<DeferredExecution>> deferredExecutionsByStatement = deferredExecutions
-                    .stream()
-                    .collect(Collectors.toMap(
-                        (DeferredExecution x) -> x.portal().preparedStmt().parsedStatement(),
-                        List::of,
-                        Lists2::concat));
-                if (deferredExecutionsByStatement.size() == 1) {
-                    LOGGER.debug("method=sync bulkExec");
-                    var entry = deferredExecutionsByStatement.entrySet().iterator().next();
-                    return bulkExec(entry.getKey(), entry.getValue());
-                } else {
-                    LOGGER.debug("method=sync batchExec");
-                    List<? extends CompletableFuture<?>> futures = Lists2.map(
-                        deferredExecutions,
-                        x -> {
-                            if (!x.portal().boundOrUnboundStatement().isWriteOperation()) {
-                                throw new UnsupportedOperationException(
-                                    "Only write operations are allowed in Batch statements");
-                            }
-                            return singleExec(x.portal(), x.resultReceiver(), x.maxRows());
-                        }
-                    );
-                    return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
-                }
+            default: {
+                Map<Statement, List<DeferredExecution>> deferredExecutions = Map.copyOf(this.deferredExecutionsByStmt);
+                this.deferredExecutionsByStmt.clear();
+                var futures = Lists2.map(deferredExecutions.entrySet(), x -> {
+                    var executions = x.getValue();
+                    if (executions.stream().anyMatch(y -> !y.portal().boundOrUnboundStatement().isWriteOperation())) {
+                        throw new UnsupportedOperationException(
+                            "Only write operations are allowed in Batch statements");
+                    }
+                    return exec(x.getKey(), executions);
+                });
+                return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
+            }
+        }
+    }
+
+    private CompletableFuture<?> exec(Statement statement, List<DeferredExecution> executions) {
+        if (executions.size() == 1) {
+            var toExec = executions.get(0);
+            return singleExec(toExec.portal(), toExec.resultReceiver(), toExec.maxRows());
+        } else {
+            return bulkExec(statement, executions);
         }
     }
 
@@ -657,23 +662,21 @@ public class Session implements AutoCloseable {
 
     @Override
     public void close() {
-        for (DeferredExecution deferredExecution : deferredExecutions) {
-            deferredExecution.portal().closeActiveConsumer();
-            portals.remove(deferredExecution.portal().name());
-        }
+        resetDeferredExecutions();
         for (Portal portal : portals.values()) {
             portal.closeActiveConsumer();
         }
         portals.clear();
         preparedStatements.clear();
-        deferredExecutions.clear();
     }
 
     public void resetDeferredExecutions() {
-        for (DeferredExecution deferredExecution : deferredExecutions) {
-            deferredExecution.portal().closeActiveConsumer();
-            portals.remove(deferredExecution.portal().name());
+        for (var deferredExecutions : deferredExecutionsByStmt.values()) {
+            for (DeferredExecution deferredExecution : deferredExecutions) {
+                deferredExecution.portal().closeActiveConsumer();
+                portals.remove(deferredExecution.portal().name());
+            }
         }
-        deferredExecutions.clear();
+        deferredExecutionsByStmt.clear();
     }
 }
