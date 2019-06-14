@@ -147,7 +147,7 @@ public class AlterTableOperation {
 
     public CompletableFuture<Long> executeAlterTableAddColumn(final AddColumnAnalyzedStatement analysis) {
         final CompletableFuture<Long> result = new CompletableFuture<>();
-        if (analysis.newPrimaryKeys() || analysis.hasNewGeneratedColumns()) {
+        if (analysis.newPrimaryKeys() || analysis.hasNewExpressionColumns()) {
             RelationName ident = analysis.table().ident();
             String stmt =
                 String.format(Locale.ENGLISH, "SELECT COUNT(*) FROM \"%s\".\"%s\"", ident.schema(), ident.name());
@@ -658,9 +658,9 @@ public class AlterTableOperation {
             if (count == 0L) {
                 addColumnToTable(analysis, result);
             } else {
-                String columnFailure = analysis.newPrimaryKeys() ? "primary key" : "generated";
+                String columnFailure = analysis.newPrimaryKeys() ? "a primary key" : "an expression";
                 fail(new UnsupportedOperationException(String.format(Locale.ENGLISH,
-                    "Cannot add a %s column to a table that isn't empty", columnFailure)));
+                    "Cannot add %s column to a table that isn't empty", columnFailure)));
             }
         }
 

@@ -43,6 +43,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
+import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.core.Is.is;
 
@@ -410,8 +411,37 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         refresh();
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Cannot add a generated column to a table that isn't empty");
+        expectedException.expectMessage("Cannot add an expression column to a table that isn't empty");
         execute("alter table t add column id_generated as (id + 1)");
+    }
+
+    @Test
+    public void testAlterTableWithoutRecordsAddColumnWithDefaultClause() {
+        execute("create table t (id int) " +
+                "clustered into 1 shards " +
+                "with (number_of_replicas=0)");
+        execute("alter table t add column name text default 'foo'");
+        execute("insert into t (id) values(1)");
+        refresh();
+        execute("select id, name from t");
+
+        assertThat(
+            printedTable(execute("select * from t").rows()),
+            is("1| foo\n")
+        );
+    }
+
+    @Test
+    public void testAlterTableWithRecordsAddColumnWithDefaultClause() {
+        execute("create table t (id int) " +
+                "clustered into 1 shards " +
+                "with (number_of_replicas=0)");
+        execute("insert into t (id) values(1)");
+        refresh();
+
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("Cannot add an expression column to a table that isn't empty");
+        execute("alter table t add column name text default 'foo'");
     }
 
     @Test

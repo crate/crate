@@ -66,7 +66,7 @@ public class AnalyzedTableElements {
     private Set<String> primaryKeys;
     private Set<String> notNullColumns;
     private List<List<String>> partitionedBy;
-    private int numGeneratedColumns = 0;
+    private int numExpressionColumns = 0;
 
 
     /**
@@ -227,8 +227,9 @@ public class AnalyzedTableElements {
         columnIdents.add(analyzedColumnDefinition.ident());
         columns.add(analyzedColumnDefinition);
         columnTypes.put(analyzedColumnDefinition.ident(), analyzedColumnDefinition.dataType());
-        if (analyzedColumnDefinition.generatedExpression() != null) {
-            numGeneratedColumns++;
+        if (analyzedColumnDefinition.generatedExpression() != null ||
+            analyzedColumnDefinition.defaultExpression() != null) {
+            numExpressionColumns++;
         }
     }
 
@@ -517,7 +518,7 @@ public class AnalyzedTableElements {
         return columns;
     }
 
-    boolean hasGeneratedColumns() {
-        return numGeneratedColumns > 0;
+    boolean hasExpressionColumns() {
+        return numExpressionColumns > 0;
     }
 }

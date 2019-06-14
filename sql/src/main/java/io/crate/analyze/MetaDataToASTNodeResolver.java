@@ -35,6 +35,7 @@ import io.crate.sql.tree.ClusteredBy;
 import io.crate.sql.tree.CollectionColumnType;
 import io.crate.sql.tree.ColumnConstraint;
 import io.crate.sql.tree.ColumnDefinition;
+import io.crate.sql.tree.ColumnElements;
 import io.crate.sql.tree.ColumnStorageDefinition;
 import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.CreateTable;
@@ -182,10 +183,10 @@ public class MetaDataToASTNodeResolver {
                 String columnName = ident.isTopLevel() ? ident.name() : ident.path().get(ident.path().size() - 1);
                 elements.add(new ColumnDefinition(
                     columnName,
-                    defaultExpression,
-                    generatedExpression,
-                    columnType,
-                    constraints)
+                    new ColumnElements(defaultExpression,
+                                       generatedExpression,
+                                       columnType,
+                                       constraints))
                 );
             }
             return elements;

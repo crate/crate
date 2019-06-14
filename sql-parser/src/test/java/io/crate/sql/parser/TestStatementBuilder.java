@@ -1366,10 +1366,9 @@ public class TestStatementBuilder {
 
 
     @Test
-    public void testAddColumnWithDefaultExpressionIsNotSupported() {
-        expectedException.expect(ParsingException.class);
-        expectedException.expectMessage("mismatched input 'default'");
+    public void testAddColumnWithDefaultExpression() {
         printStatement("alter table t add col1 text default 'foo'");
+        printStatement("alter table t add col1 int default random()");
     }
 
 

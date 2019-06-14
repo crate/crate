@@ -55,6 +55,7 @@ import io.crate.sql.tree.ClusteredBy;
 import io.crate.sql.tree.CollectionColumnType;
 import io.crate.sql.tree.ColumnConstraint;
 import io.crate.sql.tree.ColumnDefinition;
+import io.crate.sql.tree.ColumnElements;
 import io.crate.sql.tree.ColumnStorageDefinition;
 import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.CommitStatement;
@@ -700,10 +701,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     public Node visitColumnDefinition(SqlBaseParser.ColumnDefinitionContext context) {
         return new ColumnDefinition(
             getIdentText(context.ident()),
-            visitOptionalContext(context.defaultExpr, Expression.class),
-            visitOptionalContext(context.generatedExpr, Expression.class),
-            visitOptionalContext(context.dataType(), ColumnType.class),
-            visitCollection(context.columnConstraint(), ColumnConstraint.class));
+            (ColumnElements) visit(context.columnElements()));
     }
 
     @Override
@@ -846,7 +844,14 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     public Node visitAddColumnDefinition(SqlBaseParser.AddColumnDefinitionContext context) {
         return new AddColumnDefinition(
             (Expression) visit(context.subscriptSafe()),
-            visitOptionalContext(context.expr(), Expression.class),
+            (ColumnElements) visit(context.columnElements()));
+    }
+
+    @Override
+    public Node visitColumnElements(SqlBaseParser.ColumnElementsContext context) {
+        return new ColumnElements(
+            visitOptionalContext(context.defaultExpr, Expression.class),
+            visitOptionalContext(context.generatedExpr, Expression.class),
             visitOptionalContext(context.dataType(), ColumnType.class),
             visitCollection(context.columnConstraint(), ColumnConstraint.class));
     }

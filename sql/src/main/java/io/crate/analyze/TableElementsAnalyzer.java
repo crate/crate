@@ -34,6 +34,7 @@ import io.crate.sql.tree.ArrayLiteral;
 import io.crate.sql.tree.CollectionColumnType;
 import io.crate.sql.tree.ColumnConstraint;
 import io.crate.sql.tree.ColumnDefinition;
+import io.crate.sql.tree.ColumnElements;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.ColumnStorageDefinition;
 import io.crate.sql.tree.ColumnType;
@@ -121,18 +122,7 @@ public class TableElementsAnalyzer {
         @Override
         public Void visitColumnDefinition(ColumnDefinition node, ColumnDefinitionContext context) {
             context.analyzedColumnDefinition.name(node.ident());
-            for (ColumnConstraint columnConstraint : node.constraints()) {
-                process(columnConstraint, context);
-            }
-            if (node.type() != null) {
-                process(node.type(), context);
-            }
-            if (node.defaultExpression() != null) {
-                context.analyzedColumnDefinition.defaultExpression(node.defaultExpression());
-            }
-            if (node.generatedExpression() != null) {
-                context.analyzedColumnDefinition.generatedExpression(node.generatedExpression());
-            }
+            process(node.columnElements(), context);
             return null;
         }
 
@@ -173,17 +163,26 @@ public class TableElementsAnalyzer {
                 context.analyzedColumnDefinition = leaf;
             }
 
+            process(node.columnElements(), context);
+
+            context.analyzedColumnDefinition = root;
+            return null;
+        }
+
+        @Override
+        public Void visitColumnElements(ColumnElements node, ColumnDefinitionContext context) {
             for (ColumnConstraint columnConstraint : node.constraints()) {
                 process(columnConstraint, context);
             }
             if (node.type() != null) {
                 process(node.type(), context);
             }
+            if (node.defaultExpression() != null) {
+                context.analyzedColumnDefinition.defaultExpression(node.defaultExpression());
+            }
             if (node.generatedExpression() != null) {
                 context.analyzedColumnDefinition.generatedExpression(node.generatedExpression());
             }
-
-            context.analyzedColumnDefinition = root;
             return null;
         }
 

@@ -31,6 +31,7 @@ import io.crate.sql.tree.ClusteredBy;
 import io.crate.sql.tree.CollectionColumnType;
 import io.crate.sql.tree.ColumnConstraint;
 import io.crate.sql.tree.ColumnDefinition;
+import io.crate.sql.tree.ColumnElements;
 import io.crate.sql.tree.ColumnStorageDefinition;
 import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.CopyFrom;
@@ -524,6 +525,13 @@ public final class SqlFormatter {
         public Void visitColumnDefinition(ColumnDefinition node, Integer indent) {
             builder.append(quoteIdentifierIfNeeded(node.ident()))
                 .append(" ");
+            ColumnElements columnElements = node.columnElements();
+            columnElements.accept(this, indent);
+            return null;
+        }
+
+        @Override
+        public Void visitColumnElements(ColumnElements node, Integer indent) {
             ColumnType type = node.type();
             if (type != null) {
                 type.accept(this, indent);

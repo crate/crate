@@ -491,11 +491,15 @@ tableElement
     ;
 
 columnDefinition
-    : ident dataType? (DEFAULT defaultExpr=expr)? ((GENERATED ALWAYS)? AS generatedExpr=expr)? columnConstraint*
+    : ident columnElements
     ;
 
 addColumnDefinition
-    : subscriptSafe dataType? ((GENERATED ALWAYS)? AS expr)? columnConstraint*
+    : subscriptSafe columnElements
+    ;
+
+columnElements
+    : dataType? (DEFAULT defaultExpr=expr)? ((GENERATED ALWAYS)? AS generatedExpr=expr)? columnConstraint*
     ;
 
 rerouteOption

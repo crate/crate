@@ -22,77 +22,37 @@
 package io.crate.sql.tree;
 
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
 
-import javax.annotation.Nullable;
-import java.util.List;
+import java.util.Objects;
 
 public class ColumnDefinition extends TableElement {
 
     private final String ident;
 
-    @Nullable
-    private final Expression defaultExpression;
-
-    @Nullable
-    private final Expression generatedExpression;
-
-    @Nullable
-    private final ColumnType type;
-
-    private final List<ColumnConstraint> constraints;
+    private final ColumnElements columnElements;
 
     public ColumnDefinition(String ident,
-                            @Nullable Expression defaultExpression,
-                            @Nullable Expression generatedExpression,
-                            @Nullable ColumnType type,
-                            List<ColumnConstraint> constraints) {
+                            ColumnElements columnElements) {
         this.ident = ident;
-        this.defaultExpression = defaultExpression;
-        this.generatedExpression = generatedExpression;
-        this.type = type;
-        this.constraints = constraints;
-        validateColumnDefinition();
+        this.columnElements = columnElements;
+        validate();
     }
 
-    private void validateColumnDefinition() {
-        if (type == null && generatedExpression == null) {
-            throw new IllegalArgumentException("Column [" + ident + "]: data type needs to be provided " +
-                                               "or column should be defined as a generated expression");
-        }
-
-        if (defaultExpression != null && generatedExpression != null) {
-            throw new IllegalArgumentException("Column [" + ident + "]: the default and generated expressions " +
-                                               "are mutually exclusive");
-        }
+    private void validate() {
+        columnElements.validate(ident);
     }
 
     public String ident() {
         return ident;
     }
 
-    @Nullable
-    public Expression generatedExpression() {
-        return generatedExpression;
-    }
-
-    @Nullable
-    public Expression defaultExpression() {
-        return defaultExpression;
-    }
-
-    @Nullable
-    public ColumnType type() {
-        return type;
-    }
-
-    public List<ColumnConstraint> constraints() {
-        return constraints;
+    public ColumnElements columnElements() {
+        return columnElements;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(ident, defaultExpression, generatedExpression, type, constraints);
+        return Objects.hash(ident, columnElements);
     }
 
     @Override
@@ -101,15 +61,8 @@ public class ColumnDefinition extends TableElement {
         if (o == null || getClass() != o.getClass()) return false;
 
         ColumnDefinition that = (ColumnDefinition) o;
-
-        if (!ident.equals(that.ident)) return false;
-        if (defaultExpression != null ? !defaultExpression.equals(that.defaultExpression) :
-            that.defaultExpression != null) return false;
-        if (generatedExpression != null ? !generatedExpression.equals(that.generatedExpression) :
-            that.generatedExpression != null) return false;
-        if (type != null ? !type.equals(that.type) : that.type != null) return false;
-        return constraints.equals(that.constraints);
-
+        return Objects.equals(ident, that.ident) &&
+               Objects.equals(columnElements, that.columnElements);
     }
 
 
@@ -117,10 +70,7 @@ public class ColumnDefinition extends TableElement {
     public String toString() {
         return MoreObjects.toStringHelper(this)
             .add("ident", ident)
-            .add("defaultExpression", defaultExpression)
-            .add("generatedExpression", generatedExpression)
-            .add("type", type)
-            .add("constraints", constraints)
+            .add("columnElements", columnElements)
             .toString();
     }
 

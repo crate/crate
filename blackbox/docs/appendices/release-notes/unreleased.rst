@@ -250,7 +250,8 @@ Deprecations
 Changes
 =======
 
-- Added support for column :ref:`ref-default-clause` for :ref:`ref-create-table`.
+- Added support for column :ref:`ref-default-clause` for statements:
+  :ref:`ref-create-table` and :ref:`ref-alter-table`.
 
 - Added support for ``CURRENT ROW -> UNBOUNDED FOLLOWING`` window frame
   definitions in the context of :ref:`window-functions`.

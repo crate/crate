@@ -497,6 +497,10 @@ public abstract class AstVisitor<R, C> {
         return visitTableElement(node, context);
     }
 
+    public R visitColumnElements(ColumnElements node, C context) {
+        return visitNode(node, context);
+    }
+
     public R visitInsertFromValues(InsertFromValues node, C context) {
         return visitInsert(node, context);
     }

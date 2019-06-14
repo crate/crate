@@ -57,7 +57,7 @@ public final class DataTypeAnalyzer extends DefaultTraversalVisitor<DataType, Vo
     public DataType visitObjectColumnType(ObjectColumnType node, Void context) {
         ObjectType.Builder builder = ObjectType.builder();
         for (ColumnDefinition columnDefinition : node.nestedColumns()) {
-            builder.setInnerType(columnDefinition.ident(), process(columnDefinition.type(), context));
+            builder.setInnerType(columnDefinition.ident(), process(columnDefinition.columnElements().type(), context));
         }
         return builder.build();
     }

@@ -28,16 +28,16 @@ public class AddColumnAnalyzedStatement implements DDLStatement {
     private final DocTableInfo tableInfo;
     private final AnalyzedTableElements analyzedTableElements;
     private final boolean newPrimaryKeys;
-    private final boolean hasNewGeneratedColumns;
+    private final boolean hasNewExpressionColumns;
 
     protected AddColumnAnalyzedStatement(DocTableInfo tableInfo,
                                          AnalyzedTableElements tableElements,
                                          boolean newPrimaryKeys,
-                                         boolean hasNewGeneratedColumns) {
+                                         boolean hasNewExpressionColumns) {
         this.tableInfo = tableInfo;
         analyzedTableElements = tableElements;
         this.newPrimaryKeys = newPrimaryKeys;
-        this.hasNewGeneratedColumns = hasNewGeneratedColumns;
+        this.hasNewExpressionColumns = hasNewExpressionColumns;
     }
 
     public DocTableInfo table() {
@@ -57,7 +57,7 @@ public class AddColumnAnalyzedStatement implements DDLStatement {
         return this.newPrimaryKeys;
     }
 
-    public boolean hasNewGeneratedColumns() {
-        return hasNewGeneratedColumns;
+    public boolean hasNewExpressionColumns() {
+        return hasNewExpressionColumns;
     }
 }

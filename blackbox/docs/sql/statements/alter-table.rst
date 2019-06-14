@@ -116,8 +116,9 @@ can be used. For more more info on that, see :ref:`alter_change_number_of_shard`
 --------------
 
 Can be used to add an additional column to a table. While columns can be added
-at any time, adding a new :ref:`generated column <ref-generated-columns>` is
-only possible if the table is empty.
+at any time, adding a new :ref:`generated column <ref-generated-columns>` or a
+base column with :ref:`ref-default-clause` is only possible if the table is
+empty.
 
 :data_type:
   Data type of the column which should be added.

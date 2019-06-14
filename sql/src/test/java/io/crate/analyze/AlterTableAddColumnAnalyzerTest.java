@@ -26,6 +26,7 @@ import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.sql.parser.ParsingException;
 import io.crate.sql.tree.ColumnPolicy;
+import io.crate.sql.tree.Literal;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
@@ -341,7 +342,7 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
         AddColumnAnalyzedStatement analysis = e.analyze(
             "alter table users add column name_generated as concat(name, 'foo')");
 
-        assertThat(analysis.hasNewGeneratedColumns(), is(true));
+        assertThat(analysis.hasNewExpressionColumns(), is(true));
         assertThat(analysis.analyzedTableElements().columnIdents(), containsInAnyOrder(
             new ColumnIdent("name_generated"), new ColumnIdent("id")));
 
@@ -356,6 +357,24 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
         assertThat(nameGeneratedColumn.formattedGeneratedExpression(), is("concat(name, 'foo')"));
     }
 
+    @Test
+    public void testAddColumnWithDefaultClause() {
+        AddColumnAnalyzedStatement analysis = e.analyze(
+            "alter table users add column col1 text default 'foo'");
+
+        assertThat(analysis.hasNewExpressionColumns(), is(true));
+        assertThat(analysis.analyzedTableElements().columnIdents(), containsInAnyOrder(
+            new ColumnIdent("col1"), new ColumnIdent("id")));
+
+        AnalyzedColumnDefinition columnDefault = null;
+        for (AnalyzedColumnDefinition columnDefinition : analysis.analyzedTableElements().columns()) {
+            if (columnDefinition.ident().name().equals("col1")) {
+                columnDefault = columnDefinition;
+            }
+        }
+        assertNotNull(columnDefault);
+        assertThat(columnDefault.defaultExpression(), is(Literal.fromObject("foo")));
+    }
 
     @Test
     public void testAddColumnWithColumnStoreDisabled() throws Exception {

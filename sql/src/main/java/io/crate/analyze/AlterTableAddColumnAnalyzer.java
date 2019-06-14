@@ -80,12 +80,12 @@ class AlterTableAddColumnAnalyzer {
         }
 
         boolean hasNewPrimaryKeys = tableElements.primaryKeys().size() > numCurrentPks;
-        boolean hasGeneratedColumns = tableElements.hasGeneratedColumns();
+        boolean hasExpressionColumns = tableElements.hasExpressionColumns();
         return new AddColumnAnalyzedStatement(
             tableInfo,
             tableElements,
             hasNewPrimaryKeys,
-            hasGeneratedColumns
+            hasExpressionColumns
         );
     }
 
