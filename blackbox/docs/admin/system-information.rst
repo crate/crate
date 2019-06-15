@@ -2,7 +2,7 @@
 .. _system-information:
 
 ==================
-System Information
+System information
 ==================
 
 CrateDB provides the ``sys`` schema which contains virtual tables. These tables

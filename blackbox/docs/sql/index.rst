@@ -1,5 +1,5 @@
 ==========
-SQL Syntax
+SQL syntax
 ==========
 
 CrateDB uses `SQL`_ to query documents.

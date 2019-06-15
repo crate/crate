@@ -1,7 +1,7 @@
 .. _sql_ddl_create:
 
 ===============
-Creating Tables
+Creating tables
 ===============
 
 .. rubric:: Table of contents

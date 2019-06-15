@@ -1,7 +1,7 @@
 .. _node_discovery:
 
 ===============
-Cloud Discovery
+Cloud discovery
 ===============
 
 .. rubric:: Table of contents
@@ -9,7 +9,7 @@ Cloud Discovery
 .. contents::
    :local:
 
-Amazon EC2 Discovery
+Amazon EC2 discovery
 ====================
 
 CrateDB has native discovery support when running a cluster with *Amazon Web
@@ -26,7 +26,7 @@ cluster on Amazon EC2.
 
 .. _azure_discovery:
 
-Microsoft Azure Discovery
+Microsoft Azure discovery
 =========================
 
 CrateDB has native discovery support when running a cluster on `Microsoft

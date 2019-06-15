@@ -3,7 +3,7 @@
 .. _conf-cluster-settings:
 
 =====================
-Cluster-Wide Settings
+Cluster-wide settings
 =====================
 
 All current applied cluster settings can be read by querying the

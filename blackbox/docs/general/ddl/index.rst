@@ -2,7 +2,7 @@
 .. _sql_ddl:
 
 ===============
-Data Definition
+Data definition
 ===============
 
 .. rubric:: Table of contents

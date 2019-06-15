@@ -1,7 +1,7 @@
 .. _administration_user_management:
 
 ===============
-User Management
+User management
 ===============
 
 .. NOTE::

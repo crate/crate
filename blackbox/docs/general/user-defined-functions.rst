@@ -1,7 +1,7 @@
 .. _sql_administration_udf:
 
 ======================
-User-Defined Functions
+User-defined functions
 ======================
 
 .. rubric:: Table of contents

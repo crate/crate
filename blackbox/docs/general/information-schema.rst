@@ -2,7 +2,7 @@
 .. _information_schema:
 
 ==================
-Information Schema
+Information schema
 ==================
 
 ``information_schema`` is a special schema that contains virtual tables which

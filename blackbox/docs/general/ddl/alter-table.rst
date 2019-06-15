@@ -1,7 +1,7 @@
 .. _sql_ddl_alter_table:
 
 ===============
-Altering Tables
+Altering tables
 ===============
 
 .. NOTE::

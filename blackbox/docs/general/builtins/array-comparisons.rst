@@ -1,7 +1,7 @@
 .. highlight:: psql
 .. _sql_array_comparisons:
 
-Array Comparisons
+Array comparisons
 =================
 
 This section contains several constructs that can be used to make comparisons

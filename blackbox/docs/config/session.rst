@@ -1,7 +1,7 @@
 .. _conf-session:
 
 ================
-Session Settings
+Session settings
 ================
 
 .. rubric:: Table of contents

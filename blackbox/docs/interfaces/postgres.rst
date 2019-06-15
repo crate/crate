@@ -1,7 +1,7 @@
 .. _postgres_wire_protocol:
 
 ========================
-PostgreSQL Wire Protocol
+PostgreSQL wire protocol
 ========================
 
 .. rubric:: Table of contents

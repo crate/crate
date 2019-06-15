@@ -2,7 +2,7 @@
 .. _scalar:
 
 ================
-Scalar Functions
+Scalar functions
 ================
 
 Scalar functions return a single value.

@@ -1,7 +1,7 @@
 .. highlight:: psql
 .. _sql_subquery_expressions:
 
-Subquery Expressions
+Subquery expressions
 ====================
 
 The following operators can be used with a subquery to form a subquery

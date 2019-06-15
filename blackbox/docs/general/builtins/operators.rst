@@ -1,7 +1,7 @@
 .. highlight:: psql
 .. _sql_operators:
 
-Comparison Operators
+Comparison operators
 ====================
 
 These operations test whether two expressions are equal. Comparison Operators

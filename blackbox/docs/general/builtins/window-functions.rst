@@ -2,7 +2,7 @@
 .. _window-functions:
 
 ================
-Window Functions
+Window functions
 ================
 
 .. rubric:: Table of contents
@@ -57,7 +57,7 @@ The ``OVER`` clause defines the ``window`` containing the appropriate rows
 which will take part in the ``window function`` computation.
 
 An empty ``OVER`` clause defines a ``window`` containing all the rows in the
-result set. 
+result set.
 
 Example::
 

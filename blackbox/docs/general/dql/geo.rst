@@ -2,7 +2,7 @@
 .. _sql_dql_geo_search:
 
 ==========
-Geo Search
+Geo search
 ==========
 
 .. rubric:: Table of contents

@@ -2,7 +2,7 @@
 .. _sql_lexical:
 
 =================
-Lexical Structure
+Lexical structure
 =================
 
 An SQL input consists of a sequence of commands each of which is a sequence of

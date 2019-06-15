@@ -3,7 +3,7 @@
 .. _arithmetic:
 
 ====================
-Arithmetic Operators
+Arithmetic operators
 ====================
 
 Arithmetic operators perform mathematical operations on two expressions of
