@@ -2,7 +2,7 @@
 .. _sql_dql_queries:
 
 ==============
-Selecting Data
+Selecting data
 ==============
 
 Selecting (i.e. retrieving) data from CrateDB is done by using a SQL ``SELECT``

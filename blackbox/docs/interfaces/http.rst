@@ -3,7 +3,7 @@
 .. _sql_http_endpoint:
 
 =============
-HTTP Endpoint
+HTTP endpoint
 =============
 
 .. rubric:: Table of contents

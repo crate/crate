@@ -2,7 +2,7 @@
 .. _sql_dql_fulltext_search:
 
 ===============
-Fulltext Search
+Fulltext search
 ===============
 
 In order to use fulltext search on one or more columns, a

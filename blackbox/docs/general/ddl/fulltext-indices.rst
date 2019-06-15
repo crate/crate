@@ -3,7 +3,7 @@
 .. _indices_and_fulltext:
 
 ================
-Fulltext Indices
+Fulltext indices
 ================
 
 Fulltext indices take the contents of one or more fields and split it up into

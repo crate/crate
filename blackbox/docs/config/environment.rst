@@ -1,7 +1,7 @@
 .. _conf-env:
 
 =====================
-Environment Variables
+Environment variables
 =====================
 
 CrateDB can be configured with some `environment variables`_.

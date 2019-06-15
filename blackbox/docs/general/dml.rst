@@ -3,7 +3,7 @@
 .. _dml:
 
 =================
-Data Manipulation
+Data manipulation
 =================
 
 .. rubric:: Table of contents

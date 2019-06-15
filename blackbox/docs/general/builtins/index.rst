@@ -2,7 +2,7 @@
 .. -sql-functions-operators:
 
 ================================
-Built-in Functions and Operators
+Built-in functions and operators
 ================================
 
 This chapter provides an overview of built-in functions and operators.

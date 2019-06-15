@@ -2,7 +2,7 @@
 .. _sql_supported_features:
 
 =======================
-SQL Standard Compliance
+SQL standard compliance
 =======================
 
 This section provides a list of features that CrateDB supports and to what

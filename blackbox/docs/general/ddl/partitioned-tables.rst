@@ -2,7 +2,7 @@
 .. _partitioned_tables:
 
 ==================
-Partitioned Tables
+Partitioned tables
 ==================
 
 .. rubric:: Table of contents

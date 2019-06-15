@@ -1,7 +1,7 @@
 .. _column_policy:
 
 =============
-Column Policy
+Column policy
 =============
 
 The Column Policy defines if a table enforces its defined schema or if it's

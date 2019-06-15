@@ -2,7 +2,7 @@
 .. _kill_job:
 
 ===============
-Jobs Management
+Jobs management
 ===============
 
 Each executed sql statement results in a corresponding job. Jobs that are

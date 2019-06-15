@@ -1,7 +1,7 @@
 .. _sql-ddl-generated-columns:
 
 =================
-Generated Columns
+Generated columns
 =================
 
 It is possible to define columns whose value is computed by applying a

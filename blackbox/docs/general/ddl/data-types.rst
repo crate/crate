@@ -3,7 +3,7 @@
 .. _data-types:
 
 ==========
-Data Types
+Data types
 ==========
 
 Data can be stored in different formats. CrateDB has different types that can

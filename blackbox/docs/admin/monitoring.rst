@@ -1,7 +1,7 @@
 .. _jmx_monitoring:
 
 ==============
-JMX Monitoring
+JMX monitoring
 ==============
 
 The JMX monitoring feature exposes query metrics via the `JMX`_ API.

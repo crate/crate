@@ -3,7 +3,7 @@
 .. _ref-table-functions:
 
 ===============
-Table Functions
+Table functions
 ===============
 
 Table functions are functions that produce a set of rows.
@@ -17,7 +17,7 @@ If multiple table functions with different amount of rows are used, ``null``
 values will be returned for the functions that are exhausted. An example::
 
 
-    cr> select unnest([1, 2, 3]), unnest([1, 2]); 
+    cr> select unnest([1, 2, 3]), unnest([1, 2]);
     +-------------------+----------------+
     | unnest([1, 2, 3]) | unnest([1, 2]) |
     +-------------------+----------------+

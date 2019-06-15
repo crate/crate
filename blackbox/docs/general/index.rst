@@ -1,7 +1,7 @@
 .. _general-use:
 
 ===========
-General Use
+General use
 ===========
 
 This section of the documentation covers any feature primarily of interest to a

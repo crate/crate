@@ -2,7 +2,7 @@
 .. _sql_reference_expression:
 
 =================
-Value Expressions
+Value expressions
 =================
 
 Value expressions are expressions which return a single value.

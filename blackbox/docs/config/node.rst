@@ -3,7 +3,7 @@
 .. _conf-node-settings:
 
 ======================
-Node Specific Settings
+Node-specific settings
 ======================
 
 .. rubric:: Table of contents

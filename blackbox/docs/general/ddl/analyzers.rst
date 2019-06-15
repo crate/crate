@@ -1,7 +1,7 @@
 .. _sql-analyzer:
 
 ==================
-Fulltext Analyzers
+Fulltext analyzers
 ==================
 
 .. rubric:: Table of contents

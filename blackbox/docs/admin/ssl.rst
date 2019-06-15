@@ -1,7 +1,7 @@
 .. _admin_ssl:
 
 ================================
-Secured Communications (SSL/TLS)
+Secured communications (SSL/TLS)
 ================================
 
 Secured communication allows you to encrypt traffic between the CrateDB node

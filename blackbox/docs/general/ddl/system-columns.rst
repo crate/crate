@@ -1,7 +1,7 @@
 .. _sql_administration_system_columns:
 
 ==============
-System Columns
+System columns
 ==============
 
 On every user table CrateDB implements several implicitly defined system columns.
@@ -18,9 +18,9 @@ _version
 .. NOTE::
 
    Using the ``_version`` column for `Optimistic Concurrency Control`_ has been
-   deprecated in favour of using the :ref:`_seq_no 
-   <sql_administration_system_columns_seq_no>` and :ref:`_primary_term 
-   <sql_administration_system_columns_primary_term>`. 
+   deprecated in favour of using the :ref:`_seq_no
+   <sql_administration_system_columns_seq_no>` and :ref:`_primary_term
+   <sql_administration_system_columns_primary_term>`.
    See :ref:`sql_occ` for usage details.
 
 .. _sql_administration_system_columns_seq_no:
@@ -29,9 +29,9 @@ _seq_no
   The CrateDB primary shards will increment a sequence number for every insert,
   update and delete operation executed against a row. The current sequence
   number of a row is exposed under this column. This column can be used in
-  conjunction with the :ref:`_primary_term 
+  conjunction with the :ref:`_primary_term
   <sql_administration_system_columns_primary_term>` column for
-  `Optimistic Concurrency Control`_, see :ref:`sql_occ` for usage details. 
+  `Optimistic Concurrency Control`_, see :ref:`sql_occ` for usage details.
 
 .. _sql_administration_system_columns_primary_term:
 
