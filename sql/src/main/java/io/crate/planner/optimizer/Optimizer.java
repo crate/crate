@@ -35,7 +35,6 @@ public class Optimizer {
 
     private static final Logger LOGGER = LogManager.getLogger(Optimizer.class);
 
-
     private List<Rule<?>> rules;
 
     public Optimizer(List<Rule<?>> rules) {
