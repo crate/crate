@@ -136,6 +136,28 @@ public class OuterJoinIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void test_filter_will_be_applied_after_outer_join() {
+        execute("create table t1 (id int, is_match int)");
+        execute("create table t2 (id int, t1_id int)");
+        execute("insert into t1 (id, is_match) values " +
+                "(1, 0),\n" +
+                "(2, 1),\n" +
+                "(36, 1)");
+        execute("insert into t2 (id, t1_id) values " +
+                "(1, 1),\n" +
+                "(2, 2),\n" +
+                "(3, null)");   // this row must be filtered out after the full join
+        refresh();
+
+        execute("SELECT t2.id, t2.t1_id, t1.id, t1.is_match " +
+                "FROM t2 " +
+                "FULL OUTER JOIN t1 ON (t1.id = t2.t1_id) " +
+                "WHERE (t1.is_match = 1) ");
+        assertThat(printedTable(response.rows()), is("2| 2| 2| 1\n" +
+                                                     "NULL| NULL| 36| 1\n"));
+    }
+
+    @Test
     public void testOuterJoinWithFunctionsInOrderBy() {
         execute("select coalesce(persons.name, ''), coalesce(offices.name, '') from" +
                 " offices full join employees as persons on office_id = offices.id" +
