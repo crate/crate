@@ -455,6 +455,7 @@ public class Session implements AutoCloseable {
     }
 
     private CompletableFuture<?> bulkExec(Statement statement, List<DeferredExecution> toExec) {
+        assert toExec.size() >= 1 : "Must have at least 1 deferred execution for bulk exec";
         var jobId = UUID.randomUUID();
         var routingProvider = new RoutingProvider(Randomness.get().nextInt(), planner.getAwarenessAttributes());
         var clusterState = executor.clusterService().state();
@@ -472,14 +473,20 @@ public class Session implements AutoCloseable {
         Analysis analysis = analyzer.boundAnalyze(
             statement, currentTxnCtx, new ParameterContext(Row.EMPTY, bulkArgs));
         Plan plan;
+        PreparedStmt firstPreparedStatement = toExec.get(0).portal().preparedStmt();
         try {
             plan = planner.plan(analysis.analyzedStatement(), plannerContext);
         } catch (Throwable t) {
-            PreparedStmt preparedStmt = toExec.get(0).portal().preparedStmt();
             jobsLogs.logPreExecutionFailure(
-                jobId, preparedStmt.rawStatement(), SQLExceptions.messageOf(t), sessionContext.user());
+                jobId, firstPreparedStatement.rawStatement(), SQLExceptions.messageOf(t), sessionContext.user());
             throw t;
         }
+        jobsLogs.logExecutionStart(
+            jobId,
+            firstPreparedStatement.rawStatement(),
+            sessionContext.user(),
+            StatementClassifier.classify(plan)
+        );
         List<CompletableFuture<Long>> rowCounts = plan.executeBulk(
             executor,
             plannerContext,
