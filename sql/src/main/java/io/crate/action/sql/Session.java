@@ -436,15 +436,13 @@ public class Session implements AutoCloseable {
                     return bulkExec(entry.getKey(), entry.getValue());
                 } else {
                     LOGGER.debug("method=sync batchExec");
+                    if (deferredExecutions.stream().anyMatch(x -> !x.portal().boundOrUnboundStatement().isWriteOperation())) {
+                        throw new UnsupportedOperationException(
+                            "Only write operations are allowed in Batch statements");
+                    }
                     List<? extends CompletableFuture<?>> futures = Lists2.map(
                         deferredExecutions,
-                        x -> {
-                            if (!x.portal().boundOrUnboundStatement().isWriteOperation()) {
-                                throw new UnsupportedOperationException(
-                                    "Only write operations are allowed in Batch statements");
-                            }
-                            return singleExec(x.portal(), x.resultReceiver(), x.maxRows());
-                        }
+                        x -> singleExec(x.portal(), x.resultReceiver(), x.maxRows())
                     );
                     return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
                 }
