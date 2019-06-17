@@ -27,6 +27,7 @@ import io.crate.integrationtests.SQLTransportIntegrationTest;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.index.CorruptIndexException;
 import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.NoShardAvailableActionException;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
@@ -318,9 +319,9 @@ public class ClusterDisruptionIT extends AbstractDisruptionTestCase {
         networkDisruption.startDisrupting();
 
         service.localShardFailed(failedShard, "simulated", new CorruptIndexException("simulated", (String) null),
-            new ShardStateAction.Listener() {
+            new ActionListener<>() {
                 @Override
-                public void onSuccess() {
+                public void onResponse(Void aVoid) {
                     success.set(true);
                     latch.countDown();
                 }
