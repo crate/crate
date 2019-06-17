@@ -27,11 +27,17 @@ import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.Relations;
 import io.crate.analyze.TableDefinitions;
 import io.crate.auth.user.AccessControl;
+import io.crate.data.Row;
+import io.crate.data.RowConsumer;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.ParameterSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.planner.DependencyCarrier;
+import io.crate.planner.Plan;
+import io.crate.planner.Planner;
+import io.crate.planner.PlannerContext;
+import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -41,12 +47,16 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 import org.mockito.Answers;
+import org.mockito.ArgumentMatchers;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
+import static java.util.concurrent.CompletableFuture.completedFuture;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
@@ -380,5 +390,51 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         session.close((byte) 'S', "S_1");
         assertThat(session.portals.entrySet(), Matchers.empty());
         assertThat(session.preparedStatements.entrySet(), Matchers.empty());
+    }
+
+    @Test
+    public void test_bulk_operations_result_in_jobslog_entries() throws Exception {
+        SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService)
+            .addTable("create table t1 (x int)")
+            .build();
+        DependencyCarrier executor = mock(DependencyCarrier.class, Answers.RETURNS_MOCKS);
+        Planner planner = mock(Planner.class);
+        when(planner.plan(ArgumentMatchers.any(AnalyzedStatement.class), ArgumentMatchers.any(PlannerContext.class)))
+            .thenReturn(new Plan() {
+                            @Override
+                            public StatementType type() {
+                                return StatementType.INSERT;
+                            }
+
+                            @Override
+                            public void executeOrFail(DependencyCarrier dependencies, PlannerContext plannerContext, RowConsumer consumer, Row params, SubQueryResults subQueryResults) throws Exception {
+
+                            }
+
+                            @Override
+                            public List<CompletableFuture<Long>> executeBulk(DependencyCarrier executor, PlannerContext plannerContext, List<Row> bulkParams, SubQueryResults subQueryResults) {
+                                return List.of(completedFuture(1L), completedFuture(1L));
+                            }
+                        }
+            );
+        JobsLogs jobsLogs = new JobsLogs(() -> true);
+        Session session = new Session(
+            sqlExecutor.analyzer,
+            planner,
+            jobsLogs,
+            false,
+            executor,
+            AccessControl.DISABLED,
+            SessionContext.systemSessionContext());
+
+        session.parse("S_1", "INSERT INTO t1 (x) VALUES (1)", List.of());
+        session.bind("P_1", "S_1", List.of(), null);
+        session.execute("P_1", 0, new BaseResultReceiver());
+
+        session.bind("P_1", "S_1", List.of(), null);
+        session.execute("P_1", 0, new BaseResultReceiver());
+
+        session.sync().get(5, TimeUnit.SECONDS);
+        assertThat(jobsLogs.metrics().iterator().next().totalCount(), is(1L));
     }
 }
