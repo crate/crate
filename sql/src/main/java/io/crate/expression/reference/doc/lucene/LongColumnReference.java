@@ -21,17 +21,16 @@
 
 package io.crate.expression.reference.doc.lucene;
 
-import io.crate.exceptions.GroupByOnArrayUnsupportedException;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.SortedNumericDocValues;
+import org.apache.lucene.index.NumericDocValues;
 
 import java.io.IOException;
 
 public class LongColumnReference extends LuceneCollectorExpression<Long> {
 
     private final String columnName;
-    private SortedNumericDocValues values;
+    private NumericDocValues values;
     private Long value;
 
     public LongColumnReference(String columnName) {
@@ -47,14 +46,7 @@ public class LongColumnReference extends LuceneCollectorExpression<Long> {
     public void setNextDocId(int docId) throws IOException {
         super.setNextDocId(docId);
         if (values.advanceExact(docId)) {
-            switch (values.docValueCount()) {
-                case 1:
-                    value = values.nextValue();
-                    break;
-
-                default:
-                    throw new GroupByOnArrayUnsupportedException(columnName);
-            }
+            value = values.longValue();
         } else {
             value = null;
         }
@@ -63,7 +55,7 @@ public class LongColumnReference extends LuceneCollectorExpression<Long> {
     @Override
     public void setNextReader(LeafReaderContext context) throws IOException {
         super.setNextReader(context);
-        values = DocValues.getSortedNumeric(context.reader(), columnName);
+        values = DocValues.getNumeric(context.reader(), columnName);
     }
 }
 

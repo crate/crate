@@ -20,7 +20,7 @@
 package org.elasticsearch.index.mapper;
 
 import org.apache.lucene.document.LongPoint;
-import org.apache.lucene.document.SortedNumericDocValuesField;
+import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.document.StoredField;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
@@ -307,7 +307,7 @@ public class DateFieldMapper extends FieldMapper {
             }
             Query query = LongPoint.newRangeQuery(name(), l, u);
             if (hasDocValues()) {
-                Query dvQuery = SortedNumericDocValuesField.newSlowRangeQuery(name(), l, u);
+                Query dvQuery = NumericDocValuesField.newSlowRangeQuery(name(), l, u);
                 query = new IndexOrDocValuesQuery(query, dvQuery);
             }
             return query;
@@ -417,7 +417,7 @@ public class DateFieldMapper extends FieldMapper {
             fields.add(new LongPoint(fieldType().name(), timestamp));
         }
         if (fieldType().hasDocValues()) {
-            fields.add(new SortedNumericDocValuesField(fieldType().name(), timestamp));
+            fields.add(new NumericDocValuesField(fieldType().name(), timestamp));
         } else if (fieldType().stored() || fieldType().indexOptions() != IndexOptions.NONE) {
             createFieldNamesField(context, fields);
         }

@@ -25,6 +25,7 @@ import org.apache.lucene.document.FloatPoint;
 import org.apache.lucene.document.HalfFloatPoint;
 import org.apache.lucene.document.IntPoint;
 import org.apache.lucene.document.LongPoint;
+import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.document.StoredField;
 import org.apache.lucene.index.IndexOptions;
@@ -316,7 +317,7 @@ public class NumberFieldMapper extends FieldMapper {
                 }
                 Query query = FloatPoint.newRangeQuery(field, l, u);
                 if (hasDocValues) {
-                    Query dvQuery = SortedNumericDocValuesField.newSlowRangeQuery(field,
+                    Query dvQuery = NumericDocValuesField.newSlowRangeQuery(field,
                             NumericUtils.floatToSortableInt(l),
                             NumericUtils.floatToSortableInt(u));
                     query = new IndexOrDocValuesQuery(query, dvQuery);
@@ -332,7 +333,7 @@ public class NumberFieldMapper extends FieldMapper {
                     fields.add(new FloatPoint(name, value.floatValue()));
                 }
                 if (docValued) {
-                    fields.add(new SortedNumericDocValuesField(name,
+                    fields.add(new NumericDocValuesField(name,
                         NumericUtils.floatToSortableInt(value.floatValue())));
                 }
                 if (stored) {
@@ -392,7 +393,7 @@ public class NumberFieldMapper extends FieldMapper {
                 }
                 Query query = DoublePoint.newRangeQuery(field, l, u);
                 if (hasDocValues) {
-                    Query dvQuery = SortedNumericDocValuesField.newSlowRangeQuery(field,
+                    Query dvQuery = NumericDocValuesField.newSlowRangeQuery(field,
                             NumericUtils.doubleToSortableLong(l),
                             NumericUtils.doubleToSortableLong(u));
                     query = new IndexOrDocValuesQuery(query, dvQuery);
@@ -408,7 +409,7 @@ public class NumberFieldMapper extends FieldMapper {
                     fields.add(new DoublePoint(name, value.doubleValue()));
                 }
                 if (docValued) {
-                    fields.add(new SortedNumericDocValuesField(name,
+                    fields.add(new NumericDocValuesField(name,
                         NumericUtils.doubleToSortableLong(value.doubleValue())));
                 }
                 if (stored) {
@@ -629,7 +630,7 @@ public class NumberFieldMapper extends FieldMapper {
                 }
                 Query query = IntPoint.newRangeQuery(field, l, u);
                 if (hasDocValues) {
-                    Query dvQuery = SortedNumericDocValuesField.newSlowRangeQuery(field, l, u);
+                    Query dvQuery = NumericDocValuesField.newSlowRangeQuery(field, l, u);
                     query = new IndexOrDocValuesQuery(query, dvQuery);
                 }
                 return query;
@@ -643,7 +644,7 @@ public class NumberFieldMapper extends FieldMapper {
                     fields.add(new IntPoint(name, value.intValue()));
                 }
                 if (docValued) {
-                    fields.add(new SortedNumericDocValuesField(name, value.intValue()));
+                    fields.add(new NumericDocValuesField(name, value.intValue()));
                 }
                 if (stored) {
                     fields.add(new StoredField(name, value.intValue()));
@@ -748,7 +749,7 @@ public class NumberFieldMapper extends FieldMapper {
                 }
                 Query query = LongPoint.newRangeQuery(field, l, u);
                 if (hasDocValues) {
-                    Query dvQuery = SortedNumericDocValuesField.newSlowRangeQuery(field, l, u);
+                    Query dvQuery = NumericDocValuesField.newSlowRangeQuery(field, l, u);
                     query = new IndexOrDocValuesQuery(query, dvQuery);
                 }
                 return query;
@@ -762,7 +763,7 @@ public class NumberFieldMapper extends FieldMapper {
                     fields.add(new LongPoint(name, value.longValue()));
                 }
                 if (docValued) {
-                    fields.add(new SortedNumericDocValuesField(name, value.longValue()));
+                    fields.add(new NumericDocValuesField(name, value.longValue()));
                 }
                 if (stored) {
                     fields.add(new StoredField(name, value.longValue()));
