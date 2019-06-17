@@ -32,7 +32,6 @@ import io.crate.shade.org.postgresql.util.PSQLState;
 import io.crate.testing.UseJdbc;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
-import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.BeforeClass;
