@@ -186,10 +186,9 @@ public class TransportResyncReplicationAction extends TransportWriteAction<Resyn
         }
 
         @Override
-        public void failShardIfNeeded(ShardRouting replica, String message, Exception exception, Runnable onSuccess,
-                                      Consumer<Exception> onPrimaryDemoted, Consumer<Exception> onIgnoredFailure) {
-            shardStateAction.remoteShardFailed(replica.shardId(), replica.allocationId().getId(), primaryTerm, false, message, exception,
-                createShardActionListener(onSuccess, onPrimaryDemoted, onIgnoredFailure));
+        public void failShardIfNeeded(ShardRouting replica, String message, Exception exception, ActionListener<Void> listener) {
+            shardStateAction.remoteShardFailed(
+                replica.shardId(), replica.allocationId().getId(), primaryTerm, false, message, exception, listener);
         }
     }
 }
