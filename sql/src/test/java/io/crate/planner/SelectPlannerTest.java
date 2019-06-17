@@ -855,6 +855,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(logicalPlan, isPlan(e.functions(),
             "RootBoundary[id, name, date, obj]\n" +
             "FetchOrEval[id, name, date, obj]\n" +
+            "Boundary[_fetchid, date]\n" +  // aliased relation boundary
             "Boundary[_fetchid, date]\n" +
             "Collect[doc.parted | [_fetchid, date] | date IS NULL]\n"
         ));

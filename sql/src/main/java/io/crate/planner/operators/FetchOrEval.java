@@ -27,7 +27,6 @@ import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedTable;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.AnalyzedView;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
@@ -49,6 +48,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
@@ -57,6 +57,7 @@ import io.crate.planner.ReaderAllocations;
 import io.crate.planner.consumer.FetchMode;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.fetch.FetchSource;
+import io.crate.sql.tree.QualifiedName;
 import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
@@ -66,6 +67,7 @@ import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiConsumer;
 
@@ -265,12 +267,13 @@ public class FetchOrEval extends ForwardingLogicalPlan {
         Map<RelationName, FetchSource> fetchSourceByTableId = new HashMap<>();
         LinkedHashSet<Reference> allFetchRefs = new LinkedHashSet<>();
 
-        Map<DocTableRelation, InputColumn> fetchInputColumnsByTable = buildFetchInputColumnsMap(sourceOutputs);
-        BiConsumer<DocTableRelation, Reference> allocateFetchRef = (rel, ref) -> {
-            RelationName relationName = rel.tableInfo().ident();
+        Map<FullQualifiedTableRelation, InputColumn> fetchInputColumnsByTable = buildFetchInputColumnsMap(sourceOutputs);
+        BiConsumer<FullQualifiedTableRelation, Reference> allocateFetchRef = (rel, ref) -> {
+            DocTableInfo tableInfo = rel.docTableRelation.tableInfo();
+            RelationName relationName = tableInfo.ident();
             FetchSource fetchSource = fetchSourceByTableId.get(relationName);
             if (fetchSource == null) {
-                fetchSource = new FetchSource(rel.tableInfo().partitionedByColumns());
+                fetchSource = new FetchSource(tableInfo.partitionedByColumns());
                 fetchSourceByTableId.put(relationName, fetchSource);
             }
             if (ref.granularity() == RowGranularity.DOC) {
@@ -286,7 +289,8 @@ public class FetchOrEval extends ForwardingLogicalPlan {
                 sourceOutputs,
                 fetchInputColumnsByTable,
                 allocateFetchRef,
-                source.expressionMapping())
+                source.expressionMapping(),
+                null)
             );
         }
         if (source.baseTables().size() == 1) {
@@ -299,6 +303,7 @@ public class FetchOrEval extends ForwardingLogicalPlan {
                     sourceOutputs,
                     fetchInputColumnsByTable,
                     allocateFetchRef,
+                    source.getRelationNames().iterator().next(),
                     source.baseTables().get(0)));
         }
         if (fetchSourceByTableId.isEmpty()) {
@@ -333,8 +338,9 @@ public class FetchOrEval extends ForwardingLogicalPlan {
 
     private static Symbol transformRefs(Symbol output,
                                         List<Symbol> sourceOutputs,
-                                        Map<DocTableRelation, InputColumn> fetchInputColumnsByTable,
-                                        BiConsumer<DocTableRelation, Reference> allocateFetchRef,
+                                        Map<FullQualifiedTableRelation, InputColumn> fetchInputColumnsByTable,
+                                        BiConsumer<FullQualifiedTableRelation, Reference> allocateFetchRef,
+                                        QualifiedName relationName,
                                         AbstractTableRelation baseTable) {
         int idxInSource = sourceOutputs.indexOf(output);
         if (idxInSource > -1) {
@@ -353,27 +359,30 @@ public class FetchOrEval extends ForwardingLogicalPlan {
             if (ref.granularity() == RowGranularity.DOC) {
                 ref = DocReferences.toSourceLookup(ref);
             }
-            allocateFetchRef.accept(docTableRelation, ref);
-            return new FetchReference(fetchInputColumnsByTable.get(docTableRelation), ref);
+            FullQualifiedTableRelation fqRel = new FullQualifiedTableRelation(relationName, docTableRelation);
+            allocateFetchRef.accept(fqRel, ref);
+            return new FetchReference(fetchInputColumnsByTable.get(fqRel), ref);
         });
     }
 
-    private Map<DocTableRelation, InputColumn> buildFetchInputColumnsMap(List<Symbol> outputs) {
-        HashMap<DocTableRelation, InputColumn> m = new HashMap<>();
+    private Map<FullQualifiedTableRelation, InputColumn> buildFetchInputColumnsMap(List<Symbol> outputs) {
+        HashMap<FullQualifiedTableRelation, InputColumn> m = new HashMap<>();
         for (int i = 0; i < outputs.size(); i++) {
             Symbol output = outputs.get(i);
             if (output instanceof Field &&
                 ((Field) output).path().sqlFqn().equals(DocSysColumns.FETCHID.sqlFqn())) {
 
                 DocTableRelation rel = resolveDocTableRelation(output);
-                m.put(rel, new InputColumn(i, DataTypes.LONG));
+                FullQualifiedTableRelation fqRel = new FullQualifiedTableRelation(
+                    ((Field) output).relation().getQualifiedName(), rel);
+                m.put(fqRel, new InputColumn(i, DataTypes.LONG));
             } else if (output instanceof Reference &&
                        ((Reference) output).column().equals(DocSysColumns.FETCHID)) {
                 assert source.baseTables().size() == 1 : "There must only be one table if dealing with References";
                 AbstractTableRelation tableRelation = source.baseTables().get(0);
                 assert tableRelation instanceof DocTableRelation : "baseTable must be a DocTable if there is a fetchId";
 
-                m.put(((DocTableRelation) tableRelation), new InputColumn(i, DataTypes.LONG));
+                m.put(new FullQualifiedTableRelation(((DocTableRelation) tableRelation)), new InputColumn(i, DataTypes.LONG));
             }
         }
         return m;
@@ -386,29 +395,33 @@ public class FetchOrEval extends ForwardingLogicalPlan {
             old = mapped;
             if (old instanceof Field) {
                 Field field = (Field) old;
-                AnalyzedRelation relation;
-                if (field.relation() instanceof AnalyzedView) {
-                    relation = ((AnalyzedView) field.relation()).relation();
-                } else {
-                    relation = field.relation();
-                }
-                if (relation instanceof DocTableRelation) {
-                    return (DocTableRelation) relation;
-                }
-                if (relation instanceof QueriedTable
-                    && ((QueriedTable) relation).tableRelation() instanceof DocTableRelation) {
-                    return ((DocTableRelation) ((QueriedTable) relation).tableRelation());
+                DocTableRelation tableRelation = resolveDocTableRelation(field);
+                if (tableRelation != null) {
+                    return tableRelation;
                 }
             }
         } while ((mapped = source.expressionMapping().get(old)) != null);
         throw new IllegalStateException("Couldn't retrieve DocTableRelation from " + output);
     }
 
+    private static DocTableRelation resolveDocTableRelation(Field field) {
+        AnalyzedRelation relation = field.relation();
+        if (relation instanceof DocTableRelation) {
+            return (DocTableRelation) relation;
+        }
+        if (relation instanceof QueriedTable
+            && ((QueriedTable) relation).tableRelation() instanceof DocTableRelation) {
+            return ((DocTableRelation) ((QueriedTable) relation).tableRelation());
+        }
+        return null;
+    }
+
     private static Symbol toInputColOrFetchRef(Symbol output,
                                                List<Symbol> sourceOutputs,
-                                               Map<DocTableRelation, InputColumn> fetchInputColumnsByTable,
-                                               BiConsumer<DocTableRelation, Reference> allocateFetchRef,
-                                               Map<Symbol, Symbol> expressionMapping) {
+                                               Map<FullQualifiedTableRelation, InputColumn> fetchInputColumnsByTable,
+                                               BiConsumer<FullQualifiedTableRelation, Reference> allocateFetchRef,
+                                               Map<Symbol, Symbol> expressionMapping,
+                                               @Nullable QualifiedName currentQualifiedName) {
         int idxInSource = sourceOutputs.indexOf(output);
         if (idxInSource > -1) {
             return new InputColumn(idxInSource, sourceOutputs.get(idxInSource).valueType());
@@ -419,31 +432,40 @@ public class FetchOrEval extends ForwardingLogicalPlan {
                 return new InputColumn(idx, sourceOutputs.get(idx).valueType());
             }
             AnalyzedRelation relation = f.relation();
-            DocTableRelation docTableRelation = relation instanceof DocTableRelation
-                ? (DocTableRelation) relation
-                : (relation instanceof QueriedTable && ((QueriedTable) relation).tableRelation() instanceof DocTableRelation
-                    ? ((DocTableRelation) ((QueriedTable) relation).tableRelation())
-                    : null);
-            if (docTableRelation != null) {
-                Symbol symbol = expressionMapping.get(f);
+            final QualifiedName qualifiedName;
+            if (currentQualifiedName != null) {
+                qualifiedName = currentQualifiedName;
+            } else {
+                qualifiedName = relation.getQualifiedName();
+            }
+
+            Symbol symbol = expressionMapping.get(f);
+            if (symbol == null) {
+                // If we've a subscript like obj['x'] and `obj` isn't in the outputs of the source relation it is
+                // missing in the expression mapping
+                symbol = f.pointer();
+            }
+
+            if (symbol instanceof Reference) {
                 return RefReplacer.replaceRefs(symbol, ref -> {
+                    DocTableRelation docTableRelation = resolveDocTableRelation(f);
+                    assert docTableRelation != null : "Couldn't retrieve DocTableRelation from " + f;
+
                     if (ref.granularity() == RowGranularity.DOC) {
                         ref = DocReferences.toSourceLookup(ref);
                     }
-                    allocateFetchRef.accept(docTableRelation, ref);
-                    InputColumn fetchId = fetchInputColumnsByTable.get(docTableRelation);
+                    FullQualifiedTableRelation fqRel = new FullQualifiedTableRelation(qualifiedName, docTableRelation);
+                    allocateFetchRef.accept(fqRel, ref);
+                    InputColumn fetchId = fetchInputColumnsByTable.get(fqRel);
                     assert fetchId != null : "fetchId InputColumn for " + docTableRelation + " must be present";
                     return new FetchReference(fetchId, ref);
                 });
             }
-            Symbol mapped = expressionMapping.get(output);
-            if (mapped == null) {
-                mapped = expressionMapping.get(f);
-            }
-            assert mapped != null
+
+            assert symbol != null
                 : "Field mapping must exists for " + output + " in " + expressionMapping;
             return toInputColOrFetchRef(
-                mapped, sourceOutputs, fetchInputColumnsByTable, allocateFetchRef, expressionMapping);
+                symbol, sourceOutputs, fetchInputColumnsByTable, allocateFetchRef, expressionMapping, qualifiedName);
         });
     }
 
@@ -490,5 +512,38 @@ public class FetchOrEval extends ForwardingLogicalPlan {
     @Override
     public <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context) {
         return visitor.visitFetchOrEval(this, context);
+    }
+
+    private static class FullQualifiedTableRelation {
+        private final QualifiedName qualifiedName;
+        private final DocTableRelation docTableRelation;
+
+        FullQualifiedTableRelation(DocTableRelation docTableRelation) {
+            this(docTableRelation.getQualifiedName(), docTableRelation);
+        }
+
+        FullQualifiedTableRelation(QualifiedName qualifiedName,
+                                   DocTableRelation docTableRelation) {
+            this.qualifiedName = qualifiedName;
+            this.docTableRelation = docTableRelation;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            FullQualifiedTableRelation that = (FullQualifiedTableRelation) o;
+            return Objects.equals(qualifiedName, that.qualifiedName) &&
+                   Objects.equals(docTableRelation, that.docTableRelation);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(qualifiedName, docTableRelation);
+        }
     }
 }

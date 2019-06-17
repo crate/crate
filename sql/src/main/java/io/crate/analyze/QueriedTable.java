@@ -30,7 +30,6 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Iterator;
@@ -93,7 +92,7 @@ public final class QueriedTable<TR extends AbstractTableRelation> implements Ana
         if (operation != Operation.READ) {
             throw new UnsupportedOperationException("getField on SelectAnalyzedStatement is only supported for READ operations");
         }
-        return fields.get(path);
+        return fields.getWithSubscriptFallback(path, this, tableRelation);
     }
 
     @Override
@@ -104,11 +103,6 @@ public final class QueriedTable<TR extends AbstractTableRelation> implements Ana
     @Override
     public QualifiedName getQualifiedName() {
         return tableRelation.getQualifiedName();
-    }
-
-    @Override
-    public void setQualifiedName(@Nonnull QualifiedName qualifiedName) {
-        tableRelation.setQualifiedName(qualifiedName);
     }
 
     @Override

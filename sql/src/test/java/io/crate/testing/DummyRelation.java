@@ -35,7 +35,6 @@ import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.types.DataTypes;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.HashSet;
 import java.util.List;
@@ -76,11 +75,6 @@ public class DummyRelation implements AnalyzedRelation {
     @Override
     public QualifiedName getQualifiedName() {
         return name;
-    }
-
-    @Override
-    public void setQualifiedName(@Nonnull QualifiedName qualifiedName) {
-        this.name = qualifiedName;
     }
 
     @Override

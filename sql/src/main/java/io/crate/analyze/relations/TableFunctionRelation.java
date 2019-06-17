@@ -29,14 +29,18 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
+import io.crate.sql.tree.QualifiedName;
 
 public class TableFunctionRelation extends TableRelation {
 
     private final TableFunctionImplementation functionImplementation;
     private final Function function;
 
-    public TableFunctionRelation(TableInfo tableInfo, TableFunctionImplementation functionImplementation, Function function) {
-        super(tableInfo);
+    public TableFunctionRelation(TableInfo tableInfo,
+                                 TableFunctionImplementation functionImplementation,
+                                 Function function,
+                                 QualifiedName qualifiedName) {
+        super(tableInfo, qualifiedName);
         this.functionImplementation = functionImplementation;
         this.function = function;
     }

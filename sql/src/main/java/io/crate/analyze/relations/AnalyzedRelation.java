@@ -33,7 +33,6 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.List;
 import java.util.function.Consumer;
@@ -47,9 +46,6 @@ public interface AnalyzedRelation extends AnalyzedStatement {
     List<Field> fields();
 
     QualifiedName getQualifiedName();
-
-    void setQualifiedName(@Nonnull QualifiedName qualifiedName);
-
 
     /** * @return The outputs of the relation */
     List<Symbol> outputs();

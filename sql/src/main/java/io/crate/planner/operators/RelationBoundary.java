@@ -28,12 +28,14 @@ import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.Field;
+import io.crate.expression.symbol.FieldsVisitor;
 import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.SubqueryPlanner;
+import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
@@ -42,6 +44,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 
 /**
@@ -79,6 +82,12 @@ public class RelationBoundary extends ForwardingLogicalPlan {
                         expressionMapping.put(field, r);
                     }
                 });
+                FieldsVisitor.visitFields(symbol, f -> {
+                    Field field = new Field(relation, f.path(), f);
+                    if (reverseMapping.putIfAbsent(f, field) == null) {
+                        expressionMapping.put(field, f);
+                    }
+                });
             }
             List<Symbol> outputs = OperatorUtils.mappedSymbols(source.outputs(), reverseMapping);
             expressionMapping.putAll(source.expressionMapping());
@@ -109,6 +118,11 @@ public class RelationBoundary extends ForwardingLogicalPlan {
         this.dependencies = Collections.unmodifiableMap(allSubQueries);
         this.relation = relation;
         this.reverseMapping = reverseMapping;
+    }
+
+    @Override
+    public Set<QualifiedName> getRelationNames() {
+        return Set.of(relation.getQualifiedName());
     }
 
     @Override

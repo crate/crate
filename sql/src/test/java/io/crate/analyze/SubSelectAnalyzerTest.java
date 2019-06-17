@@ -24,6 +24,7 @@ package io.crate.analyze;
 
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.relations.AbstractTableRelation;
+import io.crate.analyze.relations.AliasedAnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.exceptions.AmbiguousColumnAliasException;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -95,8 +96,9 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(relation.fields().get(0), isField("aa"));
         assertThat(relation.fields().get(1), isField("(xi + 1)"));
 
+        QueriedTable queriedTable = (QueriedTable) ((AliasedAnalyzedRelation) relation.subRelation()).relation();
         assertThat(
-            ((QueriedTable<AbstractTableRelation>) relation.subRelation()).tableRelation().tableInfo(),
+            queriedTable.tableRelation().tableInfo(),
             is(t1Info)
         );
     }
@@ -113,7 +115,8 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testSubSelectWithJoins() throws Exception {
         QueriedSelectRelation relation = analyze(
             "select aliased_sub.a, aliased_sub.b from (select t1.a, t2.b from t1, t2) as aliased_sub");
-        MultiSourceSelect mss = (MultiSourceSelect) relation.subRelation();
+        AliasedAnalyzedRelation aliasRel = (AliasedAnalyzedRelation) relation.subRelation();
+        MultiSourceSelect mss = (MultiSourceSelect) aliasRel.relation();
         assertThat(mss.sources().size(), is(2));
         assertThat(mss.fields().size(), is(2));
         assertThat(mss.fields().get(0), isField("a"));
@@ -139,9 +142,9 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                    isSQL("SELECT t1.a, t1.i, t2.b, t2.i WHERE ((t1.a > '50') AND (t2.b > '100')) LIMIT 10"));
         assertThat(relation.joinPairs().get(0).condition(),
                    isSQL("(t1.i = t2.i)"));
-        assertThat(relation.sources().get(new QualifiedName("t1")),
+        assertThat(((AliasedAnalyzedRelation) relation.sources().get(new QualifiedName("t1"))).relation(),
                    isSQL("SELECT doc.t1.a, doc.t1.i ORDER BY doc.t1.a LIMIT 5"));
-        assertThat(relation.sources().get(new QualifiedName("t2")),
+        assertThat(((AliasedAnalyzedRelation) relation.sources().get(new QualifiedName("t2"))).relation(),
                    isSQL("SELECT doc.t2.b, doc.t2.i WHERE (doc.t2.b > '10')"));
     }
 
@@ -157,9 +160,9 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             isSQL("SELECT t1.a, t1.i, t2.b, t2.i WHERE ((t1.a > '50') AND (t2.b > '100')) ORDER BY t1.i LIMIT 10"));
         assertThat(relation.joinPairs().get(0).condition(),
             isSQL("(t1.i = t2.i)"));
-        assertThat(relation.sources().get(new QualifiedName("t1")),
+        assertThat(((AliasedAnalyzedRelation) relation.sources().get(new QualifiedName("t1"))).relation(),
             isSQL("SELECT doc.t1.a, doc.t1.i ORDER BY doc.t1.a LIMIT 5"));
-        assertThat(relation.sources().get(new QualifiedName("t2")),
+        assertThat(((AliasedAnalyzedRelation) relation.sources().get(new QualifiedName("t2"))).relation(),
             isSQL("SELECT doc.t2.b, doc.t2.i WHERE (doc.t2.b > '10')"));
     }
 
@@ -179,17 +182,19 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(relation.joinPairs().get(0).condition(), isFunction("op_=", isField("i"), isField("i")));
 
-        AnalyzedRelation t1Sub = relation.sources().get(new QualifiedName("t1"));
+        AliasedAnalyzedRelation t1Alias = (AliasedAnalyzedRelation) relation.sources().get(new QualifiedName("t1"));
+        AnalyzedRelation t1Sub = t1Alias.relation();
         assertThat(t1Sub.outputs(), contains(isField("a"), isField("i")));
         assertThat(t1Sub.orderBy().orderBySymbols(), contains(isField("a")));
         assertThat(t1Sub.limit(), isLiteral(10L));
 
-        AnalyzedRelation t1 = ((QueriedSelectRelation) t1Sub).subRelation();
+        AliasedAnalyzedRelation t1NestedAlias = (AliasedAnalyzedRelation) ((QueriedSelectRelation) t1Sub).subRelation();
+        AnalyzedRelation t1 = t1NestedAlias.relation();
         assertThat(t1.orderBy().orderBySymbols(), contains(isReference("a")));
         assertThat(t1.limit(), isLiteral(5L));
 
-
-        QueriedTable t2sub = (QueriedTable) relation.sources().get(new QualifiedName("t2"));
+        AliasedAnalyzedRelation t2Alias = (AliasedAnalyzedRelation) relation.sources().get(new QualifiedName("t2"));
+        QueriedTable t2sub = (QueriedTable) t2Alias.relation();
         assertThat(t2sub.where().query(), isFunction("op_>", isReference("b"), isLiteral("10")));
     }
 
@@ -205,11 +210,13 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(relation.orderBy().orderBySymbols(), contains(isField("i")));
         assertThat(relation.limit(), isLiteral(10L));
 
-        AnalyzedRelation t1 = relation.sources().get(new QualifiedName("t1"));
+        AliasedAnalyzedRelation t1Alias = (AliasedAnalyzedRelation) relation.sources().get(new QualifiedName("t1"));
+        AnalyzedRelation t1 = t1Alias.relation();
         assertThat(t1.where().queryOrFallback(), isSQL("true"));
         assertThat(t1.orderBy(), isSQL("doc.t1.a"));
 
-        AnalyzedRelation t2 = relation.sources().get(new QualifiedName("t2"));
+        AliasedAnalyzedRelation t2Alias = (AliasedAnalyzedRelation) relation.sources().get(new QualifiedName("t2"));
+        AnalyzedRelation t2 = t2Alias.relation();
         assertThat(t2.where().query(), isFunction("op_>", isReference("b"), isLiteral("10")));
         assertThat(t2.orderBy(), Matchers.nullValue());
     }
@@ -225,12 +232,14 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(relation.joinPairs().get(0).condition(), isSQL("(t1.i = t2.i)"));
         assertThat(relation.where().queryOrFallback(), isSQL("((t1.ma > '50') AND (t2.mb > '100'))"));
 
-        QueriedTable t1Sel = (QueriedTable) relation.sources().get(new QualifiedName("t1"));
+        AliasedAnalyzedRelation t1Alias = (AliasedAnalyzedRelation) relation.sources().get(new QualifiedName("t1"));
+        QueriedTable t1Sel = (QueriedTable) t1Alias.relation();
         assertThat(t1Sel.outputs(), isSQL("max(doc.t1.a), doc.t1.i"));
         assertThat(t1Sel.groupBy(), isSQL("doc.t1.i"));
         assertThat(t1Sel.having(), Matchers.nullValue());
 
-        QueriedTable t2Sel = (QueriedTable) relation.sources().get(new QualifiedName("t2"));
+        AliasedAnalyzedRelation t2Alias = (AliasedAnalyzedRelation) relation.sources().get(new QualifiedName("t2"));
+        QueriedTable t2Sel = (QueriedTable) t2Alias.relation();
         assertThat(t2Sel.outputs(), isSQL("max(doc.t2.b), doc.t2.i"));
         assertThat(t2Sel.groupBy(), isSQL("doc.t2.i"));
         assertThat(t2Sel.having(), isSQL("(doc.t2.i > 10)"));
@@ -257,7 +266,8 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(relation.fields().size(), is(2));
         assertThat(relation.fields().get(0), isField("a1"));
         assertThat(relation.fields().get(1), isField("a2"));
-        assertThat(((QueriedTable<AbstractTableRelation>) relation.subRelation()).tableRelation().tableInfo(), is(t1Info));
+        QueriedTable queriedTable = (QueriedTable) ((AliasedAnalyzedRelation) relation.subRelation()).relation();
+        assertThat(queriedTable.tableRelation().tableInfo(), is(t1Info));
     }
 
     @Test
@@ -272,6 +282,8 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(relation.fields().get(3), isField("iii"));
         assertThat(relation.fields().get(4), isField("abs(x)"));
         assertThat(relation.fields().get(5), isField("absx"));
-        assertThat(((QueriedTable<AbstractTableRelation>) relation.subRelation()).tableRelation().tableInfo(), is(t1Info));
+
+        QueriedTable queriedTable = (QueriedTable) ((AliasedAnalyzedRelation) relation.subRelation()).relation();
+        assertThat(queriedTable.tableRelation().tableInfo(), is(t1Info));
     }
 }
