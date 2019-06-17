@@ -433,14 +433,13 @@ public class Session implements AutoCloseable {
             default: {
                 Map<Statement, List<DeferredExecution>> deferredExecutions = Map.copyOf(this.deferredExecutionsByStmt);
                 this.deferredExecutionsByStmt.clear();
-                var futures = Lists2.map(deferredExecutions.entrySet(), x -> {
-                    var executions = x.getValue();
-                    if (executions.stream().anyMatch(y -> !y.portal().boundOrUnboundStatement().isWriteOperation())) {
+                for (var entry : deferredExecutions.entrySet()) {
+                    if (entry.getValue().stream().anyMatch(x -> !x.portal().boundOrUnboundStatement().isWriteOperation())) {
                         throw new UnsupportedOperationException(
                             "Only write operations are allowed in Batch statements");
                     }
-                    return exec(x.getKey(), executions);
-                });
+                }
+                var futures = Lists2.map(deferredExecutions.entrySet(), x -> exec(x.getKey(), x.getValue()));
                 return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
             }
         }
