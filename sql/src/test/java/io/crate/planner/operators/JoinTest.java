@@ -42,6 +42,7 @@ import io.crate.planner.TableStats;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.join.Join;
+import io.crate.planner.node.dql.join.JoinType;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
@@ -133,6 +134,37 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
         nl = plan(mss, tableStats);
         assertThat(((Reference) ((Collect) nl.left()).collectPhase().toCollect().get(0)).ident().tableIdent().name(), is("users"));
+    }
+
+    @Test
+    public void testNestedLoop_TablesAreSwitchedIfBlockJoinAndRightIsSmallerThanLeft() throws IOException {
+        // blockNL is only possible on single node clusters
+        e = SQLExecutor.builder(clusterService)
+            .addTable("create table j.left_table (id int)")
+            .addTable("create table j.right_table (id int)")
+            .build();
+        RelationName leftName = new RelationName("j", "left_table");
+        RelationName rightName = new RelationName("j", "right_table");
+
+        MultiSourceSelect mss = e.normalize("select * from j.left_table as l left join j.right_table as r on l.id = r.id");
+
+        TableStats tableStats = new TableStats();
+        ObjectObjectHashMap<RelationName, TableStats.Stats> rowCountByTable = new ObjectObjectHashMap<>();
+        rowCountByTable.put(leftName, new TableStats.Stats(10, 0));
+        rowCountByTable.put(rightName, new TableStats.Stats(10_000, 0));
+        tableStats.updateTableStats(rowCountByTable);
+
+        Join nl = plan(mss, tableStats);
+        assertThat(((Reference) ((Collect) nl.left()).collectPhase().toCollect().get(0)).ident().tableIdent().name(), is(leftName.name()));
+        assertThat(nl.joinPhase().joinType(), is(JoinType.LEFT));
+
+        rowCountByTable.put(leftName, new TableStats.Stats(10_000, 0));
+        rowCountByTable.put(rightName, new TableStats.Stats(10, 0));
+        tableStats.updateTableStats(rowCountByTable);
+
+        nl = plan(mss, tableStats);
+        assertThat(((Reference) ((Collect) nl.left()).collectPhase().toCollect().get(0)).ident().tableIdent().name(), is(rightName.name()));
+        assertThat(nl.joinPhase().joinType(), is(JoinType.RIGHT));  // ensure that also the join type inverted
     }
 
     @Test

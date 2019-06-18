@@ -383,6 +383,9 @@ Changes
 Fixes
 =====
 
+- Fixes an issue that caused wrong results when running ``LEFT`` or ``RIGHT``
+  outer joins on a single node cluster and the rows inside each table differs.
+
 - Fixed an issue in the PostgreSQL wire protocol implementation that could
   cause clients to receive a ``Only write operations are allowed in Batch
   statements`` if the client relied on the behavior that closing prepared
