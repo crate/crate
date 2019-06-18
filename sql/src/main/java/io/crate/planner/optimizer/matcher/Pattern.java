@@ -22,11 +22,23 @@
 
 package io.crate.planner.optimizer.matcher;
 
+import javax.annotation.Nullable;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
 public abstract class Pattern<T> {
+
+    @Nullable
+    private final Pattern<?> previous;
+
+    protected Pattern() {
+        this(null);
+    }
+
+    protected Pattern(@Nullable Pattern<?> previous) {
+        this.previous = previous;
+    }
 
     public static <T> Pattern<T> typeOf(Class<T> expectedClass) {
         return new TypeOfPattern<>(expectedClass);
@@ -45,4 +57,9 @@ public abstract class Pattern<T> {
     }
 
     public abstract Match<T> accept(Object object, Captures captures);
+
+    @Nullable
+    public Pattern<?> previous() {
+        return previous;
+    }
 }
