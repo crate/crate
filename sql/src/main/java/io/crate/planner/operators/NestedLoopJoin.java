@@ -159,6 +159,7 @@ class NestedLoopJoin extends TwoInputPlan {
                         (!left.resultDescription().nodeIds().isEmpty() && !right.resultDescription().nodeIds().isEmpty());
         boolean blockNlPossible = !isDistributed && isBlockNlPossible(left, right);
 
+        JoinType joinType = this.joinType;
         if (!orderByWasPushedDown && joinType.supportsInversion() &&
             (isDistributed && lhs.numExpectedRows() < rhs.numExpectedRows() && orderByFromLeft == null) ||
             (blockNlPossible && lhs.numExpectedRows() > rhs.numExpectedRows())) {
@@ -172,6 +173,7 @@ class NestedLoopJoin extends TwoInputPlan {
             right = tmpExecutionPlan;
             leftLogicalPlan = rhs;
             rightLogicalPlan = lhs;
+            joinType = joinType.invert();
         }
         Tuple<Collection<String>, List<MergePhase>> joinExecutionNodesAndMergePhases =
             configureExecution(left, right, plannerContext, isDistributed);
