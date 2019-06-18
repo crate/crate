@@ -120,8 +120,18 @@ public class Rewriter {
                                    JoinType joinType) {
         final Map<QualifiedName, QueriedRelation> outerRelations = groupOuterRelationQSByName(left, right, joinType);
         Map<Set<QualifiedName>, Symbol> splitQueries = QuerySplitter.split(where.query());
+
+        Function<Set<QualifiedName>, Symbol> splitQueryResolver = splitQueries::remove;
+        /*
+         * Filters on each side must be not be removed on FULL joins as each side can generate NULL's on outer joins
+         * which must be filtered out AFTER the join operation.
+         */
+        if (joinType == JoinType.FULL) {
+            splitQueryResolver = splitQueries::get;
+        }
+
         for (QualifiedName outerRelation : outerRelations.keySet()) {
-            Symbol outerRelationQuery = splitQueries.remove(Sets.newHashSet(outerRelation));
+            Symbol outerRelationQuery = splitQueryResolver.apply(Sets.newHashSet(outerRelation));
             if (outerRelationQuery == null) {
                 continue;
             }
