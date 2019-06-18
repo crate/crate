@@ -1,5 +1,8 @@
 pipeline {
   agent any
+  options {
+    timeout(time: 30, unit: 'MINUTES') 
+  }
   environment {
     CI_RUN = "true"
     JDK_11 = 'openjdk@1.11.0-2'
@@ -26,7 +29,7 @@ pipeline {
             sh 'git clean -xdff'
             checkout scm
             sh 'jabba install $JDK_11'
-            sh 'JAVA_HOME=$(jabba which --home $JDK_11) timeout 30m ./gradlew --no-daemon --parallel -PtestForks=8 test forbiddenApisMain jacocoReport'
+            sh 'JAVA_HOME=$(jabba which --home $JDK_11) ./gradlew --no-daemon --parallel -PtestForks=8 test forbiddenApisMain jacocoReport'
             sh 'curl -s https://codecov.io/bash | bash'
           }
           post {
@@ -44,7 +47,7 @@ pipeline {
             sh 'git clean -xdff'
             checkout scm
             sh 'jabba install $JDK_12'
-            sh 'JAVA_HOME=$(jabba which --home $JDK_12) timeout 30m ./gradlew --no-daemon --parallel -PtestForks=8 test jacocoReport'
+            sh 'JAVA_HOME=$(jabba which --home $JDK_12) ./gradlew --no-daemon --parallel -PtestForks=8 test jacocoReport'
             sh 'curl -s https://codecov.io/bash | bash'
           }
           post {
@@ -59,7 +62,7 @@ pipeline {
             sh 'git clean -xdff'
             checkout scm
             sh 'jabba install $JDK_11'
-            sh 'JAVA_HOME=$(jabba which --home $JDK_11) timeout 20m ./gradlew --no-daemon itest'
+            sh 'JAVA_HOME=$(jabba which --home $JDK_11) ./gradlew --no-daemon itest'
           }
         }
         stage('ce itest jdk11') {
@@ -68,7 +71,7 @@ pipeline {
             sh 'git clean -xdff'
             checkout scm
             sh 'jabba install $JDK_11'
-            sh 'JAVA_HOME=$(jabba which --home $JDK_11) timeout 20m ./gradlew --no-daemon ceItest'
+            sh 'JAVA_HOME=$(jabba which --home $JDK_11) ./gradlew --no-daemon ceItest'
           }
         }
         stage('ce licenseTest jdk11') {
@@ -77,7 +80,7 @@ pipeline {
             sh 'git clean -xdff'
             checkout scm
             sh 'jabba install $JDK_11'
-            sh 'JAVA_HOME=$(jabba which --home $JDK_11) timeout 20m ./gradlew --no-daemon ceLicenseTest'
+            sh 'JAVA_HOME=$(jabba which --home $JDK_11) ./gradlew --no-daemon ceLicenseTest'
           }
         }
         stage('itest jdk12') {
@@ -86,7 +89,7 @@ pipeline {
             sh 'git clean -xdff'
             checkout scm
             sh 'jabba install $JDK_12'
-            sh 'JAVA_HOME=$(jabba which --home $JDK_12) timeout 20m ./gradlew --no-daemon itest'
+            sh 'JAVA_HOME=$(jabba which --home $JDK_12) ./gradlew --no-daemon itest'
           }
         }
         stage('itest adopt-jdk-12') {
@@ -95,7 +98,7 @@ pipeline {
             sh 'git clean -xdff'
             checkout scm
             sh 'jabba install $ADOPT_JDK_12'
-            sh 'JAVA_HOME=$(jabba which --home $ADOPT_JDK_12) timeout 20m ./gradlew --no-daemon itest'
+            sh 'JAVA_HOME=$(jabba which --home $ADOPT_JDK_12) ./gradlew --no-daemon itest'
           }
         }
         stage('blackbox tests') {
@@ -104,7 +107,7 @@ pipeline {
             sh 'git clean -xdff'
             checkout scm
             sh 'jabba install $JDK_11'
-            sh 'JAVA_HOME=$(jabba which --home $JDK_11) timeout 20m ./gradlew --no-daemon hdfsTest monitoringTest gtest dnsDiscoveryTest'
+            sh 'JAVA_HOME=$(jabba which --home $JDK_11) ./gradlew --no-daemon hdfsTest monitoringTest gtest dnsDiscoveryTest'
           }
         }
       }
