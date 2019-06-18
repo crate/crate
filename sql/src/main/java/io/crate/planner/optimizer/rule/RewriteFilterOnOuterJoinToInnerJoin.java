@@ -220,7 +220,7 @@ public final class RewriteFilterOnOuterJoinToInnerJoin implements Rule<Filter> {
                  * In case the filter is only on one side, the join could be rewritten to a LEFT/RIGHT OUTER.
                  * TODO: Create a dedicated rule RewriteFilterOnOuterJoinToLeftOrRight
                  *
-                 * cr> select t1.x as t1x, t2.x as t2x, t2.y as t3y from t1 full outer join t2 on t1.x = t2.x where t2y = 1;
+                 * cr> select t1.x as t1x, t2.x as t2x, t2.y as t2y from t1 full outer join t2 on t1.x = t2.x where t2y = 1;
                  * +------+------+------+
                  * |  t1x |  t2x |  t2y |
                  * +------+------+------+
