@@ -49,34 +49,34 @@ implementation which improves resiliency and master election times.
 A new voting mechanism is used when a node is removed or added which makes the
 system capable of automatically maintaining an optimal level of fault
 tolerance even in situations of network partitions.
-This eliminates the need of the easily misconfigured ``minimum_master_nodes``
+This eliminates the need of the easily miss configured ``minimum_master_nodes``
 setting.
-Additionally a very rare resiliency failure, recorded as `Repeated cluster
+Additionally a rare resiliency failure, recorded as `Repeated cluster
 partitions can cause cluster state updates to be lost
 <https://crate.io/docs/crate/guide/en/latest/architecture/resilience.html#repeated-cluster-partitions-can-cause-lost-cluster-updates>`_
 can no longer occur.
 
 Due to this some discovery settings are added, renamed and removed.
 
-   +----------------------------------------+----------------------------------+
-   | Old Name                               | New Name                         |
-   +========================================+==================================+
-   | New, required on upgrade.              | ``cluster.initial_master_nodes`` |
-   +----------------------------------------+----------------------------------+
-   | ``discovery.zen.hosts_provider``       | ``discovery.seed_providers``     |
-   +----------------------------------------+----------------------------------+
-   | ``discovery.zen.ping.unicast.hosts``   | ``discovery.seed_hosts``         |
-   +----------------------------------------+----------------------------------+
-   | ``discovery.zen.minimum_master_nodes`` | Removed                          |
-   +----------------------------------------+----------------------------------+
-   | ``discovery.zen.ping_interval``        | Removed                          |
-   +----------------------------------------+----------------------------------+
-   | ``discovery.zen.ping_timeout``         | Removed                          |
-   +----------------------------------------+----------------------------------+
-   | ``discovery.zen.ping_retries``         | Removed                          |
-   +----------------------------------------+----------------------------------+
-   | ``discovery.zen.publish_timeout``      | Removed                          |
-   +----------------------------------------+----------------------------------+
++----------------------------------------+----------------------------------+
+| Old Name                               | New Name                         |
++========================================+==================================+
+| New, required on upgrade.              | ``cluster.initial_master_nodes`` |
++----------------------------------------+----------------------------------+
+| ``discovery.zen.hosts_provider``       | ``discovery.seed_providers``     |
++----------------------------------------+----------------------------------+
+| ``discovery.zen.ping.unicast.hosts``   | ``discovery.seed_hosts``         |
++----------------------------------------+----------------------------------+
+| ``discovery.zen.minimum_master_nodes`` | Removed                          |
++----------------------------------------+----------------------------------+
+| ``discovery.zen.ping_interval``        | Removed                          |
++----------------------------------------+----------------------------------+
+| ``discovery.zen.ping_timeout``         | Removed                          |
++----------------------------------------+----------------------------------+
+| ``discovery.zen.ping_retries``         | Removed                          |
++----------------------------------------+----------------------------------+
+| ``discovery.zen.publish_timeout``      | Removed                          |
++----------------------------------------+----------------------------------+
 
 .. CAUTION::
 
@@ -104,29 +104,29 @@ Breaking Changes
 
 - Removed deprecated metrics from :ref:`sys.nodes <sys-nodes>`:
 
-   +--------------------------------+
-   | Metric name                    |
-   +================================+
-   |``fs['disks']['reads']``        |
-   +--------------------------------+
-   |``fs['disks']['bytes_read']``   |
-   +--------------------------------+
-   |``fs['disks']['writes']``       |
-   +--------------------------------+
-   |``fs['disks']['bytes_written']``|
-   +--------------------------------+
-   |``os['cpu']['system']``         |
-   +--------------------------------+
-   |``os['cpu']['user']``           |
-   +--------------------------------+
-   |``os['cpu']['idle']``           |
-   +--------------------------------+
-   |``os['cpu']['stolen']``         |
-   +--------------------------------+
-   |``process['cpu']['user']``      |
-   +--------------------------------+
-   |``process['cpu']['system']``    |
-   +--------------------------------+
++--------------------------------+
+| Metric name                    |
++================================+
+|``fs['disks']['reads']``        |
++--------------------------------+
+|``fs['disks']['bytes_read']``   |
++--------------------------------+
+|``fs['disks']['writes']``       |
++--------------------------------+
+|``fs['disks']['bytes_written']``|
++--------------------------------+
+|``os['cpu']['system']``         |
++--------------------------------+
+|``os['cpu']['user']``           |
++--------------------------------+
+|``os['cpu']['idle']``           |
++--------------------------------+
+|``os['cpu']['stolen']``         |
++--------------------------------+
+|``process['cpu']['user']``      |
++--------------------------------+
+|``process['cpu']['system']``    |
++--------------------------------+
 
 - Removed the possibility of configuring the AWS S3 repository client via the
   ``crate.yaml`` configuration file and command line arguments. Please, use
@@ -171,7 +171,7 @@ Breaking Changes
   are registered as aliases for backward comparability.
 
 - Removed the deprecated ``license.enterprise`` setting. To use CrateDB without
-  any enterprise features one should use the Community Edition instead.
+  any enterprise features one should use the :ref:`community-edition` instead.
 
 - Removed the HTTP pipelining functionality. We are not aware of any client
   using this functionality.
@@ -226,6 +226,10 @@ Breaking Changes
 
 - Removed the deprecated ``ingest`` framework, including the ``MQTT`` endpoint.
 
+- Removed deprecated ``nGram``, ``edgeNGram`` token filter and ``htmlStrip``
+  char filter, they are superseded by ``ngram``, ``edge_ngram`` and
+  ``html_strip``.
+
 
 Deprecations
 ============
@@ -250,41 +254,72 @@ Deprecations
 Changes
 =======
 
+SQL Standard and PostgreSQL compatibility improvements
+------------------------------------------------------
+
 - Added support for using relation aliases with column aliases. Example:
   ``SELECT x, y from unnest([1], ['a']) as u(x, y)``
 
 - Added support for column :ref:`ref-default-clause` for :ref:`ref-create-table`.
 
-- Added support for ``CURRENT ROW -> UNBOUNDED FOLLOWING`` window frame
-  definitions in the context of :ref:`window-functions`.
+- Extended the support for window functions. The ``PARTITION BY`` definition
+  and the ``CURRENT ROW -> UNBOUNDED FOLLOWING`` frame definitions are now
+  supported. See :ref:`window-functions`.
+
+- Added the :ref:`string_agg` aggregation function.
+
+- Added support for `SQL Standard Timestamp Format
+  <https://crate.io/docs/sql-99/en/latest/chapters/08.html#timestamp-literal>`_
+  to the :ref:`date-time-types`.
+
+- Added the :ref:`TIMESTAMP WITHOUT TIME ZONE <datetime-without-time-zone>` data
+  type.
+
+- Added support for the :ref:`type 'string' <type_cast_from_string_literal>`
+  cast operator, which is used to initialize a constant of an arbitrary type.
 
 - Added the :ref:`pg_get_userbyid` scalar function to enhance PostgreSQL
   compatibility.
 
-- Added support for dynamical reloading of SSL certificates.
-  See :ref:`ssl_configure_keystore`.
+- Enabled Scalar function evaluation when used :ref:`in the query FROM
+  clause in place of a relation<table-functions-scalar>`.
 
-- Predicates like ``abs(x) = 1`` which require a scalar function evaluation and
-  cannot operate on table indices directly are now candidates for the query
-  cache. This can result in order of magnitude performance increases on
-  subsequent queries.
+- Show the session setting description in the output of the ``SHOW ALL``
+  statement.
+
+- Added information for the internal PostgreSQL data type: ``name`` in
+  :ref:`pg_catalog.pg_type <postgres_pg_type>` for improved PostgreSQL
+  compatibility.
+
+- Added the `pg_catalog.pg_settings <pgsql_pg_settings>`_ table.
+
+- Added support for :ref:`sql_escape_string_literals`.
+
+- Added :ref:`trim <scalar-trim>` scalar string function that trims
+  the (leading, trailing or both) set of characters from an input string.
+
+- Added :ref:`string_to_array <scalar-string-to-array>` scalar array function
+  that splits an input string into an array of string elements using a
+  separator and a null-string.
+
+- Added missing PostgreSQL type mapping for the ``array(ip)`` collection type.
+
+- Added :ref:`current_setting <scalar_current_setting>` system information
+  scalar function that yields the current value of the setting.
+
+- Allow :ref:`sql_administration_udf` to be registered against the
+  ``pg_catalog`` schema.
+
+- Added :ref:`quote_ident <scalar-quote-ident>` scalar string function that
+  quotes a string if it is needed.
+
+
+Users and Access Control
+------------------------
 
 - Mask sensitive user account information in
   :ref:`sys.repositories <sys-repositories>` for repository types:
   ``azure``, ``s3``.
-
-- Routing awareness attributes are now also taken into consideration for
-  primary key lookups. (Queries like ``SELECT * FROM t WHERE pk = 1``)
-
-- By introducing :ref:`_seq_no <sql_administration_system_columns_seq_no>` and
-  :ref:`_primary_term <sql_administration_system_columns_primary_term>`, the
-  following resiliency issues were fixed:
-
-   - `Version Number Representing Ambiguous Row Versions
-     <https://crate.io/docs/crate/guide/en/latest/architecture/resilience.html#version-number-representing-ambiguous-row-versions>`_
-
-   - `Replicas can fall out of sync when a primary shard fails
-     <https://crate.io/docs/crate/guide/en/latest/architecture/resilience.html#replicas-can-fall-out-of-sync-when-a-primary-shard-fails>`_
 
 - Restrict access to log entries in :ref:`sys.jobs <sys-jobs>` and
   :ref:`sys.jobs_log <sys-logs>` to the current user.
@@ -294,9 +329,8 @@ Changes
   users to manage other users and use ``SET GLOBAL``. See
   :ref:`administration-privileges`.
 
-- Changed the circuit breaker logic to measure the real heap usage instead of
-  the memory reserved by child circuit breakers. This should reduce the chance
-  of nodes running into an out of memory error.
+Repositories and Snapshots
+--------------------------
 
 - Added support for the
   :ref:`Azure Storage repositories <ref-create-repository-types-azure>`.
@@ -305,80 +339,63 @@ Changes
   ``compress``, to ``true``. See
   :ref:`fs repository parameters<ref-create-repository-types-fs>`.
 
+- Improved resiliency of the :ref:`ref-create-snapshot` operation.
+
+
+Performance and resiliency improvements
+---------------------------------------
+
+- Exposed the :ref:`_seq_no <sql_administration_system_columns_seq_no>` and
+  :ref:`_primary_term <sql_administration_system_columns_primary_term>` system
+  columns which can be used for :ref:`sql_occ`.
+  By introducing :ref:`_seq_no <sql_administration_system_columns_seq_no>` and
+  :ref:`_primary_term <sql_administration_system_columns_primary_term>`, the
+  following resiliency issues were fixed:
+
+   - `Version Number Representing Ambiguous Row Versions
+     <https://crate.io/docs/crate/guide/en/latest/architecture/resilience.html#version-number-representing-ambiguous-row-versions>`_
+
+   - `Replicas can fall out of sync when a primary shard fails
+     <https://crate.io/docs/crate/guide/en/latest/architecture/resilience.html#replicas-can-fall-out-of-sync-when-a-primary-shard-fails>`_
+
+- Predicates like ``abs(x) = 1`` which require a scalar function evaluation and
+  cannot operate on table indices directly are now candidates for the query
+  cache. This can result in order of magnitude performance increases on
+  subsequent queries.
+
+- Routing awareness attributes are now also taken into consideration for
+  primary key lookups. (Queries like ``SELECT * FROM t WHERE pk = 1``)
+
+- Changed the circuit breaker logic to measure the real heap usage instead of
+  the memory reserved by child circuit breakers. This should reduce the chance
+  of nodes running into an out of memory error.
+
 - Added a new optimization that allows to run predicates on top of views or
   sub-queries more efficiently in some cases.
 
-- Allow :ref:`sql_administration_udf` to be registered against the
-  ``pg_catalog`` schema.
 
-- Added the :ref:`string_agg` aggregation function.
+Others
+------
 
-- Improved resiliency of the :ref:`ref-create-snapshot` operation.
-
-- Added support for `SQL Standard Timestamp Format
-  <https://crate.io/docs/sql-99/en/latest/chapters/08.html#timestamp-literal>`_
-  to the :ref:`date-time-types`.
+- Added support for dynamical reloading of SSL certificates.
+  See :ref:`ssl_configure_keystore`.
 
 - Added `minimum_index_compatibility_version` and
   `minimum_wire_compatibility_version` to  :ref:`sys.version <sys-versions>`
   to expose the current state of the node's index and wire protocol version
   as part of the :ref:`sys.nodes <sys-nodes>` table.
 
-- Added the :ref:`TIMESTAMP WITHOUT TIME ZONE <datetime-without-time-zone>` data
-  type.
-
-- Added support for the :ref:`type 'string' <type_cast_from_string_literal>`
-  cast operator, which is used to initialize a constant of an arbitrary type.
-
-- Enabled Scalar function evaluation when used :ref:`in the query FROM
-  clause in place of a relation<table-functions-scalar>`.
-
-- Show the session setting description in the output of the ``SHOW ALL``
-  statement.
-
-- Exposed the :ref:`_seq_no <sql_administration_system_columns_seq_no>` and
-  :ref:`_primary_term <sql_administration_system_columns_primary_term>` system
-  columns which can be used for :ref:`sql_occ`.
-
-- Added information for the internal PostgreSQL data type: ``name`` in
-  :ref:`pg_catalog.pg_type <postgres_pg_type>` for improved PostgreSQL
-  compatibility.
-
-- Added the `pg_catalog.pg_settings <pgsql_pg_settings>`_ table.
-
-- Removed deprecated ``nGram``, ``edgeNGram`` token filter and ``htmlStrip``
-  char filter, they are superseded by ``ngram``, ``edge_ngram`` and
-  ``html_strip``.
-
-- Added :ref:`current_setting <scalar_current_setting>` system information
-  scalar function that yields the current value of the setting.
-
-- Added support for the ``PARTITION BY`` clause in :ref:`window-functions`.
-
 - Upgraded to Lucene 8.0.0, and as part of this the BM25 scoring has changed.
   The order of the scores remain the same, but the values of the scores differ.
   Fulltext queries including ``_score`` filters may behave slightly different.
 
-- Added :ref:`quote_ident <scalar-quote-ident>` scalar string function that
-  quotes a string if it is needed.
-
-- Added missing Postgresql type mapping for the ``array(ip)`` collection type.
-
 - Added a new ``_docid`` :ref:`system column
   <sql_administration_system_columns>`.
-
-- Added :ref:`trim <scalar-trim>` scalar string function that trims
-  the (leading, trailing or both) set of characters from an input string.
-
-- Added :ref:`string_to_array <scalar-string-to-array>` scalar array function
-  that splits an input string into an array of string elements using a
-  separator and a null-string.
 
 - Added support for subscript expressions on an object column of a sub-relation.
   Examples: ``select a['b'] from (select a from t1)`` or ``select a['b'] from
   my_view`` where ``my_view`` is defined as ``select a from t1``.
 
-- Added support for :ref:`sql_escape_string_literals`.
 
 Fixes
 =====
