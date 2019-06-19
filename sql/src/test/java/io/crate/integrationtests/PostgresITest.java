@@ -743,6 +743,25 @@ public class PostgresITest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void test_insert_with_on_conflict_do_nothing_batch_error_resp_is_0_for_conflicting_items() throws Exception {
+        try (Connection conn = DriverManager.getConnection(url(RW))) {
+            conn.prepareStatement("create table t (id int primary key) clustered into 1 shards").execute();
+            conn.prepareStatement("insert into t (id) (select col1 from generate_series(1, 3))").execute();
+
+            PreparedStatement stmt = conn.prepareStatement("insert into t (id) values (?) on conflict (id) do nothing");
+            stmt.setInt(1, 4);
+            stmt.addBatch();
+            stmt.setInt(1, 1);
+            stmt.addBatch();
+
+            int[] result = stmt.executeBatch();
+            assertThat(result.length, is(2));
+            assertThat(result[0], is(1));
+            assertThat(result[1], is(0));
+        }
+    }
+
+    @Test
     @UseJdbc(0) // Simulate explicit call by a user through HTTP iface
     public void test_proper_termination_of_deallocate_through_http_call() throws Exception {
        execute("DEALLOCATE ALL");

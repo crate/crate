@@ -51,6 +51,9 @@ None
 Fixes
 =====
 
+- Fixed an issue that caused conflicting rows in an ``INSERT INTO .. ON
+  CONFLICT (..) DO NOTHING`` statement to be reported as failed.
+
 - Fixes an issue that caused wrong results when running ``LEFT`` or ``RIGHT``
   outer joins on a single node cluster and the rows inside each table differs.
 
