@@ -25,7 +25,7 @@ package org.elasticsearch.repositories.s3;
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.Protocol;
 import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.internal.StaticCredentialsProvider;
+import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import org.elasticsearch.cluster.metadata.RepositoryMetaData;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
@@ -104,7 +104,7 @@ public class AwsS3ServiceImplTests extends ESTestCase {
         final S3ClientSettings clientSettings = S3ClientSettings.getClientSettings(settings);
         // test default exists and is an Instance provider
         final AWSCredentialsProvider defaultCredentialsProvider = S3Service.buildCredentials(logger, clientSettings);
-        assertThat(defaultCredentialsProvider, instanceOf(StaticCredentialsProvider.class));
+        assertThat(defaultCredentialsProvider, instanceOf(AWSStaticCredentialsProvider.class));
         assertThat(defaultCredentialsProvider.getCredentials().getAWSAccessKeyId(), is(awsAccessKey));
         assertThat(defaultCredentialsProvider.getCredentials().getAWSSecretKey(), is(awsSecretKey));
     }
