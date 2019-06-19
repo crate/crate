@@ -84,8 +84,19 @@ public abstract class AggregationFunction<TPartial, TFinal> implements FunctionI
     public abstract DataType partialType();
 
     /**
+     * Executing aggregations as window functions might require different runtime implementations in order to still be
+     * performant. This attempts to compile a new implementation that will be optimizied for the window functions
+     * scenario (eg. a function might use a different execution path in order to become removable cumulative)
+     */
+    public AggregationFunction<?, TFinal> optimizeForExecutionAsWindowFunction() {
+        return this;
+    }
+
+    /**
      * Indicates if this aggregation permits the reemoval of state from the previous aggregate state as defined in
      * http://www.vldb.org/pvldb/vol8/p1058-leis.pdf
+     * If a function is removable cumulative it will allow clients to remove previously aggregate values from the partial
+     * state using {@link #removeFromAggregatedState(RamAccountingContext, Object, Input[])}
      */
     public boolean isRemovableCumulative() {
         return false;
@@ -94,7 +105,7 @@ public abstract class AggregationFunction<TPartial, TFinal> implements FunctionI
     public TPartial removeFromAggregatedState(RamAccountingContext ramAccountingContext,
                                               TPartial previousAggState,
                                               Input[] stateToRemove) {
-        throw new UnsupportedOperationException("Cannot remove state from the functions aggregated state as the it is " +
+        throw new UnsupportedOperationException("Cannot remove state from the aggregated state as the function is " +
                                                 "not removable cumulative");
     }
 }
