@@ -61,6 +61,7 @@ public abstract class DataType<T> implements Comparable, Streamable {
         TableType,
         GeoPointType,
         ObjectType,
+        UncheckedObjectType,
         GeoShapeType,
         Custom
     }
