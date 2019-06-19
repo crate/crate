@@ -46,3 +46,6 @@ None
 
 Fixes
 =====
+
+- Fixed an issue that caused conflicting rows in an ``INSERT INTO .. ON
+  CONFLICT (..) DO NOTHING`` statement to be reported as failed.

@@ -28,10 +28,13 @@ import io.crate.testing.SQLBulkResponse;
 import io.crate.testing.SQLTransportExecutor;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.test.ESIntegTestCase;
+import org.hamcrest.Matchers;
 import org.junit.Test;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 1, transportClientRatio = 0)
@@ -83,8 +86,15 @@ public class BulkInsertOnClientNodeTest extends SQLTransportIntegrationTest {
                     put("foo", 127);
                 }}},
             });
-        // ensure row count is adjusted and no exception is thrown
-        // 1 shard must succeed (rowCount 1) while other must fail (rowCount -2)
-        assertThat(response.results()[0].rowCount() + response.results()[1].rowCount(), is(-1L));
+        SQLBulkResponse.Result[] results = response.results();
+        assertThat(response.results().length, is(2));
+        ArrayList<Long> rowCounts = new ArrayList<>(2);
+        for (SQLBulkResponse.Result result : results) {
+            rowCounts.add(result.rowCount());
+        }
+        assertThat(rowCounts, Matchers.anyOf(
+            contains(1L, -2L),
+            contains(-2L, 1L)
+        ));
     }
 }
