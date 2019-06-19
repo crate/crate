@@ -23,7 +23,6 @@ package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
 import io.crate.exceptions.VersioninigValidationException;
-import io.crate.testing.SQLBulkResponse;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 import org.elasticsearch.common.collect.MapBuilder;
@@ -667,21 +666,17 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(1L));
         refresh();
 
-        SQLBulkResponse bulkResp = execute("update test set a = ? where b = ?",
+        long[] rowCounts = execute("update test set a = ? where b = ?",
             new Object[][]{
                 new Object[]{"bar", 1},
                 new Object[]{"baz", 1},
                 new Object[]{"foobar", 1}});
-        assertThat(bulkResp.results().length, is(3));
-        // all statements must succeed and return 1 affected row
-        for (SQLBulkResponse.Result result : bulkResp.results()) {
-            assertThat(result.rowCount(), is(1L));
-        }
+        assertThat(rowCounts, is(new long[] { 1L, 1L, 1L }));
         refresh();
 
         // document was changed 4 times (including initial creation), so version must be 4
         execute("select _version from test where b = 1");
-        assertThat((Long) response.rows()[0][0], is(4L));
+        assertThat(response.rows()[0][0], is(4L));
     }
 
     @Test
@@ -716,8 +711,8 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table t (name string) with (number_of_replicas = 0)");
         // regression test, used to throw a ClassCastException because the JobLauncher created a
         // QueryResult instead of RowCountResult
-        SQLBulkResponse bulkResponse = execute("update t set name = 'Trillian' where name = ?", $$($("Arthur")));
-        assertThat(bulkResponse.results().length, is(1));
+        long[] rowCounts  = execute("update t set name = 'Trillian' where name = ?", $$($("Arthur")));
+        assertThat(rowCounts.length, is(1));
     }
 
     @Test
@@ -726,11 +721,8 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into t values (?, ?)", $$($(1, "foo"), $(2, "bar"), $(3, "hoschi"), $(4, "crate")));
         refresh();
 
-        SQLBulkResponse bulkResponse = execute("update t set name = 'updated' where id = ? or id = ?", $$($(1, 2), $(3, 4)));
-        assertThat(bulkResponse.results().length, is(2));
-        for (SQLBulkResponse.Result result : bulkResponse.results()) {
-            assertThat(result.rowCount(), is(2L));
-        }
+        long[] rowCounts = execute("update t set name = 'updated' where id = ? or id = ?", $$($(1, 2), $(3, 4)));
+        assertThat(rowCounts, is(new long[] { 2L, 2L }));
     }
 
     @Test
@@ -869,13 +861,9 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
             new Object[] { 1, "+123" },
             new Object[] { 2, "+123" },
         };
-        SQLBulkResponse resp = execute("update t set x = ? where x ~* ?", bulkArgs);
-        assertThat(resp.results().length, is(2));
-        for (SQLBulkResponse.Result result : resp.results()) {
-            assertThat(result.rowCount(), is(-2L));
-        }
+        long[] rowCounts = execute("update t set x = ? where x ~* ?", bulkArgs);
+        assertThat(rowCounts, is(new long[] { -2L, -2L }));
     }
-
 
     @Test
     public void testUpdateByQueryWithSubQuery() throws Exception {

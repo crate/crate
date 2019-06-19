@@ -69,7 +69,6 @@ import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.sql.Identifiers;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.SystemPropsTestLoggingListener;
-import io.crate.testing.SQLBulkResponse;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
 import io.crate.testing.TestExecutionConfig;
@@ -488,7 +487,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
      * @param bulkArgs the bulk arguments of the statement
      * @return the SQLResponse
      */
-    public SQLBulkResponse execute(String stmt, Object[][] bulkArgs) {
+    public long[] execute(String stmt, Object[][] bulkArgs) {
         return sqlExecutor.execBulk(stmt, bulkArgs);
     }
 
@@ -499,7 +498,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
      * @param bulkArgs the bulk arguments of the statement
      * @return the SQLResponse
      */
-    public SQLBulkResponse execute(String stmt, Object[][] bulkArgs, TimeValue timeout) {
+    public long[] execute(String stmt, Object[][] bulkArgs, TimeValue timeout) {
         return sqlExecutor.execBulk(stmt, bulkArgs, timeout);
     }
 

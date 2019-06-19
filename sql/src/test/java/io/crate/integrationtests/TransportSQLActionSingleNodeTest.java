@@ -22,18 +22,16 @@
 package io.crate.integrationtests;
 
 
-import com.google.common.util.concurrent.SettableFuture;
 import io.crate.action.sql.SQLActionException;
-import io.crate.testing.SQLBulkResponse;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
-import io.crate.testing.UseJdbc;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.After;
 import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 import static org.hamcrest.Matchers.is;
@@ -149,8 +147,7 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
     @Test
     public void testInsertBulkDifferentTypesResultsInRemoteFailure() throws Exception {
         execute("create table foo (value integer) with (number_of_replicas=0, column_policy = 'dynamic')");
-        ensureYellow();
-        SQLBulkResponse response = execute("insert into foo (bar) values (?)",
+        long[] rowCounts = execute("insert into foo (bar) values (?)",
             new Object[][]{
                 new Object[]{new HashMap<String, Object>() {{
                     put("foo", 127);
@@ -158,20 +155,19 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
                 new Object[]{1},
             });
         // One is inserted, the other fails because of a cast error
-        assertThat(response.results()[0].rowCount() + response.results()[1].rowCount(), is(-1L));
+        assertThat(rowCounts[0] + rowCounts[1], is(-1L));
     }
 
     @Test
     public void testInsertDynamicNullArrayInBulk() throws Exception {
         execute("create table foo (value integer) with (number_of_replicas=0, column_policy = 'dynamic')");
-        ensureYellow();
-        SQLBulkResponse res = execute("insert into foo (bar) values (?)",
+        long[] rowCounts = execute("insert into foo (bar) values (?)",
             new Object[][]{
                 new Object[]{new Object[]{null}},
                 new Object[]{new Object[]{1, 2}},
             });
-        assertThat(res.results()[0].rowCount(), is(1L));
-        assertThat(res.results()[1].rowCount(), is(1L));
+        assertThat(rowCounts[0], is(1L));
+        assertThat(rowCounts[1], is(1L));
 
         waitForMappingUpdateOnAll("foo", "bar");
         execute("select data_type from information_schema.columns where table_name = 'foo' and column_name = 'bar'");
@@ -286,15 +282,15 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
         for (int i = 0; i < bulkArgs.length; i++) {
             bulkArgs[i] = new Object[]{"event1", "item1"};
         }
-        final SettableFuture<SQLBulkResponse> res = SettableFuture.create();
+        final CompletableFuture<long[]> res = new CompletableFuture<>();
         Thread insertThread = new Thread(new Runnable() {
             @Override
             public void run() {
                 try {
-                    res.set(execute(stmt, bulkArgs));
+                    res.complete(execute(stmt, bulkArgs));
                 } catch (SQLActionException e) {
                     // that's what we want
-                    res.setException(e);
+                    res.completeExceptionally(e);
                 }
             }
         });

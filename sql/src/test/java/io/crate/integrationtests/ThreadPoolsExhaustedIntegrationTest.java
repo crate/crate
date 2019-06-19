@@ -21,7 +21,6 @@
 
 package io.crate.integrationtests;
 
-import io.crate.testing.SQLBulkResponse;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
 import org.elasticsearch.action.ActionFuture;
@@ -94,9 +93,9 @@ public class ThreadPoolsExhaustedIntegrationTest extends SQLTransportIntegration
         for (int i = 0; i < docCount; i++) {
             bulkArgs[i][0] = i;
         }
-        SQLBulkResponse response = execute("insert into t (x) values (?)", bulkArgs);
-        for (SQLBulkResponse.Result result : response.results()) {
-            assertThat(result.rowCount(), is(1L));
+        long[] rowCounts = execute("insert into t (x) values (?)", bulkArgs);
+        for (long rowCount : rowCounts) {
+            assertThat(rowCount, is(1L));
         }
     }
 }

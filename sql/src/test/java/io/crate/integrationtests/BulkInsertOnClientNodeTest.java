@@ -23,16 +23,16 @@
 package io.crate.integrationtests;
 
 
+import com.google.common.primitives.Longs;
 import io.crate.action.sql.SQLOperations;
-import io.crate.testing.SQLBulkResponse;
 import io.crate.testing.SQLTransportExecutor;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
-import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
@@ -79,19 +79,15 @@ public class BulkInsertOnClientNodeTest extends SQLTransportIntegrationTest {
     public void testInsertBulkDifferentTypesResultsInStreamingFailure() throws Exception {
         execute("create table test (id integer primary key) " +
                 "clustered into 2 shards with (column_policy='dynamic', number_of_replicas=0)");
-        SQLBulkResponse response = execute("insert into test (id, value) values (?, ?)",
-            new Object[][]{
-                new Object[]{1, 1},                                 // use id 1 to ensure shard 0
-                new Object[]{3, new HashMap<String, Object>() {{    // use id 3 to ensure shard 1
-                    put("foo", 127);
-                }}},
-            });
-        SQLBulkResponse.Result[] results = response.results();
-        assertThat(response.results().length, is(2));
-        ArrayList<Long> rowCounts = new ArrayList<>(2);
-        for (SQLBulkResponse.Result result : results) {
-            rowCounts.add(result.rowCount());
-        }
+        List<Long> rowCounts = Longs.asList(
+            execute("insert into test (id, value) values (?, ?)",
+                    new Object[][]{
+                        new Object[]{1, 1},                                 // use id 1 to ensure shard 0
+                        new Object[]{3, new HashMap<String, Object>() {{    // use id 3 to ensure shard 1
+                            put("foo", 127);
+                        }}},
+            }));
+        assertThat(rowCounts.size(), is(2));
         assertThat(rowCounts, Matchers.anyOf(
             contains(1L, -2L),
             contains(-2L, 1L)
