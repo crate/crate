@@ -31,6 +31,7 @@ import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
 import io.crate.auth.user.User;
 import io.crate.data.Row;
+import io.crate.data.Row1;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.expression.symbol.Field;
 import io.crate.metadata.SearchPath;
@@ -135,11 +136,11 @@ public class SQLTransportExecutor {
         return executeTransportOrJdbc(EXECUTION_FEATURES_DISABLED, statement, params, REQUEST_TIMEOUT);
     }
 
-    public SQLBulkResponse execBulk(String statement, @Nullable Object[][] bulkArgs) {
+    public long[] execBulk(String statement, @Nullable Object[][] bulkArgs) {
         return executeBulk(statement, bulkArgs, REQUEST_TIMEOUT);
     }
 
-    public SQLBulkResponse execBulk(String statement, @Nullable Object[][] bulkArgs, TimeValue timeout) {
+    public long[] execBulk(String statement, @Nullable Object[][] bulkArgs, TimeValue timeout) {
         return executeBulk(statement, bulkArgs, timeout);
     }
 
@@ -237,21 +238,21 @@ public class SQLTransportExecutor {
         }
     }
 
-    private void execute(String stmt, @Nullable Object[][] bulkArgs, final ActionListener<SQLBulkResponse> listener) {
+    private void execute(String stmt, @Nullable Object[][] bulkArgs, final ActionListener<long[]> listener) {
         Session session = newSession();
         try {
-            session.parse(UNNAMED, stmt, Collections.<DataType>emptyList());
+            session.parse(UNNAMED, stmt, Collections.emptyList());
             if (bulkArgs == null) {
                 bulkArgs = new Object[0][];
             }
-            final SQLBulkResponse.Result[] results = new SQLBulkResponse.Result[bulkArgs.length];
-            if (results.length == 0) {
+            final long[] rowCounts = new long[bulkArgs.length];
+            if (rowCounts.length == 0) {
                 session.bind(UNNAMED, UNNAMED, Collections.emptyList(), null);
                 session.execute(UNNAMED, 0, new BaseResultReceiver());
             } else {
                 for (int i = 0; i < bulkArgs.length; i++) {
                     session.bind(UNNAMED, UNNAMED, Arrays.asList(bulkArgs[i]), null);
-                    ResultReceiver resultReceiver = new BulkRowCountReceiver(results, i);
+                    ResultReceiver resultReceiver = new BulkRowCountReceiver(rowCounts, i);
                     session.execute(UNNAMED, 0, resultReceiver);
                 }
             }
@@ -262,7 +263,7 @@ public class SQLTransportExecutor {
             }
             session.sync().whenComplete((Object result, Throwable t) -> {
                 if (t == null) {
-                    listener.onResponse(new SQLBulkResponse(results));
+                    listener.onResponse(rowCounts);
                 } else {
                     listener.onFailure(SQLExceptions.createSQLActionException(t, e -> {}));
                 }
@@ -517,9 +518,12 @@ public class SQLTransportExecutor {
         return value;
     }
 
-    private SQLBulkResponse executeBulk(String stmt, Object[][] bulkArgs, TimeValue timeout) {
+    /**
+     * @return an array with the rowCounts
+     */
+    private long[] executeBulk(String stmt, Object[][] bulkArgs, TimeValue timeout) {
         try {
-            AdapterActionFuture<SQLBulkResponse, SQLBulkResponse> actionFuture = new PlainActionFuture<>();
+            AdapterActionFuture<long[], long[]> actionFuture = new PlainActionFuture<>();
             execute(stmt, bulkArgs, actionFuture);
             return actionFuture.actionGet(timeout);
         } catch (ElasticsearchTimeoutException e) {
@@ -674,29 +678,29 @@ public class SQLTransportExecutor {
      */
     private static class BulkRowCountReceiver extends BaseResultReceiver {
 
-        private final SQLBulkResponse.Result[] results;
         private final int resultIdx;
+        private final long[] rowCounts;
         private long rowCount;
 
-        BulkRowCountReceiver(SQLBulkResponse.Result[] results, int resultIdx) {
-            this.results = results;
+        BulkRowCountReceiver(long[] rowCounts, int resultIdx) {
+            this.rowCounts = rowCounts;
             this.resultIdx = resultIdx;
         }
 
         @Override
         public void setNextRow(Row row) {
-            rowCount = ((long) row.get(0));
+            rowCount = (long) row.get(0);
         }
 
         @Override
         public void allFinished(boolean interrupted) {
-            results[resultIdx] = new SQLBulkResponse.Result(null, rowCount);
+            rowCounts[resultIdx] = rowCount;
             super.allFinished(interrupted);
         }
 
         @Override
         public void fail(@Nonnull Throwable t) {
-            results[resultIdx] = new SQLBulkResponse.Result(SQLExceptions.messageOf(t), rowCount);
+            rowCounts[resultIdx] = Row1.ERROR;
             super.fail(t);
         }
     }

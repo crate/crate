@@ -23,9 +23,7 @@
 package io.crate.integrationtests;
 
 import io.crate.execution.dsl.projection.AbstractIndexWriterProjection;
-import io.crate.testing.SQLBulkResponse;
 import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.common.xcontent.XContentType;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
@@ -208,16 +206,12 @@ public class DeleteIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into test(pk_col) values (1), (2), (3)");
         execute("refresh table test");
 
-        SQLBulkResponse.Result[] r = execute("delete from test where pk_col=?",
-            new Object[][]{{2}, {null}, {3}}).results();
-        assertThat(r.length, is(3));
-        assertThat(r[0].rowCount(), is(1L));
-        assertThat(r[1].rowCount(), is(0L));
-        assertThat(r[2].rowCount(), is(1L));
+        long[] rowCounts = execute("delete from test where pk_col=?",
+            new Object[][]{{2}, {null}, {3}});
+        assertThat(rowCounts, is(new long[] { 1L, 0L, 1L }));
 
-        r = execute("delete from test where pk_col=?", new Object[][]{{null}}).results();
-        assertThat(r.length, is(1));
-        assertThat(r[0].rowCount(), is(0L));
+        rowCounts = execute("delete from test where pk_col=?", new Object[][]{{null}});
+        assertThat(rowCounts, is(new long[] { 0L }));
 
         execute("refresh table test");
         execute("select pk_col FROM test");
