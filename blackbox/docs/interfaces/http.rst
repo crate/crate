@@ -222,13 +222,13 @@ be passed to the request::
       "duration": ...
     }
 
-Collection data types like ``Set`` or ``Array`` are displayed as a list where
-the first value is the collection type and the second is the inner type. Of
-course the inner type could also be a collection.
+The ``Array`` collection data type is displayed as a list where the first value
+is the collection type and the second is the inner type. The inner type could
+also be a collection.
 
-Example of JSON representation of a column list of (String, Set<Integer[]>)::
+Example of JSON representation of a column list of (String, Integer[])::
 
-  "column_types": [ 4, [ 101, [ 100, 9 ] ] ]
+  "column_types": [ 4, [ 100, 9 ] ]
 
 IDs of all currently available data types:
 
@@ -265,9 +265,9 @@ ID    Data Type
 ----- -------------------
 14    GeoShape
 ----- -------------------
-100   Array
+15    Unchecked Object
 ----- -------------------
-101   Set
+100   Array
 ===== ===================
 
 .. _bulk_operations:

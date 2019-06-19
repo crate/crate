@@ -29,7 +29,6 @@ import io.crate.types.DataTypes;
 import io.crate.types.FloatType;
 import io.crate.types.LongType;
 import io.crate.types.ObjectType;
-import io.crate.types.SetType;
 import io.crate.types.ShortType;
 import io.crate.types.StringType;
 import io.netty.buffer.ByteBuf;
@@ -88,13 +87,6 @@ public class PGTypesTest extends CrateUnitTest {
         assertThat(PGTypes.get(new ArrayType(GEO_POINT)), instanceOf(PGArray.class));
 
         assertThat(PGTypes.get(new ArrayType(GEO_SHAPE)), instanceOf(PGArray.class));
-    }
-
-    @Test
-    public void testCrateSetCannotBeMappedToPgType() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("No type mapping from 'integer_set' to pg_type");
-        PGTypes.get(new SetType(DataTypes.INTEGER));
     }
 
     @Test
