@@ -120,6 +120,7 @@ public final class DataTypes {
             entry(TimestampType.ID_WITH_TZ, () -> TIMESTAMPZ),
             entry(TimestampType.ID_WITHOUT_TZ, () -> TIMESTAMP),
             entry(ObjectType.ID, ObjectType::untyped),
+            entry(UncheckedObjectType.ID, UncheckedObjectType::new),
             entry(GeoPointType.ID, () -> GEO_POINT),
             entry(GeoShapeType.ID, () -> GEO_SHAPE),
             entry(ArrayType.ID, ArrayType::new),
