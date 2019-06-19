@@ -56,11 +56,11 @@ public class AggregateToWindowFunctionAdapter implements WindowFunction {
                                             Version indexVersionCreated,
                                             BigArrays bigArrays,
                                             RamAccountingContext ramAccountingContext) {
-        this.aggregationFunction = aggregationFunction;
+        this.aggregationFunction = aggregationFunction.optimizeForExecutionAsWindowFunction();
         this.ramAccountingContext = ramAccountingContext;
         this.indexVersionCreated = indexVersionCreated;
         this.bigArrays = bigArrays;
-        this.accumulatedState = aggregationFunction.newState(ramAccountingContext, indexVersionCreated, bigArrays);
+        this.accumulatedState = this.aggregationFunction.newState(ramAccountingContext, indexVersionCreated, bigArrays);
     }
 
     @Override

@@ -32,16 +32,22 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.SetType;
+import io.crate.types.UncheckedObjectType;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.util.BigArrays;
 
 import javax.annotation.Nullable;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.HashMap;
+import java.util.Map;
 
-public class CollectSetAggregation extends AggregationFunction<Set<Object>, Object[]> {
+public class CollectSetAggregation extends AggregationFunction<Map<Object, Object>, Object[]> {
+
+    /**
+     * Used to signal there is a value for a key in order to simulate {@link java.util.HashSet#add(Object)} semantics
+     * using a plain {@link HashMap}.
+     */
+    private static final Object PRESENT = null;
 
     public static final String NAME = "collect_set";
     private final SizeEstimator<Object> innerTypeEstimator;
@@ -63,7 +69,7 @@ public class CollectSetAggregation extends AggregationFunction<Set<Object>, Obje
     CollectSetAggregation(FunctionInfo info) {
         this.innerTypeEstimator = SizeEstimatorFactory.create(((ArrayType) info.returnType()).innerType());
         this.info = info;
-        this.partialReturnType = new SetType(((ArrayType) info.returnType()).innerType());
+        this.partialReturnType = UncheckedObjectType.INSTANCE;
     }
 
     @Override
@@ -72,14 +78,22 @@ public class CollectSetAggregation extends AggregationFunction<Set<Object>, Obje
     }
 
     @Override
-    public Set<Object> iterate(RamAccountingContext ramAccountingContext, Set<Object> state, Input... args) throws CircuitBreakingException {
+    public AggregationFunction<Map<Object, Long>, Object[]> optimizeForExecutionAsWindowFunction() {
+        return new RemovableCumulativeCollectSet(info);
+    }
+
+    @Override
+    public Map<Object, Object> iterate(RamAccountingContext ramAccountingContext,
+                                       Map<Object, Object> state,
+                                       Input... args) throws CircuitBreakingException {
         Object value = args[0].value();
         if (value == null) {
             return state;
         }
-        if (state.add(value)) {
+        if (state.put(value, PRESENT) == null) {
             ramAccountingContext.addBytes(
-                RamAccountingContext.roundUp(innerTypeEstimator.estimateSize(value) + 36L) // values size + 32 bytes for entry, 4 bytes for increased capacity
+                // values size + 32 bytes for entry, 4 bytes for increased capacity
+                RamAccountingContext.roundUp(innerTypeEstimator.estimateSize(value) + 36L)
             );
         }
         return state;
@@ -87,11 +101,11 @@ public class CollectSetAggregation extends AggregationFunction<Set<Object>, Obje
 
     @Nullable
     @Override
-    public Set<Object> newState(RamAccountingContext ramAccountingContext,
-                                Version indexVersionCreated,
-                                BigArrays bigArrays) {
-        ramAccountingContext.addBytes(RamAccountingContext.roundUp(64L)); // overhead for HashSet: 32 * 0 + 16 * 4 bytes
-        return new HashSet<>();
+    public Map<Object, Object> newState(RamAccountingContext ramAccountingContext,
+                                        Version indexVersionCreated,
+                                        BigArrays bigArrays) {
+        ramAccountingContext.addBytes(RamAccountingContext.roundUp(64L)); // overhead for HashMap: 32 * 0 + 16 * 4 bytes
+        return new HashMap<>();
     }
 
     @Override
@@ -100,11 +114,14 @@ public class CollectSetAggregation extends AggregationFunction<Set<Object>, Obje
     }
 
     @Override
-    public Set<Object> reduce(RamAccountingContext ramAccountingContext, Set<Object> state1, Set<Object> state2) {
-        for (Object newValue : state2) {
-            if (state1.add(newValue)) {
+    public Map<Object, Object> reduce(RamAccountingContext ramAccountingContext,
+                                      Map<Object, Object> state1,
+                                      Map<Object, Object> state2) {
+        for (Object newValue : state2.keySet()) {
+            if (state1.put(newValue, PRESENT) == null) {
                 ramAccountingContext.addBytes(
-                    RamAccountingContext.roundUp(innerTypeEstimator.estimateSize(newValue) + 36L) // value size + 32 bytes for entry + 4 bytes for increased capacity
+                    // value size + 32 bytes for entry + 4 bytes for increased capacity
+                    RamAccountingContext.roundUp(innerTypeEstimator.estimateSize(newValue) + 36L)
                 );
             }
         }
@@ -112,7 +129,134 @@ public class CollectSetAggregation extends AggregationFunction<Set<Object>, Obje
     }
 
     @Override
-    public Object[] terminatePartial(RamAccountingContext ramAccountingContext, Set<Object> state) {
-        return state.toArray(new Object[0]);
+    public Object[] terminatePartial(RamAccountingContext ramAccountingContext, Map<Object, Object> state) {
+        return state.keySet().toArray(new Object[0]);
+    }
+
+    @Override
+    public boolean isRemovableCumulative() {
+        return false;
+    }
+
+    /**
+     * collect_set implementation that is removable cumulative. It tracks the number of occurrences for every key it
+     * sees in order to be able to only remove a value from the aggregated state when it's occurrence count is 1.
+     *
+     * eg. for a window definition of CURRENT ROW -> UNBOUNDED FOLLOWING for {1, 2, 2, 2, 3 } the window frames and
+     * corresponding collect_set outputs are:
+     *  {1, 2, 2, 2, 3}  - [1, 2, 3]
+     *  {2, 2, 2, 3}     - [2, 3]
+     *  {2, 2, 3}        - [2, 3]
+     *  {2, 3}           - [2, 3]
+     *  {3}              - [3]
+     */
+    private static class RemovableCumulativeCollectSet extends AggregationFunction<Map<Object, Long>, Object[]> {
+
+        private final SizeEstimator<Object> innerTypeEstimator;
+
+        private final FunctionInfo info;
+        private final DataType partialType;
+
+        RemovableCumulativeCollectSet(FunctionInfo info) {
+            this.innerTypeEstimator = SizeEstimatorFactory.create(((ArrayType) info.returnType()).innerType());
+            this.info = info;
+            this.partialType = UncheckedObjectType.INSTANCE;
+        }
+
+        @Nullable
+        @Override
+        public Map<Object, Long> newState(RamAccountingContext ramAccountingContext,
+                                          Version indexVersionCreated,
+                                          BigArrays bigArrays) {
+            ramAccountingContext.addBytes(RamAccountingContext.roundUp(64L)); // overhead for HashMap: 32 * 0 + 16 * 4 bytes
+            return new HashMap<>();
+        }
+
+        @Override
+        public Map<Object, Long> iterate(RamAccountingContext ramAccountingContext,
+                                         Map<Object, Long> state,
+                                         Input... args) throws CircuitBreakingException {
+            Object value = args[0].value();
+            if (value == null) {
+                return state;
+            }
+            upsertOccurrenceForValue(state, value, 1, ramAccountingContext, innerTypeEstimator);
+            return state;
+        }
+
+        private static void upsertOccurrenceForValue(final Map<Object, Long> state,
+                                                     final Object value,
+                                                     final long occurrenceIncrement,
+                                                     final RamAccountingContext ramAccountingContext,
+                                                     final SizeEstimator<Object> innerTypeEstimator) {
+            state.compute(value, (k, v) -> {
+                if (v == null) {
+                    ramAccountingContext.addBytes(
+                        // values size + 32 bytes for entry, 4 bytes for increased capacity, 8 bytes for the new array
+                        // instance and 4 for the occurence count we store
+                        RamAccountingContext.roundUp(innerTypeEstimator.estimateSize(value) + 48L)
+                    );
+                    return occurrenceIncrement;
+                } else {
+                    return v + occurrenceIncrement;
+                }
+            });
+        }
+
+        @Override
+        public boolean isRemovableCumulative() {
+            return true;
+        }
+
+        @Override
+        public Map<Object, Long> removeFromAggregatedState(RamAccountingContext ramAccountingContext,
+                                                           Map<Object, Long> previousAggState,
+                                                           Input[] stateToRemove) {
+            Object value = stateToRemove[0].value();
+            if (value == null) {
+                return previousAggState;
+            }
+            Long occurrencesCountForValue = (Long) previousAggState.get(value);
+            if (occurrencesCountForValue == 1) {
+                previousAggState.remove(value);
+                ramAccountingContext.addBytes(
+                    // we initially accounted for values size + 32 bytes for entry, 4 bytes for increased capacity
+                    // and 12 bytes for the array container and the int value it stored
+                    -RamAccountingContext.roundUp(innerTypeEstimator.estimateSize(value) + 48L)
+                );
+            } else {
+                occurrencesCountForValue--;
+            }
+            return previousAggState;
+        }
+
+        @Override
+        public Map<Object, Long> reduce(RamAccountingContext ramAccountingContext,
+                                        Map<Object, Long> state1,
+                                        Map<Object, Long> state2) {
+            for (Map.Entry<Object, Long> state2Entry : state2.entrySet()) {
+                upsertOccurrenceForValue(state1,
+                    state2Entry.getKey(),
+                    state2Entry.getValue(),
+                    ramAccountingContext,
+                    innerTypeEstimator);
+            }
+            return state1;
+        }
+
+        @Override
+        public Object[] terminatePartial(RamAccountingContext ramAccountingContext, Map<Object, Long> state) {
+            return state.keySet().toArray(new Object[0]);
+        }
+
+        @Override
+        public DataType partialType() {
+            return partialType;
+        }
+
+        @Override
+        public FunctionInfo info() {
+            return info;
+        }
     }
 }
