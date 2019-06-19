@@ -41,6 +41,8 @@ Unreleased Changes
 Upgrade Notes
 =============
 
+.. _discovery-changes:
+
 Discovery Changes
 -----------------
 
@@ -100,7 +102,82 @@ Due to this some discovery settings are added, renamed and removed.
 
 
 Breaking Changes
+================
+
+General
+-------
+
+- Renamed CrateDB data types to the corresponding PostgreSQL data types.
+
++---------------+------------------------------+
+| Current Name  | New Name                     |
++===============+==============================+
+| ``short``     | ``smallint``                 |
++---------------+------------------------------+
+| ``long``      | ``bigint``                   |
++---------------+------------------------------+
+| ``float``     | ``real``                     |
++---------------+------------------------------+
+| ``double``    | ``double precision``         |
++---------------+------------------------------+
+| ``byte``      | ``char``                     |
++---------------+------------------------------+
+| ``string``    | ``text``                     |
++---------------+------------------------------+
+| ``timestamp`` | ``timestamp with time zone`` |
++---------------+------------------------------+
+
+  See :ref:`data-types` for more detailed information. The old data type names,
+  are registered as aliases for backward comparability.
+
+- Changed the ordering of columns to be based on their position in the
+  :ref:`CREATE TABLE <ref-create-table>` statement. This was done to improve
+  compatibility with PostgreSQL and will affect queries like ``SELECT * FROM``
+  or ``INSERT INTO <table> VALUES (...)``
+
+- Changed the default :ref:`column_policy` on tables from ``dynamic`` to
+  ``strict``. Columns of type object still default to ``dynamic``.
+
+- Removed the implicit soft limit of 10000 that was applied for clients using
+  ``HTTP``.
+
+- Dropped support for Java versions < 11
+
+Removed Settings
 ----------------
+
+- Removed the deprecated setting ``cluster.graceful_stop.reallocate``.
+
+- Removed the deprecated ``http.enabled`` setting. ``HTTP`` is now always
+  enabled and can no longer be disabled.
+
+- Removed the deprecated ``license.ident`` setting. Licenses must be set using
+  the :ref:`SET LICENSE <ref-set-license>` statement.
+
+- Removed the deprecated ``license.enterprise`` setting. To use CrateDB without
+  any enterprise features one should use the :ref:`community-edition` instead.
+
+- Removed the experimental `enable_semijoin` session setting. As this defaulted
+  to false, this execution strategy cannot be used anymore.
+
+- Removed the possibility of configuring the AWS S3 repository client via the
+  ``crate.yaml`` configuration file and command line arguments. Please, use
+  the :ref:`ref-create-repository` statement parameters for this purpose.
+
+- Removed :ref:`HDFS repository setting<ref-create-repository-types-hdfs>`:
+  ``concurrent_streams`` as it is no longer supported.
+
+- The ``zen1`` related discovery settings mentioned in
+  :ref:`discovery-changes`.
+
+System table changes
+--------------------
+
+- Changed the layout of the ``version`` column in the
+  ``information_schema.tables`` and ``information_schema.table_partitions``
+  tables. The version is now displayed directly under ``created`` and
+  ``upgraded``. The ``cratedb`` and ``elasticsearch`` sub-category has been
+  removed.
 
 - Removed deprecated metrics from :ref:`sys.nodes <sys-nodes>`:
 
@@ -128,69 +205,8 @@ Breaking Changes
 |``process['cpu']['system']``    |
 +--------------------------------+
 
-- Removed the possibility of configuring the AWS S3 repository client via the
-  ``crate.yaml`` configuration file and command line arguments. Please, use
-  the :ref:`ref-create-repository` statement parameters for this purpose.
-
-- Removed :ref:`HDFS repository setting<ref-create-repository-types-hdfs>`:
-  ``concurrent_streams`` as it is no longer supported.
-
-- Removed the implicit soft limit of 10000 that was applied for clients using
-  ``HTTP``.
-
-- Removed the experimental `enable_semijoin` session setting. As this defaulted
-  to false, this execution strategy cannot be used anymore.
-
 - Renamed column `information_schema.table_partitions.schema_name` to
   `table_schema`.
-
-- Added the :ref:`TIMESTAMPTZ <data-type-aliases>` alias for the
-  :ref:`TIMESTAMP WITH TIME ZONE <datetime-with-time-zone>` data type.
-
-- Renamed CrateDB data types to the corresponding PostgreSQL data types.
-
-   +---------------+------------------------------+
-   | Current Name  | New Name                     |
-   +===============+==============================+
-   | ``short``     | ``smallint``                 |
-   +---------------+------------------------------+
-   | ``long``      | ``bigint``                   |
-   +---------------+------------------------------+
-   | ``float``     | ``real``                     |
-   +---------------+------------------------------+
-   | ``double``    | ``double precision``         |
-   +---------------+------------------------------+
-   | ``byte``      | ``char``                     |
-   +---------------+------------------------------+
-   | ``string``    | ``text``                     |
-   +---------------+------------------------------+
-   | ``timestamp`` | ``timestamp with time zone`` |
-   +---------------+------------------------------+
-
-  See :ref:`data-types` for more detailed information. The old data type names,
-  are registered as aliases for backward comparability.
-
-- Removed the deprecated ``license.enterprise`` setting. To use CrateDB without
-  any enterprise features one should use the :ref:`community-edition` instead.
-
-- Removed the HTTP pipelining functionality. We are not aware of any client
-  using this functionality.
-
-- Changed the ordering of columns to be based on their position in the
-  :ref:`CREATE TABLE <ref-create-table>` statement. This was done to improve
-  compatibility with PostgreSQL and will affect queries like ``SELECT * FROM``
-  or ``INSERT INTO <table> VALUES (...)``
-
-- Changed the default :ref:`column_policy` on tables from ``dynamic`` to
-  ``strict``. Columns of type object still default to ``dynamic``.
-
-- Removed the deprecated ``license.ident`` setting.
-
-- Removed the deprecated ``USR2`` signal handling. Use :ref:`ALTER CLUSTER
-  DECOMISSION <alter_cluster_decommission>` instead. Be aware that the
-  behavior of sending ``USR2`` signals to a CrateDB process is now undefined
-  and up to the JVM. In some cases it may still terminate the instance but
-  without clean shutdown.
 
 - Renamed ``information_schema.columns.user_defined_type_*`` columns to
   ``information_schema_columns.udt_*`` for SQL standard compatibility.
@@ -198,37 +214,37 @@ Breaking Changes
 - Changed type of column ``information_schema.columns.is_generated`` to ``STRING``
   with value ``NEVER`` or ``ALWAYS`` for SQL standard compatibility.
 
+
+Removed Functionality
+---------------------
+
+- The Elasticsearch REST API has been removed.
+
+- Removed the deprecated ``ingest`` framework, including the ``MQTT`` endpoint.
+
+- Removed the HTTP pipelining functionality. We are not aware of any client
+  using this functionality.
+
 - Removed the deprecated average duration and query frequency JMX metrics. The
   total counts and sum of durations as documented in :ref:`query_stats_mbean`
   should be used instead.
 
-- Removed the deprecated setting ``cluster.graceful_stop.reallocate``.
-
 - Removed the deprecated ``ON DUPLICATE KEY`` syntax of :ref:`ref-insert`
-  statements.
-
-- Dropped support for Java versions < 11
-
-- The Elasticsearch REST API has been removed.
-
-- Changed the layout of the ``version`` column in the
-  ``information_schema.tables`` and ``information_schema.table_partitions``
-  tables. The version is now displayed directly under ``created`` and
-  ``upgraded``. The ``cratedb`` and ``elasticsearch`` sub-category has been
-  removed.
+  statements. Users can migrate to the ``ON CONFLICT`` syntax.
 
 - Removed the ``index`` thread-pool and the ``bulk`` alias for the ``write``
   thread-pool. The JMX ``getBulk`` property of the ``ThreadPools`` bean has
   been renamed too ``getWrite``.
 
-- Removed the deprecated ``http.enabled`` setting. ``HTTP`` is now always
-  enabled and can no longer be disabled.
-
-- Removed the deprecated ``ingest`` framework, including the ``MQTT`` endpoint.
-
 - Removed deprecated ``nGram``, ``edgeNGram`` token filter and ``htmlStrip``
   char filter, they are superseded by ``ngram``, ``edge_ngram`` and
   ``html_strip``.
+
+- Removed the deprecated ``USR2`` signal handling. Use :ref:`ALTER CLUSTER
+  DECOMISSION <alter_cluster_decommission>` instead. Be aware that the
+  behavior of sending ``USR2`` signals to a CrateDB process is now undefined
+  and up to the JVM. In some cases it may still terminate the instance but
+  without clean shutdown.
 
 
 Deprecations
@@ -274,6 +290,9 @@ SQL Standard and PostgreSQL compatibility improvements
 
 - Added the :ref:`TIMESTAMP WITHOUT TIME ZONE <datetime-without-time-zone>` data
   type.
+
+- Added the :ref:`TIMESTAMPTZ <data-type-aliases>` alias for the
+  :ref:`TIMESTAMP WITH TIME ZONE <datetime-with-time-zone>` data type.
 
 - Added support for the :ref:`type 'string' <type_cast_from_string_literal>`
   cast operator, which is used to initialize a constant of an arbitrary type.
