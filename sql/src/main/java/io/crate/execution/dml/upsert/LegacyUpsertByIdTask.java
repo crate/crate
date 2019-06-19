@@ -32,8 +32,8 @@ import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
 import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
 import io.crate.execution.support.RetryListener;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.IndexParts;
+import io.crate.metadata.TransactionContext;
 import io.crate.planner.node.dml.LegacyUpsertById;
 import io.crate.planner.node.dml.UpdateById;
 import org.apache.logging.log4j.LogManager;
@@ -56,7 +56,6 @@ import org.elasticsearch.index.shard.ShardId;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.BitSet;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -125,7 +124,7 @@ public class LegacyUpsertByIdTask {
     public void execute(final RowConsumer consumer) {
         doExecute().whenComplete((r, f) -> {
             if (f == null) {
-                consumer.accept(InMemoryBatchIterator.of(new Row1((long) r.cardinality()), SENTINEL), null);
+                consumer.accept(InMemoryBatchIterator.of(new Row1((long) r.numSuccessfulWrites()), SENTINEL), null);
             } else {
                 consumer.accept(null, f);
             }
@@ -133,7 +132,7 @@ public class LegacyUpsertByIdTask {
     }
 
     public List<CompletableFuture<Long>> executeBulk() {
-        final List<CompletableFuture<Long>> results = prepareResultList(numBulkResponses);
+        final List<CompletableFuture<Long>> results = createUnsetFutures(numBulkResponses);
         doExecute().whenComplete((responses, f) -> {
             if (f == null) {
                 long[] resultRowCount = createBulkResponse(responses);
@@ -152,7 +151,9 @@ public class LegacyUpsertByIdTask {
     /**
      * Create bulk-response depending on number of bulk responses
      * <pre>
-     *     responses BitSet: [1, 1, 1, 1]
+     *     compressedResult
+     *          success: [1, 1, 1, 1]
+     *          failure: []
      *
      *     insert into t (x) values (?), (?)   -- bulkParams: [[1, 2], [3, 4]]
      *     Response:
@@ -163,29 +164,29 @@ public class LegacyUpsertByIdTask {
      *      [1, 1, 1, 1]
      * </pre>
      */
-    private long[] createBulkResponse(BitSet responses) {
+    private long[] createBulkResponse(ShardResponse.CompressedResult compressedResult) {
         long[] resultRowCount = new long[numBulkResponses];
         Arrays.fill(resultRowCount, 0L);
         for (int i = 0; i < items.size(); i++) {
             int resultIdx = bulkIndices.get(i);
-            if (responses.get(i)) {
+            if (compressedResult.successfulWrites(i)) {
                 resultRowCount[resultIdx]++;
-            } else {
+            } else if (compressedResult.failed(i)) {
                 resultRowCount[resultIdx] = Row1.ERROR;
             }
         }
         return resultRowCount;
     }
 
-    private static List<CompletableFuture<Long>> prepareResultList(int numResponses) {
-        ArrayList<CompletableFuture<Long>> results = new ArrayList<>(numResponses);
-        for (int i = 0; i < numResponses; i++) {
+    private static <T> List<CompletableFuture<T>> createUnsetFutures(int num) {
+        ArrayList<CompletableFuture<T>> results = new ArrayList<>(num);
+        for (int i = 0; i < num; i++) {
             results.add(new CompletableFuture<>());
         }
         return results;
     }
 
-    private CompletableFuture<BitSet> doExecute() {
+    private CompletableFuture<ShardResponse.CompressedResult> doExecute() {
         MetaData metaData = clusterService.state().getMetaData();
         List<String> indicesToCreate = new ArrayList<>();
         for (LegacyUpsertById.Item item : items) {
@@ -201,20 +202,20 @@ public class LegacyUpsertByIdTask {
         }
     }
 
-    private CompletableFuture<BitSet> createAndSendRequests() {
+    private CompletableFuture<ShardResponse.CompressedResult> createAndSendRequests() {
         Map<ShardId, ShardUpsertRequest> requestsByShard;
         try {
             requestsByShard = groupRequests();
         } catch (Throwable t) {
             return failedFuture(t);
         }
+        final ShardResponse.CompressedResult compressedResult = new ShardResponse.CompressedResult();
         if (requestsByShard.isEmpty()) {
-            return CompletableFuture.completedFuture(new BitSet(0));
+            return CompletableFuture.completedFuture(compressedResult);
         }
-        CompletableFuture<BitSet> result = new CompletableFuture<>();
+        CompletableFuture<ShardResponse.CompressedResult> result = new CompletableFuture<>();
         AtomicInteger numRequests = new AtomicInteger(requestsByShard.size());
         AtomicReference<Throwable> lastFailure = new AtomicReference<>(null);
-        final BitSet responses = new BitSet();
 
         for (Iterator<Map.Entry<ShardId, ShardUpsertRequest>> it = requestsByShard.entrySet().iterator(); it.hasNext(); ) {
             Map.Entry<ShardId, ShardUpsertRequest> entry = it.next();
@@ -226,8 +227,8 @@ public class LegacyUpsertByIdTask {
                 public void onResponse(ShardResponse shardResponse) {
                     Throwable failure = shardResponse.failure();
                     if (failure == null) {
-                        synchronized (responses) {
-                            ShardResponse.markResponseItemsAndFailures(shardResponse, responses);
+                        synchronized (compressedResult) {
+                            compressedResult.update(shardResponse);
                         }
                     } else {
                         lastFailure.set(failure);
@@ -237,6 +238,11 @@ public class LegacyUpsertByIdTask {
 
                 @Override
                 public void onFailure(Exception e) {
+                    if (!updateAffectedNoRows(e) && !partitionWasDeleted(e, request.index())) {
+                        synchronized (compressedResult) {
+                            compressedResult.markAsFailed(request.items());
+                        }
+                    }
                     lastFailure.set(e);
                     countdown();
                 }
@@ -245,7 +251,7 @@ public class LegacyUpsertByIdTask {
                     if (numRequests.decrementAndGet() == 0) {
                         Throwable throwable = lastFailure.get();
                         if (throwable == null) {
-                            result.complete(responses);
+                            result.complete(compressedResult);
                         } else {
                             throwable = SQLExceptions.unwrap(throwable, t -> t instanceof RuntimeException);
                             // we want to report duplicate key exceptions
@@ -253,7 +259,7 @@ public class LegacyUpsertByIdTask {
                                 (updateAffectedNoRows(throwable)
                                  || partitionWasDeleted(throwable, request.index())
                                  || mixedArgumentTypesFailure(throwable, request.items()))) {
-                                result.complete(responses);
+                                result.complete(compressedResult);
                             } else {
                                 result.completeExceptionally(throwable);
                             }

@@ -33,7 +33,6 @@ import org.elasticsearch.index.engine.VersionConflictEngineException;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.BitSet;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -42,14 +41,14 @@ import java.util.concurrent.CompletableFuture;
  */
 final class BulkShardResponseListener implements ActionListener<ShardResponse> {
 
-    private final BitSet allResponses;
+    private final ShardResponse.CompressedResult compressedResult;
     private final ArrayList<CompletableFuture<Long>> results;
     private final MultiActionListener<ShardResponse, ?, long[]> listener;
 
     /**
      * @param resultIndices a list containing one element per shardRequest-item across all shardRequests being made.
      *                      the values must contain the resultIdx;
-     *                      (See {@link #toRowCounts(BitSet, IntCollection, int)})
+     *                      (See {@link #toRowCounts(io.crate.execution.dml.ShardResponse.CompressedResult, IntCollection, int)})
      */
     BulkShardResponseListener(int numCallbacks,
                               int numBulkParams,
@@ -58,20 +57,20 @@ final class BulkShardResponseListener implements ActionListener<ShardResponse> {
         for (int i = 0; i < numBulkParams; i++) {
             results.add(new CompletableFuture<>());
         }
-        this.allResponses = new BitSet();
+        this.compressedResult = new ShardResponse.CompressedResult();
         listener = new MultiActionListener<>(
             numCallbacks,
-            () -> allResponses,
+            () -> compressedResult,
             BulkShardResponseListener::onResponse,
             responses -> toRowCounts(responses, resultIndices, numBulkParams),
             new SetResultFutures(results)
         );
     }
 
-    private static void onResponse(BitSet responses, ShardResponse response) {
+    private static void onResponse(ShardResponse.CompressedResult result, ShardResponse response) {
         Exception failure = response.failure();
         if (failure == null) {
-            ShardResponse.markResponseItemsAndFailures(response, responses);
+            result.update(response);
         } else {
             Throwable t = SQLExceptions.unwrap(failure, e -> e instanceof RuntimeException);
             if (!(t instanceof DocumentMissingException) && !(t instanceof VersionConflictEngineException)) {
@@ -123,17 +122,15 @@ final class BulkShardResponseListener implements ActionListener<ShardResponse> {
      *      long[] {2, 2}
      * </pre>
      */
-    private static long[] toRowCounts(BitSet responses, IntCollection items, int numBulkParams) {
+    private static long[] toRowCounts(ShardResponse.CompressedResult result, IntCollection items, int numBulkParams) {
         long[] rowCounts = new long[numBulkParams];
         Arrays.fill(rowCounts, 0L);
         for (IntCursor c : items) {
             int itemLocation = c.index;
             int resultIdx = c.value;
-            if (responses.get(itemLocation)) {
+            if (result.successfulWrites(itemLocation)) {
                 rowCounts[resultIdx]++;
-            } else {
-                // We should change this in the future to just not count the item;
-                // so that we don't return errors if parts were successful
+            } else if (result.failed(itemLocation)) {
                 rowCounts[resultIdx] = Row1.ERROR;
             }
         }
