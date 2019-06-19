@@ -29,19 +29,16 @@ import io.crate.planner.optimizer.matcher.Match;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.util.Iterator;
 import java.util.List;
 
 public class Optimizer {
 
     private static final Logger LOGGER = LogManager.getLogger(Optimizer.class);
 
-    private final RulesGrouper rulesGrouper;
+    private List<Rule<?>> rules;
 
     public Optimizer(List<Rule<?>> rules) {
-        this.rulesGrouper = RulesGrouper.builder()
-            .registerAll(rules)
-            .build();
+        this.rules = rules;
     }
 
     public LogicalPlan optimize(LogicalPlan plan) {
@@ -57,10 +54,7 @@ public class Optimizer {
         boolean done = false;
         while (!done) {
             done = true;
-
-            Iterator<Rule<?>> rules = rulesGrouper.getCandidates(node).iterator();
-            while (rules.hasNext()) {
-                Rule rule = rules.next();
+            for (Rule rule : rules) {
                 Match match = rule.pattern().accept(node, Captures.empty());
                 if (match.isPresent()) {
                     if (isTraceEnabled) {
