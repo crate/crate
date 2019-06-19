@@ -25,8 +25,6 @@ package io.crate.execution.dml;
 import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
 
-import java.util.BitSet;
-
 import static org.hamcrest.core.Is.is;
 
 public class ShardResponseTest extends CrateUnitTest {
@@ -38,11 +36,16 @@ public class ShardResponseTest extends CrateUnitTest {
         shardResponse.add(1);
         shardResponse.add(2, new ShardResponse.Failure());
 
-        BitSet bitSet = new BitSet();
-        ShardResponse.markResponseItemsAndFailures(shardResponse, bitSet);
+        var result = new ShardResponse.CompressedResult();
+        result.update(shardResponse);
 
-        assertThat(bitSet.get(0), is(true));
-        assertThat(bitSet.get(1), is(true));
-        assertThat(bitSet.get(2), is(false));
+        assertThat(result.successfulWrites(0), is(true));
+        assertThat(result.failed(0), is(false));
+
+        assertThat(result.successfulWrites(1), is(true));
+        assertThat(result.failed(1), is(false));
+
+        assertThat(result.successfulWrites(2), is(false));
+        assertThat(result.failed(2), is(true));
     }
 }
