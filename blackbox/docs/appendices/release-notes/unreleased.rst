@@ -51,29 +51,4 @@ None
 Fixes
 =====
 
-- Fixed ``collect_set`` to return an ``array`` type in order to be able to
-  return the results over ``JDBC``. ``collection_count`` and ``collection_avg``
-  are also changed to receive ``arrays`` as arguments, instead of ``sets``.
-
-- Fixed an issue that caused conflicting rows in an ``INSERT INTO .. ON
-  CONFLICT (..) DO NOTHING`` statement to be reported as failed.
-
-- Fixes an issue that caused wrong results when running ``LEFT`` or ``RIGHT``
-  outer joins on a single node cluster and the rows inside each table differs.
-
-- Fixed an issue in the PostgreSQL wire protocol implementation that could
-  cause clients to receive a ``Only write operations are allowed in Batch
-  statements`` if the client relied on the behavior that closing prepared
-  statements should implicitly close related portals.
-
-- Fixed a bug that led to ``is null`` predicates against ``ignored`` objects
-  fields to always evaluate to true.
-
-- Fixed an issue that caused an error when trying to create a table with
-  a column definition that contains a predefined array data type and generated
-  expression. For instance, a statement like
-  ``CREATE TABLE foo (col ARRAY(TEXT) GENERATED ALWAYS AS ['bar'])`` would
-  fail.
-
-- Fixed a bug that led to failures of group by a single text column queries
-  on columns with the cardinality ration lower than ``0.5``.
+None
