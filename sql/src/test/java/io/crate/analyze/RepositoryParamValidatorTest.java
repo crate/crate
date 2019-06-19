@@ -114,7 +114,7 @@ public class RepositoryParamValidatorTest extends CrateUnitTest {
         assertThat(settings.get("canned_acl"), is("cannedACL"));
         assertThat(settings.get("chunk_size"), is("4gb"));
         assertThat(settings.get("compress"), is("true"));
-        assertThat(settings.get("endpoint"), is("myEndpoint"));
+        assertThat(settings.get("endpoint"), is("myendpoint"));
         assertThat(settings.get("max_retries"), is("8"));
         assertThat(settings.get("protocol"), is("http"));
         assertThat(settings.get("secret_key"), is("thisIsASecretKey"));
