@@ -123,8 +123,7 @@ public final class DataTypes {
             entry(UncheckedObjectType.ID, UncheckedObjectType::new),
             entry(GeoPointType.ID, () -> GEO_POINT),
             entry(GeoShapeType.ID, () -> GEO_SHAPE),
-            entry(ArrayType.ID, ArrayType::new),
-            entry(SetType.ID, SetType::new))
+            entry(ArrayType.ID, ArrayType::new))
     );
 
     private static final Set<DataType> NUMBER_CONVERSIONS = Stream.concat(
@@ -167,7 +166,7 @@ public final class DataTypes {
         FLOAT.id(), Set.of(DOUBLE));
 
     public static boolean isCollectionType(DataType type) {
-        return type.id() == ArrayType.ID || type.id() == SetType.ID;
+        return type.id() == ArrayType.ID;
     }
 
     public static List<DataType> listFromStream(StreamInput in) throws IOException {

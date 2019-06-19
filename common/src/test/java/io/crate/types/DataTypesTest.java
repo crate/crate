@@ -72,25 +72,6 @@ public class DataTypesTest extends CrateUnitTest {
         assertEquals("123", DataTypes.STRING.value(longValue));
     }
 
-    @Test
-    public void testConvertArrayToSet() throws Exception {
-        ArrayType longArray = new ArrayType(DataTypes.LONG);
-        SetType longSet = new SetType(DataTypes.LONG);
-
-        assertThat(longArray.isConvertableTo(longSet), is(true));
-        assertThat(longSet.value(new Object[]{1L, 2L}), is((Set) Sets.newHashSet(1L, 2L)));
-        assertThat(longSet.value(Arrays.asList(1L, 2L)), is((Set) Sets.newHashSet(1L, 2L)));
-    }
-
-    @Test
-    public void testConvertSetToArray() throws Exception {
-        ArrayType longArray = new ArrayType(DataTypes.LONG);
-        SetType longSet = new SetType(DataTypes.LONG);
-
-        assertThat(longSet.isConvertableTo(longArray), is(true));
-        assertThat(longArray.value(Sets.newHashSet(1L, 2L)), is(new Object[]{1L, 2L}));
-    }
-
     private static Map<String, Object> testMap = new HashMap<String, Object>() {{
         put("int", 1);
         put("boolean", false);
@@ -168,25 +149,6 @@ public class DataTypesTest extends CrateUnitTest {
         // then values
         assertThat(objectType.compareValueTo(testMap, testCompareMap), is(1));
         assertThat(objectType.compareValueTo(testCompareMap, testMap), is(1));
-    }
-
-    @Test
-    public void testSetTypeCompareToSameLength() {
-        HashSet<String> set1 = Sets.newHashSet("alpha", "bravo", "charlie", "delta");
-        HashSet<String> set2 = Sets.newHashSet("foo", "alpha", "beta", "bar");
-
-        // only length is compared, not the actual values
-        DataType type = new SetType(DataTypes.STRING);
-        assertThat(type.compareValueTo(set1, set2), is(0));
-    }
-
-    @Test
-    public void testSetTypeCompareToDifferentLength() {
-        HashSet<String> set1 = Sets.newHashSet("alpha", "bravo", "charlie", "delta");
-        HashSet<String> set2 = Sets.newHashSet("foo", "alpha", "beta");
-
-        DataType type = new SetType(DataTypes.STRING);
-        assertThat(type.compareValueTo(set1, set2), is(1));
     }
 
     @Test
