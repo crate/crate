@@ -22,16 +22,12 @@
 
 package io.crate.planner.optimizer.matcher;
 
-public class TypeOfPattern<T> extends Pattern<T> {
+class TypeOfPattern<T> extends Pattern<T> {
 
     private Class<T> expectedClass;
 
     TypeOfPattern(Class<T> expectedClass) {
         this.expectedClass = expectedClass;
-    }
-
-    public Class<T> expectedClass() {
-        return expectedClass;
     }
 
     @Override

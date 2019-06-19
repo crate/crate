@@ -27,22 +27,19 @@ import java.util.function.Function;
 
 class WithPattern<T, U, V> extends Pattern<T> {
 
-    private final Pattern<T> previous;
+    private final Pattern<T> firstPattern;
     private final Function<? super T, Optional<U>> getProperty;
     private final Pattern<V> propertyPattern;
 
-    WithPattern(Pattern<T> previous,
-                Function<? super T, Optional<U>> getProperty,
-                Pattern<V> propertyPattern) {
-        super(previous);
-        this.previous = previous;
+    WithPattern(Pattern<T> firstPattern, Function<? super T, Optional<U>> getProperty, Pattern<V> propertyPattern) {
+        this.firstPattern = firstPattern;
         this.getProperty = getProperty;
         this.propertyPattern = propertyPattern;
     }
 
     @Override
     public Match<T> accept(Object object, Captures captures) {
-        Match<T> match = previous.accept(object, captures);
+        Match<T> match = firstPattern.accept(object, captures);
         return match.flatMap(matchedValue -> {
             Optional<?> optProperty = getProperty.apply(matchedValue);
             Match<V> propertyMatch = optProperty
