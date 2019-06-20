@@ -292,6 +292,17 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testJoinUsingSubscriptInQuerySpec() {
+        execute("create table t1 (id int, a object as (b int))");
+        execute("create table t2 (id int)");
+        execute("insert into t1 (id, a) values (1, {b=1})");
+        execute("insert into t2 (id) values (1)");
+        refresh();
+        execute("select t.id, tt.id from t1 as t, t2 as tt where tt.id = t.a['b']");
+        assertThat(printedTable(response.rows()), is("1| 1\n"));
+    }
+
+    @Test
     public void testCrossJoinFromInformationSchemaTable() throws Exception {
         // sys table with doc granularity on single node
         execute("select * from information_schema.schemata t1, information_schema.schemata t2 " +

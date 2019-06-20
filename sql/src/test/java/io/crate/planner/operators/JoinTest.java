@@ -24,6 +24,7 @@ package io.crate.planner.operators;
 
 import com.carrotsearch.hppc.ObjectObjectHashMap;
 import io.crate.analyze.MultiSourceSelect;
+import io.crate.analyze.QueriedTable;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.HashJoinPhase;
 import io.crate.execution.dsl.phases.NestedLoopPhase;
@@ -465,4 +466,44 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
                "where match(t1.a, 'Lanistas experimentum!') or match(t2.b, 'Rationes ridetis!')");
     }
 
+    /**
+     * This scenario will result having a {@link io.crate.analyze.relations.AbstractTableRelation} as a direct
+     * child of the {@link MultiSourceSelect} instead of a {@link QueriedTable} before ANY optimization
+     * and validates that the plan can be build.
+     *
+     */
+    @Test
+    public void test_subscript_inside_query_spec_of_a_join_is_part_of_the_source_outputs() {
+        var logicalPlan = e.logicalPlan("select users.name" +
+                                            " from users, t1" +
+                                            " where t1.a = users.address['postcode']");
+        var expectedPlan =
+            "RootBoundary[name]\n" +
+            "FetchOrEval[name]\n" +
+            "HashJoin[\n" +
+            "    Boundary[_fetchid, address['postcode']]\n" +
+            "    Collect[doc.users | [_fetchid, address['postcode']] | All]\n" +
+            "    --- INNER ---\n" +
+            "    Boundary[_fetchid, a]\n" +
+            "    Collect[doc.t1 | [_fetchid, a] | All]\n" +
+            "]\n";
+        assertThat(logicalPlan, is(isPlan(e.functions(), expectedPlan)));
+
+        // Same using an table alias (MSS -> AliasAnalyzedRelation -> AbstractTableRelation)
+        logicalPlan = e.logicalPlan("select u.name" +
+                                        " from users u, t1" +
+                                        " where t1.a = u.address['postcode']");
+        expectedPlan =
+            "RootBoundary[name]\n" +
+            "FetchOrEval[name]\n" +
+            "HashJoin[\n" +
+            "    Boundary[_fetchid, address['postcode']]\n" +
+            "    Boundary[_fetchid, address['postcode']]\n" +
+            "    Collect[doc.users | [_fetchid, address['postcode']] | All]\n" +
+            "    --- INNER ---\n" +
+            "    Boundary[_fetchid, a]\n" +
+            "    Collect[doc.t1 | [_fetchid, a] | All]\n" +
+            "]\n";
+        assertThat(logicalPlan, is(isPlan(e.functions(), expectedPlan)));
+    }
 }
