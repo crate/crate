@@ -22,6 +22,7 @@
 
 package io.crate.expression.reference.sys.node;
 
+import static io.crate.execution.engine.collect.NestableCollectExpression.constant;
 
 /**
  * The network column of sys.nodes has been deprecated.

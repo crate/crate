@@ -25,7 +25,7 @@ package io.crate.expression.reference.sys.node;
 
 import io.crate.execution.engine.collect.NestableCollectExpression;
 
-public abstract class SimpleNodeStatsExpression<R> extends NestableCollectExpression<NodeStatsContext, R> {
+public abstract class SimpleNodeStatsExpression<R> implements NestableCollectExpression<NodeStatsContext, R> {
 
     private R value;
 

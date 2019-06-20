@@ -25,7 +25,7 @@ import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 
-public class PartitionExpression extends NestableCollectExpression<PartitionName, Object> {
+public class PartitionExpression implements NestableCollectExpression<PartitionName, Object> {
 
     private final Reference ref;
     private final int valuesIndex;

@@ -22,6 +22,7 @@
 
 package io.crate.expression.reference.sys.node;
 
+import io.crate.execution.engine.collect.NestableCollectExpression;
 import org.elasticsearch.Version;
 
 public class NodeVersionStatsExpression extends NestedNodeStatsExpression {
@@ -53,9 +54,9 @@ public class NodeVersionStatsExpression extends NestedNodeStatsExpression {
         });
         
         childImplementations.put(MINIMUM_INDEX_COMPATIBILITY_VERSION,
-                                 constant(Version.CURRENT.minimumIndexCompatibilityVersion().externalNumber()));
+                                 NestableCollectExpression.constant(Version.CURRENT.minimumIndexCompatibilityVersion().externalNumber()));
 
         childImplementations.put(MINIMUM_WIRE_COMPATIBILITY_VERSION,
-                                 constant(Version.CURRENT.minimumCompatibilityVersion().externalNumber()));
+                                 NestableCollectExpression.constant(Version.CURRENT.minimumCompatibilityVersion().externalNumber()));
     }
 }

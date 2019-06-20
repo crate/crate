@@ -28,7 +28,7 @@ import io.crate.execution.engine.collect.NestableCollectExpression;
 import java.util.List;
 
 public abstract class ArrayTypeNestableContextCollectExpression<RowType, IterType, ReturnType>
-    extends NestableCollectExpression<RowType, ReturnType[]> {
+    implements NestableCollectExpression<RowType, ReturnType[]> {
 
     protected ReturnType[] value;
 

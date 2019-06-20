@@ -41,7 +41,7 @@ public class PartitionsSettingsExpression extends ObjectCollectExpression<Partit
         childImplementations.put(PartitionsSettingsUnassignedExpression.NAME, new PartitionsSettingsUnassignedExpression());
     }
 
-    static class PartitionTableParameterExpression extends NestableCollectExpression<PartitionInfo, Object> {
+    static class PartitionTableParameterExpression implements NestableCollectExpression<PartitionInfo, Object> {
 
         private final String paramName;
         private Object value;
@@ -61,7 +61,7 @@ public class PartitionsSettingsExpression extends ObjectCollectExpression<Partit
         }
     }
 
-    static class StringPartitionTableParameterExpression extends NestableCollectExpression<PartitionInfo, String> {
+    static class StringPartitionTableParameterExpression implements NestableCollectExpression<PartitionInfo, String> {
 
         private final String paramName;
         private String value;

@@ -29,7 +29,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-public class ObjectCollectExpression<R> extends NestableCollectExpression<R, Map<String, Object>> {
+public class ObjectCollectExpression<R> implements NestableCollectExpression<R, Map<String, Object>> {
 
     protected final Map<String, NestableInput> childImplementations;
     protected Map<String, Object> value;
