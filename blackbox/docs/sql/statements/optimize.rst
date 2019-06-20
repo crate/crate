@@ -7,7 +7,7 @@
 
 Optimize one or more tables explicitly.
 
-.. rubric:: Table of Contents
+.. rubric:: Table of contents
 
 .. contents::
    :local:

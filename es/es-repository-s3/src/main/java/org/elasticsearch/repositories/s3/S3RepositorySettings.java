@@ -137,8 +137,9 @@ class S3RepositorySettings {
     /**
      * An override for the s3 endpoint to connect to.
      */
-    static final Setting<String> ENDPOINT_SETTING = Setting.simpleString(
+    static final Setting<String> ENDPOINT_SETTING = new Setting<>(
         "endpoint",
+        "",
         s -> s.toLowerCase(Locale.ROOT),
         Setting.Property.NodeScope);
 

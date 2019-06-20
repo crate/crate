@@ -22,84 +22,64 @@ package org.elasticsearch.repositories.s3;
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSCredentialsProvider;
+import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.EC2ContainerCredentialsProviderWrapper;
 import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.http.IdleConnectionReaper;
-import com.amazonaws.internal.StaticCredentialsProvider;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.internal.Constants;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.cluster.metadata.RepositoryMetaData;
 import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.collect.MapBuilder;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
 
 import java.io.Closeable;
-import java.io.IOException;
-import java.util.Map;
-
-import static java.util.Collections.emptyMap;
 
 class S3Service implements Closeable {
 
     private static final Logger logger = LogManager.getLogger(S3Service.class);
 
-    private volatile Map<String, AmazonS3Reference> clientsCache = emptyMap();
-    private volatile Map<String, S3ClientSettings> clientsSettings = emptyMap();
+    private volatile AmazonS3Reference clientCache;
+    private volatile S3ClientSettings clientSettingsCache;
 
     /**
-     * Refreshes the settings for the AmazonS3 clients and clears the cache of
-     * existing clients. New clients will be build using these new settings. Old
-     * clients are usable until released. On release they will be destroyed instead
-     * to being returned to the cache.
+     * Attempts to retrieve a client by name from the cache.
+     * If the client does not exist it will be created.
+     *
+     * @param metadata {@link RepositoryMetaData}
      */
-    public synchronized Map<String, S3ClientSettings> refreshAndClearCache(Map<String, S3ClientSettings> clientsSettings) {
-        // shutdown all unused clients
-        // others will shutdown on their respective release
-        releaseCachedClients();
-        final Map<String, S3ClientSettings> prevSettings = this.clientsSettings;
-        this.clientsSettings = MapBuilder.newMapBuilder(clientsSettings).immutableMap();
-        assert this.clientsSettings.containsKey("default") : "always at least have 'default'";
-        // clients are built lazily by {@link client(String)}
-        return prevSettings;
-    }
+    public AmazonS3Reference client(RepositoryMetaData metadata) {
+        final S3ClientSettings clientSettings = S3ClientSettings
+            .getClientSettings(metadata.settings());
+        boolean settingsUpdated = !clientSettings.equals(clientSettingsCache);
 
-    /**
-     * Attempts to retrieve a client by name from the cache. If the client does not
-     * exist it will be created.
-     */
-    public AmazonS3Reference client(String clientName) {
-        AmazonS3Reference clientReference = clientsCache.get(clientName);
-        if ((clientReference != null) && clientReference.tryIncRef()) {
-            return clientReference;
-        }
         synchronized (this) {
-            clientReference = clientsCache.get(clientName);
-            if ((clientReference != null) && clientReference.tryIncRef()) {
-                return clientReference;
+            final AmazonS3Reference localClientRef = clientCache;
+            if (localClientRef != null) {
+                if (!settingsUpdated && localClientRef.tryIncRef()) {
+                    return localClientRef;
+                }
             }
-            final S3ClientSettings clientSettings = clientsSettings.get(clientName);
-            if (clientSettings == null) {
-                throw new IllegalArgumentException("Unknown s3 client name [" + clientName + "]. Existing client configs: "
-                        + Strings.collectionToDelimitedString(clientsSettings.keySet(), ","));
-            }
-            logger.debug("creating S3 client with client_name [{}], endpoint [{}]", clientName, clientSettings.endpoint);
-            clientReference = new AmazonS3Reference(buildClient(clientSettings));
-            clientReference.incRef();
-            clientsCache = MapBuilder.newMapBuilder(clientsCache).put(clientName, clientReference).immutableMap();
-            return clientReference;
+
+            final AmazonS3Reference newClientRef = new AmazonS3Reference(
+                buildClient(clientSettings)
+            );
+            newClientRef.incRef();
+            clientCache = newClientRef;
+            clientSettingsCache = clientSettings;
+            return newClientRef;
         }
     }
 
-    // proxy for testing
-    AmazonS3 buildClient(final S3ClientSettings clientSettings) {
+    private AmazonS3 buildClient(final S3ClientSettings clientSettings) {
         final AmazonS3ClientBuilder builder = AmazonS3ClientBuilder.standard();
         builder.withCredentials(buildCredentials(logger, clientSettings));
         builder.withClientConfiguration(buildConfiguration(clientSettings));
 
-        final String endpoint = Strings.hasLength(clientSettings.endpoint) ? clientSettings.endpoint : Constants.S3_HOSTNAME;
+        final String endpoint = Strings.hasLength(clientSettings.endpoint)
+            ? clientSettings.endpoint
+            : Constants.S3_HOSTNAME;
         logger.debug("using endpoint [{}]", endpoint);
 
         // If the endpoint configuration isn't set on the builder then the default behaviour is to try
@@ -146,33 +126,22 @@ class S3Service implements Closeable {
             return new EC2ContainerCredentialsProviderWrapper();
         } else {
             logger.debug("Using basic key/secret credentials");
-            return new StaticCredentialsProvider(credentials);
+            return new AWSStaticCredentialsProvider(credentials);
         }
     }
 
-    /** Returns the value for a given setting from the repository, or returns the fallback value. */
-    private static <T> T getRepoValue(Settings repositorySettings, Setting<T> repositorySetting, T fallback) {
-        if (repositorySetting.exists(repositorySettings)) {
-            return repositorySetting.get(repositorySettings);
+    @Override
+    public void close() {
+        synchronized (this) {
+            var localClientRef = clientCache;
+            if (localClientRef != null) {
+                localClientRef.decRef();
+            }
+            clientCache = null;
+            clientSettingsCache = null;
         }
-        return fallback;
-    }
-
-    protected synchronized void releaseCachedClients() {
-        // the clients will shutdown when they will not be used anymore
-        for (final AmazonS3Reference clientReference : clientsCache.values()) {
-            clientReference.decRef();
-        }
-        // clear previously cached clients, they will be build lazily
-        clientsCache = emptyMap();
         // shutdown IdleConnectionReaper background thread
         // it will be restarted on new client usage
         IdleConnectionReaper.shutdown();
     }
-
-    @Override
-    public void close() throws IOException {
-        releaseCachedClients();
-    }
-
 }

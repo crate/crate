@@ -14,7 +14,7 @@ numeric data types or timestamps.
     The same restrictions that apply to scalar functions also apply to
     arithmetic operators. See :ref:`scalar`.
 
-.. rubric:: Table of Contents
+.. rubric:: Table of contents
 
 .. contents::
    :local:

@@ -25,7 +25,7 @@ CrateDB supports two kinds of environment variables:
 We use "application" here to distinguish between CrateDB running as a Java
 application and the JVM itself, which runs CrateDB.
 
-.. rubric:: Table of Contents
+.. rubric:: Table of contents
 
 .. contents::
    :local:

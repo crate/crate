@@ -9,7 +9,7 @@ Altering Tables
    ``ALTER COLUMN`` and ``DROP COLUMN`` actions are not currently supported.
    See :ref:`crate_standard_sql`.
 
-.. rubric:: Table of Contents
+.. rubric:: Table of contents
 
 .. contents::
    :local:

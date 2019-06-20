@@ -7,7 +7,7 @@ Scalar Functions
 
 Scalar functions return a single value.
 
-.. rubric:: Table of Contents
+.. rubric:: Table of contents
 
 .. contents::
    :local:

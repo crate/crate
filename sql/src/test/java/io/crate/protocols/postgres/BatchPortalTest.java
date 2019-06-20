@@ -27,6 +27,7 @@ import io.crate.action.sql.Session;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.auth.user.AccessControl;
+import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.engine.collect.stats.JobsLogs;
@@ -40,21 +41,27 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
+import org.mockito.Answers;
 
-import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.TimeUnit;
 
+import static org.hamcrest.Matchers.arrayContaining;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.emptyArray;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 
 public class BatchPortalTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
-    public void testEachStatementReceivesCorrectParams() throws IOException {
-        SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService).enableDefaultTables().build();
+    public void testEachStatementReceivesCorrectParams() throws Throwable {
+        SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService)
+            .addTable("create table t1 (x int)")
+            .build();
 
-        AtomicReference<Row> lastParams = new AtomicReference<>();
         Plan insertPlan = new Plan() {
             @Override
             public StatementType type() {
@@ -67,7 +74,7 @@ public class BatchPortalTest extends CrateDummyClusterServiceUnitTest {
                                       RowConsumer consumer,
                                       Row params,
                                       SubQueryResults subQueryResults) {
-                lastParams.set(params);
+                consumer.accept(InMemoryBatchIterator.of(params, null), null);
             }
         };
         Planner planner = new Planner(Settings.EMPTY, clusterService, sqlExecutor.functions(), new TableStats(), () -> true) {
@@ -77,7 +84,7 @@ public class BatchPortalTest extends CrateDummyClusterServiceUnitTest {
             }
         };
 
-        DependencyCarrier executor = mock(DependencyCarrier.class);
+        DependencyCarrier executor = mock(DependencyCarrier.class, Answers.RETURNS_MOCKS);
         Session session = new Session(
             sqlExecutor.analyzer,
             planner,
@@ -89,13 +96,26 @@ public class BatchPortalTest extends CrateDummyClusterServiceUnitTest {
 
         session.parse("S_1", "insert into t1(x) values(1)", Collections.emptyList());
         session.bind("Portal", "S_1", Collections.emptyList(), null);
-        session.execute("Portal", 0, new BaseResultReceiver());
+        final ArrayList<Object[]> s1Rows = new ArrayList<>();
+        session.execute("Portal", 0, new BaseResultReceiver() {
+            @Override
+            public void setNextRow(Row row) {
+                s1Rows.add(row.materialize());
+            }
+        });
 
         session.parse("S_2", "insert into t1(x) values(?)", Collections.emptyList());
         session.bind("Portal", "S_2", Collections.singletonList(2), null);
-        session.execute("Portal", 0, new BaseResultReceiver());
-        session.sync();
+        final ArrayList<Object[]> s2Rows = new ArrayList<>();
+        session.execute("Portal", 0, new BaseResultReceiver() {
+            @Override
+            public void setNextRow(Row row) {
+                s2Rows.add(row.materialize());
+            }
+        });
+        session.sync().get(5, TimeUnit.SECONDS);
 
-        assertThat(lastParams.get().get(0), is(2));
+        assertThat(s1Rows, contains(emptyArray()));
+        assertThat(s2Rows, contains(arrayContaining(is(2))));
     }
 }

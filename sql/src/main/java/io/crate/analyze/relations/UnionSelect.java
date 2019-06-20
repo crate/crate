@@ -25,6 +25,7 @@ package io.crate.analyze.relations;
 import io.crate.analyze.Fields;
 import io.crate.analyze.HavingClause;
 import io.crate.analyze.OrderBy;
+import io.crate.analyze.Relations;
 import io.crate.analyze.WhereClause;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.Field;
@@ -33,7 +34,6 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.List;
 
@@ -43,7 +43,7 @@ public class UnionSelect implements AnalyzedRelation {
     private final AnalyzedRelation left;
     private final AnalyzedRelation right;
     private final List<Symbol> outputs;
-    private QualifiedName name;
+    private final QualifiedName name;
 
     public UnionSelect(AnalyzedRelation left, AnalyzedRelation right) {
         this.left = left;
@@ -81,7 +81,11 @@ public class UnionSelect implements AnalyzedRelation {
         if (operation != Operation.READ) {
             throw new UnsupportedOperationException("getField on MultiSourceSelect is only supported for READ operations");
         }
-        return fields.get(path);
+        Field field = fields.getWithSubscriptFallback(path, this, left);
+        if (field == null && path.isTopLevel() == false) {
+            return Relations.resolveSubscriptOnAliasedField(path, fields, operation);
+        }
+        return field;
     }
 
     @Override
@@ -92,11 +96,6 @@ public class UnionSelect implements AnalyzedRelation {
     @Override
     public QualifiedName getQualifiedName() {
         return name;
-    }
-
-    @Override
-    public void setQualifiedName(@Nonnull QualifiedName qualifiedName) {
-        name = qualifiedName;
     }
 
     @Override

@@ -26,10 +26,14 @@ import io.crate.common.collections.Lists2;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Match;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.util.List;
 
 public class Optimizer {
+
+    private static final Logger LOGGER = LogManager.getLogger(Optimizer.class);
 
     private List<Rule<?>> rules;
 
@@ -43,6 +47,7 @@ public class Optimizer {
     }
 
     private LogicalPlan tryApplyRules(LogicalPlan plan) {
+        final boolean isTraceEnabled = LOGGER.isTraceEnabled();
         LogicalPlan node = plan;
         // Some rules may only become applicable after another rule triggered, so we keep
         // trying to re-apply the rules as long as at least one plan was transformed.
@@ -52,9 +57,15 @@ public class Optimizer {
             for (Rule rule : rules) {
                 Match match = rule.pattern().accept(node, Captures.empty());
                 if (match.isPresent()) {
+                    if (isTraceEnabled) {
+                        LOGGER.trace("Rule '" + rule.getClass().getName() + "' matched");
+                    }
                     @SuppressWarnings("unchecked")
                     LogicalPlan transformedPlan = rule.apply(match.value(), match.captures());
                     if (transformedPlan != null) {
+                        if (isTraceEnabled) {
+                            LOGGER.trace("Rule '" + rule.getClass().getName() + "' transformed the logical plan");
+                        }
                         node = transformedPlan;
                         done = false;
                     }

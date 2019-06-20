@@ -35,7 +35,7 @@ values will be returned for the functions that are exhausted. An example::
     around is not allowed, unless sub queries are utilized.
     (SELECT aggregate_func(col) FROM (SELECT table_func(...) as col) ...)
 
-.. rubric:: Table of Contents
+.. rubric:: Table of contents
 
 .. contents::
    :local:

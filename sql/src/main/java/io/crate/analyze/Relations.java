@@ -31,15 +31,49 @@ import io.crate.analyze.relations.OrderedLimitedRelation;
 import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.relations.UnionSelect;
+import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.table.Operation;
 
 import java.util.Collection;
 import java.util.List;
 import java.util.function.Consumer;
 
 public class Relations {
+
+    /**
+     * In a query like `select o['id'] from (select obj as o ..)`
+     * `o['id']` is not found in the child (its called `obj` there)
+     *
+     * @param path              The column path to resolve
+     * @param fields            The fields of the current/parent relation
+     * @param operation         The operation type
+     */
+    public static Field resolveSubscriptOnAliasedField(ColumnIdent path,
+                                                       Fields fields,
+                                                       Operation operation) {
+        Field o = fields.get(path.getRoot());
+        if (o != null) {
+            AnalyzedRelation sourceRelation = o.relation();
+            Symbol symbol = o;
+            ColumnIdent f_path = o.path();
+            while (f_path.equals(o.path()) && symbol instanceof Field) {
+                Field f = ((Field) symbol);
+                symbol = f.pointer();
+                f_path = f.path();
+                sourceRelation = f.relation();
+            }
+            ColumnIdent obj = Symbols.pathFromSymbol(symbol);
+            ColumnIdent withoutPrefix = path.shiftRight();
+            assert withoutPrefix != null : "shiftRight must not be null because isTopLevel was false";
+            ColumnIdent renamed = withoutPrefix.prepend(obj.name());
+
+            return sourceRelation.getField(renamed, operation);
+        }
+        return o;
+    }
 
     static Collection<? extends ColumnIdent> namesFromOutputs(List<Symbol> outputs) {
         return Lists.transform(outputs, Symbols::pathFromSymbol);

@@ -23,15 +23,18 @@
 package io.crate.integrationtests;
 
 
+import com.google.common.primitives.Longs;
 import io.crate.action.sql.SQLOperations;
-import io.crate.testing.SQLBulkResponse;
 import io.crate.testing.SQLTransportExecutor;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.test.ESIntegTestCase;
+import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import java.util.HashMap;
+import java.util.List;
 
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 1)
@@ -76,16 +79,18 @@ public class BulkInsertOnClientNodeTest extends SQLTransportIntegrationTest {
     public void testInsertBulkDifferentTypesResultsInStreamingFailure() throws Exception {
         execute("create table test (id integer primary key) " +
                 "clustered into 2 shards with (column_policy='dynamic', number_of_replicas=0)");
-        ensureYellow();
-        SQLBulkResponse response = execute("insert into test (id, value) values (?, ?)",
-            new Object[][]{
-                new Object[]{1, 1},                                 // use id 1 to ensure shard 0
-                new Object[]{3, new HashMap<String, Object>() {{    // use id 3 to ensure shard 1
-                    put("foo", 127);
-                }}},
-            });
-        // ensure row count is adjusted and no exception is thrown
-        // 1 shard must succeed (rowCount 1) while other must fail (rowCount -2)
-        assertThat(response.results()[0].rowCount() + response.results()[1].rowCount(), is(-1L));
+        List<Long> rowCounts = Longs.asList(
+            execute("insert into test (id, value) values (?, ?)",
+                    new Object[][]{
+                        new Object[]{1, 1},                                 // use id 1 to ensure shard 0
+                        new Object[]{3, new HashMap<String, Object>() {{    // use id 3 to ensure shard 1
+                            put("foo", 127);
+                        }}},
+            }));
+        assertThat(rowCounts.size(), is(2));
+        assertThat(rowCounts, Matchers.anyOf(
+            contains(1L, -2L),
+            contains(-2L, 1L)
+        ));
     }
 }

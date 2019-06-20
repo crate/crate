@@ -126,7 +126,7 @@ public class OuterJoinRewriteTest extends CrateDummyClusterServiceUnitTest {
         );
         var expectedPlan =
             "RootBoundary[x, x]\n" +
-            "Filter[(coalesce(x, 10) = 10)]\n" +
+            "Filter[((coalesce(x, 10) = 10) AND (x > 5))]\n" +
             "NestedLoopJoin[\n" +
             "    Boundary[x]\n" +
             "    Collect[doc.t1 | [x] | All]\n" +

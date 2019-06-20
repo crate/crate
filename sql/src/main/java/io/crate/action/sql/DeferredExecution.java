@@ -20,40 +20,32 @@
  * agreement.
  */
 
-package io.crate.testing;
+package io.crate.action.sql;
 
-import javax.annotation.Nullable;
+import io.crate.protocols.postgres.Portal;
 
-public class SQLBulkResponse {
+public final class DeferredExecution {
 
-    private Result[] results;
+    private final Portal portal;
+    private final int maxRows;
+    private final ResultReceiver<?> resultReceiver;
 
-    public SQLBulkResponse(Result[] results) {
-        this.results = results;
+    public DeferredExecution(Portal portal, int maxRows, ResultReceiver<?> resultReceiver) {
+        this.portal = portal;
+        this.maxRows = maxRows;
+        this.resultReceiver = resultReceiver;
     }
 
-    public Result[] results() {
-        return results;
+    public Portal portal() {
+        return portal;
     }
 
-    public static class Result {
+    public int maxRows() {
+        return maxRows;
+    }
 
-        private String errorMessage;
-        private long rowCount;
-
-        public Result(@Nullable String errorMessage, long rowCount) {
-            this.errorMessage = errorMessage;
-            this.rowCount = rowCount;
-        }
-
-        public long rowCount() {
-            return rowCount;
-        }
-
-        public String errorMessage() {
-            return errorMessage;
-        }
-
+    public ResultReceiver<?> resultReceiver() {
+        return resultReceiver;
     }
 
 }

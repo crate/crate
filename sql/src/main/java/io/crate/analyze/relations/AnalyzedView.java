@@ -34,12 +34,12 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.List;
 
 public final class AnalyzedView implements AnalyzedRelation {
 
+    private final QualifiedName qualifiedName;
     private final RelationName name;
     private final String owner;
     private final AnalyzedRelation relation;
@@ -48,6 +48,7 @@ public final class AnalyzedView implements AnalyzedRelation {
 
     public AnalyzedView(RelationName name, String owner, AnalyzedRelation relation) {
         this.name = name;
+        this.qualifiedName = QualifiedName.of(name.schema(), name.name());
         this.owner = owner;
         this.fields = new Fields(relation.fields().size());
         this.relation = relation;
@@ -84,7 +85,7 @@ public final class AnalyzedView implements AnalyzedRelation {
         if (operation != Operation.READ) {
             throw new UnsupportedOperationException("getField on AnalyzedView is only supported for READ operations");
         }
-        return fields.get(path);
+        return fields.getWithSubscriptFallback(path, this, relation);
     }
 
     @Override
@@ -94,12 +95,7 @@ public final class AnalyzedView implements AnalyzedRelation {
 
     @Override
     public QualifiedName getQualifiedName() {
-        return relation.getQualifiedName();
-    }
-
-    @Override
-    public void setQualifiedName(@Nonnull QualifiedName qualifiedName) {
-        relation.setQualifiedName(qualifiedName);
+        return qualifiedName;
     }
 
     @Override
@@ -144,5 +140,12 @@ public final class AnalyzedView implements AnalyzedRelation {
     @Override
     public boolean hasAggregates() {
         return false;
+    }
+
+    @Override
+    public String toString() {
+        return "AnalyzedView{" + "qualifiedName=" + qualifiedName +
+               ", relation=" + relation +
+               '}';
     }
 }

@@ -8,7 +8,7 @@ CrateDB aims to provide an SQL implementation that is familiar to anyone having
 used other databases providing a standards-compliant SQL language. However, it
 is worth being aware of some unique characteristics in CrateDB's SQL dialect.
 
-.. rubric:: Table of Contents
+.. rubric:: Table of contents
 
 .. contents::
    :local:

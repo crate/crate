@@ -10,7 +10,7 @@ statement. The response to a ``SELECT`` query contains the column names of the
 result, the actual result rows as a two-dimensional array of values, the row
 count and the duration.
 
-.. rubric:: Table of Contents
+.. rubric:: Table of contents
 
 .. contents::
    :local:

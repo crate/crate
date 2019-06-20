@@ -74,6 +74,7 @@ public class ReadOnlyNodeIntegrationTest extends SQLTransportIntegrationTest {
     protected Settings nodeSettings(int nodeOrdinal) {
         Settings.Builder builder = Settings.builder();
         builder.put(super.nodeSettings(nodeOrdinal));
+        builder.put("path.repo", folder.getRoot().getParent());
         if ((nodeOrdinal + 1) % 2 == 0) {
             builder.put(SQLOperations.NODE_READ_ONLY_SETTING.getKey(), true);
         }
@@ -81,10 +82,10 @@ public class ReadOnlyNodeIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Before
-    public void setUpTestData() {
+    public void setUpTestData() throws Exception {
         executeWrite(
             "create repository existing_repo TYPE \"fs\" with (location=?, compress=True)",
-            new Object[] { folder }
+            new Object[] { folder.getRoot().getAbsolutePath() }
         );
     }
 

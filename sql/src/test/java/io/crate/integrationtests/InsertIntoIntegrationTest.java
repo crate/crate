@@ -24,7 +24,6 @@ package io.crate.integrationtests;
 import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import io.crate.action.sql.SQLActionException;
 import io.crate.exceptions.VersioninigValidationException;
-import io.crate.testing.SQLBulkResponse;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
 import org.elasticsearch.common.collect.MapBuilder;
@@ -856,23 +855,18 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testBulkInsertWithNullValue() throws Exception {
         execute("create table t (x int)");
-        ensureYellow();
 
         Object[][] bulkArgs = new Object[][]{new Object[]{null}};
-        SQLBulkResponse bulkResponse = execute("insert into t values (?)", bulkArgs);
-        assertThat(bulkResponse.results().length, is(1));
-        assertThat(bulkResponse.results()[0].rowCount(), is(1L));
+        long[] rowCounts = execute("insert into t values (?)", bulkArgs);
+        assertThat(rowCounts, is(new long[] { 1L }));
 
         bulkArgs = new Object[][]{
             new Object[]{10},
             new Object[]{null},
             new Object[]{20}
         };
-        bulkResponse = execute("insert into t values (?)", bulkArgs);
-        assertThat(bulkResponse.results().length, is(3));
-        for (SQLBulkResponse.Result result : bulkResponse.results()) {
-            assertThat(result.rowCount(), is(1L));
-        }
+        rowCounts = execute("insert into t values (?)", bulkArgs);
+        assertThat(rowCounts, is(new long[] { 1L, 1L, 1L }));
 
         refresh();
         execute("select * from t");
@@ -882,41 +876,31 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testBulkInsertWithMultiValue() throws Exception {
         execute("create table t (x int)");
-        ensureYellow();
         Object[][] bulkArgs = {
             new Object[]{10, 11},
             new Object[]{20, 21},
             new Object[]{30, 31}
         };
-        SQLBulkResponse bulkResponse = execute("insert into t values (?), (?)", bulkArgs);
-        assertThat(bulkResponse.results().length, is(3));
-        for (SQLBulkResponse.Result result : bulkResponse.results()) {
-            assertThat(result.rowCount(), is(2L));
-        }
+        long[] rowCounts = execute("insert into t values (?), (?)", bulkArgs);
+        assertThat(rowCounts, is(new long[] { 2L, 2L, 2L }));
     }
 
     @Test
     public void testBulkInsertWithMultiValueFailing() throws Exception {
         execute("create table t (x int primary key)");
-        ensureYellow();
         Object[][] bulkArgs = new Object[][]{
             new Object[]{10, 11},
             new Object[]{20, 21},
         };
-        SQLBulkResponse bulkResponse = execute("insert into t values (?), (?)", bulkArgs);
-        assertThat(bulkResponse.results().length, is(2));
-        for (SQLBulkResponse.Result result : bulkResponse.results()) {
-            assertThat(result.rowCount(), is(2L));
-        }
+        long[] rowCounts = execute("insert into t values (?), (?)", bulkArgs);
+        assertThat(rowCounts, is(new long[] { 2L, 2L }));
 
         bulkArgs = new Object[][]{
             new Object[]{20, 21},
             new Object[]{30, 31},
         };
-        bulkResponse = execute("insert into t values (?), (?)", bulkArgs);
-        assertThat(bulkResponse.results().length, is(2));
-        assertThat(bulkResponse.results()[0].rowCount(), is(-2L));
-        assertThat(bulkResponse.results()[1].rowCount(), is(2L));
+        rowCounts = execute("insert into t values (?), (?)", bulkArgs);
+        assertThat(rowCounts, is(new long[] { -2L, 2L }));
     }
 
     @Test
@@ -933,8 +917,8 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
             bulkArgs[i] = new Object[]{System.currentTimeMillis() +
                                        i, new String[]{randomAsciiLettersOfLength(5), randomAsciiLettersOfLength(2)}, (short) i};
         }
-        SQLBulkResponse bulkResponse = execute("insert into giveittome (date, dirty_names, lashes) values (?, ?, ?)", bulkArgs);
-        assertThat(bulkResponse.results().length, is(bulkSize));
+        long[] rowCounts = execute("insert into giveittome (date, dirty_names, lashes) values (?, ?, ?)", bulkArgs);
+        assertThat(rowCounts.length, is(bulkSize));
         execute("refresh table giveittome");
         // assert that bulk insert has inserted everything it said it has
         execute("select sum(lashes), date from giveittome group by date");
@@ -944,11 +928,8 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testBulkInsertWithFailing() throws Exception {
         execute("create table locations (id integer primary key, name string) with (number_of_replicas=0)");
-        ensureYellow();
-        SQLBulkResponse bulkResponse = execute("insert into locations (id, name) values (?, ?)", $$($(1, "Mars"), $(1, "Sun")));
-        assertThat(bulkResponse.results().length, is(2));
-        assertThat(bulkResponse.results()[0].rowCount(), is(1L));
-        assertThat(bulkResponse.results()[1].rowCount(), is(-2L));
+        long[] rowCounts = execute("insert into locations (id, name) values (?, ?)", $$($(1, "Mars"), $(1, "Sun")));
+        assertThat(rowCounts, is(new long[] { 1L, -2L }));
     }
 
     @Test

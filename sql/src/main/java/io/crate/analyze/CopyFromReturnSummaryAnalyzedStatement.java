@@ -39,8 +39,8 @@ import io.crate.types.ObjectType;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.settings.Settings;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Predicate;
 
@@ -57,15 +57,16 @@ public class CopyFromReturnSummaryAnalyzedStatement extends CopyFromAnalyzedStat
         new Field(this, new ColumnIdent("errors"), new InputColumn(4, ObjectType.untyped()))
     );
 
-    private QualifiedName qualifiedName;
+    private final QualifiedName qualifiedName;
 
-    CopyFromReturnSummaryAnalyzedStatement(DocTableInfo table,
+    CopyFromReturnSummaryAnalyzedStatement(DocTableInfo tableInfo,
                                            Settings settings,
                                            Symbol uri,
                                            @Nullable String partitionIdent,
                                            Predicate<DiscoveryNode> nodePredicate,
                                            FileUriCollectPhase.InputFormat inputFormat) {
-        super(table, settings, uri, partitionIdent, nodePredicate, inputFormat);
+        super(tableInfo, settings, uri, partitionIdent, nodePredicate, inputFormat);
+        qualifiedName = new QualifiedName(Arrays.asList(tableInfo.ident().schema(), tableInfo.ident().name()));
     }
 
     @Override
@@ -87,11 +88,6 @@ public class CopyFromReturnSummaryAnalyzedStatement extends CopyFromAnalyzedStat
     @Override
     public QualifiedName getQualifiedName() {
         return qualifiedName;
-    }
-
-    @Override
-    public void setQualifiedName(@Nonnull QualifiedName qualifiedName) {
-        this.qualifiedName = qualifiedName;
     }
 
     @Override

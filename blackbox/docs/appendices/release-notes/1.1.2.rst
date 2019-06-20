@@ -25,7 +25,7 @@ Released on 2017/04/10.
 .. _full restart upgrade: http://crate.io/docs/crate/guide/best_practices/full_restart_upgrade.html
 .. _back up your data: https://crate.io/a/backing-up-and-restoring-crate/
 
-.. rubric:: Table of Contents
+.. rubric:: Table of contents
 
 .. contents::
    :local:

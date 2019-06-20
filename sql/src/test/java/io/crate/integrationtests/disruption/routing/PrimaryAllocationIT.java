@@ -80,7 +80,7 @@ public class PrimaryAllocationIT extends SQLTransportIntegrationTest {
         indexName = IndexParts.toIndexName(schema, "t", null);
     }
 
-    private void createStaleReplicaScenario(String master, String schema, String indexName) throws Exception {
+    private Settings createStaleReplicaScenario(String master, String schema, String indexName) throws Exception {
         execute("insert into t values ('value1')");
         refresh();
 
@@ -111,6 +111,7 @@ public class PrimaryAllocationIT extends SQLTransportIntegrationTest {
         systemExecute("insert into t values ('value2')", schema, replicaNode);
 
         logger.info("--> shut down node that has new acknowledged document");
+        final Settings inSyncDataPathSettings = internalCluster().dataPathSettings(replicaNode);
         internalCluster().stopRandomNode(InternalTestCluster.nameFilter(replicaNode));
 
         ensureStableCluster(1, master);
@@ -128,6 +129,7 @@ public class PrimaryAllocationIT extends SQLTransportIntegrationTest {
         // kick reroute a second time and check that all shards are unassigned
         assertThat(client(master).admin().cluster().prepareReroute().get().getState().getRoutingNodes().unassigned().size(),
             equalTo(2));
+        return inSyncDataPathSettings;
     }
 
     @Test
@@ -138,10 +140,10 @@ public class PrimaryAllocationIT extends SQLTransportIntegrationTest {
         internalCluster().startDataOnlyNode(Settings.EMPTY);
         execute("create table t (x string) clustered into 1 shards with (number_of_replicas = 1, \"write.wait_for_active_shards\" = 1)");
         ensureGreen();
-        createStaleReplicaScenario(master, schema, indexName);
+        final Settings inSyncDataPathSettings = createStaleReplicaScenario(master, schema, indexName);
 
         logger.info("--> starting node that reuses data folder with the up-to-date primary shard");
-        internalCluster().startDataOnlyNode(Settings.EMPTY);
+        internalCluster().startDataOnlyNode(inSyncDataPathSettings);
 
         logger.info("--> check that the up-to-date primary shard gets promoted and that documents are available");
         ensureYellow(indexName);
@@ -157,6 +159,7 @@ public class PrimaryAllocationIT extends SQLTransportIntegrationTest {
                 "\"write.wait_for_active_shards\" = 1, \"unassigned.node_left.delayed_timeout\" = 0)");
         String replicaNode = internalCluster().startDataOnlyNode(Settings.EMPTY);
         ensureGreen();
+        final Settings inSyncDataPathSettings = internalCluster().dataPathSettings(replicaNode);
         internalCluster().stopRandomNode(InternalTestCluster.nameFilter(replicaNode));
         ensureYellow();
         assertEquals(2, client().admin().cluster().prepareState().get().getState().metaData().index(indexName)
@@ -174,7 +177,7 @@ public class PrimaryAllocationIT extends SQLTransportIntegrationTest {
             .metaData().index(indexName).inSyncAllocationIds(0).size());
 
         logger.info("--> starting node that reuses data folder with the up-to-date shard");
-        internalCluster().startDataOnlyNode(Settings.EMPTY);
+        internalCluster().startDataOnlyNode(inSyncDataPathSettings);
         ensureGreen();
     }
 
@@ -185,6 +188,7 @@ public class PrimaryAllocationIT extends SQLTransportIntegrationTest {
         execute("create table t (x string) clustered into 1 shards with (number_of_replicas = 1, " +
                 "\"write.wait_for_active_shards\" = 1, \"unassigned.node_left.delayed_timeout\" = 0)");
         String replicaNode = internalCluster().startDataOnlyNode(Settings.EMPTY);
+        final Settings inSyncDataPathSettings = internalCluster().dataPathSettings(replicaNode);
         ensureGreen();
         internalCluster().stopRandomNode(InternalTestCluster.nameFilter(replicaNode));
         ensureYellow();
@@ -207,7 +211,7 @@ public class PrimaryAllocationIT extends SQLTransportIntegrationTest {
             .metaData().index(indexName).inSyncAllocationIds(0).size());
 
         logger.info("--> starting node that reuses data folder with the up-to-date shard");
-        internalCluster().startDataOnlyNode(Settings.EMPTY);
+        internalCluster().startDataOnlyNode(inSyncDataPathSettings);
         assertBusy(() -> assertTrue(client().admin().cluster().prepareState().get().getState()
             .getRoutingTable().index(indexName).allPrimaryShardsUnassigned()));
     }

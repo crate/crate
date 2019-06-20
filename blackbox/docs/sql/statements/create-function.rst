@@ -7,7 +7,7 @@
 
 Create a new function.
 
-.. rubric:: Table of Contents
+.. rubric:: Table of contents
 
 .. contents::
    :local:

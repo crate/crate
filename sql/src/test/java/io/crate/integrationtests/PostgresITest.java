@@ -53,8 +53,8 @@ import java.util.UUID;
 
 import static io.crate.protocols.postgres.PostgresNetty.PSQL_PORT_SETTING;
 import static org.hamcrest.Matchers.emptyIterable;
+import static org.hamcrest.Matchers.emptyOrNullString;
 import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.isEmptyOrNullString;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.core.Is.is;
 
@@ -436,7 +436,6 @@ public class PostgresITest extends SQLTransportIntegrationTest {
         try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
             Statement stmt = conn.createStatement();
             stmt.executeUpdate("create table t (x int) with (number_of_replicas = 0)");
-            ensureYellow();
             PreparedStatement preparedStatement = conn.prepareStatement("insert into t (x) values (cast(? as integer))");
             preparedStatement.setString(1, Integer.toString(1));
             preparedStatement.addBatch();
@@ -540,7 +539,6 @@ public class PostgresITest extends SQLTransportIntegrationTest {
             conn.setAutoCommit(true);
             Statement stmt = conn.createStatement();
             stmt.executeUpdate("create table t (x int) with (number_of_replicas = 0)");
-            ensureYellow();
             Statement statement = conn.createStatement();
             statement.addBatch("insert into t(x) values(1), (2)");
             statement.addBatch("refresh table t");
@@ -608,7 +606,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
             conn.setAutoCommit(true);
             PreparedStatement stmt = conn.prepareStatement("create table test(a integer)");
             expectedException.expect(PSQLException.class);
-            expectedException.expectMessage("ERROR: Only read operations are allowed on this node");
+            expectedException.expectMessage("Only read operations are allowed on this node");
             stmt.executeQuery();
         }
     }
@@ -636,8 +634,8 @@ public class PostgresITest extends SQLTransportIntegrationTest {
             conn.setAutoCommit(true);
             conn.createStatement().executeUpdate("select sqrt('abcd') from sys.cluster");
         } catch (PSQLException e) {
-            assertThat(e.getServerErrorMessage().getFile(), not(isEmptyOrNullString()));
-            assertThat(e.getServerErrorMessage().getRoutine(), not(isEmptyOrNullString()));
+            assertThat(e.getServerErrorMessage().getFile(), not(is(emptyOrNullString())));
+            assertThat(e.getServerErrorMessage().getRoutine(), not(is(emptyOrNullString())));
             assertThat(e.getServerErrorMessage().getLine(), greaterThan(0));
         }
     }
@@ -748,6 +746,25 @@ public class PostgresITest extends SQLTransportIntegrationTest {
         }
         for (JobsLogService jobsLogService : internalCluster().getDataNodeInstances(JobsLogService.class)) {
             assertBusy(() -> assertThat(jobsLogService.get().activeJobs(), emptyIterable()));
+        }
+    }
+
+    @Test
+    public void test_insert_with_on_conflict_do_nothing_batch_error_resp_is_0_for_conflicting_items() throws Exception {
+        try (Connection conn = DriverManager.getConnection(url(RW))) {
+            conn.prepareStatement("create table t (id int primary key) clustered into 1 shards").execute();
+            conn.prepareStatement("insert into t (id) (select col1 from generate_series(1, 3))").execute();
+
+            PreparedStatement stmt = conn.prepareStatement("insert into t (id) values (?) on conflict (id) do nothing");
+            stmt.setInt(1, 4);
+            stmt.addBatch();
+            stmt.setInt(1, 1);
+            stmt.addBatch();
+
+            int[] result = stmt.executeBatch();
+            assertThat(result.length, is(2));
+            assertThat(result[0], is(1));
+            assertThat(result[1], is(0));
         }
     }
 

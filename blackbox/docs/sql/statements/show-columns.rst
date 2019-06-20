@@ -6,7 +6,7 @@
 
 ``SHOW COLUMNS`` displays information about columns in a given table.
 
-.. rubric:: Table of Contents
+.. rubric:: Table of contents
 
 .. contents::
    :local:

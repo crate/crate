@@ -7,7 +7,7 @@
 
 Copy data from files into a table.
 
-.. rubric:: Table of Contents
+.. rubric:: Table of contents
 
 .. contents::
    :local:

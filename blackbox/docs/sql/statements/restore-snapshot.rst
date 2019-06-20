@@ -7,7 +7,7 @@
 
 Restore a snapshot into the cluster.
 
-.. rubric:: Table of Contents
+.. rubric:: Table of contents
 
 .. contents::
    :local:

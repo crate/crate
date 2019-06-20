@@ -96,6 +96,13 @@ public final class RelationNormalizer {
         }
 
         @Override
+        public AnalyzedRelation visitAliasedAnalyzedRelation(AliasedAnalyzedRelation relation,
+                                                             CoordinatorTxnCtx context) {
+            AnalyzedRelation analyzedRelation = process(relation.relation(), context);
+            return new AliasedAnalyzedRelation(analyzedRelation, relation.getQualifiedName(), relation.columnAliases());
+        }
+
+        @Override
         public AnalyzedRelation visitMultiSourceSelect(MultiSourceSelect mss, CoordinatorTxnCtx context) {
             return mss.mapSubRelations(
                 rel -> rel.accept(this, context),

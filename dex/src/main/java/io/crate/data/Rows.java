@@ -34,12 +34,4 @@ public class Rows {
         }
         return rowList;
     }
-
-    public static List<Row> of(List<List<Object>> rows) {
-        List<Row> rowList = new ArrayList<>(rows.size());
-        for (List<Object> row : rows) {
-            rowList.add(new RowN(row.toArray(new Object[0])));
-        }
-        return rowList;
-    }
 }

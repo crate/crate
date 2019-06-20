@@ -7,7 +7,7 @@
 
 Register a new repository used to store, manage and restore snapshots.
 
-.. rubric:: Table of Contents
+.. rubric:: Table of contents
 
 .. contents::
    :local:

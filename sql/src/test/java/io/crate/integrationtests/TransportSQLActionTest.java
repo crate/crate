@@ -24,7 +24,6 @@ package io.crate.integrationtests;
 import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SQLActionException;
 import io.crate.exceptions.SQLExceptions;
-import io.crate.testing.SQLBulkResponse;
 import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedSchema;
 import org.elasticsearch.common.collect.MapBuilder;
@@ -1000,72 +999,72 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     public void testBulkOperations() throws Exception {
         execute("create table test (id integer primary key, name string) with (number_of_replicas = 0)");
         ensureYellow();
-        SQLBulkResponse bulkResp = execute("insert into test (id, name) values (?, ?), (?, ?)",
+        long[] rowCounts = execute("insert into test (id, name) values (?, ?), (?, ?)",
             new Object[][]{
                 {1, "Earth", 2, "Saturn"},    // bulk row 1
                 {3, "Moon", 4, "Mars"}        // bulk row 2
             });
-        assertThat(bulkResp.results().length, is(2));
-        for (SQLBulkResponse.Result result : bulkResp.results()) {
-            assertThat(result.rowCount(), is(2L));
+        assertThat(rowCounts.length, is(2));
+        for (long rowCount : rowCounts) {
+            assertThat(rowCount, is(2L));
         }
         refresh();
 
-        bulkResp = execute("insert into test (id, name) values (?, ?), (?, ?)",
+        rowCounts = execute("insert into test (id, name) values (?, ?), (?, ?)",
             new Object[][]{
                 {1, "Earth", 2, "Saturn"},    // bulk row 1
                 {3, "Moon", 4, "Mars"}        // bulk row 2
             });
-        assertThat(bulkResp.results().length, is(2));
-        for (SQLBulkResponse.Result result : bulkResp.results()) {
-            assertThat(result.rowCount(), is(-2L));
+        assertThat(rowCounts.length, is(2));
+        for (long rowCount : rowCounts) {
+            assertThat(rowCount, is(-2L));
         }
 
         execute("select name from test order by id asc");
         assertEquals("Earth\nSaturn\nMoon\nMars\n", printedTable(response.rows()));
 
         // test bulk update-by-id
-        bulkResp = execute("update test set name = concat(name, '-updated') where id = ?", new Object[][]{
+        rowCounts = execute("update test set name = concat(name, '-updated') where id = ?", new Object[][]{
             new Object[]{2},
             new Object[]{3},
             new Object[]{4},
         });
-        assertThat(bulkResp.results().length, is(3));
-        for (SQLBulkResponse.Result result : bulkResp.results()) {
-            assertThat(result.rowCount(), is(1L));
+        assertThat(rowCounts.length, is(3));
+        for (long rowCount : rowCounts) {
+            assertThat(rowCount, is(1L));
         }
         refresh();
 
         execute("select count(*) from test where name like '%-updated'");
-        assertThat((Long) response.rows()[0][0], is(3L));
+        assertThat(response.rows()[0][0], is(3L));
 
         // test bulk of delete-by-id
-        bulkResp = execute("delete from test where id = ?", new Object[][]{
+        rowCounts = execute("delete from test where id = ?", new Object[][]{
             new Object[]{1},
             new Object[]{3}
         });
-        assertThat(bulkResp.results().length, is(2));
-        for (SQLBulkResponse.Result result : bulkResp.results()) {
-            assertThat(result.rowCount(), is(1L));
+        assertThat(rowCounts.length, is(2));
+        for (long rowCount : rowCounts) {
+            assertThat(rowCount, is(1L));
         }
         refresh();
 
         execute("select count(*) from test");
-        assertThat((Long) response.rows()[0][0], is(2L));
+        assertThat(response.rows()[0][0], is(2L));
 
         // test bulk of delete-by-query
-        bulkResp = execute("delete from test where name = ?", new Object[][]{
+        rowCounts = execute("delete from test where name = ?", new Object[][]{
             new Object[]{"Saturn-updated"},
             new Object[]{"Mars-updated"}
         });
-        assertThat(bulkResp.results().length, is(2));
-        for (SQLBulkResponse.Result result : bulkResp.results()) {
-            assertThat(result.rowCount(), is(1L));
+        assertThat(rowCounts.length, is(2));
+        for (long rowCount : rowCounts) {
+            assertThat(rowCount, is(1L));
         }
         refresh();
 
         execute("select count(*) from test");
-        assertThat((Long) response.rows()[0][0], is(0L));
+        assertThat(response.rows()[0][0], is(0L));
 
     }
 

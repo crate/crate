@@ -21,7 +21,7 @@ enforce SSL usage, please consult the :ref:`admin_hba`.
 
    Secured Communications is an Enterprise Edition feature.
 
-.. rubric:: Table of Contents
+.. rubric:: Table of contents
 
 .. contents::
    :local:
@@ -196,7 +196,7 @@ information including the different SSL modes please visit the
 Setting up a Keystore/Truststore with a certificate chain
 =========================================================
 
-In case you need to setup a Kestore or a Trustore, here are the commands
+In case you need to setup a Keystore or a Trustore, here are the commands
 to get you started. All the commands use a validity of 36500 days
 (about 100 years). You might want to use less.
 
@@ -206,7 +206,7 @@ to get you started. All the commands use a validity of 36500 days
 Generate Keystore with a private key
 ------------------------------------
 
-The first step is to create a Kestore with a private key using the RSA
+The first step is to create a Keystore with a private key using the RSA
 algorithm. The "first and last name" is the common name (CN) which should
 overlap with the URL the service it is used with.
 
@@ -351,7 +351,7 @@ Output::
 Import the CA certificate into the Keystore
 ...........................................
 
-The CA needs to be imported to the Kestore for the certificate chain to be
+The CA needs to be imported to the Keystore for the certificate chain to be
 available when we import our signed certificate.
 
 Command::
@@ -462,7 +462,7 @@ Import the signed certificate
 -----------------------------
 
 Now we have a signed certificate, signed by either from a official CA
-or from our own CA. Let's import it to the Kestore.
+or from our own CA. Let's import it to the Keystore.
 
 Command::
 

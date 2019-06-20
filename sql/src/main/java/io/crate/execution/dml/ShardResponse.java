@@ -24,6 +24,7 @@ package io.crate.execution.dml;
 
 import com.carrotsearch.hppc.IntArrayList;
 import com.google.common.base.MoreObjects;
+import io.crate.execution.dml.upsert.ShardUpsertRequest;
 import org.elasticsearch.action.support.WriteResponse;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -172,27 +173,66 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
         }
     }
 
+
     /**
-     * Iterates over the provided ShardResponse locations and marks the corresponding location in the provided BitSet
-     * with true if the response has an item at the location or false if the location is a failure.
+     * The result in compressed form.
+     * <p>
+     * It contains the locations that were successful(=write happened) and the locations that failed.
+     * </p>
+     *
+     * <p>
+     * It can also be possible that items were ignored (`ON CONFLICT (pk) DO NOTHING`),
+     * in this case, both `successfulWrites` and `failed` will be false.
+     * </p>
+     *
+     * This doesn't contain failure reasons.
      */
-    public static void markResponseItemsAndFailures(ShardResponse shardResponse, BitSet bitSet) {
-        IntArrayList itemIndices = shardResponse.itemIndices();
-        List<Failure> failures = shardResponse.failures();
-        for (int i = 0; i < itemIndices.size(); i++) {
-            int location = itemIndices.get(i);
-            ShardResponse.Failure failure = failures.get(i);
-            if (failure == null) {
-                bitSet.set(location, true);
-            } else {
-                bitSet.set(location, false);
+    public static class CompressedResult {
+
+        private final BitSet successfulWrites = new BitSet();
+        private final BitSet failureLocations = new BitSet();
+
+        public void update(ShardResponse response) {
+            IntArrayList itemIndices = response.itemIndices();
+            List<Failure> failures = response.failures();
+            for (int i = 0; i < itemIndices.size(); i++) {
+                int location = itemIndices.get(i);
+                ShardResponse.Failure failure = failures.get(i);
+                if (failure == null) {
+                    successfulWrites.set(location, true);
+                } else {
+                    failureLocations.set(location, true);
+                }
+            }
+        }
+
+        public boolean successfulWrites(int location) {
+            return successfulWrites.get(location);
+        }
+
+        public boolean failed(int location) {
+            return failureLocations.get(location);
+        }
+
+        public int numSuccessfulWrites() {
+            return successfulWrites.cardinality();
+        }
+
+        public void markAsFailed(List<ShardUpsertRequest.Item> items) {
+            for (ShardUpsertRequest.Item item : items) {
+                failureLocations.set(item.location());
             }
         }
     }
 
     public int successRowCount() {
-        BitSet bitSet = new BitSet();
-        markResponseItemsAndFailures(this, bitSet);
-        return bitSet.cardinality();
+        int numSuccessful = 0;
+        for (int i = 0; i < locations.size(); i++) {
+            Failure failure = failures.get(i);
+            if (failure == null) {
+                numSuccessful++;
+            }
+        }
+        return numSuccessful;
     }
 }

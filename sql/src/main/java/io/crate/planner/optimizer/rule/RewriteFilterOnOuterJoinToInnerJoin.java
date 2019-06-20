@@ -47,7 +47,6 @@ import java.util.Set;
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 import static io.crate.planner.optimizer.matcher.Patterns.source;
 import static io.crate.planner.optimizer.rule.FilterOnJoinsUtil.getNewSource;
-import static io.crate.planner.optimizer.rule.FilterOnJoinsUtil.getRelationNames;
 
 /**
  * If we can determine that a filter on an OUTER JOIN turns all NULL rows that the join could generate into a NO-MATCH
@@ -127,8 +126,8 @@ public final class RewriteFilterOnOuterJoinToInnerJoin implements Rule<Filter> {
         }
         LogicalPlan lhs = nl.sources().get(0);
         LogicalPlan rhs = nl.sources().get(1);
-        Set<QualifiedName> leftName = getRelationNames(lhs);
-        Set<QualifiedName> rightName = getRelationNames(rhs);
+        Set<QualifiedName> leftName = lhs.getRelationNames();
+        Set<QualifiedName> rightName = rhs.getRelationNames();
 
         Symbol leftQuery = splitQueries.remove(leftName);
         Symbol rightQuery = splitQueries.remove(rightName);
@@ -199,18 +198,44 @@ public final class RewriteFilterOnOuterJoinToInnerJoin implements Rule<Filter> {
                  * | NULL |    4 |
                  * +------+------+
                  */
-                if (couldMatchOnNull(leftQuery)) {
+
+                // Don't repeat pushing down a query, if source is a Filter we expect that the push-down already happened.
+                if (couldMatchOnNull(leftQuery) || (lhs instanceof Filter)) {
                     newLhs = lhs;
-                    splitQueries.put(leftName, leftQuery);
                 } else {
                     newLhs = getNewSource(leftQuery, lhs);
+                    if (leftQuery != null) {
+                        splitQueries.put(leftName, leftQuery);
+                    }
                 }
-                if (couldMatchOnNull(rightQuery)) {
+                if (couldMatchOnNull(rightQuery) || (rhs instanceof Filter)) {
                     newRhs = rhs;
-                    splitQueries.put(rightName, rightQuery);
                 } else {
                     newRhs = getNewSource(rightQuery, rhs);
                 }
+
+                /*
+                 * Filters on each side must be put back into the Filter as each side can generate NULL's on outer joins
+                 * which must be filtered out AFTER the join operation.
+                 * In case the filter is only on one side, the join could be rewritten to a LEFT/RIGHT OUTER.
+                 * TODO: Create a dedicated rule RewriteFilterOnOuterJoinToLeftOrRight
+                 *
+                 * cr> select t1.x as t1x, t2.x as t2x, t2.y as t2y from t1 full outer join t2 on t1.x = t2.x where t2y = 1;
+                 * +------+------+------+
+                 * |  t1x |  t2x |  t2y |
+                 * +------+------+------+
+                 * |    3 |    3 |    1 |
+                 * |    2 |    2 |    1 |
+                 * | NULL |    4 |    1 |
+                 * +------+------+------+
+                 */
+                if (leftQuery != null) {
+                    splitQueries.put(leftName, leftQuery);
+                }
+                if (rightQuery != null) {
+                    splitQueries.put(rightName, rightQuery);
+                }
+
                 newJoinIsInnerJoin = newLhs != lhs && newRhs != rhs;
                 break;
             default:

@@ -23,24 +23,25 @@
 package io.crate.action.sql;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
+import io.crate.analyze.Analysis;
 import io.crate.analyze.AnalyzedBegin;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.DeallocateAnalyzedStatement;
 import io.crate.analyze.ParamTypeHints;
+import io.crate.analyze.ParameterContext;
 import io.crate.analyze.Relations;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.auth.user.AccessControl;
+import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
+import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
+import io.crate.data.RowN;
+import io.crate.exceptions.ReadOnlyException;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.engine.collect.stats.JobsLogs;
-import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
-import io.crate.expression.symbol.Field;
-import io.crate.expression.symbol.ParameterSymbol;
-import io.crate.expression.symbol.SelectSymbol;
-import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.RoutingProvider;
 import io.crate.planner.DependencyCarrier;
@@ -53,7 +54,6 @@ import io.crate.protocols.postgres.FormatCodes;
 import io.crate.protocols.postgres.JobsLogsUpdateListener;
 import io.crate.protocols.postgres.Portal;
 import io.crate.protocols.postgres.RetryOnFailureResultReceiver;
-import io.crate.protocols.postgres.SimplePortal;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
 import io.crate.types.DataType;
@@ -62,19 +62,14 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.common.Randomness;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.Comparator;
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
@@ -122,14 +117,17 @@ public class Session implements AutoCloseable {
     final Map<String, PreparedStmt> preparedStatements = new HashMap<>();
     @VisibleForTesting
     final Map<String, Portal> portals = new HashMap<>();
+
     @VisibleForTesting
-    final Set<Portal> pendingExecutions = new HashSet<>();
+    final Map<Statement, List<DeferredExecution>> deferredExecutionsByStmt = new HashMap<>();
 
     private final Analyzer analyzer;
     private final Planner planner;
     private final JobsLogs jobsLogs;
     private final boolean isReadOnly;
     private final ParameterTypeExtractor parameterTypeExtractor;
+
+    private CoordinatorTxnCtx currentTxnCtx;
 
     public Session(Analyzer analyzer,
                    Planner planner,
@@ -145,7 +143,7 @@ public class Session implements AutoCloseable {
         this.executor = executor;
         this.accessControl = accessControl;
         this.sessionContext = sessionContext;
-        this.parameterTypeExtractor = new Session.ParameterTypeExtractor();
+        this.parameterTypeExtractor = new ParameterTypeExtractor();
     }
 
     /**
@@ -231,22 +229,7 @@ public class Session implements AutoCloseable {
             0
         );
         Plan plan = planner.plan(stmt, plannerContext);
-        plan.execute(
-            executor,
-            plannerContext,
-            consumer,
-            params,
-            SubQueryResults.EMPTY
-        );
-    }
-
-    private Portal getOrCreatePortal(String portalName) {
-        Portal portal = portals.get(portalName);
-        if (portal == null) {
-            portal = new SimplePortal(portalName, analyzer, executor, isReadOnly, sessionContext);
-            portals.put(portalName, portal);
-        }
-        return portal;
+        plan.execute(executor, plannerContext, consumer, params, SubQueryResults.EMPTY);
     }
 
     private Portal getSafePortal(String portalName) {
@@ -274,7 +257,7 @@ public class Session implements AutoCloseable {
                 statement = EMPTY_STMT;
             } else {
                 jobsLogs.logPreExecutionFailure(UUID.randomUUID(), query, SQLExceptions.messageOf(t), sessionContext.user());
-                throw SQLExceptions.createSQLActionException(t, e -> accessControl.ensureMaySee(e));
+                throw SQLExceptions.createSQLActionException(t, accessControl::ensureMaySee);
             }
         }
         preparedStatements.put(statementName, new PreparedStmt(statement, query, paramTypes));
@@ -287,22 +270,35 @@ public class Session implements AutoCloseable {
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("method=bind portalName={} statementName={} params={}", portalName, statementName, params);
         }
-
-        Portal portal = getOrCreatePortal(portalName);
+        PreparedStmt preparedStmt;
         try {
-            PreparedStmt preparedStmt = getSafeStmt(statementName);
-            Portal newPortal = portal.bind(
-                statementName, preparedStmt.query(), preparedStmt.statement(), preparedStmt.analyzedStatement(), params, resultFormatCodes);
-            if (portal != newPortal) {
-                portals.put(portalName, newPortal);
-                pendingExecutions.remove(portal);
-            } else if (portal.synced()) {
-                // Make sure existing portal stops receiving results!
-                portal.close();
-            }
+            preparedStmt = getSafeStmt(statementName);
         } catch (Throwable t) {
-            jobsLogs.logPreExecutionFailure(UUID.randomUUID(), portal.getLastQuery(), SQLExceptions.messageOf(t), sessionContext.user());
-            throw SQLExceptions.forWireTransmission(accessControl, t);
+            jobsLogs.logPreExecutionFailure(UUID.randomUUID(), null, SQLExceptions.messageOf(t), sessionContext.user());
+            throw t;
+        }
+
+        currentTxnCtx = new CoordinatorTxnCtx(sessionContext);
+
+        var unboundStatement = preparedStmt.unboundStatement();
+        final AnalyzedStatement maybeBoundStatement;
+        if (unboundStatement == null || !unboundStatement.isUnboundPlanningSupported()) {
+            ParameterContext parameterContext = new ParameterContext(new RowN(params.toArray()), List.of());
+            Analysis analysis = analyzer.boundAnalyze(
+                preparedStmt.parsedStatement(),
+                currentTxnCtx,
+                parameterContext);
+            maybeBoundStatement = analysis.analyzedStatement();
+        } else {
+            maybeBoundStatement = unboundStatement;
+        }
+        Portal portal = new Portal(portalName, preparedStmt, params, maybeBoundStatement, resultFormatCodes);
+        Portal oldPortal = portals.put(portalName, portal);
+        if (oldPortal != null) {
+            // According to the wire protocol spec named portals should be removed explicitly and only
+            // unnamed portals are implicitly closed/overridden.
+            // We don't comply with the spec because we allow batching of statements, see #execute
+            oldPortal.closeActiveConsumer();
         }
     }
 
@@ -313,7 +309,12 @@ public class Session implements AutoCloseable {
         switch (type) {
             case 'P':
                 Portal portal = getSafePortal(portalOrStatement);
-                return new DescribeResult(portal.describe());
+                AnalyzedStatement analyzedStmt = portal.boundOrUnboundStatement();
+                if (analyzedStmt instanceof AnalyzedRelation) {
+                    return new DescribeResult(((AnalyzedRelation) analyzedStmt).fields());
+                } else {
+                    return new DescribeResult(null);
+                }
             case 'S':
                 /*
                  * describe might be called without prior bind call.
@@ -337,18 +338,14 @@ public class Session implements AutoCloseable {
                  *      execute
                  */
                 PreparedStmt preparedStmt = preparedStatements.get(portalOrStatement);
-                Statement statement = preparedStmt.statement();
+                Statement statement = preparedStmt.parsedStatement();
 
                 AnalyzedStatement analyzedStatement;
                 if (preparedStmt.isRelationInitialized()) {
-                    analyzedStatement = preparedStmt.analyzedStatement();
+                    analyzedStatement = preparedStmt.unboundStatement();
                 } else {
-                    try {
-                        analyzedStatement = analyzer.unboundAnalyze(statement, sessionContext, preparedStmt.paramTypes());
-                        preparedStmt.analyzedStatement(analyzedStatement);
-                    } catch (Throwable t) {
-                        throw SQLExceptions.forWireTransmission(accessControl, t);
-                    }
+                    analyzedStatement = analyzer.unboundAnalyze(statement, sessionContext, preparedStmt.paramTypes());
+                    preparedStmt.unboundStatement(analyzedStatement);
                 }
                 if (analyzedStatement == null) {
                     // statement without result set -> return null for NoData msg
@@ -373,16 +370,15 @@ public class Session implements AutoCloseable {
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("method=execute portalName={} maxRows={}", portalName, maxRows);
         }
-
         Portal portal = getSafePortal(portalName);
-        portal.execute(resultReceiver, maxRows);
-
-        AnalyzedStatement analyzedStatement = portal.getLastAnalyzedStatement();
-        if (analyzedStatement instanceof AnalyzedBegin) {
-            portal.sync(planner, jobsLogs);
-            clearState();
-        } else if (analyzedStatement instanceof DeallocateAnalyzedStatement) {
-            String stmtToDeallocate = ((DeallocateAnalyzedStatement) analyzedStatement).preparedStmtName();
+        AnalyzedStatement analyzedStmt = portal.boundOrUnboundStatement();
+        if (isReadOnly && analyzedStmt.isWriteOperation()) {
+            throw new ReadOnlyException();
+        }
+        if (analyzedStmt instanceof AnalyzedBegin) {
+            resultReceiver.allFinished(false);
+        } else if (analyzedStmt instanceof DeallocateAnalyzedStatement) {
+            String stmtToDeallocate = ((DeallocateAnalyzedStatement) analyzedStmt).preparedStmtName();
             if (stmtToDeallocate != null) {
                 close((byte) 'S', stmtToDeallocate);
             } else {
@@ -391,49 +387,215 @@ public class Session implements AutoCloseable {
                 }
                 preparedStatements.clear();
             }
-            portal.sync(planner, jobsLogs);
+            resultReceiver.allFinished(false);
         } else {
-            // delay execution to be able to bundle bulk operations
-            pendingExecutions.add(portal);
+            /* We defer the execution for any other statements to `sync` messages so that we can efficiently process
+             * bulk operations. E.g. If we receive `INSERT INTO (x) VALUES (?)` bindings/execute multiple times
+             * We want to create bulk requests internally:                                                          /
+             * - To reduce network overhead
+             * - To have 1 disk flush per shard instead of 1 disk flush per item
+             *
+             * Many clients support this by doing something like this:
+             *
+             *      var preparedStatement = conn.prepareStatement("...")
+             *      for (var args in manyArgs):
+             *          preparedStatement.execute(args)
+             *      conn.commit()
+             */
+            deferredExecutionsByStmt.compute(
+                portal.preparedStmt().parsedStatement(), (key, oldValue) -> {
+                    DeferredExecution deferredExecution = new DeferredExecution(portal, maxRows, resultReceiver);
+                    if (oldValue == null) {
+                        ArrayList<DeferredExecution> deferredExecutions = new ArrayList<>();
+                        deferredExecutions.add(deferredExecution);
+                        return deferredExecutions;
+                    } else {
+                        oldValue.add(deferredExecution);
+                        return oldValue;
+                    }
+                }
+            );
         }
     }
 
     public CompletableFuture<?> sync() {
-        switch (pendingExecutions.size()) {
+        switch (deferredExecutionsByStmt.size()) {
             case 0:
-                LOGGER.debug("method=sync pendingExecutions=0");
+                LOGGER.debug("method=sync deferredExecutions=0");
                 return CompletableFuture.completedFuture(null);
-            case 1:
-                Portal portal = pendingExecutions.iterator().next();
-                LOGGER.debug("method=sync portal={}", portal);
-                pendingExecutions.clear();
-                clearState();
-                return portal.sync(planner, jobsLogs);
-            default:
-                throw new IllegalStateException(
-                    "Shouldn't have more than 1 pending execution. Got: " + pendingExecutions);
+
+            case 1: {
+                var entry = deferredExecutionsByStmt.entrySet().iterator().next();
+                deferredExecutionsByStmt.clear();
+                return exec(entry.getKey(), entry.getValue());
+            }
+
+            default: {
+                Map<Statement, List<DeferredExecution>> deferredExecutions = Map.copyOf(this.deferredExecutionsByStmt);
+                this.deferredExecutionsByStmt.clear();
+                for (var entry : deferredExecutions.entrySet()) {
+                    if (entry.getValue().stream().anyMatch(x -> !x.portal().boundOrUnboundStatement().isWriteOperation())) {
+                        throw new UnsupportedOperationException(
+                            "Only write operations are allowed in Batch statements");
+                    }
+                }
+                var futures = Lists2.map(deferredExecutions.entrySet(), x -> exec(x.getKey(), x.getValue()));
+                return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
+            }
         }
     }
 
-    public void clearState() {
-        Portal portal = portals.remove(UNNAMED);
-        if (portal != null) {
-            portal.close();
+    private CompletableFuture<?> exec(Statement statement, List<DeferredExecution> executions) {
+        if (executions.size() == 1) {
+            var toExec = executions.get(0);
+            return singleExec(toExec.portal(), toExec.resultReceiver(), toExec.maxRows());
+        } else {
+            return bulkExec(statement, executions);
         }
-        preparedStatements.remove(UNNAMED);
+    }
+
+    private CompletableFuture<?> bulkExec(Statement statement, List<DeferredExecution> toExec) {
+        assert toExec.size() >= 1 : "Must have at least 1 deferred execution for bulk exec";
+        var jobId = UUID.randomUUID();
+        var routingProvider = new RoutingProvider(Randomness.get().nextInt(), planner.getAwarenessAttributes());
+        var clusterState = executor.clusterService().state();
+        var txnCtx = new CoordinatorTxnCtx(sessionContext);
+        var plannerContext = new PlannerContext(
+            clusterState,
+            routingProvider,
+            jobId,
+            executor.functions(),
+            txnCtx,
+            0
+        );
+        var bulkArgs = Lists2.map(toExec, x -> (Row) new RowN(x.portal().params().toArray()));
+
+        Analysis analysis = analyzer.boundAnalyze(
+            statement, currentTxnCtx, new ParameterContext(Row.EMPTY, bulkArgs));
+        Plan plan;
+        PreparedStmt firstPreparedStatement = toExec.get(0).portal().preparedStmt();
+        try {
+            plan = planner.plan(analysis.analyzedStatement(), plannerContext);
+        } catch (Throwable t) {
+            jobsLogs.logPreExecutionFailure(
+                jobId, firstPreparedStatement.rawStatement(), SQLExceptions.messageOf(t), sessionContext.user());
+            throw t;
+        }
+        jobsLogs.logExecutionStart(
+            jobId,
+            firstPreparedStatement.rawStatement(),
+            sessionContext.user(),
+            StatementClassifier.classify(plan)
+        );
+        List<CompletableFuture<Long>> rowCounts = plan.executeBulk(
+            executor,
+            plannerContext,
+            bulkArgs,
+            SubQueryResults.EMPTY
+        );
+        CompletableFuture<Void> allRowCounts = CompletableFuture.allOf(rowCounts.toArray(new CompletableFuture[0]));
+        List<CompletableFuture<?>> resultReceiverFutures = Lists2.map(toExec, x -> x.resultReceiver().completionFuture());
+        CompletableFuture<Void> allResultReceivers = CompletableFuture.allOf(resultReceiverFutures.toArray(new CompletableFuture[0]));
+
+        return allRowCounts
+            .exceptionally(t -> null) // swallow exception - failures are set per item in emitResults
+            .thenAccept(ignored -> emitRowCountsToResultReceivers(jobId, jobsLogs, toExec, rowCounts))
+            .runAfterBoth(allResultReceivers, () -> {});
+    }
+
+    private static void emitRowCountsToResultReceivers(UUID jobId,
+                                                       JobsLogs jobsLogs,
+                                                       List<DeferredExecution> executions,
+                                                       List<CompletableFuture<Long>> completedRowCounts) {
+        Long[] cells = new Long[1];
+        RowN row = new RowN(cells);
+        for (int i = 0; i < completedRowCounts.size(); i++) {
+            CompletableFuture<Long> completedRowCount = completedRowCounts.get(i);
+            ResultReceiver<?> resultReceiver = executions.get(i).resultReceiver();
+            try {
+                Long rowCount = completedRowCount.join();
+                cells[0] = rowCount == null ? Row1.ERROR : rowCount;
+            } catch (Throwable t) {
+                cells[0] = Row1.ERROR;
+            }
+            resultReceiver.setNextRow(row);
+            resultReceiver.allFinished(false);
+        }
+        jobsLogs.logExecutionEnd(jobId, null);
+    }
+
+    private CompletableFuture<?> singleExec(Portal portal, ResultReceiver<?> resultReceiver, int maxRows) {
+        var activeConsumer = portal.activeConsumer();
+        if (activeConsumer != null && activeConsumer.suspended()) {
+            activeConsumer.replaceResultReceiver(resultReceiver, maxRows);
+            activeConsumer.resume();
+            return resultReceiver.completionFuture();
+        }
+
+        var jobId = UUID.randomUUID();
+        var routingProvider = new RoutingProvider(Randomness.get().nextInt(), planner.getAwarenessAttributes());
+        var clusterState = executor.clusterService().state();
+        var txnCtx = new CoordinatorTxnCtx(sessionContext);
+        var plannerContext = new PlannerContext(
+            clusterState, routingProvider, jobId, executor.functions(), txnCtx, maxRows);
+        var params = new RowN(portal.params().toArray());
+        var analyzedStmt = portal.boundOrUnboundStatement();
+        String rawStatement = portal.preparedStmt().rawStatement();
+        if (analyzedStmt == null) {
+            String errorMsg = "Statement must have been analyzed: " + rawStatement;
+            jobsLogs.logPreExecutionFailure(jobId, rawStatement, errorMsg, sessionContext.user());
+            throw new IllegalStateException(errorMsg);
+        }
+        Plan plan;
+        try {
+            plan = planner.plan(analyzedStmt, plannerContext);
+        } catch (Throwable t) {
+            jobsLogs.logPreExecutionFailure(jobId, rawStatement, SQLExceptions.messageOf(t), sessionContext.user());
+            throw t;
+        }
+        if (!analyzedStmt.isWriteOperation()) {
+            resultReceiver = new RetryOnFailureResultReceiver(
+                executor.clusterService(),
+                clusterState,
+                executor.threadPool().getThreadContext(),
+                indexName -> executor.clusterService().state().metaData().hasIndex(indexName),
+                resultReceiver,
+                jobId,
+                (newJobId, resultRec) -> retryQuery(
+                    newJobId,
+                    analyzedStmt,
+                    routingProvider,
+                    new RowConsumerToResultReceiver(
+                        resultRec,
+                        maxRows,
+                        new JobsLogsUpdateListener(newJobId, jobsLogs)),
+                    params,
+                    txnCtx
+                )
+            );
+        }
+        jobsLogs.logExecutionStart(
+            jobId, rawStatement, sessionContext.user(), StatementClassifier.classify(plan));
+        RowConsumerToResultReceiver consumer = new RowConsumerToResultReceiver(
+            resultReceiver, maxRows, new JobsLogsUpdateListener(jobId, jobsLogs));
+        portal.setActiveConsumer(consumer);
+        plan.execute(executor, plannerContext, consumer, params, SubQueryResults.EMPTY);
+        return resultReceiver.completionFuture();
     }
 
     @Nullable
     public List<? extends DataType> getOutputTypes(String portalName) {
-        Portal portal = portals.get(portalName);
-        if (portal == null) {
+        Portal portal = getSafePortal(portalName);
+        AnalyzedStatement analyzedStatement = portal.boundOrUnboundStatement();
+        if (analyzedStatement instanceof AnalyzedRelation) {
+            return Symbols.typeView(((AnalyzedRelation) analyzedStatement).fields());
+        } else {
             return null;
         }
-        return portal.getLastOutputTypes();
     }
 
     public String getQuery(String portalName) {
-        return getSafePortal(portalName).getLastQuery();
+        return getSafePortal(portalName).preparedStmt().rawStatement();
     }
 
     public DataType getParamType(String statementName, int idx) {
@@ -450,16 +612,23 @@ public class Session implements AutoCloseable {
     }
 
     @Nullable
-    public FormatCodes.FormatCode[] getResultFormatCodes(String portalOrStatement) {
-        Portal portal = portals.get(portalOrStatement);
-        if (portal == null) {
-            return null;
-        }
-        return portal.getLastResultFormatCodes();
+    public FormatCodes.FormatCode[] getResultFormatCodes(String portal) {
+        return getSafePortal(portal).resultFormatCodes();
     }
 
     /**
      * Close a portal or prepared statement
+     *
+     * <p>
+     *     From PostgreSQL ExtendedQuery protocol spec:
+     * </p>
+     *
+     * <p>
+     *     The Close message closes an existing prepared statement or portal and releases resources.
+     *     It is not an error to issue Close against a nonexistent statement or portal name.
+     *     [..]
+     *     Note that closing a prepared statement implicitly closes any open portals that were constructed from that statement.
+     * </p>
      *
      * @param type <b>S</b> for prepared statement, <b>P</b> for portal.
      * @param name name of the prepared statement or the portal (depending on type)
@@ -470,106 +639,50 @@ public class Session implements AutoCloseable {
         }
 
         switch (type) {
-            case 'P':
+            case 'P': {
                 Portal portal = portals.remove(name);
                 if (portal != null) {
-                    portal.close();
+                    portal.closeActiveConsumer();
                 }
                 return;
-            case 'S':
-                preparedStatements.remove(name);
+            }
+            case 'S': {
+                PreparedStmt preparedStmt = preparedStatements.remove(name);
+                if (preparedStmt != null) {
+                    Iterator<Map.Entry<String, Portal>> it = portals.entrySet().iterator();
+                    while (it.hasNext()) {
+                        var entry = it.next();
+                        var portal = entry.getValue();
+                        if (portal.preparedStmt().equals(preparedStmt)) {
+                            portal.closeActiveConsumer();
+                            it.remove();
+                        }
+                    }
+                }
                 return;
+            }
             default:
-                throw new IllegalArgumentException("Invalid type: " + type);
+                throw new IllegalArgumentException("Invalid type: " + type + ", valid types are: [P, S]");
         }
     }
 
     @Override
     public void close() {
+        resetDeferredExecutions();
         for (Portal portal : portals.values()) {
-            portal.close();
+            portal.closeActiveConsumer();
         }
         portals.clear();
         preparedStatements.clear();
-        pendingExecutions.clear();
     }
 
-    static class ParameterTypeExtractor extends DefaultTraversalSymbolVisitor<Void, Void> implements Consumer<Symbol> {
-
-        private final SortedSet<ParameterSymbol> parameterSymbols;
-
-        ParameterTypeExtractor() {
-            this.parameterSymbols = new TreeSet<>(Comparator.comparing(ParameterSymbol::index));
+    public void resetDeferredExecutions() {
+        for (var deferredExecutions : deferredExecutionsByStmt.values()) {
+            for (DeferredExecution deferredExecution : deferredExecutions) {
+                deferredExecution.portal().closeActiveConsumer();
+                portals.remove(deferredExecution.portal().name());
+            }
         }
-
-        @Override
-        public void accept(Symbol symbol) {
-            process(symbol, null);
-        }
-
-        @Override
-        public Void visitSelectSymbol(SelectSymbol selectSymbol, Void context) {
-            Relations.traverseDeepSymbols(selectSymbol.relation(), this);
-            return null;
-        }
-
-        @Override
-        public Void visitParameterSymbol(ParameterSymbol parameterSymbol, Void context) {
-            parameterSymbols.add(parameterSymbol);
-            return null;
-        }
-
-        /**
-         * Gets the parameters from the AnalyzedStatement, if possible.
-         * @param consumer A consumer which takes a symbolVisitor;
-         *                 This symbolVisitor should visit all {@link ParameterSymbol}s in a {@link AnalyzedStatement}
-         * @return A sorted array with the parameters ($1 comes first, then $2, etc.) or null if
-         *         parameters can't be obtained.
-         */
-        DataType[] getParameterTypes(@Nonnull Consumer<Consumer<? super Symbol>> consumer) {
-            consumer.accept(this);
-            Preconditions.checkState(parameterSymbols.isEmpty() ||
-                                     parameterSymbols.last().index() == parameterSymbols.size() - 1,
-                "The assembled list of ParameterSymbols is invalid. Missing parameters.");
-            DataType[] dataTypes = parameterSymbols.stream()
-                .map(ParameterSymbol::getBoundType)
-                .toArray(DataType[]::new);
-            parameterSymbols.clear();
-            return dataTypes;
-        }
-    }
-
-    /**
-     * Encapsulates the result of a DescribePortal or DescribeParameter message.
-     */
-    public static class DescribeResult {
-
-        @Nullable
-        private final List<Field> fields;
-        @Nullable
-        private DataType[] parameters;
-
-        DescribeResult(@Nullable List<Field> fields) {
-            this.fields = fields;
-        }
-
-        DescribeResult(@Nullable List<Field> fields, @Nullable DataType[] parameters) {
-            this.fields = fields;
-            this.parameters = parameters;
-        }
-
-        @Nullable
-        public List<Field> getFields() {
-            return fields;
-        }
-
-        /**
-         * Returns the described parameters in sorted order ($1, $2, etc.)
-         * @return An array containing the parameters, or null if they could not be obtained.
-         */
-        @Nullable
-        public DataType[] getParameters() {
-            return parameters;
-        }
+        deferredExecutionsByStmt.clear();
     }
 }

@@ -31,6 +31,7 @@ import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.QueriedTable;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AbstractTableRelation;
+import io.crate.analyze.relations.AliasedAnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedView;
 import io.crate.analyze.relations.DocTableRelation;
@@ -296,12 +297,16 @@ public class LogicalPlanner {
         if (analyzedRelation instanceof AnalyzedView) {
             return plan(((AnalyzedView) analyzedRelation).relation(), fetchMode, subqueryPlanner, false, functions, txnCtx);
         }
+        if (analyzedRelation instanceof AliasedAnalyzedRelation) {
+            return plan(((AliasedAnalyzedRelation) analyzedRelation).relation(), fetchMode, subqueryPlanner, false, functions, txnCtx);
+        }
         if (analyzedRelation instanceof AbstractTableRelation) {
             return Collect.create(((AbstractTableRelation) analyzedRelation), toCollect, where);
         }
         if (analyzedRelation instanceof QueriedTable) {
             QueriedTable queriedTable = (QueriedTable) analyzedRelation;
             AbstractTableRelation tableRelation = queriedTable.tableRelation();
+
             if (tableRelation instanceof DocTableRelation) {
                 DocTableRelation docTableRelation = (DocTableRelation) tableRelation;
                 EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
