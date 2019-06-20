@@ -23,6 +23,7 @@
 package io.crate.expression.reference.information;
 
 import io.crate.common.collections.Maps;
+import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.reference.ObjectCollectExpression;
 import io.crate.metadata.RelationInfo;
 import org.elasticsearch.Version;
@@ -38,10 +39,10 @@ public class TablesVersionExpression extends ObjectCollectExpression<RelationInf
     private void addChildImplementations() {
         childImplementations.put(
             Version.Property.CREATED.toString(),
-            withNullableProperty(TableExpressions::getVersionCreated, Version::externalNumber));
+            NestableCollectExpression.withNullableProperty(TableExpressions::getVersionCreated, Version::externalNumber));
         childImplementations.put(
             Version.Property.UPGRADED.toString(),
-            withNullableProperty(TableExpressions::getVersionUpgraded, Version::externalNumber));
+            NestableCollectExpression.withNullableProperty(TableExpressions::getVersionUpgraded, Version::externalNumber));
     }
 
     @Override

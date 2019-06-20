@@ -23,6 +23,7 @@
 package io.crate.expression.reference.partitioned;
 
 import io.crate.common.collections.Maps;
+import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.reference.ObjectCollectExpression;
 import io.crate.metadata.PartitionInfo;
 import org.elasticsearch.Version;
@@ -36,11 +37,12 @@ public class PartitionsVersionExpression extends ObjectCollectExpression<Partiti
     }
 
     private void addChildImplementations() {
-        childImplementations.put(
-            Version.Property.CREATED.toString(),
-            withNullableProperty(PartitionInfo::versionCreated, Version::externalNumber));
+        childImplementations.put(Version.Property.CREATED.toString(),
+                                 NestableCollectExpression.withNullableProperty(PartitionInfo::versionCreated,
+                                                                                Version::externalNumber));
         childImplementations.put(Version.Property.UPGRADED.toString(),
-            withNullableProperty(PartitionInfo::versionUpgraded, Version::externalNumber));
+                                 NestableCollectExpression.withNullableProperty(PartitionInfo::versionUpgraded,
+                                                                                Version::externalNumber));
     }
 
     @Override

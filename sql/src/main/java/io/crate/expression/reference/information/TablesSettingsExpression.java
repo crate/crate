@@ -50,7 +50,7 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
         childImplementations.put(TablesSettingsUnassignedExpression.NAME, new TablesSettingsUnassignedExpression());
     }
 
-    static class TableParameterExpression extends NestableCollectExpression<RelationInfo, Object> {
+    static class TableParameterExpression implements NestableCollectExpression<RelationInfo, Object> {
 
         private final String paramName;
         private Object value;
@@ -73,7 +73,7 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
         }
     }
 
-    static class StringTableParameterExpression extends NestableCollectExpression<RelationInfo, String> {
+    static class StringTableParameterExpression implements NestableCollectExpression<RelationInfo, String> {
 
         private final String paramName;
         private String value;

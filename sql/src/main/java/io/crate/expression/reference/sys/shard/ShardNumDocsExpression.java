@@ -25,7 +25,7 @@ import io.crate.blob.v2.BlobShard;
 import io.crate.execution.engine.collect.NestableCollectExpression;
 import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 
-public class ShardNumDocsExpression extends NestableCollectExpression<ShardRowContext, Long> {
+public class ShardNumDocsExpression implements NestableCollectExpression<ShardRowContext, Long> {
 
     private ShardRowContext shardRowContext;
 

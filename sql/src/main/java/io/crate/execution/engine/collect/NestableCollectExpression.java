@@ -23,39 +23,34 @@
 package io.crate.execution.engine.collect;
 
 import io.crate.expression.NestableInput;
-
 import java.util.function.Function;
 
 /**
  * Base interface for row based expressions.
  *
- * @param <TReturnValue> The returnType of the expression
+ * @param <T> The type of the input to the expression
+ * @param <R> The type of the result to the expression
  */
-public abstract class NestableCollectExpression<TRow, TReturnValue>
-    implements CollectExpression<TRow, TReturnValue>, NestableInput<TReturnValue> {
+public interface NestableCollectExpression<T, R> extends CollectExpression<T, R>, NestableInput<R> {
 
-    public static <TRow, TReturnValue> NestableCollectExpression<TRow, TReturnValue> constant(TReturnValue val) {
+    static <T, R> NestableCollectExpression<T, R> constant(R val) {
         return new ConstantNestableCollectExpression<>(val);
     }
 
-    public static <TRow, TReturnValue> NestableCollectExpression<TRow, TReturnValue> forFunction(Function<TRow, TReturnValue> fun) {
+    static <T, R> NestableCollectExpression<T, R> forFunction(Function<T, R> fun) {
         return new FuncExpression<>(fun);
     }
 
-    public static <TRow, TIntermediate> NestableCollectExpression<TRow, Object> withNullableProperty(Function<TRow, TIntermediate> getProperty,
-                                                                                                     Function<TIntermediate, Object> extractValue) {
-        return new NestableCollectExpression<TRow, Object>() {
+    static <T, I> NestableCollectExpression<T, Object> withNullableProperty(Function<T, I> getProperty,
+                                                                            Function<I, ?> extractValue) {
+        return new NestableCollectExpression<T, Object>() {
 
             private Object value;
 
             @Override
-            public void setNextRow(TRow tRow) {
-                TIntermediate intermediate = getProperty.apply(tRow);
-                if (intermediate == null) {
-                    value = null;
-                } else {
-                    value = extractValue.apply(intermediate);
-                }
+            public void setNextRow(T t) {
+                I intermediate = getProperty.apply(t);
+                value = intermediate == null ? null : extractValue.apply(intermediate);
             }
 
             @Override
@@ -65,39 +60,39 @@ public abstract class NestableCollectExpression<TRow, TReturnValue>
         };
     }
 
-    private static class FuncExpression<TRow, TReturnVal> extends NestableCollectExpression<TRow, TReturnVal> {
+    class FuncExpression<T, R> implements NestableCollectExpression<T, R> {
 
-        private final Function<TRow, TReturnVal> f;
-        private TReturnVal value;
+        private final Function<T, R> f;
+        private R value;
 
-        FuncExpression(Function<TRow, TReturnVal> f) {
+        FuncExpression(Function<T, R> f) {
             this.f = f;
         }
 
         @Override
-        public void setNextRow(TRow tRow) {
+        public void setNextRow(T tRow) {
             value = f.apply(tRow);
         }
 
         @Override
-        public TReturnVal value() {
+        public R value() {
             return value;
         }
     }
 
-    private static class ConstantNestableCollectExpression<TRow, TReturnValue> extends NestableCollectExpression<TRow, TReturnValue> {
-        private final TReturnValue val;
+    class ConstantNestableCollectExpression<T, R> implements NestableCollectExpression<T, R> {
+        private final R val;
 
-        ConstantNestableCollectExpression(TReturnValue val) {
+        ConstantNestableCollectExpression(R val) {
             this.val = val;
         }
 
         @Override
-        public void setNextRow(TRow tRow) {
+        public void setNextRow(T tRow) {
         }
 
         @Override
-        public TReturnValue value() {
+        public R value() {
             return val;
         }
     }

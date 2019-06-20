@@ -31,7 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
-public final class MapLookupByPathExpression<T, R> extends NestableCollectExpression<T, R> {
+public final class MapLookupByPathExpression<T, R> implements NestableCollectExpression<T, R> {
 
     private final Function<T, Map<String, Object>> getMap;
     private final List<String> path;

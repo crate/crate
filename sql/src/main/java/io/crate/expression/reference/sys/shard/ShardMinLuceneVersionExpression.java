@@ -29,7 +29,7 @@ import org.elasticsearch.Version;
 import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 import org.elasticsearch.index.shard.IndexShard;
 
-public class ShardMinLuceneVersionExpression extends NestableCollectExpression<ShardRowContext, String> {
+public class ShardMinLuceneVersionExpression implements NestableCollectExpression<ShardRowContext, String> {
 
     private String value;
 
