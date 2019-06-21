@@ -26,11 +26,13 @@ import com.carrotsearch.randomizedtesting.RandomizedTest;
 import io.crate.analyze.TableDefinitions;
 import io.crate.execution.dsl.projection.TopNProjection;
 import io.crate.planner.node.dql.Collect;
+import io.crate.planner.operators.LogicalPlan;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.junit.Before;
 import org.junit.Test;
 
+import static io.crate.planner.operators.LogicalPlannerTest.isPlan;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.nullValue;
@@ -98,5 +100,26 @@ public class UnionPlannerTest extends CrateDummyClusterServiceUnitTest {
         Merge merge = (Merge) unionExecutionPlan.left();
         assertThat(merge.subPlan(), instanceOf(Collect.class));
         assertThat(unionExecutionPlan.right(), instanceOf(Collect.class));
+    }
+
+    @Test
+    public void testOrderByOnUnionPointingToLiteralsMustNotPushedDown() {
+        LogicalPlan plan = e.logicalPlan(
+            "select * from (" +
+            "   select 1 as x, id from users" +
+            "   union all" +
+            "   select 2, id from users" +
+            ") u " +
+            "order by 1, id");
+        assertThat(plan, isPlan(e.functions(),
+            "RootBoundary[x, id]\n" +
+            "Boundary[x, id]\n" +
+            "Boundary[x, id]\n" +
+            "OrderBy[x ASC id ASC]\n" +
+            "Union[\n" +
+            "Collect[doc.users | [1, id] | All]\n" +
+            "---\n" +
+            "Collect[doc.users | [2, id] | All]\n" +
+            "]\n"));
     }
 }
