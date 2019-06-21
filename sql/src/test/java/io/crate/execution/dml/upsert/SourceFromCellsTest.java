@@ -43,6 +43,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static java.util.Collections.emptyList;
@@ -90,6 +91,15 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void testGenerateSourceGeneratedColumnValueIsSuppliedByUserAndMatches() throws IOException {
+        InsertSourceFromCells sourceFromCells = new InsertSourceFromCells(
+            txnCtx, e.functions(), t1, "t1", GeneratedColumns.Validation.VALUE_MATCH, Arrays.asList(x, y, z));
+
+        BytesReference source = sourceFromCells.generateSource(new Object[]{1, 2, 3});
+        assertThat(source.utf8ToString(), is("{\"x\":1,\"y\":2,\"z\":3}"));
+    }
+
+    @Test
     public void testGenerateSourceRaisesAnErrorIfGeneratedColumnValueIsSuppliedByUserAndDoesNotMatch() throws IOException {
         InsertSourceFromCells sourceFromCells = new InsertSourceFromCells(
             txnCtx, e.functions(), t1, "t1", GeneratedColumns.Validation.VALUE_MATCH, Arrays.asList(x, y, z));
@@ -110,6 +120,27 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
         assertThat(map.get("b"), is(11));
         assertThat(Maps.getByPath(map, "obj.a"), is(10));
         assertThat(Maps.getByPath(map, "obj.c"), is(13));
+    }
+
+    @Test
+    public void testGenerateSourceNestedGeneratedColumnValueIsSuppliedByUserAndMatches() throws IOException {
+        InsertSourceFromCells sourceFromCells = new InsertSourceFromCells(
+            txnCtx, e.functions(), t2, "t2", GeneratedColumns.Validation.VALUE_MATCH, List.of(obj));
+
+        BytesReference source = sourceFromCells.generateSource(new Object[]{Map.of("a", 10, "c", 13)});
+        Map<String, Object> map = JsonXContent.jsonXContent.createParser(
+            NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, BytesReference.toBytes(source)).map();
+        assertThat(Maps.getByPath(map, "obj.a"), is(10));
+        assertThat(Maps.getByPath(map, "obj.c"), is(13));
+    }
+
+    @Test
+    public void testGenerateSourceRaisesAnErrorIfNestedGeneratedColumnValueIsSuppliedByUserAndDoesNotMatch() throws IOException {
+        InsertSourceFromCells sourceFromCells = new InsertSourceFromCells(
+            txnCtx, e.functions(), t2, "t2", GeneratedColumns.Validation.VALUE_MATCH, List.of(obj));
+
+        expectedException.expectMessage("Given value 10 for generated column obj['c'] does not match calculation (obj['a'] + 3) = 13");
+        sourceFromCells.generateSource(new Object[]{Map.of("a", 10, "c", 10)});
     }
 
     @Test

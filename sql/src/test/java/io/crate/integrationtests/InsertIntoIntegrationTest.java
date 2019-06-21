@@ -1372,6 +1372,41 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testInsertWithNestedGeneratedColumnGivenValueMatches() {
+        execute("create table t (x long, obj object as (y as x + 1, z int))");
+        execute("insert into t (x, obj) values (10, {z=4, y=11})");
+        execute("refresh table t");
+        execute("select x, obj['y'], obj['z'] from t");
+        assertThat(printedTable(response.rows()), is("10| 11| 4\n"));
+    }
+
+    @Test
+    public void testInsertWithNestedGeneratedColumnGivenValueDoesNotMatch() {
+        execute("create table t (x long, obj object as (y as x + 1, z int))");
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("Given value 1 for generated column obj['y'] does not match calculation (x + 1) = 11");
+        execute("insert into t (x, obj) values (10, {z=4, y=1})");
+    }
+
+    @Test
+    public void testInsertSubqueryWithNestedGeneratedColumnGivenValueMatches() {
+        execute("create table t (x long, obj object as (y as x + 1, z int))");
+        execute("insert into t (x, obj) select 10, {z=4, y=11}");
+        execute("refresh table t");
+        execute("select x, obj['y'], obj['z'] from t");
+        assertThat(printedTable(response.rows()), is("10| 11| 4\n"));
+    }
+
+    @Test
+    public void testInsertSubqueryWithNestedGeneratedColumnGivenValueDoesNotMatch() {
+        execute("create table t (x long, obj object as (y as x + 1, z int))");
+        execute("insert into t (x, obj) select 10, {z=4, y=1}");
+        execute("refresh table t");
+        execute("select * from t");
+        assertThat(response.rowCount(), is(0L));
+    }
+
+    @Test
     public void testInsertIntoTablePartitionedOnGeneratedColumnBasedOnColumnWithinObject() {
         execute("create table t (" +
                 "   day as date_trunc('day', obj['ts'])," +

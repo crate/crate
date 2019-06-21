@@ -420,3 +420,7 @@ Others
 Fixes
 =====
 
+- Fixed an issue on ``INSERT`` and ``UPDATE`` statements when a table has
+  nested generated columns, so that a given value for such column is
+  validated against the generated value.
+

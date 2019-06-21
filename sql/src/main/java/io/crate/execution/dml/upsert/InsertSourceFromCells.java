@@ -98,8 +98,10 @@ public final class InsertSourceFromCells implements InsertSourceGen {
             // partitioned columns must not be included in the source
             if (target.granularity() == RowGranularity.DOC) {
                 ColumnIdent column = target.column();
-                Maps.mergeInto(source, column.name(), column.path(), value);
-                generatedColumns.validateValue(target, value);
+                if (column.isTopLevel()) {
+                    Maps.mergeInto(source, column.name(), column.path(), value);
+                    generatedColumns.validateValue(target, value);
+                }
             }
         }
         for (Map.Entry<Reference, Input<?>> entry : generatedColumns.toInject()) {
