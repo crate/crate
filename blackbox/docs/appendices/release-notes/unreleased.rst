@@ -420,3 +420,7 @@ Others
 Fixes
 =====
 
+- Fixed an issue on ``UNION`` statements when the ``ORDER BY`` points to
+  literals of the subrelations which resulted in an exception.
+  Example query:
+  ``SELECT * FROM (SELECT 5, x FROM t UNION ALL SELECT 6, y FROM t) ORDER BY 1``
