@@ -78,6 +78,10 @@ public class Field extends Symbol {
         return relation;
     }
 
+    public Symbol pointer() {
+        return pointer;
+    }
+
     @Override
     public SymbolType symbolType() {
         return SymbolType.RELATION_OUTPUT;
