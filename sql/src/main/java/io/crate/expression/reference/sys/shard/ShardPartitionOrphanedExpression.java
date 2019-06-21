@@ -24,7 +24,7 @@ package io.crate.expression.reference.sys.shard;
 import io.crate.execution.engine.collect.NestableCollectExpression;
 import org.elasticsearch.cluster.metadata.MetaData;
 
-public class ShardPartitionOrphanedExpression extends NestableCollectExpression<ShardRowContext, Boolean> {
+public class ShardPartitionOrphanedExpression implements NestableCollectExpression<ShardRowContext, Boolean> {
 
     private boolean value;
 

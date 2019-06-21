@@ -25,7 +25,7 @@ package io.crate.expression.reference.sys.shard;
 import io.crate.execution.engine.collect.NestableCollectExpression;
 import org.elasticsearch.indices.recovery.RecoveryState;
 
-public abstract class ShardRecoveryStateExpression<T> extends NestableCollectExpression<ShardRowContext, T> {
+public abstract class ShardRecoveryStateExpression<T> implements NestableCollectExpression<ShardRowContext, T> {
 
     private T value;
 

@@ -27,7 +27,7 @@ import org.elasticsearch.monitor.os.OsStats;
 
 import java.util.function.Function;
 
-final class CgroupExpression<R> extends NestableCollectExpression<NodeStatsContext, R> {
+final class CgroupExpression<R> implements NestableCollectExpression<NodeStatsContext, R> {
 
     private final Function<OsStats.Cgroup, R> getter;
     private R value;

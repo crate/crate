@@ -1,0 +1,77 @@
+.. _version_3.3.4:
+
+=============
+Version 3.3.4
+=============
+
+Released on 2019/06/19.
+
+.. NOTE::
+
+    If you are upgrading a cluster, you must be running CrateDB 2.0.4 or higher
+    before you upgrade to 3.3.4.
+
+    We recommend that you upgrade to the latest 3.2 release before moving to
+    3.3.4.
+
+    If you want to perform a `rolling upgrade`_, your current CrateDB version
+    number must be at least :ref:`version_3.3.0`. Any upgrade from a version
+    prior to this will require a `full restart upgrade`_.
+
+    When restarting, CrateDB will migrate indexes to a newer format. Depending
+    on the amount of data, this may delay node start-up time.
+
+    Please consult the :ref:`version_3.3.0_upgrade_notes` before upgrading.
+
+.. WARNING::
+
+    Tables that were created prior to upgrading to CrateDB 2.x will not
+    function with 3.3 and must be recreated before moving to 3.3.x.
+
+    You can recreate tables using ``COPY TO`` and ``COPY FROM`` while running a
+    2.x release into a new table, or by `inserting the data into a new table`_.
+
+    Before upgrading, you should `back up your data`_.
+
+.. _rolling upgrade: http://crate.io/docs/crate/guide/best_practices/rolling_upgrade.html
+.. _full restart upgrade: http://crate.io/docs/crate/guide/best_practices/full_restart_upgrade.html
+.. _back up your data: https://crate.io/a/backing-up-and-restoring-crate/
+.. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+Changelog
+=========
+
+Fixes
+-----
+
+- Fixed an issue that caused conflicting rows in an ``INSERT INTO .. ON
+  CONFLICT (..) DO NOTHING`` statement to be reported as failed.
+
+- Fixed an issue that caused wrong results when running ``LEFT`` or ``RIGHT``
+  outer joins on a single node cluster and the rows inside each table differs.
+
+- Fixed an issue in the PostgreSQL wire protocol implementation that could
+  cause clients to receive a ``Only write operations are allowed in Batch
+  statements`` if the client relied on the behavior that closing prepared
+  statements should implicitly close related portals.
+
+- Fixed a bug that led to ``is null`` predicates against ``ignored`` objects
+  fields to always evaluate to true.
+
+- Fixed ``collect_set`` to return an ``array`` type in order to be able to
+  return the results over ``JDBC``. ``collection_count`` and ``collection_avg``
+  are also changed to receive ``arrays`` as arguments, instead of ``sets``.
+
+- Fixed an issue that caused an error when trying to create a table with
+  a column definition that contains a predefined array data type and generated
+  expression. For instance, a statement like
+  ``CREATE TABLE foo (col ARRAY(TEXT) AS ['bar'])`` would fail.
+
+- Fixed a bug that led to failures of group by a single text column queries
+  on columns with the cardinality ration lower than ``0.5``.
