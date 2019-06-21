@@ -52,8 +52,8 @@ public abstract class AbstractTableRelation<T extends TableInfo> implements Anal
 
     protected final T tableInfo;
     private final Map<ColumnIdent, Reference> allocatedFields = new HashMap<>();
-    private final List<Symbol> outputSymbols;
-    private List<Field> outputs;
+    private final List<Symbol> outputs;
+    private List<Field> fields;
     private final QualifiedName qualifiedName;
 
     public AbstractTableRelation(T tableInfo) {
@@ -63,7 +63,16 @@ public abstract class AbstractTableRelation<T extends TableInfo> implements Anal
     public AbstractTableRelation(T tableInfo, QualifiedName qualifiedName) {
         this.tableInfo = tableInfo;
         this.qualifiedName = qualifiedName;
-        this.outputSymbols = List.copyOf(tableInfo.columns());
+        outputs = new ArrayList<>(tableInfo.columns());
+        fields = new ArrayList<>(tableInfo.columns().size());
+        for (Reference reference : tableInfo.columns()) {
+            if (reference.valueType().equals(DataTypes.NOT_SUPPORTED)) {
+                continue;
+            }
+            fields.add(new Field(this, reference.column(), reference));
+            // Allocate it so it can be resolved by resolveField()
+            allocatedFields.put(reference.column(), reference);
+        }
     }
 
     @Override
@@ -77,7 +86,7 @@ public abstract class AbstractTableRelation<T extends TableInfo> implements Anal
 
     @Override
     public List<Symbol> outputs() {
-        return outputSymbols;
+        return outputs;
     }
 
     @Override
@@ -174,22 +183,23 @@ public abstract class AbstractTableRelation<T extends TableInfo> implements Anal
 
     protected Field allocate(ColumnIdent path, Reference reference) {
         allocatedFields.put(path, reference);
-        return new Field(this, path, reference);
+        // Add column to the outputs, so outer relations (join, subselect) can resolve it.
+        // Required for resolving subscript cols without any expression mapping (No QueriedTable on top of this relation).
+        if (outputs.contains(reference) == false) {
+            outputs.add(reference);
+        }
+        Field f = new Field(this, path, reference);
+
+        // Subscript fields aren't initially loaded as there could be many, add them now as requested.
+        if (path.isTopLevel() == false && fields.contains(f) == false) {
+            fields.add(f);
+        }
+        return f;
     }
 
     @Override
     public List<Field> fields() {
-        if (outputs == null) {
-            outputs = new ArrayList<>(tableInfo.columns().size());
-            for (Reference reference : tableInfo.columns()) {
-                if (reference.valueType().equals(DataTypes.NOT_SUPPORTED)) {
-                    continue;
-                }
-                ColumnIdent columnIdent = reference.column();
-                outputs.add(getField(columnIdent));
-            }
-        }
-        return outputs;
+        return fields;
     }
 
     @Override
