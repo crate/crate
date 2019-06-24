@@ -46,4 +46,5 @@ None
 Fixes
 =====
 
-None
+- Fixed support for ordering by literal constants.
+  Example: ``SELECT 1, * FROM t ORDER BY 1"``

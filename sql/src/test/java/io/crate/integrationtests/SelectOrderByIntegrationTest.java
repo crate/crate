@@ -24,9 +24,11 @@ package io.crate.integrationtests;
 
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
+import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
+import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.core.Is.is;
 
 public class SelectOrderByIntegrationTest extends SQLTransportIntegrationTest {
@@ -169,5 +171,15 @@ public class SelectOrderByIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("select t from t1 order by date_trunc('year', 'Europe/London', t)");
         assertThat(response.rows()[0][0], is(1521479461L));
+    }
+
+    @Test
+    public void testOrderByLiteralConstant() {
+        execute("create table t1 (id int)");
+        execute("insert into t1 (id) values (1), (2)");
+        refresh();
+        execute("select 1 + 0, id from t1 order by 1, 2"); // add 2nd order by to get deterministic results
+        assertThat(printedTable(response.rows()), Matchers.is("1| 1\n" +
+                                                              "1| 2\n"));
     }
 }
