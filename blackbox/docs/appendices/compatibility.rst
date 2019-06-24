@@ -19,33 +19,33 @@ Implementation notes
 Data types
 ----------
 
-CrateDB supports a set of primitive data types: integer, long, short, double,
-float, and byte, with the same ranges as corresponding Java types.
+CrateDB supports a set of primitive data types. The following table defines
+how data types of standard SQL map to CrateDB :ref:`data-types`.
 
-The following table defines how data types of standard SQL map to CrateDB
-:ref:`data-types`.
-
-+-----------------------------------+------------------------+
-| Standard SQL                      | CrateDB                |
-+===================================+========================+
-| integer                           | integer, int           |
-+-----------------------------------+------------------------+
-| bit[8]                            | byte                   |
-+-----------------------------------+------------------------+
-| boolean, bool                     | boolean, bool          |
-+-----------------------------------+------------------------+
-| char [(n)], varchar [(n)]         | string                 |
-+-----------------------------------+------------------------+
-| timestamp                         | timestamp              |
-+-----------------------------------+------------------------+
-| smallint                          | short                  |
-+-----------------------------------+------------------------+
-| bigint                            | long                   |
-+-----------------------------------+------------------------+
-| real                              | float                  |
-+-----------------------------------+------------------------+
-| double precision                  | double                 |
-+-----------------------------------+------------------------+
++-----------------------------------+-----------------------------+
+| Standard SQL                      | CrateDB                     |
++===================================+=============================+
+| integer                           | integer, int, int4          |
++-----------------------------------+-----------------------------+
+| bit[8]                            | byte, char                  |
++-----------------------------------+-----------------------------+
+| boolean, bool                     | boolean                     |
++-----------------------------------+-----------------------------+
+| char [(n)], varchar [(n)]         | string, text                |
++-----------------------------------+-----------------------------+
+| timestamp with time zone          | timestamp with time zone,   |
+|                                   | timestamptz                 |
++-----------------------------------+-----------------------------+
+| timestamp                         | timestamp without time zone |
++-----------------------------------+-----------------------------+
+| smallint                          | short, int2, smallint       |
++-----------------------------------+-----------------------------+
+| bigint                            | long, bigint, int8          |
++-----------------------------------+-----------------------------+
+| real                              | float, real                 |
++-----------------------------------+-----------------------------+
+| double precision                  | double, double precision    |
++-----------------------------------+-----------------------------+
 
 Create table
 ------------
