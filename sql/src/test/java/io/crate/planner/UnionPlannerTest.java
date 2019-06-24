@@ -102,4 +102,19 @@ public class UnionPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(merge.subPlan(), instanceOf(Collect.class));
         assertThat(unionExecutionPlan.right(), instanceOf(Collect.class));
     }
+
+    @Test
+    public void testUnionWithOrderByLiteralConstant() {
+        ExecutionPlan plan = e.plan(
+            "select * from (" +
+            " select 1 as x, id from users" +
+            " union all" +
+            " select 2, id from users" +
+            ") o" +
+            " order by x");
+        assertThat(plan, instanceOf(UnionExecutionPlan.class));
+        UnionExecutionPlan unionExecutionPlan = (UnionExecutionPlan) plan;
+        assertThat(unionExecutionPlan.mergePhase().orderByPositions(), instanceOf(PositionalOrderBy.class));
+        assertThat(unionExecutionPlan.mergePhase().orderByPositions().indices(), is(new int[]{0}));
+    }
 }

@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import com.google.common.primitives.Booleans;
 import io.crate.collections.Lists2;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
@@ -29,6 +30,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -36,6 +38,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 public class OrderBy implements Writeable {
 
@@ -100,6 +103,25 @@ public class OrderBy implements Writeable {
 
     public OrderBy copyAndReplace(Function<? super Symbol, ? extends Symbol> replaceFunction) {
         return new OrderBy(Lists2.map(orderBySymbols, replaceFunction), reverseFlags, nullsFirst);
+    }
+
+    @Nullable
+    public OrderBy exclude(Predicate<? super Symbol> predicate) {
+        ArrayList<Symbol> newOrderBySymbols = new ArrayList<>(orderBySymbols.size());
+        ArrayList<Boolean> newReverseFlags = new ArrayList<>(reverseFlags.length);
+        ArrayList<Boolean> newNullsFirst = new ArrayList<>(nullsFirst.length);
+        for (int i = 0; i < orderBySymbols.size(); i++) {
+            Symbol sortSymbol = orderBySymbols.get(i);
+            if (predicate.test(sortSymbol) == false) {
+                newOrderBySymbols.add(sortSymbol);
+                newReverseFlags.add(reverseFlags[i]);
+                newNullsFirst.add(nullsFirst[i]);
+            }
+        }
+        if (newOrderBySymbols.size() == 0) {
+            return null;
+        }
+        return new OrderBy(newOrderBySymbols, Booleans.toArray(newReverseFlags), newNullsFirst.toArray(new Boolean[0]));
     }
 
     @Override

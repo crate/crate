@@ -249,7 +249,7 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
         if (orderBy != null) {
             orderBy = orderBy.copyAndReplace(normalize);
         }
-        changed = changed || newWhereClause != where;
+        changed = changed || newWhereClause != where || orderBy != this.orderBy;
         if (changed) {
             result = new RoutedCollectPhase(
                 jobId(),
