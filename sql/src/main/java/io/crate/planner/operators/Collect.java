@@ -202,7 +202,12 @@ class Collect extends ZeroInputPlan {
         RoutedCollectPhase collectPhase = createPhase(plannerContext, params, subQueryResults);
         PositionalOrderBy positionalOrderBy = getPositionalOrderBy(order, outputs);
         if (positionalOrderBy != null) {
-            collectPhase.orderBy(order.copyAndReplace(s -> SubQueryAndParamBinder.convert(s, params, subQueryResults)));
+            collectPhase.orderBy(
+                order
+                    .copyAndReplace(s -> SubQueryAndParamBinder.convert(s, params, subQueryResults))
+                    // Filter out literal constants as ordering by constants is a NO-OP and also not supported
+                    // on the collect operation.
+                    .exclude(s -> s instanceof Literal));
         }
         int limitAndOffset = limitAndOffset(limit, offset);
         maybeApplyPageSize(limitAndOffset, pageSizeHint, collectPhase);

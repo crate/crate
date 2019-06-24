@@ -378,15 +378,6 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testSubqueryInOrderResultsInAnError() throws Exception {
-        execute("create table t (x long primary key)");
-        ensureYellow();
-
-        expectedException.expectMessage("Using a non-integer constant in ORDER BY is not supported");
-        execute("select x from t order by (select 1)");
-    }
-
-    @Test
     public void testGlobalAggregatesOnSimpleSubQuery() throws Exception {
         execute("create table t (x int)");
         ensureYellow();
