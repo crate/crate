@@ -32,9 +32,12 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
-import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterState;
+
 import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
+import static io.crate.types.DataTypes.STRING;
+import static io.crate.types.DataTypes.INTEGER;
+import static io.crate.types.DataTypes.BOOLEAN;
 
 import java.util.Map;
 
@@ -43,17 +46,16 @@ public class SysChecksTableInfo extends StaticTableInfo {
     public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "checks");
     private static final RowGranularity GRANULARITY = RowGranularity.DOC;
 
-
-    public static Map<ColumnIdent, RowCollectExpressionFactory<SysCheck>> expressions() {
+    static Map<ColumnIdent, RowCollectExpressionFactory<SysCheck>> expressions() {
         return columnRegistrar().expressions();
     }
 
-    public static ColumnRegistrar<SysCheck> columnRegistrar() {
+    private static ColumnRegistrar<SysCheck> columnRegistrar() {
         return new ColumnRegistrar<SysCheck>(IDENT, GRANULARITY)
-            .register("id", DataTypes.INTEGER, () -> forFunction(SysCheck::id))
-            .register("severity", DataTypes.INTEGER, () -> forFunction((SysCheck r) -> r.severity().value()))
-            .register("description", DataTypes.STRING, () -> forFunction(SysCheck::description))
-            .register("passed", DataTypes.BOOLEAN, () -> forFunction(SysCheck::isValid));
+            .register("id", INTEGER, () -> forFunction(SysCheck::id))
+            .register("severity", INTEGER, () -> forFunction((SysCheck r) -> r.severity().value()))
+            .register("description", STRING, () -> forFunction(SysCheck::description))
+            .register("passed", BOOLEAN, () -> forFunction(SysCheck::isValid));
     }
 
     SysChecksTableInfo() {

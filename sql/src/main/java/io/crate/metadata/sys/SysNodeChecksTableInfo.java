@@ -22,11 +22,8 @@
 
 package io.crate.metadata.sys;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
-import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
@@ -38,58 +35,47 @@ import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.StaticTableInfo;
 import io.crate.expression.reference.sys.check.node.SysNodeCheck;
-import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterState;
 
 import java.util.EnumSet;
+import java.util.Map;
 import java.util.Set;
+
+import static io.crate.types.DataTypes.STRING;
+import static io.crate.types.DataTypes.INTEGER;
+import static io.crate.types.DataTypes.BOOLEAN;
+import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
+
 
 public class SysNodeChecksTableInfo extends StaticTableInfo {
 
     public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "node_checks");
-    private static final ImmutableList<ColumnIdent> PRIMARY_KEYS = ImmutableList.of(Columns.ID, Columns.NODE_ID);
     private static final RowGranularity GRANULARITY = RowGranularity.DOC;
 
     private static final Set<Operation> SUPPORTED_OPERATIONS = EnumSet.of(Operation.READ, Operation.UPDATE);
 
     public static class Columns {
-        public static final ColumnIdent ID = new ColumnIdent("id");
-        static final ColumnIdent NODE_ID = new ColumnIdent("node_id");
-        static final ColumnIdent SEVERITY = new ColumnIdent("severity");
-        public static final ColumnIdent DESCRIPTION = new ColumnIdent("description");
-        static final ColumnIdent PASSED = new ColumnIdent("passed");
         public static final ColumnIdent ACKNOWLEDGED = new ColumnIdent("acknowledged");
     }
 
-    public static ImmutableMap<ColumnIdent, RowCollectExpressionFactory<SysNodeCheck>> expressions() {
-        return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<SysNodeCheck>>builder()
-            .put(SysNodeChecksTableInfo.Columns.ID,
-                () -> NestableCollectExpression.forFunction(SysNodeCheck::id))
-            .put(SysNodeChecksTableInfo.Columns.NODE_ID,
-                () -> NestableCollectExpression.forFunction(SysNodeCheck::nodeId))
-            .put(SysNodeChecksTableInfo.Columns.DESCRIPTION,
-                () -> NestableCollectExpression.forFunction(SysNodeCheck::description))
-            .put(SysNodeChecksTableInfo.Columns.SEVERITY,
-                () -> NestableCollectExpression.forFunction((SysNodeCheck x) -> x.severity().value()))
-            .put(SysNodeChecksTableInfo.Columns.PASSED,
-                () -> NestableCollectExpression.forFunction(SysNodeCheck::isValid))
-            .put(SysNodeChecksTableInfo.Columns.ACKNOWLEDGED,
-                () -> NestableCollectExpression.forFunction(SysNodeCheck::acknowledged))
-            .put(DocSysColumns.ID,
-                () -> NestableCollectExpression.forFunction(SysNodeCheck::rowId))
-            .build();
+    static Map<ColumnIdent, RowCollectExpressionFactory<SysNodeCheck>> expressions() {
+        return columnRegistrar().expressions();
+    }
+
+    private static ColumnRegistrar<SysNodeCheck> columnRegistrar() {
+        return new ColumnRegistrar<SysNodeCheck>(IDENT, GRANULARITY)
+            .register("id", INTEGER, () -> forFunction(SysNodeCheck::id))
+            .register("node_id", STRING, () -> forFunction(SysNodeCheck::nodeId))
+            .register("severity", INTEGER, () -> forFunction((SysNodeCheck x) -> x.severity().value()))
+            .register("description", STRING, () -> forFunction(SysNodeCheck::description))
+            .register("passed", BOOLEAN, () -> forFunction(SysNodeCheck::isValid))
+            .register("acknowledged", BOOLEAN, () -> forFunction(SysNodeCheck::acknowledged))
+            .register(DocSysColumns.ID, STRING, () -> forFunction(SysNodeCheck::rowId))
+            .putInfoOnly(DocSysColumns.ID, DocSysColumns.forTable(IDENT, DocSysColumns.ID));
     }
 
     SysNodeChecksTableInfo() {
-        super(IDENT, new ColumnRegistrar(IDENT, GRANULARITY)
-                .register(SysNodeChecksTableInfo.Columns.ID, DataTypes.INTEGER)
-                .register(SysNodeChecksTableInfo.Columns.NODE_ID, DataTypes.STRING)
-                .register(SysNodeChecksTableInfo.Columns.SEVERITY, DataTypes.INTEGER)
-                .register(SysNodeChecksTableInfo.Columns.DESCRIPTION, DataTypes.STRING)
-                .register(SysNodeChecksTableInfo.Columns.PASSED, DataTypes.BOOLEAN)
-                .register(SysNodeChecksTableInfo.Columns.ACKNOWLEDGED, DataTypes.BOOLEAN)
-                .putInfoOnly(DocSysColumns.ID, DocSysColumns.forTable(IDENT, DocSysColumns.ID)),
-            PRIMARY_KEYS);
+        super(IDENT, columnRegistrar(), "id", "node_id");
     }
 
     @Override

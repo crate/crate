@@ -24,7 +24,6 @@ package io.crate.metadata.sys;
 import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
-import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.reference.sys.operation.OperationContext;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
@@ -34,67 +33,50 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
-import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 
-import java.util.Collections;
 import java.util.Map;
 import java.util.function.Supplier;
+
+import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
+import static io.crate.types.DataTypes.STRING;
+import static io.crate.types.DataTypes.TIMESTAMPZ;
+import static io.crate.types.DataTypes.LONG;
 
 public class SysOperationsTableInfo extends StaticTableInfo {
 
     public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "operations");
 
-    public static class Columns {
-        public static final ColumnIdent ID = new ColumnIdent("id");
-        static final ColumnIdent JOB_ID = new ColumnIdent("job_id");
-        public static final ColumnIdent NAME = new ColumnIdent("name");
-        public static final ColumnIdent STARTED = new ColumnIdent("started");
-        static final ColumnIdent USED_BYTES = new ColumnIdent("used_bytes");
-        static final ColumnIdent NODE = new ColumnIdent("node");
-        static final ColumnIdent NODE_ID = new ColumnIdent("node", "id");
-        static final ColumnIdent NODE_NAME = new ColumnIdent("node", "name");
+    public static Map<ColumnIdent, RowCollectExpressionFactory<OperationContext>> expressions(Supplier<DiscoveryNode> localNode) {
+        return columnRegistrar(localNode).expressions();
     }
 
-    public static Map<ColumnIdent, RowCollectExpressionFactory<OperationContext>> expressions(Supplier<DiscoveryNode> localNode) {
-        return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<OperationContext>>builder()
-            .put(SysOperationsTableInfo.Columns.ID,
-                () -> NestableCollectExpression.forFunction(c -> String.valueOf(c.id())))
-            .put(SysOperationsTableInfo.Columns.JOB_ID,
-                () -> NestableCollectExpression.forFunction(c -> c.jobId().toString()))
-            .put(SysOperationsTableInfo.Columns.NAME,
-                () -> NestableCollectExpression.forFunction(OperationContext::name))
-            .put(SysOperationsTableInfo.Columns.STARTED,
-                () -> NestableCollectExpression.forFunction(OperationContext::started))
-            .put(SysOperationsTableInfo.Columns.USED_BYTES, () -> NestableCollectExpression.forFunction(r -> {
+    private static ColumnRegistrar<OperationContext> columnRegistrar(Supplier<DiscoveryNode> localNode) {
+        return new ColumnRegistrar<OperationContext>(IDENT, RowGranularity.DOC)
+            .register("id", STRING, () -> forFunction(c -> String.valueOf(c.id())))
+            .register("job_id", STRING, () -> forFunction(c -> c.jobId().toString()))
+            .register("name", STRING, () -> forFunction(OperationContext::name))
+            .register("started", TIMESTAMPZ, () -> forFunction(OperationContext::started))
+            .register("used_bytes", LONG, () -> forFunction(r -> {
                 if (r.usedBytes == 0) {
                     return null;
                 }
                 return r.usedBytes;
             }))
-            .put(Columns.NODE, () -> NestableCollectExpression.forFunction(ignored -> ImmutableMap.of(
+            .register("node", ObjectType.builder()
+                .setInnerType("id", STRING)
+                .setInnerType("name", STRING).build(), () -> forFunction(ignored -> ImmutableMap.of(
                 "id", localNode.get().getId(),
                 "name", localNode.get().getName()
             )))
-            .put(Columns.NODE_ID, () -> NestableCollectExpression.forFunction(ignored -> localNode.get().getId()))
-            .put(Columns.NODE_NAME, () -> NestableCollectExpression.forFunction(ignored -> localNode.get().getName()))
-            .build();
+            .register("node", "id", STRING, () -> forFunction(ignored -> localNode.get().getId()))
+            .register("node", "name", STRING, () -> forFunction(ignored -> localNode.get().getName()));
     }
 
-    SysOperationsTableInfo() {
-        super(IDENT, new ColumnRegistrar(IDENT, RowGranularity.DOC)
-                .register(Columns.ID, DataTypes.STRING)
-                .register(Columns.JOB_ID, DataTypes.STRING)
-                .register(Columns.NAME, DataTypes.STRING)
-                .register(Columns.STARTED, DataTypes.TIMESTAMPZ)
-                .register(Columns.USED_BYTES, DataTypes.LONG)
-                .register(Columns.NODE, ObjectType.builder()
-                    .setInnerType("id", DataTypes.STRING)
-                    .setInnerType("name", DataTypes.STRING)
-                    .build()),
-            Collections.emptyList());
+    SysOperationsTableInfo(Supplier<DiscoveryNode> localNode) {
+        super(IDENT, columnRegistrar(localNode));
     }
 
     @Override

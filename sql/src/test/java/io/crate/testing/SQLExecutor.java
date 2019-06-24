@@ -244,7 +244,7 @@ public class SQLExecutor {
             this.random = random;
             this.clusterService = clusterService;
             addNodesToClusterState(numNodes);
-            schemaInfoByName.put("sys", new SysSchemaInfo());
+            schemaInfoByName.put("sys", new SysSchemaInfo(clusterService));
             schemaInfoByName.put("information_schema", new InformationSchemaInfo());
             schemaInfoByName.put(
                 BlobSchemaInfo.NAME,

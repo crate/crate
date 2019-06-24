@@ -93,7 +93,7 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
         Functions functions = getFunctions();
         UserDefinedFunctionService udfService = new UserDefinedFunctionService(clusterService, functions);
         schemas = new Schemas(
-            ImmutableMap.of("sys", new SysSchemaInfo()),
+            ImmutableMap.of("sys", new SysSchemaInfo(this.clusterService)),
             clusterService,
             new DocSchemaInfoFactory(new TestingDocTableInfoFactory(Collections.emptyMap()), (ident, state) -> null , functions, udfService)
         );

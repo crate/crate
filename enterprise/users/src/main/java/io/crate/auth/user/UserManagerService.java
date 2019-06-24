@@ -88,7 +88,7 @@ public class UserManagerService implements UserManager, ClusterStateListener {
         clusterService.addListener(this);
         sysTableRegistry.registerSysTable(new SysUsersTableInfo(),
             () -> CompletableFuture.completedFuture(users()),
-            SysUsersTableInfo.sysUsersExpressions());
+            SysUsersTableInfo.expressions());
 
         sysTableRegistry.registerSysTable(new SysPrivilegesTableInfo(),
             () -> CompletableFuture.completedFuture(SysPrivilegesTableInfo.buildPrivilegesRows(users())),

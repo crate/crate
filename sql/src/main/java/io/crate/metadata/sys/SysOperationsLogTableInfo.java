@@ -21,10 +21,8 @@
 
 package io.crate.metadata.sys;
 
-import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
-import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.reference.sys.operation.OperationContextLog;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
@@ -34,59 +32,42 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
-import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterState;
 
-import java.util.Collections;
 import java.util.Map;
 
-public class SysOperationsLogTableInfo extends StaticTableInfo {
+import static io.crate.types.DataTypes.STRING;
+import static io.crate.types.DataTypes.TIMESTAMPZ;
+import static io.crate.types.DataTypes.LONG;
+import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
 
-    public static class Columns {
-        public static final ColumnIdent ID = new ColumnIdent("id");
-        static final ColumnIdent JOB_ID = new ColumnIdent("job_id");
-        public static final ColumnIdent NAME = new ColumnIdent("name");
-        public static final ColumnIdent STARTED = new ColumnIdent("started");
-        static final ColumnIdent ENDED = new ColumnIdent("ended");
-        static final ColumnIdent USED_BYTES = new ColumnIdent("used_bytes");
-        public static final ColumnIdent ERROR = new ColumnIdent("error");
-    }
+public class SysOperationsLogTableInfo extends StaticTableInfo {
 
     public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "operations_log");
 
     public static Map<ColumnIdent, RowCollectExpressionFactory<OperationContextLog>> expressions() {
-        return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<OperationContextLog>>builder()
-            .put(SysOperationsLogTableInfo.Columns.ID,
-                () -> NestableCollectExpression.forFunction(l -> String.valueOf(l.id())))
-            .put(SysOperationsLogTableInfo.Columns.JOB_ID,
-                () -> NestableCollectExpression.forFunction(l -> l.jobId().toString()))
-            .put(SysOperationsLogTableInfo.Columns.NAME,
-                () -> NestableCollectExpression.forFunction(OperationContextLog::name))
-            .put(SysOperationsLogTableInfo.Columns.STARTED,
-                () -> NestableCollectExpression.forFunction(OperationContextLog::started))
-            .put(SysOperationsLogTableInfo.Columns.USED_BYTES, () -> NestableCollectExpression.forFunction(r -> {
+        return columnRegistrar().expressions();
+    }
+
+    private static ColumnRegistrar<OperationContextLog> columnRegistrar() {
+        return new ColumnRegistrar<OperationContextLog>(IDENT, RowGranularity.DOC)
+            .register("id", STRING, () -> forFunction(l -> String.valueOf(l.id())))
+            .register("job_id", STRING, () -> forFunction(l -> l.jobId().toString()))
+            .register("name", STRING, () -> forFunction(OperationContextLog::name))
+            .register("started", TIMESTAMPZ, () -> forFunction(OperationContextLog::started))
+            .register("ended", TIMESTAMPZ, () -> forFunction(OperationContextLog::ended))
+            .register("used_bytes", LONG, () -> forFunction(r -> {
                 long usedBytes = r.usedBytes();
                 if (usedBytes == 0) {
                     return null;
                 }
                 return usedBytes;
             }))
-            .put(SysOperationsLogTableInfo.Columns.ERROR,
-                () -> NestableCollectExpression.forFunction(OperationContextLog::errorMessage))
-            .put(SysOperationsLogTableInfo.Columns.ENDED,
-                () -> NestableCollectExpression.forFunction(OperationContextLog::ended))
-            .build();
+            .register("error", STRING, () -> forFunction(OperationContextLog::errorMessage));
     }
 
     SysOperationsLogTableInfo() {
-        super(IDENT, new ColumnRegistrar(IDENT, RowGranularity.DOC)
-            .register(Columns.ID, DataTypes.STRING)
-            .register(Columns.JOB_ID, DataTypes.STRING)
-            .register(Columns.NAME, DataTypes.STRING)
-            .register(Columns.STARTED, DataTypes.TIMESTAMPZ)
-            .register(Columns.ENDED, DataTypes.TIMESTAMPZ)
-            .register(Columns.USED_BYTES, DataTypes.LONG)
-            .register(Columns.ERROR, DataTypes.STRING), Collections.emptyList());
+        super(IDENT, columnRegistrar());
     }
 
     @Override

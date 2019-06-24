@@ -21,7 +21,6 @@
 
 package io.crate.metadata.sys;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
@@ -35,65 +34,49 @@ import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
 import io.crate.metadata.table.TableInfo;
-import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 import org.elasticsearch.cluster.ClusterState;
-
-import java.util.List;
+import java.util.Map;
 
 import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
 import static io.crate.execution.engine.collect.NestableCollectExpression.withNullableProperty;
+import static io.crate.types.DataTypes.STRING;
+import static io.crate.types.DataTypes.TIMESTAMPZ;
+import static io.crate.types.DataTypes.STRING_ARRAY;
 
 public class SysJobsLogTableInfo extends StaticTableInfo {
-
-    private static final List<ColumnIdent> PRIMARY_KEYS = ImmutableList.of(Columns.ID);
 
     public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "jobs_log");
     public static final TableInfo INSTANCE = new SysJobsLogTableInfo();
 
-    public static class Columns {
-        public static final ColumnIdent ID = new ColumnIdent("id");
-        static final ColumnIdent USERNAME = new ColumnIdent("username");
-        static final ColumnIdent STMT = new ColumnIdent("stmt");
-        public static final ColumnIdent STARTED = new ColumnIdent("started");
-        static final ColumnIdent ENDED = new ColumnIdent("ended");
-        public static final ColumnIdent ERROR = new ColumnIdent("error");
-        static final ColumnIdent CLASS = new ColumnIdent("classification");
-        static final ColumnIdent CLASS_TYPE = new ColumnIdent("classification", "type");
-        static final ColumnIdent CLASS_LABELS = new ColumnIdent("classification", "labels");
+    public static Map<ColumnIdent, RowCollectExpressionFactory<JobContextLog>> expressions() {
+        return columnRegistrar().expressions();
     }
 
-    public static ImmutableMap<ColumnIdent, RowCollectExpressionFactory<JobContextLog>> expressions() {
-        return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<JobContextLog>>builder()
-            .put(SysJobsLogTableInfo.Columns.ID, () -> forFunction(log -> log.id().toString()))
-            .put(SysJobsTableInfo.Columns.USERNAME, () -> forFunction(JobContextLog::username))
-            .put(SysJobsLogTableInfo.Columns.STMT, () -> forFunction(JobContextLog::statement))
-            .put(SysJobsLogTableInfo.Columns.STARTED, () -> forFunction(JobContextLog::started))
-            .put(SysJobsLogTableInfo.Columns.ENDED, () -> forFunction(JobContextLog::ended))
-            .put(SysJobsLogTableInfo.Columns.ERROR, () -> forFunction(JobContextLog::errorMessage))
-            .put(Columns.CLASS, () -> withNullableProperty(JobContextLog::classification, c -> ImmutableMap.builder()
-                .put("type", c.type().name())
-                .put("labels", c.labels().toArray(new String[0]))
-                .build()
-            ))
-            .put(Columns.CLASS_TYPE, () -> withNullableProperty(JobContextLog::classification, c -> c.type().name()))
-            .put(Columns.CLASS_LABELS, () -> withNullableProperty(JobContextLog::classification, c -> c.labels().toArray(new String[0])))
-            .build();
+    @SuppressWarnings({"unchecked"})
+    private static ColumnRegistrar<JobContextLog> columnRegistrar() {
+        return new ColumnRegistrar<JobContextLog>(IDENT, RowGranularity.DOC)
+                  .register("id", STRING, () -> forFunction(log -> log.id().toString()))
+                  .register("username", STRING, () -> forFunction(JobContextLog::username))
+                  .register("stmt", STRING, () -> forFunction(JobContextLog::statement))
+                  .register("started", TIMESTAMPZ, () -> forFunction(JobContextLog::started))
+                  .register("ended", TIMESTAMPZ,() -> forFunction(JobContextLog::ended))
+                  .register("error", STRING, () -> forFunction(JobContextLog::errorMessage))
+                  .register("classification", ObjectType.builder()
+                      .setInnerType("type", STRING)
+                      .setInnerType("labels", STRING_ARRAY)
+                      .build(), () -> withNullableProperty(JobContextLog::classification, c -> ImmutableMap.builder()
+                      .put("type", c.type().name())
+                      .put("labels", c.labels().toArray(new String[0]))
+                      .build()))
+            .register("classification","type", STRING,
+                () -> withNullableProperty(JobContextLog::classification, c -> c.type().name()))
+            .register("classification", "labels", STRING_ARRAY,
+                () -> withNullableProperty(JobContextLog::classification, c -> c.labels().toArray(new String[0])));
     }
 
     private SysJobsLogTableInfo() {
-        super(IDENT, new ColumnRegistrar(IDENT, RowGranularity.DOC)
-            .register(Columns.ID, DataTypes.STRING)
-            .register(Columns.USERNAME, DataTypes.STRING)
-            .register(Columns.STMT, DataTypes.STRING)
-            .register(Columns.STARTED, DataTypes.TIMESTAMPZ)
-            .register(Columns.ENDED, DataTypes.TIMESTAMPZ)
-            .register(Columns.ERROR, DataTypes.STRING)
-            .register(Columns.CLASS, ObjectType.builder()
-                .setInnerType("type", DataTypes.STRING)
-                .setInnerType("labels", DataTypes.STRING_ARRAY)
-                .build()),
-            PRIMARY_KEYS);
+        super(IDENT, columnRegistrar(), "id");
     }
 
     @Override

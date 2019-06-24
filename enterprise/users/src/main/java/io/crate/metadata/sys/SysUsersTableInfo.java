@@ -18,8 +18,6 @@
 
 package io.crate.metadata.sys;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
 import io.crate.auth.user.User;
@@ -31,12 +29,13 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
-import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterState;
 
 import java.util.Map;
 
 import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
+import static io.crate.types.DataTypes.STRING;
+import static io.crate.types.DataTypes.BOOLEAN;
 
 public class SysUsersTableInfo extends StaticTableInfo {
 
@@ -44,20 +43,15 @@ public class SysUsersTableInfo extends StaticTableInfo {
     private static final RowGranularity GRANULARITY = RowGranularity.DOC;
     private static final String PASSWORD_PLACEHOLDER = "********";
 
-    private static class Columns {
-        private static final ColumnIdent NAME = new ColumnIdent("name");
-        private static final ColumnIdent SUPERUSER = new ColumnIdent("superuser");
-        private static final ColumnIdent PASSWORD = new ColumnIdent("password");
+    public SysUsersTableInfo() {
+        super(IDENT, columnRegistrar(), "name");
     }
 
-    private static final ImmutableList<ColumnIdent> PRIMARY_KEY = ImmutableList.of(Columns.NAME);
-
-    public SysUsersTableInfo() {
-        super(IDENT, new ColumnRegistrar(IDENT, GRANULARITY)
-                .register(Columns.NAME, DataTypes.STRING)
-                .register(Columns.SUPERUSER, DataTypes.BOOLEAN)
-                .register(Columns.PASSWORD, DataTypes.STRING),
-            PRIMARY_KEY);
+    private static ColumnRegistrar<User> columnRegistrar() {
+        return new ColumnRegistrar<User>(IDENT, GRANULARITY)
+            .register("name", STRING, () -> forFunction(User::name))
+            .register("superuser", BOOLEAN, () -> forFunction(User::isSuperUser))
+            .register("password", STRING, () -> forFunction(u -> u.password() != null ? PASSWORD_PLACEHOLDER : null));
     }
 
     @Override
@@ -74,11 +68,7 @@ public class SysUsersTableInfo extends StaticTableInfo {
         return Routing.forTableOnSingleNode(IDENT, state.getNodes().getLocalNodeId());
     }
 
-    public static Map<ColumnIdent, RowCollectExpressionFactory<User>> sysUsersExpressions() {
-        return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<User>>builder()
-            .put(Columns.NAME, () -> forFunction(User::name))
-            .put(Columns.SUPERUSER, () -> forFunction(User::isSuperUser))
-            .put(Columns.PASSWORD, () -> forFunction(u -> u.password() != null ? PASSWORD_PLACEHOLDER : null))
-            .build();
+    public static Map<ColumnIdent, RowCollectExpressionFactory<User>> expressions() {
+        return columnRegistrar().expressions();
     }
 }

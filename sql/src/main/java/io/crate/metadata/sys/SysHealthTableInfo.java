@@ -46,7 +46,7 @@ public class SysHealthTableInfo extends StaticTableInfo {
     public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "health");
     private static final RowGranularity GRANULARITY = RowGranularity.DOC;
 
-    public static Map<ColumnIdent, RowCollectExpressionFactory<TableHealth>> expressions() {
+    static Map<ColumnIdent, RowCollectExpressionFactory<TableHealth>> expressions() {
         return columnRegistrar().expressions();
     }
 

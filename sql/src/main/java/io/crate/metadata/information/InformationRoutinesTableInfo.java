@@ -21,7 +21,6 @@
 
 package io.crate.metadata.information;
 
-import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RoutineInfo;
@@ -32,6 +31,7 @@ import io.crate.metadata.table.ColumnRegistrar;
 import java.util.Map;
 import static io.crate.types.DataTypes.STRING;
 import static io.crate.types.DataTypes.BOOLEAN;
+import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
 
 public class InformationRoutinesTableInfo extends InformationTableInfo {
 
@@ -40,14 +40,14 @@ public class InformationRoutinesTableInfo extends InformationTableInfo {
 
     private static ColumnRegistrar<RoutineInfo> columnRegistrar() {
         return new ColumnRegistrar<RoutineInfo>(IDENT, RowGranularity.DOC)
-            .register("routine_name", STRING, () -> NestableCollectExpression.forFunction(RoutineInfo::name))
-            .register("routine_type", STRING, () -> NestableCollectExpression.forFunction(RoutineInfo::type))
-            .register("routine_schema", STRING, () -> NestableCollectExpression.forFunction(RoutineInfo::schema))
-            .register("specific_name", STRING, () -> NestableCollectExpression.forFunction(RoutineInfo::specificName))
-            .register("routine_body", STRING, () -> NestableCollectExpression.forFunction(RoutineInfo::body))
-            .register("routine_definition", STRING, () -> NestableCollectExpression.forFunction(RoutineInfo::definition))
-            .register("data_type", STRING, () -> NestableCollectExpression.forFunction(RoutineInfo::dataType))
-            .register("is_deterministic", BOOLEAN, () -> NestableCollectExpression.forFunction(RoutineInfo::isDeterministic));
+            .register("routine_name", STRING, () -> forFunction(RoutineInfo::name))
+            .register("routine_type", STRING, () -> forFunction(RoutineInfo::type))
+            .register("routine_schema", STRING, () -> forFunction(RoutineInfo::schema))
+            .register("specific_name", STRING, () -> forFunction(RoutineInfo::specificName))
+            .register("routine_body", STRING, () -> forFunction(RoutineInfo::body))
+            .register("routine_definition", STRING, () -> forFunction(RoutineInfo::definition))
+            .register("data_type", STRING, () -> forFunction(RoutineInfo::dataType))
+            .register("is_deterministic", BOOLEAN, () -> forFunction(RoutineInfo::isDeterministic));
     }
 
     static Map<ColumnIdent, RowCollectExpressionFactory<RoutineInfo>> expressions() {

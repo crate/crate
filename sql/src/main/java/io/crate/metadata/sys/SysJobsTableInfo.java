@@ -21,7 +21,6 @@
 
 package io.crate.metadata.sys;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
@@ -35,58 +34,43 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
-import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 
+import java.util.Map;
 import java.util.function.Supplier;
+
+import static io.crate.types.DataTypes.STRING;
+import static io.crate.types.DataTypes.TIMESTAMPZ;
 
 public class SysJobsTableInfo extends StaticTableInfo {
 
     public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "jobs");
-    private static final ImmutableList<ColumnIdent> PRIMARY_KEY = ImmutableList.of(Columns.ID);
 
-    public static class Columns {
-        public static final ColumnIdent ID = new ColumnIdent("id");
-        static final ColumnIdent USERNAME = new ColumnIdent("username");
-        static final ColumnIdent STMT = new ColumnIdent("stmt");
-        public static final ColumnIdent STARTED = new ColumnIdent("started");
-        static final ColumnIdent NODE = new ColumnIdent("node");
-        static final ColumnIdent NODE_ID = new ColumnIdent("node", "id");
-        static final ColumnIdent NODE_NAME = new ColumnIdent("node", "name");
+    static Map<ColumnIdent, RowCollectExpressionFactory<JobContext>> expressions(Supplier<DiscoveryNode> localNode) {
+        return columnRegistrar(localNode).expressions();
     }
 
-    public static ImmutableMap<ColumnIdent, RowCollectExpressionFactory<JobContext>> expressions(Supplier<DiscoveryNode> localNode) {
-        return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<JobContext>>builder()
-            .put(SysJobsTableInfo.Columns.ID,
-                () -> NestableCollectExpression.forFunction(c -> c.id().toString()))
-            .put(SysJobsTableInfo.Columns.USERNAME,
-                () -> NestableCollectExpression.forFunction(JobContext::username))
-            .put(SysJobsTableInfo.Columns.STMT,
-                () -> NestableCollectExpression.forFunction(JobContext::stmt))
-            .put(SysJobsTableInfo.Columns.STARTED,
-                () -> NestableCollectExpression.forFunction(JobContext::started))
-            .put(Columns.NODE, () -> NestableCollectExpression.forFunction(ignored -> ImmutableMap.of(
+    static ColumnRegistrar<JobContext> columnRegistrar(Supplier<DiscoveryNode> localNode) {
+        return new ColumnRegistrar<JobContext>(IDENT, RowGranularity.DOC)
+        .register("id", STRING, () -> NestableCollectExpression.forFunction(c -> c.id().toString()))
+        .register("username", STRING, () -> NestableCollectExpression.forFunction(JobContext::username))
+        .register("node", ObjectType.builder()
+                .setInnerType("id", STRING)
+                .setInnerType("name", STRING)
+                .build(), () -> NestableCollectExpression.forFunction(ignored -> ImmutableMap.of(
                 "id", localNode.get().getId(),
                 "name", localNode.get().getName()
             )))
-            .put(Columns.NODE_ID, () -> NestableCollectExpression.forFunction(ignored -> localNode.get().getId()))
-            .put(Columns.NODE_NAME, () -> NestableCollectExpression.forFunction(ignored -> localNode.get().getName()))
-            .build();
+        .register("node", "id", STRING, () -> NestableCollectExpression.forFunction(ignored -> localNode.get().getId()))
+        .register("node", "name", STRING, () -> NestableCollectExpression.forFunction(ignored -> localNode.get().getName()))
+        .register("stmt", STRING, () -> NestableCollectExpression.forFunction(JobContext::stmt))
+        .register("started", TIMESTAMPZ, () -> NestableCollectExpression.forFunction(JobContext::started));
     }
 
-    SysJobsTableInfo() {
-        super(IDENT, new ColumnRegistrar(IDENT, RowGranularity.DOC)
-                .register(Columns.ID, DataTypes.STRING)
-                .register(Columns.USERNAME, DataTypes.STRING)
-                .register(Columns.NODE, ObjectType.builder()
-                    .setInnerType("id", DataTypes.STRING)
-                    .setInnerType("name", DataTypes.STRING)
-                    .build())
-                .register(Columns.STMT, DataTypes.STRING)
-                .register(Columns.STARTED, DataTypes.TIMESTAMPZ),
-            PRIMARY_KEY);
+    SysJobsTableInfo(Supplier<DiscoveryNode> localNode) {
+        super(IDENT, columnRegistrar(localNode), "id");
     }
 
     @Override

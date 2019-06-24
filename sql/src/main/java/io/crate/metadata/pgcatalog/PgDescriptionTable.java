@@ -32,12 +32,13 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
-import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterState;
 
 import java.util.Map;
 
 import static io.crate.execution.engine.collect.NestableCollectExpression.constant;
+import static io.crate.types.DataTypes.STRING;
+import static io.crate.types.DataTypes.INTEGER;
 
 public final class PgDescriptionTable extends StaticTableInfo {
 
@@ -49,10 +50,10 @@ public final class PgDescriptionTable extends StaticTableInfo {
 
     private static ColumnRegistrar<Void> columnRegistrar() {
         return new ColumnRegistrar<Void>(NAME, RowGranularity.DOC)
-            .register("objoid", DataTypes.INTEGER, () -> constant(null))
-            .register("classoid", DataTypes.INTEGER, () -> constant(null))
-            .register("objsubid", DataTypes.INTEGER, () -> constant(null))
-            .register("description", DataTypes.STRING , () -> constant(null));
+            .register("objoid", INTEGER, () -> constant(null))
+            .register("classoid", INTEGER, () -> constant(null))
+            .register("objsubid", INTEGER, () -> constant(null))
+            .register("description", STRING , () -> constant(null));
     }
 
     static Map<ColumnIdent, RowCollectExpressionFactory<Void>> expressions() {

@@ -21,8 +21,6 @@
 
 package io.crate.metadata.information;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.NestableInput;
 import io.crate.expression.reference.MapLookupByPathExpression;
@@ -38,7 +36,6 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
-import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 import org.elasticsearch.Version;
 
@@ -46,28 +43,27 @@ import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.Map;
 
+import static io.crate.types.DataTypes.STRING;
+import static io.crate.types.DataTypes.INTEGER;
+import static io.crate.types.DataTypes.LONG;
+import static io.crate.types.DataTypes.BOOLEAN;
+import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
+
 public class InformationPartitionsTableInfo extends InformationTableInfo {
 
     public static final String NAME = "table_partitions";
     public static final RelationName IDENT = new RelationName(InformationSchemaInfo.NAME, NAME);
 
-    public static class Columns {
-        static final ColumnIdent TABLE_SCHEMA = new ColumnIdent("table_schema");
-        static final ColumnIdent VALUES = new ColumnIdent("values");
-        static final ColumnIdent PARTITION_IDENT = new ColumnIdent("partition_ident");
+    public static Map<ColumnIdent, RowCollectExpressionFactory<PartitionInfo>> expressions() {
+        return columnRegistrar().expressions();
     }
 
-    public static Map<ColumnIdent, RowCollectExpressionFactory<PartitionInfo>> expressions() {
-        return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<PartitionInfo>>builder()
-            .put(InformationTablesTableInfo.Columns.TABLE_NAME,
-                () -> NestableCollectExpression.forFunction(r -> r.name().relationName().name()))
-            .put(Columns.TABLE_SCHEMA,
-                () -> NestableCollectExpression.forFunction(r -> r.name().relationName().schema()))
-            .put(InformationTablesTableInfo.Columns.TABLE_TYPE,
-                () -> NestableCollectExpression.forFunction(r -> RelationType.BASE_TABLE.pretty()))
-            .put(Columns.PARTITION_IDENT,
-                () -> NestableCollectExpression.forFunction(r -> r.name().ident()))
-            .put(Columns.VALUES, () -> new NestableCollectExpression<PartitionInfo, Map<String, Object>>() {
+    private static ColumnRegistrar<PartitionInfo> columnRegistrar() {
+        return new ColumnRegistrar<PartitionInfo>(IDENT, RowGranularity.DOC)
+            .register("table_schema", STRING, () -> forFunction(r -> r.name().relationName().schema()))
+            .register("table_name", STRING, () -> forFunction(r -> r.name().relationName().name()))
+            .register("partition_ident", STRING, () -> forFunction(r -> r.name().ident()))
+            .register("values", ObjectType.untyped(), () -> new NestableCollectExpression<PartitionInfo, Map<String, Object>>() {
                 private Map<String, Object> value;
 
                 @Override
@@ -85,83 +81,60 @@ public class InformationPartitionsTableInfo extends InformationTableInfo {
                     // The input values could be of mixed types (select values['p'];  t1 (p int); t2 (p string))
                     // The result is casted to string because streaming (via pg) doesn't support mixed types;
                     return new MapLookupByPathExpression<>(
-                        PartitionInfo::values, Collections.singletonList(name), DataTypes.STRING::value);
+                        PartitionInfo::values, Collections.singletonList(name), STRING::value);
                 }
             })
-            .put(InformationTablesTableInfo.Columns.NUMBER_OF_SHARDS,
-                () -> NestableCollectExpression.forFunction(PartitionInfo::numberOfShards))
-            .put(InformationTablesTableInfo.Columns.NUMBER_OF_REPLICAS,
-                () -> NestableCollectExpression.forFunction(PartitionInfo::numberOfReplicas))
-            .put(InformationTablesTableInfo.Columns.ROUTING_HASH_FUNCTION,
-                () -> NestableCollectExpression.forFunction(r -> IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME))
-            .put(InformationTablesTableInfo.Columns.CLOSED,
-                () -> NestableCollectExpression.forFunction(PartitionInfo::isClosed))
-            .put(InformationTablesTableInfo.Columns.TABLE_VERSION, PartitionsVersionExpression::new)
-            .put(InformationTablesTableInfo.Columns.TABLE_SETTINGS, PartitionsSettingsExpression::new)
-            .build();
-    }
-
-    private static ColumnRegistrar createColumnRegistrar() {
-        return new ColumnRegistrar(IDENT, RowGranularity.DOC)
-            .register(Columns.TABLE_SCHEMA, DataTypes.STRING)
-            .register(InformationTablesTableInfo.Columns.TABLE_NAME, DataTypes.STRING)
-            .register(Columns.PARTITION_IDENT, DataTypes.STRING)
-            .register(Columns.VALUES, ObjectType.untyped())
-            .register(InformationTablesTableInfo.Columns.NUMBER_OF_SHARDS, DataTypes.INTEGER)
-            .register(InformationTablesTableInfo.Columns.NUMBER_OF_REPLICAS, DataTypes.STRING)
-            .register(InformationTablesTableInfo.Columns.ROUTING_HASH_FUNCTION, DataTypes.STRING)
-            .register(InformationTablesTableInfo.Columns.CLOSED, DataTypes.BOOLEAN)
-            .register(InformationTablesTableInfo.Columns.TABLE_VERSION, ObjectType.builder()
-                .setInnerType(Version.Property.CREATED.toString(), DataTypes.STRING)
-                .setInnerType(Version.Property.UPGRADED.toString(), DataTypes.STRING)
-                .build())
-            .register(InformationTablesTableInfo.Columns.TABLE_SETTINGS, ObjectType.builder()
+            .register("number_of_shards", INTEGER, () -> forFunction(PartitionInfo::numberOfShards))
+            .register("number_of_replicas", STRING, () -> forFunction(PartitionInfo::numberOfReplicas))
+            .register("routing_hash_function", STRING, () -> forFunction(r -> IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME))
+            .register("closed", BOOLEAN, () -> forFunction(PartitionInfo::isClosed))
+            .register("version", ObjectType.builder()
+                .setInnerType(Version.Property.CREATED.toString(), STRING)
+                .setInnerType(Version.Property.UPGRADED.toString(), STRING)
+                .build(), PartitionsVersionExpression::new)
+            .register("settings", ObjectType.builder()
                 .setInnerType("blocks", ObjectType.builder()
-                    .setInnerType("read_only", DataTypes.BOOLEAN)
-                    .setInnerType("read", DataTypes.BOOLEAN)
-                    .setInnerType("write", DataTypes.BOOLEAN)
-                    .setInnerType("metadata", DataTypes.BOOLEAN)
+                    .setInnerType("read_only", BOOLEAN)
+                    .setInnerType("read", BOOLEAN)
+                    .setInnerType("write", BOOLEAN)
+                    .setInnerType("metadata", BOOLEAN)
                     .build())
                 .setInnerType("translog", ObjectType.builder()
-                    .setInnerType("flush_threshold_size", DataTypes.LONG)
-                    .setInnerType("sync_interval", DataTypes.LONG)
+                    .setInnerType("flush_threshold_size", LONG)
+                    .setInnerType("sync_interval", LONG)
                     .build())
                 .setInnerType("routing", ObjectType.builder()
                     .setInnerType("allocation", ObjectType.builder()
-                        .setInnerType("enable", DataTypes.STRING)
-                        .setInnerType("total_shards_per_node", DataTypes.INTEGER)
+                        .setInnerType("enable", STRING)
+                        .setInnerType("total_shards_per_node", INTEGER)
                         .build())
                     .build())
                 .setInnerType("warmer", ObjectType.builder()
-                    .setInnerType("enabled", DataTypes.BOOLEAN)
+                    .setInnerType("enabled", BOOLEAN)
                     .build())
                 .setInnerType("unassigned", ObjectType.builder()
                     .setInnerType("node_left", ObjectType.builder()
-                        .setInnerType("delayed_timeout", DataTypes.LONG)
+                        .setInnerType("delayed_timeout", LONG)
                         .build())
                     .build())
                 .setInnerType("mapping", ObjectType.builder()
                     .setInnerType("total_fields", ObjectType.builder()
-                        .setInnerType("limit", DataTypes.INTEGER)
+                        .setInnerType("limit", INTEGER)
                         .build())
                     .build())
-                .build());
+                .build(), PartitionsSettingsExpression::new);
     }
 
     InformationPartitionsTableInfo() {
-        super(
-            IDENT,
-            createColumnRegistrar(),
-            ImmutableList.of(Columns.TABLE_SCHEMA, InformationTablesTableInfo.Columns.TABLE_NAME, Columns.PARTITION_IDENT)
-        );
+        super(IDENT, columnRegistrar(), "table_schema","table_name", "partition_ident");
     }
 
     @Nullable
     @Override
     public Reference getReference(ColumnIdent column) {
-        if (!column.isTopLevel() && column.name().equals(Columns.VALUES.name())) {
+        if (!column.isTopLevel() && column.name().equals("values")) {
             DynamicReference ref = new DynamicReference(new ReferenceIdent(ident(), column), rowGranularity());
-            ref.valueType(DataTypes.STRING);
+            ref.valueType(STRING);
             return ref;
         }
         return super.getReference(column);

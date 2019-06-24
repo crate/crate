@@ -18,8 +18,6 @@
 
 package io.crate.metadata.sys;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.user.Privilege;
@@ -32,30 +30,18 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
-import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterState;
 
 import java.util.Map;
 import java.util.stream.StreamSupport;
 
 import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
+import static io.crate.types.DataTypes.STRING;
 
 public class SysPrivilegesTableInfo extends StaticTableInfo {
 
     private static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "privileges");
     private static final RowGranularity GRANULARITY = RowGranularity.DOC;
-
-    private static class Columns {
-        static final ColumnIdent GRANTEE = new ColumnIdent("grantee");
-        static final ColumnIdent GRANTOR = new ColumnIdent("grantor");
-        static final ColumnIdent STATE = new ColumnIdent("state");
-        static final ColumnIdent TYPE = new ColumnIdent("type");
-        static final ColumnIdent CLASS = new ColumnIdent("class");
-        static final ColumnIdent IDENT = new ColumnIdent("ident");
-    }
-
-    private static final ImmutableList<ColumnIdent> PRIMARY_KEY = ImmutableList.of(
-        Columns.GRANTEE, Columns.STATE, Columns.TYPE, Columns.CLASS, Columns.IDENT);
 
     public static class PrivilegeRow {
         private final String grantee;
@@ -67,16 +53,18 @@ public class SysPrivilegesTableInfo extends StaticTableInfo {
         }
     }
 
-
     public SysPrivilegesTableInfo() {
-        super(IDENT, new ColumnRegistrar(IDENT, GRANULARITY)
-                .register(Columns.GRANTEE, DataTypes.STRING)
-                .register(Columns.GRANTOR, DataTypes.STRING)
-                .register(Columns.STATE, DataTypes.STRING)
-                .register(Columns.TYPE, DataTypes.STRING)
-                .register(Columns.CLASS, DataTypes.STRING)
-                .register(Columns.IDENT, DataTypes.STRING),
-            PRIMARY_KEY);
+        super(IDENT, columnRegistrar(), "grantee", "state", "type", "class","ident");
+    }
+
+    private static ColumnRegistrar<PrivilegeRow> columnRegistrar() {
+        return new ColumnRegistrar<PrivilegeRow>(IDENT, GRANULARITY)
+            .register("grantee", STRING, () -> forFunction(r -> r.grantee))
+            .register("grantor", STRING, () -> forFunction(r -> r.privilege.grantor()))
+            .register("state", STRING, () -> forFunction(r -> r.privilege.state().toString()))
+            .register("type", STRING, () -> forFunction(r -> r.privilege.ident().type().toString()))
+            .register("class", STRING, () -> forFunction(r -> r.privilege.ident().clazz().toString()))
+            .register("ident", STRING, () -> forFunction(r -> r.privilege.ident().ident()));
     }
 
     @Override
@@ -94,14 +82,7 @@ public class SysPrivilegesTableInfo extends StaticTableInfo {
     }
 
     public static Map<ColumnIdent, RowCollectExpressionFactory<PrivilegeRow>> expressions() {
-        return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<PrivilegeRow>>builder()
-            .put(Columns.GRANTEE, () -> forFunction(r -> r.grantee))
-            .put(Columns.GRANTOR, () -> forFunction(r -> r.privilege.grantor()))
-            .put(Columns.STATE, () -> forFunction(r -> r.privilege.state().toString()))
-            .put(Columns.TYPE, () -> forFunction(r -> r.privilege.ident().type().toString()))
-            .put(Columns.CLASS, () -> forFunction(r -> r.privilege.ident().clazz().toString()))
-            .put(Columns.IDENT, () -> forFunction(r -> r.privilege.ident().ident()))
-            .build();
+        return columnRegistrar().expressions();
     }
 
     public static Iterable<PrivilegeRow> buildPrivilegesRows(Iterable<User> users) {

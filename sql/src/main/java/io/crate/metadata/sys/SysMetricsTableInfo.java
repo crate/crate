@@ -22,7 +22,6 @@
 
 package io.crate.metadata.sys;
 
-import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.ColumnIdent;
@@ -33,113 +32,86 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
-import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 
-import java.util.Collections;
 import java.util.Map;
 import java.util.function.Supplier;
 
 import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
+import static io.crate.types.DataTypes.STRING;
+import static io.crate.types.DataTypes.LONG;
+import static io.crate.types.DataTypes.DOUBLE;
+import static io.crate.types.DataTypes.STRING_ARRAY;
+import static io.crate.types.DataTypes.UNDEFINED;
 
 public class SysMetricsTableInfo extends StaticTableInfo {
 
     public static final RelationName NAME = new RelationName(SysSchemaInfo.NAME, "jobs_metrics");
 
-    static class Columns {
-        static final ColumnIdent TOTAL_COUNT = new ColumnIdent("total_count");
-        static final ColumnIdent SUM_OF_DURATIONS = new ColumnIdent("sum_of_durations");
-        static final ColumnIdent FAILED_COUNT = new ColumnIdent("failed_count");
-        static final ColumnIdent MEAN = new ColumnIdent("mean");
-        static final ColumnIdent STDEV = new ColumnIdent("stdev");
-        static final ColumnIdent MAX = new ColumnIdent("max");
-        static final ColumnIdent MIN = new ColumnIdent("min");
-        static final ColumnIdent PERCENTILES = new ColumnIdent("percentiles");
-        static final ColumnIdent P25 = new ColumnIdent("percentiles", "25");
-        static final ColumnIdent P50 = new ColumnIdent("percentiles", "50");
-        static final ColumnIdent P75 = new ColumnIdent("percentiles", "75");
-        static final ColumnIdent P90 = new ColumnIdent("percentiles", "90");
-        static final ColumnIdent P95 = new ColumnIdent("percentiles", "95");
-        static final ColumnIdent P99 = new ColumnIdent("percentiles", "99");
-        static final ColumnIdent NODE = new ColumnIdent("node");
-        static final ColumnIdent NODE_ID = new ColumnIdent("node", "id");
-        static final ColumnIdent NODE_NAME = new ColumnIdent("node", "name");
-        static final ColumnIdent CLASS = new ColumnIdent("classification");
-        static final ColumnIdent CLASS_TYPE = new ColumnIdent("classification", "type");
-        static final ColumnIdent CLASS_LABELS = new ColumnIdent("classification", "labels");
+    private static ColumnRegistrar<MetricsView> columnRegistrar(Supplier<DiscoveryNode> localNode) {
+        return new ColumnRegistrar<MetricsView>(NAME, RowGranularity.DOC)
+            .register("total_count", LONG, () -> forFunction(MetricsView::totalCount))
+            .register("sum_of_durations", LONG, () -> forFunction(MetricsView::sumOfDurations))
+            .register("failed_count", LONG, () -> forFunction(MetricsView::failedCount))
+            .register("mean", DOUBLE, () -> forFunction(MetricsView::mean))
+            .register("stdev", DOUBLE, () -> forFunction(MetricsView::stdDeviation))
+            .register("max", LONG, () -> forFunction(MetricsView::maxValue))
+            .register("min", LONG, () -> forFunction(MetricsView::minValue))
+            .register("percentiles", ObjectType.builder()
+                .setInnerType("25", LONG)
+                .setInnerType("50", LONG)
+                .setInnerType("75", LONG)
+                .setInnerType("90", LONG)
+                .setInnerType("95", LONG)
+                .setInnerType("99", LONG)
+                .build(), () -> forFunction(m -> Map.of(
+                "25", m.getValueAtPercentile(25.0),
+                "50", m.getValueAtPercentile(50.0),
+                "75", m.getValueAtPercentile(75.0),
+                "90", m.getValueAtPercentile(90.0),
+                "95", m.getValueAtPercentile(95.0),
+                "99", m.getValueAtPercentile(99.0)
+                )
+            ))
+            .register("percentiles", "25", LONG, () -> forFunction(m -> m.getValueAtPercentile(25.0)))
+            .register("percentiles", "50", LONG, () -> forFunction(m -> m.getValueAtPercentile(50.0)))
+            .register("percentiles", "75", LONG, () -> forFunction(m -> m.getValueAtPercentile(75.0)))
+            .register("percentiles", "90", LONG, () -> forFunction(m -> m.getValueAtPercentile(90.0)))
+            .register("percentiles", "95", LONG, () -> forFunction(m -> m.getValueAtPercentile(95.0)))
+            .register("percentiles", "99", LONG, () -> forFunction(m -> m.getValueAtPercentile(99.0)))
+
+            .register("node", ObjectType.builder()
+                .setInnerType("id", STRING)
+                .setInnerType("name", STRING)
+                .build(), () -> forFunction(ignored -> Map.of(
+                    "id", localNode.get().getId(),
+                    "name", localNode.get().getName()
+                )
+
+            ))
+            .register("node", "id", STRING, () -> forFunction(ignored -> localNode.get().getId()))
+            .register("node", "name", STRING, () -> forFunction(ignored -> localNode.get().getName()))
+            .register("classification", ObjectType.builder()
+                .setInnerType("type", STRING)
+                .setInnerType("labels", STRING_ARRAY)
+                .build(), () -> forFunction(h -> Map.of(
+                 "type", h.classification().type().name(),
+                 "labels", h.classification().labels().toArray(new String[0])
+                )
+
+            ))
+            .register("classification", "type", STRING, () -> forFunction(h -> h.classification().type().name()))
+            .register("classification", "labels", UNDEFINED, () -> forFunction(h -> h.classification().labels().toArray(new String[0])));
     }
 
-    SysMetricsTableInfo() {
-        super(NAME,
-            new ColumnRegistrar(NAME, RowGranularity.DOC)
-                .register(Columns.TOTAL_COUNT, DataTypes.LONG)
-                .register(Columns.SUM_OF_DURATIONS, DataTypes.LONG)
-                .register(Columns.FAILED_COUNT, DataTypes.LONG)
-                .register(Columns.MEAN, DataTypes.DOUBLE)
-                .register(Columns.STDEV, DataTypes.DOUBLE)
-                .register(Columns.MAX, DataTypes.LONG)
-                .register(Columns.MIN, DataTypes.LONG)
-                .register(Columns.PERCENTILES, ObjectType.builder()
-                    .setInnerType("25", DataTypes.LONG)
-                    .setInnerType("50", DataTypes.LONG)
-                    .setInnerType("75", DataTypes.LONG)
-                    .setInnerType("90", DataTypes.LONG)
-                    .setInnerType("95", DataTypes.LONG)
-                    .setInnerType("99", DataTypes.LONG)
-                    .build())
-                .register(Columns.NODE, ObjectType.builder()
-                    .setInnerType("id", DataTypes.STRING)
-                    .setInnerType("name", DataTypes.STRING)
-                    .build())
-                .register(Columns.CLASS, ObjectType.builder()
-                    .setInnerType("type", DataTypes.STRING)
-                    .setInnerType("labels", DataTypes.STRING_ARRAY)
-                    .build()),
-            Collections.emptyList()
-        );
+    SysMetricsTableInfo(Supplier<DiscoveryNode> localNode) {
+        super(NAME, columnRegistrar(localNode));
     }
 
-    public static Map<ColumnIdent, RowCollectExpressionFactory<MetricsView>> expressions(Supplier<DiscoveryNode> localNode) {
-        return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<MetricsView>>builder()
-            .put(Columns.TOTAL_COUNT, () -> forFunction(MetricsView::totalCount))
-            .put(Columns.SUM_OF_DURATIONS, () -> forFunction(MetricsView::sumOfDurations))
-            .put(Columns.FAILED_COUNT, () -> forFunction(MetricsView::failedCount))
-            .put(Columns.MEAN, () -> forFunction(MetricsView::mean))
-            .put(Columns.STDEV, () -> forFunction(MetricsView::stdDeviation))
-            .put(Columns.MAX, () -> forFunction(MetricsView::maxValue))
-            .put(Columns.MIN, () -> forFunction(MetricsView::minValue))
-            .put(Columns.PERCENTILES, () -> forFunction(m -> ImmutableMap.builder()
-                .put("25", m.getValueAtPercentile(25.0))
-                .put("50", m.getValueAtPercentile(50.0))
-                .put("75", m.getValueAtPercentile(75.0))
-                .put("90", m.getValueAtPercentile(90.0))
-                .put("95", m.getValueAtPercentile(95.0))
-                .put("99", m.getValueAtPercentile(99.0))
-                .build()
-            ))
-            .put(Columns.P25, () -> forFunction(m -> m.getValueAtPercentile(25.0)))
-            .put(Columns.P50, () -> forFunction(m -> m.getValueAtPercentile(50.0)))
-            .put(Columns.P75, () -> forFunction(m -> m.getValueAtPercentile(75.0)))
-            .put(Columns.P90, () -> forFunction(m -> m.getValueAtPercentile(90.0)))
-            .put(Columns.P95, () -> forFunction(m -> m.getValueAtPercentile(95.0)))
-            .put(Columns.P99, () -> forFunction(m -> m.getValueAtPercentile(99.0)))
-            .put(Columns.NODE, () -> forFunction(ignored -> ImmutableMap.builder()
-                .put("id", localNode.get().getId())
-                .put("name", localNode.get().getName())
-                .build()
-            ))
-            .put(Columns.NODE_ID, () -> forFunction(ignored -> localNode.get().getId()))
-            .put(Columns.NODE_NAME, () -> forFunction(ignored -> localNode.get().getName()))
-            .put(Columns.CLASS, () -> forFunction(h -> ImmutableMap.builder()
-                .put("type", h.classification().type().name())
-                .put("labels", h.classification().labels().toArray(new String[0]))
-                .build()
-            ))
-            .put(Columns.CLASS_TYPE, () -> forFunction(h -> h.classification().type().name()))
-            .put(Columns.CLASS_LABELS, () -> forFunction(h -> h.classification().labels().toArray(new String[0])))
-            .build();
+    static Map<ColumnIdent, RowCollectExpressionFactory<MetricsView>> expressions(Supplier<DiscoveryNode> localNode) {
+        return columnRegistrar(localNode).expressions();
     }
 
     @Override

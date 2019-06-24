@@ -32,10 +32,13 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
-import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterState;
 
 import java.util.Map;
+
+import static io.crate.types.DataTypes.STRING;
+import static io.crate.types.DataTypes.STRING_ARRAY;
+import static io.crate.types.DataTypes.TIMESTAMPZ;
 
 import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
 
@@ -46,28 +49,22 @@ public class SysSnapshotsTableInfo extends StaticTableInfo {
 
     public static class Columns {
         public static final ColumnIdent NAME = new ColumnIdent("name");
-        static final ColumnIdent REPOSITORY = new ColumnIdent("repository");
-        static final ColumnIdent CONCRETE_INDICES = new ColumnIdent("concrete_indices");
-        public static final ColumnIdent STARTED = new ColumnIdent("started");
-        static final ColumnIdent FINISHED = new ColumnIdent("finished");
-        public static final ColumnIdent VERSION = new ColumnIdent("version");
-        static final ColumnIdent STATE = new ColumnIdent("state");
     }
 
-    public static Map<ColumnIdent, RowCollectExpressionFactory<SysSnapshot>> expressions() {
+    static Map<ColumnIdent, RowCollectExpressionFactory<SysSnapshot>> expressions() {
         return columnRegistrar().expressions();
     }
 
     @SuppressWarnings({"unchecked"})
     private static ColumnRegistrar<SysSnapshot> columnRegistrar() {
         return new ColumnRegistrar<SysSnapshot>(IDENT, GRANULARITY)
-          .register("name", DataTypes.STRING, () -> forFunction(SysSnapshot::name))
-          .register(Columns.REPOSITORY, DataTypes.STRING, () -> forFunction(SysSnapshot::repository))
-          .register(Columns.CONCRETE_INDICES, DataTypes.STRING_ARRAY, () -> forFunction((SysSnapshot s) -> s.concreteIndices().toArray(new String[0])))
-          .register(Columns.STARTED, DataTypes.TIMESTAMPZ, () -> forFunction(SysSnapshot::started))
-          .register(Columns.FINISHED, DataTypes.TIMESTAMPZ, () -> forFunction(SysSnapshot::finished))
-          .register(Columns.VERSION, DataTypes.STRING, () -> forFunction(SysSnapshot::version))
-          .register(Columns.STATE, DataTypes.STRING, () -> forFunction(SysSnapshot::state));
+          .register("name", STRING, () -> forFunction(SysSnapshot::name))
+          .register("repository", STRING, () -> forFunction(SysSnapshot::repository))
+          .register("concrete_indices", STRING_ARRAY, () -> forFunction((SysSnapshot s) -> s.concreteIndices().toArray(new String[0])))
+          .register("started", TIMESTAMPZ, () -> forFunction(SysSnapshot::started))
+          .register("finished", TIMESTAMPZ, () -> forFunction(SysSnapshot::finished))
+          .register("version", STRING, () -> forFunction(SysSnapshot::version))
+          .register("state", STRING, () -> forFunction(SysSnapshot::state));
     }
 
     SysSnapshotsTableInfo() {
@@ -94,5 +91,4 @@ public class SysSnapshotsTableInfo extends StaticTableInfo {
         // because RepositoriesService (and so snapshots info) is only available there
         return routingProvider.forRandomMasterOrDataNode(IDENT, clusterState.getNodes());
     }
-
 }

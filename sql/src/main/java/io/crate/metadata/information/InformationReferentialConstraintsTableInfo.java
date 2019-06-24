@@ -26,11 +26,11 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
-import io.crate.types.DataTypes;
 
 import java.util.Map;
 
 import static io.crate.execution.engine.collect.NestableCollectExpression.constant;
+import static io.crate.types.DataTypes.STRING;
 
 public class InformationReferentialConstraintsTableInfo extends InformationTableInfo {
 
@@ -39,15 +39,15 @@ public class InformationReferentialConstraintsTableInfo extends InformationTable
 
     private static ColumnRegistrar<Void> columnRegistrar() {
         return new ColumnRegistrar<Void>(IDENT, RowGranularity.DOC)
-            .register("constraint_catalog", DataTypes.STRING, () -> constant(null))
-            .register("constraint_schema", DataTypes.STRING, () -> constant(null))
-            .register("constraint_name", DataTypes.STRING, () -> constant(null))
-            .register("unique_constraint_catalog", DataTypes.STRING, () -> constant(null))
-            .register("unique_constraint_schema", DataTypes.STRING, () -> constant(null))
-            .register("unique_constraint_name", DataTypes.STRING, () -> constant(null))
-            .register("match_option", DataTypes.STRING, () -> constant(null))
-            .register("update_rule", DataTypes.STRING, () -> constant(null))
-            .register("delete_rule", DataTypes.STRING, () -> constant(null));
+            .register("constraint_catalog", STRING, () -> constant(null))
+            .register("constraint_schema", STRING, () -> constant(null))
+            .register("constraint_name", STRING, () -> constant(null))
+            .register("unique_constraint_catalog", STRING, () -> constant(null))
+            .register("unique_constraint_schema", STRING, () -> constant(null))
+            .register("unique_constraint_name", STRING, () -> constant(null))
+            .register("match_option", STRING, () -> constant(null))
+            .register("update_rule", STRING, () -> constant(null))
+            .register("delete_rule", STRING, () -> constant(null));
     }
 
     static Map<ColumnIdent, RowCollectExpressionFactory<Void>> expressions() {

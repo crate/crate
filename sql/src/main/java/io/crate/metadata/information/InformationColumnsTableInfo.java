@@ -21,9 +21,6 @@
 
 package io.crate.metadata.information;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.reference.information.ColumnContext;
 import io.crate.expression.symbol.format.SymbolPrinter;
 import io.crate.metadata.ColumnIdent;
@@ -33,7 +30,6 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.types.ByteType;
-import io.crate.types.DataTypes;
 import io.crate.types.DoubleType;
 import io.crate.types.FloatType;
 import io.crate.types.IntegerType;
@@ -42,6 +38,15 @@ import io.crate.types.ShortType;
 import org.elasticsearch.common.collect.MapBuilder;
 
 import java.util.Map;
+import static io.crate.types.DataTypes.STRING;
+import static io.crate.types.DataTypes.INTEGER;
+import static io.crate.types.DataTypes.BOOLEAN;
+import static io.crate.types.DataTypes.TIMESTAMP;
+import static io.crate.types.DataTypes.TIMESTAMPZ;
+import static io.crate.types.DataTypes.NUMERIC_PRIMITIVE_TYPES;
+import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
+import static io.crate.execution.engine.collect.NestableCollectExpression.constant;
+
 
 public class InformationColumnsTableInfo extends InformationTableInfo {
 
@@ -51,172 +56,84 @@ public class InformationColumnsTableInfo extends InformationTableInfo {
     private static final String IS_GENERATED_NEVER = "NEVER";
     private static final String IS_GENERATED_ALWAYS = "ALWAYS";
 
-    public static class Columns {
-        static final ColumnIdent TABLE_SCHEMA = new ColumnIdent("table_schema");
-        static final ColumnIdent TABLE_NAME = new ColumnIdent("table_name");
-        static final ColumnIdent TABLE_CATALOG = new ColumnIdent("table_catalog");
-        static final ColumnIdent COLUMN_NAME = new ColumnIdent("column_name");
-        static final ColumnIdent ORDINAL_POSITION = new ColumnIdent("ordinal_position");
-        static final ColumnIdent DATA_TYPE = new ColumnIdent("data_type");
-        static final ColumnIdent IS_GENERATED = new ColumnIdent("is_generated");
-        static final ColumnIdent IS_NULLABLE = new ColumnIdent("is_nullable");
-        static final ColumnIdent GENERATION_EXPRESSION = new ColumnIdent("generation_expression");
-        static final ColumnIdent COLUMN_DEFAULT = new ColumnIdent("column_default");
-        static final ColumnIdent CHARACTER_MAXIMUM_LENGTH = new ColumnIdent("character_maximum_length");
-        static final ColumnIdent CHARACTER_OCTET_LENGTH = new ColumnIdent("character_octet_length");
-        static final ColumnIdent NUMERIC_PRECISION = new ColumnIdent("numeric_precision");
-        static final ColumnIdent NUMERIC_PRECISION_RADIX = new ColumnIdent("numeric_precision_radix");
-        static final ColumnIdent NUMERIC_SCALE = new ColumnIdent("numeric_scale");
-        static final ColumnIdent DATETIME_PRECISION = new ColumnIdent("datetime_precision");
-        static final ColumnIdent INTERVAL_TYPE = new ColumnIdent("interval_type");
-        static final ColumnIdent INTERVAL_PRECISION = new ColumnIdent("interval_precision");
-        static final ColumnIdent CHARACTER_SET_CATALOG = new ColumnIdent("character_set_catalog");
-        static final ColumnIdent CHARACTER_SET_SCHEMA = new ColumnIdent("character_set_schema");
-        static final ColumnIdent CHARACTER_SET_NAME = new ColumnIdent("character_set_name");
-        static final ColumnIdent COLLATION_CATALOG = new ColumnIdent("collation_catalog");
-        static final ColumnIdent COLLATION_SCHEMA = new ColumnIdent("collation_schema");
-        static final ColumnIdent COLLATION_NAME = new ColumnIdent("collation_name");
-        static final ColumnIdent DOMAIN_CATALOG = new ColumnIdent("domain_catalog");
-        static final ColumnIdent DOMAIN_SCHEMA = new ColumnIdent("domain_schema");
-        static final ColumnIdent DOMAIN_NAME = new ColumnIdent("domain_name");
-        static final ColumnIdent USER_DEFINED_TYPE_CATALOG = new ColumnIdent("udt_catalog");
-        static final ColumnIdent USER_DEFINED_TYPE_SCHEMA = new ColumnIdent("udt_schema");
-        static final ColumnIdent USER_DEFINED_TYPE_NAME = new ColumnIdent("udt_name");
-        static final ColumnIdent CHECK_REFERENCES = new ColumnIdent("check_references");
-        static final ColumnIdent CHECK_ACTION = new ColumnIdent("check_action");
-    }
+    private static ColumnRegistrar<ColumnContext> columnRegistrar() {
+        return new ColumnRegistrar<ColumnContext>(IDENT, RowGranularity.DOC)
+            .register("table_schema", STRING, false,
+                () -> forFunction(r -> r.info.ident().tableIdent().schema()))
+            .register("table_name", STRING, false,
+                () -> forFunction(r -> r.info.ident().tableIdent().name()))
+            .register("table_catalog", STRING, false,
+                () -> forFunction(r -> r.info.ident().tableIdent().schema()))
+            .register("column_name", STRING, false,
+                () -> forFunction(r -> r.info.column().sqlFqn()))
+            .register("ordinal_position", INTEGER, false,
+                () -> forFunction(ColumnContext::getOrdinal))
+            .register("data_type", STRING, false,
+                () -> forFunction(r -> r.info.valueType().getName()))
+            .register("is_generated", STRING, false,
+                () -> forFunction(r -> {
+                    if (r.info instanceof GeneratedReference) {
+                        return IS_GENERATED_ALWAYS;
+                    }
+                    return IS_GENERATED_NEVER;
+                }))
+            .register("is_nullable", BOOLEAN, false,
+                () -> forFunction(r -> !r.tableInfo.primaryKey().contains(r.info.column()) && r.info.isNullable()))
 
-    private static ColumnRegistrar columnRegistrar() {
-        return new ColumnRegistrar(IDENT, RowGranularity.DOC)
-            .register(Columns.TABLE_SCHEMA, DataTypes.STRING, false)
-            .register(Columns.TABLE_NAME, DataTypes.STRING, false)
-            .register(Columns.TABLE_CATALOG, DataTypes.STRING, false)
-            .register(Columns.COLUMN_NAME, DataTypes.STRING, false)
-            .register(Columns.ORDINAL_POSITION, DataTypes.INTEGER, false)
-            .register(Columns.DATA_TYPE, DataTypes.STRING, false)
-            .register(Columns.IS_GENERATED, DataTypes.STRING, false)
-            .register(Columns.IS_NULLABLE, DataTypes.BOOLEAN, false)
-            .register(Columns.GENERATION_EXPRESSION, DataTypes.STRING)
-            .register(Columns.COLUMN_DEFAULT, DataTypes.STRING)
-            .register(Columns.CHARACTER_MAXIMUM_LENGTH, DataTypes.INTEGER)
-            .register(Columns.CHARACTER_OCTET_LENGTH, DataTypes.INTEGER)
-            .register(Columns.NUMERIC_PRECISION, DataTypes.INTEGER)
-            .register(Columns.NUMERIC_PRECISION_RADIX, DataTypes.INTEGER)
-            .register(Columns.NUMERIC_SCALE, DataTypes.INTEGER)
-            .register(Columns.DATETIME_PRECISION, DataTypes.INTEGER)
-            .register(Columns.INTERVAL_TYPE, DataTypes.STRING)
-            .register(Columns.INTERVAL_PRECISION, DataTypes.INTEGER)
-            .register(Columns.CHARACTER_SET_CATALOG, DataTypes.STRING)
-            .register(Columns.CHARACTER_SET_SCHEMA, DataTypes.STRING)
-            .register(Columns.CHARACTER_SET_NAME, DataTypes.STRING)
-            .register(Columns.COLLATION_CATALOG, DataTypes.STRING)
-            .register(Columns.COLLATION_SCHEMA, DataTypes.STRING)
-            .register(Columns.COLLATION_NAME, DataTypes.STRING)
-            .register(Columns.DOMAIN_CATALOG, DataTypes.STRING)
-            .register(Columns.DOMAIN_SCHEMA, DataTypes.STRING)
-            .register(Columns.DOMAIN_NAME, DataTypes.STRING)
-            .register(Columns.USER_DEFINED_TYPE_CATALOG, DataTypes.STRING)
-            .register(Columns.USER_DEFINED_TYPE_SCHEMA, DataTypes.STRING)
-            .register(Columns.USER_DEFINED_TYPE_NAME, DataTypes.STRING)
-            .register(Columns.CHECK_REFERENCES, DataTypes.STRING)
-            .register(Columns.CHECK_ACTION, DataTypes.INTEGER);
-    }
-
-    public static Map<ColumnIdent, RowCollectExpressionFactory<ColumnContext>> expression() {
-        return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<ColumnContext>>builder()
-            .put(Columns.TABLE_SCHEMA,
-                () -> NestableCollectExpression.forFunction(r -> r.info.ident().tableIdent().schema()))
-            .put(Columns.TABLE_NAME,
-                () -> NestableCollectExpression.forFunction(r -> r.info.ident().tableIdent().name()))
-            .put(Columns.TABLE_CATALOG,
-                () -> NestableCollectExpression.forFunction(r -> r.info.ident().tableIdent().schema()))
-            .put(Columns.COLUMN_NAME,
-                () -> NestableCollectExpression.forFunction(r -> r.info.column().sqlFqn()))
-            .put(Columns.ORDINAL_POSITION,
-                () -> NestableCollectExpression.forFunction(ColumnContext::getOrdinal))
-            .put(Columns.DATA_TYPE,
-                () -> NestableCollectExpression.forFunction(r -> r.info.valueType().getName()))
-            .put(Columns.COLUMN_DEFAULT, () -> NestableCollectExpression.forFunction(
-                r -> {
+            .register("generation_expression", STRING,
+                () -> forFunction(r -> {
+                    if (r.info instanceof GeneratedReference) {
+                        return ((GeneratedReference) r.info).formattedGeneratedExpression();
+                    }
+                    return null;
+                }))
+            .register("column_default", STRING,
+                () -> forFunction(r -> {
                     if (r.info.defaultExpression() != null) {
                         return SymbolPrinter.INSTANCE.printUnqualified(r.info.defaultExpression());
                     } else {
                         return null;
                     }
                 }))
-            .put(Columns.CHARACTER_MAXIMUM_LENGTH,
-                () -> NestableCollectExpression.constant(null))
-            .put(Columns.CHARACTER_OCTET_LENGTH,
-                () -> NestableCollectExpression.constant(null))
-            .put(Columns.NUMERIC_PRECISION,
-                () -> NestableCollectExpression.forFunction(r -> PRECISION_BY_TYPE_ID.get(r.info.valueType().id())))
-            .put(Columns.NUMERIC_PRECISION_RADIX,
-                () -> NestableCollectExpression.forFunction(r -> {
-                    if (DataTypes.NUMERIC_PRIMITIVE_TYPES.contains(r.info.valueType())) {
+            .register("character_maximum_length", INTEGER, () -> constant(null))
+            .register("character_octet_length", INTEGER, () -> constant(null))
+            .register("numeric_precision", INTEGER, () -> forFunction(r -> PRECISION_BY_TYPE_ID.get(r.info.valueType().id())))
+            .register("numeric_precision_radix", INTEGER,
+                () -> forFunction(r -> {
+                    if (NUMERIC_PRIMITIVE_TYPES.contains(r.info.valueType())) {
                         return NUMERIC_PRECISION_RADIX;
                     }
                     return null;
                 }))
-            .put(Columns.NUMERIC_SCALE,
-                () -> NestableCollectExpression.constant(null))
-            .put(Columns.DATETIME_PRECISION,
-                () -> NestableCollectExpression.forFunction(r -> {
-                    if (r.info.valueType() == DataTypes.TIMESTAMPZ
-                        || r.info.valueType() == DataTypes.TIMESTAMP) {
-                        return DATETIME_PRECISION;
-                    }
-                    return null;
-                }))
-            .put(Columns.INTERVAL_TYPE,
-                () -> NestableCollectExpression.constant(null))
-            .put(Columns.INTERVAL_PRECISION,
-                () -> NestableCollectExpression.constant(null))
-            .put(Columns.CHARACTER_SET_CATALOG,
-                () -> NestableCollectExpression.constant(null))
-            .put(Columns.CHARACTER_SET_SCHEMA,
-                () -> NestableCollectExpression.constant(null))
-            .put(Columns.CHARACTER_SET_NAME,
-                () -> NestableCollectExpression.constant(null))
-            .put(Columns.COLLATION_CATALOG,
-                () -> NestableCollectExpression.constant(null))
-            .put(Columns.COLLATION_SCHEMA,
-                () -> NestableCollectExpression.constant(null))
-            .put(Columns.COLLATION_NAME,
-                () -> NestableCollectExpression.constant(null))
-            .put(Columns.DOMAIN_CATALOG,
-                () -> NestableCollectExpression.constant(null))
-            .put(Columns.DOMAIN_SCHEMA,
-                () -> NestableCollectExpression.constant(null))
-            .put(Columns.DOMAIN_NAME,
-                () -> NestableCollectExpression.constant(null))
-            .put(Columns.USER_DEFINED_TYPE_CATALOG,
-                () -> NestableCollectExpression.constant(null))
-            .put(Columns.USER_DEFINED_TYPE_SCHEMA,
-                () -> NestableCollectExpression.constant(null))
-            .put(Columns.USER_DEFINED_TYPE_NAME,
-                () -> NestableCollectExpression.constant(null))
-            .put(Columns.CHECK_REFERENCES,
-                () -> NestableCollectExpression.constant(null))
-            .put(Columns.CHECK_ACTION,
-                () -> NestableCollectExpression.constant(null))
-            .put(Columns.IS_GENERATED,
-                () -> NestableCollectExpression.forFunction(r -> {
-                    if (r.info instanceof GeneratedReference) {
-                        return IS_GENERATED_ALWAYS;
-                    }
-                    return IS_GENERATED_NEVER;
-                }))
-            .put(Columns.IS_NULLABLE,
-                () -> NestableCollectExpression.forFunction(r ->
-                    !r.tableInfo.primaryKey().contains(r.info.column()) && r.info.isNullable()))
-            .put(Columns.GENERATION_EXPRESSION,
-                () -> NestableCollectExpression.forFunction(r -> {
-                    if (r.info instanceof GeneratedReference) {
-                        return ((GeneratedReference) r.info).formattedGeneratedExpression();
-                    }
-                    return null;
-                }))
-            .build();
+            .register("numeric_scale", INTEGER, () -> constant(null))
+
+            .register("datetime_precision", INTEGER, () -> forFunction(r -> {
+                if (r.info.valueType() == TIMESTAMPZ
+                    || r.info.valueType() == TIMESTAMP) {
+                    return DATETIME_PRECISION;
+                }
+                return null;
+            }))
+            .register("interval_type", STRING, () -> constant(null))
+            .register("interval_precision", INTEGER, () -> constant(null))
+            .register("character_set_catalog", STRING, () -> constant(null))
+            .register("character_set_schema", STRING, () -> constant(null))
+            .register("character_set_name", STRING, () -> constant(null))
+            .register("collation_catalog", STRING, () -> constant(null))
+            .register("collation_schema", STRING, () -> constant(null))
+            .register("collation_name", STRING, () -> constant(null))
+            .register("domain_catalog", STRING, () -> constant(null))
+            .register("domain_schema", STRING, () -> constant(null))
+            .register("domain_name", STRING, () -> constant(null))
+            .register("udt_catalog", STRING, () -> constant(null))
+            .register("udt_schema", STRING, () -> constant(null))
+            .register("udt_name", STRING, () -> constant(null))
+            .register("check_references", STRING, () -> constant(null))
+            .register("check_action", INTEGER, () -> constant(null));
+    }
+
+    static Map<ColumnIdent, RowCollectExpressionFactory<ColumnContext>> expression() {
+        return columnRegistrar().expressions();
     }
 
     private static final Integer NUMERIC_PRECISION_RADIX = 2; // Binary
@@ -236,10 +153,6 @@ public class InformationColumnsTableInfo extends InformationTableInfo {
         .map();
 
     InformationColumnsTableInfo() {
-        super(
-            IDENT,
-            columnRegistrar(),
-            ImmutableList.of(Columns.TABLE_CATALOG, Columns.TABLE_NAME, Columns.TABLE_SCHEMA, Columns.COLUMN_NAME)
-        );
+        super(IDENT, columnRegistrar(), "table_catalog", "table_name", "table_schema", "column_name");
     }
 }

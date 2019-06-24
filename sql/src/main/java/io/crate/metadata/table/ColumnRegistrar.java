@@ -41,9 +41,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
 
 public class ColumnRegistrar<T> {
-    private final ImmutableSortedMap.Builder<ColumnIdent, Reference> infosBuilder;
+
+    private final SortedMap<ColumnIdent, Reference> infos;
     private final ImmutableSortedSet.Builder<Reference> columnsBuilder;
     private final ImmutableSortedMap.Builder<ColumnIdent, RowCollectExpressionFactory<T>> expressionBuilder;
 
@@ -55,7 +58,7 @@ public class ColumnRegistrar<T> {
     public ColumnRegistrar(RelationName relationName, RowGranularity rowGranularity) {
         this.relationName = relationName;
         this.rowGranularity = rowGranularity;
-        this.infosBuilder = ImmutableSortedMap.naturalOrder();
+        this.infos = new TreeMap<>();
         this.columnsBuilder = ImmutableSortedSet.orderedBy(Reference.COMPARE_BY_COLUMN_IDENT);
         this.expressionBuilder = ImmutableSortedMap.naturalOrder();
     }
@@ -64,18 +67,24 @@ public class ColumnRegistrar<T> {
         return register(column, type, true, null);
     }
 
-    public ColumnRegistrar<T> register(ColumnIdent column, DataType type, boolean nullable) {
-        return register(column, type, nullable, null);
-    }
-
-    public ColumnRegistrar<T> register(ColumnIdent column, DataType type) {
-        return register(column, type, true, null);
-    }
-
     public <R> ColumnRegistrar<T> register(ColumnIdent column,
                                            DataType<R> type,
                                            @Nullable RowCollectExpressionFactory<T> expression) {
         return register(column, type, true, expression);
+    }
+
+    public <R> ColumnRegistrar<T> register(String column,
+                                           String child,
+                                           DataType<R> type,
+                                           @Nullable RowCollectExpressionFactory<T> expression) {
+        return register(new ColumnIdent(column, child), type, true, expression);
+    }
+
+    public <R> ColumnRegistrar<T> register(String column,
+                                           List<String> children,
+                                           DataType<R> type,
+                                           @Nullable RowCollectExpressionFactory<T> expression) {
+        return register(new ColumnIdent(column, children), type, true, expression);
     }
 
     public <R> ColumnRegistrar<T> register(String column,
@@ -91,7 +100,7 @@ public class ColumnRegistrar<T> {
         return register(new ColumnIdent(column), type, nullable, expression);
     }
 
-    public <R> ColumnRegistrar<T> register(ColumnIdent column,
+    public ColumnRegistrar<T> register(ColumnIdent column,
                                            DataType type,
                                            boolean nullable,
                                            @Nullable RowCollectExpressionFactory<T> expression) {
@@ -109,7 +118,7 @@ public class ColumnRegistrar<T> {
         if (ref.column().isTopLevel()) {
             columnsBuilder.add(ref);
         }
-        infosBuilder.put(ref.column(), ref);
+        infos.put(ref.column(), ref);
         registerPossibleObjectInnerTypes(column.name(), column.path(), type);
 
         if (expression != null) {
@@ -143,18 +152,18 @@ public class ColumnRegistrar<T> {
                 null
             );
             pos++;
-            infosBuilder.put(ref.column(), ref);
+            infos.putIfAbsent(ref.column(), ref);
             registerPossibleObjectInnerTypes(ci.name(), ci.path(), innerType);
         }
     }
 
-    public ColumnRegistrar putInfoOnly(ColumnIdent columnIdent, Reference reference) {
-        infosBuilder.put(columnIdent, reference);
+    public ColumnRegistrar<T> putInfoOnly(ColumnIdent columnIdent, Reference reference) {
+        infos.putIfAbsent(columnIdent, reference);
         return this;
     }
 
     public Map<ColumnIdent, Reference> infos() {
-        return infosBuilder.build();
+        return infos;
     }
 
     public Set<Reference> columns() {

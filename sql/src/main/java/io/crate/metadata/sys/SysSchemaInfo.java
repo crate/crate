@@ -25,6 +25,7 @@ import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.view.ViewInfo;
 import org.elasticsearch.cluster.ClusterChangedEvent;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
@@ -39,23 +40,23 @@ public class SysSchemaInfo implements SchemaInfo {
     private final Map<String, TableInfo> tableInfos;
 
     @Inject
-    public SysSchemaInfo() {
+    public SysSchemaInfo(ClusterService clusterService) {
         tableInfos = new HashMap<>();
         tableInfos.put(SysClusterTableInfo.IDENT.name(), new SysClusterTableInfo());
         tableInfos.put(SysNodesTableInfo.IDENT.name(), new SysNodesTableInfo());
         tableInfos.put(SysShardsTableInfo.IDENT.name(), new SysShardsTableInfo());
-        tableInfos.put(SysJobsTableInfo.IDENT.name(), new SysJobsTableInfo());
+        tableInfos.put(SysJobsTableInfo.IDENT.name(), new SysJobsTableInfo(clusterService::localNode));
         tableInfos.put(SysJobsLogTableInfo.IDENT.name(), SysJobsLogTableInfo.INSTANCE);
-        tableInfos.put(SysOperationsTableInfo.IDENT.name(), new SysOperationsTableInfo());
+        tableInfos.put(SysOperationsTableInfo.IDENT.name(), new SysOperationsTableInfo(clusterService::localNode));
         tableInfos.put(SysOperationsLogTableInfo.IDENT.name(), new SysOperationsLogTableInfo());
         tableInfos.put(SysChecksTableInfo.IDENT.name(), new SysChecksTableInfo());
         tableInfos.put(SysNodeChecksTableInfo.IDENT.name(), new SysNodeChecksTableInfo());
-        tableInfos.put(SysRepositoriesTableInfo.IDENT.name(), new SysRepositoriesTableInfo());
+        tableInfos.put(SysRepositoriesTableInfo.IDENT.name(), new SysRepositoriesTableInfo(clusterService.getClusterSettings().maskedSettings()));
         tableInfos.put(SysSnapshotsTableInfo.IDENT.name(), new SysSnapshotsTableInfo());
         tableInfos.put(SysSummitsTableInfo.IDENT.name(), new SysSummitsTableInfo());
         tableInfos.put(SysAllocationsTableInfo.IDENT.name(), new SysAllocationsTableInfo());
         tableInfos.put(SysHealthTableInfo.IDENT.name(), new SysHealthTableInfo());
-        tableInfos.put(SysMetricsTableInfo.NAME.name(), new SysMetricsTableInfo());
+        tableInfos.put(SysMetricsTableInfo.NAME.name(), new SysMetricsTableInfo(clusterService::localNode));
     }
 
     @Override

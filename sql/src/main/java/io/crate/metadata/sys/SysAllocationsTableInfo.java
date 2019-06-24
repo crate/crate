@@ -22,11 +22,8 @@
 
 package io.crate.metadata.sys;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
-import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.reference.sys.shard.SysAllocation;
 import io.crate.expression.reference.sys.shard.SysAllocationDecisionsExpression;
 import io.crate.metadata.ColumnIdent;
@@ -37,107 +34,84 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
-import io.crate.types.ArrayType;
-import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 import org.elasticsearch.cluster.ClusterState;
 
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+
+import static io.crate.types.DataTypes.STRING;
+import static io.crate.types.DataTypes.INTEGER;
+import static io.crate.types.DataTypes.STRING_ARRAY;
+import static io.crate.types.DataTypes.BOOLEAN;
+import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
 
 public class SysAllocationsTableInfo extends StaticTableInfo {
 
     public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "allocations");
     private static final RowGranularity GRANULARITY = RowGranularity.DOC;
-    private static final List<ColumnIdent> PRIMARY_KEYS = ImmutableList.of(Columns.TABLE_SCHEMA,
-        Columns.TABLE_NAME, Columns.PARTITION_IDENT, Columns.SHARD_ID);
 
     public static class Columns {
-        static final ColumnIdent TABLE_SCHEMA = new ColumnIdent("table_schema");
-        static final ColumnIdent TABLE_NAME = new ColumnIdent("table_name");
-        static final ColumnIdent PARTITION_IDENT = new ColumnIdent("partition_ident");
-        static final ColumnIdent SHARD_ID = new ColumnIdent("shard_id");
-        static final ColumnIdent NODE_ID = new ColumnIdent("node_id");
-        static final ColumnIdent PRIMARY = new ColumnIdent("primary");
-        static final ColumnIdent CURRENT_STATE = new ColumnIdent("current_state");
-        static final ColumnIdent EXPLANATION = new ColumnIdent("explanation");
-        static final ColumnIdent DECISIONS = new ColumnIdent("decisions");
         static final ColumnIdent DECISIONS_NODE_ID = new ColumnIdent("decisions", "node_id");
         static final ColumnIdent DECISIONS_NODE_NAME = new ColumnIdent("decisions", "node_name");
         static final ColumnIdent DECISIONS_EXPLANATIONS = new ColumnIdent("decisions", "explanations");
     }
 
-    public static Map<ColumnIdent, RowCollectExpressionFactory<SysAllocation>> expressions() {
-        return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<SysAllocation>>builder()
-            .put(Columns.TABLE_SCHEMA,
-                () -> NestableCollectExpression.forFunction(SysAllocation::tableSchema))
-            .put(Columns.TABLE_NAME,
-                () -> NestableCollectExpression.forFunction(SysAllocation::tableName))
-            .put(Columns.PARTITION_IDENT,
-                () -> NestableCollectExpression.forFunction(SysAllocation::partitionIdent))
-            .put(Columns.SHARD_ID,
-                () -> NestableCollectExpression.forFunction(SysAllocation::shardId))
-            .put(Columns.NODE_ID,
-                () -> NestableCollectExpression.forFunction(SysAllocation::nodeId))
-            .put(Columns.PRIMARY,
-                () -> NestableCollectExpression.forFunction(SysAllocation::primary))
-            .put(Columns.CURRENT_STATE,
-                () -> NestableCollectExpression.forFunction(s -> s.currentState().toString()))
-            .put(Columns.EXPLANATION,
-                () -> NestableCollectExpression.forFunction(SysAllocation::explanation))
-            .put(Columns.DECISIONS,
-                () -> new SysAllocationDecisionsExpression<>() {
+    static Map<ColumnIdent, RowCollectExpressionFactory<SysAllocation>> expressions() {
+        return columnRegistrar().expressions();
+    }
 
-                    @Override
-                    protected Map<String, Object> valueForItem(SysAllocation.SysAllocationNodeDecision input) {
-                        Map<String, Object> decision = new HashMap<>(3);
-                        decision.put(Columns.DECISIONS_NODE_ID.path().get(0), input.nodeId());
-                        decision.put(Columns.DECISIONS_NODE_NAME.path().get(0), input.nodeName());
-                        decision.put(Columns.DECISIONS_EXPLANATIONS.path().get(0), input.explanations());
-                        return decision;
-                    }
-                })
-            .put(Columns.DECISIONS_NODE_ID, () -> new SysAllocationDecisionsExpression<String>() {
+    @SuppressWarnings({"unchecked"})
+    private static ColumnRegistrar<SysAllocation> columnRegistrar() {
+        return new ColumnRegistrar<SysAllocation>(IDENT, GRANULARITY)
+            .register("table_schema", STRING, () -> forFunction(SysAllocation::tableSchema))
+            .register("table_name", STRING, () -> forFunction(SysAllocation::tableName))
+            .register("partition_ident", STRING, () -> forFunction(SysAllocation::partitionIdent))
+            .register("shard_id", INTEGER, () -> forFunction(SysAllocation::shardId))
+            .register("node_id", STRING, () -> forFunction(SysAllocation::nodeId))
+            .register("primary", BOOLEAN, () -> forFunction(SysAllocation::primary))
+            .register("current_state", STRING, () -> forFunction(s -> s.currentState().toString()))
+            .register("explanation", STRING, () -> forFunction(SysAllocation::explanation))
+            .register("decisions", ObjectType.builder()
+                .setInnerType("node_id", STRING)
+                .setInnerType("node_name", STRING)
+                .setInnerType("explanations", STRING_ARRAY)
+            .build(), () -> new SysAllocationDecisionsExpression<Map<String, Object>>() {
+                @Override
+                protected Map<String, Object> valueForItem(SysAllocation.SysAllocationNodeDecision input) {
+                    return Map.of(
+                        Columns.DECISIONS_NODE_ID.path().get(0), input.nodeId(),
+                        Columns.DECISIONS_NODE_NAME.path().get(0), input.nodeName(),
+                        Columns.DECISIONS_EXPLANATIONS.path().get(0), input.explanations()
+                    );
+                }
+                }
+             )
+            .register("decisions","node_id", STRING, () -> new SysAllocationDecisionsExpression<String>() {
 
-                    @Override
-                    protected String valueForItem(SysAllocation.SysAllocationNodeDecision input) {
-                        return input.nodeId();
-                    }
-                })
-            .put(Columns.DECISIONS_NODE_NAME, () -> new SysAllocationDecisionsExpression<String>() {
+                @Override
+                protected String valueForItem(SysAllocation.SysAllocationNodeDecision input) {
+                    return input.nodeId();
+                }
+            })
+            .register("decisions", "node_name", STRING, () -> new SysAllocationDecisionsExpression<String>() {
 
-                    @Override
-                    protected String valueForItem(SysAllocation.SysAllocationNodeDecision input) {
-                        return input.nodeName();
-                    }
-                })
-            .put(Columns.DECISIONS_EXPLANATIONS, () -> new SysAllocationDecisionsExpression<String[]>() {
+                @Override
+                protected String valueForItem(SysAllocation.SysAllocationNodeDecision input) {
+                    return input.nodeName();
+                }
+            })
+            .register("decisions","explanations", STRING_ARRAY, () -> new SysAllocationDecisionsExpression<String[]>() {
 
-                    @Override
-                    protected String[] valueForItem(SysAllocation.SysAllocationNodeDecision input) {
-                        return input.explanations();
-                    }
-                })
-            .build();
+                @Override
+                protected String[] valueForItem(SysAllocation.SysAllocationNodeDecision input) {
+                    return input.explanations();
+                }
+            });
+
     }
 
     SysAllocationsTableInfo() {
-        super(IDENT, new ColumnRegistrar(IDENT, GRANULARITY)
-            .register(Columns.TABLE_SCHEMA, DataTypes.STRING)
-            .register(Columns.TABLE_NAME, DataTypes.STRING)
-            .register(Columns.PARTITION_IDENT, DataTypes.STRING)
-            .register(Columns.SHARD_ID, DataTypes.INTEGER)
-            .register(Columns.NODE_ID, DataTypes.STRING)
-            .register(Columns.PRIMARY, DataTypes.BOOLEAN)
-            .register(Columns.CURRENT_STATE, DataTypes.STRING)
-            .register(Columns.EXPLANATION, DataTypes.STRING)
-            .register(Columns.DECISIONS, new ArrayType(ObjectType.builder()
-                .setInnerType("node_id", DataTypes.STRING)
-                .setInnerType("node_name", DataTypes.STRING)
-                .setInnerType("explanations", DataTypes.STRING_ARRAY)
-                .build())),
-            PRIMARY_KEYS);
+        super(IDENT, columnRegistrar(), "table_schema", "table_name", "partition_ident", "shard_id");
     }
 
     @Override

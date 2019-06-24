@@ -47,13 +47,9 @@ import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.shard.unassigned.UnassignedShard;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
-import io.crate.types.BooleanType;
-import io.crate.types.DataTypes;
 import io.crate.types.FloatType;
 import io.crate.types.IntegerType;
-import io.crate.types.LongType;
 import io.crate.types.ObjectType;
-import io.crate.types.StringType;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.routing.GroupShardsIterator;
 import org.elasticsearch.cluster.routing.ShardIterator;
@@ -65,6 +61,13 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+
+import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
+import static io.crate.execution.engine.collect.NestableCollectExpression.constant;
+import static io.crate.types.DataTypes.STRING;
+import static io.crate.types.DataTypes.LONG;
+import static io.crate.types.DataTypes.INTEGER;
+import static io.crate.types.DataTypes.BOOLEAN;
 
 public class SysShardsTableInfo extends StaticTableInfo {
 
@@ -90,31 +93,6 @@ public class SysShardsTableInfo extends StaticTableInfo {
         static final ColumnIdent ORPHAN_PARTITION = new ColumnIdent("orphan_partition");
 
         static final ColumnIdent RECOVERY = new ColumnIdent("recovery");
-        static final ColumnIdent RECOVERY_STAGE = new ColumnIdent("recovery", ImmutableList.of("stage"));
-        static final ColumnIdent RECOVERY_TYPE = new ColumnIdent("recovery", ImmutableList.of("type"));
-        static final ColumnIdent RECOVERY_TOTAL_TIME =
-            new ColumnIdent("recovery", ImmutableList.of("total_time"));
-
-        static final ColumnIdent RECOVERY_FILES = new ColumnIdent("recovery", ImmutableList.of("files"));
-        static final ColumnIdent RECOVERY_FILES_USED =
-            new ColumnIdent("recovery", ImmutableList.of("files", "used"));
-        static final ColumnIdent RECOVERY_FILES_REUSED =
-            new ColumnIdent("recovery", ImmutableList.of("files", "reused"));
-        static final ColumnIdent RECOVERY_FILES_RECOVERED =
-            new ColumnIdent("recovery", ImmutableList.of("files", "recovered"));
-        static final ColumnIdent RECOVERY_FILES_PERCENT =
-            new ColumnIdent("recovery", ImmutableList.of("files", "percent"));
-
-        static final ColumnIdent RECOVERY_SIZE =
-            new ColumnIdent("recovery", ImmutableList.of("size"));
-        static final ColumnIdent RECOVERY_SIZE_USED =
-            new ColumnIdent("recovery", ImmutableList.of("size", "used"));
-        static final ColumnIdent RECOVERY_SIZE_REUSED =
-            new ColumnIdent("recovery", ImmutableList.of("size", "reused"));
-        static final ColumnIdent RECOVERY_SIZE_RECOVERED =
-            new ColumnIdent("recovery", ImmutableList.of("size", "recovered"));
-        static final ColumnIdent RECOVERY_SIZE_PERCENT =
-            new ColumnIdent("recovery", ImmutableList.of("size", "percent"));
 
         static final ColumnIdent PATH = new ColumnIdent("path");
         static final ColumnIdent BLOB_PATH = new ColumnIdent("blob_path");
@@ -124,58 +102,22 @@ public class SysShardsTableInfo extends StaticTableInfo {
     }
 
     public static Map<ColumnIdent, RowCollectExpressionFactory<ShardRowContext>> expressions() {
-        return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<ShardRowContext>>builder()
-            .put(Columns.SCHEMA_NAME,
-                () -> NestableCollectExpression.forFunction(r -> r.indexParts().getSchema()))
-            .put(Columns.TABLE_NAME,
-                () -> NestableCollectExpression.forFunction(r -> r.indexParts().getTable()))
-            .put(Columns.PARTITION_IDENT,
-                () -> NestableCollectExpression.forFunction(ShardRowContext::partitionIdent))
-            .put(Columns.ID, () -> NestableCollectExpression.forFunction(ShardRowContext::id))
-            .put(Columns.NUM_DOCS, ShardNumDocsExpression::new)
-            .put(Columns.PRIMARY,
-                () -> NestableCollectExpression.forFunction(r -> r.indexShard().routingEntry().primary()))
-            .put(Columns.RELOCATING_NODE,
-                () -> NestableCollectExpression.forFunction(r -> r.indexShard().routingEntry().relocatingNodeId()))
-            .put(Columns.SIZE,
-                () -> NestableCollectExpression.forFunction(ShardRowContext::size))
-            .put(Columns.STATE,
-                () -> NestableCollectExpression.forFunction(r -> r.indexShard().state().toString()))
-            .put(Columns.ROUTING_STATE,
-                () -> NestableCollectExpression.forFunction(r -> r.indexShard().routingEntry().state().toString()))
-            .put(Columns.ORPHAN_PARTITION, ShardPartitionOrphanedExpression::new)
-            .put(Columns.RECOVERY, ShardRecoveryExpression::new)
-            .put(Columns.PATH, () -> NestableCollectExpression.forFunction(ShardRowContext::path))
-            .put(Columns.BLOB_PATH, () -> NestableCollectExpression.forFunction(ShardRowContext::blobPath))
-            .put(Columns.MIN_LUCENE_VERSION, ShardMinLuceneVersionExpression::new)
-            .put(Columns.NODE, NodeNestableInput::new)
-            .build();
+        return columnRegistrar().expressions();
     }
 
     public static Map<ColumnIdent, RowCollectExpressionFactory<UnassignedShard>> unassignedShardsExpressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<UnassignedShard>>builder()
-            .put(Columns.SCHEMA_NAME,
-                () -> NestableCollectExpression.forFunction(UnassignedShard::schemaName))
-            .put(Columns.TABLE_NAME,
-                () -> NestableCollectExpression.forFunction(UnassignedShard::tableName))
-            .put(Columns.PARTITION_IDENT,
-                () -> NestableCollectExpression.forFunction(UnassignedShard::partitionIdent))
-            .put(Columns.ID,
-                () -> NestableCollectExpression.forFunction(UnassignedShard::id))
-            .put(Columns.NUM_DOCS,
-                () -> NestableCollectExpression.constant(0L))
-            .put(Columns.PRIMARY,
-                () -> NestableCollectExpression.forFunction(UnassignedShard::primary))
-            .put(Columns.RELOCATING_NODE,
-                () -> NestableCollectExpression.constant(null))
-            .put(Columns.SIZE,
-                () -> NestableCollectExpression.constant(0L))
-            .put(Columns.STATE,
-                () -> NestableCollectExpression.forFunction(UnassignedShard::state))
-            .put(Columns.ROUTING_STATE,
-                () -> NestableCollectExpression.forFunction(UnassignedShard::state))
-            .put(Columns.ORPHAN_PARTITION,
-                () -> NestableCollectExpression.forFunction(UnassignedShard::orphanedPartition))
+            .put(Columns.SCHEMA_NAME, () -> forFunction(UnassignedShard::schemaName))
+            .put(Columns.TABLE_NAME, () -> forFunction(UnassignedShard::tableName))
+            .put(Columns.PARTITION_IDENT, () -> forFunction(UnassignedShard::partitionIdent))
+            .put(Columns.ID, () -> forFunction(UnassignedShard::id))
+            .put(Columns.NUM_DOCS, () -> constant(0L))
+            .put(Columns.PRIMARY, () -> forFunction(UnassignedShard::primary))
+            .put(Columns.RELOCATING_NODE, () -> constant(null))
+            .put(Columns.SIZE, () -> constant(0L))
+            .put(Columns.STATE, () -> forFunction(UnassignedShard::state))
+            .put(Columns.ROUTING_STATE, () -> forFunction(UnassignedShard::state))
+            .put(Columns.ORPHAN_PARTITION, () -> forFunction(UnassignedShard::orphanedPartition))
             .put(Columns.RECOVERY, () -> new NestableCollectExpression<>() {
                 @Override
                 public void setNextRow(UnassignedShard unassignedShard) {
@@ -191,12 +133,9 @@ public class SysShardsTableInfo extends StaticTableInfo {
                     return this;
                 }
             })
-            .put(Columns.PATH,
-                () -> NestableCollectExpression.constant(null))
-            .put(Columns.BLOB_PATH,
-                () -> NestableCollectExpression.constant(null))
-            .put(Columns.MIN_LUCENE_VERSION,
-                () -> NestableCollectExpression.constant(null))
+            .put(Columns.PATH, () -> constant(null))
+            .put(Columns.BLOB_PATH, () -> constant(null))
+            .put(Columns.MIN_LUCENE_VERSION, () -> constant(null))
             .put(Columns.NODE, () -> new NestableCollectExpression<>() {
                 @Override
                 public void setNextRow(UnassignedShard unassignedShard) {
@@ -223,9 +162,9 @@ public class SysShardsTableInfo extends StaticTableInfo {
     );
 
     private static final ObjectType TYPE_RECOVERY_SIZE = ObjectType.builder()
-        .setInnerType("used", LongType.INSTANCE)
-        .setInnerType("reused", LongType.INSTANCE)
-        .setInnerType("recovered", LongType.INSTANCE)
+        .setInnerType("used", LONG)
+        .setInnerType("reused", LONG)
+        .setInnerType("recovered", LONG)
         .setInnerType("percent", FloatType.INSTANCE)
         .build();
 
@@ -236,34 +175,37 @@ public class SysShardsTableInfo extends StaticTableInfo {
         .setInnerType("percent", FloatType.INSTANCE)
         .build();
 
+    private static ColumnRegistrar<ShardRowContext> columnRegistrar() {
+        return new ColumnRegistrar<ShardRowContext>(IDENT, RowGranularity.SHARD)
+            .register("schema_name", STRING, () -> forFunction(r -> r.indexParts().getSchema()))
+            .register("table_name", STRING, () -> forFunction(r -> r.indexParts().getTable()))
+            .register("id", INTEGER, () -> forFunction(ShardRowContext::id))
+            .register("partition_ident", STRING,() -> forFunction(ShardRowContext::partitionIdent))
+            .register("num_docs", LONG, ShardNumDocsExpression::new)
+            .register("primary", BOOLEAN, () -> forFunction(r -> r.indexShard().routingEntry().primary()))
+            .register("relocating_node", STRING, () -> forFunction(r -> r.indexShard().routingEntry().relocatingNodeId()))
+            .register("size", LONG, () -> forFunction(ShardRowContext::size))
+            .register("state", STRING, () -> forFunction(r -> r.indexShard().state().toString()))
+            .register("routing_state", STRING,() -> forFunction(r -> r.indexShard().routingEntry().state().toString()))
+            .register("orphan_partition", BOOLEAN, ShardPartitionOrphanedExpression::new)
+            .register("recovery", ObjectType.builder()
+                .setInnerType("stage", STRING)
+                .setInnerType("type", STRING)
+                .setInnerType("total_time", LONG)
+                .setInnerType("size", TYPE_RECOVERY_SIZE)
+                .setInnerType("files", TYPE_RECOVERY_FILES)
+                .build(), ShardRecoveryExpression::new)
+            .register("path", STRING, () -> forFunction(ShardRowContext::path))
+            .register("blob_path", STRING,() -> forFunction(ShardRowContext::blobPath))
+            .register("min_lucene_version", STRING, ShardMinLuceneVersionExpression::new)
+            .register("node", ObjectType.builder()
+                .setInnerType("id", STRING)
+                .setInnerType("name", STRING)
+                .build(), NodeNestableInput::new);
+    }
+
     SysShardsTableInfo() {
-        super(IDENT, new ColumnRegistrar(IDENT, RowGranularity.SHARD)
-                .register(Columns.SCHEMA_NAME, StringType.INSTANCE)
-                .register(Columns.TABLE_NAME, StringType.INSTANCE)
-                .register(Columns.ID, IntegerType.INSTANCE)
-                .register(Columns.PARTITION_IDENT, StringType.INSTANCE)
-                .register(Columns.NUM_DOCS, LongType.INSTANCE)
-                .register(Columns.PRIMARY, BooleanType.INSTANCE)
-                .register(Columns.RELOCATING_NODE, StringType.INSTANCE)
-                .register(Columns.SIZE, LongType.INSTANCE)
-                .register(Columns.STATE, StringType.INSTANCE)
-                .register(Columns.ROUTING_STATE, StringType.INSTANCE)
-                .register(Columns.ORPHAN_PARTITION, BooleanType.INSTANCE)
-                .register(Columns.RECOVERY, ObjectType.builder()
-                    .setInnerType("stage", StringType.INSTANCE)
-                    .setInnerType("type", StringType.INSTANCE)
-                    .setInnerType("total_time", LongType.INSTANCE)
-                    .setInnerType("size", TYPE_RECOVERY_SIZE)
-                    .setInnerType("files", TYPE_RECOVERY_FILES)
-                    .build())
-                .register(Columns.PATH, DataTypes.STRING)
-                .register(Columns.BLOB_PATH, DataTypes.STRING)
-                .register(Columns.MIN_LUCENE_VERSION, StringType.INSTANCE)
-                .register(Columns.NODE, ObjectType.builder()
-                    .setInnerType("id", DataTypes.STRING)
-                    .setInnerType("name", DataTypes.STRING)
-                    .build()),
-            PRIMARY_KEY);
+        super(IDENT, columnRegistrar(), PRIMARY_KEY);
     }
 
     private void processShardRouting(String localNodeId,
