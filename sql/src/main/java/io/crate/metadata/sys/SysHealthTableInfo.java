@@ -22,10 +22,8 @@
 
 package io.crate.metadata.sys;
 
-import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
-import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
@@ -34,56 +32,37 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
-import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterState;
 
-import java.util.Collections;
+import java.util.Map;
+
+import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
+import static io.crate.types.DataTypes.STRING;
+import static io.crate.types.DataTypes.SHORT;
+import static io.crate.types.DataTypes.LONG;
 
 public class SysHealthTableInfo extends StaticTableInfo {
 
     public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "health");
     private static final RowGranularity GRANULARITY = RowGranularity.DOC;
 
-    public static class Columns {
-        static final ColumnIdent TABLE_NAME = new ColumnIdent("table_name");
-        static final ColumnIdent TABLE_SCHEMA = new ColumnIdent("table_schema");
-        static final ColumnIdent PARTITION_IDENT = new ColumnIdent("partition_ident");
-        static final ColumnIdent HEALTH = new ColumnIdent("health");
-        static final ColumnIdent SEVERITY = new ColumnIdent("severity");
-        static final ColumnIdent MISSING_SHARDS = new ColumnIdent("missing_shards");
-        static final ColumnIdent UNDERREPLICATED_SHARDS = new ColumnIdent("underreplicated_shards");
+    public static Map<ColumnIdent, RowCollectExpressionFactory<TableHealth>> expressions() {
+        return columnRegistrar().expressions();
     }
 
-    public static ImmutableMap<ColumnIdent, RowCollectExpressionFactory<TableHealth>> expressions() {
-        return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<TableHealth>>builder()
-            .put(Columns.TABLE_NAME,
-                () -> NestableCollectExpression.forFunction(TableHealth::getTableName))
-            .put(Columns.TABLE_SCHEMA,
-                () -> NestableCollectExpression.forFunction(TableHealth::getTableSchema))
-            .put(Columns.PARTITION_IDENT,
-                () -> NestableCollectExpression.forFunction(TableHealth::getPartitionIdent))
-            .put(Columns.HEALTH,
-                () -> NestableCollectExpression.forFunction(TableHealth::getHealth))
-            .put(Columns.SEVERITY,
-                () -> NestableCollectExpression.forFunction(TableHealth::getSeverity))
-            .put(Columns.MISSING_SHARDS,
-                () -> NestableCollectExpression.forFunction(TableHealth::getMissingShards))
-            .put(Columns.UNDERREPLICATED_SHARDS,
-                () -> NestableCollectExpression.forFunction(TableHealth::getUnderreplicatedShards))
-            .build();
+    private static ColumnRegistrar<TableHealth> columnRegistrar() {
+        return new ColumnRegistrar<TableHealth>(IDENT, GRANULARITY)
+            .register("table_name", STRING, () -> forFunction(TableHealth::getTableName))
+            .register("table_schema", STRING, () -> forFunction(TableHealth::getTableSchema))
+            .register("partition_ident",STRING, () -> forFunction(TableHealth::getPartitionIdent))
+            .register("health", STRING, () -> forFunction(TableHealth::getHealth))
+            .register("severity", SHORT, () -> forFunction(TableHealth::getSeverity))
+            .register("missing_shards", LONG, () -> forFunction(TableHealth::getMissingShards))
+            .register("underreplicated_shards", LONG, () -> forFunction(TableHealth::getUnderreplicatedShards));
     }
 
     SysHealthTableInfo() {
-        super(IDENT,
-            new ColumnRegistrar(IDENT, GRANULARITY)
-                .register(Columns.TABLE_NAME, DataTypes.STRING)
-                .register(Columns.TABLE_SCHEMA, DataTypes.STRING)
-                .register(Columns.PARTITION_IDENT, DataTypes.STRING)
-                .register(Columns.HEALTH, DataTypes.STRING)
-                .register(Columns.SEVERITY, DataTypes.SHORT)
-                .register(Columns.MISSING_SHARDS, DataTypes.LONG)
-                .register(Columns.UNDERREPLICATED_SHARDS, DataTypes.LONG),
-            Collections.emptyList());
+        super(IDENT, columnRegistrar());
     }
 
     @Override

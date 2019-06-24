@@ -22,18 +22,18 @@
 
 package io.crate.metadata.information;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.view.ViewInfo;
-import io.crate.types.DataTypes;
 
 import java.util.Map;
+
+import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
+import static io.crate.types.DataTypes.BOOLEAN;
+import static io.crate.types.DataTypes.STRING;
 
 public class InformationViewsTableInfo extends InformationTableInfo {
 
@@ -42,50 +42,23 @@ public class InformationViewsTableInfo extends InformationTableInfo {
 
     private static final String CHECK_OPTION_NONE = "NONE";
 
-    private static class Columns {
-        static final ColumnIdent TABLE_CATALOG = new ColumnIdent("table_catalog");
-        static final ColumnIdent TABLE_NAME = new ColumnIdent("table_name");
-        static final ColumnIdent TABLE_SCHEMA = new ColumnIdent("table_schema");
-        static final ColumnIdent VIEW_DEFINITION = new ColumnIdent("view_definition");
-        static final ColumnIdent CHECK_OPTION = new ColumnIdent("check_option");
-        static final ColumnIdent IS_UPDATABLE = new ColumnIdent("is_updatable");
-        static final ColumnIdent OWNER = new ColumnIdent("owner");
+    private static ColumnRegistrar<ViewInfo> columnRegistrar() {
+        return new ColumnRegistrar<ViewInfo>(IDENT, RowGranularity.DOC)
+            .register("table_catalog", STRING, () -> forFunction(r -> r.ident().schema()))
+            .register("table_schema", STRING, () -> forFunction(r -> r.ident().schema()))
+            .register("table_name", STRING, () -> forFunction(r -> r.ident().name()))
+            .register("view_definition", STRING, () -> forFunction(ViewInfo::definition))
+            .register("check_option", STRING, () -> forFunction(r -> CHECK_OPTION_NONE))
+            .register("is_updatable", BOOLEAN, () -> forFunction(r -> false))
+            .register("owner", STRING, () -> forFunction(ViewInfo::owner));
     }
 
-    private static ColumnRegistrar buildColumnRegistrar() {
-        return new ColumnRegistrar(IDENT, RowGranularity.DOC)
-            .register(Columns.TABLE_CATALOG, DataTypes.STRING)
-            .register(Columns.TABLE_SCHEMA, DataTypes.STRING)
-            .register(Columns.TABLE_NAME, DataTypes.STRING)
-            .register(Columns.VIEW_DEFINITION, DataTypes.STRING)
-            .register(Columns.CHECK_OPTION, DataTypes.STRING)
-            .register(Columns.IS_UPDATABLE, DataTypes.BOOLEAN)
-            .register(Columns.OWNER, DataTypes.STRING);
-    }
-
-    public static Map<ColumnIdent, RowCollectExpressionFactory<ViewInfo>> expressions() {
-        return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<ViewInfo>>builder()
-            .put(Columns.TABLE_CATALOG,
-                () -> NestableCollectExpression.forFunction(r -> r.ident().schema()))
-            .put(Columns.TABLE_SCHEMA,
-                () -> NestableCollectExpression.forFunction(r -> r.ident().schema()))
-            .put(Columns.TABLE_NAME,
-                () -> NestableCollectExpression.forFunction(r -> r.ident().name()))
-            .put(Columns.VIEW_DEFINITION,
-                () -> NestableCollectExpression.forFunction(ViewInfo::definition))
-            .put(Columns.CHECK_OPTION,
-                () -> NestableCollectExpression.forFunction(r -> CHECK_OPTION_NONE))
-            .put(Columns.IS_UPDATABLE,
-                () -> NestableCollectExpression.forFunction(r -> false))
-            .put(Columns.OWNER, () -> NestableCollectExpression.forFunction(ViewInfo::owner))
-            .build();
+    static Map<ColumnIdent, RowCollectExpressionFactory<ViewInfo>> expressions() {
+        return columnRegistrar().expressions();
     }
 
     InformationViewsTableInfo() {
-        super(
-            IDENT,
-            buildColumnRegistrar(),
-            ImmutableList.of(Columns.TABLE_CATALOG, Columns.TABLE_SCHEMA, Columns.TABLE_NAME)
+        super(IDENT, columnRegistrar(), "table_catalog", "table_name", "table_schema"
         );
     }
 }

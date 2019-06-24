@@ -22,7 +22,6 @@
 
 package io.crate.metadata.pgcatalog;
 
-import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.ColumnIdent;
@@ -36,7 +35,6 @@ import io.crate.metadata.table.StaticTableInfo;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterState;
 
-import java.util.Collections;
 import java.util.Map;
 
 import static io.crate.execution.engine.collect.NestableCollectExpression.constant;
@@ -45,34 +43,25 @@ public final class PgDescriptionTable extends StaticTableInfo {
 
     public static final RelationName NAME = new RelationName(PgCatalogSchemaInfo.NAME, "pg_description");
 
-    static class Columns {
-        private static final ColumnIdent OBJOID = new ColumnIdent("objoid");
-        private static final ColumnIdent CLASSOID = new ColumnIdent("classoid");
-        private static final ColumnIdent OBJSUBID = new ColumnIdent("objsubid");
-        private static final ColumnIdent DESCRIPTION = new ColumnIdent("description");
-    }
-
     PgDescriptionTable() {
-        super(NAME, new ColumnRegistrar(NAME, RowGranularity.DOC)
-            .register(Columns.OBJOID, DataTypes.INTEGER)
-            .register(Columns.CLASSOID, DataTypes.INTEGER)
-            .register(Columns.OBJSUBID, DataTypes.INTEGER)
-            .register(Columns.DESCRIPTION, DataTypes.STRING),
-            Collections.emptyList()
-        );
+        super(NAME, columnRegistrar());
     }
 
-    public static Map<ColumnIdent, RowCollectExpressionFactory<Void>> expressions() {
-        return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<Void>>builder()
-            .put(Columns.OBJOID, () -> constant(null))
-            .put(Columns.CLASSOID, () -> constant(null))
-            .put(Columns.OBJSUBID, () -> constant(null))
-            .put(Columns.DESCRIPTION, () -> constant(null))
-            .build();
+    private static ColumnRegistrar<Void> columnRegistrar() {
+        return new ColumnRegistrar<Void>(NAME, RowGranularity.DOC)
+            .register("objoid", DataTypes.INTEGER, () -> constant(null))
+            .register("classoid", DataTypes.INTEGER, () -> constant(null))
+            .register("objsubid", DataTypes.INTEGER, () -> constant(null))
+            .register("description", DataTypes.STRING , () -> constant(null));
+    }
+
+    static Map<ColumnIdent, RowCollectExpressionFactory<Void>> expressions() {
+        return columnRegistrar().expressions();
     }
 
     @Override
-    public Routing getRouting(ClusterState state, RoutingProvider routingProvider, WhereClause whereClause, RoutingProvider.ShardSelection shardSelection, SessionContext sessionContext) {
+    public Routing getRouting(ClusterState state, RoutingProvider routingProvider, WhereClause whereClause,
+                              RoutingProvider.ShardSelection shardSelection, SessionContext sessionContext) {
         return Routing.forTableOnSingleNode(NAME, state.getNodes().getLocalNodeId());
     }
 

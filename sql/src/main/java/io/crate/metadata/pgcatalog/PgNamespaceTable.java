@@ -22,10 +22,8 @@
 
 package io.crate.metadata.pgcatalog;
 
-import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
-import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
@@ -36,42 +34,35 @@ import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.StaticTableInfo;
 import io.crate.types.ArrayType;
-import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 import org.elasticsearch.cluster.ClusterState;
 
-import java.util.Collections;
 import java.util.Map;
-
+import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
+import static io.crate.execution.engine.collect.NestableCollectExpression.constant;
 import static io.crate.metadata.pgcatalog.OidHash.schemaOid;
+import static io.crate.types.DataTypes.STRING;
+import static io.crate.types.DataTypes.INTEGER;
 
 public class PgNamespaceTable extends StaticTableInfo {
 
     public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_namespace");
 
-    static class Columns {
-        static final ColumnIdent OID = new ColumnIdent("oid");
-        static final ColumnIdent NSPNAME = new ColumnIdent("nspname");
-        static final ColumnIdent NSPOWNER = new ColumnIdent("nspowner");
-        static final ColumnIdent NSPACL = new ColumnIdent("nspacl");
+    static Map<ColumnIdent, RowCollectExpressionFactory<SchemaInfo>> expressions() {
+        return columnRegistrar().expressions();
     }
 
-    public static Map<ColumnIdent, RowCollectExpressionFactory<SchemaInfo>> expressions() {
-        return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<SchemaInfo>>builder()
-            .put(Columns.OID, () -> NestableCollectExpression.forFunction(s -> schemaOid(s.name())))
-            .put(Columns.NSPNAME, () -> NestableCollectExpression.forFunction(SchemaInfo::name))
-            .put(Columns.NSPOWNER, () -> NestableCollectExpression.constant(0))
-            .put(Columns.NSPACL, () -> NestableCollectExpression.constant(null))
-            .build();
+    @SuppressWarnings({"unchecked"})
+    private static ColumnRegistrar<SchemaInfo> columnRegistrar() {
+        return new ColumnRegistrar<SchemaInfo>(IDENT, RowGranularity.DOC)
+            .register("oid", INTEGER, () -> forFunction(s -> schemaOid(s.name())))
+            .register("nspname", STRING, () -> forFunction(SchemaInfo::name))
+            .register("nspowner", INTEGER, () -> constant(0))
+            .register("nspacl", new ArrayType(ObjectType.untyped()), () -> constant(null));
     }
 
     PgNamespaceTable() {
-        super(IDENT, new ColumnRegistrar(IDENT, RowGranularity.DOC)
-                .register(Columns.OID.name(), DataTypes.INTEGER)
-                .register(Columns.NSPNAME.name(), DataTypes.STRING)
-                .register(Columns.NSPOWNER.name(), DataTypes.INTEGER)
-                .register(Columns.NSPACL.name(), new ArrayType(ObjectType.untyped())),
-            Collections.emptyList());
+        super(IDENT, columnRegistrar());
     }
 
     @Override

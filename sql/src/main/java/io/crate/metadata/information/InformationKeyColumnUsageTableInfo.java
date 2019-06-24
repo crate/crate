@@ -22,18 +22,19 @@
 
 package io.crate.metadata.information;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import io.crate.execution.engine.collect.sources.InformationSchemaIterables;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
-import io.crate.types.DataTypes;
+
+import java.util.Map;
 
 import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
 import static io.crate.execution.engine.collect.sources.InformationSchemaIterables.PK_SUFFIX;
+import static io.crate.types.DataTypes.STRING;
+import static io.crate.types.DataTypes.INTEGER;
 
 /**
  * Table which contains the primary keys of all user tables.
@@ -43,60 +44,23 @@ public class InformationKeyColumnUsageTableInfo extends InformationTableInfo {
     public static final String NAME = "key_column_usage";
     public static final RelationName IDENT = new RelationName(InformationSchemaInfo.NAME, NAME);
 
-    public static class Columns {
-        static final ColumnIdent CONSTRAINT_CATALOG = new ColumnIdent("constraint_catalog");
-        static final ColumnIdent CONSTRAINT_SCHEMA = new ColumnIdent("constraint_schema");
-        static final ColumnIdent CONSTRAINT_NAME = new ColumnIdent("constraint_name");
-        static final ColumnIdent TABLE_CATALOG = new ColumnIdent("table_catalog");
-        static final ColumnIdent TABLE_SCHEMA = new ColumnIdent("table_schema");
-        static final ColumnIdent TABLE_NAME = new ColumnIdent("table_name");
-        static final ColumnIdent COLUMN_NAME = new ColumnIdent("column_name");
-        static final ColumnIdent ORDINAL_POSITION = new ColumnIdent("ordinal_position");
+    private static ColumnRegistrar<InformationSchemaIterables.KeyColumnUsage> columnRegistrar() {
+        return new ColumnRegistrar<InformationSchemaIterables.KeyColumnUsage>(IDENT, RowGranularity.DOC)
+            .register("constraint_catalog", STRING, () -> forFunction(InformationSchemaIterables.KeyColumnUsage::getSchema))
+            .register("constraint_schema", STRING, () -> forFunction(InformationSchemaIterables.KeyColumnUsage::getSchema))
+            .register("constraint_name", STRING, () -> forFunction(k -> k.getTableName() + PK_SUFFIX))
+            .register("table_catalog", STRING, () -> forFunction(InformationSchemaIterables.KeyColumnUsage::getSchema))
+            .register("table_schema", STRING, () -> forFunction(InformationSchemaIterables.KeyColumnUsage::getSchema))
+            .register("table_name", STRING, () -> forFunction(InformationSchemaIterables.KeyColumnUsage::getTableName))
+            .register("column_name", STRING, () -> forFunction(InformationSchemaIterables.KeyColumnUsage::getPkColumnIdent))
+            .register("ordinal_position", INTEGER, () -> forFunction(InformationSchemaIterables.KeyColumnUsage::getOrdinal));
     }
 
-    private static ColumnRegistrar columnRegistrar() {
-        return new ColumnRegistrar(IDENT, RowGranularity.DOC)
-            .register(Columns.CONSTRAINT_CATALOG, DataTypes.STRING)
-            .register(Columns.CONSTRAINT_SCHEMA, DataTypes.STRING)
-            .register(Columns.CONSTRAINT_NAME, DataTypes.STRING)
-            .register(Columns.TABLE_CATALOG, DataTypes.STRING)
-            .register(Columns.TABLE_SCHEMA, DataTypes.STRING)
-            .register(Columns.TABLE_NAME, DataTypes.STRING)
-            .register(Columns.COLUMN_NAME, DataTypes.STRING)
-            .register(Columns.ORDINAL_POSITION, DataTypes.INTEGER);
-    }
-
-    public static ImmutableMap<ColumnIdent, RowCollectExpressionFactory<InformationSchemaIterables.KeyColumnUsage>> expressions() {
-        return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<InformationSchemaIterables.KeyColumnUsage>>builder()
-            .put(Columns.CONSTRAINT_CATALOG,
-                () -> forFunction(InformationSchemaIterables.KeyColumnUsage::getSchema))
-            .put(Columns.CONSTRAINT_SCHEMA,
-                () -> forFunction(InformationSchemaIterables.KeyColumnUsage::getSchema))
-            .put(Columns.CONSTRAINT_NAME,
-                () -> forFunction(k -> k.getTableName() + PK_SUFFIX))
-            .put(Columns.TABLE_CATALOG,
-                () -> forFunction(InformationSchemaIterables.KeyColumnUsage::getSchema))
-            .put(Columns.TABLE_SCHEMA,
-                () -> forFunction(InformationSchemaIterables.KeyColumnUsage::getSchema))
-            .put(Columns.TABLE_NAME,
-                () -> forFunction(InformationSchemaIterables.KeyColumnUsage::getTableName))
-            .put(Columns.COLUMN_NAME,
-                () -> forFunction(InformationSchemaIterables.KeyColumnUsage::getPkColumnIdent))
-            .put(Columns.ORDINAL_POSITION,
-                () -> forFunction(InformationSchemaIterables.KeyColumnUsage::getOrdinal))
-            .build();
+    static Map<ColumnIdent, RowCollectExpressionFactory<InformationSchemaIterables.KeyColumnUsage>> expressions() {
+        return columnRegistrar().expressions();
     }
 
     InformationKeyColumnUsageTableInfo() {
-        super(
-            IDENT,
-            columnRegistrar(),
-            ImmutableList.of(
-                Columns.CONSTRAINT_CATALOG,
-                Columns.CONSTRAINT_SCHEMA,
-                Columns.CONSTRAINT_NAME,
-                Columns.COLUMN_NAME
-            )
-        );
+        super(IDENT, columnRegistrar(), "constraint_catalog", "constraint_schema", "constraint_name", "column_name");
     }
 }

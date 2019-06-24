@@ -21,11 +21,8 @@
 
 package io.crate.metadata.sys;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
-import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.reference.sys.snapshot.SysSnapshot;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
@@ -35,14 +32,16 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
-import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterState;
+
+import java.util.Map;
+
+import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
 
 public class SysSnapshotsTableInfo extends StaticTableInfo {
 
     public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "snapshots");
-    private static final ImmutableList<ColumnIdent> PRIMARY_KEY = ImmutableList.of(Columns.NAME, Columns.REPOSITORY);
     private static final RowGranularity GRANULARITY = RowGranularity.DOC;
 
     public static class Columns {
@@ -55,36 +54,24 @@ public class SysSnapshotsTableInfo extends StaticTableInfo {
         static final ColumnIdent STATE = new ColumnIdent("state");
     }
 
-    public static ImmutableMap<ColumnIdent, RowCollectExpressionFactory<SysSnapshot>> expressions() {
-        return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<SysSnapshot>>builder()
-            .put(SysSnapshotsTableInfo.Columns.NAME,
-                () -> NestableCollectExpression.forFunction(SysSnapshot::name))
-            .put(SysSnapshotsTableInfo.Columns.REPOSITORY,
-                () -> NestableCollectExpression.forFunction(SysSnapshot::repository))
-            .put(SysSnapshotsTableInfo.Columns.CONCRETE_INDICES,
-                () -> NestableCollectExpression.forFunction((SysSnapshot s) -> s.concreteIndices().toArray(new String[0])))
-            .put(SysSnapshotsTableInfo.Columns.STARTED,
-                () -> NestableCollectExpression.forFunction(SysSnapshot::started))
-            .put(SysSnapshotsTableInfo.Columns.FINISHED,
-                () -> NestableCollectExpression.forFunction(SysSnapshot::finished))
-            .put(SysSnapshotsTableInfo.Columns.VERSION,
-                () -> NestableCollectExpression.forFunction(SysSnapshot::version))
-            .put(SysSnapshotsTableInfo.Columns.STATE,
-                () -> NestableCollectExpression.forFunction(SysSnapshot::state))
-            .build();
+    public static Map<ColumnIdent, RowCollectExpressionFactory<SysSnapshot>> expressions() {
+        return columnRegistrar().expressions();
     }
 
+    @SuppressWarnings({"unchecked"})
+    private static ColumnRegistrar<SysSnapshot> columnRegistrar() {
+        return new ColumnRegistrar<SysSnapshot>(IDENT, GRANULARITY)
+          .register("name", DataTypes.STRING, () -> forFunction(SysSnapshot::name))
+          .register(Columns.REPOSITORY, DataTypes.STRING, () -> forFunction(SysSnapshot::repository))
+          .register(Columns.CONCRETE_INDICES, DataTypes.STRING_ARRAY, () -> forFunction((SysSnapshot s) -> s.concreteIndices().toArray(new String[0])))
+          .register(Columns.STARTED, DataTypes.TIMESTAMPZ, () -> forFunction(SysSnapshot::started))
+          .register(Columns.FINISHED, DataTypes.TIMESTAMPZ, () -> forFunction(SysSnapshot::finished))
+          .register(Columns.VERSION, DataTypes.STRING, () -> forFunction(SysSnapshot::version))
+          .register(Columns.STATE, DataTypes.STRING, () -> forFunction(SysSnapshot::state));
+    }
 
     SysSnapshotsTableInfo() {
-        super(IDENT, new ColumnRegistrar(IDENT, GRANULARITY)
-                .register(Columns.NAME, DataTypes.STRING)
-                .register(Columns.REPOSITORY, DataTypes.STRING)
-                .register(Columns.CONCRETE_INDICES, new ArrayType(DataTypes.STRING))
-                .register(Columns.STARTED, DataTypes.TIMESTAMPZ)
-                .register(Columns.FINISHED, DataTypes.TIMESTAMPZ)
-                .register(Columns.VERSION, DataTypes.STRING)
-                .register(Columns.STATE, DataTypes.STRING),
-            PRIMARY_KEY);
+        super(IDENT, columnRegistrar(), "name","repository");
     }
 
     @Override
