@@ -61,7 +61,7 @@ result set.
 
 Example::
 
-   cr> select dept_id, count(*) OVER() from employees order by 1, 2;
+   cr> SELECT dept_id, COUNT(*) OVER() FROM employees ORDER BY 1, 2;
    +---------+------------------+
    | dept_id | count(*) OVER () |
    +---------+------------------+
@@ -93,7 +93,7 @@ the rows are considered a single partition.
 
 Example::
 
-   cr> select dept_id, row_number() OVER(PARTITION BY dept_id) from employees order by 1, 2;
+   cr> SELECT dept_id, ROW_NUMBER() OVER(PARTITION BY dept_id) FROM employees ORDER BY 1, 2;
    +---------+------------------------------------------+
    | dept_id | row_number() OVER (PARTITION BY dept_id) |
    +---------+------------------------------------------+
@@ -125,7 +125,12 @@ are the current row's ``peers``.
 
 Example::
 
-   cr> select dept_id, sex, count(*) OVER(PARTITION BY dept_id ORDER BY sex) from employees order by 1,2,3;
+   cr> SELECT
+   ...   dept_id,
+   ...   sex,
+   ...   COUNT(*) OVER(PARTITION BY dept_id ORDER BY sex)
+   ... FROM employees
+   ... ORDER BY 1, 2, 3
    +---------+-----+---------------------------------------------------------+
    | dept_id | sex | count(*) OVER (PARTITION BY dept_id ORDER BY "sex" ASC) |
    +---------+-----+---------------------------------------------------------+
@@ -172,7 +177,17 @@ the ``current row`` peers and end at the upper bound of the ``partition``.
 
 Example::
 
-   cr> select dept_id, sex, count(*) OVER(PARTITION BY dept_id ORDER BY sex RANGE BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING) partitionByDeptOrderBySex from employees order by 1,2,3;
+   cr> SELECT
+   ...   dept_id,
+   ...   sex,
+   ...   COUNT(*) OVER(
+   ...     PARTITION BY dept_id
+   ...     ORDER BY
+   ...       sex RANGE BETWEEN CURRENT ROW
+   ...       AND UNBOUNDED FOLLOWING
+   ...   ) partitionByDeptOrderBySex
+   ... FROM employees
+   ... ORDER BY 1, 2, 3
    +---------+-----+---------------------------+
    | dept_id | sex | partitionbydeptorderbysex |
    +---------+-----+---------------------------+
@@ -207,7 +222,7 @@ Returns the number of the current row within its window.
 
 Example::
 
-   cr> select col1, row_number() over(order by col1) from unnest(['x','y','z']);
+   cr> SELECT col1, ROW_NUMBER() OVER(ORDER BY col1) FROM unnest(['x','y','z']);
    +------+-----------------------------------------+
    | col1 | row_number() OVER (ORDER BY "col1" ASC) |
    +------+-----------------------------------------+
@@ -233,7 +248,7 @@ Its return type is the type of its argument.
 
 Example::
 
-   cr> select col1, first_value(col1) over(order by col1) from unnest(['x','y', 'y', 'z']);
+   cr> SELECT col1, FIRST_VALUE(col1) OVER(ORDER BY col1) FROM unnest(['x','y', 'y', 'z']);
    +------+----------------------------------------------+
    | col1 | first_value(col1) OVER (ORDER BY "col1" ASC) |
    +------+----------------------------------------------+
@@ -260,7 +275,7 @@ Its return type is the type of its argument.
 
 Example::
 
-   cr> select col1, last_value(col1) over(order by col1) from unnest(['x','y', 'y', 'z']);
+   cr> SELECT col1, LAST_VALUE(col1) OVER(ORDER BY col1) FROM unnest(['x','y', 'y', 'z']);
    +------+---------------------------------------------+
    | col1 | last_value(col1) OVER (ORDER BY "col1" ASC) |
    +------+---------------------------------------------+
@@ -288,7 +303,7 @@ Its return type is the type of its first argument.
 
 Example::
 
-   cr> select col1, nth_value(col1, 3) over(order by col1) from unnest(['x','y', 'y', 'z']);
+   cr> SELECT col1, NTH_VALUE(col1, 3) OVER(ORDER BY col1) FROM unnest(['x','y', 'y', 'z']);
    +------+-----------------------------------------------+
    | col1 | nth_value(col1, 3) OVER (ORDER BY "col1" ASC) |
    +------+-----------------------------------------------+
