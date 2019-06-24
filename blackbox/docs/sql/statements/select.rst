@@ -18,6 +18,7 @@ Synopsis
 ::
 
     SELECT [ ALL | DISTINCT ] * | expression [ [ AS ] output_name ] [, ...]
+      [ OVER (window_definition) [, ...] ]
       [ FROM relation ]
       [ WHERE condition ]
       [ GROUP BY expression [, ...] [HAVING condition] ]
@@ -99,6 +100,19 @@ names will be the same as the table columns' names.
 
 Clauses
 -------
+
+``OVER``
+........
+
+The ``OVER`` clause defines a window.
+
+::
+
+   OVER ( window_definition )
+
+The ``window_definition`` determines the partitioning and ordering of
+rows before the window function is applied. For detailed information,
+see :ref:`window-definition`.
 
 ``FROM``
 ........
