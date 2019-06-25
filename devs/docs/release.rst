@@ -59,7 +59,7 @@ Tagging a release
 
 Before creating a new distribution, a new version and tag should be created:
 
-- Update ``CURRENT`` in ``io.crate.Version``
+- Update ``CURRENT`` in ``org.elasticsearch.Version``
 
 - Prepare the release notes from the ``CHANGES.txt`` file
 

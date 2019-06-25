@@ -152,7 +152,7 @@ while getopts "vdhp:D:X:C:" opt; do
     case $opt in
         v)
             "$JAVA" $JAVA_OPTS $CRATE_JAVA_OPTS $es_parms -cp "$CRATE_CLASSPATH" $props \
-                    io.crate.Version
+                    org.elasticsearch.Version
             exit 0
         ;;
         p)
