@@ -34,7 +34,6 @@ import io.crate.metadata.TransactionContext;
 import io.crate.types.ObjectType;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
