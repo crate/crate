@@ -29,10 +29,7 @@ import io.crate.data.Row;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.pipeline.TopN;
-import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
-import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.FieldsVisitor;
-import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -170,7 +167,7 @@ public class Union extends TwoInputPlan {
 
     @Override
     public LogicalPlan tryOptimize(@Nullable LogicalPlan ancestor, SymbolMapper mapper) {
-        if (ancestor instanceof Order && orderDoesNotContainAnyLiteral((Order) ancestor)) {
+        if (ancestor instanceof Order) {
             SymbolMapper symbolMapper = (newOutputs, x) -> {
                 x = mapper.apply(outputs, x);
                 int idx = outputs.indexOf(x);
@@ -234,50 +231,5 @@ public class Union extends TwoInputPlan {
             return Merge.ensureOnHandler(plan, plannerContext);
         }
         return plan;
-    }
-
-    /**
-     * An order on a union always references to the position on each sub relations outputs.
-     * If one symbol is a literal, it must be applied after the union as each sub relation may return different literals.
-     * In such cases, the push down must be prevented.
-     * (Pushing down parts of the order by could be done but requires order symbols splitting)
-     *
-     * Example query:
-     *
-     *  SELECT * FROM (
-     *     SELECT 1 AS x, y FROM t1
-     *     UNION ALL
-     *     SELECT 2, z FROM t2
-     *  ) c
-     *  ORDER BY x
-     *
-     */
-    private static boolean orderDoesNotContainAnyLiteral(Order order) {
-        for (Symbol symbol : order.orderBy.orderBySymbols()) {
-            if (ContainsOrPointsToAnyLiteralSymbol.INSTANCE.process(symbol, null)) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    private static class ContainsOrPointsToAnyLiteralSymbol extends DefaultTraversalSymbolVisitor<Void, Boolean> {
-
-        private static final ContainsOrPointsToAnyLiteralSymbol INSTANCE = new ContainsOrPointsToAnyLiteralSymbol();
-
-        @Override
-        protected Boolean visitSymbol(Symbol symbol, Void context) {
-            return false;
-        }
-
-        @Override
-        public Boolean visitLiteral(Literal symbol, Void context) {
-            return true;
-        }
-
-        @Override
-        public Boolean visitField(Field field, Void context) {
-            return process(field.pointer(), context);
-        }
     }
 }
