@@ -79,70 +79,18 @@ public final class LpadFunction {
         @Override
         public String evaluate(TransactionContext txnCtx, Input[] args) {
             assert args.length >= 2 : "number of args must be 2 or 3";
-            String string1 = (String) args[0].value();
-
-            if (string1 == null) {
-                return string1;
+            if (args[0].value() == null) {
+                return null;
             }
-
-            String string2 = " "; // postgres.bki:1050
-
             if (args[1].value() == null) {
-                return string1;
+                return (String) args[0].value();
             }
 
-            int len = ((Number) args[1].value()).intValue();
-            if (args.length == 3) {
-                string2 = (String) args[2].value();
+            LpadRpadFunctionImplHelper helper = new LpadRpadFunctionImplHelper(args);
+            helper.pad();
+            helper.copyString();
 
-                if (string2 == null) {
-                    string2 = " "; // default to space if null
-                }
-            }
-
-            // Negative len is silently taken as zero
-            if (len < 0) {
-                len = 0;
-            }
-
-            int s1len = string1.length();
-
-            int s2len = string2.length();
-
-            if (s1len > len) {
-                s1len = len; /* truncate string1 to len chars */
-            }
-
-            if (s2len <= 0) {
-                len = s1len; /* nothing to pad with, so don't pad */
-            }
-
-            int bytelen = len; // TODO unicode
-
-            StringBuilder ret = new StringBuilder(bytelen);
-
-            int m = len - s1len;
-
-            int ptr2 = 0, ptr2start = 0;
-            int ptr2end = ptr2 + s2len;
-
-            while (m-- > 0) {
-                ret.append(string2.charAt(ptr2));
-                ptr2 += 1; // TODO unicode
-
-                if (ptr2 == ptr2end) {
-                    ptr2 = ptr2start;
-                }
-            }
-
-            int ptr1 = 0;
-
-            while (s1len-- > 0) {
-                ret.append(string1.charAt(ptr1));
-                ptr1 += 1; // TODO unicode
-            }
-
-            return ret.toString();
+            return helper.getRet().toString();
         }
     }
 
