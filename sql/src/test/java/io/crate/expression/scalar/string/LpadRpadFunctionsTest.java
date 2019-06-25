@@ -34,11 +34,32 @@ import static org.hamcrest.Matchers.not;
 public class LpadRpadFunctionsTest extends AbstractScalarFunctionsTest {
 
     @Test
-    public void tests() {
-        assertNormalize("lpad('hi', 5, 'xy')", isLiteral("xyhi"));
-        assertNormalize("lpad('hi', 5)", isLiteral("   hi"));
+    public void testCast() {
+        assertNormalize("lpad('hi', '5', 'xy')", isLiteral("xyxhi"));
+    }
+
+    @Test
+    public void test() {
+        assertNormalize("lpad('hi', 5, 'xy')", isLiteral("xyxhi"));
+    }
+
+    @Test
+    public void testNegativeLen() {
         assertNormalize("lpad('hi', -5, 'xy')", isLiteral(""));
+    }
+
+    @Test
+    public void testTruncate() {
         assertNormalize("lpad('hello', 2)", isLiteral("he"));
+    }
+
+    @Test
+    public void testFillSpaceByDefault() {
+        assertNormalize("lpad('hi', 5)", isLiteral("   hi"));
+    }
+
+    @Test
+    public void tests() {
         assertNormalize("lpad('hi', 5, '')", isLiteral("hi"));
     }
 }
