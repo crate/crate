@@ -163,6 +163,69 @@ public class UpdateSourceGenTest extends CrateDummyClusterServiceUnitTest {
         assertThat(updatedSource.utf8ToString(), is("{\"obj\":{\"y\":5},\"x\":4}"));
     }
 
+    @Test
+    public void testNestedGeneratedColumnIsGeneratedValidateValueIfGivenByUser() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("create table t (x long, obj object as (y as x + 1))")
+            .build();
+        AnalyzedUpdateStatement update = e.analyze("update t set x = 4, obj = {y=5}");
+        Assignments assignments = Assignments.convert(update.assignmentByTargetCol());
+        DocTableInfo table = (DocTableInfo) update.table().tableInfo();
+        UpdateSourceGen updateSourceGen = new UpdateSourceGen(
+            e.functions(),
+            txnCtx,
+            table,
+            assignments.targetNames()
+        );
+        BytesReference updatedSource = updateSourceGen.generateSource(
+            new Doc(
+                1,
+                table.concreteIndices()[0],
+                "1",
+                1,
+                1,
+                1,
+                emptyMap(),
+                () -> "{}"
+            ),
+            assignments.sources(),
+            new Object[0]
+        );
+        assertThat(updatedSource.utf8ToString(), is("{\"obj\":{\"y\":5},\"x\":4}"));
+    }
+
+    @Test
+    public void testNestedGeneratedColumnRaiseErrorIfGivenByUserDoesNotMatch() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("create table t (x long, obj object as (y as x + 1))")
+            .build();
+        AnalyzedUpdateStatement update = e.analyze("update t set x = 4, obj = {y=10}");
+        Assignments assignments = Assignments.convert(update.assignmentByTargetCol());
+        DocTableInfo table = (DocTableInfo) update.table().tableInfo();
+        UpdateSourceGen updateSourceGen = new UpdateSourceGen(
+            e.functions(),
+            txnCtx,
+            table,
+            assignments.targetNames()
+        );
+
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Given value 10 for generated column obj['y'] does not match calculation (x + 1) = 5");
+        updateSourceGen.generateSource(
+            new Doc(
+                1,
+                table.concreteIndices()[0],
+                "1",
+                1,
+                1,
+                1,
+                emptyMap(),
+                () -> "{}"
+            ),
+            assignments.sources(),
+            new Object[0]
+        );
+    }
 
     @Test
     public void testGeneratedColumnUsingFunctionDependingOnActiveTransaction() throws Exception {

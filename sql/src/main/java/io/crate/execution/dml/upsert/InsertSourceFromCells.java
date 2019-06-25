@@ -73,7 +73,6 @@ public final class InsertSourceFromCells implements InsertSourceGen {
                 txnCtx,
                 validation,
                 referenceResolver,
-                targets,
                 table.generatedColumns(),
                 table.defaultExpressionColumns()
             );

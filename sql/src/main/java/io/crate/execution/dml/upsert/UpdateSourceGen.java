@@ -103,7 +103,6 @@ final class UpdateSourceGen {
                 txnCtx,
                 GeneratedColumns.Validation.VALUE_MATCH,
                 refResolver,
-                this.updateColumns,
                 table.generatedColumns(),
                 List.of()
             );

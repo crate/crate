@@ -746,6 +746,21 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testUpdateWithNestedGeneratedColumnRaiseErrorIfGivenValueDoesNotMatch() {
+        execute("create table generated_column (" +
+                " id int primary key," +
+                " usr object as (name string as 'foo')" +
+                ") with (number_of_replicas=0)");
+        execute("insert into generated_column (id) values (?)", new Object[]{1});
+        refresh();
+
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("Given value bar for generated column usr['name'] does not match calculation 'foo' = foo");
+        execute("update generated_column set usr = ? where id = ?", new Object[]{
+            Map.of("name", "bar"), 1});
+    }
+
+    @Test
     public void testGeneratedColumnWithoutRefsToOtherColumnsComputedOnUpdate() {
         execute("create table generated_column (" +
                 " \"inserted\" TIMESTAMP WITH TIME ZONE GENERATED ALWAYS AS current_timestamp(3), " +

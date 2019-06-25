@@ -70,7 +70,6 @@ public final class GeneratedColumns<T> {
                             TransactionContext txnCtx,
                             Validation validation,
                             ReferenceResolver<CollectExpression<T, ?>> refResolver,
-                            Collection<Reference> presentColumns,
                             List<GeneratedReference> allGeneratedColumns,
                             List<Reference> allDefaultExpressionColumns) {
         this.validation = validation;
@@ -79,7 +78,6 @@ public final class GeneratedColumns<T> {
         nestedReferenceByTopLevelColumnName = new HashMap<>();
 
         for (Reference colWithDefault : allDefaultExpressionColumns) {
-            //processGeneratedExpressionColumn(colWithDefault, ctx.add(colWithDefault.defaultExpression()));
             toInject.put(colWithDefault, ctx.add(colWithDefault.defaultExpression()));
         }
 
