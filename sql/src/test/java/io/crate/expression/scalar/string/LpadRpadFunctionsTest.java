@@ -62,14 +62,18 @@ public class LpadRpadFunctionsTest extends AbstractScalarFunctionsTest {
     public void testsLpad() {
         assertNormalize("lpad('hi', 5, '')", isLiteral("hi"));
     }
-/*
+
+    @Test
+    public void testsRpadSpaceByDefault() {
+        assertNormalize("rpad('hi', 5)", isLiteral("hi   "));
+    }
+
     @Test
     public void testsRpad() {
         assertNormalize("rpad('hi', 5, 'xy')", isLiteral("hixyx"));
-        assertNormalize("rpad('hi', 5)", isLiteral("hi"));
         assertNormalize("rpad('hi', -5, 'xy')", isLiteral(""));
         assertNormalize("rpad('hello', 2)", isLiteral("he"));
         assertNormalize("rpad('hi', 5, '')", isLiteral("hi"));
     }
-*/
+
 }

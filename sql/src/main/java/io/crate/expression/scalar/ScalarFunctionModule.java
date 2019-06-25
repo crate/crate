@@ -58,6 +58,7 @@ import io.crate.expression.scalar.string.ReplaceFunction;
 import io.crate.expression.scalar.string.StringCaseFunction;
 import io.crate.expression.scalar.string.TrimFunctions;
 import io.crate.expression.scalar.string.LpadFunction;
+import io.crate.expression.scalar.string.RpadFunction;
 import io.crate.expression.scalar.systeminformation.CurrentSchemaFunction;
 import io.crate.expression.scalar.systeminformation.CurrentSchemasFunction;
 import io.crate.expression.scalar.systeminformation.PgGetExpr;
@@ -132,6 +133,7 @@ public class ScalarFunctionModule extends AbstractModule {
         InitCapFunction.register(this);
         TrimFunctions.register(this);
         LpadFunction.register(this);
+        RpadFunction.register(this);
 
         ConcatFunction.register(this);
 
