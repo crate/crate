@@ -64,6 +64,21 @@ public class LpadRpadFunctionsTest extends AbstractScalarFunctionsTest {
     }
 
     @Test
+    public void testLpadWithNullArgument1ResultsInNull() {
+        assertEvaluate("lpad(null, 5)", null);
+    }
+
+    @Test
+    public void testLpadWithNullArgument2ResultsInArgument1() {
+        assertNormalize("lpad('hi', null)", isLiteral("hi"));
+    }
+
+    @Test
+    public void testLpadWithNullArgument3DefaultsToFillSpace() {
+        assertNormalize("lpad('hi', '5', null)", isLiteral("   hi"));
+    }
+
+    @Test
     public void testsRpadSpaceByDefault() {
         assertNormalize("rpad('hi', 5)", isLiteral("hi   "));
     }
@@ -76,4 +91,18 @@ public class LpadRpadFunctionsTest extends AbstractScalarFunctionsTest {
         assertNormalize("rpad('hi', 5, '')", isLiteral("hi"));
     }
 
+    @Test
+    public void testRpadWithNullArgument1ResultsInNull() {
+        assertEvaluate("rpad(null, 5)", null);
+    }
+
+    @Test
+    public void testRpadWithNullArgument2ResultsInArgument1() {
+        assertNormalize("rpad('hi', null)", isLiteral("hi"));
+    }
+
+    @Test
+    public void testRpadWithNullArgument3DefaultsToFillSpace() {
+        assertNormalize("rpad('hi', '5', null)", isLiteral("hi   "));
+    }
 }

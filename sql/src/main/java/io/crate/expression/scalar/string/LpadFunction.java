@@ -80,10 +80,24 @@ public final class LpadFunction {
         public String evaluate(TransactionContext txnCtx, Input[] args) {
             assert args.length >= 2 : "number of args must be 2 or 3";
             String string1 = (String) args[0].value();
+
+            if (string1 == null) {
+                return string1;
+            }
+
             String string2 = " "; // postgres.bki:1050
+
+            if (args[1].value() == null) {
+                return string1;
+            }
+
             int len = ((Number) args[1].value()).intValue();
             if (args.length == 3) {
                 string2 = (String) args[2].value();
+
+                if (string2 == null) {
+                    string2 = " "; // default to space if null
+                }
             }
 
             // Negative len is silently taken as zero
