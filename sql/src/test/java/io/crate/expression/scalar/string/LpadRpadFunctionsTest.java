@@ -31,7 +31,7 @@ import org.junit.Test;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static org.hamcrest.Matchers.not;
 
-public class LpadFunctionTest extends AbstractScalarFunctionsTest {
+public class LpadRpadFunctionsTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void tests() {
