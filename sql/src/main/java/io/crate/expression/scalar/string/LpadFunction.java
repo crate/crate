@@ -76,18 +76,6 @@ public final class LpadFunction {
             return info;
         }
 
-        // /**
-        //  * Called to return a OPTIMIZED version of a scalar implementation.
-        //  *
-        //  * The returned instance will ONLY BE USED in the context of a single query
-        //  */
-        // @Override
-        // public Scalar<String, String> compile(List<Symbol> arguments) {
-        //     // assert arguments.size() == 3 : "number of args must be 3";
-
-        //     return this;
-        // }
-
         @Override
         public String evaluate(TransactionContext txnCtx, Input[] args) {
             assert args.length >= 2 : "number of args must be 2 or 3";
