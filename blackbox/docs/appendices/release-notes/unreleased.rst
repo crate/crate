@@ -273,6 +273,9 @@ Changes
 SQL Standard and PostgreSQL compatibility improvements
 ------------------------------------------------------
 
+- Added support for lpad/rpad functions. Example:
+  ``SELECT lpad('hi', '5', 'xy')``
+
 - Added support for using relation aliases with column aliases. Example:
   ``SELECT x, y from unnest([1], ['a']) as u(x, y)``
 

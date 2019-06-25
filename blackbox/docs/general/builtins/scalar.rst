@@ -356,6 +356,44 @@ The quoted string can be used as an identifier in an SQL statement.
    +----------------------------+
    SELECT 1 row in set (... sec)
 
+.. _scalar-lpad:
+
+``lpad(string, length [, fill])``
+---------------------
+
+Returns: ``text``
+
+Fill up the ``string`` to length ``length`` by prepending the characters ``fill`` (a space by default). If the ``string`` is already longer than ``length`` then it is truncated (on the right).
+
+::
+
+   cr> select lpad('hi', '5', 'xy');
+   +-----------------------+
+   | lpad('hi', '5', 'xy') |
+   +-----------------------+
+   | xyxhi                 |
+   +-----------------------+
+   SELECT 1 row in set (... sec)
+
+.. _scalar-rpad:
+
+``rpad(string, length [, fill])``
+---------------------
+
+Returns: ``text``
+
+Fill up the ``string`` to length ``length`` by appending the characters ``fill`` (a space by default). If the ``string`` is already longer than ``length`` then it is truncated.
+
+::
+
+   cr> select rpad('hi', 5, 'xy')
+   +-----------------------+
+   | rpad('hi', 5, 'xy')   |
+   +-----------------------+
+   | hixyx                 |
+   +-----------------------+
+   SELECT 1 row in set (... sec)
+
 Date and time functions
 =======================
 
