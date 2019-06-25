@@ -91,9 +91,10 @@ public final class GeneratedColumns<T> {
         toInject.put(reference, expressionInput);
         final ColumnIdent ident = reference.column();
         if (!ident.isTopLevel()) {
-            List<Reference> references = nestedReferenceByTopLevelColumnName.getOrDefault(
-                ident.name(),
-                new ArrayList<>());
+            List<Reference> references = nestedReferenceByTopLevelColumnName.get(ident.name());
+            if (references == null) {
+                references = new ArrayList<>();
+            }
             references.add(reference);
             nestedReferenceByTopLevelColumnName.put(ident.name(), references);
         }
@@ -126,12 +127,13 @@ public final class GeneratedColumns<T> {
             return;
         }
 
-        Input<?> input = toInject.get(target);
+        // remove the reference from the 'toInject' map
+        // iff a value is already present in user input
+        Input<?> input = toInject.remove(target);
         if (input != null) {
             if (validate && target instanceof GeneratedReference) {
                 validateValue(target, input.value(), providedValue);
             }
-            toInject.remove(target);
         }
 
         if (ObjectType.ID == target.valueType().id()) {

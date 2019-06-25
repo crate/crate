@@ -166,9 +166,9 @@ public class UpdateSourceGenTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testNestedGeneratedColumnIsGeneratedValidateValueIfGivenByUser() throws Exception {
         SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table t (x long, obj object as (y as x + 1))")
+            .addTable("create table t (x int, obj object as (y as 'foo'))")
             .build();
-        AnalyzedUpdateStatement update = e.analyze("update t set x = 4, obj = {y=5}");
+        AnalyzedUpdateStatement update = e.analyze("update t set x = 4, obj = {y='foo'}");
         Assignments assignments = Assignments.convert(update.assignmentByTargetCol());
         DocTableInfo table = (DocTableInfo) update.table().tableInfo();
         UpdateSourceGen updateSourceGen = new UpdateSourceGen(
@@ -191,15 +191,15 @@ public class UpdateSourceGenTest extends CrateDummyClusterServiceUnitTest {
             assignments.sources(),
             new Object[0]
         );
-        assertThat(updatedSource.utf8ToString(), is("{\"obj\":{\"y\":5},\"x\":4}"));
+        assertThat(updatedSource.utf8ToString(), is("{\"obj\":{\"y\":\"foo\"},\"x\":4}"));
     }
 
     @Test
     public void testNestedGeneratedColumnRaiseErrorIfGivenByUserDoesNotMatch() throws Exception {
         SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table t (x long, obj object as (y as x + 1))")
+            .addTable("create table t (x int, obj object as (y as 'foo'))")
             .build();
-        AnalyzedUpdateStatement update = e.analyze("update t set x = 4, obj = {y=10}");
+        AnalyzedUpdateStatement update = e.analyze("update t set x = 4, obj = {y='bar'}");
         Assignments assignments = Assignments.convert(update.assignmentByTargetCol());
         DocTableInfo table = (DocTableInfo) update.table().tableInfo();
         UpdateSourceGen updateSourceGen = new UpdateSourceGen(
@@ -210,7 +210,7 @@ public class UpdateSourceGenTest extends CrateDummyClusterServiceUnitTest {
         );
 
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Given value 10 for generated column obj['y'] does not match calculation (x + 1) = 5");
+        expectedException.expectMessage("Given value bar for generated column obj['y'] does not match calculation 'foo' = foo");
         updateSourceGen.generateSource(
             new Doc(
                 1,
