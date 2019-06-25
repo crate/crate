@@ -44,7 +44,7 @@ import java.util.HashSet;
 import java.util.List;
 
 
-public final class LpadRpadFunctions {
+public final class LpadFunction {
 
     private static final String NAME = "lpad";
 
@@ -56,18 +56,18 @@ public final class LpadRpadFunctions {
 
             @Override
             public FunctionImplementation getForTypes(List<DataType> datatypes) {
-                return new LpadFunction(
+                return new LpadFunctionImpl(
                     new FunctionInfo(new FunctionIdent(NAME, datatypes), StringType.INSTANCE)
                 );
             }
         });
     }
 
-    private static class LpadFunction extends Scalar<String, String> {
+    private static class LpadFunctionImpl extends Scalar<String, String> {
 
         private final FunctionInfo info;
 
-        LpadFunction(FunctionInfo info) {
+        LpadFunctionImpl(FunctionInfo info) {
             this.info = info;
         }
 

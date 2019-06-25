@@ -34,32 +34,42 @@ import static org.hamcrest.Matchers.not;
 public class LpadRpadFunctionsTest extends AbstractScalarFunctionsTest {
 
     @Test
-    public void testCast() {
+    public void testLpadCast() {
         assertNormalize("lpad('hi', '5', 'xy')", isLiteral("xyxhi"));
     }
 
     @Test
-    public void test() {
+    public void testLpad() {
         assertNormalize("lpad('hi', 5, 'xy')", isLiteral("xyxhi"));
     }
 
     @Test
-    public void testNegativeLen() {
+    public void testLpadNegativeLen() {
         assertNormalize("lpad('hi', -5, 'xy')", isLiteral(""));
     }
 
     @Test
-    public void testTruncate() {
+    public void testLpadTruncate() {
         assertNormalize("lpad('hello', 2)", isLiteral("he"));
     }
 
     @Test
-    public void testFillSpaceByDefault() {
+    public void testLpadFillSpaceByDefault() {
         assertNormalize("lpad('hi', 5)", isLiteral("   hi"));
     }
 
     @Test
-    public void tests() {
+    public void testsLpad() {
         assertNormalize("lpad('hi', 5, '')", isLiteral("hi"));
     }
+/*
+    @Test
+    public void testsRpad() {
+        assertNormalize("rpad('hi', 5, 'xy')", isLiteral("hixyx"));
+        assertNormalize("rpad('hi', 5)", isLiteral("hi"));
+        assertNormalize("rpad('hi', -5, 'xy')", isLiteral(""));
+        assertNormalize("rpad('hello', 2)", isLiteral("he"));
+        assertNormalize("rpad('hi', 5, '')", isLiteral("hi"));
+    }
+*/
 }
