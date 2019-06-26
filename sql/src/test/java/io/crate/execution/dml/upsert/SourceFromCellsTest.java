@@ -27,8 +27,8 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.common.collections.Maps;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Reference;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -43,6 +43,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static java.util.Collections.emptyList;
@@ -167,5 +168,42 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
         sourceFromCells.checkConstraints(input);
         BytesReference source = sourceFromCells.generateSource(input);
         assertThat(source.utf8ToString(), is("{\"x\":1,\"y\":\"cr8\"}"));
+    }
+
+    @Test
+    public void test_nested_generated_column_is_provided_and_matches_computed_value() throws IOException {
+        // obj object as (a int,
+        //                c as obj['a'] + 3),
+        // b as obj['a'] + 1
+        List<Reference> targets = List.of(obj);
+        InsertSourceFromCells sourceFromCells = new InsertSourceFromCells(
+            txnCtx, e.functions(), t2, "t2", GeneratedColumns.Validation.VALUE_MATCH, targets);
+        HashMap<String, Object> providedValueForObj = new HashMap<>();
+        providedValueForObj.put("a", 10);
+        providedValueForObj.put("c", 13);
+
+        BytesReference source = sourceFromCells.generateSource(new Object[]{providedValueForObj});
+
+        Map<String, Object> map = JsonXContent.jsonXContent.createParser(
+            NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, BytesReference.toBytes(source)).map();
+        assertThat(Maps.getByPath(map, "obj.a"), is(10));
+        assertThat(Maps.getByPath(map, "b"), is(11));
+        assertThat(Maps.getByPath(map, "obj.c"), is(13));
+    }
+
+    @Test
+    public void test_nested_generated_column_is_provided_and_does_not_match_computed_value() throws IOException {
+        // obj object as (a int,
+        //                c as obj['a'] + 3),
+        // b as obj['a'] + 1
+        List<Reference> targets = List.of(obj);
+        InsertSourceFromCells sourceFromCells = new InsertSourceFromCells(
+            txnCtx, e.functions(), t2, "t2", GeneratedColumns.Validation.VALUE_MATCH, targets);
+        HashMap<String, Object> providedValueForObj = new HashMap<>();
+        providedValueForObj.put("a", 10);
+        providedValueForObj.put("c", 14);
+
+        expectedException.expectMessage("Given value 14 for generated column obj['c'] does not match calculation (obj['a'] + 3) = 13");
+        sourceFromCells.generateSource(new Object[]{providedValueForObj});
     }
 }

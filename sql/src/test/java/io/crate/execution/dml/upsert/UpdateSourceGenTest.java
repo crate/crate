@@ -187,4 +187,68 @@ public class UpdateSourceGenTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(source.utf8ToString(), is("{\"gen\":\"dummySchema\",\"x\":1}"));
     }
+
+    @Test
+    public void testNestedGeneratedColumnRaiseErrorIfGivenByUserDoesNotMatch() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("create table t (x int, obj object as (y as 'foo'))")
+            .build();
+        AnalyzedUpdateStatement update = e.analyze("update t set x = 4, obj = {y='bar'}");
+        Assignments assignments = Assignments.convert(update.assignmentByTargetCol());
+        DocTableInfo table = (DocTableInfo) update.table().tableInfo();
+        UpdateSourceGen updateSourceGen = new UpdateSourceGen(
+            e.functions(),
+            txnCtx,
+            table,
+            assignments.targetNames()
+        );
+
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Given value bar for generated column obj['y'] does not match calculation 'foo' = foo");
+        updateSourceGen.generateSource(
+            new Doc(
+                1,
+                table.concreteIndices()[0],
+                "1",
+                1,
+                1,
+                1,
+                emptyMap(),
+                () -> "{}"
+            ),
+            assignments.sources(),
+            new Object[0]
+        );
+    }
+
+    @Test
+    public void testNestedGeneratedColumnIsGeneratedValidateValueIfGivenByUser() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("create table t (x int, obj object as (y as 'foo'))")
+            .build();
+        AnalyzedUpdateStatement update = e.analyze("update t set x = 4, obj = {y='foo'}");
+        Assignments assignments = Assignments.convert(update.assignmentByTargetCol());
+        DocTableInfo table = (DocTableInfo) update.table().tableInfo();
+        UpdateSourceGen updateSourceGen = new UpdateSourceGen(
+            e.functions(),
+            txnCtx,
+            table,
+            assignments.targetNames()
+        );
+        BytesReference updatedSource = updateSourceGen.generateSource(
+            new Doc(
+                1,
+                table.concreteIndices()[0],
+                "1",
+                1,
+                1,
+                1,
+                emptyMap(),
+                () -> "{}"
+            ),
+            assignments.sources(),
+            new Object[0]
+        );
+        assertThat(updatedSource.utf8ToString(), is("{\"obj\":{\"y\":\"foo\"},\"x\":4}"));
+    }
 }
