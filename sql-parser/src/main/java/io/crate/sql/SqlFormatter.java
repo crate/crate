@@ -40,8 +40,14 @@ import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.CreateUser;
 import io.crate.sql.tree.DecommissionNodeStatement;
 import io.crate.sql.tree.DenyPrivilege;
+import io.crate.sql.tree.DropAnalyzer;
+import io.crate.sql.tree.DropBlobTable;
+import io.crate.sql.tree.DropFunction;
 import io.crate.sql.tree.DropRepository;
+import io.crate.sql.tree.DropSnapshot;
+import io.crate.sql.tree.DropTable;
 import io.crate.sql.tree.DropUser;
+import io.crate.sql.tree.DropView;
 import io.crate.sql.tree.EscapedCharStringLiteral;
 import io.crate.sql.tree.Explain;
 import io.crate.sql.tree.Expression;
@@ -348,7 +354,7 @@ public final class SqlFormatter {
             if (node.excludePartitions()) {
                 builder.append("ONLY ");
             }
-            builder.append(quoteIdentifierIfNeeded(node.getName().toString()));
+            builder.append(formatQualifiedName(node.getName()));
             if (!node.partitionProperties().isEmpty()) {
                 builder.append(" PARTITION (");
                 for (Assignment assignment : node.partitionProperties()) {
@@ -396,19 +402,12 @@ public final class SqlFormatter {
             if (node.replace()) {
                 builder.append(" OR REPLACE");
             }
-            builder.append(" FUNCTION ")
-                .append(node.name())
-                .append(" (");
+            builder
+                .append(" FUNCTION ")
+                .append(node.name());
+            appendFlatNodeList(node.arguments(), indent);
 
-            List<FunctionArgument> arguments = node.arguments();
-            for (int i = 0; i < arguments.size(); i++) {
-                process(arguments.get(i), indent);
-                if (i < arguments.size() - 1) {
-                    builder.append(", ");
-                }
-            }
-
-            builder.append(")")
+            builder
                 .append(" RETURNS ")
                 .append(node.returnType()).append(" ")
                 .append(" LANGUAGE ").append(node.language().toString().replace("'", "")).append(" ")
@@ -720,7 +719,7 @@ public final class SqlFormatter {
         @Override
         public Void visitCreateSnapshot(CreateSnapshot node, Integer indent) {
             builder.append("CREATE SNAPSHOT ")
-                .append(quoteIdentifierIfNeeded(node.name().toString()));
+                .append(formatQualifiedName(node.name()));
             if (!node.tableList().isEmpty()) {
                 builder.append(" TABLE ");
                 int count = 0, max = node.tableList().size();
@@ -735,6 +734,63 @@ public final class SqlFormatter {
                 builder.append(' ');
                 node.properties().accept(this, indent);
             }
+            return null;
+        }
+
+        @Override
+        public Void visitDropTable(DropTable node, Integer indent) {
+            builder.append("DROP TABLE ");
+            if (node.dropIfExists()) {
+                builder.append("IF EXISTS ");
+            }
+            process(node.table(), indent);
+            return null;
+        }
+
+        @Override
+        public Void visitDropBlobTable(DropBlobTable node, Integer indent) {
+            builder.append("DROP BLOB TABLE ");
+            if (node.ignoreNonExistentTable()) {
+                builder.append("IF EXISTS ");
+            }
+            process(node.table(), indent);
+            return null;
+        }
+
+        @Override
+        public Void visitDropView(DropView node, Integer indent) {
+            builder.append("DROP VIEW ");
+            if (node.ifExists()) {
+                builder.append("IF EXISTS ");
+            }
+            builder.append(node.names().stream()
+                .map(Formatter::formatQualifiedName)
+                .collect(COMMA_JOINER));
+            return null;
+        }
+
+        @Override
+        public Void visitDropAnalyzer(DropAnalyzer node, Integer indent) {
+            builder.append("DROP ANALYZER ")
+                .append(quoteIdentifierIfNeeded(node.name()));
+            return null;
+        }
+
+        @Override
+        public Void visitDropFunction(DropFunction node, Integer indent) {
+            builder.append("DROP FUNCTION ");
+            if (node.exists()) {
+                builder.append("IF EXISTS ");
+            }
+            builder.append(formatQualifiedName(node.name()));
+            appendFlatNodeList(node.arguments(), indent);
+            return null;
+        }
+
+        @Override
+        public Void visitDropSnapshot(DropSnapshot node, Integer indent) {
+            builder.append("DROP REPOSITORY ")
+                .append(formatQualifiedName(node.name()));
             return null;
         }
 
@@ -787,7 +843,13 @@ public final class SqlFormatter {
             appendUsersList(node.userNames());
         }
 
-        private String quoteIdentifierIfNeeded(String identifier) {
+        private static String formatQualifiedName(QualifiedName name) {
+            return name.getParts().stream()
+                .map(Formatter::quoteIdentifierIfNeeded)
+                .collect(Collectors.joining("."));
+        }
+
+        private static String quoteIdentifierIfNeeded(String identifier) {
             return Arrays.stream(identifier.split("\\."))
                 .map(Identifiers::quote)
                 .collect(Collectors.joining("."));

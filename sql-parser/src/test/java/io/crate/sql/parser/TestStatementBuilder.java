@@ -38,7 +38,14 @@ import io.crate.sql.tree.CreateUser;
 import io.crate.sql.tree.DeallocateStatement;
 import io.crate.sql.tree.DefaultTraversalVisitor;
 import io.crate.sql.tree.DenyPrivilege;
+import io.crate.sql.tree.DropAnalyzer;
+import io.crate.sql.tree.DropBlobTable;
+import io.crate.sql.tree.DropFunction;
+import io.crate.sql.tree.DropRepository;
+import io.crate.sql.tree.DropSnapshot;
+import io.crate.sql.tree.DropTable;
 import io.crate.sql.tree.DropUser;
+import io.crate.sql.tree.DropView;
 import io.crate.sql.tree.EscapedCharStringLiteral;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.FunctionCall;
@@ -1494,10 +1501,17 @@ public class TestStatementBuilder {
             statement instanceof GCDanglingArtifacts ||
             statement instanceof CreateFunction ||
             statement instanceof CreateUser ||
-            statement instanceof DropUser ||
             statement instanceof GrantPrivilege ||
             statement instanceof DenyPrivilege ||
-            statement instanceof RevokePrivilege) {
+            statement instanceof RevokePrivilege ||
+            statement instanceof DropUser ||
+            statement instanceof DropAnalyzer ||
+            statement instanceof DropFunction ||
+            statement instanceof DropTable ||
+            statement instanceof DropBlobTable ||
+            statement instanceof DropView ||
+            statement instanceof DropRepository ||
+            statement instanceof DropSnapshot) {
             println(SqlFormatter.formatSql(statement));
             println("");
             assertFormattedSql(statement);
