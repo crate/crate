@@ -127,9 +127,9 @@ final class UpdateSourceGen {
             Object value = eval.process(updateAssignments[i], values).value();
             ColumnIdent column = ref.column();
             Maps.mergeInto(updatedSource, column.name(), column.path(), value);
-            generatedColumns.setNextRow(updatedDoc);
-            generatedColumns.validateValue(ref, value);
         }
+        generatedColumns.setNextRow(updatedDoc);
+        generatedColumns.validateValues(updatedSource);
         injectGeneratedColumns(updatedSource);
         checks.validate(updatedDoc);
         return BytesReference.bytes(XContentFactory.jsonBuilder().map(updatedSource));

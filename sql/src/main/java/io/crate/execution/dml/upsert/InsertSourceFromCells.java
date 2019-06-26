@@ -99,9 +99,9 @@ public final class InsertSourceFromCells implements InsertSourceGen {
             if (target.granularity() == RowGranularity.DOC) {
                 ColumnIdent column = target.column();
                 Maps.mergeInto(source, column.name(), column.path(), value);
-                generatedColumns.validateValue(target, value);
             }
         }
+        generatedColumns.validateValues(source);
         for (Map.Entry<Reference, Input<?>> entry : generatedColumns.toInject()) {
             ColumnIdent column = entry.getKey().column();
             Maps.mergeInto(source, column.name(), column.path(), entry.getValue().value());
