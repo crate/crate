@@ -23,8 +23,8 @@
 package io.crate.expression.scalar.string;
 
 public class StringPadding {
-    private final String string1;
-    private String string2;
+    private final String toPad;
+    private String fillerChars;
     private int len;
     private int s1len;
     private final int s2len;
@@ -33,12 +33,12 @@ public class StringPadding {
 
     public StringPadding(String string, Number length, String fill) {
 
-        string1 = string;
-        string2 = " "; // postgres.bki:1050
+        toPad = string;
+        fillerChars = " "; // postgres.bki:1050
         len = length.intValue();
-        string2 = fill;
-        if (string2 == null) {
-            string2 = " "; // default to space if null
+        fillerChars = fill;
+        if (fillerChars == null) {
+            fillerChars = " "; // default to space if null
         }
 
         // Negative len is silently taken as zero
@@ -46,12 +46,12 @@ public class StringPadding {
             len = 0;
         }
 
-        s1len = string1.length();
+        s1len = toPad.length();
 
-        s2len = string2.length();
+        s2len = fillerChars.length();
 
         if (s1len > len) {
-            s1len = len; /* truncate string1 to len chars */
+            s1len = len; /* truncate toPad to len chars */
         }
 
         if (s2len <= 0) {
@@ -69,7 +69,7 @@ public class StringPadding {
         int ptr1 = 0;
 
         while (s1len-- > 0) {
-            ret.append(string1.charAt(ptr1));
+            ret.append(toPad.charAt(ptr1));
             ptr1 += 1; // TODO unicode
         }
     }
@@ -79,7 +79,7 @@ public class StringPadding {
         int ptr2end = ptr2 + s2len;
 
         while (m-- > 0) {
-            ret.append(string2.charAt(ptr2));
+            ret.append(fillerChars.charAt(ptr2));
             ptr2 += 1; // TODO unicode
 
             if (ptr2 == ptr2end) {
