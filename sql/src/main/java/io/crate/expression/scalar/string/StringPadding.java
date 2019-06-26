@@ -22,16 +22,16 @@
 
 package io.crate.expression.scalar.string;
 
-public class LpadRpadFunctionImplHelper {
-    private String string1;
+public class StringPadding {
+    private final String string1;
     private String string2;
     private int len;
     private int s1len;
-    private int s2len;
-    private StringBuilder ret;
+    private final int s2len;
+    private final StringBuilder ret;
     private int m;
 
-    public LpadRpadFunctionImplHelper(String string, Number length, String fill) {
+    public StringPadding(String string, Number length, String fill) {
 
         string1 = string;
         string2 = " "; // postgres.bki:1050

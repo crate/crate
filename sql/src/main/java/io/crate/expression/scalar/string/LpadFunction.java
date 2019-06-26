@@ -85,7 +85,7 @@ public final class LpadFunction {
             if (args.length == 3) {
                 fill = (String) args[2].value();
             }
-            LpadRpadFunctionImplHelper helper = new LpadRpadFunctionImplHelper(string, length, fill);
+            StringPadding helper = new StringPadding(string, length, fill);
             helper.pad();
             helper.copyString();
 
