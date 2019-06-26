@@ -73,14 +73,19 @@ public final class LpadFunction {
         @Override
         public String evaluate(TransactionContext txnCtx, Input[] args) {
             assert args.length >= 2 : "number of args must be 2 or 3";
-            if (args[0].value() == null) {
+            String string = (String) args[0].value(); // evaluate once
+            Number length = (Number) args[1].value();
+            if (string == null) {
                 return null;
             }
-            if (args[1].value() == null) {
-                return (String) args[0].value();
+            if (length == null) {
+                return string;
             }
-
-            LpadRpadFunctionImplHelper helper = new LpadRpadFunctionImplHelper(args);
+            String fill = null;
+            if (args.length == 3) {
+                fill = (String) args[2].value();
+            }
+            LpadRpadFunctionImplHelper helper = new LpadRpadFunctionImplHelper(string, length, fill);
             helper.pad();
             helper.copyString();
 

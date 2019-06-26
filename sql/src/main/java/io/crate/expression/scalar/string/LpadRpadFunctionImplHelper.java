@@ -22,8 +22,6 @@
 
 package io.crate.expression.scalar.string;
 
-import io.crate.data.Input;
-
 public class LpadRpadFunctionImplHelper {
     private String string1;
     private String string2;
@@ -33,17 +31,14 @@ public class LpadRpadFunctionImplHelper {
     private StringBuilder ret;
     private int m;
 
-    public LpadRpadFunctionImplHelper(Input[] args) {
+    public LpadRpadFunctionImplHelper(String string, Number length, String fill) {
 
-        string1 = (String) args[0].value();
+        string1 = string;
         string2 = " "; // postgres.bki:1050
-        len = ((Number) args[1].value()).intValue();
-        if (args.length == 3) {
-            string2 = (String) args[2].value();
-
-            if (string2 == null) {
-                string2 = " "; // default to space if null
-            }
+        len = length.intValue();
+        string2 = fill;
+        if (string2 == null) {
+            string2 = " "; // default to space if null
         }
 
         // Negative len is silently taken as zero
