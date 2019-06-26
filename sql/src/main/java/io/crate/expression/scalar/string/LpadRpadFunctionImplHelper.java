@@ -32,7 +32,9 @@ public class LpadRpadFunctionImplHelper {
     private int s2len;
     private StringBuilder ret;
     private int m;
+
     public LpadRpadFunctionImplHelper(Input[] args) {
+
         string1 = (String) args[0].value();
         string2 = " "; // postgres.bki:1050
         len = ((Number) args[1].value()).intValue();
@@ -67,6 +69,7 @@ public class LpadRpadFunctionImplHelper {
 
         m = len - s1len;
     }
+
     public void copyString() {
         int ptr1 = 0;
 
@@ -90,5 +93,7 @@ public class LpadRpadFunctionImplHelper {
         }
     }
 
-    public StringBuilder getRet() { return ret; }
+    public StringBuilder getRet() {
+        return ret;
+    }
 }

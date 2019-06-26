@@ -22,12 +22,8 @@
 
 package io.crate.expression.scalar.string;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.primitives.Chars;
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
-import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.BaseFunctionResolver;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
@@ -37,10 +33,8 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.functions.params.Param;
 import io.crate.types.DataType;
-import io.crate.types.DataTypes;
 import io.crate.types.StringType;
 
-import java.util.HashSet;
 import java.util.List;
 
 
