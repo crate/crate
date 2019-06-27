@@ -46,6 +46,9 @@ None
 Fixes
 =====
 
+- Fixed an issue that led to DEFAULT constraints of inner columns of object
+  columns to be ignored.
+
 - The values provided in INSERT or UPDATE statements for object columns which
   contain generated expressions are now validated. The computed expression must
   match the provided value. This makes the behavior consistent with how top

@@ -25,17 +25,20 @@ package io.crate.execution.dml.upsert;
 import io.crate.analyze.QueriedTable;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.common.collections.Maps;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.table.TableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -69,6 +72,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table t2 (obj object as (a int, c as obj['a'] + 3), b as obj['a'] + 1)")
             .addPartitionedTable("create table t3 (p int not null) partitioned by (p)")
             .addTable("create table t4 (x int, y text default 'crate')")
+            .addTable("create table t5 (obj object as (x int default 0, y int))")
             .build();
         AnalyzedRelation relation = e.normalize("select x, y, z from t1");
         t1 = (DocTableInfo) ((QueriedTable) relation).tableRelation().tableInfo();
@@ -205,5 +209,41 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
 
         expectedException.expectMessage("Given value 14 for generated column obj['c'] does not match calculation (obj['a'] + 3) = 13");
         sourceFromCells.generateSource(new Object[]{providedValueForObj});
+    }
+
+    @Test
+    public void test_nested_default_is_injected() throws Exception {
+        // create table t5 (obj object as (x int default 0, y int))
+        DocTableInfo t5 = e.resolveTableInfo("t5");
+        Reference obj = t5.getReference(new ColumnIdent("obj"));
+        assertThat(obj, Matchers.notNullValue());
+        List<Reference> targets = List.of(obj);
+        InsertSourceFromCells sourceFromCells = new InsertSourceFromCells(
+            txnCtx, e.functions(), t5, "t4", GeneratedColumns.Validation.VALUE_MATCH, targets);
+        HashMap<String, Object> providedValueForObj = new HashMap<>();
+        providedValueForObj.put("y", 2);
+        BytesReference source = sourceFromCells.generateSource(new Object[]{providedValueForObj});
+        Map<String, Object> map = JsonXContent.jsonXContent.createParser(
+            NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, BytesReference.toBytes(source)).map();
+        assertThat(Maps.getByPath(map, "obj.x"), is(0));
+        assertThat(Maps.getByPath(map, "obj.y"), is(2));
+    }
+
+    @Test
+    public void test_nested_default_expr_does_not_override_provided_values() throws Exception {
+        // create table t5 (obj object as (x int default 0, y int))
+        DocTableInfo t5 = e.resolveTableInfo("t5");
+        Reference obj = t5.getReference(new ColumnIdent("obj"));
+        assertThat(obj, Matchers.notNullValue());
+        List<Reference> targets = List.of(obj);
+        InsertSourceFromCells sourceFromCells = new InsertSourceFromCells(
+            txnCtx, e.functions(), t5, "t4", GeneratedColumns.Validation.VALUE_MATCH, targets);
+        HashMap<String, Object> providedValueForObj = new HashMap<>();
+        providedValueForObj.put("x", 2);
+        BytesReference source = sourceFromCells.generateSource(new Object[]{providedValueForObj});
+
+        Map<String, Object> map = JsonXContent.jsonXContent.createParser(
+            NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, BytesReference.toBytes(source)).map();
+        assertThat(Maps.getByPath(map, "obj.x"), is(2));
     }
 }

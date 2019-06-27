@@ -194,7 +194,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         this.supportedOperations = supportedOperations;
         // scale the fetchrouting timeout by n# of partitions
         this.docColumn = new TableColumn(DocSysColumns.DOC, references);
-        this.defaultExpressionColumns = columns
+        this.defaultExpressionColumns = references.values()
             .stream()
             .filter(r -> r.defaultExpression() != null)
             .collect(Collectors.toList());

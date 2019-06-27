@@ -123,6 +123,11 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
                 "  owner text default 'crate'" +
                 ")")
             .addTable(
+                "create table doc.default_column_nested (" +
+                "  id int," +
+                "  obj object as (x int default 1, y int)" +
+                ")")
+            .addTable(
                 "create table doc.default_column_pk (" +
                 "  id int primary key," +
                 "  owner text default 'crate' primary key" +
@@ -1448,5 +1453,27 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
         InsertFromValuesAnalyzedStatement stmt1 = e.analyze("insert into three_pk (a, b, c) values (1, 2, 3)");
         InsertFromValuesAnalyzedStatement stmt2 = e.analyze("insert into three_pk (c, b, a) values (3, 2, 1)");
         assertThat(stmt1.ids().get(0), is(stmt2.ids().get(0)));
+    }
+
+    @Test
+    public void test_nested_default_column_is_generated_if_not_provided_by_user() {
+        InsertFromValuesAnalyzedStatement stmt = e.analyze(
+            "insert into default_column_nested (obj) values ({y=2})");
+
+        assertThat(stmt.columns, contains(isReference("obj")));
+
+        Object[] values = stmt.sourceMaps().get(0);
+        assertThat(values[0], is(Map.of("x", 1, "y", 2)));
+    }
+
+    @Test
+    public void test_nested_default_column_is_not_overridden_if_provided_by_user() {
+        InsertFromValuesAnalyzedStatement stmt = e.analyze(
+            "insert into default_column_nested (obj) values ({x=5, y=2})");
+
+        assertThat(stmt.columns, contains(isReference("obj")));
+
+        Object[] values = stmt.sourceMaps().get(0);
+        assertThat(values[0], is(Map.of("x", 5, "y", 2)));
     }
 }

@@ -765,7 +765,7 @@ public class SQLExecutor {
         return sessionContext;
     }
 
-    public <T> T resolveTableInfo(String tableName) {
+    public <T extends TableInfo> T resolveTableInfo(String tableName) {
         IndexParts indexParts = new IndexParts(tableName);
         QualifiedName qualifiedName = QualifiedName.of(indexParts.getSchema(), indexParts.getTable());
         return (T) schemas.resolveTableInfo(qualifiedName, Operation.READ, sessionContext.searchPath());

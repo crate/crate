@@ -136,7 +136,7 @@ final class UpdateSourceGen {
     }
 
     private void injectGeneratedColumns(HashMap<String, Object> updatedSource) {
-        for (Map.Entry<Reference, Input<?>> entry : generatedColumns.toInject()) {
+        for (Map.Entry<Reference, Input<?>> entry : generatedColumns.generatedToInject()) {
             ColumnIdent column = entry.getKey().column();
             Object value = entry.getValue().value();
             Maps.mergeInto(updatedSource, column.name(), column.path(), value);
