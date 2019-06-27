@@ -207,7 +207,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
 
                 @Override
                 public String pgUrl() {
-                    PostgresNetty postgresNetty = internalCluster().getDataNodeInstance(PostgresNetty.class);
+                    PostgresNetty postgresNetty = internalCluster().getInstance(PostgresNetty.class);
                     BoundTransportAddress boundTransportAddress = postgresNetty.boundAddress();
                     if (boundTransportAddress != null) {
                         InetSocketAddress address = boundTransportAddress.publishAddress().address();

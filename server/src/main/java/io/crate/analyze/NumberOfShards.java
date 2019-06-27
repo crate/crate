@@ -59,7 +59,7 @@ public class NumberOfShards {
 
     public int defaultNumberOfShards() {
         int numDataNodes = clusterService.state().nodes().getDataNodes().size();
-        assert numDataNodes > 0 : "number of data nodes cannot be less than 0";
+        assert numDataNodes >= 0 : "number of data nodes cannot be less than 0";
         return Math.max(MIN_NUM_SHARDS, numDataNodes * 2);
     }
 
