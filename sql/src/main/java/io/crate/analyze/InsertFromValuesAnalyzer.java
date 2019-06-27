@@ -33,6 +33,7 @@ import io.crate.common.collections.Maps;
 import io.crate.data.Input;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.execution.dml.upsert.TransportShardUpsertAction;
+import io.crate.expression.ValueExtractors;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Literal;
@@ -604,7 +605,24 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                                          Object value,
                                          Object[] insertValues,
                                          boolean isGeneratedExpression) {
-        int idx = context.columns().indexOf(reference);
+        int idx = -1;
+        for (int i = 0; i < context.columns.size(); i++) {
+            Reference column = context.columns.get(i);
+            if (column.equals(reference)) {
+                idx = i;
+                break;
+            }
+            if (!reference.column().isTopLevel() && column.column().equals(reference.column().getRoot())) {
+                // INSERT INTO (obj) VALUES ({x=1}) -> must merge into the map without `obj` prefix
+                ColumnIdent target = reference.column().shiftRight();
+                assert target != null : "Column that is not topLevel must not be null after shiftRight()";
+                Map insertValue = (Map) insertValues[i];
+                if (ValueExtractors.fromMap(insertValue, target) == null) {
+                    Maps.mergeInto(insertValue, target.name(), target.path(), value);
+                }
+                return insertValues;
+            }
+        }
         if (idx == -1) {
             // add column & value
             context.addColumnWithExpression(reference);

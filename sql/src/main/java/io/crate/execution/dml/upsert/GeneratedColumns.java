@@ -52,12 +52,14 @@ public final class GeneratedColumns<T> {
     }
 
     private final Map<Reference, Input<?>> toValidate;
-    private final Map<Reference, Input<?>> toInject;
+    private final Map<Reference, Input<?>> generatedToInject;
+    private final Map<Reference, Input<?>> defaultsToInject;
     private final List<CollectExpression<T, ?>> expressions;
 
     private GeneratedColumns() {
         toValidate = Collections.emptyMap();
-        toInject = Collections.emptyMap();
+        generatedToInject = Collections.emptyMap();
+        defaultsToInject = Collections.emptyMap();
         expressions = Collections.emptyList();
     }
 
@@ -69,15 +71,16 @@ public final class GeneratedColumns<T> {
                             List<GeneratedReference> allGeneratedColumns,
                             List<Reference> allDefaultExpressionColumns) {
         InputFactory.Context<CollectExpression<T, ?>> ctx = inputFactory.ctxForRefs(txnCtx, refResolver);
-        toInject = new HashMap<>();
+        defaultsToInject = new HashMap<>();
         for (Reference colWithDefault : allDefaultExpressionColumns) {
             if (!presentColumns.contains(colWithDefault)) {
-                toInject.put(colWithDefault, ctx.add(colWithDefault.defaultExpression()));
+                defaultsToInject.put(colWithDefault, ctx.add(colWithDefault.defaultExpression()));
             }
         }
+        generatedToInject = new HashMap<>();
         for (GeneratedReference generatedCol : allGeneratedColumns) {
             if (!presentColumns.contains(generatedCol)) {
-                toInject.put(generatedCol, ctx.add(generatedCol.generatedExpression()));
+                generatedToInject.put(generatedCol, ctx.add(generatedCol.generatedExpression()));
             }
         }
         if (validation == Validation.VALUE_MATCH) {
@@ -87,7 +90,7 @@ public final class GeneratedColumns<T> {
                 // For nested columns we can't be sure if the user provided them or not
                 // ((INSERT INTO t (obj) VALUES ({a=1}), ({a=2, b=2}))
                 // So we mark them as toValidate (and only validate them if actually provided)
-                if (generatedCol.column().isTopLevel() && toInject.containsKey(generatedCol)) {
+                if (generatedCol.column().isTopLevel() && generatedToInject.containsKey(generatedCol)) {
                     continue;
                 }
                 toValidate.put(generatedCol, ctx.add(generatedCol.generatedExpression()));
@@ -129,7 +132,11 @@ public final class GeneratedColumns<T> {
         }
     }
 
-    public Iterable<? extends Map.Entry<Reference, Input<?>>> toInject() {
-        return toInject.entrySet();
+    public Iterable<? extends Map.Entry<Reference, Input<?>>> generatedToInject() {
+        return generatedToInject.entrySet();
+    }
+
+    public Iterable<? extends Map.Entry<Reference, Input<?>>> defaultsToInject() {
+        return defaultsToInject.entrySet();
     }
 }

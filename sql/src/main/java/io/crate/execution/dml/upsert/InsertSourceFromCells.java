@@ -25,7 +25,6 @@ package io.crate.execution.dml.upsert;
 import io.crate.common.collections.Lists2;
 import io.crate.common.collections.Maps;
 import io.crate.data.ArrayRow;
-import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.InputCollectExpression;
@@ -34,11 +33,11 @@ import io.crate.expression.InputFactory;
 import io.crate.expression.ValueExtractors;
 import io.crate.expression.reference.ReferenceResolver;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -47,7 +46,6 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public final class InsertSourceFromCells implements InsertSourceGen {
 
@@ -102,9 +100,15 @@ public final class InsertSourceFromCells implements InsertSourceGen {
             }
         }
         generatedColumns.validateValues(source);
-        for (Map.Entry<Reference, Input<?>> entry : generatedColumns.toInject()) {
+        for (var entry : generatedColumns.generatedToInject()) {
             ColumnIdent column = entry.getKey().column();
             Maps.mergeInto(source, column.name(), column.path(), entry.getValue().value());
+        }
+        for (var entry : generatedColumns.defaultsToInject()) {
+            ColumnIdent column = entry.getKey().column();
+            if (column.isTopLevel() || ValueExtractors.fromMap(source, column) == null) {
+                Maps.mergeInto(source, column.name(), column.path(), entry.getValue().value());
+            }
         }
 
         return BytesReference.bytes(XContentFactory.jsonBuilder().map(source));
