@@ -38,10 +38,13 @@ Unreleased Changes
 .. contents::
    :local:
 
+
 Changes
 =======
 
-None
+- Changed the default for :ref:`sql_ref_write_wait_for_active_shards` from
+  ``ALL`` to ``1``.
+
 
 Fixes
 =====
