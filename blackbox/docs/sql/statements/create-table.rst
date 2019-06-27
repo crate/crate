@@ -329,9 +329,10 @@ The number of shard copies is defined like this::
     number_of_shard_copies = (1 + number_of_replicas)
 
 :value:
-  The number of active shard copies to wait for or ``all``. The default
-  value is set to ``all`` which will cause write operations to wait for
-  the primary and all replica shards to be active.
+  The number of active shard copies to wait for or ``all``. The default value
+  is set to ``1`` which means write operations will proceed as long as a
+  primary copy of a shard is active.
+
 
 .. _table-settings-blocks.read_only:
 

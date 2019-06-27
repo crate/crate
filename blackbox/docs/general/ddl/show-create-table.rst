@@ -52,7 +52,7 @@ already existing user-created doc tables in the cluster::
     |    "translog.sync_interval" = 5000,                 |
     |    "unassigned.node_left.delayed_timeout" = 60000,  |
     |    "warmer.enabled" = true,                         |
-    |    "write.wait_for_active_shards" = 'ALL'           |
+    |    "write.wait_for_active_shards" = '1'             |
     | )                                                   |
     +-----------------------------------------------------+
     SHOW 1 row in set (... sec)
