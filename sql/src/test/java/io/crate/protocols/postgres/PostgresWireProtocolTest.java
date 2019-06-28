@@ -32,7 +32,6 @@ import io.crate.auth.AuthenticationMethod;
 import io.crate.auth.user.AccessControl;
 import io.crate.auth.user.User;
 import io.crate.auth.user.UserManager;
-import io.crate.concurrent.CompletableFutures;
 import io.crate.exceptions.JobKilledException;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.planner.DependencyCarrier;
@@ -498,7 +497,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         if (failure != null) {
             when(session.sync()).thenAnswer(invocationOnMock -> {
                 Messages.sendErrorResponse(channel, failure);
-                return CompletableFutures.failedFuture(failure);
+                return CompletableFuture.failedFuture(failure);
             });
         } else {
             when(session.sync()).thenReturn(CompletableFuture.completedFuture(null));

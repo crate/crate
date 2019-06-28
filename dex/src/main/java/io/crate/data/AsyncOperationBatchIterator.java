@@ -23,13 +23,13 @@
 package io.crate.data;
 
 import com.google.common.collect.Iterators;
-import io.crate.concurrent.CompletableFutures;
 import io.crate.exceptions.Exceptions;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 /**
@@ -120,7 +120,7 @@ public class AsyncOperationBatchIterator<T> implements BatchIterator<T> {
     @Override
     public CompletionStage<?> loadNextBatch() {
         if (sourceExhausted) {
-            return CompletableFutures.failedFuture(new IllegalStateException("BatchIterator already fully loaded"));
+            return CompletableFuture.failedFuture(new IllegalStateException("BatchIterator already fully loaded"));
         }
         return uncheckedLoadNextBatch();
     }
@@ -153,7 +153,7 @@ public class AsyncOperationBatchIterator<T> implements BatchIterator<T> {
                 }
             }
         } catch (Throwable t) {
-            return CompletableFutures.failedFuture(t);
+            return CompletableFuture.failedFuture(t);
         }
         return null;
     }

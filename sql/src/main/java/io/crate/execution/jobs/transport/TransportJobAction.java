@@ -98,7 +98,7 @@ public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
             RootTask context = tasksService.createTask(contextBuilder);
             context.start();
         } catch (Throwable t) {
-            return CompletableFutures.failedFuture(t);
+            return CompletableFuture.failedFuture(t);
         }
 
         if (directResponseFutures.size() == 0) {

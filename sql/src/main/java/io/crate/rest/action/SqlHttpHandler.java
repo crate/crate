@@ -76,7 +76,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
 import static io.crate.action.sql.Session.UNNAMED;
-import static io.crate.concurrent.CompletableFutures.failedFuture;
 import static io.crate.protocols.http.Headers.isCloseConnection;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
@@ -194,12 +193,12 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         try {
             parseContext = SQLRequestParser.parseSource(Netty4Utils.toBytesReference(content));
         } catch (Throwable t) {
-            return failedFuture(t);
+            return CompletableFuture.failedFuture(t);
         }
         Object[] args = parseContext.args();
         Object[][] bulkArgs = parseContext.bulkArgs();
         if (bothProvided(args, bulkArgs)) {
-            return failedFuture(new SQLActionException(
+            return CompletableFuture.failedFuture(new SQLActionException(
                 "request body contains args and bulk_args. It's forbidden to provide both", 4000, HttpResponseStatus.BAD_REQUEST));
         }
         try {
@@ -209,7 +208,7 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
                 return executeBulkRequest(session, parseContext.stmt(), bulkArgs);
             }
         } catch (Throwable t) {
-            return failedFuture(t);
+            return CompletableFuture.failedFuture(t);
         }
     }
 
@@ -280,8 +279,8 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         if (results.length > 0) {
             DescribeResult describeResult = session.describe('P', UNNAMED);
             if (describeResult.getFields() != null) {
-                return failedFuture(new UnsupportedOperationException(
-                    "Bulk operations for statements that return result sets is not supported"));
+                return CompletableFuture.failedFuture(new UnsupportedOperationException(
+                            "Bulk operations for statements that return result sets is not supported"));
             }
         }
         return session.sync()

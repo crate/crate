@@ -45,7 +45,6 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import static io.crate.concurrent.CompletableFutures.failedFuture;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -76,7 +75,7 @@ public class BatchPagingIteratorTest {
             pagingIterator.merge(singletonList(new KeyIterable<>(0, rows)));
             return new BatchPagingIterator<>(
                 pagingIterator,
-                exhaustedIt -> failedFuture(new IllegalStateException("upstreams exhausted")),
+                exhaustedIt -> CompletableFuture.failedFuture(new IllegalStateException("upstreams exhausted")),
                 () -> true,
                 throwable -> {}
             );
@@ -132,7 +131,7 @@ public class BatchPagingIteratorTest {
         TestPagingIterator pagingIterator = new TestPagingIterator();
         BatchPagingIterator<Integer> iterator = new BatchPagingIterator<>(
             pagingIterator,
-            exhaustedIt -> failedFuture(new IllegalStateException("upstreams exhausted")),
+            exhaustedIt -> CompletableFuture.failedFuture(new IllegalStateException("upstreams exhausted")),
             () -> true,
             throwable -> {}
         );

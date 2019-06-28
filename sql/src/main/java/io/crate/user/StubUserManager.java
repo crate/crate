@@ -27,7 +27,6 @@ import io.crate.analyze.user.Privilege;
 import io.crate.auth.user.AccessControl;
 import io.crate.auth.user.User;
 import io.crate.auth.user.UserManager;
-import io.crate.concurrent.CompletableFutures;
 import io.crate.exceptions.UnsupportedFeatureException;
 
 import javax.annotation.Nullable;
@@ -38,30 +37,22 @@ public class StubUserManager implements UserManager {
 
     @Override
     public CompletableFuture<Long> createUser(String userName, @Nullable SecureHash hashedPw) {
-        return CompletableFutures.failedFuture(
-            new UnsupportedFeatureException("CREATE USER is only supported in enterprise version")
-        );
+        return CompletableFuture.failedFuture(new UnsupportedFeatureException("CREATE USER is only supported in enterprise version"));
     }
 
     @Override
     public CompletableFuture<Long> dropUser(String userName, boolean suppressNotFoundError) {
-        return CompletableFutures.failedFuture(
-            new UnsupportedFeatureException("DROP USER is only supported in enterprise version")
-        );
+        return CompletableFuture.failedFuture(new UnsupportedFeatureException("DROP USER is only supported in enterprise version"));
     }
 
     @Override
     public CompletableFuture<Long> alterUser(String userName, @Nullable SecureHash newHashedPw) {
-        return CompletableFutures.failedFuture(
-            new UnsupportedFeatureException("ALTER USER is only supported in enterprise version")
-        );
+        return CompletableFuture.failedFuture(new UnsupportedFeatureException("ALTER USER is only supported in enterprise version"));
     }
 
     @Override
     public CompletableFuture<Long> applyPrivileges(Collection<String> userNames, Collection<Privilege> privileges) {
-        return CompletableFutures.failedFuture(
-            new UnsupportedFeatureException("GRANT or REVOKE privileges is only supported in enterprise version")
-        );
+        return CompletableFuture.failedFuture(new UnsupportedFeatureException("GRANT or REVOKE privileges is only supported in enterprise version"));
     }
 
     @Nullable

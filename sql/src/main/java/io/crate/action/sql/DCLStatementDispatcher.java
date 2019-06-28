@@ -26,7 +26,6 @@ import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.AnalyzedStatementVisitor;
 import io.crate.analyze.PrivilegesAnalyzedStatement;
 import io.crate.auth.user.UserManager;
-import io.crate.concurrent.CompletableFutures;
 import io.crate.data.Row;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
@@ -61,8 +60,7 @@ public class DCLStatementDispatcher implements BiFunction<AnalyzedStatement, Row
 
         @Override
         protected CompletableFuture<Long> visitAnalyzedStatement(AnalyzedStatement analyzedStatement, UserManager userManager) {
-            return CompletableFutures.failedFuture(
-                new UnsupportedOperationException(String.format(Locale.ENGLISH, "Can't handle \"%s\"", analyzedStatement)));
+            return CompletableFuture.failedFuture(new UnsupportedOperationException(String.format(Locale.ENGLISH, "Can't handle \"%s\"", analyzedStatement)));
         }
 
         @Override

@@ -23,7 +23,6 @@
 package io.crate.cluster.decommission;
 
 import io.crate.cluster.gracefulstop.DecommissioningService;
-import io.crate.concurrent.CompletableFutures;
 import io.crate.execution.support.NodeAction;
 import io.crate.execution.support.NodeActionRequestHandler;
 import io.crate.execution.support.Transports;
@@ -77,7 +76,7 @@ public class TransportDecommissionNodeAction implements NodeAction<DecommissionN
         try {
             return decommissioningService.decommission().thenApply(aVoid -> new AcknowledgedResponse(true));
         } catch (Throwable t) {
-            return CompletableFutures.failedFuture(t);
+            return CompletableFuture.failedFuture(t);
         }
     }
 }
