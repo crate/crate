@@ -35,7 +35,6 @@ import io.crate.analyze.AlterTableOpenCloseAnalyzedStatement;
 import io.crate.analyze.AlterTableRenameAnalyzedStatement;
 import io.crate.analyze.TableParameter;
 import io.crate.analyze.TableParameterInfo;
-import io.crate.concurrent.CompletableFutures;
 import io.crate.concurrent.MultiBiConsumer;
 import io.crate.data.Row;
 import io.crate.execution.ddl.index.SwapAndDropIndexRequest;
@@ -423,7 +422,7 @@ public class AlterTableOperation {
         IndexTemplateMetaData indexTemplateMetaData =
             clusterService.state().metaData().templates().get(templateName);
         if (indexTemplateMetaData == null) {
-            return CompletableFutures.failedFuture(new RuntimeException("Template '" + templateName + "' for partitioned table is missing"));
+            return CompletableFuture.failedFuture(new RuntimeException("Template '" + templateName + "' for partitioned table is missing"));
         }
 
         PutIndexTemplateRequest request = preparePutIndexTemplateRequest(indexScopedSettings, indexTemplateMetaData,
@@ -505,7 +504,7 @@ public class AlterTableOperation {
             String index = indices[0];
             mapping = metaData.index(index).mapping(Constants.DEFAULT_MAPPING_TYPE).getSourceAsMap();
         } catch (ElasticsearchParseException e) {
-            return CompletableFutures.failedFuture(e);
+            return CompletableFuture.failedFuture(e);
         }
 
         FutureActionListener<AcknowledgedResponse, Long> listener = new FutureActionListener<>(r -> 0L);

@@ -44,7 +44,6 @@ import java.util.concurrent.Executor;
 import java.util.function.Function;
 import java.util.function.IntSupplier;
 
-import static io.crate.concurrent.CompletableFutures.failedFuture;
 import static java.util.Collections.singletonList;
 
 /**
@@ -108,7 +107,7 @@ public class OrderedLuceneBatchIteratorFactory {
 
         private CompletableFuture<List<KeyIterable<ShardId, Row>>> tryFetchMore(ShardId shardId) {
             if (allExhausted()) {
-                return failedFuture(new IllegalStateException("Cannot fetch more if source is exhausted"));
+                return CompletableFuture.failedFuture(new IllegalStateException("Cannot fetch more if source is exhausted"));
             }
             if (shardId == null) {
                 return ThreadPools.runWithAvailableThreads(
@@ -125,7 +124,7 @@ public class OrderedLuceneBatchIteratorFactory {
             try {
                 return CompletableFuture.completedFuture(singletonList(collector.get()));
             } catch (Exception e) {
-                return failedFuture(e);
+                return CompletableFuture.failedFuture(e);
             }
         }
 

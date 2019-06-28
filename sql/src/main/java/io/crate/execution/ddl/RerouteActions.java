@@ -52,8 +52,6 @@ import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
 
-import static io.crate.concurrent.CompletableFutures.failedFuture;
-
 public final class RerouteActions {
 
     private RerouteActions() {
@@ -69,7 +67,7 @@ public final class RerouteActions {
         try {
             request = prepareRequest(stmt, parameters);
         } catch (Throwable t) {
-            return failedFuture(t);
+            return CompletableFuture.failedFuture(t);
         }
         FutureActionListener<ClusterRerouteResponse, Long> listener =
             new FutureActionListener<>(r -> r.isAcknowledged() ? 1L : -1L);

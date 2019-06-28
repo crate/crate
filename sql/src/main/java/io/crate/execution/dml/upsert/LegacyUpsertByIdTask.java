@@ -67,7 +67,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static io.crate.concurrent.CompletableFutures.failedFuture;
 import static io.crate.data.SentinelRow.SENTINEL;
 
 public class LegacyUpsertByIdTask {
@@ -206,7 +205,7 @@ public class LegacyUpsertByIdTask {
         try {
             requestsByShard = groupRequests();
         } catch (Throwable t) {
-            return failedFuture(t);
+            return CompletableFuture.failedFuture(t);
         }
         final ShardResponse.CompressedResult compressedResult = new ShardResponse.CompressedResult();
         if (requestsByShard.isEmpty()) {

@@ -157,7 +157,7 @@ public final class CompositeBatchIterator {
                 }
                 return iterator.loadNextBatch();
             }
-            return CompletableFutures.failedFuture(new IllegalStateException("BatchIterator already fully loaded"));
+            return CompletableFuture.failedFuture(new IllegalStateException("BatchIterator already fully loaded"));
         }
     }
 
@@ -188,7 +188,7 @@ public final class CompositeBatchIterator {
         @Override
         public CompletionStage<?> loadNextBatch() {
             if (allLoaded()) {
-                return CompletableFutures.failedFuture(new IllegalStateException("BatchIterator already loaded"));
+                return CompletableFuture.failedFuture(new IllegalStateException("BatchIterator already loaded"));
             }
             int availableThreads = this.availableThreads.getAsInt();
             List<BatchIterator<T>> itToLoad = getIteratorsToLoad(iterators);

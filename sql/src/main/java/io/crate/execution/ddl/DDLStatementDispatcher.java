@@ -83,7 +83,6 @@ import static io.crate.analyze.OptimizeTableAnalyzer.FLUSH;
 import static io.crate.analyze.OptimizeTableAnalyzer.MAX_NUM_SEGMENTS;
 import static io.crate.analyze.OptimizeTableAnalyzer.ONLY_EXPUNGE_DELETES;
 import static io.crate.analyze.OptimizeTableAnalyzer.UPGRADE_SEGMENTS;
-import static io.crate.concurrent.CompletableFutures.failedFuture;
 
 /**
  * visitor that dispatches requests based on Analysis class to different actions.
@@ -274,7 +273,7 @@ public class DDLStatementDispatcher {
             try {
                 secureHash = UserActions.generateSecureHash(analysis.properties(), ctx.parameters, ctx.txnCtx, functions);
             } catch (GeneralSecurityException | IllegalArgumentException e) {
-                return failedFuture(e);
+                return CompletableFuture.failedFuture(e);
             }
             return userManager.createUser(analysis.userName(), secureHash);
         }
@@ -285,7 +284,7 @@ public class DDLStatementDispatcher {
             try {
                 newPassword = UserActions.generateSecureHash(analysis.properties(), ctx.parameters, ctx.txnCtx, functions);
             } catch (GeneralSecurityException | IllegalArgumentException e) {
-                return failedFuture(e);
+                return CompletableFuture.failedFuture(e);
             }
             return userManager.alterUser(analysis.userName(), newPassword);
         }

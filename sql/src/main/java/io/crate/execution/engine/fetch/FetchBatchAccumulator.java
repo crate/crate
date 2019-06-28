@@ -106,7 +106,7 @@ public class FetchBatchAccumulator implements BatchAccumulator<Row, Iterator<? e
             try {
                 futures.add(fetchOperation.fetch(nodeId, toFetch, isLastBatch));
             } catch (Throwable t) {
-                futures.add(CompletableFutures.failedFuture(t));
+                futures.add(CompletableFuture.failedFuture(t));
             }
             if (isLastBatch) {
                 it.remove();

@@ -40,7 +40,6 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import static io.crate.concurrent.CompletableFutures.failedFuture;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
@@ -187,7 +186,7 @@ public class BatchIteratorTester {
             return CompletableFuture.completedFuture(it.currentElement());
         }
         if (it.allLoaded()) {
-            return failedFuture(new IllegalStateException("Iterator is exhausted"));
+            return CompletableFuture.failedFuture(new IllegalStateException("Iterator is exhausted"));
         }
         return it.loadNextBatch()
             .thenCompose(r -> getFirstElementFuture(it))

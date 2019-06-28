@@ -34,8 +34,6 @@ import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import static io.crate.concurrent.CompletableFutures.failedFuture;
-
 /**
  * BatchIterator implementation that is backed by a {@link PagingIterator}.
  *
@@ -106,10 +104,10 @@ public class BatchPagingIterator<Key> implements BatchIterator<Row> {
     @Override
     public CompletionStage<?> loadNextBatch() {
         if (closed) {
-            return failedFuture(new IllegalStateException("BatchIterator already closed"));
+            return CompletableFuture.failedFuture(new IllegalStateException("BatchIterator already closed"));
         }
         if (allLoaded()) {
-            return failedFuture(new IllegalStateException("All data already loaded"));
+            return CompletableFuture.failedFuture(new IllegalStateException("All data already loaded"));
         }
         Throwable err;
         CompletableFuture<? extends Iterable<? extends KeyIterable<Key, Row>>> future;
@@ -118,7 +116,7 @@ public class BatchPagingIterator<Key> implements BatchIterator<Row> {
             if (err == null) {
                 currentlyLoading = future = fetchMore.apply(pagingIterator.exhaustedIterable());
             } else {
-                future = failedFuture(err);
+                future = CompletableFuture.failedFuture(err);
             }
         }
         if (err == null) {

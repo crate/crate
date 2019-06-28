@@ -80,7 +80,6 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import static io.crate.breaker.RamAccountingContext.roundUp;
-import static io.crate.concurrent.CompletableFutures.failedFuture;
 import static io.crate.execution.dsl.projection.Projections.shardProjections;
 import static io.crate.execution.engine.collect.LuceneShardCollectorProvider.getCollectorContext;
 
@@ -194,7 +193,7 @@ final class GroupByOptimizedIterator {
                             )
                         );
                     } catch (Throwable t) {
-                        return failedFuture(t);
+                        return CompletableFuture.failedFuture(t);
                     }
                 },
                 true

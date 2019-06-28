@@ -43,13 +43,6 @@ public class CompletableFuturesTest {
     public ExpectedException expectedException = ExpectedException.none();
 
     @Test
-    public void failedFutureIsCompletedExceptionally() {
-        Exception exception = new Exception("failed future");
-        CompletableFuture<Object> failedFuture = CompletableFutures.failedFuture(exception);
-        assertThat(failedFuture.isCompletedExceptionally(), is(true));
-    }
-
-    @Test
     public void testAllAsListFailurePropagation() throws Exception {
         CompletableFuture<Integer> f1 = new CompletableFuture<>();
         CompletableFuture<Integer> f2 = new CompletableFuture<>();

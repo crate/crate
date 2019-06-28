@@ -22,7 +22,6 @@
 
 package io.crate.execution.engine.collect.stats;
 
-import io.crate.concurrent.CompletableFutures;
 import io.crate.execution.support.NodeAction;
 import io.crate.execution.support.NodeActionRequestHandler;
 import io.crate.execution.support.Transports;
@@ -85,7 +84,7 @@ public class TransportNodeStatsAction implements NodeAction<NodeStatsRequest, No
             NodeStatsContext context = nodeContextFieldsResolver.forTopColumnIdents(request.columnIdents());
             return CompletableFuture.completedFuture(new NodeStatsResponse(context));
         } catch (Throwable t) {
-            return CompletableFutures.failedFuture(t);
+            return CompletableFuture.failedFuture(t);
         }
     }
 }

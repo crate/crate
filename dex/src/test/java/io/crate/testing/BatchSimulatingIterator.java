@@ -22,7 +22,6 @@
 
 package io.crate.testing;
 
-import io.crate.concurrent.CompletableFutures;
 import io.crate.data.BatchIterator;
 
 import javax.annotation.Nonnull;
@@ -117,13 +116,13 @@ public class BatchSimulatingIterator<T> implements BatchIterator<T> {
     @Override
     public CompletionStage<?> loadNextBatch() {
         if (!currentlyLoading.compareAndSet(false, true)) {
-            return CompletableFutures.failedFuture(new IllegalStateException("loadNextBatch call during load operation"));
+            return CompletableFuture.failedFuture(new IllegalStateException("loadNextBatch call during load operation"));
         }
         if (delegate.allLoaded()) {
             currentBatch++;
             if (currentBatch > numBatches) {
                 currentlyLoading.compareAndSet(true, false);
-                return CompletableFutures.failedFuture(new IllegalStateException("Iterator already fully loaded"));
+                return CompletableFuture.failedFuture(new IllegalStateException("Iterator already fully loaded"));
             }
             return CompletableFuture.runAsync(() -> {
                 try {

@@ -23,12 +23,12 @@
 package io.crate.data;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.crate.concurrent.CompletableFutures;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 /**
@@ -93,7 +93,7 @@ public class InMemoryBatchIterator<T> implements BatchIterator<T> {
 
     @Override
     public CompletionStage<?> loadNextBatch() {
-        return CompletableFutures.failedFuture(new IllegalStateException("All batches already loaded"));
+        return CompletableFuture.failedFuture(new IllegalStateException("All batches already loaded"));
     }
 
     @Override

@@ -22,8 +22,6 @@
 
 package io.crate.data;
 
-import io.crate.concurrent.CompletableFutures;
-
 import javax.annotation.Nonnull;
 import java.util.Collections;
 import java.util.Iterator;
@@ -151,7 +149,7 @@ public final class CollectingBatchIterator<T> implements BatchIterator<T> {
                 });
             return resultFuture;
         }
-        return CompletableFutures.failedFuture(new IllegalStateException("BatchIterator already loaded"));
+        return CompletableFuture.failedFuture(new IllegalStateException("BatchIterator already loaded"));
     }
 
     @Override

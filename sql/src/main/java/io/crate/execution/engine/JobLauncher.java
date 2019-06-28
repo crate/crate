@@ -176,7 +176,7 @@ public final class JobLauncher {
         try {
             setupTasks(txnCtx, operationByServer, handlerPhases, handlerConsumers);
         } catch (Throwable throwable) {
-            return Collections.singletonList(CompletableFutures.failedFuture(throwable));
+            return Collections.singletonList(CompletableFuture.failedFuture(throwable));
         }
         return results;
     }

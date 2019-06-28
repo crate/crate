@@ -24,7 +24,6 @@ package io.crate.execution.jobs;
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.cursors.IntCursor;
 import com.google.common.annotations.VisibleForTesting;
-import io.crate.concurrent.CompletableFutures;
 import io.crate.concurrent.CompletionListenable;
 import io.crate.exceptions.JobKilledException;
 import io.crate.exceptions.SQLExceptions;
@@ -295,7 +294,7 @@ public class RootTask implements CompletionListenable<Void> {
             // sanity check
             IllegalStateException stateException = new IllegalStateException(
                 String.format(Locale.ENGLISH, "Tried to finish profiling job [id=%s], but profiling is not enabled.", jobId));
-            return CompletableFutures.failedFuture(stateException);
+            return CompletableFuture.failedFuture(stateException);
         }
         assert profilingFuture != null : "profilingFuture must not be null";
         return profilingFuture.whenComplete((o, t) -> close());

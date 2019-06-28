@@ -47,8 +47,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.RejectedExecutionException;
 
-import static io.crate.concurrent.CompletableFutures.failedFuture;
-
 /**
  * A {@link PageBucketReceiver} which receives buckets from upstreams, wait to receive the page from all upstreams
  * and forwards the merged bucket results to the consumers for further processing. It then continues to receive
@@ -231,7 +229,7 @@ public class CumulativePageBucketReceiver implements PageBucketReceiver {
 
     private CompletableFuture<? extends Iterable<? extends KeyIterable<Integer, Row>>> fetchMore(Integer exhaustedBucket) {
         if (allUpstreamsExhausted()) {
-            return failedFuture(new IllegalStateException("Source is exhausted"));
+            return CompletableFuture.failedFuture(new IllegalStateException("Source is exhausted"));
         }
         currentPage = new CompletableFuture<>();
         if (exhaustedBucket == null || exhausted.contains(exhaustedBucket)) {

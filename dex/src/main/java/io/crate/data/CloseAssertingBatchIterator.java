@@ -22,10 +22,10 @@
 
 package io.crate.data;
 
-import io.crate.concurrent.CompletableFutures;
 import io.crate.exceptions.Exceptions;
 
 import javax.annotation.Nonnull;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 public class CloseAssertingBatchIterator<T> implements BatchIterator<T> {
@@ -64,7 +64,7 @@ public class CloseAssertingBatchIterator<T> implements BatchIterator<T> {
     @Override
     public CompletionStage<?> loadNextBatch() {
         if (closed) {
-            return CompletableFutures.failedFuture(new IllegalStateException("Iterator is closed"));
+            return CompletableFuture.failedFuture(new IllegalStateException("Iterator is closed"));
         }
         return delegate.loadNextBatch();
     }

@@ -36,16 +36,6 @@ public final class CompletableFutures {
     private CompletableFutures() {
     }
 
-    /**
-     * Creates a {@code CompletableFuture} which will throw the given exception on the invocations
-     * of get()
-     */
-    public static <T> CompletableFuture<T> failedFuture(Throwable t) {
-        CompletableFuture<T> future = new CompletableFuture<>();
-        future.completeExceptionally(t);
-        return future;
-    }
-
     public static <T> CompletableFuture<List<T>> allAsList(Collection<? extends CompletableFuture<? extends T>> futures) {
         return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
             .thenApply(aVoid -> {
@@ -63,7 +53,7 @@ public final class CompletableFutures {
         try {
             return CompletableFuture.supplyAsync(supplier, executor);
         } catch (Exception e) {
-            return failedFuture(e);
+            return CompletableFuture.failedFuture(e);
         }
     }
 

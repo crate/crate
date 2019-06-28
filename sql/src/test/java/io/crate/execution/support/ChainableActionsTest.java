@@ -22,7 +22,6 @@
 
 package io.crate.execution.support;
 
-import io.crate.concurrent.CompletableFutures;
 import io.crate.exceptions.MultiException;
 import io.crate.exceptions.SQLExceptions;
 import org.junit.Test;
@@ -121,7 +120,7 @@ public class ChainableActionsTest {
             numActions - 1,
             doCalls,
             undoCalls,
-            () -> CompletableFutures.failedFuture(new RuntimeException("do operation failed")),
+            () -> CompletableFuture.failedFuture(new RuntimeException("do operation failed")),
             () -> CompletableFuture.completedFuture(0)));
 
         CompletableFuture<Integer> result = ChainableActions.run(actions);
@@ -143,7 +142,7 @@ public class ChainableActionsTest {
             numActions - 1,
             doCalls,
             undoCalls,
-            () -> CompletableFutures.failedFuture(new RuntimeException("do operation failed")),
+            () -> CompletableFuture.failedFuture(new RuntimeException("do operation failed")),
             () -> CompletableFuture.completedFuture(0)));
 
         CompletableFuture<Integer> result = ChainableActions.run(actions);
@@ -169,7 +168,7 @@ public class ChainableActionsTest {
             numActions - 1,
             doCalls,
             undoCalls,
-            () -> CompletableFutures.failedFuture(new RuntimeException("do operation failed")),
+            () -> CompletableFuture.failedFuture(new RuntimeException("do operation failed")),
             () -> CompletableFuture.completedFuture(0)));
 
         for (int i = 0; i < numActions - 1; i++) {
@@ -214,14 +213,14 @@ public class ChainableActionsTest {
             doCalls,
             undoCalls,
             () -> CompletableFuture.completedFuture(0),
-            () -> CompletableFutures.failedFuture(new RuntimeException("the undo operation failed"))));
+            () -> CompletableFuture.failedFuture(new RuntimeException("the undo operation failed"))));
 
         // last one which will throw an error, undo() on all previous actions must be called in reverse order
         actions.add(new TrackedChainableAction(
             numActions - 1,
             doCalls,
             undoCalls,
-            () -> CompletableFutures.failedFuture(new RuntimeException("the do operation failed")),
+            () -> CompletableFuture.failedFuture(new RuntimeException("the do operation failed")),
             () -> CompletableFuture.completedFuture(0)));
 
         CompletableFuture<Integer> result = ChainableActions.run(actions);
@@ -257,7 +256,7 @@ public class ChainableActionsTest {
             0,
             doCalls,
             undoCalls,
-            () -> CompletableFutures.failedFuture(new RuntimeException("the first do operation failed")),
+            () -> CompletableFuture.failedFuture(new RuntimeException("the first do operation failed")),
             () -> CompletableFuture.completedFuture(0)));
 
         // 2nd one will throw an error on rollback
@@ -266,14 +265,14 @@ public class ChainableActionsTest {
             doCalls,
             undoCalls,
             () -> CompletableFuture.completedFuture(0),
-            () -> CompletableFutures.failedFuture(new RuntimeException("the undo operation failed"))));
+            () -> CompletableFuture.failedFuture(new RuntimeException("the undo operation failed"))));
 
         // last one which will throw an error, undo() on all previous actions must be called in reverse order
         actions.add(new TrackedChainableAction(
             2,
             doCalls,
             undoCalls,
-            () -> CompletableFutures.failedFuture(new RuntimeException("the do operation failed")),
+            () -> CompletableFuture.failedFuture(new RuntimeException("the do operation failed")),
             () -> CompletableFuture.completedFuture(0)));
 
         CompletableFuture<Integer> result = ChainableActions.run(actions);

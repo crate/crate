@@ -70,7 +70,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
-import static io.crate.concurrent.CompletableFutures.failedFuture;
 import static org.elasticsearch.index.mapper.MapperService.parseMapping;
 
 @Singleton
@@ -158,7 +157,7 @@ public class TransportSchemaUpdateAction extends TransportMasterNodeAction<Schem
                 return CompletableFuture.completedFuture(new SchemaUpdateResponse(true));
             }
         } catch (Exception e) {
-            return failedFuture(e);
+            return CompletableFuture.failedFuture(e);
         }
         clusterService.submitStateUpdateTask("update-template-mapping", new ClusterStateUpdateTask(Priority.HIGH) {
             @Override

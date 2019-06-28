@@ -23,7 +23,6 @@ package io.crate.execution.engine.collect.files;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
-import io.crate.concurrent.CompletableFutures;
 import io.crate.data.BatchIterator;
 import io.crate.data.CloseAssertingBatchIterator;
 import io.crate.data.Input;
@@ -261,7 +260,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
 
     @Override
     public CompletableFuture<?> loadNextBatch() {
-        return CompletableFutures.failedFuture(new IllegalStateException("All batches already loaded"));
+        return CompletableFuture.failedFuture(new IllegalStateException("All batches already loaded"));
     }
 
     @Override

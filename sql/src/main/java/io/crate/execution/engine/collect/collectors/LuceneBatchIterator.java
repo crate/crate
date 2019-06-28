@@ -24,7 +24,6 @@ package io.crate.execution.engine.collect.collectors;
 
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.concurrent.CompletableFutures;
 import io.crate.data.BatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Row;
@@ -49,6 +48,7 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 /**
@@ -185,9 +185,9 @@ public class LuceneBatchIterator implements BatchIterator<Row> {
     @Override
     public CompletionStage<?> loadNextBatch() {
         if (closed) {
-            return CompletableFutures.failedFuture(new IllegalStateException("BatchIterator is closed"));
+            return CompletableFuture.failedFuture(new IllegalStateException("BatchIterator is closed"));
         }
-        return CompletableFutures.failedFuture(new IllegalStateException("BatchIterator already fully loaded"));
+        return CompletableFuture.failedFuture(new IllegalStateException("BatchIterator already fully loaded"));
     }
 
     private Weight createWeight() throws IOException {

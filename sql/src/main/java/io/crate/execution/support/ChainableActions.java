@@ -23,7 +23,6 @@
 package io.crate.execution.support;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.concurrent.CompletableFutures;
 import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.MultiException;
 
@@ -87,7 +86,7 @@ public class ChainableActions {
             // Only undo the chain once
             if (result.undoDone) {
                 Exceptions.rethrowUnchecked(result.error);
-                return CompletableFutures.failedFuture(result.error);
+                return CompletableFuture.failedFuture(result.error);
             }
             int previousActionsSize = previousActions.size();
             assert previousActionsSize > 0 : "previous actions cannot be empty. " +
@@ -111,7 +110,7 @@ public class ChainableActions {
                 .handle(result::addResultAndError)
                 .thenCompose(r -> {
                     Exceptions.rethrowUnchecked(result.error);
-                    return CompletableFutures.failedFuture(result.error);
+                    return CompletableFuture.failedFuture(result.error);
                 });
         }
         return CompletableFuture.completedFuture(result.result);
