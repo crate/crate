@@ -314,6 +314,58 @@ Example::
    +------+-----------------------------------------------+
    SELECT 4 rows in set (... sec)
 
+.. _window-function-lag:
+
+``lag(arg [, offset [, default] ])``
+------------------------------------
+
+.. note::
+
+   The ``lag`` window function is an :ref:`enterprise feature
+   <enterprise-features>`.
+
+Synopsis
+........
+
+::
+
+   lag(argument any [, offset integer [, default any]])
+
+Returns the argument value evaluated at the row that precedes the current row
+by the offset within the partition. If there is no such row, the return value
+is ``default``. If ``offset`` or ``default`` arguments are missing, they
+default to ``1`` and ``null``, respectively.
+
+Both ``offset`` and ``default`` are evaluated with respect to the current row.
+
+If ``offset`` is ``0``, then argument value is evaluated for the current row.
+
+The ``default`` and ``argument`` data types must match.
+
+Example::
+
+   cr> SELECT
+   ...   dept_id,
+   ...   year,
+   ...   budget,
+   ...   LAG(budget) OVER(
+   ...      PARTITION BY dept_id ORDER BY year) prev_budget
+   ... FROM unnest(
+   ...   [1, 1, 2, 2, 2],
+   ...   [2017, 2018, 2017, 2018, 2019],
+   ...   [45000, 35000, 15000, 65000, 12000]
+   ... ) as t (dept_id, year, budget);
+   +---------+------+--------+-------------+
+   | dept_id | year | budget | prev_budget |
+   +---------+------+--------+-------------+
+   |       1 | 2017 |  45000 |        NULL |
+   |       1 | 2018 |  35000 |       45000 |
+   |       2 | 2017 |  15000 |        NULL |
+   |       2 | 2018 |  65000 |       15000 |
+   |       2 | 2019 |  12000 |       65000 |
+   +---------+------+--------+-------------+
+   SELECT 5 rows in set (... sec)
+
 Aggregate Window Functions
 ==========================
 

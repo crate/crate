@@ -42,9 +42,10 @@ Unreleased Changes
 Changes
 =======
 
+- Added support for the ``lag`` window function as enterprise features.
+
 - Changed the default for :ref:`sql_ref_write_wait_for_active_shards` from
   ``ALL`` to ``1``.
-
 
 Fixes
 =====

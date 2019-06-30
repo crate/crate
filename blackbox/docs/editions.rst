@@ -49,6 +49,7 @@ Enterprise features
   `HyperLoglog++`_ algorithm
 - :ref:`window-function-firstvalue`: ``first_value`` window function
 - :ref:`window-function-lastvalue`: ``last_value`` window function
+- :ref:`window-function-lag`: ``lag`` window function
 - :ref:`window-function-nthvalue`: ``nth_value`` window function
 - `The CrateDB admin UI`_: `shards browser`_, `monitoring overview`_,
   `privileges browser`_
