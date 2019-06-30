@@ -1885,9 +1885,25 @@ public class CoordinatorTests extends ESTestCase {
                         transportService));
                 final Collection<BiConsumer<DiscoveryNode, ClusterState>> onJoinValidators =
                     Collections.singletonList((dn, cs) -> extraJoinValidators.forEach(validator -> validator.accept(dn, cs)));
-                coordinator = new Coordinator("test_node", settings, clusterSettings, transportService, writableRegistry(),
-                    ESAllocationTestCase.createAllocationService(Settings.EMPTY, clusterSettings, random()), masterService, this::getPersistedState,
-                    Cluster.this::provideSeedHosts, clusterApplierService, onJoinValidators, Randomness.get(), s -> {});
+                coordinator = new Coordinator(
+                    "test_node",
+                    settings,
+                    clusterSettings,
+                    transportService,
+                    writableRegistry(),
+                    ESAllocationTestCase.createAllocationService(
+                        Settings.EMPTY,
+                        clusterSettings,
+                        random()
+                    ),
+                    masterService,
+                    this::getPersistedState,
+                    Cluster.this::provideSeedHosts,
+                    clusterApplierService,
+                    onJoinValidators,
+                    Randomness.get(),
+                    (s, listener) -> {}
+                );
                 masterService.setClusterStatePublisher(coordinator);
 
                 logger.trace("starting up [{}]", localNode);

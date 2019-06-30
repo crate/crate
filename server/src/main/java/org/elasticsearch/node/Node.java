@@ -303,7 +303,9 @@ public class Node implements Closeable {
                 settings,
                 clusterService::state,
                 clusterService.getClusterSettings(),
-                client);
+                client,
+                threadPool::relativeTimeInMillis
+            );
             final ClusterInfoService clusterInfoService = newClusterInfoService(
                 settings,
                 clusterService,
@@ -474,7 +476,8 @@ public class Node implements Closeable {
                 xContentRegistry, threadPool)
             );
 
-            final RoutingService routingService = new RoutingService(clusterService, clusterModule.getAllocationService());
+            final RoutingService routingService = new RoutingService(clusterService, clusterModule.getAllocationService()::reroute);
+            diskThresholdMonitor.setRerouteAction(routingService::reroute);
             final DiscoveryModule discoveryModule = new DiscoveryModule(
                 this.settings,
                 threadPool,

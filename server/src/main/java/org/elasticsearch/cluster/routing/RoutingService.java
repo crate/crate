@@ -19,19 +19,24 @@
 
 package org.elasticsearch.cluster.routing;
 
+import java.util.function.BiFunction;
+
+import javax.annotation.Nullable;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
+import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.support.PlainListenableActionFuture;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateUpdateTask;
-import org.elasticsearch.cluster.routing.allocation.AllocationService;
+import org.elasticsearch.cluster.NotMasterException;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
-
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * A {@link RoutingService} listens to clusters state. When this service
@@ -52,14 +57,17 @@ public class RoutingService extends AbstractLifecycleComponent {
     private static final String CLUSTER_UPDATE_TASK_SOURCE = "cluster_reroute";
 
     private final ClusterService clusterService;
-    private final AllocationService allocationService;
+    private final BiFunction<ClusterState, String, ClusterState> reroute;
 
-    private AtomicBoolean rerouting = new AtomicBoolean();
+    private final Object mutex = new Object();
+
+    @Nullable // null if no reroute is currently pending
+    private PlainListenableActionFuture<Void> pendingRerouteListeners;
 
     @Inject
-    public RoutingService(ClusterService clusterService, AllocationService allocationService) {
+    public RoutingService(ClusterService clusterService, BiFunction<ClusterState, String, ClusterState> reroute) {
         this.clusterService = clusterService;
-        this.allocationService = allocationService;
+        this.reroute = reroute;
     }
 
     @Override
@@ -77,49 +85,79 @@ public class RoutingService extends AbstractLifecycleComponent {
     /**
      * Initiates a reroute.
      */
-    public final void reroute(String reason) {
-        performReroute(reason);
-    }
-
-    // visible for testing
-    protected void performReroute(String reason) {
+    public final void reroute(String reason, ActionListener<Void> listener) {
+        if (lifecycle.started() == false) {
+            listener.onFailure(new IllegalStateException(
+                "rejecting delayed reroute [" + reason + "] in state [" + lifecycleState() + "]"));
+            return;
+        }
+        final PlainListenableActionFuture<Void> currentListeners;
+        synchronized (mutex) {
+            if (pendingRerouteListeners != null) {
+                LOGGER.trace("already has pending reroute, adding [{}] to batch", reason);
+                pendingRerouteListeners.addListener(listener);
+                return;
+            }
+            currentListeners = PlainListenableActionFuture.newListenableFuture();
+            currentListeners.addListener(listener);
+            pendingRerouteListeners = currentListeners;
+        }
+        LOGGER.trace("rerouting [{}]", reason);
         try {
-            if (lifecycle.stopped()) {
-                return;
-            }
-            if (rerouting.compareAndSet(false, true) == false) {
-                LOGGER.trace("already has pending reroute, ignoring {}", reason);
-                return;
-            }
-            LOGGER.trace("rerouting {}", reason);
-            clusterService.submitStateUpdateTask(CLUSTER_UPDATE_TASK_SOURCE + "(" + reason + ")", new ClusterStateUpdateTask(Priority.HIGH) {
-                @Override
-                public ClusterState execute(ClusterState currentState) {
-                    rerouting.set(false);
-                    return allocationService.reroute(currentState, reason);
-                }
+            clusterService.submitStateUpdateTask(CLUSTER_UPDATE_TASK_SOURCE + "(" + reason + ")",
+                new ClusterStateUpdateTask(Priority.HIGH) {
+                    @Override
+                    public ClusterState execute(ClusterState currentState) {
+                        synchronized (mutex) {
+                            assert pendingRerouteListeners == currentListeners;
+                            pendingRerouteListeners = null;
+                        }
+                        return reroute.apply(currentState, reason);
+                    }
 
-                @Override
-                public void onNoLongerMaster(String source) {
-                    rerouting.set(false);
-                    // no biggie
-                }
+                    @Override
+                    public void onNoLongerMaster(String source) {
+                        synchronized (mutex) {
+                            if (pendingRerouteListeners == currentListeners) {
+                                pendingRerouteListeners = null;
+                            }
+                        }
+                        currentListeners.onFailure(new NotMasterException("delayed reroute [" + reason + "] cancelled"));
+                        // no big deal, the new master will reroute again
+                    }
 
-                @Override
-                public void onFailure(String source, Exception e) {
-                    rerouting.set(false);
-                    ClusterState state = clusterService.state();
-                    if (LOGGER.isTraceEnabled()) {
-                        LOGGER.error(() -> new ParameterizedMessage("unexpected failure during [{}], current state:\n{}", source, state), e);
-                    } else {
-                        LOGGER.error(() -> new ParameterizedMessage("unexpected failure during [{}], current state version [{}]", source, state.version()), e);
+                    @Override
+                    public void onFailure(String source, Exception e) {
+                        synchronized (mutex) {
+                            if (pendingRerouteListeners == currentListeners) {
+                                pendingRerouteListeners = null;
+                            }
+                        }
+                        final ClusterState state = clusterService.state();
+                        if (LOGGER.isTraceEnabled()) {
+                            LOGGER.error(() -> new ParameterizedMessage("unexpected failure during [{}], current state:\n{}",
+                                source, state), e);
+                        } else {
+                            LOGGER.error(() -> new ParameterizedMessage("unexpected failure during [{}], current state version [{}]",
+                                source, state.version()), e);
+                        }
+                        currentListeners.onFailure(new ElasticsearchException("delayed reroute [" + reason + "] failed", e));
+                    }
+
+                    @Override
+                    public void clusterStateProcessed(String source, ClusterState oldState, ClusterState newState) {
+                        currentListeners.onResponse(null);
                     }
                 }
-            });
+            );
         } catch (Exception e) {
-            rerouting.set(false);
+            synchronized (mutex) {
+                assert pendingRerouteListeners == currentListeners;
+                pendingRerouteListeners = null;
+            }
             ClusterState state = clusterService.state();
             LOGGER.warn(() -> new ParameterizedMessage("failed to reroute routing table, current state:\n{}", state), e);
+            currentListeners.onFailure(new ElasticsearchException("delayed reroute [" + reason + "] could not be submitted", e));
         }
     }
 }
