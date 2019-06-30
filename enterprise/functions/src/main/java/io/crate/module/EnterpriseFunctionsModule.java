@@ -21,6 +21,7 @@ package io.crate.module;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.expression.AbstractFunctionModule;
 import io.crate.operation.aggregation.HyperLogLogDistinctAggregation;
+import io.crate.window.LagFunction;
 import io.crate.window.NthValueFunctions;
 
 public class EnterpriseFunctionsModule extends AbstractFunctionModule<AggregationFunction> {
@@ -29,5 +30,6 @@ public class EnterpriseFunctionsModule extends AbstractFunctionModule<Aggregatio
     public void configureFunctions() {
         HyperLogLogDistinctAggregation.register(this);
         NthValueFunctions.register(this);
+        LagFunction.register(this);
     }
 }
