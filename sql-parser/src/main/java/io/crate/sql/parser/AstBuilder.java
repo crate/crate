@@ -1431,6 +1431,20 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     }
 
     @Override
+    public Node visitLeft(SqlBaseParser.LeftContext context) {
+        Expression strOrColName = (Expression) visit(context.strOrColName);
+        Expression len = (Expression) visit(context.len);
+        return new FunctionCall(QualifiedName.of("left"), List.of(strOrColName, len));
+    }
+
+    @Override
+    public Node visitRight(SqlBaseParser.RightContext context) {
+        Expression strOrColName = (Expression) visit(context.strOrColName);
+        Expression len = (Expression) visit(context.len);
+        return new FunctionCall(QualifiedName.of("right"), List.of(strOrColName, len));
+    }
+
+    @Override
     public Node visitTrim(SqlBaseParser.TrimContext ctx) {
         Expression target = (Expression) visit(ctx.target);
 
