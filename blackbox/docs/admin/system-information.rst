@@ -1423,7 +1423,7 @@ Here's an example query::
   +----+--------------------------------------------------------------...-+
   |  1 | The setting 'discovery.zen.minimum_master_nodes' must not be ... |
   |  2 | The total number of partitions of one or more partitioned tab... |
-  |  3 | The following tables need to be upgraded for compatibility wi... |
+  |  3 | The following tables need to be recreated for compatibility w... |
   |  6 | Your CrateDB license is valid. Enjoy CrateDB!                    |
   +----+--------------------------------------------------------------...-+
   SELECT 4 rows in set (... sec)
@@ -1469,28 +1469,58 @@ This check warns if any :ref:`partitioned table <partitioned_tables>` has more
 than 1000 partitions to detect the usage of a high cardinality field for
 partitioning.
 
-Tables Need to Be Upgraded
-..........................
+Tables need to be recreated
+...........................
 
 .. WARNING::
 
-   Do not attempt to upgrade your cluster if this cluster check is failing.
-   Follow the instructions below to get this cluster check passing.
+   Do not attempt to upgrade your cluster to a newer major version if this
+   cluster check is failing. Follow the instructions below to get this cluster
+   check passing.
 
-This check warns you if there are tables that need to be upgraded for
-compatibility with future versions of CrateDB.
+This check warns you if there are tables that need to be recreated for
+compatibility with future major versions of CrateDB.
 
-For tables that need upgrading, use the :ref:`sql_ref_optimize` command to
-perform a :ref:`optimize_segments_upgrade`.
+If you try to upgrade to the next major version of CrateDB with tables that
+have not been recreated, CrateDB will refuse to start.
 
-For each table, run a command like so::
+To recreate a table, you have to create new tables, copy over the data and
+rename or remove the old table.
 
-  OPTIMIZE TABLE table_ident WITH (upgrade_segments=true);
+1) Use :ref:`ref-show-create-table` to get the schema required to create an
+empty copy of the table to recreate::
 
-Here, replace ``table_ident`` with the name of the table you are upgrading.
+    SHOW CREATE TABLE your_table;
 
-When all tables that needed upgrading have been upgraded, this cluster check
-should pass.
+2) Create a new temporary table, using the schema returned from
+:ref:`ref-show-create-table`::
+
+    CREATE TABLE tmp_your_table (...);
+
+3) Prevent inserts to the original table::
+
+    ALTER TABLE your_table SET ("blocks.read_only" = true);
+
+4) Copy the data::
+
+    INSERT INTO tmp_your_table (...) (SELECT ... FROM your_table);
+
+5) Swap the tables::
+
+    ALTER CLUSTER SWAP TABLE tmp_your_table TO your_table;
+
+6) Confirm the new ``your_table`` contains all data and has the new version::
+
+    SELECT count(*) FROM your_table;
+    SELECT version FROM information_schema.tables where table_name = 'your_table';
+
+7) Drop the now obsolete old table::
+
+    ALTER TABLE tmp_your_table SET ("blocks.read_only" = false);
+    DROP TABLE tmp_your_table;
+
+
+When all tables have been recreated, this cluster check will pass.
 
 .. NOTE::
 
@@ -1852,60 +1882,6 @@ For example, if the user ``john`` has any privilege on the ``doc.books`` table
 but no privilege at all on ``doc.locations``, when ``john`` issues a
 ``SELECT * FROM sys.shards`` statement, the shards information related to the
 ``doc.locations`` table will not be returned.
-
-Before Upgrading
-================
-
-In certain cases, for compatibility with future versions of CrateDB,
-you need to perform some actions before upgrading to a new CrateDB version.
-
-Tables Need to Be Recreated
----------------------------
-
-The following should be performed if there are tables
-that need to be recreated for compatibility with future versions of CrateDB.
-
-For tables that need recreating, use :ref:`ref-show-create-table` to get the
-SQL statement needed to restore the table, like so::
-
-  SHOW CREATE TABLE table_ident;
-
-Here, ``table_ident`` is the name of the table you want to recreate.
-
-Copy the output of this command, replace the ``table_ident`` with
-``table_ident_new``, and execute it to create a new table identical to the one
-you want to recreate.
-
-Make sure you stop inserting data to the original ``table_ident`` by
-executing::
-
-  ALTER TABLE table_ident SET ("blocks.read_only" = true);
-
-Copy the data from the original table to the new one by executing::
-
-  INSERT INTO table_ident_new (col1, col2, ...)
-     (SELECT col1, col2, ... FROM table_ident);
-
-Make sure that you include all columns and that the columns appear in the same
-order in both lists.
-
-Execute refresh on the new table like so::
-
-  REFRESH TABLE table_ident_new;
-
-Make sure table the new table and the old table have the same data.
-
-Drop the original table by executing::
-
-  ALTER TABLE table_ident SET ("blocks.read_only" = false);
-
-::
-
-  DROP TABLE table_ident;
-
-Rename the new table back to its original name::
-
-  ALTER TABLE table_ident_new RENAME TO table_ident;
 
 
 .. _configuration: ../configuration.html
