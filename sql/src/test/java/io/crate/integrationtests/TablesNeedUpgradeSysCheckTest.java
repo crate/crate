@@ -61,7 +61,8 @@ public class TablesNeedUpgradeSysCheckTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(4L));
         execute("select * from sys.checks where id = 3");
         assertThat(response.rowCount(), is(1L));
-        assertThat(response.rows()[0][0], is("The following tables need to be upgraded for compatibility with future versions of CrateDB: [] https://cr8.is/d-cluster-check-3"));
+        assertThat(response.rows()[0][0], is(
+            "The following tables need to be recreated for compatibility with future major versions of CrateDB: [] https://cr8.is/d-cluster-check-3"));
     }
 
     @Test
@@ -71,6 +72,8 @@ public class TablesNeedUpgradeSysCheckTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(4L));
         execute("select * from sys.checks where id = 3");
         assertThat(response.rowCount(), is(1L));
-        assertThat(response.rows()[0][0], is("The following tables need to be upgraded for compatibility with future versions of CrateDB: [x.demo] https://cr8.is/d-cluster-check-3"));
+        assertThat(response.rows()[0][0], is(
+            "The following tables need to be recreated for compatibility with " +
+            "future major versions of CrateDB: [x.demo] https://cr8.is/d-cluster-check-3"));
     }
 }
