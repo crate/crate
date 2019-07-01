@@ -36,20 +36,40 @@ import io.crate.types.DataType;
 import java.util.List;
 
 /**
- * The lag function returns the evaluated value at a row that
- * precedes the current row by offset within its partition.
+ * The offset functions return the evaluated value at a row that
+ * precedes or follows the current row by offset within its partition.
  * <p>
  * Synopsis:
- *      lag(argument any [, offset integer [, default any ] ])
+ *      lag/lead(argument any [, offset integer [, default any ] ])
  */
-public class LagFunction implements WindowFunction {
+public class OffsetValueFunctions implements WindowFunction {
 
-    private static final String NAME = "lag";
 
+    private enum OffsetDirection {
+        FORWARD {
+            @Override
+            int getTargetIndex(int idxInPartition, int offset) {
+                return idxInPartition + offset;
+            }
+        },
+        BACKWARD {
+            @Override
+            int getTargetIndex(int idxInPartition, int offset) {
+                return idxInPartition - offset;
+            }
+        };
+        abstract int getTargetIndex(int idxInPartition, int offset);
+    }
+
+    private static final String LAG_NAME = "lag";
+    private static final String LEAD_NAME = "lead";
+
+    private final OffsetDirection offsetDirection;
     private final FunctionInfo info;
 
-    private LagFunction(FunctionInfo info) {
+    private OffsetValueFunctions(FunctionInfo info, OffsetDirection offsetDirection) {
         this.info = info;
+        this.offsetDirection = offsetDirection;
     }
 
     @Override
@@ -75,7 +95,7 @@ public class LagFunction implements WindowFunction {
         }
 
         var lagRowCells = currentFrame
-            .getRowInPartitionAtIndexOrNull(idxInPartition - offset);
+            .getRowInPartitionAtIndexOrNull(offsetDirection.getTargetIndex(idxInPartition, offset));
         if (lagRowCells != null) {
             var lagRow = new RowN(lagRowCells);
             for (CollectExpression<Row, ?> expression : expressions) {
@@ -97,7 +117,7 @@ public class LagFunction implements WindowFunction {
     }
 
     public static void register(EnterpriseFunctionsModule module) {
-        module.register(NAME, new BaseFunctionResolver(
+        module.register(LEAD_NAME, new BaseFunctionResolver(
             FuncParams.builder(Param.ANY)
                 .withVarArgs(Param.INTEGER)
                 .withVarArgs(Param.ANY)
@@ -105,11 +125,30 @@ public class LagFunction implements WindowFunction {
 
             @Override
             public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-                return new LagFunction(
+                return new OffsetValueFunctions(
                     new FunctionInfo(
-                        new FunctionIdent(NAME, dataTypes),
+                        new FunctionIdent(LEAD_NAME, dataTypes),
                         dataTypes.get(0),
-                        FunctionInfo.Type.WINDOW)
+                        FunctionInfo.Type.WINDOW),
+                    OffsetDirection.FORWARD
+                );
+            }
+        });
+
+        module.register(LAG_NAME, new BaseFunctionResolver(
+            FuncParams.builder(Param.ANY)
+                .withVarArgs(Param.INTEGER)
+                .withVarArgs(Param.ANY)
+                .build()) {
+
+            @Override
+            public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
+                return new OffsetValueFunctions(
+                    new FunctionInfo(
+                        new FunctionIdent(LAG_NAME, dataTypes),
+                        dataTypes.get(0),
+                        FunctionInfo.Type.WINDOW),
+                    OffsetDirection.BACKWARD
                 );
             }
         });
