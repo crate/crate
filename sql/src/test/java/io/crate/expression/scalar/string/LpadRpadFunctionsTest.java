@@ -55,7 +55,7 @@ public class LpadRpadFunctionsTest extends AbstractScalarFunctionsTest {
     }
 
     @Test
-    public void testsLpad() {
+    public void testLpadEmptyFill() {
         assertNormalize("lpad('hi', 5, '')", isLiteral("hi"));
     }
 

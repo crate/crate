@@ -35,6 +35,7 @@ import io.crate.metadata.functions.params.Param;
 import io.crate.types.DataType;
 import io.crate.types.StringType;
 
+import java.util.Collections;
 import java.util.List;
 
 
@@ -73,23 +74,49 @@ public final class RpadFunction {
         @Override
         public String evaluate(TransactionContext txnCtx, Input[] args) {
             assert args.length >= 2 : "number of args must be 2 or 3";
-            String string = (String) args[0].value(); // evaluate once
+            String toPad = (String) args[0].value(); // evaluate once
             Number length = (Number) args[1].value();
-            if (string == null) {
+            if (toPad == null) {
                 return null;
             }
             if (length == null) {
-                return string;
+                return toPad;
             }
-            String fill = null;
+            String filler = null;
             if (args.length == 3) {
-                fill = (String) args[2].value();
+                filler = (String) args[2].value();
             }
-            StringPadding helper = new StringPadding(string, length, fill);
-            helper.copyString();
-            helper.pad();
 
-            return helper.getRet().toString();
+            int len = length.intValue();
+            final String fillerChars = (filler == null) ? " " : filler;
+            int fillerLen = fillerChars.length();
+
+            // Negative len is silently taken as zero
+            if (len < 0) {
+                return "";
+            }
+
+            if (toPad.length() > len) {
+                return toPad.substring(0, len); /* truncate toPad to len chars */
+            }
+
+            if (fillerLen <= 0) {
+                return toPad; /* nothing to pad with, so don't pad */
+            }
+
+            int toPadLen = len - toPad.length();
+
+            StringBuilder ret = new StringBuilder(len);
+
+            ret.append(toPad);
+
+            Collections.nCopies(toPadLen / fillerLen, fillerLen)
+                .forEach(n -> ret.append(fillerChars));
+
+            // rest
+            ret.append(fillerChars.substring(0, toPadLen % fillerLen));
+
+            return ret.toString();
         }
     }
 
