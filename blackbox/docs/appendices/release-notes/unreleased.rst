@@ -46,6 +46,10 @@ None
 Fixes
 =====
 
+- Fixed the tables compatibility check to correctly indicate when tables need
+  to be recreated in preparation for a CrateDB upgrade towards the next major
+  version of CrateDB.
+
 - Fixed an issue that led to DEFAULT constraints of inner columns of object
   columns to be ignored.
 

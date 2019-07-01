@@ -46,7 +46,7 @@ public class SysCheckerIntegrationTest extends SQLTransportIntegrationTest {
         SQLResponse response = execute("select severity, passed from sys.checks order by id asc");
         assertThat(response.rowCount(), equalTo(2L));
         assertThat(response.rows()[0][0], is(Severity.MEDIUM.value()));
-        assertThat(response.rows()[1][0], is(Severity.MEDIUM.value()));
+        assertThat(response.rows()[1][0], is(Severity.LOW.value()));
     }
 
     @Test
