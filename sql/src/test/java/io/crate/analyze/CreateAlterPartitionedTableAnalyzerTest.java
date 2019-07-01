@@ -350,11 +350,13 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
 
     @Test
     public void testAlterTableWithWaitForActiveShards() {
-        AlterTableAnalyzedStatement analyzedStatement = e.analyze("ALTER TABLE parted " +
-                                                                  "SET (\"write.wait_for_active_shards\"=1)");
-        assertThat(analyzedStatement.tableParameter().settings().get(TableParameterInfo.SETTING_WAIT_FOR_ACTIVE_SHARDS.getKey()), is("1"));
+        AlterTableAnalyzedStatement analyzedStatement = e.analyze(
+            "ALTER TABLE parted SET (\"write.wait_for_active_shards\"= 'ALL')");
+        assertThat(analyzedStatement.tableParameter().settings().get(TableParameterInfo.SETTING_WAIT_FOR_ACTIVE_SHARDS.getKey()),
+            is("ALL"));
 
         analyzedStatement = e.analyze("ALTER TABLE parted RESET (\"write.wait_for_active_shards\")");
-        assertThat(analyzedStatement.tableParameter().settings().get(TableParameterInfo.SETTING_WAIT_FOR_ACTIVE_SHARDS.getKey()), is("ALL"));
+        assertThat(analyzedStatement.tableParameter().settings().get(TableParameterInfo.SETTING_WAIT_FOR_ACTIVE_SHARDS.getKey()),
+            is("1"));
     }
 }

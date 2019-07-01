@@ -26,19 +26,27 @@ import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.reference.ObjectCollectExpression;
 import io.crate.metadata.PartitionInfo;
 
+import java.util.Map;
+
+import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
+
 public class PartitionsSettingsExpression extends ObjectCollectExpression<PartitionInfo> {
 
     public PartitionsSettingsExpression() {
-        addChildImplementations();
-    }
-
-    private void addChildImplementations() {
-        childImplementations.put(PartitionsSettingsBlocksExpression.NAME, new PartitionsSettingsBlocksExpression());
-        childImplementations.put(PartitionSettingsMappingExpression.NAME, new PartitionSettingsMappingExpression());
-        childImplementations.put(PartitionsSettingsRoutingExpression.NAME, new PartitionsSettingsRoutingExpression());
-        childImplementations.put(PartitionsSettingsWarmerExpression.NAME, new PartitionsSettingsWarmerExpression());
-        childImplementations.put(PartitionsSettingsTranslogExpression.NAME, new PartitionsSettingsTranslogExpression());
-        childImplementations.put(PartitionsSettingsUnassignedExpression.NAME, new PartitionsSettingsUnassignedExpression());
+        super(Map.ofEntries(
+            Map.entry(PartitionsSettingsBlocksExpression.NAME, new PartitionsSettingsBlocksExpression()),
+            Map.entry(PartitionSettingsMappingExpression.NAME, new PartitionSettingsMappingExpression()),
+            Map.entry(PartitionsSettingsRoutingExpression.NAME, new PartitionsSettingsRoutingExpression()),
+            Map.entry(PartitionsSettingsWarmerExpression.NAME, new PartitionsSettingsWarmerExpression()),
+            Map.entry(PartitionsSettingsTranslogExpression.NAME, new PartitionsSettingsTranslogExpression()),
+            Map.entry(PartitionsSettingsUnassignedExpression.NAME, new PartitionsSettingsUnassignedExpression()),
+            Map.entry("write", new ObjectCollectExpression<PartitionInfo>(
+                Map.of(
+                    "wait_for_active_shards",
+                    forFunction((PartitionInfo pi) ->
+                        pi.tableParameters().get(TableParameterInfo.SETTING_WAIT_FOR_ACTIVE_SHARDS.getKey())))
+            )
+        )));
     }
 
     static class PartitionTableParameterExpression implements NestableCollectExpression<PartitionInfo, Object> {

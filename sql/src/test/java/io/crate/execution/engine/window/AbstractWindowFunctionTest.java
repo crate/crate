@@ -73,7 +73,6 @@ import static io.crate.execution.engine.sort.Comparators.createComparator;
 import static org.elasticsearch.common.util.BigArrays.NON_RECYCLING_INSTANCE;
 import static org.hamcrest.Matchers.instanceOf;
 
-
 public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServiceUnitTest {
 
     private RamAccountingContext RAM_ACCOUNTING_CONTEXT = new RamAccountingContext
@@ -93,7 +92,7 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
     }
 
     @Before
-    public void prepareFunctions() throws Exception {
+    public void prepareFunctions() {
         final String tableName = "t1";
         DocTableInfo tableInfo = SQLExecutor.tableInfo(
             new RelationName("doc", "t1"),
@@ -112,15 +111,13 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
         List<Integer> inputSizes = Arrays.stream(inputs)
             .map(Array::getLength)
             .distinct()
-            .collect(Collectors.toList()
-            );
+            .collect(Collectors.toList());
 
         if (inputSizes.size() != 1) {
             throw new IllegalArgumentException("Inputs need to be of equal size");
         }
     }
 
-    @SuppressWarnings("unchecked")
     protected <T> void assertEvaluate(String functionExpression,
                                       Matcher<T> expectedValue,
                                       Map<ColumnIdent, Integer> positionInRowByColumn,

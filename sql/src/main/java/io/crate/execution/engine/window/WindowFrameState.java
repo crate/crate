@@ -45,10 +45,6 @@ public final class WindowFrameState {
         return lowerBound;
     }
 
-    int partitionStart() {
-        return partitionStart;
-    }
-
     public int upperBoundExclusive() {
         return upperBoundExclusive;
     }
@@ -76,13 +72,17 @@ public final class WindowFrameState {
         return rows.get(globalIdx);
     }
 
-    @Nullable
-    Object[] getRowInPartitionAtIndexOrNull(int index) {
-        try {
-            return rows.get(partitionStart + index);
-        } catch (IndexOutOfBoundsException e) {
+    /**
+     * Return the row at the given index in the partition or null
+     * if the index is out of bounds.
+     */
+    public Object[] getRowInPartitionAtIndexOrNull(int index) {
+        int idxInPartition = partitionStart + index;
+        int partitionEnd = upperBoundExclusive + partitionStart;
+        if (idxInPartition < partitionStart || idxInPartition >= partitionEnd) {
             return null;
         }
+        return rows.get(idxInPartition);
     }
 
     void updateBounds(int pStart, int wBegin, int wEnd) {

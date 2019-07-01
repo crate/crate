@@ -43,11 +43,11 @@ import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.Map;
 
-import static io.crate.types.DataTypes.STRING;
+import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
+import static io.crate.types.DataTypes.BOOLEAN;
 import static io.crate.types.DataTypes.INTEGER;
 import static io.crate.types.DataTypes.LONG;
-import static io.crate.types.DataTypes.BOOLEAN;
-import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
+import static io.crate.types.DataTypes.STRING;
 
 public class InformationPartitionsTableInfo extends InformationTableInfo {
 
@@ -122,6 +122,8 @@ public class InformationPartitionsTableInfo extends InformationTableInfo {
                         .setInnerType("limit", INTEGER)
                         .build())
                     .build())
+                .setInnerType("write", ObjectType.builder()
+                    .setInnerType("wait_for_active_shards", STRING).build())
                 .build(), PartitionsSettingsExpression::new);
     }
 
