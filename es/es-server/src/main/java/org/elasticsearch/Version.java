@@ -44,11 +44,11 @@ public class Version implements Comparable<Version>, ToXContentFragment {
      * indicating a release the (internal) format of the id is there so we can easily do after/before checks on the id
      */
     private static final int V_EMPTY_ID = 0;
-    public static final Version V_EMPTY = new Version(V_EMPTY_ID, 0, org.apache.lucene.util.Version.LATEST);
+    public static final Version V_EMPTY = new Version(V_EMPTY_ID, 0, false, org.apache.lucene.util.Version.LATEST);
     private static final int ES_V_6_1_4_ID = 6010499;
-    public static final Version ES_V_6_1_4 = new Version(ES_V_6_1_4_ID, 3_00_01_99, org.apache.lucene.util.Version.LUCENE_7_1_0);
+    public static final Version ES_V_6_1_4 = new Version(ES_V_6_1_4_ID, 3_00_01_99, false, org.apache.lucene.util.Version.LUCENE_7_1_0);
     private static final int ES_V_6_5_1_ID = 6050199;
-    public static final Version ES_V_6_5_1 = new Version(ES_V_6_5_1_ID, 3_02_00_99, org.apache.lucene.util.Version.LUCENE_7_5_0);
+    public static final Version ES_V_6_5_1 = new Version(ES_V_6_5_1_ID, 3_02_00_99, false, org.apache.lucene.util.Version.LUCENE_7_5_0);
 
     /**
      * Before CrateDB 4.0 we've had ES versions (internalId) and CrateDB (externalId) versions.
@@ -69,10 +69,12 @@ public class Version implements Comparable<Version>, ToXContentFragment {
 
     public static final int ES_V_7_0_0_ID = 7_00_00_99;
     public static final int ES_V_7_0_1_ID = 7_00_01_99;
-    public static final Version V_4_0_0 = new Version(ES_V_7_0_0_ID, ES_V_7_0_0_ID - INTERNAL_OFFSET, org.apache.lucene.util.Version.LUCENE_8_0_0);
-    public static final Version V_4_0_1 = new Version(ES_V_7_0_1_ID, ES_V_7_0_1_ID - INTERNAL_OFFSET, true, org.apache.lucene.util.Version.LUCENE_8_0_0);
+    public static final int ES_V_7_1_0_ID = 7_01_00_99;
+    public static final Version V_4_0_0 = new Version(ES_V_7_0_0_ID, false, org.apache.lucene.util.Version.LUCENE_8_0_0);
+    public static final Version V_4_0_1 = new Version(ES_V_7_0_1_ID, false, org.apache.lucene.util.Version.LUCENE_8_0_0);
+    public static final Version V_4_1_0 = new Version(ES_V_7_1_0_ID, true, org.apache.lucene.util.Version.LUCENE_8_0_0);
 
-    public static final Version CURRENT = V_4_0_1;
+    public static final Version CURRENT = V_4_1_0;
 
     static {
         assert CURRENT.luceneVersion.equals(org.apache.lucene.util.Version.LATEST) : "Version must be upgraded to ["
@@ -93,6 +95,8 @@ public class Version implements Comparable<Version>, ToXContentFragment {
                 return V_4_0_0;
             case ES_V_7_0_1_ID:
                 return V_4_0_1;
+            case ES_V_7_1_0_ID:
+                return V_4_1_0;
             case V_EMPTY_ID:
                 return V_EMPTY;
             default:
@@ -197,8 +201,8 @@ public class Version implements Comparable<Version>, ToXContentFragment {
     public final byte build;
     public final org.apache.lucene.util.Version luceneVersion;
 
-    Version(int internalId, int externalId, org.apache.lucene.util.Version luceneVersion) {
-        this(internalId, externalId, false, luceneVersion);
+    Version(int internalId, boolean isSnapshot, org.apache.lucene.util.Version luceneVersion) {
+        this(internalId, internalId - INTERNAL_OFFSET, isSnapshot, luceneVersion);
     }
 
     Version(int internalId, int externalId, boolean isSnapshot, org.apache.lucene.util.Version luceneVersion) {
