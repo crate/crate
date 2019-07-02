@@ -33,9 +33,9 @@ import java.util.Map;
 import static io.crate.analyze.WindowDefinition.CURRENT_ROW_UNBOUNDED_FOLLOWING;
 import static org.hamcrest.Matchers.contains;
 
-public class LagFunctionTest extends AbstractWindowFunctionTest {
+public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
 
-    public LagFunctionTest() {
+    public OffsetValueFunctionsTest() {
         super(new EnterpriseFunctionsModule());
     }
 
@@ -161,6 +161,33 @@ public class LagFunctionTest extends AbstractWindowFunctionTest {
             Collections.singletonMap(new ColumnIdent("x"), 0),
             CURRENT_ROW_UNBOUNDED_FOLLOWING,
             new Object[]{1},
+            new Object[]{2},
+            new Object[]{3},
+            new Object[]{4}
+        );
+    }
+
+    @Test
+    public void testLeadOverPartitionedWindow() throws Exception {
+        assertEvaluate("lead(x) over(partition by x > 2)",
+            contains(new Object[]{2, 2, null, 4, 5, null}),
+            Collections.singletonMap(new ColumnIdent("x"), 0),
+            new Object[]{1},
+            new Object[]{2},
+            new Object[]{2},
+            new Object[]{3},
+            new Object[]{4},
+            new Object[]{5});
+    }
+
+    @Test
+    public void testLeadOverCurrentRowUnboundedFollowingWithDefaultValue() throws Exception {
+        assertEvaluate("lead(x, 2, 42) over(RANGE BETWEEN CURRENT ROW and UNBOUNDED FOLLOWING)",
+            contains(new Object[]{2, 3, 4, 42, 42}),
+            Collections.singletonMap(new ColumnIdent("x"), 0),
+            CURRENT_ROW_UNBOUNDED_FOLLOWING,
+            new Object[]{1},
+            new Object[]{2},
             new Object[]{2},
             new Object[]{3},
             new Object[]{4}
