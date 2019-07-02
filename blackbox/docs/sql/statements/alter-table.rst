@@ -195,6 +195,8 @@ where ``reroute_option`` is::
 **ALLOCATE REPLICA**
   Allows to force allocation of an unassigned replica shard on a specific node.
 
+.. _alter-table-reroute-promote-replica:
+
 **PROMOTE REPLICA**
   Force promote a stale replica shard to a primary.
   In case a node holding a primary copy of a shard had a failure and the
