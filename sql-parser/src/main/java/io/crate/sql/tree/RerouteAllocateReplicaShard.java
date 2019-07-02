@@ -26,16 +26,16 @@ import com.google.common.base.Objects;
 
 public class RerouteAllocateReplicaShard extends RerouteOption {
 
-    private final Expression nodeId;
+    private final Expression nodeIdOrName;
     private final Expression shardId;
 
-    public RerouteAllocateReplicaShard(Expression shardId, Expression nodeId) {
+    public RerouteAllocateReplicaShard(Expression shardId, Expression nodeIdOrName) {
         this.shardId = shardId;
-        this.nodeId = nodeId;
+        this.nodeIdOrName = nodeIdOrName;
     }
 
-    public Expression nodeId() {
-        return nodeId;
+    public Expression nodeIdOrName() {
+        return nodeIdOrName;
     }
 
     public Expression shardId() {
@@ -44,7 +44,7 @@ public class RerouteAllocateReplicaShard extends RerouteOption {
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(shardId, nodeId);
+        return Objects.hashCode(shardId, nodeIdOrName);
     }
 
     @Override
@@ -55,7 +55,7 @@ public class RerouteAllocateReplicaShard extends RerouteOption {
         RerouteAllocateReplicaShard that = (RerouteAllocateReplicaShard) obj;
 
         if (!shardId.equals(that.shardId)) return false;
-        if (!nodeId.equals(that.nodeId)) return false;
+        if (!nodeIdOrName.equals(that.nodeIdOrName)) return false;
 
         return true;
     }
@@ -64,7 +64,7 @@ public class RerouteAllocateReplicaShard extends RerouteOption {
     public String toString() {
         return MoreObjects.toStringHelper(this)
             .add("shardId", shardId)
-            .add("nodeId", nodeId).toString();
+            .add("nodeId", nodeIdOrName).toString();
     }
 
     @Override

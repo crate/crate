@@ -42,6 +42,9 @@ Unreleased Changes
 Changes
 =======
 
+- The ``node`` argument of the :ref:`REROUTE <alter_table_reroute>` commands of
+  :ref:`ref-alter-table` can now either be the id or the name of a node.
+
 - Added a :ref:`PROMOTE REPLICA <alter_table_reroute>` sub command to
   :ref:`ref-alter-table`.
 

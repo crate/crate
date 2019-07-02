@@ -22,9 +22,7 @@
 
 package io.crate.execution.ddl;
 
-import io.crate.action.FutureActionListener;
 import io.crate.analyze.AlterTableAnalyzer;
-import io.crate.analyze.AnalyzedStatementVisitor;
 import io.crate.analyze.PromoteReplicaStatement;
 import io.crate.analyze.RerouteAllocateReplicaShardAnalyzedStatement;
 import io.crate.analyze.RerouteAnalyzedStatement;
@@ -43,9 +41,9 @@ import io.crate.metadata.table.ShardedTable;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.types.DataTypes;
-import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteRequest;
 import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteResponse;
+import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.RoutingNode;
 import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.cluster.routing.UnassignedInfo;
@@ -54,49 +52,62 @@ import org.elasticsearch.cluster.routing.allocation.command.AllocateStalePrimary
 import org.elasticsearch.cluster.routing.allocation.command.CancelAllocationCommand;
 import org.elasticsearch.cluster.routing.allocation.command.MoveAllocationCommand;
 
-import java.util.Iterator;
 import java.util.Locale;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.BiConsumer;
+
+import static io.crate.planner.NodeSelection.resolveNodeId;
 
 public final class RerouteActions {
 
     private RerouteActions() {
-
     }
 
-    public static CompletableFuture<Long> execute(
-        BiConsumer<ClusterRerouteRequest, ActionListener<ClusterRerouteResponse>> rerouteAction,
-        RerouteAnalyzedStatement stmt,
-        Row parameters) {
+    static ClusterRerouteRequest prepareMoveShardReq(RerouteMoveShardAnalyzedStatement statement,
+                                                     Row parameters,
+                                                     DiscoveryNodes nodes) {
+        String indexName = getRerouteIndex(statement, parameters);
+        int shardId = ExpressionToNumberVisitor.convert(statement.shardId(), parameters).intValue();
+        String fromNodeId = resolveNodeId(nodes, ExpressionToStringVisitor.convert(statement.fromNodeIdOrName(), parameters));
+        String toNodeId = resolveNodeId(nodes, ExpressionToStringVisitor.convert(statement.toNodeIdOrName(), parameters));
 
-        ClusterRerouteRequest request;
-        try {
-            request = prepareRequest(stmt, parameters);
-        } catch (Throwable t) {
-            return CompletableFuture.failedFuture(t);
-        }
-        FutureActionListener<ClusterRerouteResponse, Long> listener =
-            new FutureActionListener<>(r -> r.isAcknowledged() ? 1L : -1L);
-        rerouteAction.accept(request, listener);
-        return listener;
-    }
-
-    public static CompletableFuture<Long> executeRetryFailed(
-        BiConsumer<ClusterRerouteRequest, ActionListener<ClusterRerouteResponse>> rerouteAction) {
-
+        MoveAllocationCommand command = new MoveAllocationCommand(indexName, shardId, fromNodeId, toNodeId);
         ClusterRerouteRequest request = new ClusterRerouteRequest();
-        request.setRetryFailed(true);
-        FutureActionListener<ClusterRerouteResponse, Long> listener =
-            new FutureActionListener<>(RerouteActions::retryFailedAffectedShardsRowCount);
-        rerouteAction.accept(request, listener);
-        return listener;
+        request.add(command);
+        return request;
     }
 
-    public static ClusterRerouteRequest prepareAllocateStalePrimaryReq(PromoteReplicaStatement promoteReplica,
-                                                                       Functions functions,
-                                                                       Row parameters,
-                                                                       TransactionContext txnCtx) {
+    static ClusterRerouteRequest prepareAllocateReplicaReq(RerouteAllocateReplicaShardAnalyzedStatement statement,
+                                                           Row parameters,
+                                                           DiscoveryNodes nodes) {
+        String indexName = getRerouteIndex(statement, parameters);
+        int shardId = ExpressionToNumberVisitor.convert(statement.shardId(), parameters).intValue();
+        String nodeId = resolveNodeId(nodes, ExpressionToStringVisitor.convert(statement.nodeId(), parameters));
+
+        AllocateReplicaAllocationCommand command = new AllocateReplicaAllocationCommand(indexName, shardId, nodeId);
+        ClusterRerouteRequest request = new ClusterRerouteRequest();
+        request.add(command);
+        return request;
+    }
+
+    static ClusterRerouteRequest prepareCancelShardReq(RerouteCancelShardAnalyzedStatement statement,
+                                                       Row parameters,
+                                                       DiscoveryNodes nodes) {
+        boolean allowPrimary = validateCancelRerouteProperty("allow_primary", statement.properties(), parameters);
+
+        String indexName = getRerouteIndex(statement, parameters);
+        int shardId = ExpressionToNumberVisitor.convert(statement.shardId(), parameters).intValue();
+        String nodeId = resolveNodeId(nodes, ExpressionToStringVisitor.convert(statement.nodeId(), parameters));
+
+        CancelAllocationCommand command = new CancelAllocationCommand(indexName, shardId, nodeId, allowPrimary);
+        ClusterRerouteRequest request = new ClusterRerouteRequest();
+        request.add(command);
+        return request;
+    }
+
+    static ClusterRerouteRequest preparePromoteReplicaReq(PromoteReplicaStatement promoteReplica,
+                                                          Functions functions,
+                                                          Row parameters,
+                                                          TransactionContext txnCtx,
+                                                          DiscoveryNodes nodes) {
         String index = RerouteActions.getRerouteIndex(promoteReplica, parameters);
         Integer shardId = DataTypes.INTEGER.value(SymbolEvaluator.evaluate(
             txnCtx, functions, promoteReplica.shardId(), parameters, SubQueryResults.EMPTY));
@@ -108,18 +119,18 @@ public final class RerouteActions {
         if (acceptDataLoss == null) {
             throw new NullPointerException("`accept_data_loss` in REROUTE PROMOTE REPLICA must not be null");
         }
-        String nodeId = DataTypes.STRING.value(SymbolEvaluator.evaluate(
-            txnCtx, functions, promoteReplica.nodeId(), parameters, SubQueryResults.EMPTY));
+        String node = DataTypes.STRING.value(SymbolEvaluator.evaluate(
+            txnCtx, functions, promoteReplica.node(), parameters, SubQueryResults.EMPTY));
+        String nodeId = resolveNodeId(nodes, node);
         return new ClusterRerouteRequest()
             .add(new AllocateStalePrimaryAllocationCommand(index, shardId, nodeId, acceptDataLoss));
     }
 
+
     static long retryFailedAffectedShardsRowCount(ClusterRerouteResponse response) {
         if (response.isAcknowledged()) {
             long rowCount = 0L;
-            Iterator<RoutingNode> it = response.getState().getRoutingNodes().iterator();
-            while (it.hasNext()) {
-                RoutingNode routingNode = it.next();
+            for (RoutingNode routingNode : response.getState().getRoutingNodes()) {
                 // filter shards with failed allocation attempts
                 // failed allocation attempts can appear for shards with state UNASSIGNED and INITIALIZING
                 rowCount += routingNode.shardsWithState(ShardRoutingState.UNASSIGNED, ShardRoutingState.INITIALIZING)
@@ -136,10 +147,6 @@ public final class RerouteActions {
         } else {
             return -1L;
         }
-    }
-
-    static ClusterRerouteRequest prepareRequest(RerouteAnalyzedStatement stmt, Row parameters) {
-        return RequestBuilder.INSTANCE.process(stmt, parameters);
     }
 
     static String getRerouteIndex(RerouteAnalyzedStatement statement, Row parameters) throws IllegalArgumentException {
@@ -177,53 +184,5 @@ public final class RerouteActions {
             }
         }
         return false;
-    }
-
-    private static class RequestBuilder extends AnalyzedStatementVisitor<Row, ClusterRerouteRequest> {
-
-        private static final RequestBuilder INSTANCE = new RequestBuilder();
-
-        @Override
-        protected ClusterRerouteRequest visitRerouteMoveShard(RerouteMoveShardAnalyzedStatement statement,
-                                                              Row parameters) {
-            String indexName = getRerouteIndex(statement, parameters);
-            int shardId = ExpressionToNumberVisitor.convert(statement.shardId(), parameters).intValue();
-            String fromNodeId = ExpressionToStringVisitor.convert(statement.fromNodeId(), parameters);
-            String toNodeId = ExpressionToStringVisitor.convert(statement.toNodeId(), parameters);
-
-            MoveAllocationCommand command = new MoveAllocationCommand(indexName, shardId, fromNodeId, toNodeId);
-            ClusterRerouteRequest request = new ClusterRerouteRequest();
-            request.add(command);
-            return request;
-        }
-
-        @Override
-        protected ClusterRerouteRequest visitRerouteAllocateReplicaShard(RerouteAllocateReplicaShardAnalyzedStatement statement,
-                                                                         Row parameters) {
-            String indexName = getRerouteIndex(statement, parameters);
-            int shardId = ExpressionToNumberVisitor.convert(statement.shardId(), parameters).intValue();
-            String nodeId = ExpressionToStringVisitor.convert(statement.nodeId(), parameters);
-
-            AllocateReplicaAllocationCommand command = new AllocateReplicaAllocationCommand(indexName, shardId, nodeId);
-            ClusterRerouteRequest request = new ClusterRerouteRequest();
-            request.add(command);
-            return request;
-        }
-
-        @Override
-        protected ClusterRerouteRequest visitRerouteCancelShard(RerouteCancelShardAnalyzedStatement statement,
-                                                                Row parameters) {
-            final String ALLOW_PRIMARY = "allow_primary";
-
-            String indexName = getRerouteIndex(statement, parameters);
-            int shardId = ExpressionToNumberVisitor.convert(statement.shardId(), parameters).intValue();
-            String nodeId = ExpressionToStringVisitor.convert(statement.nodeId(), parameters);
-            boolean allowPrimary = validateCancelRerouteProperty(ALLOW_PRIMARY, statement.properties(), parameters);
-
-            CancelAllocationCommand command = new CancelAllocationCommand(indexName, shardId, nodeId, allowPrimary);
-            ClusterRerouteRequest request = new ClusterRerouteRequest();
-            request.add(command);
-            return request;
-        }
     }
 }

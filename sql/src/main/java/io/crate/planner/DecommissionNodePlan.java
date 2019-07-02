@@ -22,7 +22,6 @@
 
 package io.crate.planner;
 
-import com.google.common.annotations.VisibleForTesting;
 import io.crate.analyze.AnalyzedDecommissionNodeStatement;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.cluster.decommission.DecommissionNodeRequest;
@@ -33,10 +32,6 @@ import io.crate.execution.support.OneRowActionListener;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.types.DataTypes;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.node.DiscoveryNodes;
-
-import java.util.Locale;
 
 public final class DecommissionNodePlan implements Plan {
 
@@ -65,8 +60,8 @@ public final class DecommissionNodePlan implements Plan {
                 subQueryResults)
         );
 
-        final String targetNodeId = resolveNodeIdFromIdOrName(dependencies.clusterService().state().nodes(),
-            targetNodeIdOrName);
+        final String targetNodeId = NodeSelection.resolveNodeId(
+            dependencies.clusterService().state().nodes(), targetNodeIdOrName);
 
         OneRowActionListener<AcknowledgedResponse> listener =
             new OneRowActionListener<>(consumer, r -> r.isAcknowledged() ? new Row1(1L) : new Row1(0L));
@@ -75,21 +70,6 @@ public final class DecommissionNodePlan implements Plan {
             targetNodeId,
             DecommissionNodeRequest.INSTANCE,
             listener
-        );
-    }
-
-    @VisibleForTesting
-    static String resolveNodeIdFromIdOrName(DiscoveryNodes nodes, String nodeIdOrName) {
-        if (nodes.nodeExists(nodeIdOrName)) {
-            return nodeIdOrName;
-        }
-        for (DiscoveryNode node : nodes.get()) {
-            if (nodeIdOrName.equalsIgnoreCase(node.getName())) {
-                return node.getId();
-            }
-        }
-        throw new IllegalArgumentException(
-            String.format(Locale.ENGLISH, "Node: \'%s\' could not be found", nodeIdOrName)
         );
     }
 }

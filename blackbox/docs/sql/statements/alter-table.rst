@@ -168,18 +168,18 @@ acknowledged or rejected.
 
 where ``reroute_option`` is::
 
-    { MOVE SHARD shard_id FROM node_id TO node_id
-      | ALLOCATE REPLICA SHARD shard_id ON node_id
+    { MOVE SHARD shard_id FROM node TO node
+      | ALLOCATE REPLICA SHARD shard_id ON node
       | PROMOTE REPLICA SHARD shard_id [ WITH (accept_data_loss = { TRUE | FALSE }) ]
-      | CANCEL SHARD shard_id ON node_id [ WITH (allow_primary = {TRUE|FALSE}) ]
+      | CANCEL SHARD shard_id ON node [ WITH (allow_primary = {TRUE|FALSE}) ]
     }
 
 :shard_id:
   The shard id. Ranges from 0 up to the specified number of :ref:`sys-shards`
   shards of a table.
 
-:node_id:
-  The node ID within the cluster.
+:node:
+  The ID or name of a node within the cluster.
 
   See :ref:`sys-nodes` how to gain the unique ID.
 

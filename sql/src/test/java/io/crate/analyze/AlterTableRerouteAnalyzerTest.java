@@ -60,8 +60,8 @@ public class AlterTableRerouteAnalyzerTest extends CrateDummyClusterServiceUnitT
         assertThat(analyzed.tableInfo().concreteIndices().length, is(1));
         assertThat(analyzed.tableInfo().concreteIndices()[0], is("users"));
         assertThat(analyzed.shardId(), is(Literal.fromObject(0)));
-        assertThat(analyzed.fromNodeId(), is(Literal.fromObject("nodeOne")));
-        assertThat(analyzed.toNodeId(), is(Literal.fromObject("nodeTwo")));
+        assertThat(analyzed.fromNodeIdOrName(), is(Literal.fromObject("nodeOne")));
+        assertThat(analyzed.toNodeIdOrName(), is(Literal.fromObject("nodeTwo")));
         assertThat(analyzed.isWriteOperation(), is(true));
     }
 
@@ -123,7 +123,7 @@ public class AlterTableRerouteAnalyzerTest extends CrateDummyClusterServiceUnitT
             "ALTER TABLE users REROUTE PROMOTE REPLICA SHARD 2 ON 'nodeOne' WITH (accept_data_loss = true)");
         assertThat(stmt.acceptDataLoss(), isLiteral(true));
         assertThat(stmt.shardId(), isLiteral(2L));
-        assertThat(stmt.nodeId(), isLiteral("nodeOne"));
+        assertThat(stmt.node(), isLiteral("nodeOne"));
     }
 
     @Test
