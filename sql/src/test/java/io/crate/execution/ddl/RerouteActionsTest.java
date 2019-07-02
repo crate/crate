@@ -48,7 +48,6 @@ import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static io.crate.analyze.TableDefinitions.TEST_PARTITIONED_TABLE_DEFINITION;
 import static io.crate.analyze.TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS;
@@ -148,48 +147,16 @@ public class RerouteActionsTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testRerouteExecution() throws Exception {
-        AtomicReference<ClusterRerouteRequest> reqRef = new AtomicReference<>();
-
+    public void test_allocate_replica_shard_request_creation() throws Exception {
         RerouteAllocateReplicaShardAnalyzedStatement statement = new RerouteAllocateReplicaShardAnalyzedStatement(
             userTable,
             Collections.emptyList(),
             SqlParser.createExpression("0"),
             SqlParser.createExpression("node1"));
 
-        RerouteActions.execute((req, listener) -> reqRef.set(req), statement, Row.EMPTY);
-        ClusterRerouteRequest actualRequest = reqRef.get();
-
+        ClusterRerouteRequest actualRequest = RerouteActions.prepareAllocateReplicaReq(statement, Row.EMPTY);
         ClusterRerouteRequest request = new ClusterRerouteRequest();
-        AllocateReplicaAllocationCommand command = new AllocateReplicaAllocationCommand("users", 0, "node1");
-        request.add(command);
-        assertEquals(request, actualRequest);
-    }
-
-    @Test
-    public void testRerouteRetryFailedExecution() throws Exception {
-        AtomicReference<ClusterRerouteRequest> reqRef = new AtomicReference<>();
-
-        RerouteActions.executeRetryFailed((req, listener) -> reqRef.set(req));
-        ClusterRerouteRequest actualRequest = reqRef.get();
-
-        ClusterRerouteRequest request = new ClusterRerouteRequest();
-        request.setRetryFailed(true);
-        assertEquals(request, actualRequest);
-    }
-
-    @Test
-    public void testAllocateReplicaShardRequest() throws Exception {
-        RerouteAllocateReplicaShardAnalyzedStatement statement = new RerouteAllocateReplicaShardAnalyzedStatement(
-            userTable,
-            Collections.emptyList(),
-            SqlParser.createExpression("0"),
-            SqlParser.createExpression("node1"));
-        ClusterRerouteRequest actualRequest = RerouteActions.prepareRequest(statement, Row.EMPTY);
-
-        ClusterRerouteRequest request = new ClusterRerouteRequest();
-        AllocateReplicaAllocationCommand command = new AllocateReplicaAllocationCommand(
-            userTable.ident().indexNameOrAlias(), 0, "node1");
+        var command = new AllocateReplicaAllocationCommand(userTable.ident().indexNameOrAlias(), 0, "node1");
         request.add(command);
         assertEquals(request, actualRequest);
     }
@@ -198,11 +165,11 @@ public class RerouteActionsTest extends CrateDummyClusterServiceUnitTest {
     public void testMoveShardRequest() throws Exception {
         RerouteMoveShardAnalyzedStatement statement = new RerouteMoveShardAnalyzedStatement(
             userTable,
-            Collections.EMPTY_LIST,
+            Collections.emptyList(),
             SqlParser.createExpression("0"),
             SqlParser.createExpression("node1"),
             SqlParser.createExpression("node2"));
-        ClusterRerouteRequest actualRequest = RerouteActions.prepareRequest(statement, Row.EMPTY);
+        ClusterRerouteRequest actualRequest = RerouteActions.prepareMoveShardReq(statement, Row.EMPTY);
 
         ClusterRerouteRequest request = new ClusterRerouteRequest();
         MoveAllocationCommand command = new MoveAllocationCommand(
@@ -217,11 +184,11 @@ public class RerouteActionsTest extends CrateDummyClusterServiceUnitTest {
         properties.add(new GenericProperty("allow_primary", BooleanLiteral.TRUE_LITERAL));
         RerouteCancelShardAnalyzedStatement statement = new RerouteCancelShardAnalyzedStatement(
             userTable,
-            Collections.EMPTY_LIST,
+            Collections.emptyList(),
             SqlParser.createExpression("0"),
             SqlParser.createExpression("node1"),
             properties);
-        ClusterRerouteRequest actualRequest = RerouteActions.prepareRequest(statement, Row.EMPTY);
+        ClusterRerouteRequest actualRequest = RerouteActions.prepareCancelShardReq(statement, Row.EMPTY);
 
         ClusterRerouteRequest request = new ClusterRerouteRequest();
         CancelAllocationCommand command = new CancelAllocationCommand(
@@ -232,17 +199,17 @@ public class RerouteActionsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testCancelShardRequestWithInvalidProperty() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("\"invalid\" is not a valid setting for CANCEL SHARD");
         GenericProperties properties = new GenericProperties();
         properties.add(new GenericProperty("invalid", BooleanLiteral.FALSE_LITERAL));
 
         RerouteCancelShardAnalyzedStatement statement = new RerouteCancelShardAnalyzedStatement(
             userTable,
-            Collections.EMPTY_LIST,
+            Collections.emptyList(),
             SqlParser.createExpression("0"),
             SqlParser.createExpression("node1"),
             properties);
-        RerouteActions.prepareRequest(statement, Row.EMPTY);
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("\"invalid\" is not a valid setting for CANCEL SHARD");
+        RerouteActions.prepareCancelShardReq(statement, Row.EMPTY);
     }
 }

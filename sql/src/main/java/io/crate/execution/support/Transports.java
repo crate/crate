@@ -22,7 +22,12 @@
 
 package io.crate.execution.support;
 
+import io.crate.action.FutureActionListener;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.ActionRequest;
+import org.elasticsearch.action.ActionResponse;
+import org.elasticsearch.action.support.TransportAction;
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -35,6 +40,8 @@ import org.elasticsearch.transport.TransportResponseHandler;
 import org.elasticsearch.transport.TransportService;
 
 import java.util.Locale;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 
 
 @Singleton
@@ -47,6 +54,29 @@ public class Transports {
     public Transports(ClusterService clusterService, TransportService transportService) {
         this.clusterService = clusterService;
         this.transportService = transportService;
+    }
+
+    public static Function<? super AcknowledgedResponse, Long> rowCountFromAcknowledgedResp() {
+        return r -> r.isAcknowledged() ? 1L : -1L;
+    }
+
+    /**
+     * Convenience to turn
+     *
+     *      `action.execute(request, listener) -> void`
+     *
+     *  into
+     *
+     *      `execute(action, request, convertResp) -> resultFuture`
+     */
+    public static <Req extends ActionRequest, Resp extends ActionResponse, Result> CompletableFuture<Result> execute(
+        TransportAction<Req, Resp> transportAction,
+        Req request,
+        Function<? super Resp, Result> convertResponse) {
+
+        FutureActionListener<Resp, Result> listener = new FutureActionListener<>(convertResponse);
+        transportAction.execute(request, listener);
+        return listener;
     }
 
     public <TRequest extends TransportRequest, TResponse extends TransportResponse> void sendRequest(
