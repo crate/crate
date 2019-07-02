@@ -43,6 +43,7 @@ import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteRequest;
 import org.elasticsearch.cluster.routing.allocation.command.AllocateReplicaAllocationCommand;
 import org.elasticsearch.cluster.routing.allocation.command.CancelAllocationCommand;
 import org.elasticsearch.cluster.routing.allocation.command.MoveAllocationCommand;
+import org.elasticsearch.common.Randomness;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -62,7 +63,7 @@ public class RerouteActionsTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void setupTable() throws Exception {
-        SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService)
+        SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService, 2, Randomness.get())
             .addTable(USER_TABLE_DEFINITION)
             .addPartitionedTable(TEST_PARTITIONED_TABLE_DEFINITION, TEST_PARTITIONED_TABLE_PARTITIONS)
             .addBlobTable("create blob table screenshots")
@@ -152,11 +153,12 @@ public class RerouteActionsTest extends CrateDummyClusterServiceUnitTest {
             userTable,
             Collections.emptyList(),
             SqlParser.createExpression("0"),
-            SqlParser.createExpression("node1"));
+            SqlParser.createExpression("n1"));
 
-        ClusterRerouteRequest actualRequest = RerouteActions.prepareAllocateReplicaReq(statement, Row.EMPTY);
+        ClusterRerouteRequest actualRequest = RerouteActions.prepareAllocateReplicaReq(
+            statement, Row.EMPTY, clusterService.state().nodes());
         ClusterRerouteRequest request = new ClusterRerouteRequest();
-        var command = new AllocateReplicaAllocationCommand(userTable.ident().indexNameOrAlias(), 0, "node1");
+        var command = new AllocateReplicaAllocationCommand(userTable.ident().indexNameOrAlias(), 0, "n1");
         request.add(command);
         assertEquals(request, actualRequest);
     }
@@ -167,13 +169,14 @@ public class RerouteActionsTest extends CrateDummyClusterServiceUnitTest {
             userTable,
             Collections.emptyList(),
             SqlParser.createExpression("0"),
-            SqlParser.createExpression("node1"),
-            SqlParser.createExpression("node2"));
-        ClusterRerouteRequest actualRequest = RerouteActions.prepareMoveShardReq(statement, Row.EMPTY);
+            SqlParser.createExpression("n1"),
+            SqlParser.createExpression("n2"));
+        ClusterRerouteRequest actualRequest = RerouteActions.prepareMoveShardReq(
+            statement, Row.EMPTY, clusterService.state().nodes());
 
         ClusterRerouteRequest request = new ClusterRerouteRequest();
         MoveAllocationCommand command = new MoveAllocationCommand(
-            userTable.ident().indexNameOrAlias(), 0, "node1", "node2");
+            userTable.ident().indexNameOrAlias(), 0, "n1", "n2");
         request.add(command);
         assertEquals(request, actualRequest);
     }
@@ -186,13 +189,14 @@ public class RerouteActionsTest extends CrateDummyClusterServiceUnitTest {
             userTable,
             Collections.emptyList(),
             SqlParser.createExpression("0"),
-            SqlParser.createExpression("node1"),
+            SqlParser.createExpression("n1"),
             properties);
-        ClusterRerouteRequest actualRequest = RerouteActions.prepareCancelShardReq(statement, Row.EMPTY);
+        ClusterRerouteRequest actualRequest = RerouteActions.prepareCancelShardReq(
+            statement, Row.EMPTY, clusterService.state().nodes());
 
         ClusterRerouteRequest request = new ClusterRerouteRequest();
         CancelAllocationCommand command = new CancelAllocationCommand(
-            userTable.ident().indexNameOrAlias(), 0, "node1", true);
+            userTable.ident().indexNameOrAlias(), 0, "n1", true);
         request.add(command);
         assertEquals(request, actualRequest);
     }
@@ -210,6 +214,6 @@ public class RerouteActionsTest extends CrateDummyClusterServiceUnitTest {
             properties);
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("\"invalid\" is not a valid setting for CANCEL SHARD");
-        RerouteActions.prepareCancelShardReq(statement, Row.EMPTY);
+        RerouteActions.prepareCancelShardReq(statement, Row.EMPTY, clusterService.state().nodes());
     }
 }

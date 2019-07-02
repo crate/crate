@@ -106,19 +106,19 @@ public class AlterTableRerouteAnalyzer {
         @Override
         public RerouteAnalyzedStatement visitRerouteMoveShard(RerouteMoveShard node, Context context) {
             return new RerouteMoveShardAnalyzedStatement(
-                context.tableInfo, context.partitionProperties, node.shardId(),node.fromNodeId(), node.toNodeId());
+                context.tableInfo, context.partitionProperties, node.shardId(), node.fromNodeIdOrName(), node.toNodeIdOrName());
         }
 
         @Override
         public RerouteAnalyzedStatement visitRerouteAllocateReplicaShard(RerouteAllocateReplicaShard node, Context context) {
             return new RerouteAllocateReplicaShardAnalyzedStatement(
-                context.tableInfo, context.partitionProperties, node.shardId(), node.nodeId());
+                context.tableInfo, context.partitionProperties, node.shardId(), node.nodeIdOrName());
         }
 
         @Override
         public RerouteAnalyzedStatement visitRerouteCancelShard(RerouteCancelShard node, Context context) {
             return new RerouteCancelShardAnalyzedStatement(
-                context.tableInfo, context.partitionProperties, node.shardId(), node.nodeId(), node.properties());
+                context.tableInfo, context.partitionProperties, node.shardId(), node.nodeIdOrName(), node.properties());
         }
 
         @Override

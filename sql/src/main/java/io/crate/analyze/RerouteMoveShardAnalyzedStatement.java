@@ -31,18 +31,18 @@ import java.util.List;
 public class RerouteMoveShardAnalyzedStatement extends RerouteAnalyzedStatement {
 
     private final Expression shardId;
-    private final Expression fromNodeId;
-    private final Expression toNodeId;
+    private final Expression fromNodeIdOrName;
+    private final Expression toNodeIdOrName;
 
     public RerouteMoveShardAnalyzedStatement(ShardedTable tableInfo,
                                              List<Assignment> partitionPropeties,
                                              Expression shardId,
-                                             Expression fromNodeId,
-                                             Expression toNodeId) {
+                                             Expression fromNodeIdOrName,
+                                             Expression toNodeIdOrName) {
         super(tableInfo, partitionPropeties);
         this.shardId = shardId;
-        this.fromNodeId = fromNodeId;
-        this.toNodeId = toNodeId;
+        this.fromNodeIdOrName = fromNodeIdOrName;
+        this.toNodeIdOrName = toNodeIdOrName;
     }
 
     @Override
@@ -54,11 +54,11 @@ public class RerouteMoveShardAnalyzedStatement extends RerouteAnalyzedStatement 
         return shardId;
     }
 
-    public Expression fromNodeId() {
-        return fromNodeId;
+    public Expression fromNodeIdOrName() {
+        return fromNodeIdOrName;
     }
 
-    public Expression toNodeId() {
-        return toNodeId;
+    public Expression toNodeIdOrName() {
+        return toNodeIdOrName;
     }
 }

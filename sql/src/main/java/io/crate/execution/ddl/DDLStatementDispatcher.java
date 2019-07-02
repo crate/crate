@@ -319,7 +319,7 @@ public class DDLStatementDispatcher {
         protected CompletableFuture<Long> visitRerouteMoveShard(RerouteMoveShardAnalyzedStatement stmt, Ctx ctx) {
             return Transports.execute(
                 rerouteAction,
-                RerouteActions.prepareMoveShardReq(stmt, ctx.parameters),
+                RerouteActions.prepareMoveShardReq(stmt, ctx.parameters, clusterService.state().nodes()),
                 Transports.rowCountFromAcknowledgedResp()
             );
         }
@@ -328,7 +328,7 @@ public class DDLStatementDispatcher {
         protected CompletableFuture<Long> visitRerouteAllocateReplicaShard(RerouteAllocateReplicaShardAnalyzedStatement stmt, Ctx ctx) {
             return Transports.execute(
                 rerouteAction,
-                RerouteActions.prepareAllocateReplicaReq(stmt, ctx.parameters),
+                RerouteActions.prepareAllocateReplicaReq(stmt, ctx.parameters, clusterService.state().nodes()),
                 Transports.rowCountFromAcknowledgedResp()
             );
         }
@@ -337,7 +337,7 @@ public class DDLStatementDispatcher {
         protected CompletableFuture<Long> visitRerouteCancelShard(RerouteCancelShardAnalyzedStatement stmt, Ctx ctx) {
             return Transports.execute(
                 rerouteAction,
-                RerouteActions.prepareCancelShardReq(stmt, ctx.parameters),
+                RerouteActions.prepareCancelShardReq(stmt, ctx.parameters, clusterService.state().nodes()),
                 Transports.rowCountFromAcknowledgedResp()
             );
         }

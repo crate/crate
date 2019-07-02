@@ -27,18 +27,18 @@ import com.google.common.base.Objects;
 
 public class RerouteCancelShard extends RerouteOption {
 
-    private final Expression nodeId;
+    private final Expression nodeIdOrName;
     private final Expression shardId;
     private final GenericProperties properties;
 
-    public RerouteCancelShard(Expression shardId, Expression nodeId, GenericProperties properties) {
+    public RerouteCancelShard(Expression shardId, Expression nodeIdOrName, GenericProperties properties) {
         this.shardId = shardId;
-        this.nodeId = nodeId;
+        this.nodeIdOrName = nodeIdOrName;
         this.properties = properties;
     }
 
-    public Expression nodeId() {
-        return nodeId;
+    public Expression nodeIdOrName() {
+        return nodeIdOrName;
     }
 
     public Expression shardId() {
@@ -51,7 +51,7 @@ public class RerouteCancelShard extends RerouteOption {
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(shardId, nodeId, properties);
+        return Objects.hashCode(shardId, nodeIdOrName, properties);
     }
 
     @Override
@@ -62,7 +62,7 @@ public class RerouteCancelShard extends RerouteOption {
         RerouteCancelShard that = (RerouteCancelShard) obj;
 
         if (!shardId.equals(that.shardId)) return false;
-        if (!nodeId.equals(that.nodeId)) return false;
+        if (!nodeIdOrName.equals(that.nodeIdOrName)) return false;
         if (!properties.equals(that.properties)) return false;
 
         return true;
@@ -72,7 +72,7 @@ public class RerouteCancelShard extends RerouteOption {
     public String toString() {
         return MoreObjects.toStringHelper(this)
             .add("shardId", shardId)
-            .add("nodeId", nodeId)
+            .add("nodeId", nodeIdOrName)
             .add("properties", properties).toString();
     }
 

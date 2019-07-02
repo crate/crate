@@ -27,30 +27,30 @@ import com.google.common.base.Objects;
 public class RerouteMoveShard extends RerouteOption {
 
     private final Expression shardId;
-    private final Expression fromNodeId;
-    private final Expression toNodeId;
+    private final Expression fromNodeIdOrName;
+    private final Expression toNodeIdOrName;
 
-    public RerouteMoveShard(Expression shardId, Expression fromNodeId, Expression toNodeId) {
+    public RerouteMoveShard(Expression shardId, Expression fromNodeIdOrName, Expression toNodeIdOrName) {
         this.shardId = shardId;
-        this.fromNodeId = fromNodeId;
-        this.toNodeId = toNodeId;
+        this.fromNodeIdOrName = fromNodeIdOrName;
+        this.toNodeIdOrName = toNodeIdOrName;
     }
 
     public Expression shardId() {
         return shardId;
     }
 
-    public Expression fromNodeId() {
-        return fromNodeId;
+    public Expression fromNodeIdOrName() {
+        return fromNodeIdOrName;
     }
 
-    public Expression toNodeId() {
-        return toNodeId;
+    public Expression toNodeIdOrName() {
+        return toNodeIdOrName;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(shardId, fromNodeId, toNodeId);
+        return Objects.hashCode(shardId, fromNodeIdOrName, toNodeIdOrName);
     }
 
     @Override
@@ -61,8 +61,8 @@ public class RerouteMoveShard extends RerouteOption {
         RerouteMoveShard that = (RerouteMoveShard) obj;
 
         if (!shardId.equals(that.shardId)) return false;
-        if (!fromNodeId.equals(that.fromNodeId)) return false;
-        if (!toNodeId.equals(that.toNodeId)) return false;
+        if (!fromNodeIdOrName.equals(that.fromNodeIdOrName)) return false;
+        if (!toNodeIdOrName.equals(that.toNodeIdOrName)) return false;
 
         return true;
     }
@@ -71,8 +71,8 @@ public class RerouteMoveShard extends RerouteOption {
     public String toString() {
         return MoreObjects.toStringHelper(this)
             .add("shardId", shardId)
-            .add("fromNodeId", fromNodeId)
-            .add("toNodeId", toNodeId).toString();
+            .add("fromNodeId", fromNodeIdOrName)
+            .add("toNodeId", toNodeIdOrName).toString();
     }
 
     @Override
