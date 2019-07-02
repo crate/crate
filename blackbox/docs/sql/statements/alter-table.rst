@@ -170,6 +170,7 @@ where ``reroute_option`` is::
 
     { MOVE SHARD shard_id FROM node_id TO node_id
       | ALLOCATE REPLICA SHARD shard_id ON node_id
+      | PROMOTE REPLICA SHARD shard_id [ WITH (accept_data_loss = { TRUE | FALSE }) ]
       | CANCEL SHARD shard_id ON node_id [ WITH (allow_primary = {TRUE|FALSE}) ]
     }
 
@@ -193,6 +194,21 @@ where ``reroute_option`` is::
 
 **ALLOCATE REPLICA**
   Allows to force allocation of an unassigned replica shard on a specific node.
+
+**PROMOTE REPLICA**
+  Force promote a stale replica shard to a primary.
+  In case a node holding a primary copy of a shard had a failure and the
+  replica shards are out of sync, the system won't promote the replica to
+  primary automatically, as it would result in a silent data loss.
+
+  Ideally the node holding the primary copy of the shard would be brought back
+  into the cluster, but if that is not possible due to a permanent system
+  failure, it is possible to accept the potential data loss and force promote a
+  stale replica using this command.
+
+  The parameter ``accept_data_loss`` needs to be set to ``true`` in order for
+  this command to work. If it is not provided or set to false, the command will
+  error out.
 
 **CANCEL**
   This cancels the allocation/recovery of a ``shard_id`` of a

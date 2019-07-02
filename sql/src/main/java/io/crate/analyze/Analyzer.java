@@ -199,7 +199,7 @@ public class Analyzer {
         this.alterBlobTableAnalyzer = new AlterBlobTableAnalyzer(schemas);
         this.alterTableAddColumnAnalyzer = new AlterTableAddColumnAnalyzer(schemas, fulltextAnalyzerResolver, functions);
         this.alterTableOpenCloseAnalyzer = new AlterTableOpenCloseAnalyzer(schemas);
-        this.alterTableRerouteAnalyzer = new AlterTableRerouteAnalyzer(schemas);
+        this.alterTableRerouteAnalyzer = new AlterTableRerouteAnalyzer(functions, schemas);
         this.copyAnalyzer = new CopyAnalyzer(schemas, functions);
         this.dropRepositoryAnalyzer = new DropRepositoryAnalyzer(repositoryService);
         this.createRepositoryAnalyzer = new CreateRepositoryAnalyzer(repositoryService, repositoryParamValidator);
@@ -242,7 +242,7 @@ public class Analyzer {
                 analysis.transactionContext(),
                 analysis.parameterContext());
             analysis.rootRelation(relation);
-            return (AnalyzedStatement) relation;
+            return relation;
         }
 
         @Override

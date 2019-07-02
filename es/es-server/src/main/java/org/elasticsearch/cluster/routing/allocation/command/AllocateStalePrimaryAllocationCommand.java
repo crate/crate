@@ -119,7 +119,7 @@ public class AllocateStalePrimaryAllocationCommand extends BasePrimaryAllocation
         }
 
         if (acceptDataLoss == false) {
-            String dataLossWarning = "allocating an empty primary for [" + index + "][" + shardId + "] can result in data loss. Please " +
+            String dataLossWarning = "promoting a stale replica for [" + index + "][" + shardId + "] can result in data loss. Please " +
                 "confirm by setting the accept_data_loss parameter to true";
             return explainOrThrowRejectedCommand(explain, allocation, dataLossWarning);
         }

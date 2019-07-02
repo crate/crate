@@ -596,4 +596,8 @@ public abstract class AstVisitor<R, C> {
     public R visitAlterClusterDecommissionNode(DecommissionNodeStatement decommissionNodeStatement, C context) {
         return visitStatement(decommissionNodeStatement, context);
     }
+
+    public R visitReroutePromoteReplica(PromoteReplica promoteReplica, C context) {
+        return visitNode(promoteReplica, context);
+    }
 }

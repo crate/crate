@@ -42,6 +42,9 @@ Unreleased Changes
 Changes
 =======
 
+- Added a :ref:`PROMOTE REPLICA <alter_table_reroute>` sub command to
+  :ref:`ref-alter-table`.
+
 - Added support for the ``lead`` and ``lag`` window functions as enterprise
   features.
 

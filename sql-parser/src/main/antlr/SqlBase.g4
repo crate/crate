@@ -501,6 +501,7 @@ addColumnDefinition
 rerouteOption
     : MOVE SHARD shardId=parameterOrInteger FROM fromNodeId=parameterOrString TO toNodeId=parameterOrString #rerouteMoveShard
     | ALLOCATE REPLICA SHARD shardId=parameterOrInteger ON nodeId=parameterOrString                         #rerouteAllocateReplicaShard
+    | PROMOTE REPLICA SHARD shardId=parameterOrInteger ON nodeId=parameterOrString withProperties?          #reroutePromoteReplica
     | CANCEL SHARD shardId=parameterOrInteger ON nodeId=parameterOrString withProperties?                   #rerouteCancelShard
     ;
 
@@ -634,6 +635,7 @@ nonReserved
     | WORK | SERIALIZABLE | REPEATABLE | COMMITTED | UNCOMMITTED | READ | WRITE | DEFERRABLE
     | STRING_TYPE | IP | DOUBLE | FLOAT | TIMESTAMP | LONG | INT | INTEGER | SHORT | BYTE | BOOLEAN | PRECISION
     | REPLACE | SWAP | GC | DANGLING | ARTIFACTS | DECOMMISSION | LEADING | TRAILING | BOTH | TRIM | CURRENT_SCHEMA
+    | PROMOTE
     ;
 
 SELECT: 'SELECT';
@@ -709,6 +711,7 @@ USING: 'USING';
 ON: 'ON';
 OVER: 'OVER';
 PARTITION: 'PARTITION';
+PROMOTE: 'PROMOTE';
 RANGE: 'RANGE';
 ROWS: 'ROWS';
 UNBOUNDED: 'UNBOUNDED';

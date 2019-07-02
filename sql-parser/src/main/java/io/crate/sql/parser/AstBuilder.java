@@ -131,6 +131,7 @@ import io.crate.sql.tree.ParameterExpression;
 import io.crate.sql.tree.PartitionedBy;
 import io.crate.sql.tree.PrimaryKeyColumnConstraint;
 import io.crate.sql.tree.PrimaryKeyConstraint;
+import io.crate.sql.tree.PromoteReplica;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.QualifiedNameReference;
 import io.crate.sql.tree.Query;
@@ -775,6 +776,14 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
             (Expression) visit(context.shardId),
             (Expression) visit(context.fromNodeId),
             (Expression) visit(context.toNodeId));
+    }
+
+    @Override
+    public Node visitReroutePromoteReplica(SqlBaseParser.ReroutePromoteReplicaContext ctx) {
+        return new PromoteReplica(
+            (Expression) visit(ctx.nodeId),
+            (Expression) visit(ctx.shardId),
+            extractGenericProperties(ctx.withProperties()));
     }
 
     @Override
