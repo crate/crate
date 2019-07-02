@@ -49,7 +49,9 @@ import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
 import org.elasticsearch.cluster.metadata.MetadataIndexUpgradeService;
 import org.elasticsearch.cluster.metadata.TemplateUpgradeService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.routing.RoutingService;
+import org.elasticsearch.cluster.routing.BatchedRerouteService;
+import org.elasticsearch.cluster.routing.LazilyInitializedRerouteService;
+import org.elasticsearch.cluster.routing.RerouteService;
 import org.elasticsearch.cluster.routing.allocation.DiskThresholdMonitor;
 import org.elasticsearch.cluster.service.ClusterService;
 import javax.annotation.Nullable;
@@ -299,12 +301,14 @@ public class Node implements Closeable {
             );
             resourcesToClose.add(clusterService);
 
+            final LazilyInitializedRerouteService lazilyInitializedRerouteService = new LazilyInitializedRerouteService();
             final DiskThresholdMonitor diskThresholdMonitor = new DiskThresholdMonitor(
                 settings,
                 clusterService::state,
                 clusterService.getClusterSettings(),
                 client,
-                threadPool::relativeTimeInMillis
+                threadPool::relativeTimeInMillis,
+                lazilyInitializedRerouteService
             );
             final ClusterInfoService clusterInfoService = newClusterInfoService(
                 settings,
@@ -476,8 +480,11 @@ public class Node implements Closeable {
                 xContentRegistry, threadPool)
             );
 
-            final RoutingService routingService = new RoutingService(clusterService, clusterModule.getAllocationService()::reroute);
-            diskThresholdMonitor.setRerouteAction(routingService::reroute);
+            final RerouteService rerouteService = new BatchedRerouteService(
+                clusterService,
+                clusterModule.getAllocationService()::reroute
+            );
+            lazilyInitializedRerouteService.setRerouteService(rerouteService);
             final DiscoveryModule discoveryModule = new DiscoveryModule(
                 this.settings,
                 threadPool,
@@ -491,7 +498,7 @@ public class Node implements Closeable {
                 clusterModule.getAllocationService(),
                 environment.configFile(),
                 gatewayMetaState,
-                routingService
+                rerouteService
             );
             this.nodeService = new NodeService(monitorService, indicesService, transportService);
 
@@ -537,7 +544,7 @@ public class Node implements Closeable {
                     b.bind(HttpServerTransport.class).toInstance(httpServerTransport);
                     b.bind(ShardLimitValidator.class).toInstance(shardLimitValidator);
                     b.bind(EventLoopGroups.class).toInstance(eventLoopGroups);
-                    b.bind(RoutingService.class).toInstance(routingService);
+                    b.bind(RerouteService.class).toInstance(rerouteService);
                     pluginComponents.stream().forEach(p -> b.bind((Class) p.getClass()).toInstance(p));
                 }
             );
@@ -651,7 +658,6 @@ public class Node implements Closeable {
         injector.getInstance(IndicesClusterStateService.class).start();
         injector.getInstance(SnapshotsService.class).start();
         injector.getInstance(SnapshotShardsService.class).start();
-        injector.getInstance(RoutingService.class).start();
         nodeService.getMonitorService().start();
 
         final ClusterService clusterService = injector.getInstance(ClusterService.class);
@@ -774,7 +780,6 @@ public class Node implements Closeable {
         // This can confuse other nodes and delay things - mostly if we're the master and we're running tests.
         injector.getInstance(Discovery.class).stop();
         // we close indices first, so operations won't be allowed on it
-        injector.getInstance(RoutingService.class).stop();
         injector.getInstance(ClusterService.class).stop();
         injector.getInstance(NodeConnectionsService.class).stop();
         nodeService.getMonitorService().stop();
@@ -825,7 +830,6 @@ public class Node implements Closeable {
         toClose.add(injector.getInstance(IndicesStore.class));
         toClose.add(injector.getInstance(PeerRecoverySourceService.class));
         toClose.add(() -> stopWatch.stop().start("routing"));
-        toClose.add(injector.getInstance(RoutingService.class));
         toClose.add(() -> stopWatch.stop().start("cluster"));
         toClose.add(injector.getInstance(ClusterService.class));
         toClose.add(() -> stopWatch.stop().start("node_connections_service"));
