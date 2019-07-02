@@ -51,6 +51,9 @@ Changes
 Fixes
 =====
 
+- Fixed a possible NPE which could occur when querying the ``sys.allocations``
+  table.
+
 - Fixed the tables compatibility check to correctly indicate when tables need
   to be recreated in preparation for a CrateDB upgrade towards the next major
   version of CrateDB.
