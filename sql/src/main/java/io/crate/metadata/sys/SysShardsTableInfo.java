@@ -69,7 +69,7 @@ import static io.crate.types.DataTypes.LONG;
 import static io.crate.types.DataTypes.INTEGER;
 import static io.crate.types.DataTypes.BOOLEAN;
 
-public class SysShardsTableInfo extends StaticTableInfo {
+public class SysShardsTableInfo extends StaticTableInfo<ShardRowContext> {
 
     public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "shards");
 

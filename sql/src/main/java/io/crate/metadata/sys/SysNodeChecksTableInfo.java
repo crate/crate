@@ -47,7 +47,7 @@ import static io.crate.types.DataTypes.BOOLEAN;
 import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
 
 
-public class SysNodeChecksTableInfo extends StaticTableInfo {
+public class SysNodeChecksTableInfo extends StaticTableInfo<SysNodeCheck> {
 
     public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "node_checks");
     private static final RowGranularity GRANULARITY = RowGranularity.DOC;

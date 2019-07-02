@@ -43,7 +43,7 @@ import java.util.stream.Collectors;
 import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
 import static io.crate.types.DataTypes.STRING;
 
-public class SysRepositoriesTableInfo extends StaticTableInfo {
+public class SysRepositoriesTableInfo extends StaticTableInfo<Repository> {
 
     public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "repositories");
     private static final RowGranularity GRANULARITY = RowGranularity.DOC;

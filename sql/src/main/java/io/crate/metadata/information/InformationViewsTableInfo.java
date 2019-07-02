@@ -35,7 +35,7 @@ import static io.crate.execution.engine.collect.NestableCollectExpression.forFun
 import static io.crate.types.DataTypes.BOOLEAN;
 import static io.crate.types.DataTypes.STRING;
 
-public class InformationViewsTableInfo extends InformationTableInfo {
+public class InformationViewsTableInfo extends InformationTableInfo<ViewInfo> {
 
     public static final String NAME = "views";
     public static final RelationName IDENT = new RelationName(InformationSchemaInfo.NAME, NAME);
