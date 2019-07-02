@@ -28,8 +28,8 @@ import org.junit.Test;
 import java.util.Collections;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
-import static io.crate.analyze.WindowDefinition.CURRENT_ROW_UNBOUNDED_FOLLOWING;
-import static io.crate.analyze.WindowDefinition.UNBOUNDED_PRECEDING_UNBOUNDED_FOLLOWING;
+import static io.crate.analyze.WindowDefinition.RANGE_CURRENT_ROW_UNBOUNDED_FOLLOWING;
+import static io.crate.analyze.WindowDefinition.RANGE_UNBOUNDED_PRECEDING_UNBOUNDED_FOLLOWING;
 import static org.hamcrest.Matchers.contains;
 
 public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
@@ -52,7 +52,7 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
                        ")",
                        contains(expected),
                        Collections.singletonMap(new ColumnIdent("x"), 0),
-                       UNBOUNDED_PRECEDING_UNBOUNDED_FOLLOWING,
+                       RANGE_UNBOUNDED_PRECEDING_UNBOUNDED_FOLLOWING,
                        INPUT_ROWS);
     }
 
@@ -64,7 +64,7 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
                        ")",
                        contains(expected),
                        Collections.singletonMap(new ColumnIdent("x"), 0),
-                       CURRENT_ROW_UNBOUNDED_FOLLOWING,
+                       RANGE_CURRENT_ROW_UNBOUNDED_FOLLOWING,
                        INPUT_ROWS);
     }
 
@@ -76,7 +76,7 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
                        ")",
                        contains(expected),
                        Collections.singletonMap(new ColumnIdent("x"), 0),
-                       CURRENT_ROW_UNBOUNDED_FOLLOWING,
+                       RANGE_CURRENT_ROW_UNBOUNDED_FOLLOWING,
                        INPUT_ROWS);
     }
 
@@ -88,7 +88,7 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
                        ")",
                        contains(expected),
                        Collections.singletonMap(new ColumnIdent("x"), 0),
-                       CURRENT_ROW_UNBOUNDED_FOLLOWING,
+                       RANGE_CURRENT_ROW_UNBOUNDED_FOLLOWING,
                        INPUT_ROWS);
     }
 
@@ -100,7 +100,7 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
                        ")",
                        contains(expected),
                        Collections.singletonMap(new ColumnIdent("x"), 0),
-                       CURRENT_ROW_UNBOUNDED_FOLLOWING,
+                       RANGE_CURRENT_ROW_UNBOUNDED_FOLLOWING,
                        INPUT_ROWS);
     }
 
@@ -112,7 +112,7 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
                        ")",
                        contains(expected),
                        Collections.singletonMap(new ColumnIdent("x"), 0),
-                       CURRENT_ROW_UNBOUNDED_FOLLOWING,
+                       RANGE_CURRENT_ROW_UNBOUNDED_FOLLOWING,
                        INPUT_ROWS);
     }
 
@@ -124,7 +124,7 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
                        ")",
                        contains(expected),
                        Collections.singletonMap(new ColumnIdent("z"), 0),
-                       CURRENT_ROW_UNBOUNDED_FOLLOWING,
+                       RANGE_CURRENT_ROW_UNBOUNDED_FOLLOWING,
                        new Object[]{"a", 1},
                        new Object[]{"b", 2},
                        new Object[]{"b", 2},
@@ -152,7 +152,7 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
                        ")",
                        contains(expected),
                        Collections.singletonMap(new ColumnIdent("x"), 0),
-                       CURRENT_ROW_UNBOUNDED_FOLLOWING,
+                       RANGE_CURRENT_ROW_UNBOUNDED_FOLLOWING,
                        new Object[]{1, 1},
                        new Object[]{2, 2},
                        new Object[]{2, 2},

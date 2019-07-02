@@ -43,9 +43,7 @@ import java.util.List;
 import static io.crate.sql.tree.FrameBound.Type.CURRENT_ROW;
 import static io.crate.sql.tree.FrameBound.Type.UNBOUNDED_FOLLOWING;
 import static io.crate.sql.tree.FrameBound.Type.UNBOUNDED_PRECEDING;
-import static org.elasticsearch.common.inject.matcher.Matchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 
@@ -62,23 +60,62 @@ public class WindowDefinitionTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testStartUnboundedFollowingIsIllegal() {
-        expectedException.expect(UnsupportedFeatureException.class);
+        expectedException.expect(IllegalStateException.class);
         expectedException.expectMessage(
-            "The only supported frame definitions are unbounded preceding -> current row, " +
-            "current row -> unbounded following and unbounded preceding -> unbounded following");
-        e.plan(
+            "Frame start cannot be UNBOUNDED_FOLLOWING");
+        e.analyze(
             "select sum(col1) over(RANGE BETWEEN UNBOUNDED FOLLOWING and CURRENT ROW) FROM " +
             "unnest([1, 2, 1, 1, 1, 4])");
 
     }
 
     @Test
-    public void testEndUnboundedPrecedingIsIllegal() {
+    public void testStartFollowingIsIllegal() {
+        expectedException.expect(IllegalStateException.class);
+        expectedException.expectMessage(
+            "Frame start cannot be FOLLOWING");
+        e.analyze(
+            "select sum(col1) over(RANGE BETWEEN 1 FOLLOWING and CURRENT ROW) FROM " +
+            "unnest([1, 2, 1, 1, 1, 4])");
+
+    }
+
+    @Test
+    public void testEndPrecedingIsIllegal() {
+        expectedException.expect(IllegalStateException.class);
+        expectedException.expectMessage(
+            "Frame end cannot be PRECEDING");
+        e.analyze(
+            "select sum(col1) over(RANGE BETWEEN CURRENT ROW and 1 PRECEDING) FROM " +
+            "unnest([1, 2, 1, 1, 1, 4])");
+    }
+
+    @Test
+    public void testCustomPrecedingIsUnsupportedFeature() {
         expectedException.expect(UnsupportedFeatureException.class);
         expectedException.expectMessage(
-            "The only supported frame definitions are unbounded preceding -> current row, " +
-            "current row -> unbounded following and unbounded preceding -> unbounded following");
-        e.plan(
+            "Custom PRECEDING and FOLLOWING offsets are currently not supported as frame bounds");
+        e.analyze(
+            "select sum(col1) over(RANGE BETWEEN 1 PRECEDING and CURRENT ROW) FROM " +
+            "unnest([1, 2, 1, 1, 1, 4])");
+    }
+
+    @Test
+    public void testCustomFollowingIsUnsupportedFeature() {
+        expectedException.expect(UnsupportedFeatureException.class);
+        expectedException.expectMessage(
+            "Custom PRECEDING and FOLLOWING offsets are currently not supported as frame bounds");
+        e.analyze(
+            "select sum(col1) over(RANGE BETWEEN CURRENT ROW and 1 FOLLOWING) FROM " +
+            "unnest([1, 2, 1, 1, 1, 4])");
+    }
+
+    @Test
+    public void testEndUnboundedPrecedingIsIllegal() {
+        expectedException.expect(IllegalStateException.class);
+        expectedException.expectMessage(
+            "Frame end cannot be UNBOUNDED_PRECEDING");
+        e.analyze(
             "select sum(col1) over(RANGE BETWEEN CURRENT ROW and UNBOUNDED PRECEDING) FROM " +
             "unnest([1, 2, 1, 1, 1, 4])");
     }
@@ -94,17 +131,6 @@ public class WindowDefinitionTest extends CrateDummyClusterServiceUnitTest {
         assertThat(outputs.size(), is(1));
         WindowFunction windowFunction = (WindowFunction) outputs.get(0);
         assertThat(windowFunction.windowDefinition().windowFrameDefinition().end().type(), is(CURRENT_ROW));
-    }
-
-    @Test
-    public void testRowsFrameDefinitionIsNotSupported() {
-        expectedException.expect(UnsupportedFeatureException.class);
-        expectedException.expectMessage(
-            "The only supported frame definitions are unbounded preceding -> current row, " +
-            "current row -> unbounded following and unbounded preceding -> unbounded following");
-        e.plan(
-            "select sum(col1) over(ROWS 2 PRECEDING) FROM " +
-            "unnest([1, 2, 1, 1, 1, 4])");
     }
 
     @Test

@@ -30,6 +30,7 @@ import java.util.Comparator;
 import java.util.List;
 
 import static io.crate.sql.tree.FrameBound.Type.UNBOUNDED_FOLLOWING;
+import static io.crate.sql.tree.WindowFrame.Type.RANGE;
 import static org.hamcrest.core.Is.is;
 
 public class UnboundedFollowingFrameBoundTest extends CrateUnitTest {
@@ -46,7 +47,7 @@ public class UnboundedFollowingFrameBoundTest extends CrateUnitTest {
     @Test
     public void testEndForFirstFrame() {
         var partition = List.of(1, 2, 2);
-        int end = UNBOUNDED_FOLLOWING.getEnd(0, 3, 0, intComparator, partition);
+        int end = UNBOUNDED_FOLLOWING.getEnd(RANGE, 0, 3, 0, intComparator, partition);
         assertThat("the end boundary should always be the end of the partition for the UNBOUNDED FOLLOWING frames",
                    end,
                    is(3));
@@ -54,7 +55,7 @@ public class UnboundedFollowingFrameBoundTest extends CrateUnitTest {
 
     @Test
     public void testEndForSecondFrame() {
-        int end = UNBOUNDED_FOLLOWING.getEnd(0, 3, 1, intComparator, partition);
+        int end = UNBOUNDED_FOLLOWING.getEnd(RANGE, 0, 3, 1, intComparator, partition);
         assertThat("the end boundary should always be the end of the partition for the UNBOUNDED FOLLOWING frames",
                    end,
                    is(3));
@@ -64,7 +65,7 @@ public class UnboundedFollowingFrameBoundTest extends CrateUnitTest {
     public void testUnboundeFollowingCannotBeTheStartOfTheFrame() {
         expectedException.expect(IllegalStateException.class);
         expectedException.expectMessage("UNBOUNDED FOLLOWING cannot be the start of a frame");
-        UNBOUNDED_FOLLOWING.getStart(0, 3, 1, intComparator, partition);
+        UNBOUNDED_FOLLOWING.getStart(RANGE, 0, 3, 1, intComparator, partition);
     }
 
 }

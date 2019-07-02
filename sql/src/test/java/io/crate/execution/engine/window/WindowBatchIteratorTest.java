@@ -51,8 +51,8 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
-import static io.crate.analyze.WindowDefinition.CURRENT_ROW_UNBOUNDED_FOLLOWING;
-import static io.crate.analyze.WindowDefinition.UNBOUNDED_PRECEDING_CURRENT_ROW;
+import static io.crate.analyze.WindowDefinition.RANGE_CURRENT_ROW_UNBOUNDED_FOLLOWING;
+import static io.crate.analyze.WindowDefinition.RANGE_UNBOUNDED_PRECEDING_CURRENT_ROW;
 import static io.crate.execution.engine.window.WindowFunctionBatchIterator.sortAndComputeWindowFunctions;
 import static org.elasticsearch.common.collect.Tuple.tuple;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -78,7 +78,7 @@ public class WindowBatchIteratorTest {
             () -> WindowFunctionBatchIterator.of(
                 TestingBatchIterators.range(0, 10),
                 new IgnoreRowAccounting(),
-                UNBOUNDED_PRECEDING_CURRENT_ROW,
+                RANGE_UNBOUNDED_PRECEDING_CURRENT_ROW,
                 null,
                 OrderingByPosition.arrayOrdering(0, false, false),
                 1,
@@ -97,7 +97,7 @@ public class WindowBatchIteratorTest {
             () -> WindowFunctionBatchIterator.of(
                 new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 10), 4, 2, null),
                 new IgnoreRowAccounting(),
-                UNBOUNDED_PRECEDING_CURRENT_ROW,
+                RANGE_UNBOUNDED_PRECEDING_CURRENT_ROW,
                 null,
                 OrderingByPosition.arrayOrdering(0, false, false),
                 1,
@@ -115,7 +115,7 @@ public class WindowBatchIteratorTest {
         var rows = IntStream.range(0, 10).mapToObj(i -> new Object[]{i, null}).collect(Collectors.toList());
         var result = Lists.newArrayList(sortAndComputeWindowFunctions(
             new ArrayList<>(rows),
-            UNBOUNDED_PRECEDING_CURRENT_ROW,
+            RANGE_UNBOUNDED_PRECEDING_CURRENT_ROW,
             null,
             null,
             1,
@@ -135,7 +135,7 @@ public class WindowBatchIteratorTest {
         var rowsWithSpare = Lists2.map(rows, i -> new Object[] { i, null });
         var result = sortAndComputeWindowFunctions(
             rowsWithSpare,
-            UNBOUNDED_PRECEDING_CURRENT_ROW,
+            RANGE_UNBOUNDED_PRECEDING_CURRENT_ROW,
             OrderingByPosition.arrayOrdering(0, false, false),
             null,
             1,
@@ -179,7 +179,7 @@ public class WindowBatchIteratorTest {
         );
         var result = sortAndComputeWindowFunctions(
             rows,
-            UNBOUNDED_PRECEDING_CURRENT_ROW,
+            RANGE_UNBOUNDED_PRECEDING_CURRENT_ROW,
             OrderingByPosition.arrayOrdering(0, false, false),
             OrderingByPosition.arrayOrdering(1, false, false),
             2,
@@ -224,7 +224,7 @@ public class WindowBatchIteratorTest {
         );
         var result = sortAndComputeWindowFunctions(
             rows,
-            CURRENT_ROW_UNBOUNDED_FOLLOWING,
+            RANGE_CURRENT_ROW_UNBOUNDED_FOLLOWING,
             OrderingByPosition.arrayOrdering(0, false, false),
             OrderingByPosition.arrayOrdering(1, false, false),
             2,
@@ -269,7 +269,7 @@ public class WindowBatchIteratorTest {
         );
         var result = sortAndComputeWindowFunctions(
             rows,
-            CURRENT_ROW_UNBOUNDED_FOLLOWING,
+            RANGE_CURRENT_ROW_UNBOUNDED_FOLLOWING,
             OrderingByPosition.arrayOrdering(0, false, false),
             null,
             1,
@@ -301,7 +301,7 @@ public class WindowBatchIteratorTest {
         BatchIterator<Row> iterator = WindowFunctionBatchIterator.of(
             TestingBatchIterators.range(0, 10),
             new RowAccountingWithEstimators(List.of(DataTypes.INTEGER), ramAccountingContext, 32),
-            UNBOUNDED_PRECEDING_CURRENT_ROW,
+            RANGE_UNBOUNDED_PRECEDING_CURRENT_ROW,
             null,
             null,
             1,
@@ -325,7 +325,7 @@ public class WindowBatchIteratorTest {
         );
         var result = sortAndComputeWindowFunctions(
             rows,
-            UNBOUNDED_PRECEDING_CURRENT_ROW,
+            RANGE_UNBOUNDED_PRECEDING_CURRENT_ROW,
             null,
             OrderingByPosition.arrayOrdering(0, true, true),
             1,

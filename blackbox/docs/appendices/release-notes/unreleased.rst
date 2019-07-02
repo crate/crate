@@ -42,6 +42,9 @@ Unreleased Changes
 Changes
 =======
 
+- Add support for ``ROWS`` frame definitions in the context of window functions
+  :ref:`window definitions <window-definition>`.
+
 - The ``node`` argument of the :ref:`REROUTE <alter_table_reroute>` commands of
   :ref:`ref-alter-table` can now either be the id or the name of a node.
 

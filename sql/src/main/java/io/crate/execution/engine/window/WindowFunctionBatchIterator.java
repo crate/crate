@@ -192,17 +192,23 @@ public final class WindowFunctionBatchIterator {
                     pEnd = findFirstNonPeer(sortedRows, pStart, end, cmpPartitionBy);
                 }
 
-                int wBegin = frameDefinition.start().type().getStart(pStart,
-                                                                     pEnd,
-                                                                     i,
-                                                                     cmpOrderBy,
-                                                                     sortedRows);
+                int wBegin = frameDefinition.start().type().getStart(
+                    frameDefinition.type(),
+                    pStart,
+                    pEnd,
+                    i,
+                    cmpOrderBy,
+                    sortedRows
+                );
 
-                int wEnd = frameDefinition.end().type().getEnd(pStart,
-                                                               pEnd,
-                                                               i,
-                                                               cmpOrderBy,
-                                                               sortedRows);
+                int wEnd = frameDefinition.end().type().getEnd(
+                    frameDefinition.type(),
+                    pStart,
+                    pEnd,
+                    i,
+                    cmpOrderBy,
+                    sortedRows
+                );
 
                 frame.updateBounds(pStart, pEnd, wBegin, wEnd);
                 final Object[] row = computeAndInjectResults(

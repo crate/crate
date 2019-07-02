@@ -64,7 +64,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.StreamSupport;
 
-import static io.crate.analyze.WindowDefinition.UNBOUNDED_PRECEDING_CURRENT_ROW;
+import static io.crate.analyze.WindowDefinition.RANGE_UNBOUNDED_PRECEDING_CURRENT_ROW;
 import static io.crate.data.SentinelRow.SENTINEL;
 
 @BenchmarkMode(Mode.AverageTime)
@@ -206,7 +206,7 @@ public class RowsBatchIteratorBenchmark {
         BatchIterator<Row> batchIterator = WindowFunctionBatchIterator.of(
             new InMemoryBatchIterator<>(rows, SENTINEL),
             new NoRowAccounting(),
-            UNBOUNDED_PRECEDING_CURRENT_ROW,
+            RANGE_UNBOUNDED_PRECEDING_CURRENT_ROW,
             null,
             null,
             1,

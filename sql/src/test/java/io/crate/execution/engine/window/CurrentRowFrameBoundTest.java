@@ -30,6 +30,8 @@ import java.util.Comparator;
 import java.util.List;
 
 import static io.crate.sql.tree.FrameBound.Type.CURRENT_ROW;
+import static io.crate.sql.tree.WindowFrame.Type.RANGE;
+import static io.crate.sql.tree.WindowFrame.Type.ROWS;
 import static org.hamcrest.core.Is.is;
 
 public class CurrentRowFrameBoundTest extends CrateUnitTest {
@@ -44,39 +46,57 @@ public class CurrentRowFrameBoundTest extends CrateUnitTest {
     }
 
     @Test
-    public void testCurrentRowEndIsFirstNonPeer() {
-        int firstFrameEnd = CURRENT_ROW.getEnd(0, 3, 0, intComparator, partition);
+    public void test_current_row_end_in_range_mode_is_first_non_peer() {
+        int firstFrameEnd = CURRENT_ROW.getEnd(RANGE, 0, 3, 0, intComparator, partition);
         assertThat(firstFrameEnd, is(2));
-        int secondFrameEnd = CURRENT_ROW.getEnd(0, 3, 1, intComparator, partition);
+        int secondFrameEnd = CURRENT_ROW.getEnd(RANGE, 0, 3, 1, intComparator, partition);
         assertThat(secondFrameEnd, is(2));
     }
 
     @Test
-    public void testCurrentRowStartForOrderedPartition() {
-        int firstFrameStart = CURRENT_ROW.getStart(0, 3, 0, intComparator, partition);
+    public void test_current_row_end_in_rows_mode_is_row_index() {
+        int firstFrameEnd = CURRENT_ROW.getEnd(ROWS, 0, 3, 0, intComparator, partition);
+        assertThat(firstFrameEnd, is(0));
+        int secondFrameEnd = CURRENT_ROW.getEnd(ROWS, 0, 3, 1, intComparator, partition);
+        assertThat(secondFrameEnd, is(1));
+    }
+
+    @Test
+    public void test_current_row_start_in_ordered_range_mode_is_first_peer_index() {
+        int firstFrameStart = CURRENT_ROW.getStart(RANGE, 0, 3, 0, intComparator, partition);
         assertThat(firstFrameStart, is(0));
-        int secondFrameStart = CURRENT_ROW.getStart(0, 3, 1, intComparator, partition);
+        int secondFrameStart = CURRENT_ROW.getStart(RANGE, 0, 3, 1, intComparator, partition);
         assertThat("a new frame starts when encountering a non-peer", secondFrameStart, is(0));
-        int thirdFrameStart = CURRENT_ROW.getStart(0, 3, 2, intComparator, partition);
+        int thirdFrameStart = CURRENT_ROW.getStart(RANGE, 0, 3, 2, intComparator, partition);
         assertThat(thirdFrameStart, is(2));
     }
 
     @Test
-    public void testCurrentRowStartIsTheRowIdForUnorderedPartitions() {
-        int firstFrameStart = CURRENT_ROW.getStart(0, 3, 0, intComparator, partition);
+    public void test_current_row_start_in_ordered_row_is_row_index() {
+        int firstFrameStart = CURRENT_ROW.getStart(ROWS, 0, 3, 0, intComparator, partition);
         assertThat(firstFrameStart, is(0));
-        int secondFrameStart = CURRENT_ROW.getStart(0, 3, 1, intComparator, partition);
-        assertThat(secondFrameStart, is(0));
-        int thirdFrameStart = CURRENT_ROW.getStart(0, 3, 2, intComparator, partition);
+        int secondFrameStart = CURRENT_ROW.getStart(ROWS, 0, 3, 1, intComparator, partition);
+        assertThat(secondFrameStart, is(1));
+        int thirdFrameStart = CURRENT_ROW.getStart(ROWS, 0, 3, 2, intComparator, partition);
         assertThat(thirdFrameStart, is(2));
     }
 
     @Test
-    public void testCurrentRowStartForPeersThatSpanMultiplePartitions() {
+    public void test_current_row_start_in_range_mode_unordered_partition_is_row_index() {
+        int firstFrameStart = CURRENT_ROW.getStart(RANGE, 0, 3, 0, intComparator, partition);
+        assertThat(firstFrameStart, is(0));
+        int secondFrameStart = CURRENT_ROW.getStart(RANGE, 0, 3, 1, intComparator, partition);
+        assertThat(secondFrameStart, is(0));
+        int thirdFrameStart = CURRENT_ROW.getStart(RANGE, 0, 3, 2, intComparator, partition);
+        assertThat(thirdFrameStart, is(2));
+    }
+
+    @Test
+    public void test_current_row_start_range_mode_for_peers_crossing_partitions() {
         var window = List.of(1, 2, 2, 2, 2, 2, 2, 2, 3);
-        int frameStartForFourthRow = CURRENT_ROW.getStart(1, 4, 3, intComparator, window);
+        int frameStartForFourthRow = CURRENT_ROW.getStart(RANGE, 1, 4, 3, intComparator, window);
         assertThat(frameStartForFourthRow, is(1));
-        int frameStartForSixthRow = CURRENT_ROW.getStart(4, 7, 5, intComparator, window);
+        int frameStartForSixthRow = CURRENT_ROW.getStart(RANGE, 4, 7, 5, intComparator, window);
         assertThat("frame start shouldn't be outside of the partition bounds", frameStartForSixthRow, is(4));
     }
 
