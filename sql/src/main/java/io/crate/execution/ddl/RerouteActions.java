@@ -38,7 +38,6 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.ShardedTable;
-import io.crate.planner.NodeSelection;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.types.DataTypes;
@@ -55,16 +54,20 @@ import org.elasticsearch.cluster.routing.allocation.command.MoveAllocationComman
 
 import java.util.Locale;
 
+import static io.crate.planner.NodeSelection.resolveNodeId;
+
 public final class RerouteActions {
 
     private RerouteActions() {
     }
 
-    static ClusterRerouteRequest prepareMoveShardReq(RerouteMoveShardAnalyzedStatement statement, Row parameters) {
+    static ClusterRerouteRequest prepareMoveShardReq(RerouteMoveShardAnalyzedStatement statement,
+                                                     Row parameters,
+                                                     DiscoveryNodes nodes) {
         String indexName = getRerouteIndex(statement, parameters);
         int shardId = ExpressionToNumberVisitor.convert(statement.shardId(), parameters).intValue();
-        String fromNodeId = ExpressionToStringVisitor.convert(statement.fromNodeId(), parameters);
-        String toNodeId = ExpressionToStringVisitor.convert(statement.toNodeId(), parameters);
+        String fromNodeId = resolveNodeId(nodes, ExpressionToStringVisitor.convert(statement.fromNodeIdOrName(), parameters));
+        String toNodeId = resolveNodeId(nodes, ExpressionToStringVisitor.convert(statement.toNodeIdOrName(), parameters));
 
         MoveAllocationCommand command = new MoveAllocationCommand(indexName, shardId, fromNodeId, toNodeId);
         ClusterRerouteRequest request = new ClusterRerouteRequest();
@@ -73,10 +76,11 @@ public final class RerouteActions {
     }
 
     static ClusterRerouteRequest prepareAllocateReplicaReq(RerouteAllocateReplicaShardAnalyzedStatement statement,
-                                                    Row parameters) {
+                                                           Row parameters,
+                                                           DiscoveryNodes nodes) {
         String indexName = getRerouteIndex(statement, parameters);
         int shardId = ExpressionToNumberVisitor.convert(statement.shardId(), parameters).intValue();
-        String nodeId = ExpressionToStringVisitor.convert(statement.nodeId(), parameters);
+        String nodeId = resolveNodeId(nodes, ExpressionToStringVisitor.convert(statement.nodeId(), parameters));
 
         AllocateReplicaAllocationCommand command = new AllocateReplicaAllocationCommand(indexName, shardId, nodeId);
         ClusterRerouteRequest request = new ClusterRerouteRequest();
@@ -84,13 +88,14 @@ public final class RerouteActions {
         return request;
     }
 
-    static ClusterRerouteRequest prepareCancelShardReq(RerouteCancelShardAnalyzedStatement statement, Row parameters) {
-        final String ALLOW_PRIMARY = "allow_primary";
+    static ClusterRerouteRequest prepareCancelShardReq(RerouteCancelShardAnalyzedStatement statement,
+                                                       Row parameters,
+                                                       DiscoveryNodes nodes) {
+        boolean allowPrimary = validateCancelRerouteProperty("allow_primary", statement.properties(), parameters);
 
         String indexName = getRerouteIndex(statement, parameters);
         int shardId = ExpressionToNumberVisitor.convert(statement.shardId(), parameters).intValue();
-        String nodeId = ExpressionToStringVisitor.convert(statement.nodeId(), parameters);
-        boolean allowPrimary = validateCancelRerouteProperty(ALLOW_PRIMARY, statement.properties(), parameters);
+        String nodeId = resolveNodeId(nodes, ExpressionToStringVisitor.convert(statement.nodeId(), parameters));
 
         CancelAllocationCommand command = new CancelAllocationCommand(indexName, shardId, nodeId, allowPrimary);
         ClusterRerouteRequest request = new ClusterRerouteRequest();
@@ -116,7 +121,7 @@ public final class RerouteActions {
         }
         String node = DataTypes.STRING.value(SymbolEvaluator.evaluate(
             txnCtx, functions, promoteReplica.node(), parameters, SubQueryResults.EMPTY));
-        String nodeId = NodeSelection.resolveNodeId(nodes, node);
+        String nodeId = resolveNodeId(nodes, node);
         return new ClusterRerouteRequest()
             .add(new AllocateStalePrimaryAllocationCommand(index, shardId, nodeId, acceptDataLoss));
     }
