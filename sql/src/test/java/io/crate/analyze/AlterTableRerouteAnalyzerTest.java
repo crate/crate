@@ -123,7 +123,7 @@ public class AlterTableRerouteAnalyzerTest extends CrateDummyClusterServiceUnitT
             "ALTER TABLE users REROUTE PROMOTE REPLICA SHARD 2 ON 'nodeOne' WITH (accept_data_loss = true)");
         assertThat(stmt.acceptDataLoss(), isLiteral(true));
         assertThat(stmt.shardId(), isLiteral(2L));
-        assertThat(stmt.nodeId(), isLiteral("nodeOne"));
+        assertThat(stmt.node(), isLiteral("nodeOne"));
     }
 
     @Test

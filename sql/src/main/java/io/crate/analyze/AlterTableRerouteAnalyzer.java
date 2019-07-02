@@ -136,11 +136,11 @@ public class AlterTableRerouteAnalyzer {
                 ? Literal.BOOLEAN_FALSE
                 : expressionAnalyzer.convert(acceptDataLossExpr, exprCtx);
             Symbol shardId = expressionAnalyzer.convert(promoteReplica.shardId(), exprCtx);
-            Symbol nodeId = expressionAnalyzer.convert(promoteReplica.nodeId(), exprCtx);
+            Symbol node = expressionAnalyzer.convert(promoteReplica.node(), exprCtx);
             return new PromoteReplicaStatement(
                 context.tableInfo,
                 context.partitionProperties,
-                nodeId,
+                node,
                 shardId,
                 acceptDataLoss
             );

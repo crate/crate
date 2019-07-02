@@ -205,7 +205,8 @@ public class DDLStatementDispatcher {
                     promoteReplica,
                     functions,
                     ctx.parameters,
-                    ctx.txnCtx);
+                    ctx.txnCtx,
+                    clusterService.state().nodes());
             } catch (Throwable t) {
                 return failedFuture(t);
             }

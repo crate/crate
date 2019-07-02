@@ -40,12 +40,14 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.ShardedTable;
+import io.crate.planner.NodeSelection;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.types.DataTypes;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteRequest;
 import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteResponse;
+import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.RoutingNode;
 import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.cluster.routing.UnassignedInfo;
@@ -96,7 +98,8 @@ public final class RerouteActions {
     public static ClusterRerouteRequest prepareAllocateStalePrimaryReq(PromoteReplicaStatement promoteReplica,
                                                                        Functions functions,
                                                                        Row parameters,
-                                                                       TransactionContext txnCtx) {
+                                                                       TransactionContext txnCtx,
+                                                                       DiscoveryNodes nodes) {
         String index = RerouteActions.getRerouteIndex(promoteReplica, parameters);
         Integer shardId = DataTypes.INTEGER.value(SymbolEvaluator.evaluate(
             txnCtx, functions, promoteReplica.shardId(), parameters, SubQueryResults.EMPTY));
@@ -108,8 +111,9 @@ public final class RerouteActions {
         if (acceptDataLoss == null) {
             throw new NullPointerException("`accept_data_loss` in REROUTE PROMOTE REPLICA must not be null");
         }
-        String nodeId = DataTypes.STRING.value(SymbolEvaluator.evaluate(
-            txnCtx, functions, promoteReplica.nodeId(), parameters, SubQueryResults.EMPTY));
+        String node = DataTypes.STRING.value(SymbolEvaluator.evaluate(
+            txnCtx, functions, promoteReplica.node(), parameters, SubQueryResults.EMPTY));
+        String nodeId = NodeSelection.resolveNodeId(nodes, node);
         return new ClusterRerouteRequest()
             .add(new AllocateStalePrimaryAllocationCommand(index, shardId, nodeId, acceptDataLoss));
     }

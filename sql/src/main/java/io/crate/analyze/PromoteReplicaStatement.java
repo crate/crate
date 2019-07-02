@@ -33,21 +33,21 @@ public class PromoteReplicaStatement extends RerouteAnalyzedStatement {
 
     private final Symbol acceptDataLoss;
     private final Symbol shardId;
-    private final Symbol nodeId;
+    private final Symbol node;
 
     public PromoteReplicaStatement(ShardedTable tableInfo,
                                    List<Assignment> partitionProperties,
-                                   Symbol nodeId,
+                                   Symbol node,
                                    Symbol shardId,
                                    Symbol acceptDataLoss) {
         super(tableInfo, partitionProperties);
-        this.nodeId = nodeId;
+        this.node = node;
         this.shardId = shardId;
         this.acceptDataLoss = acceptDataLoss;
     }
 
-    public Symbol nodeId() {
-        return nodeId;
+    public Symbol node() {
+        return node;
     }
 
     public Symbol shardId() {
@@ -66,7 +66,7 @@ public class PromoteReplicaStatement extends RerouteAnalyzedStatement {
     @Override
     public void visitSymbols(Consumer<? super Symbol> consumer) {
         consumer.accept(shardId);
-        consumer.accept(nodeId);
+        consumer.accept(node);
         consumer.accept(acceptDataLoss);
     }
 }
