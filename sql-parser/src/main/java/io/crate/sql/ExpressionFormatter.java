@@ -323,6 +323,9 @@ public final class ExpressionFormatter {
         @Override
         public String visitWindow(Window node, @Nullable List<Expression> parameters) {
             StringBuilder sb = new StringBuilder("(");
+            if (node.windowRef() != null) {
+                sb.append(node.windowRef()).append(" ");
+            }
             if (!node.getPartitions().isEmpty()) {
                 sb.append("PARTITION BY ");
                 sb.append(joinExpressions(node.getPartitions()));

@@ -86,6 +86,8 @@ import io.crate.sql.tree.Table;
 import io.crate.sql.tree.TableFunction;
 import io.crate.sql.tree.TableSubquery;
 import io.crate.sql.tree.Union;
+import io.crate.sql.tree.Window;
+import io.crate.sql.tree.WindowFrame;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
@@ -266,6 +268,20 @@ public final class SqlFormatter {
             if (node.getHaving().isPresent()) {
                 append(indent, "HAVING " + formatStandaloneExpression(node.getHaving().get(), parameters))
                     .append('\n');
+            }
+
+            if (!node.getWindows().isEmpty()) {
+                append(indent, "WINDOW ");
+                var windows = node.getWindows().entrySet().iterator();
+                while (windows.hasNext()) {
+                    Map.Entry<String, Window> window = windows.next();
+                    append(indent, window.getKey()).append(" AS ");
+                    process(window.getValue(), indent);
+                    if (windows.hasNext()) {
+                        append(indent, ", ");
+                    }
+                }
+                builder.append('\n');
             }
 
             if (!node.getOrderBy().isEmpty()) {
@@ -791,6 +807,63 @@ public final class SqlFormatter {
         public Void visitDropSnapshot(DropSnapshot node, Integer indent) {
             builder.append("DROP REPOSITORY ")
                 .append(formatQualifiedName(node.name()));
+            return null;
+        }
+
+        @Override
+        public Void visitWindow(Window window, Integer indent) {
+            append(indent, "(");
+            if (window.windowRef() != null) {
+                append(indent, window.windowRef());
+            }
+            if (!window.getPartitions().isEmpty()) {
+                append(indent, " PARTITION BY ");
+                var partitions = window.getPartitions().iterator();
+                while (partitions.hasNext()) {
+                    process(partitions.next(), indent);
+                    if (partitions.hasNext()) {
+                        append(indent, ", ");
+                    }
+                }
+            }
+            if (!window.getOrderBy().isEmpty()) {
+                append(indent, " ORDER BY ");
+                var sortItems = window.getOrderBy().iterator();
+                while (sortItems.hasNext()) {
+                    process(sortItems.next(), indent);
+                    if (sortItems.hasNext()) {
+                        append(indent, ", ");
+                    }
+                }
+            }
+            window.getWindowFrame().map(frame -> frame.accept(this, indent));
+            append(indent, ")");
+            return null;
+        }
+
+        @Override
+        public Void visitWindowFrame(WindowFrame frame, Integer indent) {
+            append(indent, " ");
+            append(indent, frame.getType().name());
+
+            append(indent, " ");
+            process(frame.getStart().getValue(), indent);
+            append(indent, " ");
+            append(indent, frame.getStart().getType().name());
+
+            frame.getEnd().map(end -> {
+                append(indent, " AND ");
+                process(end.getValue(), indent);
+                append(indent, " ");
+                append(indent, end.getType().name());
+                return null;
+            });
+            return null;
+        }
+
+        @Override
+        protected Void visitSortItem(SortItem node, Integer indent) {
+            process(node.getSortKey(), indent);
             return null;
         }
 

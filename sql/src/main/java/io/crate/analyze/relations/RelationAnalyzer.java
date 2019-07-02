@@ -307,7 +307,9 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 context.parentSources(),
                 coordinatorTxnCtx.sessionContext().searchPath().currentSchema()),
             new SubqueryAnalyzer(this, statementContext));
+
         ExpressionAnalysisContext expressionAnalysisContext = context.expressionAnalysisContext();
+        expressionAnalysisContext.windows(node.getWindows());
 
         SelectAnalysis selectAnalysis = SelectAnalyzer.analyzeSelect(
             node.getSelect(),

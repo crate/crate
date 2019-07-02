@@ -186,8 +186,10 @@ import org.antlr.v4.runtime.tree.TerminalNode;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -938,10 +940,11 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
                     query.getWhere(),
                     query.getGroupBy(),
                     query.getHaving(),
+                    query.getWindows(),
                     visitCollection(context.sortItem(), SortItem.class),
                     visitIfPresent(context.limit, Expression.class),
                     visitIfPresent(context.offset, Expression.class)),
-                ImmutableList.of(),
+                List.of(),
                 Optional.empty(),
                 Optional.empty());
         }
@@ -955,17 +958,37 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     @Override
     public Node visitQuerySpec(SqlBaseParser.QuerySpecContext context) {
         List<SelectItem> selectItems = visitCollection(context.selectItem(), SelectItem.class);
-        List<Relation> relations = context.FROM() == null ? ImmutableList.of() : visitCollection(context.relation(), Relation.class);
-
         return new QuerySpecification(
             new Select(isDistinct(context.setQuant()), selectItems),
-            relations,
+            visitCollection(context.relation(), Relation.class),
             visitIfPresent(context.where(), Expression.class),
             visitCollection(context.expr(), Expression.class),
             visitIfPresent(context.having, Expression.class),
-            ImmutableList.of(),
+            getWindowDefinitions(context.windows),
+            List.of(),
             Optional.empty(),
-            Optional.empty());
+            Optional.empty()
+        );
+    }
+
+    private Map<String, Window> getWindowDefinitions(List<SqlBaseParser.NamedWindowContext> windowContexts) {
+        HashMap<String, Window> windows = new HashMap<>(windowContexts.size());
+        for (var windowContext : windowContexts) {
+            var name = getIdentText(windowContext.name);
+            if (windows.containsKey(name)) {
+                throw new IllegalArgumentException("Window " + name + " is already defined");
+            }
+            Window window = (Window) visit(windowContext.windowDefinition());
+
+            // It prevents circular references in the window definitions
+            // by failing if the window was referenced before it was defined
+            // E.g. WINDOW w AS (ww), ww AS (w)
+            if (window.windowRef() != null && !windows.containsKey(window.windowRef())) {
+                throw new IllegalArgumentException("Window " + window.windowRef() + " does not exist");
+            }
+            windows.put(name, window);
+        }
+        return windows;
     }
 
     @Override
@@ -1318,17 +1341,17 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     }
 
     @Override
-    public Node visitOver(SqlBaseParser.OverContext ctx) {
-        List<SortItem> orderBy;
-        if (ctx.ORDER() != null) {
-            orderBy = visitCollection(ctx.sortItem(), SortItem.class);
-        } else {
-            orderBy = emptyList();
-        }
+    public Node visitOver(SqlBaseParser.OverContext context) {
+        return visit(context.windowDefinition());
+    }
+
+    @Override
+    public Node visitWindowDefinition(SqlBaseParser.WindowDefinitionContext context) {
         return new Window(
-            visitCollection(ctx.partition, Expression.class),
-            orderBy,
-            visitIfPresent(ctx.windowFrame(), WindowFrame.class));
+            getIdentText(context.windowRef),
+            visitCollection(context.partition, Expression.class),
+            visitCollection(context.sortItem(), SortItem.class),
+            visitIfPresent(context.windowFrame(), WindowFrame.class));
     }
 
     @Override

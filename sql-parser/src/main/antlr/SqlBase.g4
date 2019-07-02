@@ -121,6 +121,7 @@ querySpec
       where?
       (GROUP BY expr (',' expr)*)?
       (HAVING having=booleanExpression)?
+      (WINDOW windows+=namedWindow (',' windows+=namedWindow)*)?
     ;
 
 selectItem
@@ -320,8 +321,18 @@ whenClause
     : WHEN condition=expr THEN result=expr
     ;
 
+namedWindow
+    : name=ident AS windowDefinition
+    ;
+
 over
-    : OVER '('
+    : OVER windowDefinition
+    ;
+
+windowDefinition
+    : windowRef=ident
+    | '('
+        (windowRef=ident)?
         (PARTITION BY partition+=expr (',' partition+=expr)*)?
         (ORDER BY sortItem (',' sortItem)*)?
         windowFrame?
@@ -632,7 +643,7 @@ nonReserved
     | PRIVILEGES | SCHEMA | PREPARE
     | REROUTE | MOVE | SHARD | ALLOCATE | REPLICA | CANCEL | CLUSTER | RETRY | FAILED
     | DO | NOTHING | CONFLICT | TRANSACTION_ISOLATION | RETURN | SUMMARY
-    | WORK | SERIALIZABLE | REPEATABLE | COMMITTED | UNCOMMITTED | READ | WRITE | DEFERRABLE
+    | WORK | SERIALIZABLE | REPEATABLE | COMMITTED | UNCOMMITTED | READ | WRITE | WINDOW | DEFERRABLE
     | STRING_TYPE | IP | DOUBLE | FLOAT | TIMESTAMP | LONG | INT | INTEGER | SHORT | BYTE | BOOLEAN | PRECISION
     | REPLACE | SWAP | GC | DANGLING | ARTIFACTS | DECOMMISSION | LEADING | TRAILING | BOTH | TRIM | CURRENT_SCHEMA
     | PROMOTE
@@ -710,6 +721,7 @@ NATURAL: 'NATURAL';
 USING: 'USING';
 ON: 'ON';
 OVER: 'OVER';
+WINDOW: 'WINDOW';
 PARTITION: 'PARTITION';
 PROMOTE: 'PROMOTE';
 RANGE: 'RANGE';
