@@ -43,6 +43,7 @@ import io.crate.analyze.DropRepositoryAnalyzedStatement;
 import io.crate.analyze.DropSnapshotAnalyzedStatement;
 import io.crate.analyze.DropUserAnalyzedStatement;
 import io.crate.analyze.OptimizeTableAnalyzedStatement;
+import io.crate.analyze.PromoteReplicaStatement;
 import io.crate.analyze.RefreshTableAnalyzedStatement;
 import io.crate.analyze.RerouteAllocateReplicaShardAnalyzedStatement;
 import io.crate.analyze.RerouteCancelShardAnalyzedStatement;
@@ -55,10 +56,12 @@ import io.crate.data.Row;
 import io.crate.execution.ddl.tables.AlterTableOperation;
 import io.crate.execution.ddl.tables.TableCreator;
 import io.crate.expression.udf.UserDefinedFunctionDDLClient;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
+import io.crate.metadata.TransactionContext;
 import io.crate.user.SecureHash;
 import io.crate.user.UserActions;
+import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteRequest;
+import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteResponse;
 import org.elasticsearch.action.admin.cluster.reroute.TransportClusterRerouteAction;
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeRequest;
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeResponse;
@@ -70,6 +73,7 @@ import org.elasticsearch.action.admin.indices.upgrade.post.TransportUpgradeActio
 import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeRequest;
 import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeResponse;
 import org.elasticsearch.action.support.IndicesOptions;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
@@ -83,6 +87,7 @@ import static io.crate.analyze.OptimizeTableAnalyzer.FLUSH;
 import static io.crate.analyze.OptimizeTableAnalyzer.MAX_NUM_SEGMENTS;
 import static io.crate.analyze.OptimizeTableAnalyzer.ONLY_EXPUNGE_DELETES;
 import static io.crate.analyze.OptimizeTableAnalyzer.UPGRADE_SEGMENTS;
+import static java.util.concurrent.CompletableFuture.failedFuture;
 
 /**
  * visitor that dispatches requests based on Analysis class to different actions.
@@ -94,6 +99,7 @@ import static io.crate.analyze.OptimizeTableAnalyzer.UPGRADE_SEGMENTS;
 public class DDLStatementDispatcher {
 
     private final Provider<BlobAdminClient> blobAdminClient;
+    private ClusterService clusterService;
     private final TableCreator tableCreator;
     private final AlterTableOperation alterTableOperation;
     private final RepositoryService repositoryService;
@@ -111,6 +117,7 @@ public class DDLStatementDispatcher {
 
     @Inject
     public DDLStatementDispatcher(Provider<BlobAdminClient> blobAdminClient,
+                                  ClusterService clusterService,
                                   TableCreator tableCreator,
                                   AlterTableOperation alterTableOperation,
                                   RepositoryService repositoryService,
@@ -123,6 +130,7 @@ public class DDLStatementDispatcher {
                                   Provider<TransportRefreshAction> transportRefreshActionProvider,
                                   Functions functions) {
         this.blobAdminClient = blobAdminClient;
+        this.clusterService = clusterService;
         this.tableCreator = tableCreator;
         this.alterTableOperation = alterTableOperation;
         this.repositoryService = repositoryService;
@@ -185,6 +193,24 @@ public class DDLStatementDispatcher {
         @Override
         public CompletableFuture<Long> visitRerouteRetryFailedStatement(RerouteRetryFailedAnalyzedStatement analysis, Ctx ctx) {
             return RerouteActions.executeRetryFailed(rerouteAction::execute);
+        }
+
+        @Override
+        public CompletableFuture<Long> visitReroutePromoteReplica(PromoteReplicaStatement promoteReplica, Ctx ctx) {
+            FutureActionListener<ClusterRerouteResponse, Long> listener =
+                new FutureActionListener<>(r -> r.isAcknowledged() ? 1L : -1L);
+            ClusterRerouteRequest rerouteRequest;
+            try {
+                rerouteRequest = RerouteActions.prepareAllocateStalePrimaryReq(
+                    promoteReplica,
+                    functions,
+                    ctx.parameters,
+                    ctx.txnCtx);
+            } catch (Throwable t) {
+                return failedFuture(t);
+            }
+            rerouteAction.execute(rerouteRequest, listener);
+            return listener;
         }
 
         @Override
@@ -273,7 +299,7 @@ public class DDLStatementDispatcher {
             try {
                 secureHash = UserActions.generateSecureHash(analysis.properties(), ctx.parameters, ctx.txnCtx, functions);
             } catch (GeneralSecurityException | IllegalArgumentException e) {
-                return CompletableFuture.failedFuture(e);
+                return failedFuture(e);
             }
             return userManager.createUser(analysis.userName(), secureHash);
         }
@@ -284,7 +310,7 @@ public class DDLStatementDispatcher {
             try {
                 newPassword = UserActions.generateSecureHash(analysis.properties(), ctx.parameters, ctx.txnCtx, functions);
             } catch (GeneralSecurityException | IllegalArgumentException e) {
-                return CompletableFuture.failedFuture(e);
+                return failedFuture(e);
             }
             return userManager.alterUser(analysis.userName(), newPassword);
         }

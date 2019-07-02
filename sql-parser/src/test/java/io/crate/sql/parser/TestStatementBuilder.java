@@ -1401,6 +1401,8 @@ public class TestStatementBuilder {
         printStatement("alter table t reroute allocate replica shard 1 on 'node1'");
         printStatement("alter table t reroute cancel shard 1 on 'node1'");
         printStatement("alter table t reroute cancel shard 1 on 'node1' with (allow_primary = true)");
+        printStatement("ALTER TABLE t REROUTE PROMOTE REPLICA SHARD 1 ON 'node1' WITH (accept_data_loss = true, foo = ?)");
+        printStatement("ALTER TABLE t REROUTE PROMOTE REPLICA SHARD ? ON ? ");
     }
 
     @Test
