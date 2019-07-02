@@ -130,6 +130,7 @@ import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 import io.crate.types.UndefinedType;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -267,12 +268,21 @@ public class ExpressionAnalyzer {
     }
 
     @Nullable
-    private WindowDefinition getWindowDefinition(Optional<Window> maybeWindow, ExpressionAnalysisContext context) {
+    private WindowDefinition getWindowDefinition(Optional<Window> maybeWindow,
+                                                 ExpressionAnalysisContext context) {
         if (!maybeWindow.isPresent()) {
             return null;
         }
+        var unresolvedWindow = maybeWindow.get();
 
-        Window window = maybeWindow.get();
+        final Window window;
+        if (unresolvedWindow.windowRef() != null) {
+            var refWindow = resolveWindowRef(unresolvedWindow.windowRef(), context.windows());
+            window = unresolvedWindow.merge(refWindow);
+        } else {
+            window = unresolvedWindow;
+        }
+
         List<Symbol> partitionSymbols = new ArrayList<>(window.getPartitions().size());
         for (Expression partition : window.getPartitions()) {
             Symbol symbol = convert(partition, context);
@@ -300,6 +310,33 @@ public class ExpressionAnalyzer {
         }
 
         return new WindowDefinition(partitionSymbols, orderBy, windowFrameDefinition);
+    }
+
+    /**
+     * Resolved the window definition from the list of named windows.
+     * Reduces the named list of window definitions to a single one if
+     * they are inter-referenced.
+     *
+     * @param name    A reference to a window definition.
+     * @param windows A map of named window definitions.
+     * @return A {@link Window} from the named window
+     *         definitions or a new window if the targeted window has
+     *         references to other window definitions.
+     * @throws IllegalArgumentException If the window definition is not found.
+     */
+    private Window resolveWindowRef(@Nonnull String name, Map<String, Window> windows) {
+        var window = windows.get(name);
+        if (window == null) {
+            throw new IllegalArgumentException("Window " + name + " does not exist");
+        }
+
+        String windowRef = window.windowRef();
+        while (windowRef != null) {
+            Window refWindow = windows.get(windowRef);
+            window = window.merge(refWindow);
+            windowRef = refWindow.windowRef();
+        }
+        return window;
     }
 
     private void validateFrame(WindowFrame windowFrame) {

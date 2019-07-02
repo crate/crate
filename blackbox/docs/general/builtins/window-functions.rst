@@ -33,13 +33,22 @@ Synopsis
 
 ::
 
-   OVER (
+   OVER { window_name | ( [ window_definition ] ) }
+
+where ``window_definition`` has the syntax
+
+::
+
+   window_definition:
+      [ window_name ]
       [ PARTITION BY expression [, ...] ]
       [ ORDER BY expression [ ASC | DESC ] [ NULLS { FIRST | LAST } ] [, ...] ]
       [ { RANGE | ROWS } BETWEEN frame_start AND frame_end ]
-   )
 
-where ``frame_start`` and ``frame_end`` can be one of
+The ``window_name`` refers to ``window_definition`` defined in the
+:ref:`sql_reference_window` clause.
+
+The ``frame_start`` and ``frame_end`` can be one of
 
 ::
 
@@ -218,6 +227,106 @@ Example::
    |    4006 | M   |                         2 |
    +---------+-----+---------------------------+
    SELECT 18 rows in set (... sec)
+
+.. _named-windows:
+
+Named windows
+-------------
+
+It is possible to define a list of named window definitions that can be
+referenced in :ref:`over` clauses. To do this, use the
+:ref:`sql_reference_window` clause in the :ref:`sql_reference_select` clause.
+
+Named windows are particularly useful when the same window definition
+could be used in multiple :ref:`over` clauses. For instance
+
+::
+
+   cr> SELECT
+   ...   x,
+   ...   FIRST_VALUE(x) OVER (w) AS "first",
+   ...   LAST_VALUE(x) OVER (w) AS "last"
+   ... FROM unnest([1, 2, 3, 4]) as t(x)
+   ... WINDOW w AS (ORDER BY x)
+   +---+-------+------+
+   | x | first | last |
+   +---+-------+------+
+   | 1 |     1 |    1 |
+   | 2 |     1 |    2 |
+   | 3 |     1 |    3 |
+   | 4 |     1 |    4 |
+   +---+-------+------+
+   SELECT 4 rows in set (... sec)
+
+If a ``window_name`` is specified in the window definition of the :ref:`over`
+clause, then there must be a named window entry that matches the ``window_name``
+in the window definition list of the :ref:`sql_reference_window` clause.
+
+If the :ref:`over` clause has its own non-empty window definition and
+references a window definition from the :ref:`sql_reference_window` clause,
+then it can only add clauses from the referenced window, but not overwrite them.
+
+::
+
+   cr> SELECT
+   ...   x,
+   ...   LAST_VALUE(x) OVER (w ORDER BY x)
+   ... FROM unnest(
+   ...      [1, 2, 3, 4],
+   ...      [1, 1, 2, 2]) as t(x, y)
+   ... WINDOW w AS (PARTITION BY y)
+   +---+---+
+   | x | y |
+   +---+---+
+   | 1 | 1 |
+   | 2 | 2 |
+   | 3 | 3 |
+   | 4 | 4 |
+   +---+---+
+   SELECT 4 rows in set (... sec)
+
+Otherwise, an attempt to override the clauses of the referenced window
+by the window definition of the :ref:`OVER` clause will result in failure.
+
+::
+
+   cr> SELECT
+   ...   FIRST_VALUE(x) OVER (w ORDER BY x)
+   ... FROM unnest([1, 2, 3, 4]) as t(x)
+   ... WINDOW w AS (ORDER BY x)
+   SQLActionException[SQLParseException: Cannot override ORDER BY clause of window w]
+
+It is not possible to define the ``PARTITION BY`` clause in the window
+definition of the :ref:`OVER` clause if it references a window definition
+from the ref:`sql_reference_window` clause.
+
+The window definitions in the :ref:`sql_reference_window` clause cannot define
+its own window frames, if they are referenced by non-empty window definitions
+of the :ref:`OVER` clauses.
+
+The definition of the named window can itself begin with a ``window_name``.
+In this case all the elements of inter-connected named windows will be copied
+to the window definition of the :ref:`OVER` clause if it references the named
+window definition that has subsequent window references. The window definitions
+in the ``WINDOW`` clause permits only backward references.
+
+::
+
+   cr> SELECT
+   ...   x,
+   ...   ROW_NUMBER() OVER (w)
+   ... FROM unnest([1, 2, 3], [1, 1, 2]) as t(x, y)
+   ... WINDOW p AS (PARTITION BY y),
+   ...        w AS (p ORDER BY x)
+   +---+---+
+   | x | y |
+   +---+---+
+   | 1 | 1 |
+   | 2 | 2 |
+   | 3 | 1 |
+   +---+---+
+   SELECT 3 rows in set (... sec)
+
 
 General-Purpose Window Functions
 ================================

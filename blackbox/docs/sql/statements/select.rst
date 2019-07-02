@@ -18,11 +18,12 @@ Synopsis
 ::
 
     SELECT [ ALL | DISTINCT ] * | expression [ [ AS ] output_name ] [, ...]
-      [ OVER (window_definition) [, ...] ]
+      [ OVER ( window_definition ) [, ...] ]
       [ FROM relation ]
       [ WHERE condition ]
       [ GROUP BY expression [, ...] [HAVING condition] ]
       [ UNION ALL query_specification ]
+      [ WINDOW window_name AS ( window_definition ) [, ...] ]
       [ ORDER BY expression [ ASC | DESC ] [ NULLS { FIRST | LAST } ] [, ...] ]
       [ LIMIT num_results ]
       [ OFFSET start ]
@@ -348,6 +349,26 @@ Character-string data is sorted by its UTF-8 representation.
     Additionally, sorting on :ref:`geo_point_data_type`,
     :ref:`geo_shape_data_type`, :ref:`data-type-array`, and
     :ref:`object_data_type` is not supported.
+
+.. _sql_reference_window:
+
+``WINDOW``
+..........
+
+The optional WINDOW clause has a form:
+
+::
+
+   WINDOW window_name AS ( window_definition ) [, ...]
+
+The ``window_name`` is a name that can be referenced from ``OVER`` clauses
+or subsequent window definitions.
+
+The ``window_definition`` determines the partitioning and ordering of
+rows before the window function is applied. For detailed information,
+see :ref:`window-definition`.
+
+See also, :ref:`named-windows`.
 
 ``LIMIT``
 .........

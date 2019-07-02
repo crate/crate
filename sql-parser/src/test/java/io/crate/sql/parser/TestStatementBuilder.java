@@ -69,6 +69,7 @@ import io.crate.sql.tree.StringLiteral;
 import io.crate.sql.tree.SubqueryExpression;
 import io.crate.sql.tree.SubscriptExpression;
 import io.crate.sql.tree.SwapTable;
+import io.crate.sql.tree.Window;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -136,6 +137,51 @@ public class TestStatementBuilder {
         printStatement("SELECT avg(x) OVER (ROWS UNBOUND PRECEDING) FROM t");
         printStatement("SELECT avg(x) OVER (ROWS BETWEEN UNBOUND PRECEDING AND CURRENT ROW) FROM t");
         printStatement("SELECT avg(x) OVER (ROWS BETWEEN 10 PRECEDING AND UNBOUND FOLLOWING) FROM t");
+    }
+
+    @Test
+    public void test_over_references_empty_window_def() {
+        printStatement("SELECT avg(x) OVER (w) FROM t WINDOW w AS ()");
+        printStatement("SELECT avg(x) OVER w FROM t WINDOW w AS ()");
+        printStatement("SELECT avg(x) OVER w, sum(x) OVER w FROM t WINDOW w AS ()");
+    }
+
+    @Test
+    public void test_over_with_order_by_or_frame_references_empty_window_def() {
+        printStatement("SELECT avg(x) OVER (w ORDER BY x) FROM t WINDOW w AS ()");
+        printStatement("SELECT avg(x) OVER (w ROWS UNBOUND PRECEDING) FROM t WINDOW w AS ()");
+    }
+
+    @Test
+    public void test_over_references_window_with_order_by_or_partition_by() {
+        printStatement("SELECT avg(x) OVER w FROM t WINDOW w AS (PARTITION BY x)");
+        printStatement("SELECT avg(x) OVER (w) FROM t WINDOW w AS (ORDER BY x)");
+        printStatement("SELECT avg(x) OVER w FROM t WINDOW w AS (PARTITION BY x ORDER BY x)");
+    }
+
+    @Test
+    public void test_multiple_window_definitions_referenced_in_over() {
+        printStatement("SELECT avg(x) OVER w1, avg(x) OVER w2 FROM t WINDOW w1 AS (), w2 AS ()");
+    }
+
+    @Test
+    public void test_over_does_not_reference_window_definitions_from_window_clause() {
+        printStatement("SELECT x FROM t WINDOW w AS ()");
+        printStatement("SELECT avg(x) OVER () FROM t WINDOW w AS () ");
+    }
+
+    @Test
+    public void test_duplicates_in_window_definitions() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Window w is already defined");
+        printStatement("SELECT x FROM t WINDOW w AS (), w as ()");
+    }
+
+    @Test
+    public void test_circular_references_in_window_definitions() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Window ww does not exist");
+        printStatement("SELECT x FROM t WINDOW w AS (ww), ww as (w), www as ()");
     }
 
     @Test
@@ -1513,10 +1559,11 @@ public class TestStatementBuilder {
             statement instanceof DropBlobTable ||
             statement instanceof DropView ||
             statement instanceof DropRepository ||
-            statement instanceof DropSnapshot) {
-            println(SqlFormatter.formatSql(statement));
-            println("");
-            assertFormattedSql(statement);
+            statement instanceof DropSnapshot ||
+            statement instanceof Window) {
+                println(SqlFormatter.formatSql(statement));
+                println("");
+                assertFormattedSql(statement);
         }
 
         println(repeat("=", 60));

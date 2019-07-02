@@ -22,6 +22,7 @@
 
 package io.crate.analyze;
 
+import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.WindowFunction;
@@ -34,9 +35,12 @@ import org.junit.Test;
 
 import java.util.List;
 
+import static io.crate.testing.SymbolMatchers.isField;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
+import static org.hamcrest.core.IsNot.not;
 
 public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -139,5 +143,44 @@ public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUn
         assertThat(frameDefinition.type(), is(WindowFrame.Type.RANGE));
         assertThat(frameDefinition.start().type(), is(FrameBound.Type.UNBOUNDED_PRECEDING));
         assertThat(frameDefinition.end().type(), is(FrameBound.Type.UNBOUNDED_FOLLOWING));
+    }
+
+    @Test
+    public void test_over_with_order_by_references_window_with_partition_by() {
+        AnalyzedRelation relation = e.analyze(
+            "SELECT AVG(x) OVER (w ORDER BY x) " +
+            "FROM t " +
+            "WINDOW w AS (PARTITION BY x)");
+        WindowFunction windowFunction = (WindowFunction) relation.outputs().get(0);
+        WindowDefinition windowDefinition = windowFunction.windowDefinition();
+
+        assertThat(windowDefinition.partitions(), contains(isField("x")));
+
+        OrderBy orderBy = windowDefinition.orderBy();
+        assertThat(orderBy, not(nullValue()));
+        assertThat(orderBy.orderBySymbols().size(), is(1));
+    }
+
+    @Test
+    public void test_over_references_window_that_references_subsequent_window() {
+        AnalyzedRelation relation = e.analyze(
+            "SELECT AVG(x) OVER w2 " +
+            "FROM t WINDOW w AS (PARTITION BY x)," +
+            "             w2 AS (w ORDER BY x)");
+        WindowFunction windowFunction = (WindowFunction) relation.outputs().get(0);
+        WindowDefinition windowDefinition = windowFunction.windowDefinition();
+
+        assertThat(windowDefinition.partitions(), contains(isField("x")));
+
+        OrderBy orderBy = windowDefinition.orderBy();
+        assertThat(orderBy, not(nullValue()));
+        assertThat(orderBy.orderBySymbols().size(), is(1));
+    }
+
+    @Test
+    public void test_over_references_not_defined_window() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Window w does not exist");
+        e.analyze("SELECT AVG(x) OVER w FROM t WINDOW ww AS ()");
     }
 }

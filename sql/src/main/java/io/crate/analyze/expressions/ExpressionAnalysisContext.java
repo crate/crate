@@ -25,6 +25,7 @@ import io.crate.sql.tree.ArrayComparisonExpression;
 import io.crate.sql.tree.DefaultTraversalVisitor;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.SubqueryExpression;
+import io.crate.sql.tree.Window;
 
 import java.util.IdentityHashMap;
 import java.util.Map;
@@ -40,6 +41,8 @@ public class ExpressionAnalysisContext {
     private boolean hasAggregates;
     private boolean allowEagerNormalize = true;
 
+    private Map<String, Window> windows = Map.of();
+
     void indicateAggregates() {
         hasAggregates = true;
     }
@@ -54,6 +57,14 @@ public class ExpressionAnalysisContext {
 
     public void allowEagerNormalize(boolean value) {
         this.allowEagerNormalize = value;
+    }
+
+    public void windows(Map<String, Window> windows) {
+        this.windows = windows;
+    }
+
+    public Map<String, Window> windows() {
+        return windows;
     }
 
     /**

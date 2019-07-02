@@ -22,19 +22,30 @@
 
 package io.crate.sql.tree;
 
+import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Optional;
 
-public final class Window extends Node {
+public final class Window extends Statement {
 
+    private final String windowRef;
     private final List<Expression> partitions;
     private final List<SortItem> orderBy;
     private final Optional<WindowFrame> windowFrame;
 
-    public Window(List<Expression> partitions, List<SortItem> orderBy, Optional<WindowFrame> windowFrame) {
+    public Window(@Nullable String windowRef,
+                  List<Expression> partitions,
+                  List<SortItem> orderBy,
+                  Optional<WindowFrame> windowFrame) {
         this.partitions = partitions;
         this.orderBy = orderBy;
         this.windowFrame = windowFrame;
+        this.windowRef = windowRef;
+    }
+
+    @Nullable
+    public String windowRef() {
+        return windowRef;
     }
 
     public List<Expression> getPartitions() {
@@ -47,6 +58,58 @@ public final class Window extends Node {
 
     public Optional<WindowFrame> getWindowFrame() {
         return windowFrame;
+    }
+
+    /**
+     * Merges the provided window definition into the current one
+     * by following the next merge rules:
+     * <ul>
+     * <li> The current window must not specify the partition by clause.
+     * <li> The provided window must not specify the window frame, if
+     *      the current window definition is not empty.
+     * <li> The provided window cannot override the order by clause
+     *      or window frame.
+     * <ul/>
+     *
+     * @return A new {@link Window} window definition that contains merged
+     *         elements of both current and provided windows or a provided
+     *         window definition if the current definition is empty.
+     * @throws IllegalArgumentException If the merge rules are violated.
+     */
+    public Window merge(Window that) {
+        if (this.empty()) {
+            return that;
+        }
+
+        final List<Expression> partitionBy;
+        if (!this.partitions.isEmpty()) {
+            throw new IllegalArgumentException(
+                "Cannot override PARTITION BY clause of window " + this.windowRef);
+        } else {
+            partitionBy = that.getPartitions();
+        }
+
+        final List<SortItem> orderBy;
+        if (that.getOrderBy().isEmpty()) {
+            orderBy = this.getOrderBy();
+        } else {
+            if (!this.getOrderBy().isEmpty()) {
+                throw new IllegalArgumentException(
+                    "Cannot override ORDER BY clause of window " + this.windowRef);
+            }
+            orderBy = that.getOrderBy();
+        }
+
+        if (that.getWindowFrame().isPresent()) {
+            throw new IllegalArgumentException(
+                "Cannot copy window " + this.windowRef() + " because it has a frame clause");
+        }
+
+        return new Window(that.windowRef, partitionBy, orderBy, this.getWindowFrame());
+    }
+
+    private boolean empty() {
+        return partitions.isEmpty() && orderBy.isEmpty() && windowFrame.isEmpty();
     }
 
     @Override

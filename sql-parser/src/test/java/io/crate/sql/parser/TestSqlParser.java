@@ -23,7 +23,6 @@
 package io.crate.sql.parser;
 
 import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableList;
 import io.crate.sql.tree.Cast;
 import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.CreateTable;
@@ -43,7 +42,9 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 
 import static io.crate.sql.SqlFormatter.formatSql;
@@ -171,12 +172,13 @@ public class TestSqlParser {
                     selectList(new DoubleLiteral("123.456E7")),
                     table(QualifiedName.of("dual")),
                     Optional.empty(),
-                    ImmutableList.of(),
+                    List.of(),
                     Optional.empty(),
-                    ImmutableList.of(),
+                    Map.of(),
+                    List.of(),
                     Optional.empty(),
                     Optional.empty()),
-                ImmutableList.of(),
+                List.of(),
                 Optional.empty(),
                 Optional.empty())
         );
@@ -349,7 +351,7 @@ public class TestSqlParser {
     @Test
     public void testTrimFunctionExpression() {
         assertExpression("TRIM(BOTH 'A' FROM chars)",
-            new FunctionCall(new QualifiedName("trim"), ImmutableList.of(
+            new FunctionCall(new QualifiedName("trim"), List.of(
                 new QualifiedNameReference(new QualifiedName("chars")),
                 new StringLiteral("A"),
                 new StringLiteral("BOTH")
@@ -360,7 +362,7 @@ public class TestSqlParser {
     @Test
     public void testTrimFunctionExpressionSingleArgument() {
         assertExpression("TRIM(chars)",
-            new FunctionCall(new QualifiedName("trim"), ImmutableList.of(
+            new FunctionCall(new QualifiedName("trim"), List.of(
                 new QualifiedNameReference(new QualifiedName("chars"))
             ))
         );

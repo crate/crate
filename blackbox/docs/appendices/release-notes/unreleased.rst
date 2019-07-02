@@ -42,6 +42,11 @@ Unreleased Changes
 Changes
 =======
 
+- Added support for the :ref:`named window definition <named-windows>`.
+  It allows a user to define a list of window definitions in the
+  :ref:`sql_reference_window` clause that can be referenced in :ref:`over`
+  clauses.
+
 - Add support for ``ROWS`` frame definitions in the context of window functions
   :ref:`window definitions <window-definition>`.
 
