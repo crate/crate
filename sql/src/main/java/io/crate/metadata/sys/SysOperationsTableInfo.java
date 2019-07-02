@@ -45,7 +45,7 @@ import static io.crate.types.DataTypes.STRING;
 import static io.crate.types.DataTypes.TIMESTAMPZ;
 import static io.crate.types.DataTypes.LONG;
 
-public class SysOperationsTableInfo extends StaticTableInfo {
+public class SysOperationsTableInfo extends StaticTableInfo<OperationContext> {
 
     public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "operations");
 

@@ -44,7 +44,7 @@ import static io.crate.types.DataTypes.BOOLEAN;
 import static io.crate.types.DataTypes.SHORT_ARRAY;
 import static io.crate.types.DataTypes.INTEGER_ARRAY;
 
-public class PgIndexTable extends StaticTableInfo {
+public class PgIndexTable extends StaticTableInfo<Void> {
 
     public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_index");
 

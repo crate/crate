@@ -41,7 +41,7 @@ import static io.crate.types.DataTypes.INTEGER;
 import static io.crate.execution.engine.collect.NestableCollectExpression.constant;
 
 
-public class PgAttrDefTable extends StaticTableInfo {
+public class PgAttrDefTable extends StaticTableInfo<Void> {
 
     public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_attrdef");
 

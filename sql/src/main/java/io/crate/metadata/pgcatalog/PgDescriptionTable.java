@@ -40,7 +40,7 @@ import static io.crate.execution.engine.collect.NestableCollectExpression.consta
 import static io.crate.types.DataTypes.STRING;
 import static io.crate.types.DataTypes.INTEGER;
 
-public final class PgDescriptionTable extends StaticTableInfo {
+public final class PgDescriptionTable extends StaticTableInfo<Void> {
 
     public static final RelationName NAME = new RelationName(PgCatalogSchemaInfo.NAME, "pg_description");
 

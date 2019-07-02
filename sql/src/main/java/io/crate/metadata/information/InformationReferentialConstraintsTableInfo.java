@@ -32,7 +32,7 @@ import java.util.Map;
 import static io.crate.execution.engine.collect.NestableCollectExpression.constant;
 import static io.crate.types.DataTypes.STRING;
 
-public class InformationReferentialConstraintsTableInfo extends InformationTableInfo {
+public class InformationReferentialConstraintsTableInfo extends InformationTableInfo<Void> {
 
     public static final String NAME = "referential_constraints";
     public static final RelationName IDENT = new RelationName(InformationSchemaInfo.NAME, NAME);

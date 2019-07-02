@@ -44,7 +44,7 @@ import static io.crate.metadata.pgcatalog.OidHash.schemaOid;
 import static io.crate.types.DataTypes.STRING;
 import static io.crate.types.DataTypes.INTEGER;
 
-public class PgNamespaceTable extends StaticTableInfo {
+public class PgNamespaceTable extends StaticTableInfo<SchemaInfo> {
 
     public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_namespace");
 
