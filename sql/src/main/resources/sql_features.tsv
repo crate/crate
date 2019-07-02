@@ -32,8 +32,8 @@ B128	Routine language SQL			NO
 B211	Module language Ada: VARCHAR and NUMERIC support			NO		
 B221	Routine language Ada: VARCHAR and NUMERIC support			NO		
 E011	Numeric data types			NO		Only Java types are supported
-E011	Numeric data types	1	INTEGER and SMALLINT data types	NO		missing smallint
-E011	Numeric data types	2	REAL, DOUBLE PRECISION, and FLOAT data types	NO		missing real, double precission
+E011	Numeric data types	1	INTEGER and SMALLINT data types	YES		
+E011	Numeric data types	2	REAL, DOUBLE PRECISION, and FLOAT data types	YES		
 E011	Numeric data types	3	DECIMAL and NUMERIC data types	NO		
 E011	Numeric data types	4	Arithmetic operators	YES		
 E011	Numeric data types	5	Numeric comparison	YES		
@@ -47,7 +47,7 @@ E021	Character string types	5	OCTET_LENGTH function	YES
 E021	Character string types	6	SUBSTRING function	NO		substr scalar
 E021	Character string types	7	Character concatenation	YES		
 E021	Character string types	8	UPPER and LOWER functions	YES		
-E021	Character string types	9	TRIM function	NO		
+E021	Character string types	9	TRIM function	YES		
 E021	Character string types	10	Implicit casting among the character string types	-		just one type
 E021	Character string types	11	POSITION function	NO		
 E021	Character string types	12	Character comparison	YES		
@@ -74,7 +74,7 @@ E061	Basic predicates and search conditions	6	NULL predicate	YES
 E061	Basic predicates and search conditions	7	Quantified comparison predicate	NO		only ANY(array) 
 E061	Basic predicates and search conditions	8	EXISTS predicate	NO		
 E061	Basic predicates and search conditions	9	Subqueries in comparison predicate	NO		
-E061	Basic predicates and search conditions	11	Subqueries in IN predicate	NO		
+E061	Basic predicates and search conditions	11	Subqueries in IN predicate	YES		
 E061	Basic predicates and search conditions	12	Subqueries in quantified comparison predicate	NO		
 E061	Basic predicates and search conditions	13	Correlated subqueries	NO		
 E061	Basic predicates and search conditions	14	Search condition	YES		
@@ -125,11 +125,11 @@ E141	Basic integrity constraints	2	UNIQUE constraints of NOT NULL columns	NO
 E141	Basic integrity constraints	3	PRIMARY KEY constraints	YES		
 E141	Basic integrity constraints	4	Basic FOREIGN KEY constraint with the NO ACTION default for both referential delete action and referential update action	NO		
 E141	Basic integrity constraints	6	CHECK constraints	NO		
-E141	Basic integrity constraints	7	Column defaults	NO		
+E141	Basic integrity constraints	7	Column defaults	YES		
 E141	Basic integrity constraints	8	NOT NULL inferred on PRIMARY KEY	YES		
 E141	Basic integrity constraints	10	Names in a foreign key can be specified in any order	NO		
 E151	Transaction support			NO		
-E151	Transaction support	1	COMMIT statement	NO		
+E151	Transaction support	1	COMMIT statement	YES		
 E151	Transaction support	2	ROLLBACK statement	NO		
 E152	Basic SET TRANSACTION statement			NO		
 E152	Basic SET TRANSACTION statement	1	SET TRANSACTION statement: ISOLATION LEVEL SERIALIZABLE clause	NO		
@@ -147,8 +147,8 @@ F021	Basic information schema	5	REFERENTIAL_CONSTRAINTS view	-
 F021	Basic information schema	6	CHECK_CONSTRAINTS view	-		
 F031	Basic schema manipulation			NO		
 F031	Basic schema manipulation	1	CREATE TABLE statement to create persistent base tables	YES		
-F031	Basic schema manipulation	2	CREATE VIEW statement	NO		
-F031	Basic schema manipulation	3	GRANT statement	NO		
+F031	Basic schema manipulation	2	CREATE VIEW statement	YES		
+F031	Basic schema manipulation	3	GRANT statement	YES		
 F031	Basic schema manipulation	4	ALTER TABLE statement: ADD COLUMN clause	YES		
 F031	Basic schema manipulation	13	DROP TABLE statement: RESTRICT clause	NO		
 F031	Basic schema manipulation	16	DROP VIEW statement: RESTRICT clause	NO		
@@ -304,7 +304,7 @@ F741	Referential MATCH types			NO
 F751	View CHECK enhancements			NO		
 F761	Session management			NO		
 F762	CURRENT_CATALOG			NO		
-F763	CURRENT_SCHEMA			NO		
+F763	CURRENT_SCHEMA			YES		
 F771	Connection management			NO		crash shell only
 F781	Self-referencing operations			NO		
 F791	Insensitive cursors			NO		
@@ -494,10 +494,10 @@ T611	Elementary OLAP operations			NO
 T612	Advanced OLAP operations			NO		
 T613	Sampling			NO		
 T614	NTILE function			NO		
-T615	LEAD and LAG functions			NO		
+T615	LEAD and LAG functions			YES		
 T616	Null treatment option for LEAD and LAG functions			NO		
-T617	FIRST_VALUE and LAST_VALUE function			NO		
-T618	NTH_VALUE function			NO		
+T617	FIRST_VALUE and LAST_VALUE function			YES		
+T618	NTH_VALUE function			YES		
 T619	Nested window functions			NO		
 T620	WINDOW clause: GROUPS option			NO		
 T621	Enhanced numeric functions			NO		missing: exp, power
