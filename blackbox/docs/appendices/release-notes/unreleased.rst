@@ -46,7 +46,9 @@ Changes
   features.
 
 - Changed the default for :ref:`sql_ref_write_wait_for_active_shards` from
-  ``ALL`` to ``1``.
+  ``ALL`` to ``1``. This will improve the out of box experience as it allows a
+  subset of nodes to become unavailable without blocking write operations. See
+  the documentation for more details about the implications.
 
 Fixes
 =====

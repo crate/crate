@@ -320,18 +320,42 @@ For further details see :ref:`refresh_data` or :ref:`sql_ref_refresh`.
 ``write.wait_for_active_shards``
 --------------------------------
 
-Specifies the number of shard copies that need to be active for the write
-operation to proceed. If less shards are active the operation will wait for 30s
-for them to become active or timeout.
-
-The number of shard copies is defined like this::
-
-    number_of_shard_copies = (1 + number_of_replicas)
+Specifies the number of shard copies that need to be active for write
+operations to proceed. If less shard copies are active the operation must wait
+and retry for up to 30s before timing out.
 
 :value:
-  The number of active shard copies to wait for or ``all``. The default value
-  is set to ``1`` which means write operations will proceed as long as a
-  primary copy of a shard is active.
+  ``all`` or a positive integer up to the total number of configured shard copies
+  (``number_of_replicas + 1``).
+  A value of ``1`` means only the primary has to be active. A value of ``2``
+  means the primary plus one replica shard has to be active, and so on.
+
+  The default value is set to ``1``.
+
+  ``all`` is a special value that means all shards (primary + replicas) must be
+  active for write operations to proceed.
+
+
+Increasing the number of shard copies to wait for improves the resiliency of
+the system. It reduces the chance of write operations not writing to the
+desired number of shard copies, but it does not eliminate the possibility
+completely, because the check occurs before the write operation starts.
+
+Replica shard copies that missed some writes will be brought up to date by the
+system eventually, but in case a node holding the primary copy has a system
+failure, the replica copy couldn't be promoted automatically as it would lead
+to data loss since the system is aware that the replica shard didn't receive
+all writes.
+
+Say you've a 3 node cluster and a table with 1 configured replica. With
+``write.wait_for_active_shards=1`` and ``number_of_replicas=1`` a node in the
+cluster can be restarted without affecting write operations because the primary
+copies are either active or the replicas can be quickly promoted.
+
+If ``write.wait_for_active_shards`` would be set to ``2`` instead and a node is
+stopped, the write operations would block until the replica is fully replicated
+again or the write operations would timeout in case the replication is not fast
+enough. 
 
 
 .. _table-settings-blocks.read_only:
