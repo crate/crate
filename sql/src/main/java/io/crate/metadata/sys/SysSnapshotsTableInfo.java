@@ -42,7 +42,7 @@ import static io.crate.types.DataTypes.TIMESTAMPZ;
 
 import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
 
-public class SysSnapshotsTableInfo extends StaticTableInfo {
+public class SysSnapshotsTableInfo extends StaticTableInfo<SysSnapshot> {
 
     public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "snapshots");
     private static final RowGranularity GRANULARITY = RowGranularity.DOC;

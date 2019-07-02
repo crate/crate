@@ -49,7 +49,7 @@ import static io.crate.types.DataTypes.INTEGER;
 import static io.crate.types.DataTypes.LONG;
 import static io.crate.types.DataTypes.STRING;
 
-public class InformationPartitionsTableInfo extends InformationTableInfo {
+public class InformationPartitionsTableInfo extends InformationTableInfo<PartitionInfo> {
 
     public static final String NAME = "table_partitions";
     public static final RelationName IDENT = new RelationName(InformationSchemaInfo.NAME, NAME);

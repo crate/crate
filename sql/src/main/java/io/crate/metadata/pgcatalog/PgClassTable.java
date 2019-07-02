@@ -49,7 +49,7 @@ import static io.crate.types.DataTypes.BOOLEAN;
 import static io.crate.types.DataTypes.SHORT;
 import static io.crate.types.DataTypes.STRING_ARRAY;
 
-public class PgClassTable extends StaticTableInfo {
+public class PgClassTable extends StaticTableInfo<RelationInfo> {
 
     public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_class");
     private static final String KIND_TABLE = "r";

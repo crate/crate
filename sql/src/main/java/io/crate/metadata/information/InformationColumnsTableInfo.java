@@ -48,7 +48,7 @@ import static io.crate.execution.engine.collect.NestableCollectExpression.forFun
 import static io.crate.execution.engine.collect.NestableCollectExpression.constant;
 
 
-public class InformationColumnsTableInfo extends InformationTableInfo {
+public class InformationColumnsTableInfo extends InformationTableInfo<ColumnContext> {
 
     public static final String NAME = "columns";
     public static final RelationName IDENT = new RelationName(InformationSchemaInfo.NAME, NAME);

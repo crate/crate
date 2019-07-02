@@ -34,16 +34,16 @@ import io.crate.metadata.table.StaticTableInfo;
 import org.elasticsearch.cluster.ClusterState;
 
 
-public class InformationTableInfo extends StaticTableInfo {
+public abstract class InformationTableInfo<T> extends StaticTableInfo<T> {
 
     InformationTableInfo(RelationName ident,
-                         ColumnRegistrar columnRegistrar,
+                         ColumnRegistrar<T> columnRegistrar,
                          ImmutableList<ColumnIdent> primaryKey) {
         super(ident, columnRegistrar, primaryKey);
     }
 
     InformationTableInfo(RelationName ident,
-                         ColumnRegistrar columnRegistrar,
+                         ColumnRegistrar<T> columnRegistrar,
                          String... primaryKey) {
         super(ident, columnRegistrar, primaryKey);
     }

@@ -50,7 +50,7 @@ import static io.crate.expression.reference.sys.cluster.ClusterLicenseExpression
 import static io.crate.expression.reference.sys.cluster.ClusterLicenseExpression.ISSUED_TO;
 import static io.crate.expression.reference.sys.cluster.ClusterLicenseExpression.MAX_NODES;
 
-public class SysClusterTableInfo extends StaticTableInfo {
+public class SysClusterTableInfo extends StaticTableInfo<Void> {
 
     public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "cluster");
 
@@ -72,8 +72,8 @@ public class SysClusterTableInfo extends StaticTableInfo {
         return RowGranularity.CLUSTER;
     }
 
-    private static ColumnRegistrar buildColumnRegistrar() {
-        return new ColumnRegistrar(IDENT, RowGranularity.CLUSTER)
+    private static ColumnRegistrar<Void> buildColumnRegistrar() {
+        return new ColumnRegistrar<Void>(IDENT, RowGranularity.CLUSTER)
             .register("id", DataTypes.STRING)
             .register("name", DataTypes.STRING)
             .register("master_node", DataTypes.STRING)
