@@ -345,7 +345,10 @@ Replica shard copies that missed some writes will be brought up to date by the
 system eventually, but in case a node holding the primary copy has a system
 failure, the replica copy couldn't be promoted automatically as it would lead
 to data loss since the system is aware that the replica shard didn't receive
-all writes.
+all writes. In such a scenario, :ref:`ALTER TABLE .. REROUTE PROMOTE REPLICA
+<alter-table-reroute-promote-replica>` can be used to force the allocation of a
+stale replica copy to at least recover the data that is available in the stale
+replica copy.
 
 Say you've a 3 node cluster and a table with 1 configured replica. With
 ``write.wait_for_active_shards=1`` and ``number_of_replicas=1`` a node in the
