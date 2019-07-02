@@ -286,9 +286,10 @@ public class ExpressionAnalyzer {
             return symbol;
         });
 
-        WindowFrameDefinition windowFrameDefinition = WindowDefinition.UNBOUNDED_PRECEDING_CURRENT_ROW;
+        WindowFrameDefinition windowFrameDefinition = WindowDefinition.RANGE_UNBOUNDED_PRECEDING_CURRENT_ROW;
         if (window.getWindowFrame().isPresent()) {
             WindowFrame windowFrame = window.getWindowFrame().get();
+            validateFrame(windowFrame);
             FrameBound start = windowFrame.getStart();
             FrameBoundDefinition startBound = convertToAnalyzedFrameBound(context, start);
 
@@ -299,6 +300,32 @@ public class ExpressionAnalyzer {
         }
 
         return new WindowDefinition(partitionSymbols, orderBy, windowFrameDefinition);
+    }
+
+    private void validateFrame(WindowFrame windowFrame) {
+        FrameBound.Type startType = windowFrame.getStart().getType();
+        if (startType.equals(FrameBound.Type.FOLLOWING) ||
+            startType.equals(FrameBound.Type.UNBOUNDED_FOLLOWING)) {
+            throw new IllegalStateException("Frame start cannot be " + startType);
+        }
+
+        if (startType.equals(FrameBound.Type.PRECEDING)) {
+            throw new UnsupportedFeatureException(
+                "Custom PRECEDING and FOLLOWING offsets are currently not supported as frame bounds");
+        }
+
+        windowFrame.getEnd().ifPresent(frameBound -> {
+            FrameBound.Type endType = frameBound.getType();
+            if (endType.equals(FrameBound.Type.PRECEDING) ||
+                endType.equals(FrameBound.Type.UNBOUNDED_PRECEDING)) {
+                throw new IllegalStateException("Frame end cannot be " + endType);
+            }
+
+            if (endType.equals(FrameBound.Type.FOLLOWING)) {
+                throw new UnsupportedFeatureException(
+                    "Custom PRECEDING and FOLLOWING offsets are currently not supported as frame bounds");
+            }
+        });
     }
 
     private FrameBoundDefinition convertToAnalyzedFrameBound(ExpressionAnalysisContext context, FrameBound frameBound) {

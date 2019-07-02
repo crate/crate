@@ -62,7 +62,7 @@ public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUn
         WindowDefinition windowDefinition = windowFunction.windowDefinition();
         assertThat(windowDefinition.partitions().isEmpty(), is(true));
         assertThat(windowDefinition.orderBy(), is(nullValue()));
-        assertThat(windowDefinition.windowFrameDefinition(), is(WindowDefinition.UNBOUNDED_PRECEDING_CURRENT_ROW));
+        assertThat(windowDefinition.windowFrameDefinition(), is(WindowDefinition.RANGE_UNBOUNDED_PRECEDING_CURRENT_ROW));
     }
 
     @Test
@@ -129,7 +129,7 @@ public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUn
     @Test
     public void testOverWithFrameDefinition() {
         QueriedTable<?> analysis = e.analyze("select avg(x) OVER (PARTITION BY x ORDER BY x " +
-                                             "RANGE BETWEEN 5 PRECEDING AND 6 FOLLOWING) from t");
+                                             "RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) from t");
 
         List<Symbol> outputSymbols = analysis.outputs();
         assertThat(outputSymbols.size(), is(1));
@@ -138,12 +138,7 @@ public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUn
         assertThat(windowFunction.arguments().size(), is(1));
         WindowFrameDefinition frameDefinition = windowFunction.windowDefinition().windowFrameDefinition();
         assertThat(frameDefinition.type(), is(WindowFrame.Type.RANGE));
-        validateRangeFrameDefinition(frameDefinition.start(), FrameBound.Type.PRECEDING, 5L);
-        validateRangeFrameDefinition(frameDefinition.end(),FrameBound.Type.FOLLOWING, 6L);
-    }
-
-    private void validateRangeFrameDefinition(FrameBoundDefinition boundDefinition, FrameBound.Type type, long boundValue) {
-        assertThat(boundDefinition.type(), is(type));
-        assertThat(boundDefinition.value(), SymbolMatchers.isLiteral(boundValue));
+        assertThat(frameDefinition.start().type(), is(FrameBound.Type.UNBOUNDED_PRECEDING));
+        assertThat(frameDefinition.end().type(), is(FrameBound.Type.UNBOUNDED_FOLLOWING));
     }
 }

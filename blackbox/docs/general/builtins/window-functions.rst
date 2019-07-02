@@ -36,7 +36,7 @@ Synopsis
    OVER (
       [ PARTITION BY expression [, ...] ]
       [ ORDER BY expression [ ASC | DESC ] [ NULLS { FIRST | LAST } ] [, ...] ]
-      [ RANGE BETWEEN frame_start AND frame_end ]
+      [ { RANGE | ROWS } BETWEEN frame_start AND frame_end ]
    )
 
 where ``frame_start`` and ``frame_end`` can be one of
@@ -52,6 +52,13 @@ ROW``. If ``frame_end`` is omitted it defaults to ``CURRENT ROW``.
 
 ``frame_start`` cannot be ``UNBOUNDED FOLLOWING`` and ``frame_end`` cannot be
 ``UNBOUNDED PRECEDING``.
+
+In ``RANGE`` mode if the ``frame_start`` is ``CURRENT ROW`` the frame starts
+with the current row's first peer (a row that the window's ``ORDER BY``
+expression sorts as equal to the current row), while a ``frame_end`` of
+``CURRENT ROW`` means the frame will end with the current's row last peer row.
+
+In ``ROWS`` mode ``CURRENT_ROW`` means the current row.
 
 The ``OVER`` clause defines the ``window`` containing the appropriate rows
 which will take part in the ``window function`` computation.

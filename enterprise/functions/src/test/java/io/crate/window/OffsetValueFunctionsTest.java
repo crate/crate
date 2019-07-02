@@ -30,7 +30,7 @@ import org.junit.Test;
 import java.util.Collections;
 import java.util.Map;
 
-import static io.crate.analyze.WindowDefinition.CURRENT_ROW_UNBOUNDED_FOLLOWING;
+import static io.crate.analyze.WindowDefinition.RANGE_CURRENT_ROW_UNBOUNDED_FOLLOWING;
 import static org.hamcrest.Matchers.contains;
 
 public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
@@ -159,7 +159,7 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate("lag(x) over(RANGE BETWEEN CURRENT ROW and UNBOUNDED FOLLOWING)",
             contains(new Object[]{null, 1, 2, 3}),
             Collections.singletonMap(new ColumnIdent("x"), 0),
-            CURRENT_ROW_UNBOUNDED_FOLLOWING,
+            RANGE_CURRENT_ROW_UNBOUNDED_FOLLOWING,
             new Object[]{1},
             new Object[]{2},
             new Object[]{3},
@@ -185,7 +185,7 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate("lead(x, 2, 42) over(RANGE BETWEEN CURRENT ROW and UNBOUNDED FOLLOWING)",
             contains(new Object[]{2, 3, 4, 42, 42}),
             Collections.singletonMap(new ColumnIdent("x"), 0),
-            CURRENT_ROW_UNBOUNDED_FOLLOWING,
+            RANGE_CURRENT_ROW_UNBOUNDED_FOLLOWING,
             new Object[]{1},
             new Object[]{2},
             new Object[]{2},

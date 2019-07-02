@@ -67,7 +67,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import static io.crate.analyze.WindowDefinition.UNBOUNDED_PRECEDING_CURRENT_ROW;
+import static io.crate.analyze.WindowDefinition.RANGE_UNBOUNDED_PRECEDING_CURRENT_ROW;
 import static io.crate.data.SentinelRow.SENTINEL;
 import static io.crate.execution.engine.sort.Comparators.createComparator;
 import static org.elasticsearch.common.util.BigArrays.NON_RECYCLING_INSTANCE;
@@ -125,7 +125,7 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
         assertEvaluate(functionExpression,
                        expectedValue,
                        positionInRowByColumn,
-                       UNBOUNDED_PRECEDING_CURRENT_ROW,
+            RANGE_UNBOUNDED_PRECEDING_CURRENT_ROW,
                        inputRows);
     }
 

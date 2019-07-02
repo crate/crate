@@ -47,19 +47,19 @@ import static io.crate.sql.tree.WindowFrame.Type.RANGE;
  */
 public class WindowDefinition implements Writeable {
 
-    public static final WindowFrameDefinition UNBOUNDED_PRECEDING_CURRENT_ROW = new WindowFrameDefinition(
+    public static final WindowFrameDefinition RANGE_UNBOUNDED_PRECEDING_CURRENT_ROW = new WindowFrameDefinition(
         RANGE,
         new FrameBoundDefinition(UNBOUNDED_PRECEDING),
         new FrameBoundDefinition(CURRENT_ROW)
     );
 
-    public static final WindowFrameDefinition CURRENT_ROW_UNBOUNDED_FOLLOWING = new WindowFrameDefinition(
+    public static final WindowFrameDefinition RANGE_CURRENT_ROW_UNBOUNDED_FOLLOWING = new WindowFrameDefinition(
         RANGE,
         new FrameBoundDefinition(CURRENT_ROW),
         new FrameBoundDefinition(UNBOUNDED_FOLLOWING)
     );
 
-    public static final WindowFrameDefinition UNBOUNDED_PRECEDING_UNBOUNDED_FOLLOWING = new WindowFrameDefinition(
+    public static final WindowFrameDefinition RANGE_UNBOUNDED_PRECEDING_UNBOUNDED_FOLLOWING = new WindowFrameDefinition(
         RANGE,
         new FrameBoundDefinition(UNBOUNDED_PRECEDING),
         new FrameBoundDefinition(UNBOUNDED_FOLLOWING)
@@ -81,7 +81,7 @@ public class WindowDefinition implements Writeable {
                             @Nullable WindowFrameDefinition windowFrameDefinition) {
         this.partitions = partitions;
         this.orderBy = orderBy;
-        this.windowFrameDefinition = windowFrameDefinition == null ? UNBOUNDED_PRECEDING_CURRENT_ROW : windowFrameDefinition;
+        this.windowFrameDefinition = windowFrameDefinition == null ? RANGE_UNBOUNDED_PRECEDING_CURRENT_ROW : windowFrameDefinition;
     }
 
     public List<Symbol> partitions() {

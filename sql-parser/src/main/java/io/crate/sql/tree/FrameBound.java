@@ -28,13 +28,15 @@ import java.util.List;
 
 import static io.crate.common.collections.Lists2.findFirstNonPeer;
 import static io.crate.common.collections.Lists2.findFirstPreviousPeer;
+import static io.crate.sql.tree.WindowFrame.Type.ROWS;
 
 public class FrameBound extends Node {
 
     public enum Type {
         UNBOUNDED_PRECEDING {
             @Override
-            public <T> int getStart(int pStart,
+            public <T> int getStart(WindowFrame.Type frameType,
+                                    int pStart,
                                     int pEnd,
                                     int currentRowIdx,
                                     @Nullable Comparator<T> cmp,
@@ -43,13 +45,14 @@ public class FrameBound extends Node {
             }
 
             @Override
-            public <T> int getEnd(int pStart, int pEnd, int currentRowIdx, @Nullable Comparator<T> cmp, List<T> rows) {
+            public <T> int getEnd(WindowFrame.Type frameType, int pStart, int pEnd, int currentRowIdx, @Nullable Comparator<T> cmp, List<T> rows) {
                 throw new IllegalStateException("UNBOUNDED PRECEDING cannot be the start of a frame");
             }
         },
         PRECEDING {
             @Override
-            public <T> int getStart(int pStart,
+            public <T> int getStart(WindowFrame.Type frameType,
+                                    int pStart,
                                     int pEnd,
                                     int currentRowIdx,
                                     @Nullable Comparator<T> cmp,
@@ -58,7 +61,7 @@ public class FrameBound extends Node {
             }
 
             @Override
-            public <T> int getEnd(int pStart, int pEnd, int currentRowIdx, @Nullable Comparator<T> cmp, List<T> rows) {
+            public <T> int getEnd(WindowFrame.Type frameType, int pStart, int pEnd, int currentRowIdx, @Nullable Comparator<T> cmp, List<T> rows) {
                 throw new UnsupportedOperationException("Custom PRECEDING frames are not supported");
             }
         },
@@ -71,11 +74,16 @@ public class FrameBound extends Node {
          */
         CURRENT_ROW {
             @Override
-            public <T> int getStart(int pStart,
+            public <T> int getStart(WindowFrame.Type frameType,
+                                    int pStart,
                                     int pEnd,
                                     int currentRowIdx,
                                     @Nullable Comparator<T> cmp,
                                     List<T> rows) {
+                if (frameType == ROWS) {
+                    return currentRowIdx;
+                }
+
                 if (pStart == currentRowIdx) {
                     return pStart;
                 } else {
@@ -88,13 +96,18 @@ public class FrameBound extends Node {
             }
 
             @Override
-            public <T> int getEnd(int pStart, int pEnd, int currentRowIdx, @Nullable Comparator<T> cmp, List<T> rows) {
+            public <T> int getEnd(WindowFrame.Type frameType, int pStart, int pEnd, int currentRowIdx, @Nullable Comparator<T> cmp, List<T> rows) {
+                if (frameType == ROWS) {
+                    return currentRowIdx;
+                }
+
                 return findFirstNonPeer(rows, currentRowIdx, pEnd, cmp);
             }
         },
         FOLLOWING {
             @Override
-            public <T> int getStart(int pStart,
+            public <T> int getStart(WindowFrame.Type frameType,
+                                    int pStart,
                                     int pEnd,
                                     int currentRowIdx,
                                     @Nullable Comparator<T> cmp,
@@ -103,13 +116,14 @@ public class FrameBound extends Node {
             }
 
             @Override
-            public <T> int getEnd(int pStart, int pEnd, int currentRowIdx, @Nullable Comparator<T> cmp, List<T> rows) {
+            public <T> int getEnd(WindowFrame.Type frameType, int pStart, int pEnd, int currentRowIdx, @Nullable Comparator<T> cmp, List<T> rows) {
                 throw new UnsupportedOperationException("Custom FOLLOWING frames are not supported");
             }
         },
         UNBOUNDED_FOLLOWING {
             @Override
-            public <T> int getStart(int pStart,
+            public <T> int getStart(WindowFrame.Type frameType,
+                                    int pStart,
                                     int pEnd,
                                     int currentRowIdx,
                                     @Nullable Comparator<T> cmp,
@@ -118,22 +132,24 @@ public class FrameBound extends Node {
             }
 
             @Override
-            public <T> int getEnd(int pStart, int pEnd, int currentRowIdx, @Nullable Comparator<T> cmp, List<T> rows) {
+            public <T> int getEnd(WindowFrame.Type frameType, int pStart, int pEnd, int currentRowIdx, @Nullable Comparator<T> cmp, List<T> rows) {
                 return pEnd;
             }
         };
 
-        public abstract <T> int getStart(int pStart,
-                                     int pEnd,
-                                     int currentRowIdx,
-                                     @Nullable Comparator<T> cmp,
-                                     List<T> rows);
+        public abstract <T> int getStart(WindowFrame.Type frameType,
+                                         int pStart,
+                                         int pEnd,
+                                         int currentRowIdx,
+                                         @Nullable Comparator<T> cmp,
+                                         List<T> rows);
 
-        public abstract <T> int getEnd(int pStart,
-                                   int pEnd,
-                                   int currentRowIdx,
-                                   @Nullable Comparator<T> cmp,
-                                   List<T> rows);
+        public abstract <T> int getEnd(WindowFrame.Type frameType,
+                                       int pStart,
+                                       int pEnd,
+                                       int currentRowIdx,
+                                       @Nullable Comparator<T> cmp,
+                                       List<T> rows);
     }
 
     private final Type type;
