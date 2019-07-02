@@ -67,8 +67,7 @@ public class PromoteStaleReplicaITest extends SQLTransportIntegrationTest {
             is("0| false| UNASSIGNED\n" +
                "0| true| UNASSIGNED\n"));
 
-        String nodeId = (String) execute("select id from sys.nodes where name = ? limit 1", $(newN1)).rows()[0][0];
-        execute("alter table t1 reroute promote replica shard 0 on ? with (accept_data_loss = true)", $(nodeId));
+        execute("alter table t1 reroute promote replica shard 0 on ? with (accept_data_loss = true)", $(newN1));
         execute("select * from t1");
         assertThat(
             printedTable(response.rows()),

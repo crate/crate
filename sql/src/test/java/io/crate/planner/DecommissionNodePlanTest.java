@@ -31,22 +31,22 @@ public class DecommissionNodePlanTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testResolveIdUsingNodeId() throws Exception {
-        assertThat(DecommissionNodePlan.resolveNodeIdFromIdOrName(clusterService.state().nodes(), NODE_ID),
-            is(NODE_ID)
+        assertThat(NodeSelection.resolveNodeId(clusterService.state().nodes(), NODE_ID),
+                   is(NODE_ID)
         );
     }
 
     @Test
     public void testResolveIdUsingNodeName() throws Exception {
-        assertThat(DecommissionNodePlan.resolveNodeIdFromIdOrName(clusterService.state().nodes(), NODE_NAME),
-            is(NODE_ID)
+        assertThat(NodeSelection.resolveNodeId(clusterService.state().nodes(), NODE_NAME),
+                   is(NODE_ID)
         );
     }
 
     @Test
     public void testResolveIdUsingNodeNameDiffCase() throws Exception {
-        assertThat(DecommissionNodePlan.resolveNodeIdFromIdOrName(clusterService.state().nodes(), NODE_NAME.toUpperCase()),
-            is(NODE_ID)
+        assertThat(NodeSelection.resolveNodeId(clusterService.state().nodes(), NODE_NAME.toUpperCase()),
+                   is(NODE_ID)
         );
     }
 
@@ -54,6 +54,6 @@ public class DecommissionNodePlanTest extends CrateDummyClusterServiceUnitTest {
     public void testFailIfNodeIsNotPartOfTheCluster() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("could not be found");
-        DecommissionNodePlan.resolveNodeIdFromIdOrName(clusterService.state().nodes(), "aNonExistentNode");
+        NodeSelection.resolveNodeId(clusterService.state().nodes(), "aNonExistentNode");
     }
 }

@@ -38,7 +38,7 @@ public class PromoteReplica extends RerouteOption {
         this.properties = properties;
     }
 
-    public Expression nodeId() {
+    public Expression node() {
         return node;
     }
 
