@@ -43,7 +43,7 @@ import static io.crate.types.DataTypes.INTEGER;
 import static io.crate.types.DataTypes.BOOLEAN;
 import static io.crate.types.DataTypes.STRING_ARRAY;
 
-public class PgDatabaseTable extends StaticTableInfo {
+public class PgDatabaseTable extends StaticTableInfo<Void> {
 
     public static final RelationName NAME = new RelationName(PgCatalogSchemaInfo.NAME, "pg_database");
 
@@ -71,7 +71,7 @@ public class PgDatabaseTable extends StaticTableInfo {
             .register("datacl", STRING_ARRAY, () -> constant(null));
     }
 
-    public PgDatabaseTable() {
+    PgDatabaseTable() {
         super(NAME, columnRegistrar());
     }
 

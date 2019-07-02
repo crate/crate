@@ -41,7 +41,7 @@ import static io.crate.types.DataTypes.TIMESTAMPZ;
 import static io.crate.types.DataTypes.LONG;
 import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
 
-public class SysOperationsLogTableInfo extends StaticTableInfo {
+public class SysOperationsLogTableInfo extends StaticTableInfo<OperationContextLog> {
 
     public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "operations_log");
 

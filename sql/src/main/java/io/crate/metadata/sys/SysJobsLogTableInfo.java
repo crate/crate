@@ -44,7 +44,7 @@ import static io.crate.types.DataTypes.STRING;
 import static io.crate.types.DataTypes.TIMESTAMPZ;
 import static io.crate.types.DataTypes.STRING_ARRAY;
 
-public class SysJobsLogTableInfo extends StaticTableInfo {
+public class SysJobsLogTableInfo extends StaticTableInfo<JobContextLog> {
 
     public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "jobs_log");
     public static final TableInfo INSTANCE = new SysJobsLogTableInfo();

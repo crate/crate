@@ -28,14 +28,13 @@ import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.ConstraintInfo;
 
-import static io.crate.types.DataTypes.STRING;
-import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
-import static io.crate.execution.engine.collect.NestableCollectExpression.constant;
-
-
 import java.util.Map;
 
-public class InformationTableConstraintsTableInfo extends InformationTableInfo {
+import static io.crate.execution.engine.collect.NestableCollectExpression.constant;
+import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
+import static io.crate.types.DataTypes.STRING;
+
+public class InformationTableConstraintsTableInfo extends InformationTableInfo<ConstraintInfo> {
 
     public static final String NAME = "table_constraints";
     public static final RelationName IDENT = new RelationName(InformationSchemaInfo.NAME, NAME);

@@ -33,7 +33,7 @@ import static io.crate.types.DataTypes.STRING;
 import static io.crate.types.DataTypes.BOOLEAN;
 import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
 
-public class InformationRoutinesTableInfo extends InformationTableInfo {
+public class InformationRoutinesTableInfo extends InformationTableInfo<RoutineInfo> {
 
     public static final String NAME = "routines";
     public static final RelationName IDENT = new RelationName(InformationSchemaInfo.NAME, NAME);

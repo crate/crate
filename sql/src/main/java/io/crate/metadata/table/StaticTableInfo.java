@@ -26,6 +26,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collection;
@@ -36,7 +37,7 @@ import java.util.Map;
 import java.util.Set;
 import static io.crate.common.collections.Lists2.map;
 
-public abstract class StaticTableInfo implements TableInfo {
+public abstract class StaticTableInfo<T> implements TableInfo {
 
     private final RelationName ident;
     private final List<ColumnIdent> primaryKey;
@@ -57,11 +58,11 @@ public abstract class StaticTableInfo implements TableInfo {
         this.primaryKey = primaryKey;
     }
 
-    public StaticTableInfo(RelationName ident, ColumnRegistrar columnRegistrar, List<ColumnIdent> primaryKey) {
+    public StaticTableInfo(RelationName ident, ColumnRegistrar<T> columnRegistrar, List<ColumnIdent> primaryKey) {
         this(ident, columnRegistrar.infos(), columnRegistrar.columns(), primaryKey);
     }
 
-    public StaticTableInfo(RelationName ident, ColumnRegistrar columnRegistrar, String... primaryKey) {
+    public StaticTableInfo(RelationName ident, ColumnRegistrar<T> columnRegistrar, String... primaryKey) {
         this(ident, columnRegistrar.infos(), columnRegistrar.columns(), map(Arrays.asList(primaryKey), ColumnIdent::new));
     }
 
@@ -96,6 +97,7 @@ public abstract class StaticTableInfo implements TableInfo {
         return ident.fqn();
     }
 
+    @Nonnull
     @Override
     public Iterator<Reference> iterator() {
         return columnMap.values().iterator();

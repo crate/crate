@@ -39,7 +39,7 @@ import static io.crate.types.DataTypes.INTEGER;
 /**
  * Table which contains the primary keys of all user tables.
  */
-public class InformationKeyColumnUsageTableInfo extends InformationTableInfo {
+public class InformationKeyColumnUsageTableInfo extends InformationTableInfo<InformationSchemaIterables.KeyColumnUsage> {
 
     public static final String NAME = "key_column_usage";
     public static final RelationName IDENT = new RelationName(InformationSchemaInfo.NAME, NAME);

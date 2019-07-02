@@ -47,7 +47,7 @@ import static io.crate.types.DataTypes.LONG;
 import static io.crate.types.DataTypes.BOOLEAN;
 import static io.crate.types.DataTypes.STRING_ARRAY;
 
-public class InformationTablesTableInfo extends InformationTableInfo {
+public class InformationTablesTableInfo extends InformationTableInfo<RelationInfo> {
 
     public static final String NAME = "tables";
     public static final RelationName IDENT = new RelationName(InformationSchemaInfo.NAME, NAME);

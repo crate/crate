@@ -73,10 +73,9 @@ import static io.crate.types.DataTypes.SHORT;
 import static io.crate.types.DataTypes.TIMESTAMPZ;
 import static io.crate.types.DataTypes.INTEGER;
 
-public class SysNodesTableInfo extends StaticTableInfo {
+public class SysNodesTableInfo extends StaticTableInfo<NodeStatsContext> {
 
     public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "nodes");
-    private static final ImmutableList<ColumnIdent> PRIMARY_KEY = ImmutableList.of(new ColumnIdent("id"));
 
     private static final RowGranularity GRANULARITY = RowGranularity.DOC;
 

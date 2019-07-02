@@ -46,7 +46,7 @@ import static io.crate.types.DataTypes.DOUBLE;
 import static io.crate.types.DataTypes.STRING_ARRAY;
 import static io.crate.types.DataTypes.UNDEFINED;
 
-public class SysMetricsTableInfo extends StaticTableInfo {
+public class SysMetricsTableInfo extends StaticTableInfo<MetricsView> {
 
     public static final RelationName NAME = new RelationName(SysSchemaInfo.NAME, "jobs_metrics");
 

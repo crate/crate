@@ -46,7 +46,7 @@ import static io.crate.types.DataTypes.INTEGER;
 import static io.crate.types.DataTypes.STRING;
 import static io.crate.types.DataTypes.STRING_ARRAY;
 
-public class SysAllocationsTableInfo extends StaticTableInfo {
+public class SysAllocationsTableInfo extends StaticTableInfo<SysAllocation> {
 
     public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "allocations");
     private static final RowGranularity GRANULARITY = RowGranularity.DOC;
