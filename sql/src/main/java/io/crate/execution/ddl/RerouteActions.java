@@ -25,18 +25,24 @@ package io.crate.execution.ddl;
 import io.crate.action.FutureActionListener;
 import io.crate.analyze.AlterTableAnalyzer;
 import io.crate.analyze.AnalyzedStatementVisitor;
+import io.crate.analyze.PromoteReplicaStatement;
 import io.crate.analyze.RerouteAllocateReplicaShardAnalyzedStatement;
 import io.crate.analyze.RerouteAnalyzedStatement;
 import io.crate.analyze.RerouteCancelShardAnalyzedStatement;
 import io.crate.analyze.RerouteMoveShardAnalyzedStatement;
+import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.expressions.ExpressionToNumberVisitor;
 import io.crate.analyze.expressions.ExpressionToObjectVisitor;
 import io.crate.analyze.expressions.ExpressionToStringVisitor;
 import io.crate.data.Row;
+import io.crate.metadata.Functions;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.ShardedTable;
+import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.GenericProperties;
+import io.crate.types.DataTypes;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteRequest;
 import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteResponse;
@@ -44,6 +50,7 @@ import org.elasticsearch.cluster.routing.RoutingNode;
 import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.cluster.routing.UnassignedInfo;
 import org.elasticsearch.cluster.routing.allocation.command.AllocateReplicaAllocationCommand;
+import org.elasticsearch.cluster.routing.allocation.command.AllocateStalePrimaryAllocationCommand;
 import org.elasticsearch.cluster.routing.allocation.command.CancelAllocationCommand;
 import org.elasticsearch.cluster.routing.allocation.command.MoveAllocationCommand;
 
@@ -84,6 +91,27 @@ public final class RerouteActions {
             new FutureActionListener<>(RerouteActions::retryFailedAffectedShardsRowCount);
         rerouteAction.accept(request, listener);
         return listener;
+    }
+
+    public static ClusterRerouteRequest prepareAllocateStalePrimaryReq(PromoteReplicaStatement promoteReplica,
+                                                                       Functions functions,
+                                                                       Row parameters,
+                                                                       TransactionContext txnCtx) {
+        String index = RerouteActions.getRerouteIndex(promoteReplica, parameters);
+        Integer shardId = DataTypes.INTEGER.value(SymbolEvaluator.evaluate(
+            txnCtx, functions, promoteReplica.shardId(), parameters, SubQueryResults.EMPTY));
+        if (shardId == null) {
+            throw new NullPointerException("Shard in REROUTE PROMOTE REPLICA must not be null");
+        }
+        Boolean acceptDataLoss = DataTypes.BOOLEAN.value(SymbolEvaluator.evaluate(
+            txnCtx, functions, promoteReplica.acceptDataLoss(), parameters, SubQueryResults.EMPTY));
+        if (acceptDataLoss == null) {
+            throw new NullPointerException("`accept_data_loss` in REROUTE PROMOTE REPLICA must not be null");
+        }
+        String nodeId = DataTypes.STRING.value(SymbolEvaluator.evaluate(
+            txnCtx, functions, promoteReplica.nodeId(), parameters, SubQueryResults.EMPTY));
+        return new ClusterRerouteRequest()
+            .add(new AllocateStalePrimaryAllocationCommand(index, shardId, nodeId, acceptDataLoss));
     }
 
     static long retryFailedAffectedShardsRowCount(ClusterRerouteResponse response) {

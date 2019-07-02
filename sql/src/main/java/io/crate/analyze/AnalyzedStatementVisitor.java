@@ -242,4 +242,8 @@ public class AnalyzedStatementVisitor<C, R> {
     public R visitDecommissionNode(AnalyzedDecommissionNodeStatement decommissionNode, C context) {
         return visitAnalyzedStatement(decommissionNode, context);
     }
+
+    public R visitReroutePromoteReplica(PromoteReplicaStatement promoteReplicaStatement, C context) {
+        return visitDDLStatement(promoteReplicaStatement, context);
+    }
 }

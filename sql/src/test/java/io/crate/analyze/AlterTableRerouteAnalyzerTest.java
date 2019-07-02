@@ -23,8 +23,6 @@
 package io.crate.analyze;
 
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.sql.tree.Literal;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -34,6 +32,7 @@ import org.junit.Test;
 import java.io.IOException;
 import java.util.Arrays;
 
+import static io.crate.testing.SymbolMatchers.isLiteral;
 import static org.hamcrest.Matchers.is;
 
 public class AlterTableRerouteAnalyzerTest extends CrateDummyClusterServiceUnitTest {
@@ -116,5 +115,26 @@ public class AlterTableRerouteAnalyzerTest extends CrateDummyClusterServiceUnitT
         assertThat(analyzed.properties().get("allow_primary"), is(Literal.fromObject(true)));
         analyzed = e.analyze("ALTER TABLE users REROUTE CANCEL SHARD 0 ON 'nodeOne' WITH (allow_primary = FALSE)");
         assertThat(analyzed.properties().get("allow_primary"), is(Literal.fromObject(false)));
+    }
+
+    @Test
+    public void test_promote_replica_can_be_analyzed() {
+        PromoteReplicaStatement stmt = e.analyze(
+            "ALTER TABLE users REROUTE PROMOTE REPLICA SHARD 2 ON 'nodeOne' WITH (accept_data_loss = true)");
+        assertThat(stmt.acceptDataLoss(), isLiteral(true));
+        assertThat(stmt.shardId(), isLiteral(2L));
+        assertThat(stmt.nodeId(), isLiteral("nodeOne"));
+    }
+
+    @Test
+    public void test_promote_replica_fails_if_unsupported_option_is_provided() {
+        expectedException.expectMessage("Unsupported options provided to REROUTE PROMOTE REPLICA: [foobar]");
+        e.analyze("ALTER TABLE users REROUTE PROMOTE REPLICA SHARD ? ON ? WITH (foobar = true)");
+    }
+
+    @Test
+    public void test_accept_data_loss_defaults_to_false_if_not_provided() {
+        PromoteReplicaStatement stmt = e.analyze("ALTER TABLE users REROUTE PROMOTE REPLICA SHARD ? ON ?");
+        assertThat(stmt.acceptDataLoss(), isLiteral(false));
     }
 }

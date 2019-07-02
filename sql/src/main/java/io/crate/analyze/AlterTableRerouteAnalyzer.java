@@ -22,6 +22,13 @@
 
 package io.crate.analyze;
 
+import io.crate.analyze.expressions.ExpressionAnalysisContext;
+import io.crate.analyze.expressions.ExpressionAnalyzer;
+import io.crate.analyze.relations.FieldProvider;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.Functions;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.table.Operation;
@@ -29,25 +36,29 @@ import io.crate.metadata.table.ShardedTable;
 import io.crate.sql.tree.AlterTableReroute;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.AstVisitor;
+import io.crate.sql.tree.Expression;
+import io.crate.sql.tree.PromoteReplica;
 import io.crate.sql.tree.RerouteAllocateReplicaShard;
 import io.crate.sql.tree.RerouteCancelShard;
 import io.crate.sql.tree.RerouteMoveShard;
 
+import java.util.HashMap;
 import java.util.List;
 
 import static io.crate.analyze.BlobTableAnalyzer.tableToIdent;
 
 public class AlterTableRerouteAnalyzer {
 
-    private static final RerouteOptionVisitor REROUTE_OPTION_VISITOR = new RerouteOptionVisitor();
+    private final RerouteOptionVisitor rerouteOptionVisitor;
     private final Schemas schemas;
 
-    AlterTableRerouteAnalyzer(Schemas schemas) {
+    AlterTableRerouteAnalyzer(Functions functions, Schemas schemas) {
         this.schemas = schemas;
+        this.rerouteOptionVisitor = new RerouteOptionVisitor(functions);
     }
 
     public AnalyzedStatement analyze(AlterTableReroute node, Analysis context) {
-        // safe to expect a `ShardedTable` since REROUTE operation is not allowed on SYS tables at all.
+        // safe to expect a `ShardedTable` since getTableInfo with Operation.ALTER_REROUTE raises a appropriate error for sys tables
         ShardedTable tableInfo;
         RelationName relationName;
         if (node.blob()) {
@@ -56,21 +67,41 @@ public class AlterTableRerouteAnalyzer {
             relationName = schemas.resolveRelation(node.table().getName(), context.sessionContext().searchPath());
         }
         tableInfo = schemas.getTableInfo(relationName, Operation.ALTER_REROUTE);
-        return REROUTE_OPTION_VISITOR.process(node.rerouteOption(), new Context(tableInfo, node.table().partitionProperties()));
+        return rerouteOptionVisitor.process(
+            node.rerouteOption(),
+            new Context(
+                tableInfo,
+                node.table().partitionProperties(),
+                context.transactionContext(),
+                context.paramTypeHints()
+            ));
     }
 
     private class Context {
 
-        final ShardedTable tableInfo;
-        final List<Assignment> partitionProperties;
+        private final ShardedTable tableInfo;
+        private final List<Assignment> partitionProperties;
+        private final CoordinatorTxnCtx txnCtx;
+        private final ParamTypeHints paramTypeHints;
 
-        private Context(ShardedTable tableInfo, List<Assignment> partitionProperties) {
+        private Context(ShardedTable tableInfo,
+                        List<Assignment> partitionProperties,
+                        CoordinatorTxnCtx txnCtx,
+                        ParamTypeHints paramTypeHints) {
             this.tableInfo = tableInfo;
             this.partitionProperties = partitionProperties;
+            this.txnCtx = txnCtx;
+            this.paramTypeHints = paramTypeHints;
         }
     }
 
     private static class RerouteOptionVisitor extends AstVisitor<RerouteAnalyzedStatement, Context> {
+
+        private final Functions functions;
+
+        RerouteOptionVisitor(Functions functions) {
+            this.functions = functions;
+        }
 
         @Override
         public RerouteAnalyzedStatement visitRerouteMoveShard(RerouteMoveShard node, Context context) {
@@ -88,6 +119,31 @@ public class AlterTableRerouteAnalyzer {
         public RerouteAnalyzedStatement visitRerouteCancelShard(RerouteCancelShard node, Context context) {
             return new RerouteCancelShardAnalyzedStatement(
                 context.tableInfo, context.partitionProperties, node.shardId(), node.nodeId(), node.properties());
+        }
+
+        @Override
+        public RerouteAnalyzedStatement visitReroutePromoteReplica(PromoteReplica promoteReplica, Context context) {
+            HashMap<String, Expression> properties = new HashMap<>(promoteReplica.properties().properties());
+            Expression acceptDataLossExpr = properties.remove(PromoteReplica.Properties.ACCEPT_DATA_LOSS);
+            if (!properties.isEmpty()) {
+                throw new IllegalArgumentException("Unsupported options provided to REROUTE PROMOTE REPLICA: " + properties.keySet());
+            }
+            var exprCtx = new ExpressionAnalysisContext();
+            var expressionAnalyzer = new ExpressionAnalyzer(
+                functions, context.txnCtx, context.paramTypeHints, FieldProvider.UNSUPPORTED, null);
+
+            Symbol acceptDataLoss = acceptDataLossExpr == null
+                ? Literal.BOOLEAN_FALSE
+                : expressionAnalyzer.convert(acceptDataLossExpr, exprCtx);
+            Symbol shardId = expressionAnalyzer.convert(promoteReplica.shardId(), exprCtx);
+            Symbol nodeId = expressionAnalyzer.convert(promoteReplica.nodeId(), exprCtx);
+            return new PromoteReplicaStatement(
+                context.tableInfo,
+                context.partitionProperties,
+                nodeId,
+                shardId,
+                acceptDataLoss
+            );
         }
     }
 }
