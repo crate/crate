@@ -55,13 +55,13 @@ import io.crate.blob.v2.BlobAdminClient;
 import io.crate.data.Row;
 import io.crate.execution.ddl.tables.AlterTableOperation;
 import io.crate.execution.ddl.tables.TableCreator;
+import io.crate.execution.support.Transports;
 import io.crate.expression.udf.UserDefinedFunctionDDLClient;
 import io.crate.metadata.Functions;
 import io.crate.metadata.TransactionContext;
 import io.crate.user.SecureHash;
 import io.crate.user.UserActions;
 import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteRequest;
-import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteResponse;
 import org.elasticsearch.action.admin.cluster.reroute.TransportClusterRerouteAction;
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeRequest;
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeResponse;
@@ -145,14 +145,18 @@ public class DDLStatementDispatcher {
     }
 
     public CompletableFuture<Long> apply(AnalyzedStatement analyzedStatement, Row parameters, TransactionContext txnCtx) {
-        return innerVisitor.process(analyzedStatement, new Ctx(txnCtx, parameters));
+        try {
+            return analyzedStatement.accept(innerVisitor, new Ctx(txnCtx, parameters));
+        } catch (Throwable t) {
+            return failedFuture(t);
+        }
     }
 
     private static class Ctx {
         final TransactionContext txnCtx;
         final Row parameters;
 
-        public Ctx(TransactionContext txnCtx, Row parameters) {
+        Ctx(TransactionContext txnCtx, Row parameters) {
             this.txnCtx = txnCtx;
             this.parameters = parameters;
         }
@@ -188,30 +192,6 @@ public class DDLStatementDispatcher {
         @Override
         public CompletableFuture<Long> visitAlterTableRenameStatement(AlterTableRenameAnalyzedStatement analysis, Ctx ctx) {
             return alterTableOperation.executeAlterTableRenameTable(analysis);
-        }
-
-        @Override
-        public CompletableFuture<Long> visitRerouteRetryFailedStatement(RerouteRetryFailedAnalyzedStatement analysis, Ctx ctx) {
-            return RerouteActions.executeRetryFailed(rerouteAction::execute);
-        }
-
-        @Override
-        public CompletableFuture<Long> visitReroutePromoteReplica(PromoteReplicaStatement promoteReplica, Ctx ctx) {
-            FutureActionListener<ClusterRerouteResponse, Long> listener =
-                new FutureActionListener<>(r -> r.isAcknowledged() ? 1L : -1L);
-            ClusterRerouteRequest rerouteRequest;
-            try {
-                rerouteRequest = RerouteActions.prepareAllocateStalePrimaryReq(
-                    promoteReplica,
-                    functions,
-                    ctx.parameters,
-                    ctx.txnCtx,
-                    clusterService.state().nodes());
-            } catch (Throwable t) {
-                return failedFuture(t);
-            }
-            rerouteAction.execute(rerouteRequest, listener);
-            return listener;
         }
 
         @Override
@@ -322,19 +302,55 @@ public class DDLStatementDispatcher {
         }
 
         @Override
-        protected CompletableFuture<Long> visitRerouteMoveShard(RerouteMoveShardAnalyzedStatement analysis, Ctx ctx) {
-            return RerouteActions.execute(rerouteAction::execute, analysis, ctx.parameters);
+        public CompletableFuture<Long> visitReroutePromoteReplica(PromoteReplicaStatement promoteReplica, Ctx ctx) {
+            return Transports.execute(
+                rerouteAction,
+                RerouteActions.preparePromoteReplicaReq(
+                    promoteReplica,
+                    functions,
+                    ctx.parameters,
+                    ctx.txnCtx,
+                    clusterService.state().nodes()),
+                Transports.rowCountFromAcknowledgedResp()
+            );
         }
 
         @Override
-        protected CompletableFuture<Long> visitRerouteAllocateReplicaShard(RerouteAllocateReplicaShardAnalyzedStatement analysis, Ctx ctx) {
-            return RerouteActions.execute(rerouteAction::execute, analysis, ctx.parameters);
+        protected CompletableFuture<Long> visitRerouteMoveShard(RerouteMoveShardAnalyzedStatement stmt, Ctx ctx) {
+            return Transports.execute(
+                rerouteAction,
+                RerouteActions.prepareMoveShardReq(stmt, ctx.parameters),
+                Transports.rowCountFromAcknowledgedResp()
+            );
         }
 
         @Override
-        protected CompletableFuture<Long> visitRerouteCancelShard(RerouteCancelShardAnalyzedStatement analysis, Ctx ctx) {
-            return RerouteActions.execute(rerouteAction::execute, analysis, ctx.parameters);
+        protected CompletableFuture<Long> visitRerouteAllocateReplicaShard(RerouteAllocateReplicaShardAnalyzedStatement stmt, Ctx ctx) {
+            return Transports.execute(
+                rerouteAction,
+                RerouteActions.prepareAllocateReplicaReq(stmt, ctx.parameters),
+                Transports.rowCountFromAcknowledgedResp()
+            );
         }
+
+        @Override
+        protected CompletableFuture<Long> visitRerouteCancelShard(RerouteCancelShardAnalyzedStatement stmt, Ctx ctx) {
+            return Transports.execute(
+                rerouteAction,
+                RerouteActions.prepareCancelShardReq(stmt, ctx.parameters),
+                Transports.rowCountFromAcknowledgedResp()
+            );
+        }
+
+        @Override
+        public CompletableFuture<Long> visitRerouteRetryFailedStatement(RerouteRetryFailedAnalyzedStatement analysis, Ctx ctx) {
+            return Transports.execute(
+                rerouteAction,
+                new ClusterRerouteRequest().setRetryFailed(true),
+                RerouteActions::retryFailedAffectedShardsRowCount
+            );
+        }
+
     }
 
     private static CompletableFuture<Long> executeMergeSegments(OptimizeTableAnalyzedStatement analysis,
