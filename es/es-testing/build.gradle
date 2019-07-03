@@ -13,7 +13,6 @@ dependencies {
     implementation "org.apache.httpcomponents:httpcore:${versions.httpcore}"
     implementation "commons-logging:commons-logging:${versions.commonslogging}"
     implementation "commons-codec:commons-codec:${versions.commonscodec}"
-    implementation "org.elasticsearch:mocksocket:${versions.mocksocket}"
 
     // crate extra dependencies
     implementation "com.google.code.findbugs:jsr305:${versions.jsr305}"
