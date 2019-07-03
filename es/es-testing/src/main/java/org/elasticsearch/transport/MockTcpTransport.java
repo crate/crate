@@ -37,8 +37,6 @@ import org.elasticsearch.common.util.concurrent.AbstractRunnable;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.core.internal.io.IOUtils;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
-import org.elasticsearch.mocksocket.MockServerSocket;
-import org.elasticsearch.mocksocket.MockSocket;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import java.io.BufferedInputStream;
@@ -117,7 +115,7 @@ public class MockTcpTransport extends TcpTransport {
 
     @Override
     protected MockChannel bind(final String name, InetSocketAddress address) throws IOException {
-        MockServerSocket socket = new MockServerSocket();
+        ServerSocket socket = new ServerSocket();
         socket.setReuseAddress(TransportSettings.TCP_REUSE_ADDRESS.get(settings));
         ByteSizeValue tcpReceiveBufferSize = TransportSettings.TCP_RECEIVE_BUFFER_SIZE.get(settings);
         if (tcpReceiveBufferSize.getBytes() > 0) {
@@ -181,7 +179,7 @@ public class MockTcpTransport extends TcpTransport {
     @SuppressForbidden(reason = "real socket for mocking remote connections")
     protected MockChannel initiateChannel(DiscoveryNode node, ActionListener<Void> connectListener) throws IOException {
         InetSocketAddress address = node.getAddress().address();
-        final MockSocket socket = new MockSocket();
+        final Socket socket = new Socket();
         final MockChannel channel = new MockChannel(socket, address, "none");
 
         boolean success = false;
