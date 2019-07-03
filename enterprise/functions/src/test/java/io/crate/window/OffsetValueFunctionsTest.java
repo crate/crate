@@ -181,6 +181,18 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
     }
 
     @Test
+    public void testLeadWithOrderBy() throws Exception {
+        assertEvaluate("lead(x) over(order by y)",
+                       contains(new Object[]{3, 1, 2, null}),
+                       Map.of(new ColumnIdent("x"), 0, new ColumnIdent("y"), 1),
+                       new Object[]{1, 1},
+                       new Object[]{1, 3},
+                       new Object[]{3, 2},
+                       new Object[]{2, 5}
+        );
+    }
+
+    @Test
     public void testLeadOverCurrentRowUnboundedFollowingWithDefaultValue() throws Exception {
         assertEvaluate("lead(x, 2, 42) over(RANGE BETWEEN CURRENT ROW and UNBOUNDED FOLLOWING)",
             contains(new Object[]{2, 3, 4, 42, 42}),
