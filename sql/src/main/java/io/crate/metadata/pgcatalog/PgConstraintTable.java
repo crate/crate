@@ -49,7 +49,7 @@ import static io.crate.types.DataTypes.SHORT_ARRAY;
 import static io.crate.types.DataTypes.INTEGER_ARRAY;
 import static io.crate.types.DataTypes.INTEGER;
 
-public class PgConstraintTable extends StaticTableInfo {
+public class PgConstraintTable extends StaticTableInfo<ConstraintInfo> {
 
     public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_constraint");
 

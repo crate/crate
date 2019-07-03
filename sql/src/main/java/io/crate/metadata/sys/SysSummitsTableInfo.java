@@ -42,7 +42,7 @@ import static io.crate.types.DataTypes.STRING;
 import static io.crate.types.DataTypes.INTEGER;
 import static io.crate.types.DataTypes.GEO_POINT;
 
-public class SysSummitsTableInfo extends StaticTableInfo {
+public class SysSummitsTableInfo extends StaticTableInfo<SummitsContext> {
 
     public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "summits");
     private static final RowGranularity GRANULARITY = RowGranularity.DOC;

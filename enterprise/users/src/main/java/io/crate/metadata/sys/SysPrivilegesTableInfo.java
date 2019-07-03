@@ -38,11 +38,12 @@ import java.util.stream.StreamSupport;
 import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
 import static io.crate.types.DataTypes.STRING;
 
-public class SysPrivilegesTableInfo extends StaticTableInfo {
+public class SysPrivilegesTableInfo extends StaticTableInfo<SysPrivilegesTableInfo.PrivilegeRow> {
 
     private static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "privileges");
     private static final RowGranularity GRANULARITY = RowGranularity.DOC;
 
+    @SuppressWarnings("WeakerAccess")
     public static class PrivilegeRow {
         private final String grantee;
         private final Privilege privilege;

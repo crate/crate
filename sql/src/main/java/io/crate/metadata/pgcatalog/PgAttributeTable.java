@@ -50,7 +50,7 @@ import static io.crate.types.DataTypes.SHORT;
 import static io.crate.types.DataTypes.BOOLEAN;
 import static io.crate.types.DataTypes.STRING_ARRAY;
 
-public class PgAttributeTable extends StaticTableInfo {
+public class PgAttributeTable extends StaticTableInfo<ColumnContext> {
 
     public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_attribute");
 

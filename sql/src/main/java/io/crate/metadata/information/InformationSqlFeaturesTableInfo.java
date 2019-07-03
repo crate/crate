@@ -22,21 +22,21 @@
 
 package io.crate.metadata.information;
 
+import io.crate.execution.engine.collect.files.SqlFeatureContext;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
-import io.crate.execution.engine.collect.files.SqlFeatureContext;
 import io.crate.metadata.table.ColumnRegistrar;
-
-import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
-import static io.crate.types.DataTypes.STRING;
-import static io.crate.types.DataTypes.BOOLEAN;
 
 import java.util.Map;
 
+import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
+import static io.crate.types.DataTypes.BOOLEAN;
+import static io.crate.types.DataTypes.STRING;
 
-public class InformationSqlFeaturesTableInfo extends InformationTableInfo {
+
+public class InformationSqlFeaturesTableInfo extends InformationTableInfo<SqlFeatureContext> {
 
     public static final String NAME = "sql_features";
     public static final RelationName IDENT = new RelationName(InformationSchemaInfo.NAME, NAME);

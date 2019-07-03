@@ -44,7 +44,7 @@ import java.util.function.Supplier;
 import static io.crate.types.DataTypes.STRING;
 import static io.crate.types.DataTypes.TIMESTAMPZ;
 
-public class SysJobsTableInfo extends StaticTableInfo {
+public class SysJobsTableInfo extends StaticTableInfo<JobContext> {
 
     public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "jobs");
 

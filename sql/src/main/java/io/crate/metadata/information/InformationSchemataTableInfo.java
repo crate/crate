@@ -28,12 +28,12 @@ import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.SchemaInfo;
 
+import java.util.Map;
+
 import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
 import static io.crate.types.DataTypes.STRING;
 
-import java.util.Map;
-
-public class InformationSchemataTableInfo extends InformationTableInfo {
+public class InformationSchemataTableInfo extends InformationTableInfo<SchemaInfo> {
 
     public static final String NAME = "schemata";
     public static final RelationName IDENT = new RelationName(InformationSchemaInfo.NAME, NAME);

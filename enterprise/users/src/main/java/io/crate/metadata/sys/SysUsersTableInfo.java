@@ -37,7 +37,7 @@ import static io.crate.execution.engine.collect.NestableCollectExpression.forFun
 import static io.crate.types.DataTypes.STRING;
 import static io.crate.types.DataTypes.BOOLEAN;
 
-public class SysUsersTableInfo extends StaticTableInfo {
+public class SysUsersTableInfo extends StaticTableInfo<User> {
 
     private static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "users");
     private static final RowGranularity GRANULARITY = RowGranularity.DOC;

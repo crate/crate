@@ -41,7 +41,7 @@ import static io.crate.types.DataTypes.STRING;
 import static io.crate.types.DataTypes.SHORT;
 import static io.crate.types.DataTypes.LONG;
 
-public class SysHealthTableInfo extends StaticTableInfo {
+public class SysHealthTableInfo extends StaticTableInfo<TableHealth> {
 
     public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "health");
     private static final RowGranularity GRANULARITY = RowGranularity.DOC;

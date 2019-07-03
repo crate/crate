@@ -37,15 +37,16 @@ import io.crate.metadata.table.StaticTableInfo;
 import io.crate.types.ObjectType;
 import org.elasticsearch.cluster.ClusterState;
 
+import java.util.HashMap;
 import java.util.Map;
 
-import static io.crate.types.DataTypes.STRING;
-import static io.crate.types.DataTypes.INTEGER;
-import static io.crate.types.DataTypes.STRING_ARRAY;
-import static io.crate.types.DataTypes.BOOLEAN;
 import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
+import static io.crate.types.DataTypes.BOOLEAN;
+import static io.crate.types.DataTypes.INTEGER;
+import static io.crate.types.DataTypes.STRING;
+import static io.crate.types.DataTypes.STRING_ARRAY;
 
-public class SysAllocationsTableInfo extends StaticTableInfo {
+public class SysAllocationsTableInfo extends StaticTableInfo<SysAllocation> {
 
     public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "allocations");
     private static final RowGranularity GRANULARITY = RowGranularity.DOC;
@@ -78,14 +79,13 @@ public class SysAllocationsTableInfo extends StaticTableInfo {
             .build(), () -> new SysAllocationDecisionsExpression<Map<String, Object>>() {
                 @Override
                 protected Map<String, Object> valueForItem(SysAllocation.SysAllocationNodeDecision input) {
-                    return Map.of(
-                        Columns.DECISIONS_NODE_ID.path().get(0), input.nodeId(),
-                        Columns.DECISIONS_NODE_NAME.path().get(0), input.nodeName(),
-                        Columns.DECISIONS_EXPLANATIONS.path().get(0), input.explanations()
-                    );
+                    var decision = new HashMap<String, Object>(3);
+                    decision.put(Columns.DECISIONS_NODE_ID.path().get(0), input.nodeId());
+                    decision.put(Columns.DECISIONS_NODE_NAME.path().get(0), input.nodeName());
+                    decision.put(Columns.DECISIONS_EXPLANATIONS.path().get(0), input.explanations());
+                    return decision;
                 }
-                }
-             )
+            })
             .register("decisions","node_id", STRING, () -> new SysAllocationDecisionsExpression<String>() {
 
                 @Override
