@@ -204,7 +204,7 @@ public final class WindowFunctionBatchIterator {
                                                                cmpOrderBy,
                                                                sortedRows);
 
-                frame.updateBounds(pStart, wBegin, wEnd);
+                frame.updateBounds(pStart, pEnd, wBegin, wEnd);
                 final Object[] row = computeAndInjectResults(
                     sortedRows, numCellsInSourceRow, windowFunctions, frame, i, idxInPartition, argsExpressions, args);
 
