@@ -34,6 +34,7 @@ public final class WindowFrameState {
     private int lowerBound;
     private int upperBoundExclusive;
     private int partitionStart;
+    private int partitionEnd;
 
     WindowFrameState(int lowerBound, int upperBoundExclusive, List<Object[]> rows) {
         this.lowerBound = lowerBound;
@@ -78,15 +79,15 @@ public final class WindowFrameState {
      */
     public Object[] getRowInPartitionAtIndexOrNull(int index) {
         int idxInPartition = partitionStart + index;
-        int partitionEnd = upperBoundExclusive + partitionStart;
         if (idxInPartition < partitionStart || idxInPartition >= partitionEnd) {
             return null;
         }
         return rows.get(idxInPartition);
     }
 
-    void updateBounds(int pStart, int wBegin, int wEnd) {
+    void updateBounds(int pStart, int pEnd, int wBegin, int wEnd) {
         this.partitionStart = pStart;
+        this.partitionEnd = pEnd;
         this.lowerBound = wBegin - pStart;
         this.upperBoundExclusive = wEnd - pStart;
     }
@@ -97,6 +98,7 @@ public final class WindowFrameState {
                "lowerBound=" + lowerBound +
                ", upperBoundExclusive=" + upperBoundExclusive +
                ", partitionStart=" + partitionStart +
+               ", partitionEnd=" + partitionEnd +
                '}';
     }
 
