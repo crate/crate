@@ -32,7 +32,6 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.AnalyzedView;
 import io.crate.analyze.relations.DocTableRelation;
-import io.crate.analyze.relations.OrderedLimitedRelation;
 import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.relations.UnionSelect;
@@ -100,11 +99,6 @@ final class IsStatementExecutionAllowed implements Predicate<AnalyzedStatement> 
                 }
             }
             return true;
-        }
-
-        @Override
-        public Boolean visitOrderedLimitedRelation(OrderedLimitedRelation relation, Void context) {
-            return process(relation.childRelation(), context);
         }
 
         @Override

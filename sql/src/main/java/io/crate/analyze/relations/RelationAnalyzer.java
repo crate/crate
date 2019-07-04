@@ -141,51 +141,61 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
     @Override
     protected AnalyzedRelation visitQuery(Query node, StatementAnalysisContext statementContext) {
+        AnalyzedRelation childRelation = process(node.getQueryBody(), statementContext);
+        if (node.getOrderBy().isEmpty() && node.getLimit().isEmpty() && node.getOffset().isEmpty()) {
+            return childRelation;
+        }
         // In case of Set Operation (UNION, INTERSECT EXCEPT) or VALUES clause,
         // the `node` contains the ORDER BY and/or LIMIT and/or OFFSET and wraps the
         // actual operation (eg: UNION) which is parsed into the `queryBody` of the `node`.
-        if (!node.getOrderBy().isEmpty() || node.getLimit().isPresent() || node.getOffset().isPresent()) {
-            AnalyzedRelation childRelation = process(node.getQueryBody(), statementContext);
 
-            // Use child relation to process expressions of the "root" Query node
-            statementContext.startRelation();
-            RelationAnalysisContext relationAnalysisContext = statementContext.currentRelationContext();
-            relationAnalysisContext.addSourceRelation(childRelation.getQualifiedName().toString(), childRelation);
-            statementContext.endRelation();
+        // Use child relation to process expressions of the "root" Query node
+        statementContext.startRelation();
+        RelationAnalysisContext relationAnalysisContext = statementContext.currentRelationContext();
+        relationAnalysisContext.addSourceRelation(childRelation.getQualifiedName().toString(), childRelation);
+        statementContext.endRelation();
 
-            List<Field> childRelationFields = childRelation.fields();
-            ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-                functions,
-                statementContext.transactionContext(),
-                statementContext.convertParamFunction(),
-                new FullQualifiedNameFieldProvider(
-                    relationAnalysisContext.sources(),
-                    relationAnalysisContext.parentSources(),
-                    statementContext.transactionContext().sessionContext().searchPath().currentSchema()),
-                new SubqueryAnalyzer(this, statementContext));
-            ExpressionAnalysisContext expressionAnalysisContext = relationAnalysisContext.expressionAnalysisContext();
-            SelectAnalysis selectAnalysis = new SelectAnalysis(
-                childRelationFields.size(),
+        List<Field> childRelationFields = childRelation.fields();
+        ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
+            functions,
+            statementContext.transactionContext(),
+            statementContext.convertParamFunction(),
+            new FullQualifiedNameFieldProvider(
                 relationAnalysisContext.sources(),
-                expressionAnalyzer,
-                expressionAnalysisContext);
-            for (Field field : childRelationFields) {
-                selectAnalysis.add(field.path(), field);
-            }
-
-            return new OrderedLimitedRelation(
-                    childRelation,
-                    analyzeOrderBy(
-                        selectAnalysis,
-                        node.getOrderBy(),
-                        expressionAnalyzer,
-                        expressionAnalysisContext,
-                        false,
-                        false),
-                    longSymbolOrNull(node.getLimit(), expressionAnalyzer, expressionAnalysisContext),
-                    longSymbolOrNull(node.getOffset(), expressionAnalyzer, expressionAnalysisContext));
+                relationAnalysisContext.parentSources(),
+                statementContext.transactionContext().sessionContext().searchPath().currentSchema()),
+            new SubqueryAnalyzer(this, statementContext));
+        ExpressionAnalysisContext expressionAnalysisContext = relationAnalysisContext.expressionAnalysisContext();
+        SelectAnalysis selectAnalysis = new SelectAnalysis(
+            childRelationFields.size(),
+            relationAnalysisContext.sources(),
+            expressionAnalyzer,
+            expressionAnalysisContext);
+        for (Field field : childRelationFields) {
+            selectAnalysis.add(field.path(), field);
         }
-        return process(node.getQueryBody(), statementContext);
+        return new QueriedSelectRelation<>(
+            false,
+            childRelation,
+            selectAnalysis.outputNames(),
+            new QuerySpec(
+                selectAnalysis.outputSymbols(),
+                WhereClause.MATCH_ALL,
+                List.of(),
+                null,
+                analyzeOrderBy(
+                    selectAnalysis,
+                    node.getOrderBy(),
+                    expressionAnalyzer,
+                    expressionAnalysisContext,
+                    false,
+                    false
+                ),
+                longSymbolOrNull(node.getLimit(), expressionAnalyzer, expressionAnalysisContext),
+                longSymbolOrNull(node.getOffset(), expressionAnalyzer, expressionAnalysisContext),
+                false
+            )
+        );
     }
 
     @Override

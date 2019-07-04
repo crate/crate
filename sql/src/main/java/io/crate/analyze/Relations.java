@@ -27,7 +27,6 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.AnalyzedView;
 import io.crate.analyze.relations.DocTableRelation;
-import io.crate.analyze.relations.OrderedLimitedRelation;
 import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.relations.UnionSelect;
@@ -171,13 +170,6 @@ public class Relations {
         public Void visitQueriedSelectRelation(QueriedSelectRelation<?> relation, Consumer<? super Symbol> consumer) {
             relation.visitSymbols(consumer);
             process(relation.subRelation(), consumer);
-            return null;
-        }
-
-        @Override
-        public Void visitOrderedLimitedRelation(OrderedLimitedRelation relation, Consumer<? super Symbol> consumer) {
-            relation.visitSymbols(consumer);
-            process(relation.childRelation(), consumer);
             return null;
         }
 

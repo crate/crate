@@ -52,7 +52,7 @@ public final class QuerySpec {
     public QuerySpec(List<Symbol> outputs,
                      WhereClause where,
                      List<Symbol> groupBy,
-                     HavingClause having,
+                     @Nullable HavingClause having,
                      @Nullable OrderBy orderBy,
                      @Nullable Symbol limit,
                      @Nullable Symbol offset,
