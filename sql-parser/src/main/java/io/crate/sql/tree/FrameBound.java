@@ -98,7 +98,7 @@ public class FrameBound extends Node {
             @Override
             public <T> int getEnd(WindowFrame.Type frameType, int pStart, int pEnd, int currentRowIdx, @Nullable Comparator<T> cmp, List<T> rows) {
                 if (frameType == ROWS) {
-                    return currentRowIdx;
+                    return currentRowIdx + 1;
                 }
 
                 return findFirstNonPeer(rows, currentRowIdx, pEnd, cmp);

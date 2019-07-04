@@ -23,6 +23,7 @@
 package io.crate.execution.engine.window;
 
 import com.google.common.collect.ImmutableMap;
+import io.crate.analyze.FrameBoundDefinition;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WindowFrameDefinition;
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -70,10 +71,33 @@ import java.util.stream.Collectors;
 import static io.crate.analyze.WindowDefinition.RANGE_UNBOUNDED_PRECEDING_CURRENT_ROW;
 import static io.crate.data.SentinelRow.SENTINEL;
 import static io.crate.execution.engine.sort.Comparators.createComparator;
+import static io.crate.sql.tree.FrameBound.Type.CURRENT_ROW;
+import static io.crate.sql.tree.FrameBound.Type.UNBOUNDED_FOLLOWING;
+import static io.crate.sql.tree.FrameBound.Type.UNBOUNDED_PRECEDING;
+import static io.crate.sql.tree.WindowFrame.Type.RANGE;
+import static io.crate.sql.tree.WindowFrame.Type.ROWS;
 import static org.elasticsearch.common.util.BigArrays.NON_RECYCLING_INSTANCE;
 import static org.hamcrest.Matchers.instanceOf;
 
 public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServiceUnitTest {
+
+    public static final WindowFrameDefinition RANGE_CURRENT_ROW_UNBOUNDED_FOLLOWING = new WindowFrameDefinition(
+        RANGE,
+        new FrameBoundDefinition(CURRENT_ROW),
+        new FrameBoundDefinition(UNBOUNDED_FOLLOWING)
+    );
+
+    public static final WindowFrameDefinition RANGE_UNBOUNDED_PRECEDING_UNBOUNDED_FOLLOWING = new WindowFrameDefinition(
+        RANGE,
+        new FrameBoundDefinition(UNBOUNDED_PRECEDING),
+        new FrameBoundDefinition(UNBOUNDED_FOLLOWING)
+    );
+
+    public static final WindowFrameDefinition ROWS_UNBOUNDED_PRECEDING_CURRENT_ROW = new WindowFrameDefinition(
+        ROWS,
+        new FrameBoundDefinition(UNBOUNDED_PRECEDING),
+        new FrameBoundDefinition(CURRENT_ROW)
+    );
 
     private RamAccountingContext RAM_ACCOUNTING_CONTEXT = new RamAccountingContext
         ("dummy", new NoopCircuitBreaker(CircuitBreaker.FIELDDATA));

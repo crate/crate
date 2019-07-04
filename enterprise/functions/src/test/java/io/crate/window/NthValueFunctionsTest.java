@@ -31,7 +31,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import static io.crate.analyze.WindowDefinition.RANGE_CURRENT_ROW_UNBOUNDED_FOLLOWING;
+import static io.crate.analyze.WindowDefinition.RANGE_UNBOUNDED_PRECEDING_CURRENT_ROW;
 import static org.hamcrest.Matchers.contains;
 
 
@@ -201,6 +201,27 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
                        new Object[]{4},
                        new Object[]{5},
                        new Object[]{null});
+    }
 
+    @Test
+    public void testNthValueOverRangeModeOneRowFrames() throws Exception {
+        Object[] expected = new Object[]{1, 1};
+        assertEvaluate("nth_value(x, 1) OVER(ORDER BY x RANGE BETWEEN UNBOUNDED PRECEDING and CURRENT ROW)",
+            contains(expected),
+            Collections.singletonMap(new ColumnIdent("x"), 0),
+            RANGE_UNBOUNDED_PRECEDING_CURRENT_ROW,
+            new Object[]{1},
+            new Object[]{2});
+    }
+
+    @Test
+    public void testNthValueOverRowsModeOneRowFrames() throws Exception {
+        Object[] expected = new Object[]{1, 1};
+        assertEvaluate("nth_value(x, 1) OVER(ORDER BY x ROWS BETWEEN UNBOUNDED PRECEDING and CURRENT ROW)",
+            contains(expected),
+            Collections.singletonMap(new ColumnIdent("x"), 0),
+            ROWS_UNBOUNDED_PRECEDING_CURRENT_ROW,
+            new Object[]{1},
+            new Object[]{2});
     }
 }

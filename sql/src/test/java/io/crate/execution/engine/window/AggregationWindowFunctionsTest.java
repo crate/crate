@@ -28,8 +28,6 @@ import org.junit.Test;
 import java.util.Collections;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
-import static io.crate.analyze.WindowDefinition.RANGE_CURRENT_ROW_UNBOUNDED_FOLLOWING;
-import static io.crate.analyze.WindowDefinition.RANGE_UNBOUNDED_PRECEDING_UNBOUNDED_FOLLOWING;
 import static org.hamcrest.Matchers.contains;
 
 public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
@@ -162,5 +160,33 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
                        new Object[]{4, 4},
                        new Object[]{5, 5},
                        new Object[]{null, null});
+    }
+
+    @Test
+    public void testCollectSetOverRowsUnboundedPrecedingCurrentRowFrame() throws Exception {
+        Object[] expected = new Object[]{
+            $(1),
+            $(1, 2),
+            $(1, 2),
+            $(1, 2),
+            $(3),
+            $(3, 4),
+            $(3, 4, 5),
+            $()
+        };
+        assertEvaluate("collect_set(x) OVER(" +
+                            "PARTITION BY x>2 ORDER BY x ROWS BETWEEN UNBOUNDED PRECEDING and CURRENT ROW" +
+                       ")",
+            contains(expected),
+            Collections.singletonMap(new ColumnIdent("x"), 0),
+            ROWS_UNBOUNDED_PRECEDING_CURRENT_ROW,
+            new Object[]{1, 1},
+            new Object[]{2, 2},
+            new Object[]{2, 2},
+            new Object[]{2, 2},
+            new Object[]{3, 3},
+            new Object[]{4, 4},
+            new Object[]{5, 5},
+            new Object[]{null, null});
     }
 }

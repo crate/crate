@@ -30,7 +30,6 @@ import org.junit.Test;
 import java.util.Collections;
 import java.util.Map;
 
-import static io.crate.analyze.WindowDefinition.RANGE_CURRENT_ROW_UNBOUNDED_FOLLOWING;
 import static org.hamcrest.Matchers.contains;
 
 public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
