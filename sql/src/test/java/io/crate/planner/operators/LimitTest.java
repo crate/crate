@@ -23,8 +23,9 @@
 package io.crate.planner.operators;
 
 import com.carrotsearch.randomizedtesting.RandomizedTest;
-import io.crate.analyze.QueriedTable;
+import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.TableDefinitions;
+import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.pipeline.TopN;
@@ -49,11 +50,11 @@ public class LimitTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom())
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .build();
-        QueriedTable queriedDocTable = e.analyze("select name from users");
+        QueriedSelectRelation<?> queriedDocTable = e.analyze("select name from users");
 
         LogicalPlan plan = Limit.create(
             Limit.create(
-                Collect.create(queriedDocTable.tableRelation(), queriedDocTable.outputs(), queriedDocTable.where()),
+                Collect.create(((AbstractTableRelation<?>) queriedDocTable.subRelation()), queriedDocTable.outputs(), queriedDocTable.where()),
                 Literal.of(10L),
                 Literal.of(5L)
             ),

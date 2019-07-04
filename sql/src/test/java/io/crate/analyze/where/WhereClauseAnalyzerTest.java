@@ -24,7 +24,7 @@ package io.crate.analyze.where;
 import com.google.common.collect.ImmutableList;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.AnalyzedUpdateStatement;
-import io.crate.analyze.QueriedTable;
+import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
@@ -146,8 +146,8 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             e.analyze(stmt, args),
             new CoordinatorTxnCtx(SessionContext.systemSessionContext())
         );
-        if (rel instanceof QueriedTable && ((QueriedTable) rel).tableRelation() instanceof DocTableRelation) {
-            DocTableRelation docTableRelation = (DocTableRelation) ((QueriedTable) rel).tableRelation();
+        if (rel instanceof QueriedSelectRelation && ((QueriedSelectRelation) rel).subRelation() instanceof DocTableRelation) {
+            DocTableRelation docTableRelation = (DocTableRelation) ((QueriedSelectRelation) rel).subRelation();
             WhereClauseOptimizer.DetailedQuery detailedQuery = WhereClauseOptimizer.optimize(
                 new EvaluatingNormalizer(getFunctions(), RowGranularity.CLUSTER, null, docTableRelation),
                 rel.where().queryOrFallback(),

@@ -23,6 +23,7 @@
 package io.crate.analyze;
 
 import io.crate.analyze.relations.AnalyzedView;
+import io.crate.analyze.relations.DocTableRelation;
 import io.crate.metadata.RelationName;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -49,12 +50,12 @@ public class SelectFromViewAnalyzerTest extends CrateDummyClusterServiceUnitTest
 
     @Test
     public void testSelectFromViewIsResolvedToViewQueryDefinition() {
-        QueriedSelectRelation query = e.normalize("select * from doc.v1");
+        QueriedSelectRelation<?> query = e.normalize("select * from doc.v1");
         assertThat(query.outputs(), Matchers.contains(isField("name"), isField("count(*)")));
         assertThat(query.groupBy(), Matchers.empty());
         assertThat(query.subRelation(), instanceOf(AnalyzedView.class));
-        QueriedTable<?> queriedDocTable = (QueriedTable) ((AnalyzedView) query.subRelation()).relation();
+        QueriedSelectRelation<?> queriedDocTable = (QueriedSelectRelation<?>) ((AnalyzedView) query.subRelation()).relation();
         assertThat(queriedDocTable.groupBy(), Matchers.contains(isReference("name")));
-        assertThat(queriedDocTable.tableRelation().tableInfo().ident(), is(new RelationName("doc", "t1")));
+        assertThat(((DocTableRelation) queriedDocTable.subRelation()).tableInfo().ident(), is(new RelationName("doc", "t1")));
     }
 }

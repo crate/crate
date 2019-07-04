@@ -56,7 +56,6 @@ import io.crate.analyze.KillAnalyzedStatement;
 import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.PrivilegesAnalyzedStatement;
 import io.crate.analyze.QueriedSelectRelation;
-import io.crate.analyze.QueriedTable;
 import io.crate.analyze.RefreshTableAnalyzedStatement;
 import io.crate.analyze.ResetAnalyzedStatement;
 import io.crate.analyze.RestoreSnapshotAnalyzedStatement;
@@ -148,12 +147,6 @@ public final class AccessControlImpl implements AccessControl {
         @Override
         protected Void visitAnalyzedRelation(AnalyzedRelation relation, RelationContext context) {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "Can't handle \"%s\"", relation));
-        }
-
-        @Override
-        public Void visitQueriedTable(QueriedTable table, RelationContext context) {
-            process(table.tableRelation(), context);
-            return null;
         }
 
         @Override
@@ -285,7 +278,7 @@ public final class AccessControlImpl implements AccessControl {
 
         @Override
         protected Void visitCopyToStatement(CopyToAnalyzedStatement analysis, User user) {
-            visitRelation(analysis.subQueryRelation(), user, Privilege.Type.DQL);
+            visitRelation(analysis.relation(), user, Privilege.Type.DQL);
             return null;
         }
 

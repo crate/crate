@@ -28,7 +28,6 @@ import io.crate.analyze.InsertFromSubQueryAnalyzedStatement;
 import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedSelectRelation;
-import io.crate.analyze.QueriedTable;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AliasedAnalyzedRelation;
@@ -37,6 +36,7 @@ import io.crate.analyze.relations.AnalyzedView;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.OrderedLimitedRelation;
 import io.crate.analyze.relations.RelationNormalizer;
+import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.relations.UnionSelect;
 import io.crate.analyze.where.DocKeys;
 import io.crate.data.Row;
@@ -170,7 +170,9 @@ public class LogicalPlanner {
             plannerContext.transactionContext());
 
         planBuilder = tryOptimizeForInSubquery(selectSymbol, relation, planBuilder);
-        LogicalPlan optimizedPlan = tryOptimize(maybeApplySoftLimit.apply(planBuilder.build(tableStats, Set.of(), Collections.emptySet())));
+        LogicalPlan optimizedPlan = optimizer.optimize(maybeApplySoftLimit.apply(planBuilder.build(tableStats,
+                                                                                                   Set.of(),
+                                                                                                   Collections.emptySet())));
         return new RootRelationBoundary(MultiPhase.createIfNeeded(optimizedPlan, relation, subqueryPlanner));
     }
 
@@ -200,18 +202,8 @@ public class LogicalPlanner {
         LogicalPlan logicalPlan = plan(relation, fetchMode, subqueryPlanner, true, functions, coordinatorTxnCtx)
             .build(tableStats, hints, new HashSet<>(relation.outputs()));
 
-        LogicalPlan optimizedPlan = tryOptimize(logicalPlan);
-
+        LogicalPlan optimizedPlan = optimizer.optimize(logicalPlan);
         return MultiPhase.createIfNeeded(optimizedPlan, relation, subqueryPlanner);
-    }
-
-    /**
-     * Runs {@link LogicalPlan}.tryOptimize and returns an optimized plan.
-     * @param plan The original plan
-     * @return The optimized plan or the original if optimizing is not possible
-     */
-    private LogicalPlan tryOptimize(LogicalPlan plan) {
-        return optimizer.optimize(plan);
     }
 
     static LogicalPlan.Builder plan(AnalyzedRelation relation,
@@ -304,12 +296,21 @@ public class LogicalPlanner {
         if (analyzedRelation instanceof AbstractTableRelation) {
             return Collect.create(((AbstractTableRelation) analyzedRelation), toCollect, where);
         }
-        if (analyzedRelation instanceof QueriedTable) {
-            QueriedTable queriedTable = (QueriedTable) analyzedRelation;
-            AbstractTableRelation tableRelation = queriedTable.tableRelation();
+        if (analyzedRelation instanceof MultiSourceSelect) {
+            return JoinPlanBuilder.createNodes((MultiSourceSelect) analyzedRelation, where, subqueryPlanner, functions, txnCtx);
+        }
+        if (analyzedRelation instanceof UnionSelect) {
+            return Union.create((UnionSelect) analyzedRelation, subqueryPlanner, functions, txnCtx);
+        }
+        if (analyzedRelation instanceof OrderedLimitedRelation) {
+            return plan(((OrderedLimitedRelation) analyzedRelation).childRelation(), fetchMode, subqueryPlanner, false, functions, txnCtx);
+        }
+        if (analyzedRelation instanceof QueriedSelectRelation) {
+            QueriedSelectRelation<?> selectRelation = (QueriedSelectRelation) analyzedRelation;
 
-            if (tableRelation instanceof DocTableRelation) {
-                DocTableRelation docTableRelation = (DocTableRelation) tableRelation;
+            AnalyzedRelation subRelation = selectRelation.subRelation();
+            if (subRelation instanceof DocTableRelation) {
+                DocTableRelation docTableRelation = (DocTableRelation) subRelation;
                 EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
                     functions, RowGranularity.CLUSTER, null, docTableRelation);
 
@@ -330,22 +331,11 @@ public class LogicalPlanner {
                     where.partitions(),
                     detailedQuery.clusteredBy()
                 ));
+            } else if (subRelation instanceof TableRelation) {
+                return Collect.create(((TableRelation) subRelation), toCollect, where);
             }
-            return Collect.create(tableRelation, toCollect, where);
-        }
-        if (analyzedRelation instanceof MultiSourceSelect) {
-            return JoinPlanBuilder.createNodes((MultiSourceSelect) analyzedRelation, where, subqueryPlanner, functions, txnCtx);
-        }
-        if (analyzedRelation instanceof UnionSelect) {
-            return Union.create((UnionSelect) analyzedRelation, subqueryPlanner, functions, txnCtx);
-        }
-        if (analyzedRelation instanceof OrderedLimitedRelation) {
-            return plan(((OrderedLimitedRelation) analyzedRelation).childRelation(), fetchMode, subqueryPlanner, false, functions, txnCtx);
-        }
-        if (analyzedRelation instanceof QueriedSelectRelation) {
-            QueriedSelectRelation selectRelation = (QueriedSelectRelation) analyzedRelation;
             return Filter.create(
-                plan(selectRelation.subRelation(), fetchMode, subqueryPlanner, false, functions, txnCtx),
+                plan(subRelation, fetchMode, subqueryPlanner, false, functions, txnCtx),
                 where
             );
         }

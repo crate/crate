@@ -27,6 +27,7 @@ import io.crate.action.sql.SessionContext;
 import io.crate.analyze.relations.AliasedAnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.TableFunctionRelation;
+import io.crate.analyze.relations.TableRelation;
 import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ConversionException;
@@ -110,7 +111,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             .build();
     }
 
-    private AnalyzedRelation analyze(String statement) {
+    private <T extends AnalyzedRelation> T analyze(String statement) {
         return sqlExecutor.normalize(
             sqlExecutor.analyze(statement),
             new CoordinatorTxnCtx(SessionContext.systemSessionContext())
@@ -144,7 +145,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             .addTable("create table third.t1 (id int)")
             .build();
 
-        QueriedTable queriedTable = executor.analyze("select * from t");
+        AnalyzedRelation queriedTable = executor.analyze("select * from t");
         assertThat(queriedTable.getQualifiedName().getParts().get(0), is("first"));
 
         queriedTable = executor.analyze("select * from t1");
@@ -153,7 +154,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void testOrderedSelect() throws Exception {
-        QueriedTable table = (QueriedTable) analyze("select load['1'] from sys.nodes order by load['5'] desc");
+        AnalyzedRelation table = analyze("select load['1'] from sys.nodes order by load['5'] desc");
         assertThat(table.limit(), nullValue());
 
         assertThat(table.groupBy().isEmpty(), is(true));
@@ -434,8 +435,8 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void testGranularityWithSingleAggregation() throws Exception {
-        QueriedTable table = (QueriedTable) analyze("select count(*) from sys.nodes");
-        assertEquals(table.tableRelation().tableInfo().ident(), SysNodesTableInfo.IDENT);
+        QueriedSelectRelation<TableRelation> table = analyze("select count(*) from sys.nodes");
+        assertEquals(table.subRelation().tableInfo().ident(), SysNodesTableInfo.IDENT);
     }
 
     @Test
@@ -940,7 +941,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     public void testOrderByWithOrdinal() throws Exception {
         AnalyzedRelation relation = analyze(
             "select name from users u order by 1");
-        QueriedTable queriedTable = (QueriedTable) ((AliasedAnalyzedRelation) relation).relation();
+        AnalyzedRelation queriedTable = ((AliasedAnalyzedRelation) relation).relation();
         assertEquals(queriedTable.outputs().get(0), queriedTable.orderBy().orderBySymbols().get(0));
     }
 
@@ -1837,10 +1838,10 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void testScalarCanBeUsedInFromClause() {
-        AnalyzedRelation relation = analyze("select * from abs(1)");
+        QueriedSelectRelation<?> relation = analyze("select * from abs(1)");
         assertThat(relation.outputs(), isSQL("abs"));
         assertThat(relation.fields(), isSQL("abs"));
-        assertThat(((QueriedTable) relation).tableRelation(), instanceOf(TableFunctionRelation.class));
+        assertThat(relation.subRelation(), instanceOf(TableFunctionRelation.class));
     }
 
     @Test

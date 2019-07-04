@@ -133,13 +133,6 @@ public class Relations {
         }
 
         @Override
-        public Void visitQueriedTable(QueriedTable<?> queriedTable, Consumer<? super Symbol> consumer) {
-            queriedTable.visitSymbols(consumer);
-            process(queriedTable.tableRelation(), consumer);
-            return null;
-        }
-
-        @Override
         public Void visitMultiSourceSelect(MultiSourceSelect multiSourceSelect, Consumer<? super Symbol> consumer) {
             multiSourceSelect.visitSymbols(consumer);
             for (AnalyzedRelation relation : multiSourceSelect.sources().values()) {
@@ -175,7 +168,7 @@ public class Relations {
         }
 
         @Override
-        public Void visitQueriedSelectRelation(QueriedSelectRelation relation, Consumer<? super Symbol> consumer) {
+        public Void visitQueriedSelectRelation(QueriedSelectRelation<?> relation, Consumer<? super Symbol> consumer) {
             relation.visitSymbols(consumer);
             process(relation.subRelation(), consumer);
             return null;

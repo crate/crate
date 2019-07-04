@@ -24,7 +24,6 @@ package io.crate.planner.operators;
 
 import com.carrotsearch.hppc.ObjectObjectHashMap;
 import io.crate.analyze.MultiSourceSelect;
-import io.crate.analyze.QueriedTable;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.HashJoinPhase;
 import io.crate.execution.dsl.phases.NestedLoopPhase;
@@ -468,7 +467,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
     /**
      * This scenario will result having a {@link io.crate.analyze.relations.AbstractTableRelation} as a direct
-     * child of the {@link MultiSourceSelect} instead of a {@link QueriedTable} before ANY optimization
+     * child of the {@link MultiSourceSelect} instead of a {@link io.crate.analyze.QueriedSelectRelation} before ANY optimization
      * and validates that the plan can be build.
      *
      */

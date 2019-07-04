@@ -22,8 +22,8 @@
 
 package io.crate.execution.dml.upsert;
 
-import io.crate.analyze.QueriedTable;
-import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.QueriedSelectRelation;
+import io.crate.analyze.relations.DocTableRelation;
 import io.crate.common.collections.Maps;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -31,7 +31,6 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.table.TableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -74,14 +73,14 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table t4 (x int, y text default 'crate')")
             .addTable("create table t5 (obj object as (x int default 0, y int))")
             .build();
-        AnalyzedRelation relation = e.normalize("select x, y, z from t1");
-        t1 = (DocTableInfo) ((QueriedTable) relation).tableRelation().tableInfo();
+        QueriedSelectRelation<DocTableRelation> relation = e.normalize("select x, y, z from t1");
+        t1 = relation.subRelation().tableInfo();
         x = (Reference) relation.outputs().get(0);
         y = (Reference) relation.outputs().get(1);
         z = (Reference) relation.outputs().get(2);
 
         relation = e.normalize("select obj, b from t2");
-        t2 = (DocTableInfo) ((QueriedTable) relation).tableRelation().tableInfo();
+        t2 = relation.subRelation().tableInfo();
         obj = (Reference) relation.outputs().get(0);
         b = (Reference) relation.outputs().get(1);
     }
@@ -119,8 +118,8 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testNullConstraintCheckCausesErrorIfRequiredPartitionedColumnValueIsNull() {
-        AnalyzedRelation relation = e.normalize("select p from t3");
-        DocTableInfo t3 = (DocTableInfo) ((QueriedTable) relation).tableRelation().tableInfo();
+        QueriedSelectRelation<DocTableRelation> relation = e.normalize("select p from t3");
+        DocTableInfo t3 = relation.subRelation().tableInfo();
         PartitionName partitionName = new PartitionName(t3.ident(), singletonList(null));
 
         InsertSourceFromCells sourceFromCells = new InsertSourceFromCells(
@@ -132,8 +131,8 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testNullConstraintCheckPassesIfRequiredPartitionedColumnValueIsNotNull() {
-        AnalyzedRelation relation = e.normalize("select p from t3");
-        DocTableInfo t3 = (DocTableInfo) ((QueriedTable) relation).tableRelation().tableInfo();
+        QueriedSelectRelation<DocTableRelation> relation = e.normalize("select p from t3");
+        DocTableInfo t3 = relation.subRelation().tableInfo();
         PartitionName partitionName = new PartitionName(t3.ident(), singletonList("10"));
 
         InsertSourceFromCells sourceFromCells = new InsertSourceFromCells(
@@ -145,8 +144,8 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testDefaultExpressionIsInjected() throws IOException {
-        AnalyzedRelation relation = e.normalize("select x from t4");
-        DocTableInfo t4 = (DocTableInfo) ((QueriedTable) relation).tableRelation().tableInfo();
+        QueriedSelectRelation<DocTableRelation> relation = e.normalize("select x from t4");
+        DocTableInfo t4 = relation.subRelation().tableInfo();
         Reference x = (Reference) relation.outputs().get(0);
 
         InsertSourceFromCells sourceFromCells = new InsertSourceFromCells(
@@ -160,8 +159,8 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testDefaultExpressionGivenValueOverridesDefaultValue() throws IOException {
-        AnalyzedRelation relation = e.normalize("select x, y from t4");
-        DocTableInfo t4 = (DocTableInfo) ((QueriedTable) relation).tableRelation().tableInfo();
+        QueriedSelectRelation<DocTableRelation> relation = e.normalize("select x, y from t4");
+        DocTableInfo t4 = relation.subRelation().tableInfo();
         Reference x = (Reference) relation.outputs().get(0);
         Reference y = (Reference) relation.outputs().get(1);
 

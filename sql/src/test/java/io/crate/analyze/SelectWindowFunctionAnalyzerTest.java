@@ -29,7 +29,6 @@ import io.crate.sql.tree.FrameBound;
 import io.crate.sql.tree.WindowFrame;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import io.crate.testing.SymbolMatchers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -52,7 +51,7 @@ public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUn
 
     @Test
     public void testEmptyOverClause() {
-        QueriedTable<?> analysis = e.analyze("select avg(x) OVER () from t");
+        QueriedSelectRelation<?> analysis = e.analyze("select avg(x) OVER () from t");
 
         List<Symbol> outputSymbols = analysis.outputs();
         assertThat(outputSymbols.size(), is(1));
@@ -67,7 +66,7 @@ public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUn
 
     @Test
     public void testOverWithPartitionByClause() {
-        QueriedTable<?> analysis = e.analyze("select avg(x) OVER (PARTITION BY x) from t");
+        QueriedSelectRelation<?> analysis = e.analyze("select avg(x) OVER (PARTITION BY x) from t");
 
         List<Symbol> outputSymbols = analysis.outputs();
         assertThat(outputSymbols.size(), is(1));
@@ -101,7 +100,7 @@ public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUn
 
     @Test
     public void testOverWithOrderByClause() {
-        QueriedTable<?> analysis = e.analyze("select avg(x) OVER (ORDER BY x) from t");
+        QueriedSelectRelation<?> analysis = e.analyze("select avg(x) OVER (ORDER BY x) from t");
 
         List<Symbol> outputSymbols = analysis.outputs();
         assertThat(outputSymbols.size(), is(1));
@@ -114,7 +113,7 @@ public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUn
 
     @Test
     public void testOverWithPartitionAndOrderByClauses() {
-        QueriedTable<?> analysis = e.analyze("select avg(x) OVER (PARTITION BY x ORDER BY x) from t");
+        QueriedSelectRelation<?> analysis = e.analyze("select avg(x) OVER (PARTITION BY x ORDER BY x) from t");
 
         List<Symbol> outputSymbols = analysis.outputs();
         assertThat(outputSymbols.size(), is(1));
@@ -128,7 +127,7 @@ public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUn
 
     @Test
     public void testOverWithFrameDefinition() {
-        QueriedTable<?> analysis = e.analyze("select avg(x) OVER (PARTITION BY x ORDER BY x " +
+        QueriedSelectRelation<?> analysis = e.analyze("select avg(x) OVER (PARTITION BY x ORDER BY x " +
                                              "RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) from t");
 
         List<Symbol> outputSymbols = analysis.outputs();

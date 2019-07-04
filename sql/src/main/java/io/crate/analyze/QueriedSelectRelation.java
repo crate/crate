@@ -24,6 +24,7 @@ package io.crate.analyze;
 
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
+import io.crate.common.collections.Lists2;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.FieldReplacer;
@@ -36,18 +37,19 @@ import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.function.Function;
 
 import static com.google.common.collect.Lists.transform;
 
-public class QueriedSelectRelation implements AnalyzedRelation {
+public class QueriedSelectRelation<T extends AnalyzedRelation> implements AnalyzedRelation {
 
     private final Fields fields;
     private final QuerySpec querySpec;
     private final boolean isDistinct;
-    private final AnalyzedRelation subRelation;
+    private final T subRelation;
 
     public QueriedSelectRelation(boolean isDistinct,
-                                 AnalyzedRelation subRelation,
+                                 T subRelation,
                                  Collection<? extends ColumnIdent> outputNames,
                                  QuerySpec querySpec) {
         this.isDistinct = isDistinct;
@@ -60,7 +62,7 @@ public class QueriedSelectRelation implements AnalyzedRelation {
         }
     }
 
-    public AnalyzedRelation subRelation() {
+    public T subRelation() {
         return subRelation;
     }
 
@@ -142,7 +144,7 @@ public class QueriedSelectRelation implements AnalyzedRelation {
      * Fields will be re-mapped (They contain a hard-reference to a relation),
      * but for this to work the new relation must have semantically equal outputs to the old relation.
      */
-    public AnalyzedRelation replaceSubRelation(AnalyzedRelation newSubRelation) {
+    public <U extends AnalyzedRelation> QueriedSelectRelation<U> replaceSubRelation(U newSubRelation) {
         var mapFieldsToNewRelation = FieldReplacer.bind(
             f -> {
                 if (f.relation().equals(subRelation)) {
@@ -154,11 +156,20 @@ public class QueriedSelectRelation implements AnalyzedRelation {
                 return f;
             }
         );
-        return new QueriedSelectRelation(
+        return new QueriedSelectRelation<>(
             isDistinct,
             newSubRelation,
             transform(fields.asList(), Field::path),
             querySpec.map(mapFieldsToNewRelation)
+        );
+    }
+
+    public QueriedSelectRelation<T> map(Function<? super Symbol, ? extends Symbol> mapper) {
+        return new QueriedSelectRelation<>(
+            isDistinct,
+            subRelation,
+            Lists2.map(fields.asList(), Field::path),
+            querySpec.map(mapper)
         );
     }
 }
