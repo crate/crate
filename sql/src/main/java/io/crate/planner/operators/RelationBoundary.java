@@ -30,15 +30,12 @@ import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.FieldsVisitor;
 import io.crate.expression.symbol.RefVisitor;
-import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
-import io.crate.planner.SubqueryPlanner;
 import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nullable;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -52,13 +49,10 @@ import java.util.function.Function;
  * In relational algebra terms this is a "no-op" operator - it doesn't apply any modifications on the source relation.
  *
  * It is used to take care of the field mapping (providing {@link LogicalPlan#expressionMapping()})
- * In addition it takes care of MultiPhase planning.
  */
 public class RelationBoundary extends ForwardingLogicalPlan {
 
-    public static LogicalPlan.Builder create(LogicalPlan.Builder sourceBuilder,
-                                             AnalyzedRelation relation,
-                                             SubqueryPlanner subqueryPlanner) {
+    public static LogicalPlan.Builder create(LogicalPlan.Builder sourceBuilder, AnalyzedRelation relation) {
         return (tableStats, hints, usedBeforeNextFetch) -> {
             HashMap<Symbol, Symbol> expressionMapping = new HashMap<>();
             HashMap<Symbol, Symbol> reverseMapping = new HashMap<>();
@@ -91,12 +85,10 @@ public class RelationBoundary extends ForwardingLogicalPlan {
             }
             List<Symbol> outputs = OperatorUtils.mappedSymbols(source.outputs(), reverseMapping);
             expressionMapping.putAll(source.expressionMapping());
-            Map<LogicalPlan, SelectSymbol> subQueries = subqueryPlanner.planSubQueries(relation);
-            return new RelationBoundary(source, relation, outputs, expressionMapping, reverseMapping, subQueries);
+            return new RelationBoundary(source, relation, outputs, expressionMapping, reverseMapping);
         };
     }
 
-    private final Map<LogicalPlan, SelectSymbol> dependencies;
     private final List<Symbol> outputs;
     private final Map<Symbol, Symbol> expressionMapping;
 
@@ -107,15 +99,10 @@ public class RelationBoundary extends ForwardingLogicalPlan {
                             AnalyzedRelation relation,
                             List<Symbol> outputs,
                             Map<Symbol, Symbol> expressionMapping,
-                            Map<Symbol, Symbol> reverseMapping,
-                            Map<LogicalPlan, SelectSymbol> subQueries) {
+                            Map<Symbol, Symbol> reverseMapping) {
         super(source);
         this.outputs = outputs;
         this.expressionMapping = expressionMapping;
-        Map<LogicalPlan, SelectSymbol> allSubQueries = new HashMap<>();
-        allSubQueries.putAll(subQueries);
-        allSubQueries.putAll(source.dependencies());
-        this.dependencies = Collections.unmodifiableMap(allSubQueries);
         this.relation = relation;
         this.reverseMapping = reverseMapping;
     }
@@ -156,14 +143,8 @@ public class RelationBoundary extends ForwardingLogicalPlan {
             relation,
             OperatorUtils.mappedSymbols(newSource.outputs(), reverseMapping),
             expressionMapping,
-            reverseMapping,
-            dependencies
+            reverseMapping
         );
-    }
-
-    @Override
-    public Map<LogicalPlan, SelectSymbol> dependencies() {
-        return dependencies;
     }
 
     @Override

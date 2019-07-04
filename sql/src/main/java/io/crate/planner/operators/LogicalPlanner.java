@@ -172,7 +172,7 @@ public class LogicalPlanner {
         LogicalPlan optimizedPlan = optimizer.optimize(maybeApplySoftLimit.apply(planBuilder.build(tableStats,
                                                                                                    Set.of(),
                                                                                                    Collections.emptySet())));
-        return new RootRelationBoundary(MultiPhase.createIfNeeded(optimizedPlan, relation, subqueryPlanner));
+        return new RootRelationBoundary(optimizedPlan);
     }
 
     // In case the subselect is inside an IN() or = ANY() apply a "natural" OrderBy to optimize
@@ -201,8 +201,7 @@ public class LogicalPlanner {
         LogicalPlan logicalPlan = plan(relation, fetchMode, subqueryPlanner, true, functions, coordinatorTxnCtx)
             .build(tableStats, hints, new HashSet<>(relation.outputs()));
 
-        LogicalPlan optimizedPlan = optimizer.optimize(logicalPlan);
-        return MultiPhase.createIfNeeded(optimizedPlan, relation, subqueryPlanner);
+        return optimizer.optimize(logicalPlan);
     }
 
     static LogicalPlan.Builder plan(AnalyzedRelation relation,
@@ -215,7 +214,7 @@ public class LogicalPlanner {
         if (isLastFetch) {
             return builder;
         }
-        return RelationBoundary.create(builder, relation, subqueryPlanner);
+        return RelationBoundary.create(builder, relation);
     }
 
     private static LogicalPlan.Builder prePlan(AnalyzedRelation relation,
@@ -225,44 +224,48 @@ public class LogicalPlanner {
                                                Functions functions,
                                                CoordinatorTxnCtx txnCtx) {
         SplitPoints splitPoints = SplitPointsBuilder.create(relation);
-        return FetchOrEval.create(
-            Limit.create(
-                Order.create(
-                    Distinct.create(
-                        ProjectSet.create(
-                            WindowAgg.create(
-                                Filter.create(
-                                    groupByOrAggregate(
-                                        collectAndFilter(
-                                            relation,
-                                            splitPoints.toCollect(),
-                                            relation.where(),
-                                            subqueryPlanner,
-                                            fetchMode,
-                                            functions,
-                                            txnCtx
+        return MultiPhase.createIfNeeded(
+            FetchOrEval.create(
+                Limit.create(
+                    Order.create(
+                        Distinct.create(
+                            ProjectSet.create(
+                                WindowAgg.create(
+                                    Filter.create(
+                                        groupByOrAggregate(
+                                            collectAndFilter(
+                                                relation,
+                                                splitPoints.toCollect(),
+                                                relation.where(),
+                                                subqueryPlanner,
+                                                fetchMode,
+                                                functions,
+                                                txnCtx
+                                            ),
+                                            relation.groupBy(),
+                                            splitPoints.aggregates()
                                         ),
-                                        relation.groupBy(),
-                                        splitPoints.aggregates()
+                                        relation.having()
                                     ),
-                                    relation.having()
+                                    splitPoints.windowFunctions()
                                 ),
-                                splitPoints.windowFunctions()
+                                splitPoints.tableFunctions()
                             ),
-                            splitPoints.tableFunctions()
+                            relation.isDistinct(),
+                            relation.outputs()
                         ),
-                        relation.isDistinct(),
-                        relation.outputs()
+                        relation.orderBy()
                     ),
-                    relation.orderBy()
+                    relation.limit(),
+                    relation.offset()
                 ),
-                relation.limit(),
-                relation.offset()
+                relation.outputs(),
+                fetchMode,
+                isLastFetch,
+                relation.limit() != null
             ),
-            relation.outputs(),
-            fetchMode,
-            isLastFetch,
-            relation.limit() != null
+            relation,
+            subqueryPlanner
         );
     }
 
