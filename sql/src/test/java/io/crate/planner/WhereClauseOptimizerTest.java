@@ -22,7 +22,8 @@
 
 package io.crate.planner;
 
-import io.crate.analyze.QueriedTable;
+import io.crate.analyze.QueriedSelectRelation;
+import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
@@ -70,17 +71,17 @@ public class WhereClauseOptimizerTest extends CrateDummyClusterServiceUnitTest{
     }
 
     private WhereClauseOptimizer.DetailedQuery optimize(String statement) {
-        QueriedTable queriedTable = e.normalize(statement);
+        QueriedSelectRelation<AbstractTableRelation> queriedTable = e.normalize(statement);
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
             e.functions(),
             RowGranularity.CLUSTER,
             null,
-            queriedTable.tableRelation()
+            queriedTable.subRelation()
         );
         return WhereClauseOptimizer.optimize(
             normalizer,
             queriedTable.where().queryOrFallback(),
-            ((DocTableInfo) queriedTable.tableRelation().tableInfo()),
+            ((DocTableInfo) queriedTable.subRelation().tableInfo()),
             e.getPlannerContext(clusterService.state()).transactionContext()
         );
     }

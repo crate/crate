@@ -23,9 +23,9 @@
 package io.crate.execution.engine.window;
 
 import com.carrotsearch.randomizedtesting.RandomizedTest;
-import io.crate.analyze.AnalyzedStatement;
-import io.crate.analyze.QueriedTable;
+import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.TableDefinitions;
+import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.WindowAggProjection;
@@ -122,12 +122,11 @@ public class WindowDefinitionTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testFrameEndDefaultsToCurrentRowIfNotSpecified() {
-        AnalyzedStatement analyze = e.analyze(
+        AnalyzedRelation analyze = e.analyze(
             "select sum(col1) over(RANGE UNBOUNDED PRECEDING) FROM " +
             "unnest([1, 2, 1, 1, 1, 4])");
-        assertThat(analyze, is(instanceOf(QueriedTable.class)));
-        QueriedTable queriedTable = (QueriedTable) analyze;
-        List<Symbol> outputs = queriedTable.outputs();
+        assertThat(analyze, is(instanceOf(QueriedSelectRelation.class)));
+        List<Symbol> outputs = analyze.outputs();
         assertThat(outputs.size(), is(1));
         WindowFunction windowFunction = (WindowFunction) outputs.get(0);
         assertThat(windowFunction.windowDefinition().windowFrameDefinition().end().type(), is(CURRENT_ROW));

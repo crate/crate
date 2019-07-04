@@ -26,7 +26,6 @@ import io.crate.analyze.AnalyzedDecommissionNodeStatement;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.QueriedSelectRelation;
-import io.crate.analyze.QueriedTable;
 import io.crate.analyze.SetAnalyzedStatement;
 import io.crate.analyze.SetLicenseAnalyzedStatement;
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -111,11 +110,6 @@ final class IsStatementExecutionAllowed implements Predicate<AnalyzedStatement> 
         @Override
         public Boolean visitQueriedSelectRelation(QueriedSelectRelation relation, Void context) {
             return process(relation.subRelation(), context);
-        }
-
-        @Override
-        public Boolean visitQueriedTable(QueriedTable<?> queriedTable, Void context) {
-            return process(queriedTable.tableRelation(), context);
         }
 
         @Override

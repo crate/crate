@@ -22,7 +22,7 @@
 
 package io.crate.execution.dml.upsert;
 
-import io.crate.analyze.QueriedTable;
+import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.data.Input;
 import io.crate.expression.InputFactory;
@@ -51,8 +51,8 @@ public class GeneratedColumnsTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.builder(clusterService)
             .addTable("create table t (obj object as (arr array(integer)), arr as obj['arr'])")
             .build();
-        QueriedTable<DocTableRelation> query = e.analyze("select obj, arr from t");
-        DocTableInfo table = query.tableRelation().tableInfo();
+        QueriedSelectRelation<DocTableRelation> query = e.analyze("select obj, arr from t");
+        DocTableInfo table = query.subRelation().tableInfo();
         GeneratedColumns<Doc> generatedColumns = new GeneratedColumns<>(
             new InputFactory(e.functions()),
             CoordinatorTxnCtx.systemTransactionContext(),

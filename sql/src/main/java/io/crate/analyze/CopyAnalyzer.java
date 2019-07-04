@@ -29,6 +29,7 @@ import io.crate.analyze.expressions.ExpressionToObjectVisitor;
 import io.crate.analyze.expressions.ExpressionToStringVisitor;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.NameFieldProvider;
+import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.exceptions.PartitionUnknownException;
 import io.crate.exceptions.UnsupportedFeatureException;
@@ -36,6 +37,7 @@ import io.crate.execution.dsl.phases.FileUriCollectPhase;
 import io.crate.execution.dsl.projection.WriterProjection;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.format.SymbolPrinter;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -256,7 +258,12 @@ class CopyAnalyzer {
             null,
             false
         );
-        QueriedTable<DocTableRelation> subRelation = new QueriedTable<>(false, tableRelation, querySpec);
+        QueriedSelectRelation<DocTableRelation> subRelation = new QueriedSelectRelation<>(
+            false,
+            tableRelation,
+            outputNames == null ? Lists2.map(outputs, Symbols::pathFromSymbol) : Lists2.map(outputNames, ColumnIdent::new),
+            querySpec
+        );
         return new CopyToAnalyzedStatement(
             subRelation, settings, uri, compressionType, outputFormat, outputNames, columnsDefined, overwrites);
     }

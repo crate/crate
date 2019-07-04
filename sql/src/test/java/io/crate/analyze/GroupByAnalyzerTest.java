@@ -285,7 +285,7 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                     "  select distinct id from users group by id, name order by 1" +
                     ") t order by 1 desc");
         assertThat(relation, instanceOf(QueriedSelectRelation.class));
-        QueriedSelectRelation outerRelation = (QueriedSelectRelation) relation;
+        QueriedSelectRelation<?> outerRelation = (QueriedSelectRelation) relation;
         assertThat(outerRelation.outputs(), contains(isField("id")));
 
         assertThat(outerRelation.groupBy(), Matchers.empty());

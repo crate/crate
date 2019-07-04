@@ -22,6 +22,7 @@
 
 package io.crate.analyze;
 
+import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -177,12 +178,12 @@ public class ShowStatementsAnalyzerTest extends CrateDummyClusterServiceUnitTest
 
     @Test
     public void testRewriteOfTransactionIsolation() {
-        QueriedTable<?> stmt = analyze("show transaction isolation level");
-        assertThat(stmt.tableRelation().tableInfo().ident(), is(SysClusterTableInfo.IDENT));
+        QueriedSelectRelation<AbstractTableRelation<?>> stmt = analyze("show transaction isolation level");
+        assertThat(stmt.subRelation().tableInfo().ident(), is(SysClusterTableInfo.IDENT));
         assertThat(stmt.outputs(), contains(isLiteral("read uncommitted")));
 
         stmt = analyze("show transaction_isolation");
-        assertThat(stmt.tableRelation().tableInfo().ident(), is(SysClusterTableInfo.IDENT));
+        assertThat(stmt.subRelation().tableInfo().ident(), is(SysClusterTableInfo.IDENT));
         assertThat(stmt.outputs(), contains(isLiteral("read uncommitted")));
     }
 }

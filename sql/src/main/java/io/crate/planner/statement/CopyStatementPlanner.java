@@ -375,7 +375,7 @@ public final class CopyStatementPlanner {
         }
 
         WriterProjection projection = ProjectionBuilder.writerProjection(
-            statement.subQueryRelation().outputs(),
+            statement.relation().outputs(),
             statement.uri(),
             statement.compressionType(),
             statement.overwrites(),
@@ -383,7 +383,7 @@ public final class CopyStatementPlanner {
             outputFormat);
 
         LogicalPlan logicalPlan = logicalPlanner.normalizeAndPlan(
-            statement.subQueryRelation(), context, subqueryPlanner, FetchMode.NEVER_CLEAR, Set.of());
+            statement.relation(), context, subqueryPlanner, FetchMode.NEVER_CLEAR, Set.of());
         ExecutionPlan executionPlan = logicalPlan.build(
             context, projectionBuilder, 0, 0, null, null, params, SubQueryResults.EMPTY);
         executionPlan.addProjection(projection);

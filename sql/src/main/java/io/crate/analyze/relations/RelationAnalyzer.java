@@ -30,7 +30,6 @@ import io.crate.analyze.OrderBy;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.ParameterContext;
 import io.crate.analyze.QueriedSelectRelation;
-import io.crate.analyze.QueriedTable;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
@@ -367,23 +366,12 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                     return f;
                 }));
             }
-
-            if (source instanceof AbstractTableRelation<?>) {
-                relation = new QueriedTable<>(
-                    isDistinct,
-                    (AbstractTableRelation<?>) source,
-                    selectAnalysis.outputNames(),
-                    querySpec
-                );
-            } else {
-                relation = new QueriedSelectRelation(
-                    isDistinct,
-                    source,
-                    selectAnalysis.outputNames(),
-                    querySpec
-                );
-            }
-
+            relation = new QueriedSelectRelation<>(
+                isDistinct,
+                source,
+                selectAnalysis.outputNames(),
+                querySpec
+            );
             if (aliasedRelation != null) {
                 relation = new AliasedAnalyzedRelation(relation, aliasedRelation.getQualifiedName(), aliasedRelation.columnAliases());
             }

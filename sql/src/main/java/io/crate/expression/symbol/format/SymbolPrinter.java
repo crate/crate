@@ -22,7 +22,7 @@
 
 package io.crate.expression.symbol.format;
 
-import io.crate.analyze.QueriedTable;
+import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.RelationPrinter;
 import io.crate.analyze.relations.TableFunctionRelation;
@@ -325,10 +325,8 @@ public final class SymbolPrinter {
 
         private static boolean isTableFunctionField(Field field) {
             AnalyzedRelation relation = field.relation();
-            if (relation instanceof QueriedTable) {
-                return ((QueriedTable) relation).tableRelation() instanceof TableFunctionRelation;
-            }
-            return false;
+            return relation instanceof QueriedSelectRelation
+                   && ((QueriedSelectRelation) relation).subRelation() instanceof TableFunctionRelation;
         }
     }
 

@@ -24,7 +24,7 @@ package io.crate.planner.operators;
 
 import com.google.common.collect.Sets;
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.QueriedTable;
+import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
@@ -409,9 +409,10 @@ public class FetchOrEval extends ForwardingLogicalPlan {
         if (relation instanceof DocTableRelation) {
             return (DocTableRelation) relation;
         }
-        if (relation instanceof QueriedTable
-            && ((QueriedTable) relation).tableRelation() instanceof DocTableRelation) {
-            return ((DocTableRelation) ((QueriedTable) relation).tableRelation());
+        if (relation instanceof QueriedSelectRelation
+            && ((QueriedSelectRelation) relation).subRelation() instanceof DocTableRelation) {
+
+            return ((DocTableRelation) ((QueriedSelectRelation) relation).subRelation());
         }
         return null;
     }

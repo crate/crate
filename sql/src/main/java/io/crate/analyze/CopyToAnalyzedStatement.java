@@ -24,6 +24,7 @@ package io.crate.analyze;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableMap;
+import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.execution.dsl.projection.WriterProjection;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
@@ -35,7 +36,7 @@ import java.util.Map;
 
 public class CopyToAnalyzedStatement extends AbstractCopyAnalyzedStatement {
 
-    private final QueriedTable<?> subQueryRelation;
+    private final QueriedSelectRelation<? extends AbstractTableRelation<?>> relation;
     private final boolean columnsDefined;
     @Nullable
     private final WriterProjection.CompressionType compressionType;
@@ -50,7 +51,7 @@ public class CopyToAnalyzedStatement extends AbstractCopyAnalyzedStatement {
      */
     private final Map<ColumnIdent, Symbol> overwrites;
 
-    public CopyToAnalyzedStatement(QueriedTable<?> subQueryRelation,
+    public CopyToAnalyzedStatement(QueriedSelectRelation<? extends AbstractTableRelation<?>> relation,
                                    Settings settings,
                                    Symbol uri,
                                    @Nullable WriterProjection.CompressionType compressionType,
@@ -59,7 +60,7 @@ public class CopyToAnalyzedStatement extends AbstractCopyAnalyzedStatement {
                                    boolean columnsDefined,
                                    @Nullable Map<ColumnIdent, Symbol> overwrites) {
         super(settings, uri);
-        this.subQueryRelation = subQueryRelation;
+        this.relation = relation;
         this.columnsDefined = columnsDefined;
         this.compressionType = compressionType;
         this.outputNames = outputNames;
@@ -67,8 +68,8 @@ public class CopyToAnalyzedStatement extends AbstractCopyAnalyzedStatement {
         this.overwrites = MoreObjects.firstNonNull(overwrites, ImmutableMap.<ColumnIdent, Symbol>of());
     }
 
-    public QueriedTable<?> subQueryRelation() {
-        return subQueryRelation;
+    public QueriedSelectRelation<? extends AbstractTableRelation<?>> relation() {
+        return relation;
     }
 
     public boolean columnsDefined() {
