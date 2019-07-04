@@ -25,7 +25,6 @@ package io.crate.planner.optimizer.rule;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.TableRelation;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.optimizer.matcher.Captures;
@@ -58,7 +57,7 @@ public class MergeFiltersTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testMergeFiltersMatchesOnAFilterWithAnotherFilterAsChild() {
-        Collect source = new Collect(tr1, Collections.emptyList(), WhereClause.MATCH_ALL, 100, 10);
+        Collect source = new Collect(false, tr1, Collections.emptyList(), WhereClause.MATCH_ALL, 100, 10);
         Filter sourceFilter = new Filter(source, e.asSymbol("x > 10"));
         Filter parentFilter = new Filter(sourceFilter, e.asSymbol("y > 10"));
 

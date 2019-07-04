@@ -23,35 +23,30 @@ package io.crate.planner.consumer;
 
 
 import io.crate.analyze.InsertFromSubQueryAnalyzedStatement;
-import io.crate.analyze.QueriedTable;
-import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.AnalyzedRelationVisitor;
-import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.RelationNormalizer;
 import io.crate.execution.dsl.projection.ColumnIndexWriterProjection;
 import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.DocReferences;
 import io.crate.metadata.Reference;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.SubqueryPlanner;
 import io.crate.planner.operators.Insert;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LogicalPlanner;
+import io.crate.planner.operators.PlanHint;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 
 
 public final class InsertFromSubQueryPlanner {
-
-    private static final ToSourceLookupConverter SOURCE_LOOKUP_CONVERTER = new ToSourceLookupConverter();
 
     private InsertFromSubQueryPlanner() {
     }
@@ -80,9 +75,8 @@ public final class InsertFromSubQueryPlanner {
         AnalyzedRelation subRelation = relationNormalizer.normalize(
             statement.subQueryRelation(), plannerContext.transactionContext());
 
-        SOURCE_LOOKUP_CONVERTER.process(subRelation, null);
         LogicalPlan plannedSubQuery = logicalPlanner.normalizeAndPlan(
-            subRelation, plannerContext, subqueryPlanner, FetchMode.NEVER_CLEAR);
+            subRelation, plannerContext, subqueryPlanner, FetchMode.NEVER_CLEAR, EnumSet.of(PlanHint.PREFER_SOURCE_LOOKUP));
         EvalProjection castOutputs = createCastProjection(statement.columns(), plannedSubQuery.outputs());
         return new Insert(plannedSubQuery, indexWriterProjection, castOutputs);
     }
@@ -104,28 +98,5 @@ public final class InsertFromSubQueryPlanner {
             }
         }
         return requiresCasts ? new EvalProjection(casts) : null;
-    }
-
-    private static class ToSourceLookupConverter extends AnalyzedRelationVisitor<Void, Void> {
-
-        @Override
-        public Void visitQueriedTable(QueriedTable<?> table, Void context) {
-            if (table.hasAggregates() || !table.groupBy().isEmpty()) {
-                return null;
-            }
-            AbstractTableRelation tableRelation = table.tableRelation();
-            if (tableRelation instanceof DocTableRelation && table.orderBy() == null) {
-                List<Symbol> outputs = table.outputs();
-                for (int i = 0; i < outputs.size(); i++) {
-                    outputs.set(i, DocReferences.toSourceLookup(outputs.get(i)));
-                }
-            }
-            return null;
-        }
-
-        @Override
-        protected Void visitAnalyzedRelation(AnalyzedRelation relation, Void context) {
-            return null;
-        }
     }
 }

@@ -59,7 +59,7 @@ public class RelationBoundary extends ForwardingLogicalPlan {
     public static LogicalPlan.Builder create(LogicalPlan.Builder sourceBuilder,
                                              AnalyzedRelation relation,
                                              SubqueryPlanner subqueryPlanner) {
-        return (tableStats, usedBeforeNextFetch) -> {
+        return (tableStats, hints, usedBeforeNextFetch) -> {
             HashMap<Symbol, Symbol> expressionMapping = new HashMap<>();
             HashMap<Symbol, Symbol> reverseMapping = new HashMap<>();
             List<Field> fields = relation.fields();
@@ -74,7 +74,7 @@ public class RelationBoundary extends ForwardingLogicalPlan {
             for (Symbol beforeNextFetch : usedBeforeNextFetch) {
                 mappedUsedColumns.add(mapper.apply(beforeNextFetch));
             }
-            LogicalPlan source = sourceBuilder.build(tableStats, mappedUsedColumns);
+            LogicalPlan source = sourceBuilder.build(tableStats, hints, mappedUsedColumns);
             for (Symbol symbol : source.outputs()) {
                 RefVisitor.visitRefs(symbol, r -> {
                     Field field = new Field(relation, r.column(), r);

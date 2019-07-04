@@ -51,11 +51,11 @@ public class ProjectSet extends ForwardingLogicalPlan {
         if (tableFunctions.isEmpty()) {
             return source;
         }
-        return (tableStats, usedBeforeNextFetch) -> {
+        return (tableStats, hints, usedBeforeNextFetch) -> {
             HashSet<Symbol> allUsedColumns = new HashSet<>(usedBeforeNextFetch);
             Set<Symbol> columnsUsedInTableFunctions = extractColumns(tableFunctions);
             allUsedColumns.addAll(columnsUsedInTableFunctions);
-            LogicalPlan sourcePlan = source.build(tableStats, allUsedColumns);
+            LogicalPlan sourcePlan = source.build(tableStats, hints, allUsedColumns);
 
             // Use sourcePlan.outputs() as standalone to simply pass along all source outputs as well;
             // Parent operators will discard them if not required

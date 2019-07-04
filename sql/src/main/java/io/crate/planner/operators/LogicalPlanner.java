@@ -170,7 +170,7 @@ public class LogicalPlanner {
             plannerContext.transactionContext());
 
         planBuilder = tryOptimizeForInSubquery(selectSymbol, relation, planBuilder);
-        LogicalPlan optimizedPlan = tryOptimize(maybeApplySoftLimit.apply(planBuilder.build(tableStats, Collections.emptySet())));
+        LogicalPlan optimizedPlan = tryOptimize(maybeApplySoftLimit.apply(planBuilder.build(tableStats, Set.of(), Collections.emptySet())));
         return new RootRelationBoundary(MultiPhase.createIfNeeded(optimizedPlan, relation, subqueryPlanner));
     }
 
@@ -193,11 +193,12 @@ public class LogicalPlanner {
     public LogicalPlan normalizeAndPlan(AnalyzedRelation analyzedRelation,
                                         PlannerContext plannerContext,
                                         SubqueryPlanner subqueryPlanner,
-                                        FetchMode fetchMode) {
+                                        FetchMode fetchMode,
+                                        Set<PlanHint> hints) {
         CoordinatorTxnCtx coordinatorTxnCtx = plannerContext.transactionContext();
         AnalyzedRelation relation = relationNormalizer.normalize(analyzedRelation, coordinatorTxnCtx);
         LogicalPlan logicalPlan = plan(relation, fetchMode, subqueryPlanner, true, functions, coordinatorTxnCtx)
-            .build(tableStats, new HashSet<>(relation.outputs()));
+            .build(tableStats, hints, new HashSet<>(relation.outputs()));
 
         LogicalPlan optimizedPlan = tryOptimize(logicalPlan);
 
@@ -281,8 +282,8 @@ public class LogicalPlanner {
             return GroupHashAggregate.create(source, groupKeys, aggregates);
         }
         if (!aggregates.isEmpty()) {
-            return (tableStats, usedColumns) ->
-                new HashAggregate(source.build(tableStats, extractColumns(aggregates)), aggregates);
+            return (tableStats, hints, usedColumns) ->
+                new HashAggregate(source.build(tableStats, hints, extractColumns(aggregates)), aggregates);
         }
         return source;
     }
@@ -321,7 +322,7 @@ public class LogicalPlanner {
 
                 Optional<DocKeys> docKeys = detailedQuery.docKeys();
                 if (docKeys.isPresent()) {
-                    return (tableStats, usedBeforeNextFetch) ->
+                    return (tableStats, hints, usedBeforeNextFetch) ->
                         new Get(docTableRelation, docKeys.get(), toCollect, tableStats);
                 }
                 return Collect.create(docTableRelation, toCollect, new WhereClause(
@@ -438,7 +439,7 @@ public class LogicalPlanner {
         @Override
         public LogicalPlan visitSelectStatement(AnalyzedRelation relation, PlannerContext context) {
             SubqueryPlanner subqueryPlanner = new SubqueryPlanner((s) -> planSubSelect(s, context));
-            LogicalPlan logicalPlan = normalizeAndPlan(relation, context, subqueryPlanner, FetchMode.MAYBE_CLEAR);
+            LogicalPlan logicalPlan = normalizeAndPlan(relation, context, subqueryPlanner, FetchMode.MAYBE_CLEAR, Set.of());
             return new RootRelationBoundary(logicalPlan);
         }
 

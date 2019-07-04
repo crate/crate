@@ -45,6 +45,7 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.Set;
 import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
@@ -329,7 +330,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         LogicalPlanner logicalPlanner = new LogicalPlanner(getFunctions(), tableStats);
         SubqueryPlanner subqueryPlanner = new SubqueryPlanner((s) -> logicalPlanner.planSubSelect(s, context));
 
-        return logicalPlanner.normalizeAndPlan(relation, context, subqueryPlanner, FetchMode.MAYBE_CLEAR);
+        return logicalPlanner.normalizeAndPlan(relation, context, subqueryPlanner, FetchMode.MAYBE_CLEAR, Set.of());
     }
 
     public static Matcher<LogicalPlan> isPlan(Functions functions, String expectedPlan) {
