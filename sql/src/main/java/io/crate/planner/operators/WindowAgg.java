@@ -66,7 +66,7 @@ public class WindowAgg extends ForwardingLogicalPlan {
             return source;
         }
 
-        return (tableStats, usedBeforeNextFetch) -> {
+        return (tableStats, hints, usedBeforeNextFetch) -> {
             HashSet<Symbol> allUsedColumns = new HashSet<>(extractColumns(usedBeforeNextFetch));
             Set<Symbol> columnsUsedInFunctions = extractColumns(windowFunctions);
             LinkedHashMap<WindowDefinition, ArrayList<WindowFunction>> groupedFunctions = new LinkedHashMap<>();
@@ -81,7 +81,7 @@ public class WindowAgg extends ForwardingLogicalPlan {
                 functions.add(windowFunction);
             }
             allUsedColumns.addAll(columnsUsedInFunctions);
-            LogicalPlan sourcePlan = source.build(tableStats, allUsedColumns);
+            LogicalPlan sourcePlan = source.build(tableStats, hints, allUsedColumns);
 
             LogicalPlan lastWindowAgg = sourcePlan;
             for (Map.Entry<WindowDefinition, ArrayList<WindowFunction>> entry : groupedFunctions.entrySet()) {

@@ -52,7 +52,6 @@ import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.SymbolMatchers.isReference;
 import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.core.IsEqual.equalTo;
 
@@ -148,7 +147,7 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testCopyToDirectory() throws Exception {
         CopyToAnalyzedStatement analysis = e.analyze("copy users to directory '/foo'");
-        TableInfo tableInfo = analysis.subQueryRelation().tableRelation().tableInfo();
+        TableInfo tableInfo = analysis.relation().subRelation().tableInfo();
         assertThat(tableInfo.ident(), is(USER_TABLE_IDENT));
         assertThat(analysis.uri(), isLiteral("/foo"));
     }
@@ -164,8 +163,7 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testCopyToWithColumnList() throws Exception {
         CopyToAnalyzedStatement analysis = e.analyze("copy users (id, name) to DIRECTORY '/tmp'");
-        assertThat(analysis.subQueryRelation(), instanceOf(QueriedTable.class));
-        List<Symbol> outputs = analysis.subQueryRelation().outputs();
+        List<Symbol> outputs = analysis.relation().outputs();
         assertThat(outputs.size(), is(2));
         assertThat(outputs.get(0), isReference("_doc['id']"));
         assertThat(outputs.get(1), isReference("_doc['name']"));
@@ -174,7 +172,7 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testCopyToFileWithCompressionParams() throws Exception {
         CopyToAnalyzedStatement analysis = e.analyze("copy users to directory '/blah' with (compression='gzip')");
-        TableInfo tableInfo = analysis.subQueryRelation().tableRelation().tableInfo();
+        TableInfo tableInfo = analysis.relation().subRelation().tableInfo();
         assertThat(tableInfo.ident(), is(USER_TABLE_IDENT));
 
         assertThat(analysis.uri(), isLiteral("/blah"));
@@ -191,7 +189,7 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testCopyToFileWithPartitionedTable() throws Exception {
         CopyToAnalyzedStatement analysis = e.analyze("copy parted to directory '/blah'");
-        TableInfo tableInfo = analysis.subQueryRelation().tableRelation().tableInfo();
+        TableInfo tableInfo = analysis.relation().subRelation().tableInfo();
         assertThat(tableInfo.ident(), is(TEST_PARTITIONED_TABLE_IDENT));
         assertThat(analysis.overwrites().size(), is(1));
     }
@@ -201,7 +199,7 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         CopyToAnalyzedStatement analysis = e.analyze("copy parted partition (date=1395874800000) to directory '/blah'");
         String parted = new PartitionName(
             new RelationName("doc", "parted"), Collections.singletonList("1395874800000")).asIndexName();
-        assertThat(analysis.subQueryRelation().where().partitions(), contains(parted));
+        assertThat(analysis.relation().where().partitions(), contains(parted));
     }
 
     @Test
@@ -209,7 +207,7 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         CopyToAnalyzedStatement analysis = e.analyze("copy parted partition (date=1395874800000) to directory '/tmp'");
         String parted = new PartitionName(
             new RelationName("doc", "parted"), Collections.singletonList("1395874800000")).asIndexName();
-        assertThat(analysis.subQueryRelation().where().partitions(), contains(parted));
+        assertThat(analysis.relation().where().partitions(), contains(parted));
         assertThat(analysis.overwrites().size(), is(0));
     }
 
@@ -223,7 +221,7 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testCopyToWithWhereClause() throws Exception {
         CopyToAnalyzedStatement analysis = e.analyze("copy parted where id = 1 to directory '/tmp/foo'");
-        assertThat(analysis.subQueryRelation().where().query(), isFunction("op_="));
+        assertThat(analysis.relation().where().query(), isFunction("op_="));
     }
 
     @Test
@@ -232,7 +230,7 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             "copy parted partition (date=1395874800000) where date = 1395874800000 to directory '/tmp/foo'");
         String parted = new PartitionName(
             new RelationName("doc", "parted"), Collections.singletonList("1395874800000")).asIndexName();
-        assertThat(analysis.subQueryRelation().where().partitions(), contains(parted));
+        assertThat(analysis.relation().where().partitions(), contains(parted));
     }
 
 
@@ -242,7 +240,7 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             "copy parted partition (date=1395874800000) where id = 1 to directory '/tmp/foo'");
         String parted = new PartitionName(
             new RelationName("doc", "parted"), Collections.singletonList("1395874800000")).asIndexName();
-        WhereClause where = analysis.subQueryRelation().where();
+        WhereClause where = analysis.relation().where();
         assertThat(where.partitions(), contains(parted));
         assertThat(where.query(), isFunction("op_="));
     }
@@ -257,7 +255,7 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testCopyToFileWithSelectedColumnsAndOutputFormatParam() throws Exception {
         CopyToAnalyzedStatement analysis = e.analyze("copy users (id, name) to directory '/blah' with (format='json_object')");
-        TableInfo tableInfo = analysis.subQueryRelation().tableRelation().tableInfo();
+        TableInfo tableInfo = analysis.relation().subRelation().tableInfo();
         assertThat(tableInfo.ident(), is(USER_TABLE_IDENT));
 
         assertThat(analysis.uri(), isLiteral("/blah"));

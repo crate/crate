@@ -23,7 +23,6 @@
 package io.crate.analyze.relations;
 
 import io.crate.analyze.QueriedSelectRelation;
-import io.crate.analyze.QueriedTable;
 
 public class RelationPrinter extends AnalyzedRelationVisitor<Void, String> {
 
@@ -45,11 +44,6 @@ public class RelationPrinter extends AnalyzedRelationVisitor<Void, String> {
     @Override
     public String visitDocTableRelation(DocTableRelation relation, Void context) {
         return relation.tableInfo().ident().sqlFqn();
-    }
-
-    @Override
-    public String visitQueriedTable(QueriedTable<?> queriedTable, Void context) {
-        return queriedTable.getQualifiedName().toString();
     }
 
     @Override

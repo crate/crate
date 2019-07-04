@@ -104,7 +104,7 @@ public interface LogicalPlan extends Plan {
          *                         outputs: [_fetch, a]
          *                    </pre>
          */
-        LogicalPlan build(TableStats tableStats, Set<Symbol> usedBeforeNextFetch);
+        LogicalPlan build(TableStats tableStats, Set<PlanHint> hints, Set<Symbol> usedBeforeNextFetch);
     }
 
     /**

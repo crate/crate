@@ -155,11 +155,6 @@ public class TableIdentsExtractor {
         }
 
         @Override
-        public Collection<RelationName> visitQueriedTable(QueriedTable<?> queriedTable, Void context) {
-            return process(queriedTable.tableRelation(), context);
-        }
-
-        @Override
         public Collection<RelationName> visitMultiSourceSelect(MultiSourceSelect multiSourceSelect, Void context) {
             Collection<RelationName> relationNames = new HashSet<>(multiSourceSelect.sources().size());
             for (AnalyzedRelation relation : multiSourceSelect.sources().values()) {

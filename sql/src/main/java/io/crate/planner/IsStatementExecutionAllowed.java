@@ -26,14 +26,12 @@ import io.crate.analyze.AnalyzedDecommissionNodeStatement;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.QueriedSelectRelation;
-import io.crate.analyze.QueriedTable;
 import io.crate.analyze.SetAnalyzedStatement;
 import io.crate.analyze.SetLicenseAnalyzedStatement;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.AnalyzedView;
 import io.crate.analyze.relations.DocTableRelation;
-import io.crate.analyze.relations.OrderedLimitedRelation;
 import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.relations.UnionSelect;
@@ -104,18 +102,8 @@ final class IsStatementExecutionAllowed implements Predicate<AnalyzedStatement> 
         }
 
         @Override
-        public Boolean visitOrderedLimitedRelation(OrderedLimitedRelation relation, Void context) {
-            return process(relation.childRelation(), context);
-        }
-
-        @Override
         public Boolean visitQueriedSelectRelation(QueriedSelectRelation relation, Void context) {
             return process(relation.subRelation(), context);
-        }
-
-        @Override
-        public Boolean visitQueriedTable(QueriedTable<?> queriedTable, Void context) {
-            return process(queriedTable.tableRelation(), context);
         }
 
         @Override

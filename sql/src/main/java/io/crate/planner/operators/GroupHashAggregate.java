@@ -41,10 +41,12 @@ import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.GroupByConsumer;
+import org.elasticsearch.common.util.set.Sets;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -60,11 +62,15 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
     private final List<Symbol> outputs;
 
     public static Builder create(Builder source, List<Symbol> groupKeys, List<Function> aggregates) {
-        return (tableStats, parentUsedCols) -> {
+        return (tableStats, hints, parentUsedCols) -> {
             HashSet<Symbol> usedCols = new LinkedHashSet<>();
             usedCols.addAll(groupKeys);
             usedCols.addAll(extractColumns(aggregates));
-            return new GroupHashAggregate(source.build(tableStats, usedCols), groupKeys, aggregates);
+            return new GroupHashAggregate(
+                source.build(tableStats, Sets.difference(hints, EnumSet.of(PlanHint.PREFER_SOURCE_LOOKUP)), usedCols),
+                groupKeys,
+                aggregates
+            );
         };
     }
 

@@ -75,6 +75,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -374,7 +375,7 @@ public final class CopyStatementPlanner {
         }
 
         WriterProjection projection = ProjectionBuilder.writerProjection(
-            statement.subQueryRelation().outputs(),
+            statement.relation().outputs(),
             statement.uri(),
             statement.compressionType(),
             statement.overwrites(),
@@ -382,7 +383,7 @@ public final class CopyStatementPlanner {
             outputFormat);
 
         LogicalPlan logicalPlan = logicalPlanner.normalizeAndPlan(
-            statement.subQueryRelation(), context, subqueryPlanner, FetchMode.NEVER_CLEAR);
+            statement.relation(), context, subqueryPlanner, FetchMode.NEVER_CLEAR, Set.of());
         ExecutionPlan executionPlan = logicalPlan.build(
             context, projectionBuilder, 0, 0, null, null, params, SubQueryResults.EMPTY);
         executionPlan.addProjection(projection);

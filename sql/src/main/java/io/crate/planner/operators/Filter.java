@@ -55,11 +55,11 @@ public final class Filter extends ForwardingLogicalPlan {
             return sourceBuilder;
         }
         Set<Symbol> columnsInQuery = extractColumns(query);
-        return (tableStats, usedColumns) -> {
+        return (tableStats, hints, usedColumns) -> {
             Set<Symbol> allUsedColumns = new LinkedHashSet<>();
             allUsedColumns.addAll(columnsInQuery);
             allUsedColumns.addAll(usedColumns);
-            return new Filter(sourceBuilder.build(tableStats, allUsedColumns), query);
+            return new Filter(sourceBuilder.build(tableStats, hints, allUsedColumns), query);
         };
     }
 

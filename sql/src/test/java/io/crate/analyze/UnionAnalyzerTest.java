@@ -23,8 +23,6 @@
 package io.crate.analyze;
 
 import io.crate.analyze.relations.AliasedAnalyzedRelation;
-import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.OrderedLimitedRelation;
 import io.crate.analyze.relations.UnionSelect;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -49,28 +47,26 @@ public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             .build();
     }
 
-    private AnalyzedRelation analyze(String statement) {
+    private <T extends AnalyzedStatement> T analyze(String statement) {
         return sqlExecutor.analyze(statement);
     }
 
     @Test
     public void testUnion2Tables() {
-        AnalyzedRelation relation = analyze("select id, text from users " +
-                                            "union all " +
-                                            "select id, name from users_multi_pk " +
-                                            "order by id, 2 " +
-                                            "limit 10 offset 20");
-        assertThat(relation, instanceOf(OrderedLimitedRelation.class));
-        OrderedLimitedRelation orderedLimitedRelation = ((OrderedLimitedRelation) relation);
-        assertThat(orderedLimitedRelation.orderBy(),
+        QueriedSelectRelation<UnionSelect> relation = analyze(
+            "select id, text from users " +
+            "union all " +
+            "select id, name from users_multi_pk " +
+            "order by id, 2 " +
+            "limit 10 offset 20");
+        assertThat(relation.orderBy(),
             isSQL("doc.users.id, doc.users.text"));
-        assertThat(orderedLimitedRelation.limit(), isLiteral(10L));
-        assertThat(orderedLimitedRelation.offset(), isLiteral(20L));
+        assertThat(relation.limit(), isLiteral(10L));
+        assertThat(relation.offset(), isLiteral(20L));
 
-        assertThat(orderedLimitedRelation.childRelation(), instanceOf(UnionSelect.class));
-        UnionSelect tableUnion = (UnionSelect) orderedLimitedRelation.childRelation();
-        assertThat(tableUnion.left(), instanceOf(QueriedTable.class));
-        assertThat(tableUnion.right(), instanceOf(QueriedTable.class));
+        UnionSelect tableUnion = relation.subRelation();
+        assertThat(tableUnion.left(), instanceOf(QueriedSelectRelation.class));
+        assertThat(tableUnion.right(), instanceOf(QueriedSelectRelation.class));
         assertThat(tableUnion, isSQL("SELECT doc.users.id, doc.users.text"));
         assertThat(tableUnion.left(), isSQL("SELECT doc.users.id, doc.users.text"));
         assertThat(tableUnion.right(), isSQL("SELECT doc.users_multi_pk.id, doc.users_multi_pk.name"));
@@ -78,30 +74,29 @@ public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testUnion3Tables() {
-        AnalyzedRelation relation = analyze("select id, text from users u1 " +
-                                            "union all " +
-                                            "select id, name from users_multi_pk " +
-                                            "union all " +
-                                            "select id, name from users " +
-                                            "order by text " +
-                                            "limit 10 offset 20");
-        assertThat(relation, instanceOf(OrderedLimitedRelation.class));
-        OrderedLimitedRelation orderedLimitedRelation = ((OrderedLimitedRelation) relation);
-        assertThat(orderedLimitedRelation.orderBy(), isSQL("u1.text"));
-        assertThat(orderedLimitedRelation.limit(), isLiteral(10L));
-        assertThat(orderedLimitedRelation.offset(), isLiteral(20L));
+        QueriedSelectRelation<UnionSelect> relation = analyze(
+            "select id, text from users u1 " +
+            "union all " +
+            "select id, name from users_multi_pk " +
+            "union all " +
+            "select id, name from users " +
+            "order by text " +
+            "limit 10 offset 20"
+        );
+        assertThat(relation.orderBy(), isSQL("u1.text"));
+        assertThat(relation.limit(), isLiteral(10L));
+        assertThat(relation.offset(), isLiteral(20L));
 
-        assertThat(orderedLimitedRelation.childRelation(), instanceOf(UnionSelect.class));
-        UnionSelect tableUnion1 = (UnionSelect) orderedLimitedRelation.childRelation();
+        UnionSelect tableUnion1 = relation.subRelation();
         assertThat(tableUnion1.left(), instanceOf(UnionSelect.class));
-        assertThat(tableUnion1.right(), instanceOf(QueriedTable.class));
+        assertThat(tableUnion1.right(), instanceOf(QueriedSelectRelation.class));
         assertThat(tableUnion1, isSQL("SELECT u1.id, u1.text"));
         assertThat(tableUnion1.right(), isSQL("SELECT doc.users.id, doc.users.name"));
 
         UnionSelect tableUnion2 = (UnionSelect) tableUnion1.left();
         assertThat(tableUnion2, isSQL("SELECT u1.id, u1.text"));
         assertThat(tableUnion2.left(), instanceOf(AliasedAnalyzedRelation.class));
-        assertThat(tableUnion2.right(), instanceOf(QueriedTable.class));
+        assertThat(tableUnion2.right(), instanceOf(QueriedSelectRelation.class));
         assertThat(tableUnion2.left(), isSQL("SELECT doc.users.id, doc.users.text"));
         assertThat(tableUnion2.right(), isSQL("SELECT doc.users_multi_pk.id, doc.users_multi_pk.name"));
     }

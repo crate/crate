@@ -24,14 +24,11 @@ package io.crate.analyze.relations;
 
 import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.QueriedSelectRelation;
-import io.crate.analyze.QueriedTable;
 import io.crate.analyze.where.WhereClauseValidator;
 import io.crate.expression.eval.EvaluatingNormalizer;
-import io.crate.expression.symbol.FieldReplacer;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.table.Operation;
 
 /**
  * The RelationNormalizer tries to merge the tree of relations in a QueriedSelectRelation into a single AnalyzedRelation.
@@ -66,13 +63,20 @@ public final class RelationNormalizer {
         }
 
         @Override
-        public AnalyzedRelation visitQueriedSelectRelation(QueriedSelectRelation relation, CoordinatorTxnCtx context) {
-            AnalyzedRelation subRelation = relation.subRelation();
+        public AnalyzedRelation visitQueriedSelectRelation(QueriedSelectRelation<?> relation, CoordinatorTxnCtx context) {
             AnalyzedRelation normalizedSubRelation = process(relation.subRelation(), context);
-            if (subRelation == normalizedSubRelation) {
-                return relation;
+            final QueriedSelectRelation<?> newRelation;
+            if (normalizedSubRelation instanceof FieldResolver) {
+                EvaluatingNormalizer evalNormalizer = new EvaluatingNormalizer(
+                    functions, RowGranularity.CLUSTER, null, ((FieldResolver) normalizedSubRelation));
+                newRelation = relation
+                    .replaceSubRelation(normalizedSubRelation)
+                    .map(s -> evalNormalizer.normalize(s, context));
+            } else {
+                newRelation = relation.replaceSubRelation(normalizedSubRelation);
             }
-            return relation.replaceSubRelation(normalizedSubRelation);
+            WhereClauseValidator.validate(newRelation.where().queryOrFallback());
+            return newRelation;
         }
 
         @Override
@@ -82,17 +86,6 @@ public final class RelationNormalizer {
                 return view;
             }
             return new AnalyzedView(view.name(), view.owner(), newSubRelation);
-        }
-
-        @Override
-        public AnalyzedRelation visitQueriedTable(QueriedTable<?> queriedTable,
-                                                  CoordinatorTxnCtx tnxCtx) {
-            AbstractTableRelation<?> tableRelation = queriedTable.tableRelation();
-            EvaluatingNormalizer evalNormalizer = new EvaluatingNormalizer(
-                functions, RowGranularity.CLUSTER, null, tableRelation);
-            QueriedTable<?> table = queriedTable.map(s -> evalNormalizer.normalize(s, tnxCtx));
-            WhereClauseValidator.validate(table.where().queryOrFallback());
-            return table;
         }
 
         @Override
@@ -108,22 +101,6 @@ public final class RelationNormalizer {
                 rel -> rel.accept(this, context),
                 s -> normalizer.normalize(s, context)
             );
-        }
-
-        @Override
-        public AnalyzedRelation visitOrderedLimitedRelation(OrderedLimitedRelation relation, CoordinatorTxnCtx context) {
-            AnalyzedRelation childRelation = relation.childRelation();
-            AnalyzedRelation normalizedChild = process(childRelation, context);
-            if (normalizedChild == childRelation) {
-                return relation;
-            } else {
-                return relation.map(normalizedChild, FieldReplacer.bind(f -> {
-                    if (f.relation().equals(childRelation)) {
-                        return normalizedChild.getField(f.path(), Operation.READ);
-                    }
-                    return f;
-                }));
-            }
         }
 
         @Override

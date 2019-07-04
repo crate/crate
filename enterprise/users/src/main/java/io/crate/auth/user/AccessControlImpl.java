@@ -56,7 +56,6 @@ import io.crate.analyze.KillAnalyzedStatement;
 import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.PrivilegesAnalyzedStatement;
 import io.crate.analyze.QueriedSelectRelation;
-import io.crate.analyze.QueriedTable;
 import io.crate.analyze.RefreshTableAnalyzedStatement;
 import io.crate.analyze.ResetAnalyzedStatement;
 import io.crate.analyze.RestoreSnapshotAnalyzedStatement;
@@ -66,7 +65,6 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.AnalyzedView;
 import io.crate.analyze.relations.DocTableRelation;
-import io.crate.analyze.relations.OrderedLimitedRelation;
 import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.relations.UnionSelect;
@@ -151,22 +149,10 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        public Void visitQueriedTable(QueriedTable table, RelationContext context) {
-            process(table.tableRelation(), context);
-            return null;
-        }
-
-        @Override
         public Void visitMultiSourceSelect(MultiSourceSelect multiSourceSelect, RelationContext context) {
             for (AnalyzedRelation relation : multiSourceSelect.sources().values()) {
                 process(relation, context);
             }
-            return null;
-        }
-
-        @Override
-        public Void visitOrderedLimitedRelation(OrderedLimitedRelation relation, RelationContext context) {
-            process(relation.childRelation(), context);
             return null;
         }
 
@@ -285,7 +271,7 @@ public final class AccessControlImpl implements AccessControl {
 
         @Override
         protected Void visitCopyToStatement(CopyToAnalyzedStatement analysis, User user) {
-            visitRelation(analysis.subQueryRelation(), user, Privilege.Type.DQL);
+            visitRelation(analysis.relation(), user, Privilege.Type.DQL);
             return null;
         }
 
