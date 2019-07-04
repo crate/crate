@@ -26,11 +26,9 @@ import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.where.WhereClauseValidator;
 import io.crate.expression.eval.EvaluatingNormalizer;
-import io.crate.expression.symbol.FieldReplacer;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.table.Operation;
 
 /**
  * The RelationNormalizer tries to merge the tree of relations in a QueriedSelectRelation into a single AnalyzedRelation.
@@ -113,22 +111,6 @@ public final class RelationNormalizer {
                 rel -> rel.accept(this, context),
                 s -> normalizer.normalize(s, context)
             );
-        }
-
-        @Override
-        public AnalyzedRelation visitOrderedLimitedRelation(OrderedLimitedRelation relation, CoordinatorTxnCtx context) {
-            AnalyzedRelation childRelation = relation.childRelation();
-            AnalyzedRelation normalizedChild = process(childRelation, context);
-            if (normalizedChild == childRelation) {
-                return relation;
-            } else {
-                return relation.map(normalizedChild, FieldReplacer.bind(f -> {
-                    if (f.relation().equals(childRelation)) {
-                        return normalizedChild.getField(f.path(), Operation.READ);
-                    }
-                    return f;
-                }));
-            }
         }
 
         @Override
