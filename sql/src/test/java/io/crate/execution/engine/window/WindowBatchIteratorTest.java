@@ -51,8 +51,8 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
-import static io.crate.analyze.WindowDefinition.RANGE_CURRENT_ROW_UNBOUNDED_FOLLOWING;
 import static io.crate.analyze.WindowDefinition.RANGE_UNBOUNDED_PRECEDING_CURRENT_ROW;
+import static io.crate.execution.engine.window.AbstractWindowFunctionTest.RANGE_CURRENT_ROW_UNBOUNDED_FOLLOWING;
 import static io.crate.execution.engine.window.WindowFunctionBatchIterator.sortAndComputeWindowFunctions;
 import static org.elasticsearch.common.collect.Tuple.tuple;
 import static org.hamcrest.MatcherAssert.assertThat;

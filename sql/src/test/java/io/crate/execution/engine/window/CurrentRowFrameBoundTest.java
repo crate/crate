@@ -56,9 +56,9 @@ public class CurrentRowFrameBoundTest extends CrateUnitTest {
     @Test
     public void test_current_row_end_in_rows_mode_is_row_index() {
         int firstFrameEnd = CURRENT_ROW.getEnd(ROWS, 0, 3, 0, intComparator, partition);
-        assertThat(firstFrameEnd, is(0));
+        assertThat(firstFrameEnd, is(1));
         int secondFrameEnd = CURRENT_ROW.getEnd(ROWS, 0, 3, 1, intComparator, partition);
-        assertThat(secondFrameEnd, is(1));
+        assertThat(secondFrameEnd, is(2));
     }
 
     @Test
