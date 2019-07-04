@@ -53,6 +53,7 @@ public class MergeFilterAndCollect implements Rule<Filter> {
     public LogicalPlan apply(Filter filter, Captures captures) {
         Collect collect = captures.get(collectCapture);
         return new Collect(
+            collect.preferSourceLookup(),
             collect.relation(),
             collect.outputs(),
             collect.where().add(filter.query()),

@@ -46,6 +46,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
+import io.crate.metadata.DocReferences;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RoutingProvider;
@@ -83,12 +84,13 @@ import static io.crate.planner.operators.OperatorUtils.getUnusedColumns;
  *  Instead it may choose to output {@link DocSysColumns#FETCHID} + {@code usedColumns}.
  *
  *  {@link FetchOrEval} will then later use {@code fetchId} to fetch the values for the columns which are "unused".
- *  See also {@link LogicalPlan.Builder#build(TableStats, Set)}
+ *  See also {@link LogicalPlan.Builder#build(TableStats, Set, Set)}
  */
 public class Collect implements LogicalPlan {
 
     private static final String COLLECT_PHASE_NAME = "collect";
     final AbstractTableRelation relation;
+    private final boolean preferSourceLookup;
     private final List<Symbol> outputs;
     private final List<AbstractTableRelation> baseTables;
     WhereClause where;
@@ -100,7 +102,8 @@ public class Collect implements LogicalPlan {
     public static LogicalPlan.Builder create(AbstractTableRelation relation,
                                              List<Symbol> toCollect,
                                              WhereClause where) {
-        return (tableStats, usedColumns) -> new Collect(
+        return (tableStats, hints, usedColumns) -> new Collect(
+            hints.contains(PlanHint.PREFER_SOURCE_LOOKUP),
             relation,
             toCollect,
             where,
@@ -109,13 +112,15 @@ public class Collect implements LogicalPlan {
             tableStats.estimatedSizePerRow(relation.tableInfo().ident()));
     }
 
-    public Collect(AbstractTableRelation relation,
+    public Collect(boolean preferSourceLookup,
+                   AbstractTableRelation relation,
                    List<Symbol> toCollect,
                    WhereClause where,
                    Set<Symbol> usedBeforeNextFetch,
                    long numExpectedRows,
                    long estimatedRowSize) {
         this(
+            preferSourceLookup,
             relation,
             generateOutputs(toCollect, relation, usedBeforeNextFetch, where),
             where,
@@ -124,11 +129,13 @@ public class Collect implements LogicalPlan {
         );
     }
 
-    public Collect(AbstractTableRelation relation,
+    public Collect(boolean preferSourceLookup,
+                   AbstractTableRelation relation,
                    List<Symbol> outputs,
                    WhereClause where,
                    long numExpectedRows,
                    long estimatedRowSize) {
+        this.preferSourceLookup = preferSourceLookup;
         this.outputs = outputs;
         this.baseTables = List.of(relation);
         this.numExpectedRows = numExpectedRows;
@@ -331,7 +338,7 @@ public class Collect implements LogicalPlan {
                 RoutingProvider.ShardSelection.ANY,
                 sessionContext),
             tableInfo.rowGranularity(),
-            boundOutputs,
+            preferSourceLookup ? Lists2.map(boundOutputs, DocReferences::toSourceLookup) : boundOutputs,
             Collections.emptyList(),
             where.queryOrFallback(),
             DistributionInfo.DEFAULT_BROADCAST
@@ -394,6 +401,10 @@ public class Collect implements LogicalPlan {
     @Override
     public <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context) {
         return visitor.visitCollect(this, context);
+    }
+
+    public boolean preferSourceLookup() {
+        return preferSourceLookup;
     }
 
     private static final class NoPredicateVisitor extends SymbolVisitor<Void, Void> {

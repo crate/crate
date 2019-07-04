@@ -91,7 +91,7 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
     }
 
     @Override
-    public LogicalPlan build(TableStats tableStats, Set<Symbol> usedBeforeNextFetch) {
+    public LogicalPlan build(TableStats tableStats, Set<PlanHint> hints, Set<Symbol> usedBeforeNextFetch) {
         Map<Set<QualifiedName>, Symbol> queryParts = getQueryParts(where);
         LinkedHashMap<Set<QualifiedName>, JoinPair> joinPairs =
             JoinOperations.buildRelationsToJoinPairsMap(
@@ -145,9 +145,9 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
         // This is necessary; because due to how the fetch-reader-allocation works it's not possible to
         // have more than 1 fetchProjection within a single execution
         LogicalPlan lhsPlan = LogicalPlanner.plan(lhs, FetchMode.NEVER_CLEAR, subqueryPlanner, false, functions, txnCtx)
-            .build(tableStats, usedFromLeft);
+            .build(tableStats, hints, usedFromLeft);
         LogicalPlan rhsPlan = LogicalPlanner.plan(rhs, FetchMode.NEVER_CLEAR, subqueryPlanner, false, functions, txnCtx)
-            .build(tableStats, usedFromRight);
+            .build(tableStats, hints, usedFromRight);
         Symbol query = removeParts(queryParts, lhsName, rhsName);
         LogicalPlan joinPlan = createJoinPlan(
             lhsPlan,
@@ -165,6 +165,7 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
             AnalyzedRelation nextRel = mss.sources().get(it.next());
             joinPlan = joinWithNext(
                 tableStats,
+                hints,
                 joinPlan,
                 nextRel,
                 usedBeforeNextFetch,
@@ -226,6 +227,7 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
     }
 
     private static LogicalPlan joinWithNext(TableStats tableStats,
+                                            Set<PlanHint> hints,
                                             LogicalPlan source,
                                             AnalyzedRelation nextRel,
                                             Set<Symbol> usedColumns,
@@ -260,7 +262,7 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
         addColumnsFrom(usedColumns, addToUsedColumns, nextRel);
 
         LogicalPlan nextPlan = LogicalPlanner.plan(nextRel, FetchMode.NEVER_CLEAR, subqueryPlanner, false, functions, txnCtx)
-            .build(tableStats, usedFromNext);
+            .build(tableStats, hints, usedFromNext);
 
         Symbol query = AndOperator.join(
             Stream.of(

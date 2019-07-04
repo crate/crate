@@ -37,7 +37,7 @@ import io.crate.testing.ProjectionMatchers;
 import io.crate.testing.SQLExecutor;
 import org.junit.Test;
 
-import java.util.Collections;
+import java.util.Set;
 
 import static io.crate.planner.operators.LogicalPlannerTest.isPlan;
 import static org.hamcrest.Matchers.contains;
@@ -59,7 +59,7 @@ public class LimitTest extends CrateDummyClusterServiceUnitTest {
             ),
             Literal.of(20L),
             Literal.of(7L)
-        ).build(new TableStats(), Collections.emptySet());
+        ).build(new TableStats(), Set.of(), Set.of());
 
         assertThat(plan, isPlan(e.functions(), "Limit[20;7]\n" +
                                                "Limit[10;5]\n" +
