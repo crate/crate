@@ -176,13 +176,13 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan, isPlan("MultiPhase[\n" +
                                 "    subQueries[\n" +
                                 "        RootBoundary[1]\n" +
+                                "        Limit[2;0]\n" +
                                 "        MultiPhase[\n" +
                                 "            subQueries[\n" +
                                 "                RootBoundary[count(*)]\n" +
                                 "                Limit[1;0]\n" +
                                 "                Count[doc.t2 | All]\n" +
                                 "            ]\n" +
-                                "            Limit[2;0]\n" +
                                 "            Collect[doc.t1 | [1] | (x > cast(SelectSymbol{bigint_array} AS integer))]\n" +
                                 "        ]\n" +
                                 "    ]\n" +
@@ -366,9 +366,8 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         }
 
         private void startLine(String start) {
-            for (int i = 0; i < indentation; i++) {
-                sb.append(' ');
-            }
+            assert indentation >= 0 : "indentation must not get negative";
+            sb.append(" ".repeat(indentation));
             sb.append(start);
         }
 
