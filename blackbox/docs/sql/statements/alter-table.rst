@@ -170,7 +170,7 @@ where ``reroute_option`` is::
 
     { MOVE SHARD shard_id FROM node TO node
       | ALLOCATE REPLICA SHARD shard_id ON node
-      | PROMOTE REPLICA SHARD shard_id [ WITH (accept_data_loss = { TRUE | FALSE }) ]
+      | PROMOTE REPLICA SHARD shard_id ON node [ WITH (accept_data_loss = { TRUE | FALSE }) ]
       | CANCEL SHARD shard_id ON node [ WITH (allow_primary = {TRUE|FALSE}) ]
     }
 
@@ -184,13 +184,13 @@ where ``reroute_option`` is::
   See :ref:`sys-nodes` how to gain the unique ID.
 
 
-``REROUTE`` suports the following options to start/stop shard allocation:
+``REROUTE`` supports the following options to start/stop shard allocation:
 
 **MOVE**
   A started shard gets moved from one node to another. It requests a
-  ``table_ident`` and a ``shard_id`` to identify the shard that receives
-  the new allocation. Specify ``FROM node_id`` for the node to move the
-  shard from and ``TO node_id`` to move the shard to.
+  ``table_ident`` and a ``shard_id`` to identify the shard that receives the
+  new allocation. Specify ``FROM node`` for the node to move the shard from and
+  ``TO node`` to move the shard to.
 
 **ALLOCATE REPLICA**
   Allows to force allocation of an unassigned replica shard on a specific node.
@@ -213,6 +213,6 @@ where ``reroute_option`` is::
   error out.
 
 **CANCEL**
-  This cancels the allocation/recovery of a ``shard_id`` of a
-  ``table_ident`` on a given ``node_id``. The ``allow_primary`` flag
-  indicates if it is allowed to cancel the allocation of a primary shard.
+  This cancels the allocation/recovery of a ``shard_id`` of a ``table_ident``
+  on a given ``node``. The ``allow_primary`` flag indicates if it is allowed to
+  cancel the allocation of a primary shard.
