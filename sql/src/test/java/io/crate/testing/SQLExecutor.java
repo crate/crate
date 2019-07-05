@@ -76,6 +76,7 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.DocTableInfoFactory;
 import io.crate.metadata.doc.TestingDocTableInfoFactory;
 import io.crate.metadata.information.InformationSchemaInfo;
+import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.SchemaInfo;
@@ -219,23 +220,17 @@ public class SQLExecutor {
     public static class Builder {
 
         private final ClusterService clusterService;
-        private final Map<String, SchemaInfo> schemaInfoByName = new HashMap<>();
-        private final Map<RelationName, DocTableInfo> docTables = new HashMap<>();
         private final Functions functions;
-        private final DocTableInfoFactory tableInfoFactory;
-        private final ViewInfoFactory testingViewInfoFactory;
         private final AnalysisRegistry analysisRegistry;
         private final CreateTableStatementAnalyzer createTableStatementAnalyzer;
         private final CreateBlobTableAnalyzer createBlobTableAnalyzer;
         private final AllocationService allocationService;
-        private final UserDefinedFunctionService udfService;
         private final Random random;
         private String[] searchPath = new String[]{Schemas.DOC_SCHEMA_NAME};
         private User user = User.CRATE_USER;
         private UserManager userManager = new StubUserManager();
 
         private TableStats tableStats = new TableStats();
-        private Settings settings = Settings.EMPTY;
         private boolean hasValidLicense = true;
         private Schemas schemas;
 
@@ -244,20 +239,23 @@ public class SQLExecutor {
             this.random = random;
             this.clusterService = clusterService;
             addNodesToClusterState(numNodes);
+            functions = getFunctions();
+            UserDefinedFunctionService udfService = new UserDefinedFunctionService(clusterService, functions);
+            Map<String, SchemaInfo> schemaInfoByName = new HashMap<>();
             schemaInfoByName.put("sys", new SysSchemaInfo(clusterService));
             schemaInfoByName.put("information_schema", new InformationSchemaInfo());
+            schemaInfoByName.put(PgCatalogSchemaInfo.NAME, new PgCatalogSchemaInfo(udfService));
             schemaInfoByName.put(
                 BlobSchemaInfo.NAME,
                 new BlobSchemaInfo(
                     clusterService,
                     new TestingBlobTableInfoFactory(Collections.emptyMap(), new IndexNameExpressionResolver(Settings.EMPTY), createTempDir())));
 
-            functions = getFunctions();
 
-            tableInfoFactory = new TestingDocTableInfoFactory(
+            Map<RelationName, DocTableInfo> docTables = new HashMap<>();
+            DocTableInfoFactory tableInfoFactory = new TestingDocTableInfoFactory(
                 docTables, functions, new IndexNameExpressionResolver(Settings.EMPTY));
-            testingViewInfoFactory = (ident, state) -> null;
-            udfService = new UserDefinedFunctionService(clusterService, functions);
+            ViewInfoFactory testingViewInfoFactory = (ident, state) -> null;
 
             schemas = new Schemas(
                 schemaInfoByName,
@@ -342,11 +340,6 @@ public class SQLExecutor {
 
         public Builder setUser(User user) {
             this.user = user;
-            return this;
-        }
-
-        public Builder settings(Settings settings) {
-            this.settings = settings;
             return this;
         }
 
