@@ -338,7 +338,9 @@ public class Collect implements LogicalPlan {
                 RoutingProvider.ShardSelection.ANY,
                 sessionContext),
             tableInfo.rowGranularity(),
-            preferSourceLookup ? Lists2.map(boundOutputs, DocReferences::toSourceLookup) : boundOutputs,
+            preferSourceLookup && tableInfo instanceof DocTableInfo
+                ? Lists2.map(boundOutputs, DocReferences::toSourceLookup)
+                : boundOutputs,
             Collections.emptyList(),
             where.queryOrFallback(),
             DistributionInfo.DEFAULT_BROADCAST

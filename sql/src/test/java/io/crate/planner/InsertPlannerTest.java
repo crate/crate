@@ -499,4 +499,13 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
             )
         );
     }
+
+    @Test
+    public void test_insert_from_sub_query_with_sys_tables_has_no_doc_lookup() {
+        Collect collect = e.plan("insert into users (id, name) (select oid, typname from pg_catalog.pg_type)");
+        assertThat(collect.collectPhase().toCollect(), contains(
+            isReference("oid"),
+            isReference("typname")
+        ));
+    }
 }
