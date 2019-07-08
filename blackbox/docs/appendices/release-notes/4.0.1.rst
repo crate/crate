@@ -1,0 +1,65 @@
+.. _version_4.0.1:
+
+=============
+Version 4.0.1
+=============
+
+Released on 2019/07/08.
+
+.. NOTE::
+
+    Please consult the :ref:`version_4.0.0_upgrade_notes` before upgrading.
+    Before upgrading to 4.0.1 you should be running a CrateDB cluster that is
+    at least on 3.0.7.
+
+    An upgrade to :ref:`version_4.0.1` requires a `full restart upgrade`_.
+
+    When restarting, CrateDB will migrate indexes to a newer format. Depending
+    on the amount of data, this may delay node start-up time.
+
+
+.. WARNING::
+
+    Tables that were created prior CrateDB 3.x will not function with 4.x
+    and must be recreated before moving to 4.x.x.
+
+    You can recreate tables using ``COPY TO`` and ``COPY FROM`` or by
+    `inserting the data into a new table`_.
+
+    Before upgrading, you should `back up your data`_.
+
+.. _full restart upgrade: http://crate.io/docs/crate/guide/best_practices/full_restart_upgrade.html
+.. _back up your data: https://crate.io/a/backing-up-and-restoring-crate/
+.. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+
+See the :ref:`version_4.0.0` release notes for a full list of changes in the
+4.0 series.
+
+
+Fixes
+=====
+
+- Fixed a possible NPE which could occur when querying the ``sys.allocations``
+  table.
+
+- Fixed the tables compatibility check to correctly indicate when tables need
+  to be recreated in preparation for a CrateDB upgrade towards the next major
+  version of CrateDB.
+
+- Fixed an issue that led to DEFAULT constraints of inner columns of object
+  columns to be ignored.
+
+- The values provided in INSERT or UPDATE statements for object columns which
+  contain generated expressions are now validated. The computed expression must
+  match the provided value. This makes the behavior consistent with how top
+  level columns of a table are treated.
+
+- Fixed support for ordering by literal constants.
+  Example: ``SELECT 1, * FROM t ORDER BY 1"``
