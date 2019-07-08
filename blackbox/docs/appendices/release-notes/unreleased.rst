@@ -62,20 +62,4 @@ Changes
 Fixes
 =====
 
-- Fixed a possible NPE which could occur when querying the ``sys.allocations``
-  table.
-
-- Fixed the tables compatibility check to correctly indicate when tables need
-  to be recreated in preparation for a CrateDB upgrade towards the next major
-  version of CrateDB.
-
-- Fixed an issue that led to DEFAULT constraints of inner columns of object
-  columns to be ignored.
-
-- The values provided in INSERT or UPDATE statements for object columns which
-  contain generated expressions are now validated. The computed expression must
-  match the provided value. This makes the behavior consistent with how top
-  level columns of a table are treated.
-
-- Fixed support for ordering by literal constants.
-  Example: ``SELECT 1, * FROM t ORDER BY 1"``
+None
