@@ -1,0 +1,63 @@
+.. _version_3.3.5:
+
+=============
+Version 3.3.5
+=============
+
+Released on 2019/07/08.
+
+.. NOTE::
+
+    If you are upgrading a cluster, you must be running CrateDB 2.0.4 or higher
+    before you upgrade to 3.3.5.
+
+    We recommend that you upgrade to the latest 3.2 release before moving to
+    3.3.5.
+
+    If you want to perform a `rolling upgrade`_, your current CrateDB version
+    number must be at least :ref:`version_3.3.0`. Any upgrade from a version
+    prior to this will require a `full restart upgrade`_.
+
+    When restarting, CrateDB will migrate indexes to a newer format. Depending
+    on the amount of data, this may delay node start-up time.
+
+    Please consult the :ref:`version_3.3.0_upgrade_notes` before upgrading.
+
+.. WARNING::
+
+    Tables that were created prior to upgrading to CrateDB 2.x will not
+    function with 3.3 and must be recreated before moving to 3.3.x.
+
+    You can recreate tables using ``COPY TO`` and ``COPY FROM`` while running a
+    2.x release into a new table, or by `inserting the data into a new table`_.
+
+    Before upgrading, you should `back up your data`_.
+
+.. _rolling upgrade: http://crate.io/docs/crate/guide/best_practices/rolling_upgrade.html
+.. _full restart upgrade: http://crate.io/docs/crate/guide/best_practices/full_restart_upgrade.html
+.. _back up your data: https://crate.io/a/backing-up-and-restoring-crate/
+.. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+Changelog
+=========
+
+Fixes
+-----
+
+- Fixed the tables compatibility check to correctly indicate when tables need
+  to be recreated in preparation for a CrateDB upgrade towards the next major
+  version of CrateDB.
+
+- The values provided in INSERT or UPDATE statements for object columns which
+  contain generated expressions are now validated. The computed expression must
+  match the provided value. This makes the behavior consistent with how top
+  level columns of a table are treated.
+
+- Fixed support for ordering by literal constants.
+  Example: ``SELECT 1, * FROM t ORDER BY 1"``
