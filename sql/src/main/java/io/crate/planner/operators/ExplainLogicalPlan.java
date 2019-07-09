@@ -61,7 +61,7 @@ public class ExplainLogicalPlan {
                 SubQueryResults.EMPTY);
             return PlanPrinter.objectMap(executionPlan);
         } catch (Exception e) {
-            return VISITOR.process(logicalPlan, new Context(plannerContext, projectionBuilder)).build();
+            return logicalPlan.accept(VISITOR, new Context(plannerContext, projectionBuilder)).build();
         }
     }
 
