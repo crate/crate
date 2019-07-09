@@ -67,4 +67,6 @@ Changes
 Fixes
 =====
 
-None
+- Arithmetic operations now work on expressions of type :ref:`timestamp without
+  time zone <date-time-types>`, to make it consistent with ``timestamp with time
+  zone``.
