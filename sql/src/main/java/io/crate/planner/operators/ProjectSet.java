@@ -115,6 +115,10 @@ public class ProjectSet extends ForwardingLogicalPlan {
         return outputs;
     }
 
+    public List<Symbol> standaloneOutputs() {
+        return standalone;
+    }
+
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
         return new ProjectSet(Lists2.getOnlyElement(sources), tableFunctions, standalone);

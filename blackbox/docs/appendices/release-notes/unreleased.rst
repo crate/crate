@@ -42,6 +42,10 @@ Unreleased Changes
 Changes
 =======
 
+- Added an optimization that allows to run `WHERE` clauses on top of
+  derived tables containing :ref:`table functions <ref-table-functions>`
+  more efficiently in some cases.
+
 - Statements containing limits, filters, window functions or table functions
   will now be labelled accordingly in :ref:`sys-jobs-metrics`.
 

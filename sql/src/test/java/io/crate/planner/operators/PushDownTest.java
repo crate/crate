@@ -360,6 +360,45 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void test_filters_on_project_set_are_pushed_down_for_standalone_outputs() {
+        var plan = sqlExecutor.logicalPlan(
+            "SELECT" +
+            "  * " +
+            "FROM " +
+            "  (SELECT x, generate_series(1, x) FROM t1) tt " +
+            "WHERE x > 1"
+        );
+        var expectedPlan =
+            "RootBoundary[x, \"generate_series(1, x)\"]\n" +
+            "Boundary[x, \"generate_series(1, x)\"]\n" +
+            "Boundary[x, \"generate_series(1, x)\"]\n" +
+            "FetchOrEval[x, generate_series(1, x)]\n" +
+            "ProjectSet[generate_series(1, x) | x]\n" +
+            "Collect[doc.t1 | [x] | (x > 1)]\n";
+        assertThat(plan, isPlan(sqlExecutor.functions(), expectedPlan));
+    }
+
+    @Test
+    public void test_filters_on_project_set_are_pushed_down_only_for_standalone_outputs() {
+        var plan = sqlExecutor.logicalPlan(
+            "SELECT" +
+            "  * " +
+            "FROM " +
+            "  (SELECT x, generate_series(1, x) AS y FROM t1) tt " +
+            "WHERE x > 1 AND y > 2"
+        );
+        var expectedPlan =
+            "RootBoundary[x, y]\n" +
+            "Boundary[x, y]\n" +
+            "Boundary[x, y]\n" +
+            "FetchOrEval[x, generate_series(1, x)]\n" +
+            "Filter[(generate_series(1, x) > 2)]\n" +
+            "ProjectSet[generate_series(1, x) | x]\n" +
+            "Collect[doc.t1 | [x] | (x > 1)]\n";
+        assertThat(plan, isPlan(sqlExecutor.functions(), expectedPlan));
+    }
+
+    @Test
     public void testFilterIsPushedBeneathGroupIfOnGroupKeys() {
         var plan = sqlExecutor.logicalPlan(
             "SELECT x, count(*) FROM t1 GROUP BY 1 HAVING x > 1"
