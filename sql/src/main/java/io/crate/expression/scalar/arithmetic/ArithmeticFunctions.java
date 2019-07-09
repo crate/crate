@@ -50,6 +50,9 @@ import java.util.function.BinaryOperator;
 
 public class ArithmeticFunctions {
 
+    private static final Param ARITHMETIC_TYPE = Param.of(
+        DataTypes.NUMERIC_PRIMITIVE_TYPES, DataTypes.TIMESTAMPZ, DataTypes.TIMESTAMP);
+
     public static class Names {
         public static final String ADD = "add";
         public static final String SUBTRACT = "subtract";
@@ -64,10 +67,10 @@ public class ArithmeticFunctions {
             Names.ADD,
             "+",
             FunctionInfo.DETERMINISTIC_AND_COMPARISON_REPLACEMENT,
-            (arg0, arg1) -> arg0 + arg1,
-            (arg0, arg1) -> arg0 + arg1,
-            (arg0, arg1) -> arg0 + arg1,
-            (arg0, arg1) -> arg0 + arg1
+            Integer::sum,
+            Double::sum,
+            Long::sum,
+            Float::sum
         ));
         module.register(Names.SUBTRACT, new ArithmeticFunctionResolver(
             Names.SUBTRACT,
@@ -107,14 +110,11 @@ public class ArithmeticFunctions {
         ));
         module.register(Names.POWER, new DoubleFunctionResolver(
             Names.POWER,
-            (arg0, arg1) -> Math.pow(arg0, arg1)
+            Math::pow
         ));
     }
 
     static final class DoubleFunctionResolver extends BaseFunctionResolver {
-
-        private static final Param ARITHMETIC_TYPE = Param.of(
-            DataTypes.NUMERIC_PRIMITIVE_TYPES, DataTypes.TIMESTAMPZ);
 
         private final String name;
         private final BinaryOperator<Double> doubleFunction;
@@ -133,9 +133,6 @@ public class ArithmeticFunctions {
 
 
     static final class ArithmeticFunctionResolver extends BaseFunctionResolver {
-
-        private static final Param ARITHMETIC_TYPE = Param.of(
-            DataTypes.NUMERIC_PRIMITIVE_TYPES, DataTypes.TIMESTAMPZ);
 
         private final String name;
         private final String operator;
@@ -187,6 +184,7 @@ public class ArithmeticFunctions {
 
                 case LongType.ID:
                 case TimestampType.ID_WITH_TZ:
+                case TimestampType.ID_WITHOUT_TZ:
                     scalar = new BinaryScalar<>(longFunction, name, DataTypes.LONG, features);
                     break;
 

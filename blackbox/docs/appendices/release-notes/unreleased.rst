@@ -46,6 +46,10 @@ None
 Fixes
 =====
 
+- Arithmetic operations now work on expressions of type :ref:`timestamp without
+  time zone <date-time-types>`, to make it consistent with ``timestamp with time
+  zone``.
+
 - Fixed a possible NPE which could occur when querying the ``sys.allocations``
   table.
 
