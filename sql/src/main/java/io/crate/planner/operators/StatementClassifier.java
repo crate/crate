@@ -134,7 +134,7 @@ public final class StatementClassifier extends LogicalPlanVisitor<Set<String>, V
     @Override
     public Void visitLimit(Limit limit, Set<String> context) {
         process(limit.source, context);
-        return null;
+        return visitPlan(limit, context);
     }
 
     @Override
@@ -188,5 +188,23 @@ public final class StatementClassifier extends LogicalPlanVisitor<Set<String>, V
             process(plan, context);
         }
         return visitPlan(logicalPlan, context);
+    }
+
+    @Override
+    public Void visitFilter(Filter filter, Set<String> context) {
+        filter.source.accept(this, context);
+        return visitPlan(filter, context);
+    }
+
+    @Override
+    public Void visitProjectSet(ProjectSet projectSet, Set<String> context) {
+        projectSet.source.accept(this, context);
+        return visitPlan(projectSet, context);
+    }
+
+    @Override
+    public Void visitWindowAgg(WindowAgg windowAgg, Set<String> context) {
+        windowAgg.source.accept(this, context);
+        return visitPlan(windowAgg, context);
     }
 }

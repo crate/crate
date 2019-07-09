@@ -31,6 +31,7 @@ import org.junit.Test;
 import java.io.IOException;
 import java.util.Collections;
 
+import static io.crate.analyze.TableDefinitions.USER_TABLE_DEFINITION;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 
@@ -41,7 +42,7 @@ public class StatementClassifierTest extends CrateDummyClusterServiceUnitTest {
     @Before
     public void prepare() throws IOException {
         e = SQLExecutor.builder(clusterService)
-            .enableDefaultTables()
+            .addTable(USER_TABLE_DEFINITION)
             .build();
     }
 
@@ -90,7 +91,22 @@ public class StatementClassifierTest extends CrateDummyClusterServiceUnitTest {
         plan = e.logicalPlan("SELECT * FROM users WHERE id = (SELECT 1) OR name = (SELECT 'Arthur')");
         classification = StatementClassifier.classify(plan);
         assertThat(classification.type(), is(Plan.StatementType.SELECT));
-        assertThat(classification.labels(), contains("Collect", "MultiPhase"));
+        assertThat(classification.labels(), contains("Collect", "Limit", "MultiPhase"));
+    }
+
+
+    @Test
+    public void test_select_with_window_function_and_table_function_contains_project_set_and_window_agg_labels() {
+        var plan = e.logicalPlan(
+            "SELECT" +
+            "  x," +
+            "  avg(x) OVER (ORDER BY y) " +
+            "FROM " +
+            "  (SELECT x, generate_series(0, 3) as y FROM unnest([1, 2]) as t (x)) as tt " +
+            "WHERE y >= 2");
+        var classification = StatementClassifier.classify(plan);
+        assertThat(classification.type(), is(Plan.StatementType.SELECT));
+        assertThat(classification.labels(), contains("Collect", "FetchOrEval", "Filter", "ProjectSet", "WindowAgg"));
     }
 
     @Test
