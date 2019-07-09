@@ -171,7 +171,7 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
                 context.reverseFlag);
         } else {
             return context.context.getFieldData(fieldType)
-                .sortField(SortOrder.missing(context.reverseFlag, context.nullFirst), sortMode, context.reverseFlag);
+                .sortField(SortOrder.missing(context.nullFirst), sortMode, context.reverseFlag);
         }
 
     }
@@ -207,7 +207,7 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
                 DataType dataType = symbol.valueType();
                 Object missingValue = missingNullValue ? null : SortSymbolVisitor.missingObject(
                     dataType,
-                    SortOrder.missing(context.reverseFlag, context.nullFirst),
+                    SortOrder.missing(context.nullFirst),
                     reversed);
                 return new InputFieldComparator(
                     numHits,
