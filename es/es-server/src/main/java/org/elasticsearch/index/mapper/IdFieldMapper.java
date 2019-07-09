@@ -35,6 +35,7 @@ import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.fielddata.AtomicFieldData;
 import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.fielddata.IndexFieldDataCache;
+import org.elasticsearch.index.fielddata.NullValueOrder;
 import org.elasticsearch.index.fielddata.SortedBinaryDocValues;
 import org.elasticsearch.index.fielddata.fieldcomparator.BytesRefFieldComparatorSource;
 import org.elasticsearch.index.fielddata.plain.PagedBytesIndexFieldData;
@@ -174,8 +175,9 @@ public class IdFieldMapper extends MetadataFieldMapper {
                         }
 
                         @Override
-                        public SortField sortField(Object missingValue, MultiValueMode sortMode, boolean reverse) {
-                            XFieldComparatorSource source = new BytesRefFieldComparatorSource(this, missingValue, sortMode);
+                        public SortField sortField(NullValueOrder nullValueOrder, MultiValueMode sortMode, boolean reverse) {
+                            XFieldComparatorSource source = new BytesRefFieldComparatorSource(this,
+                                                                                              nullValueOrder, sortMode);
                             return new SortField(getFieldName(), source, reverse);
                         }
 

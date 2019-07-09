@@ -25,12 +25,11 @@ import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.search.FieldComparator;
 import org.apache.lucene.search.Scorable;
-import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.SortField;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.index.fielddata.AbstractSortedDocValues;
 import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.fielddata.IndexOrdinalsFieldData;
+import org.elasticsearch.index.fielddata.NullValueOrder;
 import org.elasticsearch.index.fielddata.SortedBinaryDocValues;
 import org.elasticsearch.search.MultiValueMode;
 
@@ -43,8 +42,8 @@ public class BytesRefFieldComparatorSource extends IndexFieldData.XFieldComparat
 
     private final IndexFieldData<?> indexFieldData;
 
-    public BytesRefFieldComparatorSource(IndexFieldData<?> indexFieldData, Object missingValue, MultiValueMode sortMode) {
-        super(missingValue, sortMode);
+    public BytesRefFieldComparatorSource(IndexFieldData<?> indexFieldData, NullValueOrder nullValueOrder, MultiValueMode sortMode) {
+        super(nullValueOrder, sortMode);
         this.indexFieldData = indexFieldData;
     }
 
@@ -55,15 +54,11 @@ public class BytesRefFieldComparatorSource extends IndexFieldData.XFieldComparat
 
     @Override
     public Object missingValue(boolean reversed) {
-        if (sortMissingFirst(missingValue) || sortMissingLast(missingValue)) {
-            if (sortMissingLast(missingValue) ^ reversed) {
-                return SortField.STRING_LAST;
-            } else {
-                return SortField.STRING_FIRST;
-            }
+        if (nullValueOrder == NullValueOrder.LAST ^ reversed) {
+            return SortField.STRING_LAST;
+        } else {
+            return SortField.STRING_FIRST;
         }
-        // otherwise we fill missing values ourselves
-        return null;
     }
 
     protected SortedBinaryDocValues getValues(LeafReaderContext context) throws IOException {
@@ -76,20 +71,15 @@ public class BytesRefFieldComparatorSource extends IndexFieldData.XFieldComparat
     public FieldComparator<?> newComparator(String fieldname, int numHits, int sortPos, boolean reversed) {
         assert indexFieldData == null || fieldname.equals(indexFieldData.getFieldName());
 
-        final boolean sortMissingLast = sortMissingLast(missingValue) ^ reversed;
-        final BytesRef missingBytes = (BytesRef) missingObject(missingValue, reversed);
+        final boolean sortMissingLast = nullValueOrder == NullValueOrder.LAST ^ reversed;
+        final BytesRef missingBytes = (BytesRef) missingObject(nullValueOrder, reversed);
         if (indexFieldData instanceof IndexOrdinalsFieldData) {
             return new FieldComparator.TermOrdValComparator(numHits, null, sortMissingLast) {
 
                 @Override
                 protected SortedDocValues getSortedDocValues(LeafReaderContext context, String field) throws IOException {
                     final SortedSetDocValues values = ((IndexOrdinalsFieldData) indexFieldData).load(context).getOrdinalsValues();
-                    final SortedDocValues selectedValues = sortMode.select(values);
-                    if (sortMissingFirst(missingValue) || sortMissingLast(missingValue)) {
-                        return selectedValues;
-                    } else {
-                        return new ReplaceMissing(selectedValues, missingBytes);
-                    }
+                    return sortMode.select(values);
                 }
 
                 @Override
@@ -114,77 +104,5 @@ public class BytesRefFieldComparatorSource extends IndexFieldData.XFieldComparat
             }
 
         };
-    }
-
-    /**
-     * A view of a SortedDocValues where missing values
-     * are replaced with the specified term
-     */
-    // TODO: move this out if we need it for other reasons
-    static class ReplaceMissing extends AbstractSortedDocValues {
-        final SortedDocValues in;
-        final int substituteOrd;
-        final BytesRef substituteTerm;
-        final boolean exists;
-        boolean hasValue;
-
-        ReplaceMissing(SortedDocValues in, BytesRef term) throws IOException {
-            this.in = in;
-            this.substituteTerm = term;
-            int sub = in.lookupTerm(term);
-            if (sub < 0) {
-                substituteOrd = -sub-1;
-                exists = false;
-            } else {
-                substituteOrd = sub;
-                exists = true;
-            }
-        }
-
-        @Override
-        public int ordValue() throws IOException {
-            if (hasValue == false) {
-                return substituteOrd;
-            }
-            int ord = in.ordValue();
-            if (exists == false && ord >= substituteOrd) {
-                return ord + 1;
-            } else {
-                return ord;
-            }
-        }
-
-        @Override
-        public boolean advanceExact(int target) throws IOException {
-            hasValue = in.advanceExact(target);
-            return true;
-        }
-
-        @Override
-        public int docID() {
-            return in.docID();
-        }
-
-        @Override
-        public int getValueCount() {
-            if (exists) {
-                return in.getValueCount();
-            } else {
-                return in.getValueCount() + 1;
-            }
-        }
-
-        @Override
-        public BytesRef lookupOrd(int ord) throws IOException {
-            if (ord == substituteOrd) {
-                return substituteTerm;
-            } else if (exists == false && ord > substituteOrd) {
-                return in.lookupOrd(ord-1);
-            } else {
-                return in.lookupOrd(ord);
-            }
-        }
-
-        // we let termsenum etc fall back to the default implementation
     }
 }

@@ -22,10 +22,10 @@ import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.search.FieldComparator;
 import org.apache.lucene.search.SortField;
-import org.elasticsearch.common.Nullable;
 import org.elasticsearch.index.fielddata.FieldData;
 import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.fielddata.IndexNumericFieldData;
+import org.elasticsearch.index.fielddata.NullValueOrder;
 import org.elasticsearch.index.fielddata.NumericDoubleValues;
 import org.elasticsearch.index.fielddata.SortedNumericDoubleValues;
 import org.elasticsearch.search.MultiValueMode;
@@ -39,8 +39,8 @@ public class FloatValuesComparatorSource extends IndexFieldData.XFieldComparator
 
     private final IndexNumericFieldData indexFieldData;
 
-    public FloatValuesComparatorSource(IndexNumericFieldData indexFieldData, @Nullable Object missingValue, MultiValueMode sortMode) {
-        super(missingValue, sortMode);
+    public FloatValuesComparatorSource(IndexNumericFieldData indexFieldData, NullValueOrder nullValueOrder, MultiValueMode sortMode) {
+        super(nullValueOrder, sortMode);
         this.indexFieldData = indexFieldData;
     }
 
@@ -53,7 +53,7 @@ public class FloatValuesComparatorSource extends IndexFieldData.XFieldComparator
     public FieldComparator<?> newComparator(String fieldname, int numHits, int sortPos, boolean reversed) {
         assert indexFieldData == null || fieldname.equals(indexFieldData.getFieldName());
 
-        final float dMissingValue = (Float) missingObject(missingValue, reversed);
+        final float dMissingValue = (Float) missingObject(nullValueOrder, reversed);
         // NOTE: it's important to pass null as a missing value in the constructor so that
         // the comparator doesn't check docsWithField since we replace missing values in select()
         return new FieldComparator.FloatComparator(numHits, null, null) {

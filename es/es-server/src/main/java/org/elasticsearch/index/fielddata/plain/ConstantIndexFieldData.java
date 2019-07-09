@@ -34,6 +34,7 @@ import org.elasticsearch.index.fielddata.AtomicOrdinalsFieldData;
 import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.fielddata.IndexFieldDataCache;
 import org.elasticsearch.index.fielddata.IndexOrdinalsFieldData;
+import org.elasticsearch.index.fielddata.NullValueOrder;
 import org.elasticsearch.index.fielddata.fieldcomparator.BytesRefFieldComparatorSource;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.mapper.MapperService;
@@ -150,8 +151,8 @@ public class ConstantIndexFieldData extends AbstractIndexOrdinalsFieldData {
     }
 
     @Override
-    public SortField sortField(@Nullable Object missingValue, MultiValueMode sortMode, boolean reverse) {
-        final XFieldComparatorSource source = new BytesRefFieldComparatorSource(this, missingValue, sortMode);
+    public SortField sortField(@Nullable NullValueOrder nullValueOrder, MultiValueMode sortMode, boolean reverse) {
+        final XFieldComparatorSource source = new BytesRefFieldComparatorSource(this, nullValueOrder, sortMode);
         return new SortField(getFieldName(), source, reverse);
     }
 

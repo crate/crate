@@ -35,6 +35,7 @@ import org.elasticsearch.index.Index;
 import org.elasticsearch.index.fielddata.AtomicNumericFieldData;
 import org.elasticsearch.index.fielddata.FieldData;
 import org.elasticsearch.index.fielddata.IndexNumericFieldData;
+import org.elasticsearch.index.fielddata.NullValueOrder;
 import org.elasticsearch.index.fielddata.NumericDoubleValues;
 import org.elasticsearch.index.fielddata.SortedNumericDoubleValues;
 import org.elasticsearch.index.fielddata.fieldcomparator.DoubleValuesComparatorSource;
@@ -62,21 +63,21 @@ public class SortedNumericDVIndexFieldData extends DocValuesIndexFieldData imple
     }
 
     @Override
-    public SortField sortField(Object missingValue, MultiValueMode sortMode, boolean reverse) {
+    public SortField sortField(NullValueOrder nullValueOrder, MultiValueMode sortMode, boolean reverse) {
         final XFieldComparatorSource source;
         switch (numericType) {
             case HALF_FLOAT:
             case FLOAT:
-                source = new FloatValuesComparatorSource(this, missingValue, sortMode);
+                source = new FloatValuesComparatorSource(this, nullValueOrder, sortMode);
                 break;
 
             case DOUBLE:
-                source = new DoubleValuesComparatorSource(this, missingValue, sortMode);
+                source = new DoubleValuesComparatorSource(this, nullValueOrder, sortMode);
                 break;
 
             default:
                 assert !numericType.isFloatingPoint();
-                source = new LongValuesComparatorSource(this, missingValue, sortMode);
+                source = new LongValuesComparatorSource(this, nullValueOrder, sortMode);
                 break;
         }
 
@@ -97,7 +98,7 @@ public class SortedNumericDVIndexFieldData extends DocValuesIndexFieldData imple
                 sortField = new SortedNumericSortField(fieldName, SortField.Type.LONG, reverse, selectorType);
                 break;
         }
-        sortField.setMissingValue(source.missingObject(missingValue, reverse));
+        sortField.setMissingValue(source.missingObject(nullValueOrder, reverse));
         return sortField;
     }
 

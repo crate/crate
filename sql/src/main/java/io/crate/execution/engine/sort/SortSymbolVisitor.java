@@ -53,6 +53,7 @@ import org.apache.lucene.search.FieldComparator;
 import org.apache.lucene.search.FieldComparatorSource;
 import org.apache.lucene.search.SortField;
 import org.elasticsearch.common.Nullable;
+import org.elasticsearch.index.fielddata.NullValueOrder;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.search.MultiValueMode;
 
@@ -171,7 +172,7 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
                 context.reverseFlag);
         } else {
             return context.context.getFieldData(fieldType)
-                .sortField(SortOrder.missing(context.nullFirst), sortMode, context.reverseFlag);
+                .sortField(NullValueOrder.fromFlag(context.nullFirst), sortMode, context.reverseFlag);
         }
 
     }
@@ -207,7 +208,7 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
                 DataType dataType = symbol.valueType();
                 Object missingValue = missingNullValue ? null : SortSymbolVisitor.missingObject(
                     dataType,
-                    SortOrder.missing(context.nullFirst),
+                    NullValueOrder.fromFlag(context.nullFirst),
                     reversed);
                 return new InputFieldComparator(
                     numHits,
@@ -226,8 +227,8 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
      * to replace NULLs which can lead to ClassCastException when the original type was for example Integer.
      */
     @Nullable
-    static Object missingObject(DataType dataType, Object missingValue, boolean reversed) {
-        boolean min = sortMissingFirst(missingValue) ^ reversed;
+    static Object missingObject(DataType dataType, NullValueOrder nullValueOrder, boolean reversed) {
+        boolean min = nullValueOrder == NullValueOrder.FIRST ^ reversed;
         switch (dataType.id()) {
             case ByteType.ID:
                 return min ? Byte.MIN_VALUE : Byte.MAX_VALUE;
@@ -250,10 +251,5 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
             default:
                 throw new UnsupportedOperationException("Unsupported data type: " + dataType);
         }
-    }
-
-    /** Whether missing values should be sorted first. */
-    private static boolean sortMissingFirst(Object missingValue) {
-        return "_first".equals(missingValue);
     }
 }
