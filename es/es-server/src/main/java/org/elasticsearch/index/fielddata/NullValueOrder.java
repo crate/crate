@@ -20,11 +20,13 @@
  * agreement.
  */
 
-package io.crate.execution.engine.sort;
+package org.elasticsearch.index.fielddata;
 
-class SortOrder {
+public enum NullValueOrder {
+    FIRST,
+    LAST;
 
-    static String missing(boolean nullFirst) {
-        return nullFirst ? "_first" : "_last";
+    public static NullValueOrder fromFlag(boolean nullFirst) {
+        return nullFirst ? NullValueOrder.FIRST : NullValueOrder.LAST;
     }
 }

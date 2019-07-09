@@ -24,14 +24,16 @@ package io.crate.execution.engine.sort;
 
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+
+import org.elasticsearch.index.fielddata.NullValueOrder;
 import org.junit.Test;
 
 public class SortSymbolVisitorTest {
 
     @Test
     public void test_missing_object_is_implemented_for_all_primitives() {
-        for (DataType primitiveType : DataTypes.PRIMITIVE_TYPES) {
-            SortSymbolVisitor.missingObject(primitiveType, "_first", false);
+        for (DataType<?> primitiveType : DataTypes.PRIMITIVE_TYPES) {
+            SortSymbolVisitor.missingObject(primitiveType, NullValueOrder.FIRST, false);
         }
     }
 }
