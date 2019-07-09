@@ -42,6 +42,9 @@ Unreleased Changes
 Changes
 =======
 
+- Statements containing limits, filters, window functions or table functions
+  will now be labelled accordingly in :ref:`sys-jobs-metrics`.
+
 - Added support for the :ref:`named window definition <named-windows>`.
   It allows a user to define a list of window definitions in the
   :ref:`sql_reference_window` clause that can be referenced in :ref:`over`
