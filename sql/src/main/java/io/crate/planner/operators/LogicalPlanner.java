@@ -75,6 +75,7 @@ import io.crate.planner.optimizer.rule.MoveFilterBeneathGroupBy;
 import io.crate.planner.optimizer.rule.MoveFilterBeneathHashJoin;
 import io.crate.planner.optimizer.rule.MoveFilterBeneathNestedLoop;
 import io.crate.planner.optimizer.rule.MoveFilterBeneathOrder;
+import io.crate.planner.optimizer.rule.MoveFilterBeneathProjectSet;
 import io.crate.planner.optimizer.rule.MoveFilterBeneathUnion;
 import io.crate.planner.optimizer.rule.MoveFilterBeneathWindowAgg;
 import io.crate.planner.optimizer.rule.MoveOrderBeneathBoundary;
@@ -117,6 +118,7 @@ public class LogicalPlanner {
             new MoveFilterBeneathBoundary(),
             new MoveFilterBeneathFetchOrEval(),
             new MoveFilterBeneathOrder(),
+            new MoveFilterBeneathProjectSet(),
             new MoveFilterBeneathHashJoin(),
             new MoveFilterBeneathNestedLoop(),
             new MoveFilterBeneathUnion(),
