@@ -25,7 +25,6 @@ package io.crate.integrationtests;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
 import org.hamcrest.Matchers;
-import org.junit.Before;
 import org.junit.Test;
 
 import static io.crate.testing.TestingHelpers.printedTable;
@@ -33,15 +32,9 @@ import static org.hamcrest.core.Is.is;
 
 public class SelectOrderByIntegrationTest extends SQLTransportIntegrationTest {
 
-    @Before
-    public void initTestData() throws Exception {
-        Setup setup = new Setup(sqlExecutor);
-        setup.partitionTableSetup();
-        setup.groupBySetup();
-    }
-
     @Test
     public void testSelectOrderByNullSortingASC() throws Exception {
+        new Setup(sqlExecutor).groupBySetup();
         execute("select age from characters order by age");
         assertThat(TestingHelpers.printedTable(response.rows()),
             is("32\n" +
@@ -55,6 +48,7 @@ public class SelectOrderByIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectOrderByNullSortingDESC() throws Exception {
+        new Setup(sqlExecutor).groupBySetup();
         execute("select age from characters order by age desc");
         assertThat(TestingHelpers.printedTable(response.rows()),
             is("NULL\n" +
@@ -68,6 +62,7 @@ public class SelectOrderByIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectOrderByNullSortingASCWithFunction() throws Exception {
+        new Setup(sqlExecutor).groupBySetup();
         execute("select abs(age) from characters order by 1 asc");
         assertThat(TestingHelpers.printedTable(response.rows()),
             is("32\n" +
@@ -81,6 +76,7 @@ public class SelectOrderByIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectOrderByNullSortingDESCWithFunction() throws Exception {
+        new Setup(sqlExecutor).groupBySetup();
         execute("select abs(age) from characters order by 1 desc");
         assertThat(TestingHelpers.printedTable(response.rows()),
             is("NULL\n" +
@@ -95,6 +91,7 @@ public class SelectOrderByIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectGroupByOrderByNullSortingASC() throws Exception {
+        new Setup(sqlExecutor).groupBySetup();
         execute("select age from characters group by age order by age");
         assertThat(TestingHelpers.printedTable(response.rows()),
             is("32\n" +
@@ -106,6 +103,7 @@ public class SelectOrderByIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectGroupByOrderByNullSortingDESC() throws Exception {
+        new Setup(sqlExecutor).groupBySetup();
         execute("select age from characters group by age order by age desc");
         assertThat(TestingHelpers.printedTable(response.rows()),
             is("NULL\n" +
@@ -117,6 +115,7 @@ public class SelectOrderByIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testOrderByNullsFirstAndLast() throws Exception {
+        new Setup(sqlExecutor).groupBySetup();
         SQLResponse response = execute(
             "select details['job'] from characters order by details['job'] nulls first limit 1");
         assertNull(response.rows()[0][0]);
