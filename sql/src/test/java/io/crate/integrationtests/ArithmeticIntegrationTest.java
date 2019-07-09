@@ -338,10 +338,10 @@ public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
                 "   l long, " +
                 "   f float, " +
                 "   d double, " +
-                "   t timestamp with time zone" +
+                "   tz timestamp with time zone, " +
+                "   t timestamp without time zone " +
                 ") with (number_of_replicas=0)");
-        ensureYellow();
-        execute("insert into t (b, s, i, l, f, d, t) values (1, 2, 3, 4, 5.7, 6.3, '2014-07-30')");
+        execute("insert into t (b, s, i, l, f, d, tz, t) values (1, 2, 3, 4, 5.7, 6.3, '2014-07-30', '2018-07-30')");
         refresh();
 
         String[] functionCalls = new String[]{
@@ -355,7 +355,7 @@ public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
             "round(%s)",
             "sqrt(%s)"
         };
-        execute("select b + b, s + s, i + i, l + l, f + f, d + d, t + t from t");
+        execute("select b + b, s + s, i + i, l + l, f + f, d + d, tz + tz, t + t from t");
 
         for (String functionCall : functionCalls) {
             String byteCall = String.format(Locale.ENGLISH, functionCall, "b");
