@@ -37,12 +37,14 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
+import io.crate.types.BooleanType;
 import io.crate.types.ByteType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.DoubleType;
 import io.crate.types.FloatType;
 import io.crate.types.IntegerType;
+import io.crate.types.IpType;
 import io.crate.types.LongType;
 import io.crate.types.ShortType;
 import io.crate.types.StringType;
@@ -224,7 +226,7 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
      * to replace NULLs which can lead to ClassCastException when the original type was for example Integer.
      */
     @Nullable
-    private static Object missingObject(DataType dataType, Object missingValue, boolean reversed) {
+    static Object missingObject(DataType dataType, Object missingValue, boolean reversed) {
         boolean min = sortMissingFirst(missingValue) ^ reversed;
         switch (dataType.id()) {
             case ByteType.ID:
@@ -233,15 +235,17 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
                 return min ? Short.MIN_VALUE : Short.MAX_VALUE;
             case IntegerType.ID:
                 return min ? Integer.MIN_VALUE : Integer.MAX_VALUE;
+            case BooleanType.ID:
             case LongType.ID:
+            case TimestampType.ID_WITH_TZ:
+            case TimestampType.ID_WITHOUT_TZ:
                 return min ? Long.MIN_VALUE : Long.MAX_VALUE;
             case FloatType.ID:
                 return min ? Float.NEGATIVE_INFINITY : Float.POSITIVE_INFINITY;
             case DoubleType.ID:
                 return min ? Double.NEGATIVE_INFINITY : Double.POSITIVE_INFINITY;
-            case TimestampType.ID_WITH_TZ:
-                return min ? Long.MIN_VALUE : Long.MAX_VALUE;
             case StringType.ID:
+            case IpType.ID:
                 return null;
             default:
                 throw new UnsupportedOperationException("Unsupported data type: " + dataType);
