@@ -115,77 +115,77 @@ public final class StatementClassifier extends LogicalPlanVisitor<Set<String>, V
 
     @Override
     public Void visitRootRelationBoundary(RootRelationBoundary logicalPlan, Set<String> context) {
-        process(logicalPlan.source, context);
+        logicalPlan.source.accept(this, context);
         return null;
     }
 
     @Override
     public Void visitRelationBoundary(RelationBoundary logicalPlan, Set<String> context) {
-        process(logicalPlan.source(), context);
+        logicalPlan.source.accept(this, context);
         return null;
     }
 
     @Override
     public Void visitFetchOrEval(FetchOrEval logicalPlan, Set<String> context) {
-        process(logicalPlan.source(), context);
+        logicalPlan.source.accept(this, context);
         return visitPlan(logicalPlan, context);
     }
 
     @Override
     public Void visitLimit(Limit limit, Set<String> context) {
-        process(limit.source, context);
+        limit.source.accept(this, context);
         return visitPlan(limit, context);
     }
 
     @Override
     public Void visitHashJoin(HashJoin logicalPlan, Set<String> context) {
-        process(logicalPlan.lhs, context);
-        process(logicalPlan.rhs, context);
+        logicalPlan.lhs.accept(this, context);
+        logicalPlan.rhs.accept(this, context);
         return visitPlan(logicalPlan, context);
     }
 
     @Override
     public Void visitNestedLoopJoin(NestedLoopJoin logicalPlan, Set<String> context) {
-        process(logicalPlan.lhs, context);
-        process(logicalPlan.rhs, context);
+        logicalPlan.lhs.accept(this, context);
+        logicalPlan.rhs.accept(this, context);
         return visitPlan(logicalPlan, context);
     }
 
     @Override
     public Void visitUnion(Union logicalPlan, Set<String> context) {
-        process(logicalPlan.lhs, context);
-        process(logicalPlan.rhs, context);
+        logicalPlan.lhs.accept(this, context);
+        logicalPlan.rhs.accept(this, context);
         return visitPlan(logicalPlan, context);
     }
 
     @Override
     public Void visitGroupHashAggregate(GroupHashAggregate logicalPlan, Set<String> context) {
-        process(logicalPlan.source, context);
+        logicalPlan.source.accept(this, context);
         return visitPlan(logicalPlan, context);
     }
 
     @Override
     public Void visitHashAggregate(HashAggregate logicalPlan, Set<String> context) {
-        process(logicalPlan.source, context);
+        logicalPlan.source.accept(this, context);
         return visitPlan(logicalPlan, context);
     }
 
     @Override
     public Void visitInsert(Insert logicalPlan, Set<String> context) {
-        process(logicalPlan.source, context);
+        logicalPlan.source.accept(this, context);
         return null;
     }
 
     @Override
     public Void visitOrder(Order logicalPlan, Set<String> context) {
-        process(logicalPlan.source, context);
+        logicalPlan.source.accept(this, context);
         return visitPlan(logicalPlan, context);
     }
 
     @Override
     public Void visitMultiPhase(MultiPhase logicalPlan, Set<String> context) {
         for (LogicalPlan plan : logicalPlan.dependencies().keySet()) {
-            process(plan, context);
+            plan.accept(this, context);
         }
         return visitPlan(logicalPlan, context);
     }

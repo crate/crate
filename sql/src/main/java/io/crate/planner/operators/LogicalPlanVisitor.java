@@ -22,13 +22,7 @@
 
 package io.crate.planner.operators;
 
-import javax.annotation.Nullable;
-
 public class LogicalPlanVisitor<C, R> {
-
-    public R process(LogicalPlan logicalPlan, @Nullable C context) {
-        return logicalPlan.accept(this, context);
-    }
 
     protected R visitPlan(LogicalPlan logicalPlan, C context) {
         return null;
