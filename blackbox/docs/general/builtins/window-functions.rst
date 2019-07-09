@@ -298,7 +298,7 @@ by the window definition of the :ref:`OVER` clause will result in failure.
 
 It is not possible to define the ``PARTITION BY`` clause in the window
 definition of the :ref:`OVER` clause if it references a window definition
-from the ref:`sql_reference_window` clause.
+from the :ref:`sql_reference_window` clause.
 
 The window definitions in the :ref:`sql_reference_window` clause cannot define
 its own window frames, if they are referenced by non-empty window definitions
