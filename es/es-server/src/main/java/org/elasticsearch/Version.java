@@ -100,6 +100,24 @@ public class Version implements Comparable<Version>, ToXContentFragment {
             case V_EMPTY_ID:
                 return V_EMPTY;
             default:
+                // We need to be able to connect to future CrateDB versions for upgrades.
+                if (internalId >= V_4_0_0.internalId) {
+                    byte otherMajor = (byte) ((internalId / 1000000) % 100);
+
+                    // The lucene Version needs to be accurate enough for index compatibility checks.
+                    // We don't know what version future CrateDB versions will ship with, but we can make assumptions:
+                    // CrateDB versions 4.x will ship with Lucene 8.x
+                    // CrateDB versions 5.x will likely ship with Lucene 9.x
+
+                    org.apache.lucene.util.Version luceneVersion;
+                    org.apache.lucene.util.Version latestLucene = org.apache.lucene.util.Version.LATEST;
+                    if (otherMajor == Version.CURRENT.major + 1) {
+                        luceneVersion = org.apache.lucene.util.Version.fromBits(latestLucene.major + 1, 0, 0);
+                    } else {
+                        luceneVersion = latestLucene;
+                    }
+                    return new Version(internalId, internalId - INTERNAL_OFFSET, false, luceneVersion);
+                }
                 throw new IllegalStateException("Illegal internal version id: " + internalId);
         }
     }
@@ -254,7 +272,7 @@ public class Version implements Comparable<Version>, ToXContentFragment {
      * is a beta or RC release then the version itself is returned.
      */
     public Version minimumCompatibilityVersion() {
-        return ES_V_6_1_4;
+        return V_4_0_0;
     }
 
     /**
