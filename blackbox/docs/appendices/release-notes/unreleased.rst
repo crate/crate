@@ -74,6 +74,9 @@ Changes
 Fixes
 =====
 
+- Fixed an issue in the admin ui that prevented partitions from showing up in
+  the table detail view.
+
 - Fixed an issue in the version handling that would prevent rolling upgrades to
   future versions of CrateDB.
 
