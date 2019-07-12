@@ -50,6 +50,7 @@ import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.IfExpression;
 import io.crate.sql.tree.InListExpression;
 import io.crate.sql.tree.InPredicate;
+import io.crate.sql.tree.IntervalLiteral;
 import io.crate.sql.tree.IsNotNullPredicate;
 import io.crate.sql.tree.IsNullPredicate;
 import io.crate.sql.tree.LikePredicate;
@@ -138,6 +139,16 @@ public final class ExpressionFormatter {
         protected String visitExpression(Expression node, @Nullable List<Expression> parameters) {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
                 "not yet implemented: %s.visit%s", getClass().getName(), node.getClass().getSimpleName()));
+        }
+
+        @Override
+        public String visitIntervalLiteral(IntervalLiteral node, List<Expression> context) {
+            StringBuilder builder = new StringBuilder("INTERVAL ")
+                .append(node.getValue())
+                .append(" ")
+                .append(node.getStartField().name());
+            node.getEndField().map(end -> builder.append(" TO " + end.name()));
+            return builder.toString();
         }
 
         @Override
