@@ -44,6 +44,7 @@ or collections.
 * `ip`_
 * `timestamp with time zone <timestamp with time zone_>`_
 * `timestamp without time zone <timestamp without time zone_>`_
+* `interval`_
 
 .. _sql_ddl_datatypes_geographic:
 
@@ -337,6 +338,111 @@ In these expressions, the desired time zone is specified as a string
 
 The scalar function :ref:`TIMEZONE <scalar-timezone>` (zone, timestamp) is
 equivalent to the SQL-conforming construct timestamp AT TIME ZONE zone.
+=======
+.. _interval_data_type:
+
+Interval
+--------
+
+
+.. _interval-literal:
+
+Interval literal
+................
+
+An interval literal represents a span of time and can be either
+a :ref:`year-month-literal` or :ref:`day-time-literal` literal. The generic
+literal synopsis defined as following
+
+::
+
+    <interval_literal> ::=
+        INTERVAL [ <sign> ] <string_literal> <interval_qualifier>
+
+    <interval_qualifier> ::=
+        <start_field> [ TO <end_field>]
+
+    <start_field> ::= <datetime_field>
+    <end_field> ::= <datetime_field>
+
+    <datetime_field> ::=
+          YEAR
+        | MONTH
+        | DAY
+        | HOUR
+        | MINUTE
+        | SECOND
+
+.. _year-month-literal:
+
+year-month
+^^^^^^^^^^
+
+A ``year-month`` literal includes either ``YEAR``, ``MONTH`` or a contiguous
+subset of these fields.
+
+::
+
+    <year_month_literal> ::=
+        INTERVAL [ {+ | -} ]'yy' <interval_qualifier> |
+        INTERVAL [ {+ | -} ]'[ yy- ] mm' <interval_qualifier>
+
+For example
+
+::
+
+    INTERVAL '01' YEAR              - 1 year
+    INTERVAL '02' MONTH             - 2 months
+    INTERVAL '01-02' YEAR TO MONTH  - 1 year and 2 months
+
+.. _day-time-literal:
+
+day-time
+^^^^^^^^
+
+A ``day-time`` literal includes either ``DAY``, ``HOUR``, ``MINUTE``,
+``SECOND`` or a contiguous subset of these fields.
+
+When using ``SECOND``, it is possible to define more digits representing
+a number of fractions of a seconds with ``.nn``. The allowed fractional
+seconds precision of ``SECOND`` ranges from 0 to 6 digits.
+
+::
+
+    <day_time_literal> ::=
+        INTERVAL [ {+ | -} ]'dd [ <space> hh [ :mm [ :ss ]]]' <interval_qualifier>
+        INTERVAL [ {+ | -} ]'hh [ :mm [ :ss [ .nn ]]]' <interval_qualifier>
+        INTERVAL [ {+ | -} ]'mm [ :ss [ .nn ]]' <interval_qualifier>
+        INTERVAL [ {+ | -} ]'ss [ .nn ]' <interval_qualifier>
+
+For example
+
+::
+
+    INTERVAL '100.123' SECOND         - 100.123 seconds
+    INTERVAL '40 23' DAY TO HOUR      - 40 days and 23 hours
+    INTERVAL '10 23:10' DAY TO MINUTE - 10 days, 23 hours and 10 minutes
+
+.. _temporal-arithmetic:
+
+Temporal arithmetic
+-------------------
+
+The following table specifies the declared types of
+:ref:`arithmetic <arithmetic>` expressions that involves temporal operands.
+
++---------------+----------+---------------+
+|       Operand | Operator |       Operand |
++===============+==========+===============+
+| ``timestamp`` |       \- | ``timestamp`` |
++---------------+----------+---------------+
+|  ``interval`` |       \+ | ``timestamp`` |
++---------------+----------+---------------+
+| ``timestamp`` | \+ or \- |  ``interval`` |
++---------------+----------+---------------+
+|  ``interval`` | \+ or \- |  ``interval`` |
++---------------+----------+---------------+
+
 
 .. _geo_point_data_type:
 
