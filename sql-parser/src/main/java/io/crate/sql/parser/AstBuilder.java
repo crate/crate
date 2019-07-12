@@ -105,6 +105,7 @@ import io.crate.sql.tree.Insert;
 import io.crate.sql.tree.InsertFromSubquery;
 import io.crate.sql.tree.InsertFromValues;
 import io.crate.sql.tree.Intersect;
+import io.crate.sql.tree.IntervalLiteral;
 import io.crate.sql.tree.IsNotNullPredicate;
 import io.crate.sql.tree.IsNullPredicate;
 import io.crate.sql.tree.Join;
@@ -221,6 +222,64 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     @Override
     public Node visitBegin(SqlBaseParser.BeginContext context) {
         return new BeginStatement();
+    }
+
+    @Override
+    public Node visitIntervalLiteral(SqlBaseParser.IntervalLiteralContext context) {
+        IntervalLiteral.IntervalField startField = getIntervalFieldType((Token) context.from.getChild(0).getPayload());
+        IntervalLiteral.IntervalField endField = null;
+        if (context.to != null) {
+            Token token = (Token) context.to.getChild(0).getPayload();
+            endField = getIntervalFieldType(token);
+        }
+
+        if (endField != null) {
+            if (startField.compareTo(endField) > 0) {
+                throw new IllegalArgumentException(
+                    String.format("Startfield %s must be less significant than Endfield %s", startField, endField));
+            }
+        }
+
+        IntervalLiteral.Sign sign = IntervalLiteral.Sign.PLUS;
+        if (context.sign != null) {
+            sign = getIntervalSign(context.sign);
+        }
+
+        return new IntervalLiteral(
+            ((StringLiteral) visit(context.stringLiteral())).getValue(),
+            sign,
+            startField,
+            endField);
+    }
+
+    private static IntervalLiteral.Sign getIntervalSign(Token token) {
+        switch (token.getType()) {
+            case SqlBaseLexer.MINUS:
+                return IntervalLiteral.Sign.MINUS;
+            case SqlBaseLexer.PLUS:
+                return IntervalLiteral.Sign.PLUS;
+            default:
+                throw new IllegalArgumentException("Unsupported sign: " + token.getText());
+        }
+    }
+
+    private static IntervalLiteral.IntervalField getIntervalFieldType(Token token) {
+        switch (token.getType()) {
+            case SqlBaseLexer.YEAR:
+                return IntervalLiteral.IntervalField.YEAR;
+            case SqlBaseLexer.MONTH:
+                return IntervalLiteral.IntervalField.MONTH;
+            case SqlBaseLexer.DAY:
+                return IntervalLiteral.IntervalField.DAY;
+            case SqlBaseLexer.HOUR:
+                return IntervalLiteral.IntervalField.HOUR;
+            case SqlBaseLexer.MINUTE:
+                return IntervalLiteral.IntervalField.MINUTE;
+            case SqlBaseLexer.SECOND:
+                return IntervalLiteral.IntervalField.SECOND;
+            default:
+                throw new IllegalArgumentException("Unsupported interval field: " + token.getText());
+        }
     }
 
     @Override
@@ -416,8 +475,8 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
                 extractGenericProperties(context.withProperties()));
         }
         return new RestoreSnapshot(getQualifiedName(context.qname()),
-            visitCollection(context.tableWithPartitions().tableWithPartition(), Table.class),
-            extractGenericProperties(context.withProperties()));
+                                   visitCollection(context.tableWithPartitions().tableWithPartition(), Table.class),
+                                   extractGenericProperties(context.withProperties()));
     }
 
     @Override
@@ -473,7 +532,8 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     public Node visitCopyTo(SqlBaseParser.CopyToContext context) {
         return new CopyTo(
             (Table) visit(context.tableWithPartition()),
-            context.columns() == null ? emptyList() : visitCollection(context.columns().primaryExpression(), Expression.class),
+            context.columns() == null ? emptyList() : visitCollection(context.columns().primaryExpression(),
+                                                                      Expression.class),
             visitIfPresent(context.where(), Expression.class),
             context.DIRECTORY() != null,
             (Expression) visit(context.path),
@@ -492,7 +552,8 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
             for (Expression ex : tf.functionCall().getArguments()) {
                 if (!(ex instanceof QualifiedNameReference)) {
                     throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                        "invalid table column reference %s", ex.toString()));
+                                                                     "invalid table column reference %s",
+                                                                     ex.toString()));
                 }
             }
             throw e;
@@ -586,10 +647,11 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     public Node visitSetGlobal(SqlBaseParser.SetGlobalContext context) {
         if (context.PERSISTENT() != null) {
             return new SetStatement(SetStatement.Scope.GLOBAL,
-                SetStatement.SettingType.PERSISTENT,
-                visitCollection(context.setGlobalAssignment(), Assignment.class));
+                                    SetStatement.SettingType.PERSISTENT,
+                                    visitCollection(context.setGlobalAssignment(), Assignment.class));
         }
-        return new SetStatement(SetStatement.Scope.GLOBAL, visitCollection(context.setGlobalAssignment(), Assignment.class));
+        return new SetStatement(SetStatement.Scope.GLOBAL,
+                                visitCollection(context.setGlobalAssignment(), Assignment.class));
     }
 
     @Override
@@ -598,7 +660,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
             new StringLiteral("license"), (Expression) visit(ctx.stringLiteral()));
 
         return new SetStatement(SetStatement.Scope.LICENSE,
-            SetStatement.SettingType.PERSISTENT, Collections.singletonList(assignment));
+                                SetStatement.SettingType.PERSISTENT, Collections.singletonList(assignment));
     }
 
     @Override
@@ -1054,12 +1116,12 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     }
 
     /*
-    * case sensitivity like it is in postgres
-    * see also http://www.thenextage.com/wordpress/postgresql-case-sensitivity-part-1-the-ddl/
-    *
-    * unfortunately this has to be done in the parser because afterwards the
-    * knowledge of the IDENT / QUOTED_IDENT difference is lost
-    */
+     * case sensitivity like it is in postgres
+     * see also http://www.thenextage.com/wordpress/postgresql-case-sensitivity-part-1-the-ddl/
+     *
+     * unfortunately this has to be done in the parser because afterwards the
+     * knowledge of the IDENT / QUOTED_IDENT difference is lost
+     */
     @Override
     public Node visitUnquotedIdentifier(SqlBaseParser.UnquotedIdentifierContext context) {
         return new StringLiteral(context.getText().toLowerCase(Locale.ENGLISH));
@@ -1085,7 +1147,8 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     @Override
     public Node visitTable(SqlBaseParser.TableContext context) {
         if (context.qname() != null) {
-            return new Table(getQualifiedName(context.qname()), visitCollection(context.valueExpression(), Assignment.class));
+            return new Table(getQualifiedName(context.qname()),
+                             visitCollection(context.valueExpression(), Assignment.class));
         }
         FunctionCall fc = new FunctionCall(
             getQualifiedName(context.ident()), visitCollection(context.valueExpression(), Expression.class));
@@ -1423,7 +1486,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     @Override
     public Node visitExtract(SqlBaseParser.ExtractContext context) {
         return new Extract((Expression) visit(context.expr()),
-            (StringLiteral) visit(context.stringLiteralOrIdentifier()));
+                           (StringLiteral) visit(context.stringLiteralOrIdentifier()));
     }
 
     @Override
@@ -1597,7 +1660,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     public Node visitObjectLiteral(SqlBaseParser.ObjectLiteralContext context) {
         Multimap<String, Expression> objAttributes = LinkedListMultimap.create();
         context.objectKeyValue().forEach(attr ->
-            objAttributes.put(getIdentText(attr.key), (Expression) visit(attr.value))
+                                             objAttributes.put(getIdentText(attr.key), (Expression) visit(attr.value))
         );
         return new ObjectLiteral(objAttributes);
     }
@@ -1643,7 +1706,9 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     }
 
     private String getObjectType(Token type) {
-        if (type == null) return null;
+        if (type == null) {
+            return null;
+        }
         switch (type.getType()) {
             case SqlBaseLexer.DYNAMIC:
                 return type.getText().toLowerCase(Locale.ENGLISH);
@@ -1885,8 +1950,10 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     private static void validateFunctionName(QualifiedName functionName) {
         if (functionName.getParts().size() > 2) {
-            throw new IllegalArgumentException(String.format(Locale.ENGLISH, "The function name is not correct! " +
-                "name [%s] does not conform the [[schema_name .] function_name] format.", functionName));
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                                                             "The function name is not correct! " +
+                                                             "name [%s] does not conform the [[schema_name .] function_name] format.",
+                                                             functionName));
         }
     }
 

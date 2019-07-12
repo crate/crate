@@ -268,6 +268,7 @@ parameterOrLiteral
 
 parameterOrSimpleLiteral
     : nullLiteral
+    | intervalLiteral
     | escapedCharsStringLiteral
     | stringLiteral
     | numericLiteral
@@ -399,6 +400,14 @@ stringLiteralOrIdentifierOrQname
 numericLiteral
     : decimalLiteral
     | integerLiteral
+    ;
+
+intervalLiteral
+    : INTERVAL sign=(PLUS | MINUS)? stringLiteral from=intervalField (TO to=intervalField)?
+    ;
+
+intervalField
+    : YEAR | MONTH | DAY | HOUR | MINUTE | SECOND
     ;
 
 booleanLiteral
@@ -636,7 +645,7 @@ nonReserved
     : ALIAS | ANALYZE | ANALYZER | BERNOULLI | BLOB | CATALOGS | CHAR_FILTERS | CLUSTERED
     | COLUMNS | COPY | CURRENT |  DAY | DEALLOCATE | DISTRIBUTED | DUPLICATE | DYNAMIC | EXPLAIN
     | EXTENDS | FOLLOWING | FORMAT | FULLTEXT | FUNCTIONS | GEO_POINT | GEO_SHAPE | GLOBAL
-    | GRAPHVIZ | HOUR | IGNORED | KEY | KILL | LICENSE | LOGICAL | LOCAL | MATERIALIZED | MINUTE
+    | GRAPHVIZ | HOUR | IGNORED | INTERVAL | KEY | KILL | LICENSE | LOGICAL | LOCAL | MATERIALIZED | MINUTE
     | MONTH | OFF | ONLY | OVER | OPTIMIZE | PARTITION | PARTITIONED | PARTITIONS | PLAIN
     | PRECEDING | RANGE | REFRESH | ROW | ROWS | SCHEMAS | SECOND | SESSION
     | SHARDS | SHOW | STORAGE | STRICT | SYSTEM | TABLES | TABLESAMPLE | TEXT | TIME | ZONE | WITHOUT
@@ -713,6 +722,7 @@ THEN: 'THEN';
 ELSE: 'ELSE';
 END: 'END';
 IF: 'IF';
+INTERVAL: 'INTERVAL';
 JOIN: 'JOIN';
 CROSS: 'CROSS';
 OUTER: 'OUTER';

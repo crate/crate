@@ -37,12 +37,14 @@ import io.crate.types.FloatType;
 import io.crate.types.GeoPointType;
 import io.crate.types.GeoShapeType;
 import io.crate.types.IntegerType;
+import io.crate.types.IntervalType;
 import io.crate.types.IpType;
 import io.crate.types.LongType;
 import io.crate.types.ObjectType;
 import io.crate.types.ShortType;
 import io.crate.types.StringType;
 import io.crate.types.TimestampType;
+import org.joda.time.Period;
 import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
 import org.locationtech.spatial4j.shape.impl.PointImpl;
 
@@ -59,6 +61,7 @@ public class DataTypeTesting {
         .addAll(DataTypes.PRIMITIVE_TYPES)
         .add(DataTypes.GEO_POINT)
         .add(DataTypes.GEO_SHAPE)
+        .add(DataTypes.INTERVAL)
         .add(ObjectType.untyped())
         .build();
 
@@ -128,6 +131,11 @@ public class DataTypeTesting {
                     map.put("x", innerValueGenerator.get());
                     return (T) map;
                 };
+            case IntervalType.ID:
+                return () -> {
+                    return (T) new Period().withMillis(1000);
+                };
+
         }
 
         throw new AssertionError("No data generator for type " + type.getName());

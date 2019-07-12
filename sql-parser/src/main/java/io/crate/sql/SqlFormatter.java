@@ -57,6 +57,7 @@ import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.GrantPrivilege;
 import io.crate.sql.tree.IndexColumnConstraint;
 import io.crate.sql.tree.IndexDefinition;
+import io.crate.sql.tree.IntervalLiteral;
 import io.crate.sql.tree.Join;
 import io.crate.sql.tree.JoinCriteria;
 import io.crate.sql.tree.JoinOn;
@@ -811,6 +812,12 @@ public final class SqlFormatter {
             builder.append(node.names().stream()
                 .map(Formatter::formatQualifiedName)
                 .collect(COMMA_JOINER));
+            return null;
+        }
+
+        @Override
+        public Void visitIntervalLiteral(IntervalLiteral node, Integer indent) {
+            builder.append(IntervalLiteral.format(node));
             return null;
         }
 
