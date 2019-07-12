@@ -64,6 +64,7 @@ import io.crate.testing.SQLExecutor;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
 import io.crate.types.DataTypes;
+import org.joda.time.Period;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -414,5 +415,28 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Cannot PARTITION BY 'xs': invalid data type 'integer_array'");
         executor.analyze("select count(*) over(partition by xs) from tarr");
+    }
+
+    @Test
+    public void testInterval() throws Exception {
+        Literal literal = (Literal) expressions.asSymbol("INTERVAL '1' MONTH");
+        assertThat(literal.valueType(), is(DataTypes.INTERVAL));
+        Period period = (Period) literal.value();
+        assertThat(period, is(new Period().withMonths(1)));
+    }
+
+    @Test
+    public void testIntervalConversion() throws Exception {
+        Literal literal = (Literal) expressions.asSymbol("INTERVAL '1' HOUR to SECOND");
+        assertThat(literal.valueType(), is(DataTypes.INTERVAL));
+        Period period = (Period) literal.value();
+        assertThat(period, is(new Period().withSeconds(1)));
+    }
+
+    @Test
+    public void testIntervalInvalidStartEnd() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Startfield must be less significant than Endfield");
+        expressions.asSymbol("INTERVAL '1' MONTH TO YEAR");
     }
 }

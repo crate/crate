@@ -53,6 +53,7 @@ public class PGTypes {
         .put(DataTypes.UNDEFINED, VarCharType.INSTANCE)
         .put(DataTypes.GEO_SHAPE, JsonType.INSTANCE)
         .put(DataTypes.GEO_POINT, PointType.INSTANCE)
+        .put(DataTypes.INTERVAL,IntervalType.INSTANCE)
         .put(new ArrayType<>(DataTypes.BYTE), PGArray.CHAR_ARRAY)
         .put(new ArrayType<>(DataTypes.SHORT), PGArray.INT2_ARRAY)
         .put(new ArrayType<>(DataTypes.INTEGER), PGArray.INT4_ARRAY)
@@ -66,6 +67,7 @@ public class PGTypes {
         .put(new ArrayType<>(DataTypes.IP), PGArray.VARCHAR_ARRAY)
         .put(new ArrayType<>(DataTypes.GEO_POINT), PGArray.POINT_ARRAY)
         .put(new ArrayType<>(DataTypes.GEO_SHAPE), PGArray.JSON_ARRAY)
+        .put(new ArrayType<>(DataTypes.INTERVAL), PGArray.INTERVAL_ARRAY)
         .put(new ArrayType<>(ObjectType.untyped()), JsonType.INSTANCE)
         .build();
 
