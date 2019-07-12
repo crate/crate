@@ -22,10 +22,9 @@ A literal is a notation to represent a value within a statement.
 Different types have different notations. The simplest forms are:
 
 - boolean literals: ``true`` or ``false``
-
 - string literals: ``'this is a string literal'``
-
 - numeric literals: ``42``
+- interval literals: ``INTERVAL '1' SECOND``
 
 .. SEEALSO::
 
