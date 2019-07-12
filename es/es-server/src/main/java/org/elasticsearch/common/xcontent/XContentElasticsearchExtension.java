@@ -34,9 +34,6 @@ import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
 import org.joda.time.tz.CachedDateTimeZone;
 import org.joda.time.tz.FixedDateTimeZone;
-import org.locationtech.spatial4j.shape.Point;
-import org.locationtech.spatial4j.shape.impl.PointImpl;
-import org.locationtech.spatial4j.shape.jts.JtsPoint;
 
 import java.time.DayOfWeek;
 import java.time.Duration;
@@ -96,20 +93,6 @@ public class XContentElasticsearchExtension implements XContentBuilderExtension 
         writers.put(Year.class, (b, v) -> b.value(v.toString()));
         writers.put(Duration.class, (b, v) -> b.value(v.toString()));
         writers.put(Period.class, (b, v) -> b.value(v.toString()));
-        writers.put(PointImpl.class, (b, v) -> {
-            Point point = (Point) v;
-            b.startArray();
-            b.value(point.getX());
-            b.value(point.getY());
-            b.endArray();
-        });
-        writers.put(JtsPoint.class, (b, v) -> {
-            Point point = (Point) v;
-            b.startArray();
-            b.value(point.getX());
-            b.value(point.getY());
-            b.endArray();
-        });
 
         writers.put(BytesReference.class, (b, v) -> {
             if (v == null) {

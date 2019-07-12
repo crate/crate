@@ -23,7 +23,6 @@
 package io.crate.protocols.postgres.types;
 
 import io.crate.test.integration.CrateUnitTest;
-import io.crate.testing.DataTypeTesting;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -34,6 +33,7 @@ import io.crate.types.ShortType;
 import io.crate.types.StringType;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
+import org.joda.time.Period;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -127,6 +127,25 @@ public class PGTypesTest extends CrateUnitTest {
             PGType pgType = PGTypes.get(entry.type);
             assertEntryOfPgType(entry, pgType);
         }
+    }
+
+
+    @Test
+    public void test_period_binary_round_trip_streaming() {
+        Entry entry = new Entry(DataTypes.INTERVAL, new Period(1, 2, 3, 4, 5, 6, 7, 8));
+        assertThat(
+            writeAndReadBinary(entry, IntervalType.INSTANCE),
+            is(entry.value)
+        );
+    }
+
+    @Test
+    public void test_period_text_round_trip_streaming() {
+        Entry entry = new Entry(DataTypes.INTERVAL, new Period(1, 2, 3, 4, 5, 6, 7, 8));
+        assertThat(
+            writeAndReadAsText(entry, IntervalType.INSTANCE),
+            is(entry.value)
+        );
     }
 
     @Test
