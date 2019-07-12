@@ -53,6 +53,7 @@ public abstract class DataType<T> implements Comparable, Streamable {
         BooleanType,
         ShortType,
         IntegerType,
+        IntervalType,
         LongType,
         FloatType,
         DoubleType,

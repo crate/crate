@@ -23,9 +23,14 @@
 package io.crate.sql;
 
 
+import io.crate.sql.parser.SqlParser;
+import io.crate.sql.tree.Expression;
+import io.crate.sql.tree.IntervalLiteral;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+
+import java.util.Optional;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
@@ -283,5 +288,14 @@ public class LiteralsTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage(Literals.ESCAPED_UNICODE_ERROR);
         Literals.replaceEscapedChars("\\U0000006G");
+    }
+
+    @Test
+    public void testIntervalLitera() throws Exception {
+        IntervalLiteral interval = (IntervalLiteral) SqlParser.createExpression("INTERVAL +'1' DAY");
+        assertThat(interval.getValue(), is("1"));
+        assertThat(interval.getSign(), is(IntervalLiteral.Sign.POSITIVE));
+        assertThat(interval.getStartField(), is(IntervalLiteral.IntervalField.DAY));
+        assertThat(interval.getEndField(), is(Optional.empty()));
     }
 }

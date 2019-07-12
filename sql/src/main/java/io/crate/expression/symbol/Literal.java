@@ -25,6 +25,7 @@ package io.crate.expression.symbol;
 import com.google.common.base.Preconditions;
 import io.crate.data.Input;
 import io.crate.exceptions.ConversionException;
+import io.crate.sql.tree.IntervalLiteral;
 import io.crate.types.ArrayType;
 import io.crate.types.CollectionType;
 import io.crate.types.DataType;

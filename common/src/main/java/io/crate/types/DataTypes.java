@@ -77,6 +77,7 @@ public final class DataTypes {
     public static final DataType STRING_ARRAY = new ArrayType(STRING);
     public static final DataType INTEGER_ARRAY = new ArrayType(INTEGER);
     public static final DataType SHORT_ARRAY = new ArrayType(SHORT);
+    public static final DataType INTERVAL = new IntervalType();
 
     public static final List<DataType> PRIMITIVE_TYPES = List.of(
         BYTE,
