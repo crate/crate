@@ -44,6 +44,7 @@ import io.crate.types.DataTypes;
 import io.crate.types.DoubleType;
 import io.crate.types.FloatType;
 import io.crate.types.IntegerType;
+import io.crate.types.IntervalType;
 import io.crate.types.IpType;
 import io.crate.types.LongType;
 import io.crate.types.ShortType;
@@ -248,6 +249,8 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
             case StringType.ID:
             case IpType.ID:
                 return null;
+            case IntervalType.ID:
+                return IntervalType.ID;
             default:
                 throw new UnsupportedOperationException("Unsupported data type: " + dataType);
         }
