@@ -32,6 +32,7 @@ import io.crate.types.ObjectType;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.joda.time.Period;
 import org.locationtech.spatial4j.shape.Point;
 
 import java.io.IOException;
@@ -253,6 +254,10 @@ public class Literal<ReturnType> extends Symbol implements Input<ReturnType>, Co
 
     public static Literal<Float> of(Float value) {
         return new Literal<>(DataTypes.FLOAT, value);
+    }
+
+    public static Literal<Period> newInterval(Period value) {
+        return new Literal<>(DataTypes.INTERVAL, value);
     }
 
     public static Literal<Point> newGeoPoint(Object point) {
