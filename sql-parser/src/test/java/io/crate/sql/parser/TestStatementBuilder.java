@@ -857,6 +857,11 @@ public class TestStatementBuilder {
     }
 
     @Test
+    public void testIntervalLiteral() {
+        printStatement("select interval 'foo' HOUR");
+    }
+
+    @Test
     public void testEscapedStringLiteralBuilder() {
         printStatement("select E'aValue'");
         printStatement("select E'\\141Value'");
