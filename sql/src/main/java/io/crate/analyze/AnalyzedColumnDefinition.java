@@ -37,9 +37,9 @@ import io.crate.types.DataTypes;
 import io.crate.types.GeoShapeType;
 import io.crate.types.ObjectType;
 import io.crate.types.StringType;
+import io.crate.types.TimestampType;
 import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.common.logging.DeprecationLogger;
-import io.crate.types.TimestampType;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
@@ -208,6 +208,10 @@ public class AnalyzedColumnDefinition {
         if (indexType != null && UNSUPPORTED_INDEX_TYPE_IDS.contains(dataType.id())) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                 "INDEX constraint cannot be used on columns of type \"%s\"", dataType));
+        }
+
+        if (DataTypes.STORAGE_UNSUPPORTED.contains(dataType)) {
+            throw new IllegalArgumentException("Cannot use the type `" + dataType.getName() + "` for column: " + name);
         }
         if (hasPrimaryKeyConstraint()) {
             ensureTypeCanBeUsedAsKey();

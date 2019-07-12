@@ -81,6 +81,8 @@ public final class DataTypes {
     public static final ArrayType<Integer> INTEGER_ARRAY = new ArrayType<>(INTEGER);
     public static final ArrayType<Short> SHORT_ARRAY = new ArrayType<>(SHORT);
 
+    public static final IntervalType INTERVAL = IntervalType.INSTANCE;
+
     public static final List<DataType> PRIMITIVE_TYPES = List.of(
         BYTE,
         BOOLEAN,
@@ -90,9 +92,14 @@ public final class DataTypes {
         FLOAT,
         SHORT,
         INTEGER,
+        INTERVAL,
         LONG,
         TIMESTAMPZ,
         TIMESTAMP
+    );
+
+    public static final Set<DataType> STORAGE_UNSUPPORTED = Set.of(
+        INTERVAL
     );
 
     public static final List<DataType> NUMERIC_PRIMITIVE_TYPES = List.of(
@@ -129,7 +136,8 @@ public final class DataTypes {
             entry(UncheckedObjectType.ID, UncheckedObjectType::new),
             entry(GeoPointType.ID, () -> GEO_POINT),
             entry(GeoShapeType.ID, () -> GEO_SHAPE),
-            entry(ArrayType.ID, ArrayType::new))
+            entry(ArrayType.ID, ArrayType::new),
+            entry(IntervalType.ID, () -> INTERVAL))
     );
 
     private static final Set<DataType> NUMBER_CONVERSIONS = Stream.concat(
@@ -324,7 +332,8 @@ public final class DataTypes {
         // `timestamp` as an alias for the `timestamp with time zone` data type
         // to warn users about the data type semantic change and give a time
         // to adjust to the change.
-        entry("timestamp", TIMESTAMPZ));
+        entry("timestamp", TIMESTAMPZ),
+        entry("interval", INTERVAL));
 
     public static DataType ofName(String name) {
         DataType dataType = TYPES_BY_NAME_OR_ALIAS.get(name);
@@ -350,7 +359,8 @@ public final class DataTypes {
         entry("geo_point", DataTypes.GEO_POINT),
         entry("geo_shape", DataTypes.GEO_SHAPE),
         entry("object", ObjectType.untyped()),
-        entry("nested", ObjectType.untyped())
+        entry("nested", ObjectType.untyped()),
+        entry("interval", DataTypes.INTERVAL)
     );
 
     private static final Map<Integer, String> TYPE_IDS_TO_MAPPINGS = Map.ofEntries(
@@ -367,7 +377,8 @@ public final class DataTypes {
         entry(LONG.id(), "long"),
         entry(ObjectType.ID, "object"),
         entry(GEO_SHAPE.id(), "geo_shape"),
-        entry(GEO_POINT.id(), "geo_point")
+        entry(GEO_POINT.id(), "geo_point"),
+        entry(INTERVAL.id(), "interval")
     );
 
     @Nullable
