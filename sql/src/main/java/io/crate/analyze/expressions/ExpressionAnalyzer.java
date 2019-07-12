@@ -100,6 +100,7 @@ import io.crate.sql.tree.FunctionCall;
 import io.crate.sql.tree.IfExpression;
 import io.crate.sql.tree.InListExpression;
 import io.crate.sql.tree.InPredicate;
+import io.crate.sql.tree.IntervalLiteral;
 import io.crate.sql.tree.IsNotNullPredicate;
 import io.crate.sql.tree.IsNullPredicate;
 import io.crate.sql.tree.LikePredicate;
@@ -127,8 +128,10 @@ import io.crate.sql.tree.WindowFrame;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.interval.IntervalParser;
 import io.crate.types.ObjectType;
 import io.crate.types.UndefinedType;
+import org.joda.time.Period;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -145,7 +148,12 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static io.crate.common.collections.Lists2.mapTail;
-
+import static io.crate.sql.tree.IntervalLiteral.IntervalField.DAY;
+import static io.crate.sql.tree.IntervalLiteral.IntervalField.HOUR;
+import static io.crate.sql.tree.IntervalLiteral.IntervalField.MINUTE;
+import static io.crate.sql.tree.IntervalLiteral.IntervalField.MONTH;
+import static io.crate.sql.tree.IntervalLiteral.IntervalField.SECOND;
+import static io.crate.sql.tree.IntervalLiteral.IntervalField.YEAR;
 
 /**
  * <p>This Analyzer can be used to convert Expression from the SQL AST into symbols.</p>
@@ -902,6 +910,31 @@ public class ExpressionAnalyzer {
                 MapFunction.NAME,
                 arguments,
                 context);
+        }
+
+        private final Map<IntervalLiteral.IntervalField, IntervalParser.Precision> INTERVAL_FIELDS =
+            Map.of(
+                YEAR, IntervalParser.Precision.YEAR,
+                MONTH, IntervalParser.Precision.MONTH,
+                DAY, IntervalParser.Precision.DAY,
+                HOUR, IntervalParser.Precision.HOUR,
+                MINUTE, IntervalParser.Precision.MINUTE,
+                SECOND, IntervalParser.Precision.SECOND
+            );
+
+        @Override
+        public Symbol visitIntervalLiteral(IntervalLiteral node, ExpressionAnalysisContext context) {
+            String value = node.getValue();
+
+            IntervalParser.Precision start = INTERVAL_FIELDS.get(node.getStartField());
+            IntervalParser.Precision end = node.getEndField() == null ? null : INTERVAL_FIELDS.get(node.getEndField());
+
+            Period period = IntervalParser.apply(value, start, end);
+
+            if (node.getSign() == IntervalLiteral.Sign.MINUS) {
+                period = period.negated();
+            }
+            return Literal.newInterval(period);
         }
 
         @Override
