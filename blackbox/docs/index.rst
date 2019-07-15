@@ -1,7 +1,7 @@
 .. _index:
 
 =================
-CrateDB reference
+CrateDB Reference
 =================
 
 CrateDB is a distributed SQL database that makes it simple to store and analyze
