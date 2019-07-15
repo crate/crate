@@ -25,7 +25,7 @@ package io.crate.lucene;
 import io.crate.expression.operator.LikeOperator;
 import io.crate.expression.symbol.Function;
 import io.crate.metadata.Reference;
-import io.crate.types.CollectionType;
+import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.index.Term;
@@ -49,7 +49,7 @@ final class LikeQuery implements FunctionToQuery {
     }
 
     static Query toQuery(Reference reference, Object value, LuceneQueryBuilder.Context context) {
-        DataType dataType = CollectionType.unnest(reference.valueType());
+        DataType dataType = ArrayType.unnest(reference.valueType());
         return like(
             dataType,
             context.getFieldTypeOrNull(reference.column().fqn()),

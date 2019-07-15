@@ -24,7 +24,6 @@ package io.crate.expression.udf;
 import io.crate.analyze.FunctionArgumentDefinition;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.types.ArrayType;
-import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -236,9 +235,9 @@ public class UserDefinedFunctionMetaData implements Streamable, ToXContent {
 
         public static XContentBuilder toXContent(DataType type, XContentBuilder builder, Params params) throws IOException {
             builder.startObject().field("id", type.id());
-            if (type instanceof CollectionType) {
+            if (type instanceof ArrayType) {
                 builder.field("inner_type");
-                toXContent(((CollectionType) type).innerType(), builder, params);
+                toXContent(((ArrayType) type).innerType(), builder, params);
             }
             builder.endObject();
             return builder;

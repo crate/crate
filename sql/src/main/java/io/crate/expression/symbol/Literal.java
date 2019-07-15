@@ -26,7 +26,6 @@ import com.google.common.base.Preconditions;
 import io.crate.data.Input;
 import io.crate.exceptions.ConversionException;
 import io.crate.types.ArrayType;
-import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
@@ -59,7 +58,7 @@ public class Literal<ReturnType> extends Symbol implements Input<ReturnType>, Co
     public static final Literal<Map<String, Object>> EMPTY_OBJECT = Literal.of(Collections.emptyMap());
 
     public static Collection<Literal> explodeCollection(Literal collectionLiteral) {
-        Preconditions.checkArgument(DataTypes.isCollectionType(collectionLiteral.valueType()));
+        Preconditions.checkArgument(DataTypes.isArray(collectionLiteral.valueType()));
         Iterable values;
         int size;
         Object literalValue = collectionLiteral.value();
@@ -74,7 +73,7 @@ public class Literal<ReturnType> extends Symbol implements Input<ReturnType>, Co
         List<Literal> literals = new ArrayList<>(size);
         for (Object value : values) {
             literals.add(new Literal<>(
-                ((CollectionType) collectionLiteral.valueType()).innerType(),
+                ((ArrayType) collectionLiteral.valueType()).innerType(),
                 value
             ));
         }

@@ -33,11 +33,11 @@ import io.crate.metadata.BaseFunctionResolver;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.functions.params.Param;
-import io.crate.types.CollectionType;
+import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
@@ -112,10 +112,10 @@ public class CastFunction extends Scalar<Object, Object> implements FunctionForm
     @Override
     public String afterArgs(Function function) {
         DataType dataType = function.valueType();
-        if (DataTypes.isCollectionType(dataType)) {
-            CollectionType collectionType = ((CollectionType) dataType);
-            return " AS " + collectionType.getCollectionName() +
-                   PAREN_OPEN + collectionType.innerType().getName() + PAREN_CLOSE
+        if (DataTypes.isArray(dataType)) {
+            ArrayType arrayType = ((ArrayType) dataType);
+            return " AS " + ArrayType.NAME +
+                   PAREN_OPEN + arrayType.innerType().getName() + PAREN_CLOSE
                    + PAREN_CLOSE;
         }
         return " AS " + dataType.getName() + PAREN_CLOSE;

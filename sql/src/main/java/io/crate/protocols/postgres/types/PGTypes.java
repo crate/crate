@@ -26,7 +26,6 @@ import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.IntObjectMap;
 import com.google.common.collect.ImmutableMap;
 import io.crate.types.ArrayType;
-import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
@@ -101,9 +100,9 @@ public class PGTypes {
     }
 
     public static PGType get(DataType type) {
-        if (type instanceof CollectionType) {
-            DataType<?> innerType = ((CollectionType) type).innerType();
-            if (innerType instanceof CollectionType) {
+        if (type instanceof ArrayType) {
+            DataType<?> innerType = ((ArrayType) type).innerType();
+            if (innerType instanceof ArrayType) {
                 // if this is a nested collection stream it as JSON because
                 // postgres binary format doesn't support multidimensional arrays with sub-arrays of different length
                 // (something like [ [1, 2], [3] ] is not supported)

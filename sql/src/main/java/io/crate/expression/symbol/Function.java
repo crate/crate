@@ -28,7 +28,7 @@ import io.crate.expression.scalar.arithmetic.ArrayFunction;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.planner.ExplainLeaf;
-import io.crate.types.CollectionType;
+import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -86,7 +86,7 @@ public class Function extends Symbol implements Cloneable {
 
     @Override
     public Symbol cast(DataType newDataType, boolean tryCast) {
-        if (newDataType instanceof CollectionType && info.ident().name().equals(ArrayFunction.NAME)) {
+        if (newDataType instanceof ArrayType && info.ident().name().equals(ArrayFunction.NAME)) {
             /* We treat _array(...) in a special way since it's a value constructor and no regular function
              * This allows us to do proper type inference for inserts/updates where there are assignments like
              *
@@ -101,7 +101,7 @@ public class Function extends Symbol implements Cloneable {
     }
 
     private Symbol castArrayElements(DataType newDataType, boolean tryCast) {
-        DataType<?> innerType = ((CollectionType) newDataType).innerType();
+        DataType<?> innerType = ((ArrayType) newDataType).innerType();
         ArrayList<Symbol> newArgs = new ArrayList<>(arguments.size());
         for (Symbol arg : arguments) {
             newArgs.add(arg.cast(innerType, tryCast));

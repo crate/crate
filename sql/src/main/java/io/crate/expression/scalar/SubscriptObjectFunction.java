@@ -31,7 +31,7 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.functions.params.Param;
-import io.crate.types.CollectionType;
+import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
@@ -81,8 +81,8 @@ public class SubscriptObjectFunction extends Scalar<Object, Map> {
         String name = NAME;
         if (dataType.id() != UndefinedType.ID) {
             String returnTypeName;
-            if (DataTypes.isCollectionType(dataType)) {
-                returnTypeName = ((CollectionType) dataType).getCollectionName();
+            if (DataTypes.isArray(dataType)) {
+                returnTypeName = ArrayType.NAME;
             } else {
                 returnTypeName = dataType.getName();
             }

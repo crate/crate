@@ -27,7 +27,6 @@ import io.crate.exceptions.ConversionException;
 import io.crate.expression.symbol.FuncArg;
 import io.crate.types.ArrayType;
 import io.crate.types.BooleanType;
-import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.IntegerType;
@@ -156,10 +155,10 @@ public final class Param {
         Preconditions.checkState(boundType != null,
             "Type not bound when it should have been.");
         if (this.innerType != null) {
-            if (boundType instanceof CollectionType) {
+            if (boundType instanceof ArrayType) {
                 DataType innerType = this.innerType.getBoundType(multiBind);
                 if (innerType != null) {
-                    return ((CollectionType) boundType).newInstance(innerType);
+                    return new ArrayType(innerType);
                 }
             }
         }
@@ -200,8 +199,8 @@ public final class Param {
             }
             return convertedType;
         } else if (innerType != null) {
-            if (argDataType instanceof CollectionType) {
-                DataType innerType = Preconditions.checkNotNull(((CollectionType) argDataType).innerType(),
+            if (argDataType instanceof ArrayType) {
+                DataType innerType = Preconditions.checkNotNull(((ArrayType) argDataType).innerType(),
                     "Inner type expected but no inner type for argument: " + funcArg);
                 this.innerType.bind(new ConvertedArg(innerType, funcArg.canBeCasted(), funcArg.isValueSymbol()), multiBind);
             } else {

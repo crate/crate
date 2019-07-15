@@ -33,7 +33,6 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.functions.params.Param;
 import io.crate.types.ArrayType;
-import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
@@ -121,7 +120,7 @@ public final class AnyLikeOperator extends Operator<Object> {
 
         @Override
         public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-            DataType<?> innerType = ((CollectionType) dataTypes.get(1)).innerType();
+            DataType<?> innerType = ((ArrayType) dataTypes.get(1)).innerType();
             checkArgument(innerType.equals(dataTypes.get(0)),
                 "The inner type of the array/set passed to ANY must match its left expression");
             checkArgument(innerType.id() != ObjectType.ID,

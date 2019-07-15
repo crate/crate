@@ -40,7 +40,6 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.types.ArrayType;
-import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.Settings;
@@ -343,7 +342,7 @@ public class AnalyzedTableElements {
         } else {
             if (valueType instanceof ArrayType) {
                 columnDefinition.collectionType(ArrayType.NAME);
-                columnDefinition.dataType(CollectionType.unnest(valueType).getName());
+                columnDefinition.dataType(ArrayType.unnest(valueType).getName());
             } else {
                 columnDefinition.dataType(valueType.getName());
             }

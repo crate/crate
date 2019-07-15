@@ -30,9 +30,9 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.types.ArrayType;
 import io.crate.types.BooleanType;
 import io.crate.types.ByteType;
+import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.DoubleType;
@@ -50,7 +50,7 @@ import org.elasticsearch.index.mapper.MappedFieldType;
 import java.util.Set;
 
 import static io.crate.metadata.DocReferences.toSourceLookup;
-import static io.crate.types.CollectionType.unnest;
+import static io.crate.types.ArrayType.unnest;
 
 public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollectorExpression<?>> {
 

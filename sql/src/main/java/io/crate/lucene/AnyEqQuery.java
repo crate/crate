@@ -26,7 +26,7 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Reference;
-import io.crate.types.CollectionType;
+import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 import org.apache.lucene.search.BooleanClause;
@@ -69,12 +69,12 @@ class AnyEqQuery implements FunctionToQuery {
                                                    LuceneQueryBuilder.Context context) {
         MappedFieldType fieldType = context.getFieldTypeOrNull(array.column().fqn());
         if (fieldType == null) {
-            if (CollectionType.unnest(array.valueType()).id() == ObjectType.ID) {
+            if (ArrayType.unnest(array.valueType()).id() == ObjectType.ID) {
                 return genericFunctionFilter(any, context); // {x=10} = any(objects)
             }
             return Queries.newMatchNoDocsQuery("column doesn't exist in this index");
         }
-        if (DataTypes.isCollectionType(candidate.valueType())) {
+        if (DataTypes.isArray(candidate.valueType())) {
             return arrayLiteralEqAnyArray(any, fieldType, candidate.value(), context);
         }
         return fieldType.termQuery(candidate.value(), context.queryShardContext());

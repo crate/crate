@@ -37,7 +37,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.planner.operators.SubQueryResults;
-import io.crate.types.CollectionType;
+import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -103,8 +103,8 @@ public class FileCollectSource implements CollectSource {
         if (targetUri.valueType() == DataTypes.STRING) {
             String uri = (String) value;
             return Collections.singletonList(uri);
-        } else if (targetUri.valueType() instanceof CollectionType
-                   && ((CollectionType) targetUri.valueType()).innerType() == DataTypes.STRING) {
+        } else if (targetUri.valueType() instanceof ArrayType
+                   && ((ArrayType) targetUri.valueType()).innerType() == DataTypes.STRING) {
             Object[] values = (Object[]) value;
             ArrayList<String> uris = new ArrayList<>(values.length);
             for (Object v : values) {

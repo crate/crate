@@ -56,7 +56,6 @@ import io.crate.sql.tree.SubscriptExpression;
 import io.crate.sql.tree.Table;
 import io.crate.sql.tree.TableElement;
 import io.crate.types.ArrayType;
-import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
@@ -119,7 +118,7 @@ public class MetaDataToASTNodeResolver {
                 if (info.valueType().id() == ObjectType.ID) {
                     columnType = new ObjectColumnType(info.columnPolicy().name(), extractColumnDefinitions(ident));
                 } else if (info.valueType().id() == ArrayType.ID) {
-                    DataType innerType = ((CollectionType) info.valueType()).innerType();
+                    DataType innerType = ((ArrayType) info.valueType()).innerType();
                     ColumnType innerColumnType;
                     if (innerType.id() == ObjectType.ID) {
                         innerColumnType = new ObjectColumnType(info.columnPolicy().name(), extractColumnDefinitions(ident));
@@ -138,7 +137,7 @@ public class MetaDataToASTNodeResolver {
                 if (info.indexType().equals(Reference.IndexType.NO)
                     && info.valueType().id() != ObjectType.ID
                     && !(info.valueType().id() == ArrayType.ID &&
-                         ((CollectionType) info.valueType()).innerType().id() == ObjectType.ID)) {
+                         ((ArrayType) info.valueType()).innerType().id() == ObjectType.ID)) {
                     constraints.add(IndexColumnConstraint.OFF);
                 } else if (info.indexType().equals(Reference.IndexType.ANALYZED)) {
                     String analyzer = tableInfo.getAnalyzerForColumnIdent(ident);

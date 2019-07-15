@@ -21,20 +21,64 @@
 
 package io.crate.types;
 
+import com.google.common.base.Preconditions;
+import io.crate.Streamer;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
 
-public class ArrayType extends CollectionType {
+/**
+ * A type which contains a collection of elements of another type.
+ */
+public class ArrayType extends DataType {
 
     public static final String NAME = "array";
     public static final int ID = 100;
+    protected DataType innerType;
+    protected Streamer streamer;
 
+    /**
+     * Construct a new Collection type
+     * @param innerType The type of the elements inside the collection
+     */
     public ArrayType(DataType<?> innerType) {
-        super(innerType);
+        this.innerType = Preconditions.checkNotNull(innerType,
+            "Inner type must not be null.");
     }
 
-    public ArrayType() {
-        super();
+    /**
+     * Constructor used for the {@link org.elasticsearch.common.io.stream.Streamable}
+     * interface which initializes the fields after object creation.
+     */
+    public ArrayType() {}
+
+    /**
+     * Defaults to the {@link ArrayStreamer} but subclasses may override this method.
+     */
+    @Override
+    public Streamer<?> streamer() {
+        if (streamer == null) {
+            streamer = new ArrayStreamer(innerType);
+        }
+        return streamer;
+    }
+
+    @Override
+    public void readFrom(StreamInput in) throws IOException {
+        innerType = DataTypes.fromStream(in);
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        DataTypes.toStream(innerType, out);
+    }
+
+    @Override
+    public String getName() {
+        return innerType.getName() + "_" + NAME;
     }
 
     @Override
@@ -47,9 +91,8 @@ public class ArrayType extends CollectionType {
         return Precedence.ArrayType;
     }
 
-    @Override
-    public String getCollectionName() {
-        return NAME;
+    public final DataType<?> innerType() {
+        return innerType;
     }
 
     @Override
@@ -91,7 +134,100 @@ public class ArrayType extends CollectionType {
     }
 
     @Override
-    public CollectionType newInstance(DataType innerType) {
-        return new ArrayType(innerType);
+    public int compareTo(Object o) {
+        if (!(o instanceof ArrayType)) return -1;
+        return Integer.compare(innerType.id(), ((ArrayType) o).innerType().id());
+    }
+
+    @Override
+    public int compareValueTo(Object val1, Object val2) {
+        if (val2 == null) {
+            return 1;
+        } else if (val1 == null) {
+            return -1;
+        }
+        Object[] arr1 = val1 instanceof Collection ? ((Collection) val1).toArray() : (Object[]) val1;
+        Object[] arr2 = val2 instanceof Collection ? ((Collection) val2).toArray() : (Object[]) val2;
+        if (arr1.length > arr2.length) {
+            return 1;
+        } else if (arr2.length > arr1.length) {
+            return -1;
+        }
+        for (int i = 0; i < arr1.length; i++) {
+            int cmp = innerType.compareValueTo(arr1[i], arr2[i]);
+            if (cmp != 0) {
+                return cmp;
+            }
+        }
+        return 0;
+    }
+
+    @Override
+    public boolean isConvertableTo(DataType other) {
+        return other.id() == UndefinedType.ID || other.id() == GeoPointType.ID ||
+               ((other instanceof ArrayType)
+                && this.innerType.isConvertableTo(((ArrayType) other).innerType()));
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof ArrayType)) return false;
+        if (!super.equals(o)) return false;
+
+        ArrayType arrayType = (ArrayType) o;
+        return innerType.equals(arrayType.innerType);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = super.hashCode();
+        result = 31 * result + innerType.hashCode();
+        return result;
+    }
+
+    public static DataType unnest(DataType dataType) {
+        while (DataTypes.isArray(dataType)) {
+            dataType = ((ArrayType) dataType).innerType();
+        }
+        return dataType;
+    }
+
+    static class ArrayStreamer implements Streamer {
+
+        private DataType innerType;
+
+        ArrayStreamer(DataType innerType) {
+            this.innerType = innerType;
+        }
+
+        @Override
+        public Object[] readValueFrom(StreamInput in) throws IOException {
+            int size = in.readVInt();
+            // size of 0 is treated as null value so real size must be decreased by 1
+            if (size == 0) {
+                return null;
+            }
+            size--;
+            Object[] array = new Object[size];
+            for (int i = 0; i < size; i++) {
+                array[i] = innerType.streamer().readValueFrom(in);
+            }
+            return array;
+        }
+
+        @Override
+        public void writeValueTo(StreamOutput out, Object values) throws IOException {
+            // write null as size 0, so increase real size by 1
+            if (values == null) {
+                out.writeVInt(0);
+                return;
+            }
+            Object[] array = (Object[]) values;
+            out.writeVInt(array.length + 1);
+            for (Object value : array) {
+                innerType.streamer().writeValueTo(out, value);
+            }
+        }
     }
 }
