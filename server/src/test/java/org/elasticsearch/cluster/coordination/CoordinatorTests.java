@@ -1902,7 +1902,7 @@ public class CoordinatorTests extends ESTestCase {
                     clusterApplierService,
                     onJoinValidators,
                     Randomness.get(),
-                    (s, listener) -> {}
+                    (s, p, listener) -> {}
                 );
                 masterService.setClusterStatePublisher(coordinator);
 

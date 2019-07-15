@@ -21,6 +21,7 @@ package org.elasticsearch.cluster.routing;
 
 import org.apache.lucene.util.SetOnce;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.common.Priority;
 
 /**
  * A {@link RerouteService} that can be initialized lazily. The real reroute service, {@link BatchedRerouteService}, depends on components
@@ -32,9 +33,9 @@ public class LazilyInitializedRerouteService implements RerouteService {
     private final SetOnce<RerouteService> delegate = new SetOnce<>();
 
     @Override
-    public void reroute(String reason, ActionListener<Void> listener) {
+    public void reroute(String reason, Priority priority, ActionListener<Void> listener) {
         assert delegate.get() != null;
-        delegate.get().reroute(reason, listener);
+        delegate.get().reroute(reason, priority, listener);
     }
 
     public void setRerouteService(RerouteService rerouteService) {
