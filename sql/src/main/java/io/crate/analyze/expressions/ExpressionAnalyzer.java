@@ -886,16 +886,13 @@ public class ExpressionAnalyzer {
         public Symbol visitArrayLiteral(ArrayLiteral node, ExpressionAnalysisContext context) {
             List<Expression> values = node.values();
             if (values.isEmpty()) {
-                return Literal.of(new ArrayType(UndefinedType.INSTANCE), new Object[0]);
+                return Literal.of(new ArrayType<>(UndefinedType.INSTANCE), List.of());
             } else {
                 List<Symbol> arguments = new ArrayList<>(values.size());
                 for (Expression value : values) {
                     arguments.add(process(value, context));
                 }
-                return allocateFunction(
-                    ArrayFunction.NAME,
-                    arguments,
-                    context);
+                return allocateFunction(ArrayFunction.NAME, arguments, context);
             }
         }
 

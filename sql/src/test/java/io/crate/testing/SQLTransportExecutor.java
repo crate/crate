@@ -471,7 +471,7 @@ public class SQLTransportExecutor {
                 for (Object json : (Object[]) resultSet.getArray(i + 1).getArray()) {
                     jsonObjects.add(jsonToObject(((PGobject) json).getValue()));
                 }
-                value = jsonObjects.toArray();
+                value = jsonObjects;
                 break;
             case "json":
                 String json = resultSet.getString(i + 1);
@@ -488,7 +488,7 @@ public class SQLTransportExecutor {
         if (value instanceof Timestamp) {
             value = ((Timestamp) value).getTime();
         } else if (value instanceof Array) {
-            value = ((Array) value).getArray();
+            value = Arrays.asList(((Object[]) ((Array) value).getArray()));
         }
         return value;
     }
@@ -501,7 +501,7 @@ public class SQLTransportExecutor {
                     NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, bytes);
                 if (bytes.length >= 1 && bytes[0] == '[') {
                     parser.nextToken();
-                    return recursiveListToArray(parser.list());
+                    return parser.list();
                 } else {
                     return parser.mapOrdered();
                 }
@@ -511,18 +511,6 @@ public class SQLTransportExecutor {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    private Object recursiveListToArray(Object value) {
-        if (value instanceof List) {
-            List list = (List) value;
-            Object[] arr = list.toArray(new Object[0]);
-            for (int i = 0; i < list.size(); i++) {
-                arr[i] = recursiveListToArray(list.get(i));
-            }
-            return arr;
-        }
-        return value;
     }
 
     /**

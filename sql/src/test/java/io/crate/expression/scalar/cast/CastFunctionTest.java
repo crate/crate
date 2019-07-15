@@ -30,6 +30,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static io.crate.testing.SymbolMatchers.isFunction;
@@ -60,7 +61,7 @@ public class CastFunctionTest extends AbstractScalarFunctionsTest {
         assertEvaluate("cast(10.4 as string)", "10.4");
         assertEvaluate("cast(null as string)", null);
         assertEvaluate("cast(10.4 as long)", 10L);
-        assertEvaluate("to_bigint_array([10.2, 12.3])", new Long[]{10L, 12L});
+        assertEvaluate("to_bigint_array([10.2, 12.3])", List.of(10L, 12L));
 
         Map<String, Object> object = Map.of("x", 10);
         assertEvaluate("'{\"x\": 10}'::object", object);
@@ -84,7 +85,7 @@ public class CastFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testDoubleColonOperatorCast() {
         assertEvaluate("10.4::string", "10.4");
-        assertEvaluate("[1, 2, 0]::array(boolean)", new Boolean[]{true, true, false});
+        assertEvaluate("[1, 2, 0]::array(boolean)", List.of(true, true, false));
         assertEvaluate("(1+3)/2::string", 2L);
         assertEvaluate("((1+3)/2)::string", "2");
         assertEvaluate("'10'::long + 5", 15L);
@@ -115,11 +116,11 @@ public class CastFunctionTest extends AbstractScalarFunctionsTest {
         assertEvaluate(
             "cast(['2001-01-01T01:01:01+01', '2001-01-01T01:01:01+10']" +
             " as array(timestamp without time zone))",
-            new Long[]{978310861000L, 978310861000L}
+            List.of(978310861000L, 978310861000L)
         );
         assertEvaluate(
             "cast(['2001-01-01T01:01:01Z'] as array(timestamp with time zone))",
-            new Long[]{978310861000L}
+            List.of(978310861000L)
         );
     }
 

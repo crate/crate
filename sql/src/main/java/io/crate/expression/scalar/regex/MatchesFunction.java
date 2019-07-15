@@ -31,8 +31,8 @@ import io.crate.metadata.BaseFunctionResolver;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.functions.params.Param;
 import io.crate.types.ArrayType;
@@ -41,10 +41,10 @@ import io.crate.types.DataTypes;
 
 import java.util.List;
 
-public class MatchesFunction extends Scalar<String[], Object> {
+public class MatchesFunction extends Scalar<List<String>, Object> {
 
     public static final String NAME = "regexp_matches";
-    private static final DataType ARRAY_STRING_TYPE = new ArrayType(DataTypes.STRING);
+    private static final ArrayType<String> ARRAY_STRING_TYPE = new ArrayType<>(DataTypes.STRING);
 
     private FunctionInfo info;
     private RegexMatcher regexMatcher;
@@ -58,8 +58,9 @@ public class MatchesFunction extends Scalar<String[], Object> {
 
                 @Override
                 public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
+                    DataType<?> innerType = dataTypes.get(0);
                     return new MatchesFunction(
-                        new FunctionInfo(new FunctionIdent(NAME, dataTypes), new ArrayType(dataTypes.get(0))));
+                        new FunctionInfo(new FunctionIdent(NAME, dataTypes), new ArrayType<>(innerType)));
                 }
             });
     }
@@ -105,7 +106,7 @@ public class MatchesFunction extends Scalar<String[], Object> {
     }
 
     @Override
-    public Scalar<String[], Object> compile(List<Symbol> arguments) {
+    public Scalar<List<String>, Object> compile(List<Symbol> arguments) {
         assert arguments.size() > 1 : "number of arguments must be > 1";
         String pattern = null;
         if (arguments.get(1).symbolType() == SymbolType.LITERAL) {
@@ -132,7 +133,7 @@ public class MatchesFunction extends Scalar<String[], Object> {
     }
 
     @Override
-    public String[] evaluate(TransactionContext txnCtx, Input[] args) {
+    public List<String> evaluate(TransactionContext txnCtx, Input[] args) {
         assert args.length == 2 || args.length == 3 : "number of args must be 2 or 3";
         String val = (String) args[0].value();
         String pattern = (String) args[1].value();

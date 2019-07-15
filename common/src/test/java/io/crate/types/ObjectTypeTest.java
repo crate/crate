@@ -27,6 +27,7 @@ import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
+import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -71,7 +72,7 @@ public class ObjectTypeTest extends CrateUnitTest {
     public void testStreamingWithInnerTypes() throws IOException {
         ObjectType type = ObjectType.builder()
             .setInnerType("s", DataTypes.STRING)
-            .setInnerType("obj_array", new ArrayType(ObjectType.builder()
+            .setInnerType("obj_array", new ArrayType<>(ObjectType.builder()
                 .setInnerType("i", DataTypes.INTEGER)
                 .build()))
             .build();
@@ -104,7 +105,7 @@ public class ObjectTypeTest extends CrateUnitTest {
     public void testStreamingOfNullValueWithInnerTypes() throws IOException {
         ObjectType type = ObjectType.builder()
             .setInnerType("s", DataTypes.STRING)
-            .setInnerType("obj_array", new ArrayType(ObjectType.builder()
+            .setInnerType("obj_array", new ArrayType<>(ObjectType.builder()
                 .setInnerType("i", DataTypes.INTEGER)
                 .build()))
             .build();
@@ -126,18 +127,15 @@ public class ObjectTypeTest extends CrateUnitTest {
     public void testStreamingOfValueWithInnerTypes() throws IOException {
         ObjectType type = ObjectType.builder()
             .setInnerType("s", DataTypes.STRING)
-            .setInnerType("obj_array", new ArrayType(ObjectType.builder()
+            .setInnerType("obj_array", new ArrayType<>(ObjectType.builder()
                 .setInnerType("i", DataTypes.INTEGER)
                 .build()))
             .build();
         BytesStreamOutput out = new BytesStreamOutput();
 
-        ArrayList innerArray = Lists.newArrayList(MapBuilder.newMapBuilder()
-            .put("i", 1)
-            .map());
         HashMap<String, Object> map = new HashMap<>();
         map.put("s", "foo");
-        map.put("obj_array", innerArray);
+        map.put("obj_array", List.of(Map.of("i", 0)));
         type.writeTo(out);
         type.writeValueTo(out,  map);
 
@@ -148,7 +146,7 @@ public class ObjectTypeTest extends CrateUnitTest {
         Map<String, Object> v = otherType.readValueFrom(in);
 
         assertThat(v.get("s"), is(map.get("s")));
-        assertThat(Objects.deepEquals(v.get("obj_array"), innerArray.toArray(new Object[0])), is(true));
+        assertThat((List<Map>) v.get("obj_array"), Matchers.contains((Map.of("i", 0))));
     }
 
     @Test

@@ -37,8 +37,9 @@ import io.crate.types.DataTypes;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 
-public class CurrentSchemasFunction extends Scalar<String[], Object> implements FunctionFormatSpec {
+public class CurrentSchemasFunction extends Scalar<List<String>, Boolean> implements FunctionFormatSpec {
 
     private static final String NAME = "current_schemas";
     private static final FunctionName FQN = new FunctionName(PgCatalogSchemaInfo.NAME, NAME);
@@ -58,11 +59,12 @@ public class CurrentSchemasFunction extends Scalar<String[], Object> implements 
         return INFO;
     }
 
+    @SafeVarargs
     @Override
-    public String[] evaluate(TransactionContext txnCtx, Input<Object>... args) {
+    public final List<String> evaluate(TransactionContext txnCtx, Input<Boolean>... args) {
         assert args.length == 1 : "expecting 1 boolean argument";
 
-        Boolean includeImplicitSchemas = (Boolean) args[0].value();
+        Boolean includeImplicitSchemas = args[0].value();
         if (includeImplicitSchemas == null) {
             includeImplicitSchemas = false;
         }
@@ -74,7 +76,7 @@ public class CurrentSchemasFunction extends Scalar<String[], Object> implements 
             }
             schemas.add(schema);
         }
-        return schemas.toArray(new String[0]);
+        return schemas;
     }
 
     @Override

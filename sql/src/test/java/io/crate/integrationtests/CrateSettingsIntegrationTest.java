@@ -13,6 +13,7 @@ public class CrateSettingsIntegrationTest extends SQLTransportIntegrationTest {
                                   "from information_schema.columns " +
                                   "where column_name like 'settings%'");
         for (Object[] row : res.rows()) {
+            logger.info("Selecting `{}` from `{}.{}`", row[2], row[0], row[1]);
             execute(String.format(Locale.ENGLISH, "select %s from %s.%s ", row[2], row[0], row[1]));
         }
     }

@@ -88,7 +88,7 @@ public class SysClusterTableInfo extends StaticTableInfo<Void> {
 
     private static ObjectType buildSettingsObjectType() {
         ObjectType.Builder settingTypeBuilder = ObjectType.builder()
-            .setInnerType(ClusterLoggingOverridesExpression.NAME, new ArrayType(
+            .setInnerType(ClusterLoggingOverridesExpression.NAME, new ArrayType<>(
                 ObjectType.builder()
                     .setInnerType(ClusterLoggingOverridesExpression.ClusterLoggingOverridesChildExpression.NAME, DataTypes.STRING)
                     .setInnerType(ClusterLoggingOverridesExpression.ClusterLoggingOverridesChildExpression.LEVEL, DataTypes.STRING)

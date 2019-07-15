@@ -22,7 +22,6 @@
 
 package io.crate.analyze.expressions;
 
-import com.google.common.base.Preconditions;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.exceptions.ConversionException;
@@ -42,6 +41,7 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -84,7 +84,7 @@ public final class ValueNormalizer {
                 //noinspection unchecked
                 normalizeObjectValue((Map) value, reference, tableInfo);
             } else if (isObjectArray(targetType)) {
-                normalizeObjectArrayValue((Object[]) value, reference, tableInfo);
+                normalizeObjectArrayValue((List<Map<String, Object>>) value, reference, tableInfo);
             }
         } catch (ConversionException e) {
             throw new ColumnValidationException(
@@ -141,8 +141,8 @@ public final class ValueNormalizer {
             }
             if (nestedInfo.valueType().id() == ObjectType.ID && entry.getValue() instanceof Map) {
                 normalizeObjectValue((Map<String, Object>) entry.getValue(), nestedInfo, tableInfo);
-            } else if (isObjectArray(nestedInfo.valueType()) && entry.getValue() instanceof Object[]) {
-                normalizeObjectArrayValue((Object[]) entry.getValue(), nestedInfo, tableInfo);
+            } else if (isObjectArray(nestedInfo.valueType()) && entry.getValue() instanceof List) {
+                normalizeObjectArrayValue((List<Map<String, Object>>) entry.getValue(), nestedInfo, tableInfo);
             } else {
                 entry.setValue(normalizePrimitiveValue(entry.getValue(), nestedInfo));
             }
@@ -153,13 +153,11 @@ public final class ValueNormalizer {
         return type.id() == ArrayType.ID && ((ArrayType) type).innerType().id() == ObjectType.ID;
     }
 
-    private static void normalizeObjectArrayValue(Object[] value, Reference arrayInfo, TableInfo tableInfo) {
-        for (Object arrayItem : value) {
-            Preconditions.checkArgument(arrayItem instanceof Map, "invalid value for object array type");
+    private static void normalizeObjectArrayValue(List<Map<String, Object>> values, Reference arrayInfo, TableInfo tableInfo) {
+        for (Object value : values) {
             // return value not used and replaced in value as arrayItem is a map that is mutated
-
             //noinspection unchecked
-            normalizeObjectValue((Map<String, Object>) arrayItem, arrayInfo, tableInfo);
+            normalizeObjectValue((Map<String, Object>) value, arrayInfo, tableInfo);
         }
     }
 

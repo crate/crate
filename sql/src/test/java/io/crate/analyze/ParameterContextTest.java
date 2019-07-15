@@ -29,11 +29,11 @@ import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
-import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.testing.SymbolMatchers.isLiteral;
@@ -70,13 +70,13 @@ public class ParameterContextTest extends CrateUnitTest {
         assertThat(ctx.getAsSymbol(1), isLiteral(1));
         assertThat(ctx.getAsSymbol(2), isLiteral("foo"));
         assertThat(ctx.getAsSymbol(3), isLiteral(null, DataTypes.UNDEFINED));
-        assertThat(ctx.getAsSymbol(4), isLiteral(new BytesRef[]{null}, new ArrayType(DataTypes.UNDEFINED)));
+        assertThat(ctx.getAsSymbol(4), isLiteral(Collections.singletonList(null), new ArrayType<>(DataTypes.UNDEFINED)));
         ctx.setBulkIdx(1);
         assertThat(ctx.getAsSymbol(0), isLiteral(false));
         assertThat(ctx.getAsSymbol(1), isLiteral(2));
         assertThat(ctx.getAsSymbol(2), isLiteral("bar"));
-        assertThat(ctx.getAsSymbol(3), isLiteral(new Object[0], new ArrayType(DataTypes.UNDEFINED)));
-        assertThat(ctx.getAsSymbol(4), isLiteral(new String[]{"foo", "bar"}, new ArrayType(DataTypes.STRING)));
+        assertThat(ctx.getAsSymbol(3), isLiteral(List.of(), new ArrayType<>(DataTypes.UNDEFINED)));
+        assertThat(ctx.getAsSymbol(4), isLiteral(List.of("foo", "bar"), new ArrayType<>(DataTypes.STRING)));
     }
 
     @Test
@@ -118,7 +118,9 @@ public class ParameterContextTest extends CrateUnitTest {
             new Object[]{new String[][]{new String[]{"foo"}}},
         };
         ParameterContext ctx = new ParameterContext(Row.EMPTY, Rows.of(bulkArgs));
-        assertThat(ctx.getAsSymbol(0), isLiteral(bulkArgs[0][0], new ArrayType(new ArrayType(DataTypes.UNDEFINED))));
+        assertThat(
+            ctx.getAsSymbol(0),
+            isLiteral(List.of(Collections.singletonList(null)), new ArrayType<>(new ArrayType<>(DataTypes.UNDEFINED))));
     }
 
     @Test
@@ -128,6 +130,8 @@ public class ParameterContextTest extends CrateUnitTest {
             new Object[]{new String[][]{new String[0]}},
         };
         ParameterContext ctx = new ParameterContext(Row.EMPTY, Rows.of(bulkArgs));
-        assertThat(ctx.getAsSymbol(0), isLiteral(bulkArgs[0][0], new ArrayType(new ArrayType(DataTypes.UNDEFINED))));
+        assertThat(
+            ctx.getAsSymbol(0),
+            isLiteral(List.of(List.of()), new ArrayType<>(new ArrayType<>(DataTypes.UNDEFINED))));
     }
 }

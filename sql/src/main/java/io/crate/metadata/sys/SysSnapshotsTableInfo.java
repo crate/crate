@@ -36,11 +36,10 @@ import org.elasticsearch.cluster.ClusterState;
 
 import java.util.Map;
 
+import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
 import static io.crate.types.DataTypes.STRING;
 import static io.crate.types.DataTypes.STRING_ARRAY;
 import static io.crate.types.DataTypes.TIMESTAMPZ;
-
-import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
 
 public class SysSnapshotsTableInfo extends StaticTableInfo<SysSnapshot> {
 
@@ -55,12 +54,11 @@ public class SysSnapshotsTableInfo extends StaticTableInfo<SysSnapshot> {
         return columnRegistrar().expressions();
     }
 
-    @SuppressWarnings({"unchecked"})
     private static ColumnRegistrar<SysSnapshot> columnRegistrar() {
         return new ColumnRegistrar<SysSnapshot>(IDENT, GRANULARITY)
           .register("name", STRING, () -> forFunction(SysSnapshot::name))
           .register("repository", STRING, () -> forFunction(SysSnapshot::repository))
-          .register("concrete_indices", STRING_ARRAY, () -> forFunction((SysSnapshot s) -> s.concreteIndices().toArray(new String[0])))
+          .register("concrete_indices", STRING_ARRAY, () -> forFunction(SysSnapshot::concreteIndices))
           .register("started", TIMESTAMPZ, () -> forFunction(SysSnapshot::started))
           .register("finished", TIMESTAMPZ, () -> forFunction(SysSnapshot::finished))
           .register("version", STRING, () -> forFunction(SysSnapshot::version))

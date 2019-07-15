@@ -891,7 +891,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat(relation.where().hasQuery(), is(true));
         Function anyFunction = (Function) relation.where().query();
         assertThat(anyFunction.info().ident().name(), is(AnyOperators.Names.EQ));
-        assertThat(anyFunction.arguments().get(1), isReference("friends['id']", new ArrayType(DataTypes.LONG)));
+        assertThat(anyFunction.arguments().get(1), isReference("friends['id']", new ArrayType<>(DataTypes.LONG)));
         assertThat(anyFunction.arguments().get(0), isLiteral(5L));
     }
 
@@ -904,9 +904,9 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             isFunction(
                 "any_=",
                 isLiteral(
-                    new Object[] {"vogon lyric lovers"},
-                    new ArrayType(DataTypes.STRING)),
-                isReference("friends['groups']", new ArrayType(new ArrayType(DataTypes.STRING)))
+                    List.of("vogon lyric lovers"),
+                    new ArrayType<>(DataTypes.STRING)),
+                isReference("friends['groups']", new ArrayType<>(new ArrayType<>(DataTypes.STRING)))
             )
         );
     }

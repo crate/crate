@@ -29,6 +29,8 @@ import io.crate.types.DataTypes;
 import org.junit.Test;
 import org.locationtech.spatial4j.shape.Point;
 
+import java.util.List;
+
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static org.hamcrest.Matchers.is;
 
@@ -36,8 +38,8 @@ public class LiteralTest extends CrateUnitTest {
 
     @Test
     public void testNestedArrayLiteral() throws Exception {
-        for (DataType type : DataTypes.PRIMITIVE_TYPES) {
-            DataType nestedType = new ArrayType(new ArrayType(type));
+        for (DataType<?> type : DataTypes.PRIMITIVE_TYPES) {
+            DataType<?> nestedType = new ArrayType<>(new ArrayType<>(type));
             Object value;
 
             if (type.id() == BooleanType.ID) {
@@ -47,10 +49,7 @@ public class LiteralTest extends CrateUnitTest {
             } else {
                 value = type.value("0");
             }
-
-            Object nestedValue = new Object[][]{
-                new Object[]{value}
-            };
+            var nestedValue = List.of(List.of(value));
             Literal nestedLiteral = Literal.of(nestedType, nestedValue);
             assertThat(nestedLiteral.valueType(), is(nestedType));
             assertThat(nestedLiteral.value(), is(nestedValue));
@@ -66,43 +65,43 @@ public class LiteralTest extends CrateUnitTest {
 
     @Test
     public void testCompareArrayValues() throws Exception {
-        DataType intTypeArr = new ArrayType(DataTypes.INTEGER);
+        ArrayType<Integer> intTypeArr = new ArrayType<>(DataTypes.INTEGER);
 
-        Literal val1 = Literal.of(intTypeArr, new Object[] {1,2,3});
-        Literal val2 = Literal.of(intTypeArr, new Object[] {4,5,6});
+        Literal val1 = Literal.of(intTypeArr, List.of(1, 2, 3));
+        Literal val2 = Literal.of(intTypeArr, List.of(4,5,6));
         assertThat(val1.equals(val2), is(false));
 
-        val1 = Literal.of(intTypeArr, new Object[] {1,2,3});
-        val2 = Literal.of(intTypeArr, new Object[] {1,2,3});
+        val1 = Literal.of(intTypeArr, List.of(1, 2, 3));
+        val2 = Literal.of(intTypeArr, List.of(1,2,3));
         assertThat(val1.equals(val2), is(true));
 
-        val1 = Literal.of(intTypeArr, new Object[] {3,2,1});
-        val2 = Literal.of(intTypeArr, new Object[] {1,2,3});
+        val1 = Literal.of(intTypeArr, List.of(3,2,1));
+        val2 = Literal.of(intTypeArr, List.of(1,2,3));
         assertThat(val1.equals(val2), is(false));
 
-        val1 = Literal.of(intTypeArr, new Object[] {1,2,3,4,5});
-        val2 = Literal.of(intTypeArr, new Object[] {1,2,3});
+        val1 = Literal.of(intTypeArr, List.of(1,2,3,4,5));
+        val2 = Literal.of(intTypeArr, List.of(1,2,3));
         assertThat(val1.equals(val2), is(false));
     }
 
     @Test
     public void testCompareNestedArrayValues() throws Exception {
-        DataType intTypeNestedArr = new ArrayType(new ArrayType(DataTypes.INTEGER));
+        ArrayType<List<Integer>> intTypeNestedArr = new ArrayType<>(new ArrayType<>(DataTypes.INTEGER));
 
-        Literal val1 = Literal.of(intTypeNestedArr, new Object[][] {new Object[] {1,2,3}});
-        Literal val2 = Literal.of(intTypeNestedArr, new Object[][] {new Object[] {4,5,6}});
+        Literal val1 = Literal.of(intTypeNestedArr, List.of(List.of(1, 2, 3)));
+        Literal val2 = Literal.of(intTypeNestedArr, List.of(List.of(4, 5, 6)));
         assertThat(val1.equals(val2), is(false));
 
-        val1 = Literal.of(intTypeNestedArr, new Object[][] {new Object[] {1,2,3}});
-        val2 = Literal.of(intTypeNestedArr, new Object[][] {new Object[] {1,2,3}});
+        val1 = Literal.of(intTypeNestedArr, List.of(List.of(1, 2, 3)));
+        val2 = Literal.of(intTypeNestedArr, List.of(List.of(1, 2, 3)));
         assertThat(val1.equals(val2), is(true));
 
-        val1 = Literal.of(intTypeNestedArr, new Object[][] {new Object[] {3,2,1}});
-        val2 = Literal.of(intTypeNestedArr, new Object[][] {new Object[] {1,2,3}});
+        val1 = Literal.of(intTypeNestedArr, List.of(List.of(3, 2, 1)));
+        val2 = Literal.of(intTypeNestedArr, List.of(List.of(1, 2, 3)));
         assertThat(val1.equals(val2), is(false));
 
-        val1 = Literal.of(intTypeNestedArr, new Object[][] {new Object[] {1,2,3,4,5}});
-        val2 = Literal.of(intTypeNestedArr, new Object[][] {new Object[] {1,2,3}});
+        val1 = Literal.of(intTypeNestedArr, List.of(List.of(1, 2, 3, 4, 5)));
+        val2 = Literal.of(intTypeNestedArr, List.of(List.of(1, 2, 3)));
         assertThat(val1.equals(val2), is(false));
     }
 

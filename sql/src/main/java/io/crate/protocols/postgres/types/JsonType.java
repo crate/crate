@@ -32,6 +32,7 @@ import org.elasticsearch.common.xcontent.json.JsonXContent;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 
 class JsonType extends PGType {
@@ -64,8 +65,8 @@ class JsonType extends PGType {
     protected byte[] encodeAsUTF8Text(@Nonnull Object value) {
         try {
             XContentBuilder builder = JsonXContent.contentBuilder();
-            if (value.getClass().isArray()) {
-                Object[] values = ((Object[]) value);
+            if (value instanceof List) {
+                List values = ((List) value);
                 builder.startArray();
                 for (Object o : values) {
                     builder.value(o);

@@ -33,6 +33,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Supplier;
 
@@ -80,12 +81,12 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
         assertThat(
             rows,
             containsInAnyOrder(
-                new Object[] { 10 },
-                new Object[] { 20 },
-                new Object[] { 10, 10 },
-                new Object[] { 10, 20 },
-                new Object[] { 10, 10, 20 },
-                new Object[] { 10, 20, 30 }
+                List.of(10),
+                List.of(20),
+                List.of(10, 10),
+                List.of(10, 20),
+                List.of(10, 10, 20),
+                List.of(10, 20, 30)
             )
         );
     }
@@ -97,12 +98,12 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
         assertThat(
             rows,
             containsInAnyOrder(
-                new Object[] { 10 },
-                new Object[] { 20 },
-                new Object[] { 10, 10 },
-                new Object[] { 10, 20 },
-                new Object[] { 10, 10, 20 },
-                new Object[] { 10, 20, 30 }
+                List.of(10),
+                List.of(20),
+                List.of(10, 10),
+                List.of(10, 20),
+                List.of(10, 10, 20),
+                List.of(10, 20, 30)
             )
         );
     }
@@ -113,10 +114,10 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
         assertThat(
             rows,
             containsInAnyOrder(
-                new Object[] { 10, 10 },
-                new Object[] { 10, 20 },
-                new Object[] { 10, 10, 20 },
-                new Object[] { 10, 20, 30 }
+                List.of(10, 10),
+                List.of(10, 20),
+                List.of(10, 10, 20),
+                List.of(10, 20, 30)
             )
         );
     }
@@ -127,12 +128,12 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
         assertThat(
             rows,
             containsInAnyOrder(
-                new Object[] { 10 },
-                new Object[] { 20 },
-                new Object[] { 10, 10 },
-                new Object[] { 10, 20 },
-                new Object[] { 10, 10, 20 },
-                new Object[] { 10, 20, 30 }
+                List.of(10),
+                List.of(20),
+                List.of(10, 10),
+                List.of(10, 20),
+                List.of(10, 10, 20),
+                List.of(10, 20, 30)
             )
         );
     }
@@ -143,8 +144,8 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
         assertThat(
             rows,
             containsInAnyOrder(
-                new Object[] { 10, 10, 20 },
-                new Object[] { 10, 20, 30 }
+                List.of(10, 10, 20),
+                List.of(10, 20, 30)
             )
         );
     }
@@ -155,10 +156,10 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
         assertThat(
             rows,
             containsInAnyOrder(
-                new Object[] { 10, 10 },
-                new Object[] { 10, 20 },
-                new Object[] { 10, 10, 20 },
-                new Object[] { 10, 20, 30 }
+                List.of(10, 10),
+                List.of(10, 20),
+                List.of(10, 10, 20),
+                List.of(10, 20, 30)
             )
         );
     }
@@ -198,8 +199,8 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
         assertThat(
             rows,
             containsInAnyOrder(
-                new Object[] { 10 },
-                new Object[] { 20 }
+                List.of(10),
+                List.of(20)
             )
         );
     }
@@ -210,12 +211,12 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
         assertThat(
             rows,
             containsInAnyOrder(
-                new Object[] { 10 },
-                new Object[] { 20 },
-                new Object[] { 10, 10 },
-                new Object[] { 10, 20 },
-                new Object[] { 10, 10, 20 },
-                new Object[] { 10, 20, 30 }
+                List.of(10),
+                List.of(20),
+                List.of(10, 10),
+                List.of(10, 20),
+                List.of(10, 10, 20),
+                List.of(10, 20, 30)
             )
         );
     }
@@ -226,10 +227,10 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
         assertThat(
             rows,
             containsInAnyOrder(
-                new Object[] { 10 },
-                new Object[] { 20 },
-                new Object[] { 10, 10 },
-                new Object[] { 10, 20 }
+                List.of(10),
+                List.of(20),
+                List.of(10, 10),
+                List.of(10, 20)
             )
         );
     }
@@ -240,8 +241,8 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
         assertThat(
             rows,
             containsInAnyOrder(
-                new Object[] { 10 },
-                new Object[] { 20 }
+                List.of(10),
+                List.of(20)
             )
         );
     }
@@ -252,8 +253,8 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
         assertThat(
             rows,
             containsInAnyOrder(
-                new Object[] { 10, 10 },
-                new Object[] { 10, 20 }
+                List.of(10, 10),
+                List.of(10, 20)
             )
         );
     }
@@ -293,12 +294,12 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
                 System.out.println(type);
                 List<Object> result = tester.runQuery("xs", "array_length(xs, 1) >= 2");
                 assertThat(result.size(), is(1));
-                ArrayType arrayType = new ArrayType(type);
+                ArrayType arrayType = new ArrayType<>(type);
                 // Object compareValueTo does type-guessing which might result in
                 // double/float conversions which are not fully accurate, so we skip that here
                 // having the result size check should be sufficient anyway
                 if (type.id() != ObjectType.ID) {
-                    assertThat(arrayType.compareValueTo(result.get(0), arr), is(0));
+                    assertThat(arrayType.compareValueTo((List) result.get(0), Arrays.asList(arr)), is(0));
                 }
             }
         }

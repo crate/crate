@@ -31,6 +31,7 @@ import org.junit.Test;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -494,8 +495,8 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
         Object[] columns = TestingHelpers.getColumn(response.rows(), 0);
 //TODO: Re-enable once SQLResponse also includes the data types for the columns
 //        assertThat(response.columnTypes()[0], is((DataType)new ArrayType(new ArrayType(IntegerType.INSTANCE))));
-        assertThat((Integer) ((Object[]) ((Object[]) columns[0])[0])[0], is(10));
-        assertThat((Integer) ((Object[]) ((Object[]) columns[0])[0])[1], is(20));
+        assertThat(((List) ((List) columns[0]).get(0)).get(0), is(10));
+        assertThat(((List) ((List) columns[0]).get(0)).get(1), is(20));
     }
 
     @Test
@@ -513,8 +514,8 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
 //TODO: Re-enable once SQLResponse also includes the data types for the columns
 //        assertThat(response.columnTypes()[0],
 //                   is((DataType)new ArrayType(new ArrayType(new ArrayType(IntegerType.INSTANCE)))));
-        assertThat((Integer) ((Object[]) ((Object[]) ((Object[]) columns[0])[0])[0])[0], is(10));
-        assertThat((Integer) ((Object[]) ((Object[]) ((Object[]) columns[0])[0])[0])[1], is(20));
+        assertThat(((List) ((List) ((List) columns[0]).get(0)).get(0)).get(0), is(10));
+        assertThat(((List) ((List) ((List) columns[0]).get(0)).get(0)).get(1), is(20));
     }
 
     @Test

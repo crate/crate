@@ -26,6 +26,8 @@ import io.crate.expression.scalar.AbstractScalarFunctionsTest;
 import io.crate.expression.symbol.Literal;
 import org.junit.Test;
 
+import java.util.List;
+
 import static io.crate.testing.SymbolMatchers.isLiteral;
 
 
@@ -33,32 +35,32 @@ public class CurrentSchemasFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testNormalizeWithDefaultSchemas() {
-        assertNormalize("current_schemas(true)", isLiteral(new String[]{"pg_catalog", "doc"}), false);
+        assertNormalize("current_schemas(true)", isLiteral(List.of("pg_catalog", "doc")), false);
     }
 
     @Test
     public void testNormalizeWithFQNFunctionName() {
-        assertNormalize("pg_catalog.current_schemas(true)", isLiteral(new String[]{"pg_catalog", "doc"}), false);
+        assertNormalize("pg_catalog.current_schemas(true)", isLiteral(List.of("pg_catalog", "doc")), false);
     }
 
     @Test
     public void testNormalizeWithDefaultSchemasNoImplicit() {
-        assertNormalize("current_schemas(false)", isLiteral(new String[]{"doc"}), false);
+        assertNormalize("current_schemas(false)", isLiteral(List.of("doc")), false);
     }
 
     @Test
     public void testNormalizeWithCustomSchemas() {
         sqlExpressions.setSearchPath("foo", "bar");
-        assertNormalize("current_schemas(true)", isLiteral(new String[]{"pg_catalog", "foo", "bar"}), false);
+        assertNormalize("current_schemas(true)", isLiteral(List.of("pg_catalog", "foo", "bar")), false);
     }
 
     @Test
     public void testEvaluateCurrentSchema() {
-        assertEvaluate("current_schemas(is_awesome)", new String[]{"doc"}, Literal.BOOLEAN_FALSE);
+        assertEvaluate("current_schemas(is_awesome)", List.of("doc"), Literal.BOOLEAN_FALSE);
     }
 
     @Test
     public void testEvaluateNull() {
-        assertEvaluate("current_schemas(is_awesome)", new String[]{"doc"}, Literal.of((Boolean) null));
+        assertEvaluate("current_schemas(is_awesome)", List.of("doc"), Literal.of((Boolean) null));
     }
 }

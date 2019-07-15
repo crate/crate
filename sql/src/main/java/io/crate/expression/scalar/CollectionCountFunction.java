@@ -36,7 +36,7 @@ import io.crate.types.DataTypes;
 
 import java.util.List;
 
-public class CollectionCountFunction extends Scalar<Long, Object> {
+public class CollectionCountFunction extends Scalar<Long, List<Object>> {
 
     public static final String NAME = "collection_count";
     private final FunctionInfo info;
@@ -47,17 +47,17 @@ public class CollectionCountFunction extends Scalar<Long, Object> {
         mod.register(NAME, COLLECTION_COUNT_RESOLVER);
     }
 
-    CollectionCountFunction(FunctionInfo info) {
+    private CollectionCountFunction(FunctionInfo info) {
         this.info = info;
     }
 
     @Override
-    public Long evaluate(TransactionContext txnCtx, Input<Object>... args) {
-        Object[] argArray = (Object[]) args[0].value();
+    public Long evaluate(TransactionContext txnCtx, Input<List<Object>>... args) {
+        List<Object> argArray = args[0].value();
         if (argArray == null) {
             return null;
         }
-        return Long.valueOf(argArray.length);
+        return (long) argArray.size();
     }
 
     @Override

@@ -29,6 +29,10 @@ import io.crate.types.DataTypes;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static org.hamcrest.Matchers.is;
@@ -37,7 +41,7 @@ public class ArrayUniqueFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testNormalizeWithValueSymbols() throws Exception {
-        assertNormalize("array_unique([10, 20], [10, 30])", isLiteral(new Long[] {10L, 20L, 30L}));
+        assertNormalize("array_unique([10, 20], [10, 30])", isLiteral(Arrays.asList(10L, 20L, 30L)));
     }
 
     @Test
@@ -47,28 +51,29 @@ public class ArrayUniqueFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testNullArguments() throws Exception {
-        assertNormalize("array_unique([1], null)", isLiteral(new Long[] {1L}));
+        assertNormalize("array_unique([1], null)", isLiteral(List.of(1L)));
     }
 
     @Test
     public void testRefWithNullValue() throws Exception {
-        assertEvaluate("array_unique([1], long_array)",
-            new Long[] {1L},
-            Literal.of(new ArrayType(DataTypes.LONG), null));
+        assertEvaluate(
+            "array_unique([1], long_array)",
+            Collections.singletonList(1L),
+            Literal.of(new ArrayType<>(DataTypes.LONG), null));
     }
 
     @Test
     public void testArrayUniqueOnNestedArrayReturnsUniqueInnerArrays() {
         assertEvaluate("array_unique([[0, 0], [1, 1]], [[0, 0], [1, 1]])",
-            new Object[]{ new Long[]{0L, 0L}, new Long[]{1L, 1L} });
+            List.of(List.of(0L, 0L), List.of(1L, 1L)));
     }
 
     @Test
     public void testArrayUniqueWithObjectArraysThatContainArraysReturnsUniqueArrays() {
         assertEvaluate(
             "array_unique([{x=[1, 1]}], [{x=[1, 1]}])",
-             Matchers.arrayContainingInAnyOrder(
-               Matchers.hasEntry(is("x"), Matchers.arrayContaining(is(1L), is(1L)))
+             Matchers.contains(
+               Matchers.hasEntry(is("x"), Matchers.contains(is(1L), is(1L)))
            )
         );
     }
@@ -82,18 +87,19 @@ public class ArrayUniqueFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testOneArgument() throws Exception {
-        assertEvaluate("array_unique(['foo', 'bar', 'baz', 'baz'])",
-            new String[]{
+        assertEvaluate(
+            "array_unique(['foo', 'bar', 'baz', 'baz'])",
+            Arrays.asList(
                 "foo",
                 "bar",
                 "baz"
-            }
+            )
         );
     }
 
     @Test
     public void testDifferentButConvertableInnerTypes() throws Exception {
-        assertEvaluate("array_unique([10, 20], [10.1, 20.0])", new Long[] {10L, 20L });
+        assertEvaluate("array_unique([10, 20], [10.1, 20.0])", Arrays.asList(10L, 20L));
     }
 
     @Test
@@ -112,12 +118,12 @@ public class ArrayUniqueFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testNullElements() throws Exception {
-        assertEvaluate("array_unique([1, null, 3], [null, 2, 3])", new Long[] { 1L, null, 3L, 2L });
+        assertEvaluate("array_unique([1, null, 3], [null, 2, 3])", Arrays.asList(1L, null, 3L, 2L));
     }
 
     @Test
     public void testEmptyArrayAndLongArray() throws Exception {
-        assertEvaluate("array_unique([], [111, 222, 333])", new Long[] {111L, 222L, 333L});
+        assertEvaluate("array_unique([], [111, 222, 333])", Arrays.asList(111L, 222L, 333L));
     }
 
     @Test

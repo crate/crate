@@ -111,19 +111,19 @@ public class FuncParamsTest extends CrateUnitTest {
     public void testCompositeTypes() {
         FuncParams params = FuncParams.builder(Param.ANY_ARRAY, Param.ANY_ARRAY).build();
 
-        ArrayType longArray = new ArrayType(DataTypes.LONG);
+        ArrayType<Long> longArray = new ArrayType<>(DataTypes.LONG);
         List<DataType> signature = params.match(
             list(
-                Literal.of(new Object[]{1L, 2L, 3L}, longArray),
-                Literal.of(new Object[]{4L, 5L, 6L}, longArray)
+                Literal.of(List.of(1L, 2L, 3L), longArray),
+                Literal.of(List.of(4L, 5L, 6L), longArray)
             ));
         assertThat(signature, is(list(longArray, longArray)));
 
-        ArrayType integerArray = new ArrayType(DataTypes.INTEGER);
+        ArrayType<Integer> integerArray = new ArrayType<>(DataTypes.INTEGER);
         signature = params.match(
             list(
-                Literal.of(new Object[]{1L, 2L, 3L}, longArray),
-                Literal.of(new Object[]{4, 5, 6}, integerArray)
+                Literal.of(List.of(1L, 2L, 3L), longArray),
+                Literal.of(List.of(4, 5, 6), integerArray)
             ));
         assertThat(signature, is(list(longArray, longArray)));
     }

@@ -42,7 +42,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
-class ArrayUniqueFunction extends Scalar<Object[], Object> {
+class ArrayUniqueFunction extends Scalar<List<Object>, List<Object>> {
 
     public static final String NAME = "array_unique";
     private final FunctionInfo functionInfo;
@@ -71,22 +71,23 @@ class ArrayUniqueFunction extends Scalar<Object[], Object> {
     }
 
     @Override
-    public Object[] evaluate(TransactionContext txnCtx, Input[] args) {
+    public List<Object> evaluate(TransactionContext txnCtx, Input[] args) {
         Set<Object> uniqueSet = new HashSet<>();
         ArrayList<Object> uniqueItems = new ArrayList<>();
         for (Input array : args) {
             assert array != null : "inputs must never be null";
-            Object[] arrayValue = (Object[]) array.value();
-            if (arrayValue == null) {
+            List<Object> values = (List<Object>) array.value();
+            if (values == null) {
                 continue;
             }
-            for (Object element : arrayValue) {
-                if (uniqueSet.add(elementType.hashableValue(element))) {
-                    uniqueItems.add(elementType.value(element));
+            for (Object element : values) {
+                Object value = elementType.value(element);
+                if (uniqueSet.add(value)) {
+                    uniqueItems.add(value);
                 }
             }
         }
-        return uniqueItems.toArray(new Object[0]);
+        return uniqueItems;
     }
 
 

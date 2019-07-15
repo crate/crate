@@ -40,9 +40,10 @@ import org.elasticsearch.common.xcontent.XContentType;
 import org.junit.Test;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.contains;
 
 public class GeneratedColumnsTest extends CrateDummyClusterServiceUnitTest {
 
@@ -83,6 +84,6 @@ public class GeneratedColumnsTest extends CrateDummyClusterServiceUnitTest {
             bytes::utf8ToString
         ));
         Map.Entry<Reference, Input<?>> generatedColumn = generatedColumns.generatedToInject().iterator().next();
-        assertThat(generatedColumn.getValue().value(), is(new Object[] { 10, 20 }));
+        assertThat((List<Object>) generatedColumn.getValue().value(), contains(10, 20));
     }
 }

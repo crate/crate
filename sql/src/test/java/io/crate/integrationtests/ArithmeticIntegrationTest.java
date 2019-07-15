@@ -23,11 +23,12 @@ package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
 import io.crate.testing.TestingHelpers;
+import org.hamcrest.Matchers;
 import org.junit.Test;
 
+import java.util.List;
 import java.util.Locale;
 
-import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
@@ -208,7 +209,7 @@ public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("select regexp_matches(s, '^(bar).*') from regex_noindex order by i");
         assertThat(response.rows()[0][0], nullValue());
-        assertThat((Object[]) response.rows()[1][0], arrayContaining(new Object[]{"bar"}));
+        assertThat((List<Object>) response.rows()[1][0], Matchers.contains("bar"));
         assertThat(response.rows()[2][0], nullValue());
     }
 
@@ -226,23 +227,23 @@ public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("select regexp_replace(s, 'is', 'was') from regex_fulltext order by i");
         assertThat(response.rowCount(), is(4L));
-        assertThat((String) response.rows()[0][0], is("foo was first"));
-        assertThat((String) response.rows()[1][0], is("bar was second"));
-        assertThat((String) response.rows()[2][0], is("foobar was great"));
-        assertThat((String) response.rows()[3][0], is("crate was greater"));
+        assertThat(response.rows()[0][0], is("foo was first"));
+        assertThat(response.rows()[1][0], is("bar was second"));
+        assertThat(response.rows()[2][0], is("foobar was great"));
+        assertThat(response.rows()[3][0], is("crate was greater"));
 
         execute("select regexp_matches(s, '(\\w+) is (\\w+)') from regex_fulltext order by i");
-        Object[] match1 = (Object[]) response.rows()[0][0];
-        assertThat(match1, arrayContaining(new Object[]{"foo", "first"}));
+        List<Object> match1 = (List<Object>) response.rows()[0][0];
+        assertThat(match1, Matchers.contains("foo", "first"));
 
-        Object[] match2 = (Object[]) response.rows()[1][0];
-        assertThat(match2, arrayContaining(new Object[]{"bar", "second"}));
+        List<Object> match2 = (List<Object>) response.rows()[1][0];
+        assertThat(match2, Matchers.contains("bar", "second"));
 
-        Object[] match3 = (Object[]) response.rows()[2][0];
-        assertThat(match3, arrayContaining(new Object[]{"foobar", "great"}));
+        List<Object> match3 = (List<Object>) response.rows()[2][0];
+        assertThat(match3, Matchers.contains("foobar", "great"));
 
-        Object[] match4 = (Object[]) response.rows()[3][0];
-        assertThat(match4, arrayContaining(new Object[]{"crate", "greater"}));
+        List<Object> match4 = (List<Object>) response.rows()[3][0];
+        assertThat(match4, Matchers.contains("crate", "greater"));
     }
 
     @Test

@@ -39,6 +39,7 @@ import org.junit.Test;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static io.crate.testing.TestingHelpers.printedTable;
@@ -362,7 +363,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertEquals(4, response.rows()[0][1]);
         assertEquals("0-1", response.rows()[0][2]);
         assertEquals("id", response.rows()[0][3]);
-        assertThat((Object[]) response.rows()[0][4], arrayContaining(new Object[]{"id"}));
+        assertThat((List<Object>) response.rows()[0][4], Matchers.contains("id"));
     }
 
     @Test
@@ -894,10 +895,8 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute("select * from information_schema.tables " +
                 "where table_schema = ? order by table_name", new Object[]{sqlExecutor.getCurrentSchema()});
 
-        Object[] row1 = new String[]{"name", "content"};
-        Object[] row2 = new String[]{"name"};
-        assertThat((Object[]) response.rows()[0][6], arrayContaining(row1));
-        assertThat((Object[]) response.rows()[1][6], arrayContaining(row2));
+        assertThat((List<Object>) response.rows()[0][6], Matchers.contains("name", "content"));
+        assertThat((List<Object>) response.rows()[1][6], Matchers.contains("name"));
     }
 
     @Test

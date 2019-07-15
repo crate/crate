@@ -30,8 +30,8 @@ import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
-import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.hamcrest.Matchers.allOf;
@@ -77,8 +77,8 @@ public class NodeStatsTest extends SQLTransportIntegrationTest {
     public void testThreadPools() throws Exception {
         SQLResponse response = execute("select thread_pools from sys.nodes limit 1");
 
-        Object[] threadPools = (Object[]) response.rows()[0][0];
-        assertThat(threadPools.length, greaterThanOrEqualTo(1));
+        List threadPools = (List) response.rows()[0][0];
+        assertThat(threadPools.size(), greaterThanOrEqualTo(1));
 
         Map<String, Object> threadPool = null;
         for (Object t : threadPools) {
@@ -102,14 +102,12 @@ public class NodeStatsTest extends SQLTransportIntegrationTest {
         SQLResponse response = execute("select thread_pools['name'], thread_pools['queue'] from sys.nodes limit 1");
         assertThat(response.rowCount(), is(1L));
 
-        Object[] objects = (Object[]) response.rows()[0][0];
-        String[] names = Arrays.copyOf(objects, objects.length, String[].class);
-        assertThat(names.length, greaterThanOrEqualTo(1));
-        assertThat(names, Matchers.hasItemInArray("generic"));
+        List<Object> objects = (List<Object>) response.rows()[0][0];
+        assertThat(objects, Matchers.hasItem("generic"));
 
-        Object[] queues = (Object[]) response.rows()[0][1];
-        assertThat(queues.length, greaterThanOrEqualTo(1));
-        assertThat((Integer) queues[0], greaterThanOrEqualTo(0));
+        List queues = (List) response.rows()[0][1];
+        assertThat(queues.size(), greaterThanOrEqualTo(1));
+        assertThat((Integer) queues.get(0), greaterThanOrEqualTo(0));
     }
 
     @Test
@@ -283,11 +281,11 @@ public class NodeStatsTest extends SQLTransportIntegrationTest {
             assertThat((Long) val, greaterThanOrEqualTo(-1L));
         }
 
-        Object[] disks = (Object[]) fs.get("disks");
-        if (disks.length > 0) {
+        List disks = (List) fs.get("disks");
+        if (disks.size() > 0) {
             // on travis there are no accessible disks
-            assertThat(disks.length, greaterThanOrEqualTo(1));
-            Map<String, Object> someDisk = (Map<String, Object>) disks[0];
+            assertThat(disks.size(), greaterThanOrEqualTo(1));
+            Map<String, Object> someDisk = (Map<String, Object>) disks.get(0);
             assertThat(someDisk.keySet().size(), is(4));
             assertThat(someDisk.keySet(), hasItems("dev", "size", "used", "available"));
             for (Map.Entry<String, Object> entry : someDisk.entrySet()) {
@@ -297,12 +295,12 @@ public class NodeStatsTest extends SQLTransportIntegrationTest {
             }
         }
 
-        Object[] data = (Object[]) fs.get("data");
-        if (data.length > 0) {
+        List data = (List) fs.get("data");
+        if (data.size() > 0) {
             // without sigar, no data definition returned
             int numDataPaths = internalCluster().getInstance(NodeEnvironment.class).nodeDataPaths().length;
-            assertThat(data.length, is(numDataPaths));
-            Map<String, Object> someData = (Map<String, Object>) data[0];
+            assertThat(data.size(), is(numDataPaths));
+            Map<String, Object> someData = (Map<String, Object>) data.get(0);
             assertThat(someData.keySet().size(), is(2));
             assertThat(someData.keySet(), hasItems("dev", "path"));
         }
@@ -314,10 +312,10 @@ public class NodeStatsTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(2L));
         for (Object[] row : response.rows()) {
             // data device name
-            for (Object diskDevName : (Object[]) row[0]) {
-                assertThat((String) diskDevName, is(not("rootfs")));
+            for (Object diskDevName : (List) row[0]) {
+                assertThat(diskDevName, is(not("rootfs")));
             }
-            Object[] disks = (Object[]) row[1];
+            List disks = (List) row[1];
             // disks device name
             for (Object disk : disks) {
                 String diskDevName = (String) ((Map<String, Object>) disk).get("dev");
@@ -331,7 +329,7 @@ public class NodeStatsTest extends SQLTransportIntegrationTest {
     public void testSysNodesObjectArrayStringChildColumn() throws Exception {
         SQLResponse response = execute("select fs['data']['path'] from sys.nodes");
         assertThat(response.rowCount(), Matchers.is(2L));
-        for (Object path : (Object[]) response.rows()[0][0]) {
+        for (Object path : (List) response.rows()[0][0]) {
             assertThat(path, instanceOf(String.class));
         }
     }

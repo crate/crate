@@ -22,6 +22,8 @@
 package io.crate.expression.scalar.regex;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -50,18 +52,18 @@ public class RegexMatcher {
     }
 
     @Nullable
-    public String[] groups() {
+    public List<String> groups() {
         int groupCount = matcher.groupCount();
         if (groupCount == 0) {
             try {
-                return new String[]{matcher.group()};
+                return List.of(matcher.group());
             } catch (IllegalStateException e) {
                 return null;
             }
         }
-        String[] groups = new String[groupCount];
+        ArrayList<String> groups = new ArrayList<>(groupCount);
         for (int i = 0; i < groupCount; i++) {
-            groups[i] = matcher.group(i + 1);
+            groups.add(matcher.group(i + 1));
         }
         return groups;
     }

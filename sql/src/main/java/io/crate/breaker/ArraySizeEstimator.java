@@ -23,8 +23,9 @@
 package io.crate.breaker;
 
 import javax.annotation.Nullable;
+import java.util.List;
 
-public class ArraySizeEstimator extends SizeEstimator<Object> {
+public class ArraySizeEstimator extends SizeEstimator<List<Object>> {
 
     private final SizeEstimator<Object> elementEstimator;
 
@@ -33,18 +34,15 @@ public class ArraySizeEstimator extends SizeEstimator<Object> {
     }
 
     @Override
-    public long estimateSize(@Nullable Object value) {
+    public long estimateSize(@Nullable List<Object> value) {
         if (value == null) {
             return 8;
         }
-        return sizeFromArray((Object[]) value);
-    }
-
-    private long sizeFromArray(Object[] value) {
         long size = 16;
         for (Object val : value) {
             size += elementEstimator.estimateSize(val);
         }
         return size;
     }
+
 }

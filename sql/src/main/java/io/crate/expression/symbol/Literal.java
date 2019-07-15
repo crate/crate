@@ -97,15 +97,6 @@ public class Literal<ReturnType> extends Symbol implements Input<ReturnType>, Co
         if (value == null) {
             return true;
         }
-        if (type instanceof ArrayType) {
-            DataType innerType = ((ArrayType) type).innerType();
-            while (innerType instanceof ArrayType && value.getClass().isArray()) {
-                type = innerType;
-                innerType = ((ArrayType) innerType).innerType();
-                value = ((Object[]) value)[0];
-            }
-            return Arrays.equals((Object[]) value, ((ArrayType) type).value(value));
-        }
         if (type.id() == ObjectType.ID) {
             //noinspection unchecked
             Map<String, Object> mapValue = (Map<String, Object>) value;
@@ -221,7 +212,11 @@ public class Literal<ReturnType> extends Symbol implements Input<ReturnType>, Co
         return new Literal<>(ObjectType.untyped(), value);
     }
 
-    public static Literal<Object[]> of(Object[] value, DataType dataType) {
+    public static <T> Literal<List<T>> of(List<T> value, DataType<List<T>> dataType) {
+        return new Literal<>(dataType, value);
+    }
+
+    public static Literal<Double[]> of(Double[] value, DataType<Double[]> dataType) {
         return new Literal<>(dataType, value);
     }
 

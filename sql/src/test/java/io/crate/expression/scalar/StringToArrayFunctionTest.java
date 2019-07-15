@@ -25,6 +25,10 @@ package io.crate.expression.scalar;
 import io.crate.expression.symbol.Literal;
 import org.junit.Test;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 
@@ -47,9 +51,9 @@ public class StringToArrayFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testEmptyStringInput() {
-        assertEvaluate("string_to_array('', '')", new String[]{});
-        assertEvaluate("string_to_array('', 'x')", new String[]{});
-        assertEvaluate("string_to_array('', '', '')", new String[]{});
+        assertEvaluate("string_to_array('', '')", List.of());
+        assertEvaluate("string_to_array('', 'x')", List.of());
+        assertEvaluate("string_to_array('', '', '')", List.of());
     }
 
     @Test
@@ -61,46 +65,46 @@ public class StringToArrayFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testNullSeparator() {
-        assertEvaluate("string_to_array('xyz', null)", new String[]{"x", "y", "z"});
+        assertEvaluate("string_to_array('xyz', null)", List.of("x", "y", "z"));
     }
 
     @Test
     public void testEmptySeparator() {
-        assertEvaluate("string_to_array('xyz', '')", new String[]{"xyz"});
+        assertEvaluate("string_to_array('xyz', '')", List.of("xyz"));
     }
 
     @Test
     public void testSingleCharacterSeparator() {
-        assertEvaluate("string_to_array('x', 'x')", new String[]{"", ""});
-        assertEvaluate("string_to_array('xx', 'x')", new String[]{"", "", ""});
-        assertEvaluate("string_to_array('x', 'y')", new String[]{"x"});
-        assertEvaluate("string_to_array('xyz', 'x')", new String[]{"", "yz"});
-        assertEvaluate("string_to_array('xyz', 'y')", new String[]{"x", "z"});
-        assertEvaluate("string_to_array('xyz', 'z')", new String[]{"xy", ""});
-        assertEvaluate("string_to_array('xyyz', 'y')", new String[]{"x", "", "z"});
+        assertEvaluate("string_to_array('x', 'x')", List.of("", ""));
+        assertEvaluate("string_to_array('xx', 'x')", List.of("", "", ""));
+        assertEvaluate("string_to_array('x', 'y')", List.of("x"));
+        assertEvaluate("string_to_array('xyz', 'x')", List.of("", "yz"));
+        assertEvaluate("string_to_array('xyz', 'y')", List.of("x", "z"));
+        assertEvaluate("string_to_array('xyz', 'z')", List.of("xy", ""));
+        assertEvaluate("string_to_array('xyyz', 'y')", List.of("x", "", "z"));
     }
 
     @Test
     public void testMultipleCharactersSeparator() {
-        assertEvaluate("string_to_array('abcdeabcde', 'ab')", new String[]{"", "cde", "cde"});
-        assertEvaluate("string_to_array('cdefgcdefg', 'fg')", new String[]{"cde", "cde", ""});
-        assertEvaluate("string_to_array('abcdefgabc', 'gabc')", new String[]{"abcdef", ""});
+        assertEvaluate("string_to_array('abcdeabcde', 'ab')", List.of("", "cde", "cde"));
+        assertEvaluate("string_to_array('cdefgcdefg', 'fg')", List.of("cde", "cde", ""));
+        assertEvaluate("string_to_array('abcdefgabc', 'gabc')", List.of("abcdef", ""));
     }
 
     @Test
     public void testNullStringParameter() {
-        assertEvaluate("string_to_array('xyz', '', 'xyz')", new String[]{null});
+        assertEvaluate("string_to_array('xyz', '', 'xyz')", Collections.singletonList(null));
 
-        assertEvaluate("string_to_array('xyz', 'xy', 'z')", new String[]{"", null});
-        assertEvaluate("string_to_array('xyz', 'x', '')", new String[]{null, "yz"});
+        assertEvaluate("string_to_array('xyz', 'xy', 'z')", Arrays.asList("", null));
+        assertEvaluate("string_to_array('xyz', 'x', '')", Arrays.asList(null, "yz"));
 
-        assertEvaluate("string_to_array('xyz', null, 'y')", new String[]{"x", null, "z"});
-        assertEvaluate("string_to_array('xyzy', null, 'y')", new String[]{"x", null, "z", null});
+        assertEvaluate("string_to_array('xyz', null, 'y')", Arrays.asList("x", null, "z"));
+        assertEvaluate("string_to_array('xyzy', null, 'y')", Arrays.asList("x", null, "z", null));
     }
 
     @Test
     public void testNullNullStringParameter() {
-        assertEvaluate("string_to_array('xyz', '', null)", new String[]{"xyz"});
+        assertEvaluate("string_to_array('xyz', '', null)", List.of("xyz"));
         assertEvaluate("string_to_array(null, '', null)", null);
     }
 
@@ -108,14 +112,14 @@ public class StringToArrayFunctionTest extends AbstractScalarFunctionsTest {
     public void testSingleCharacterSeparatorWithLiterals() {
         assertEvaluate(
             "string_to_array(name, regex_pattern)",
-            new String[]{"", "yz"},
+            List.of("", "yz"),
             Literal.of("xyz"), Literal.of("x")
         );
     }
 
     @Test
     public void testNormalizeSingleCharacterSeparator() {
-        assertNormalize("string_to_array('xyz', 'y')", isLiteral(new String[]{"x", "z"}));
+        assertNormalize("string_to_array('xyz', 'y')", isLiteral(List.of("x", "z")));
     }
 
     @Test

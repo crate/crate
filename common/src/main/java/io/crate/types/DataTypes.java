@@ -75,10 +75,10 @@ public final class DataTypes {
     public static final GeoPointType GEO_POINT = GeoPointType.INSTANCE;
     public static final GeoShapeType GEO_SHAPE = GeoShapeType.INSTANCE;
 
-    public static final DataType DOUBLE_ARRAY = new ArrayType(DOUBLE);
-    public static final DataType STRING_ARRAY = new ArrayType(STRING);
-    public static final DataType INTEGER_ARRAY = new ArrayType(INTEGER);
-    public static final DataType SHORT_ARRAY = new ArrayType(SHORT);
+    public static final ArrayType<Double> DOUBLE_ARRAY = new ArrayType<>(DOUBLE);
+    public static final ArrayType<String> STRING_ARRAY = new ArrayType<>(STRING);
+    public static final ArrayType<Integer> INTEGER_ARRAY = new ArrayType<>(INTEGER);
+    public static final ArrayType<Short> SHORT_ARRAY = new ArrayType<>(SHORT);
 
     public static final List<DataType> PRIMITIVE_TYPES = List.of(
         BYTE,
@@ -151,7 +151,7 @@ public final class DataTypes {
         entry(TIMESTAMPZ.id(), Set.of(DOUBLE, LONG, STRING, TIMESTAMP)),
         entry(TIMESTAMP.id(), Set.of(DOUBLE, LONG, STRING, TIMESTAMPZ)),
         entry(UNDEFINED.id(), Set.of()), // actually convertible to every type, see NullType
-        entry(GEO_POINT.id(), Set.of(new ArrayType(DOUBLE))),
+        entry(GEO_POINT.id(), Set.of(new ArrayType<>(DOUBLE))),
         entry(GEO_SHAPE.id(), Set.of(ObjectType.untyped())),
         entry(ObjectType.ID, Set.of(GEO_SHAPE)),
         entry(ArrayType.ID, Set.of())); // convertability handled in ArrayType
@@ -199,7 +199,7 @@ public final class DataTypes {
         type.writeTo(out);
     }
 
-    private static final Map<Class<?>, DataType> POJO_TYPE_MAPPING = Map.ofEntries(
+    private static final Map<Class<?>, DataType<?>> POJO_TYPE_MAPPING = Map.ofEntries(
         entry(Double.class, DOUBLE),
         entry(Float.class, FLOAT),
         entry(Integer.class, INTEGER),
@@ -248,13 +248,13 @@ public final class DataTypes {
         }
     }
 
-    private static DataType valueFromList(List<Object> value) {
-        DataType highest = DataTypes.UNDEFINED;
+    private static DataType<?> valueFromList(List<Object> value) {
+        DataType<?> highest = DataTypes.UNDEFINED;
         for (Object o : value) {
             if (o == null) {
                 continue;
             }
-            DataType current = guessType(o);
+            DataType<?> current = guessType(o);
             // JSON libraries tend to optimize things like [ 0.0, 1.2 ] to [ 0, 1.2 ]; so we allow mixed types
             // in such cases.
             if (!current.equals(highest) && !safeConversionPossible(current, highest)) {
@@ -265,7 +265,7 @@ public final class DataTypes {
                 highest = current;
             }
         }
-        return new ArrayType(highest);
+        return new ArrayType<>(highest);
     }
 
     private static boolean safeConversionPossible(DataType type1, DataType type2) {

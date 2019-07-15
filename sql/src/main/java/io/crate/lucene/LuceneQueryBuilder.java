@@ -96,7 +96,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static io.crate.expression.eval.NullEliminator.eliminateNullsIfPossible;
 import static io.crate.metadata.DocReferences.inverseSourceLookup;
@@ -142,10 +141,7 @@ public class LuceneQueryBuilder {
 
     static List asList(Literal literal) {
         Object val = literal.value();
-        if (val instanceof Object[]) {
-            return Stream.of((Object[]) val).filter(Objects::nonNull).collect(Collectors.toList());
-        }
-        return (List) val;
+        return (List) ((List) val).stream().filter(Objects::nonNull).collect(Collectors.toList());
     }
 
     public static class Context {

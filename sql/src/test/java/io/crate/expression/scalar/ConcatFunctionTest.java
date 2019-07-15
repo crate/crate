@@ -24,6 +24,8 @@ package io.crate.expression.scalar;
 import io.crate.exceptions.ConversionException;
 import org.junit.Test;
 
+import java.util.List;
+
 import static io.crate.testing.SymbolMatchers.isLiteral;
 
 public class ConcatFunctionTest extends AbstractScalarFunctionsTest {
@@ -72,12 +74,12 @@ public class ConcatFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testTwoArrays() throws Exception {
-        assertNormalize("concat([1, 2], [2, 3])", isLiteral(new Object[]{1L, 2L, 2L, 3L}));
+        assertNormalize("concat([1, 2], [2, 3])", isLiteral(List.of(1L, 2L, 2L, 3L)));
     }
 
     @Test
     public void testArrayWithAUndefinedInnerType() throws Exception {
-        assertNormalize("concat([], [1, 2])", isLiteral(new Object[]{1L, 2L}));
+        assertNormalize("concat([], [1, 2])", isLiteral(List.of(1L, 2L)));
     }
 
     @Test
@@ -96,6 +98,6 @@ public class ConcatFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testEvaluate() throws Exception {
-        assertEvaluate("concat([1], [2::integer, 3::integer])", new Long[]{1L, 2L, 3L});
+        assertEvaluate("concat([1], [2::integer, 3::integer])", List.of(1L, 2L, 3L));
     }
 }

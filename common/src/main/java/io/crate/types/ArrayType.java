@@ -27,24 +27,25 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 
 /**
  * A type which contains a collection of elements of another type.
  */
-public class ArrayType extends DataType {
+public class ArrayType<T> extends DataType<List<T>> {
 
     public static final String NAME = "array";
     public static final int ID = 100;
-    protected DataType innerType;
-    protected Streamer streamer;
+    protected DataType<T> innerType;
+    protected Streamer<List<T>> streamer;
 
     /**
      * Construct a new Collection type
      * @param innerType The type of the elements inside the collection
      */
-    public ArrayType(DataType<?> innerType) {
+    public ArrayType(DataType<T> innerType) {
         this.innerType = Preconditions.checkNotNull(innerType,
             "Inner type must not be null.");
     }
@@ -59,7 +60,7 @@ public class ArrayType extends DataType {
      * Defaults to the {@link ArrayStreamer} but subclasses may override this method.
      */
     @Override
-    public Streamer<?> streamer() {
+    public Streamer<List<T>> streamer() {
         if (streamer == null) {
             streamer = new ArrayStreamer(innerType);
         }
@@ -91,46 +92,30 @@ public class ArrayType extends DataType {
         return Precedence.ArrayType;
     }
 
-    public final DataType<?> innerType() {
+    public final DataType<T> innerType() {
         return innerType;
     }
 
     @Override
-    public Object[] value(Object value) {
-        // We can pass in Collections and Arrays here but we always
-        // have to return arrays since a lot of code makes assumptions
-        // about this.
+    public List<T> value(Object value) {
         if (value == null) {
             return null;
         }
-        Object[] result;
+        ArrayList<T> result;
         if (value instanceof Collection) {
             Collection values = (Collection) value;
-            result = new Object[values.size()];
-            int idx = 0;
+            result = new ArrayList<>(values.size());
             for (Object o : values) {
-                result[idx] = innerType.value(o);
-                idx++;
+                result.add(innerType.value(o));
             }
         } else {
             Object[] values = (Object[]) value;
-            result = new Object[values.length];
-            int idx = 0;
+            result = new ArrayList<>(values.length);
             for (Object o : values) {
-                result[idx] = innerType.value(o);
-                idx++;
+                result.add(innerType.value(o));
             }
         }
         return result;
-    }
-
-    @Override
-    public Object hashableValue(Object value) throws IllegalArgumentException, ClassCastException {
-        if (value instanceof Collection) {
-            return value;
-        } else {
-            return Arrays.asList((Object[]) value);
-        }
     }
 
     @Override
@@ -140,21 +125,19 @@ public class ArrayType extends DataType {
     }
 
     @Override
-    public int compareValueTo(Object val1, Object val2) {
+    public int compareValueTo(List<T> val1, List<T> val2) {
         if (val2 == null) {
             return 1;
         } else if (val1 == null) {
             return -1;
         }
-        Object[] arr1 = val1 instanceof Collection ? ((Collection) val1).toArray() : (Object[]) val1;
-        Object[] arr2 = val2 instanceof Collection ? ((Collection) val2).toArray() : (Object[]) val2;
-        if (arr1.length > arr2.length) {
+        if (val1.size() > val2.size()) {
             return 1;
-        } else if (arr2.length > arr1.length) {
+        } else if (val2.size() > val1.size()) {
             return -1;
         }
-        for (int i = 0; i < arr1.length; i++) {
-            int cmp = innerType.compareValueTo(arr1[i], arr2[i]);
+        for (int i = 0; i < val1.size(); i++) {
+            int cmp = innerType.compareValueTo(val1.get(i), val2.get(i));
             if (cmp != 0) {
                 return cmp;
             }
@@ -186,46 +169,45 @@ public class ArrayType extends DataType {
         return result;
     }
 
-    public static DataType unnest(DataType dataType) {
-        while (DataTypes.isArray(dataType)) {
-            dataType = ((ArrayType) dataType).innerType();
+    public static DataType<?> unnest(DataType<?> dataType) {
+        while (dataType instanceof ArrayType) {
+            dataType = ((ArrayType<?>) dataType).innerType();
         }
         return dataType;
     }
 
-    static class ArrayStreamer implements Streamer {
+    static class ArrayStreamer<T> implements Streamer<List<T>> {
 
-        private DataType innerType;
+        private final DataType<T> innerType;
 
-        ArrayStreamer(DataType innerType) {
+        ArrayStreamer(DataType<T> innerType) {
             this.innerType = innerType;
         }
 
         @Override
-        public Object[] readValueFrom(StreamInput in) throws IOException {
+        public List<T> readValueFrom(StreamInput in) throws IOException {
             int size = in.readVInt();
             // size of 0 is treated as null value so real size must be decreased by 1
             if (size == 0) {
                 return null;
             }
             size--;
-            Object[] array = new Object[size];
+            ArrayList<T> values = new ArrayList<>(size);
             for (int i = 0; i < size; i++) {
-                array[i] = innerType.streamer().readValueFrom(in);
+                values.add(innerType.streamer().readValueFrom(in));
             }
-            return array;
+            return values;
         }
 
         @Override
-        public void writeValueTo(StreamOutput out, Object values) throws IOException {
+        public void writeValueTo(StreamOutput out, List<T> values) throws IOException {
             // write null as size 0, so increase real size by 1
             if (values == null) {
                 out.writeVInt(0);
                 return;
             }
-            Object[] array = (Object[]) values;
-            out.writeVInt(array.length + 1);
-            for (Object value : array) {
+            out.writeVInt(values.size() + 1);
+            for (T value : values) {
                 innerType.streamer().writeValueTo(out, value);
             }
         }

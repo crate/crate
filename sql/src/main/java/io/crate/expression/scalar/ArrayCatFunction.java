@@ -27,8 +27,8 @@ import io.crate.metadata.BaseFunctionResolver;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.functions.params.Param;
 import io.crate.types.ArrayType;
@@ -39,10 +39,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-class ArrayCatFunction extends Scalar<Object[], Object> {
+class ArrayCatFunction extends Scalar<List<Object>, List<Object>> {
 
     public static final String NAME = "array_cat";
-    private FunctionInfo functionInfo;
+    private final FunctionInfo functionInfo;
 
     public static FunctionInfo createInfo(List<DataType> types) {
         ArrayType arrayType = (ArrayType) types.get(0);
@@ -65,24 +65,21 @@ class ArrayCatFunction extends Scalar<Object[], Object> {
         return functionInfo;
     }
 
+    @SafeVarargs
     @Override
-    public Object[] evaluate(TransactionContext txnCtx, Input[] args) {
+    public final List<Object> evaluate(TransactionContext txnCtx, Input<List<Object>>... args) {
         DataType innerType = ((ArrayType) this.info().returnType()).innerType();
-        List<Object> resultList = new ArrayList<>();
-
-        for (Input array : args) {
-            Object arrayValue = array.value();
-            if (arrayValue == null) {
+        ArrayList<Object> resultList = new ArrayList<>();
+        for (Input<List<Object>> arg : args) {
+            List<Object> values = arg.value();
+            if (values == null) {
                 continue;
             }
-
-            Object[] arg = (Object[]) arrayValue;
-            for (Object element : arg) {
-                resultList.add(innerType.value(element));
+            for (Object value : values) {
+                resultList.add(innerType.value(value));
             }
         }
-
-        return resultList.toArray();
+        return resultList;
     }
 
 

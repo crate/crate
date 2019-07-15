@@ -27,13 +27,16 @@ import io.crate.types.ArrayType;
 import io.crate.types.LongType;
 import org.junit.Test;
 
+import java.util.List;
+
 public class CollectionAvgFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testEvaluate() throws Exception {
-        assertEvaluate("collection_avg(long_array)",
-                       5.0,
-                       Literal.of(new Long[]{3L, 7L}, new ArrayType(LongType.INSTANCE))
+        assertEvaluate(
+            "collection_avg(long_array)",
+            5.0,
+            Literal.of(List.of(3L, 7L), new ArrayType<>(LongType.INSTANCE))
         );
     }
 

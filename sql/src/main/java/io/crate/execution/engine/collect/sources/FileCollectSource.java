@@ -34,8 +34,8 @@ import io.crate.execution.engine.collect.files.LineCollectorExpression;
 import io.crate.expression.InputFactory;
 import io.crate.expression.reference.file.FileLineReferenceResolver;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
+import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
@@ -43,7 +43,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -103,14 +102,9 @@ public class FileCollectSource implements CollectSource {
         if (targetUri.valueType() == DataTypes.STRING) {
             String uri = (String) value;
             return Collections.singletonList(uri);
-        } else if (targetUri.valueType() instanceof ArrayType
-                   && ((ArrayType) targetUri.valueType()).innerType() == DataTypes.STRING) {
-            Object[] values = (Object[]) value;
-            ArrayList<String> uris = new ArrayList<>(values.length);
-            for (Object v : values) {
-                uris.add((String) v);
-            }
-            return uris;
+        } else if (targetUri.valueType() instanceof ArrayType && ((ArrayType) targetUri.valueType()).innerType() == DataTypes.STRING) {
+            //noinspection unchecked
+            return (List<String>) value;
         }
 
         // this case actually never happens because the check is already done in the analyzer

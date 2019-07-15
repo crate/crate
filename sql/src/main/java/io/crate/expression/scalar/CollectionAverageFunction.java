@@ -36,7 +36,7 @@ import io.crate.types.DataTypes;
 
 import java.util.List;
 
-public class CollectionAverageFunction extends Scalar<Double, Object> {
+public class CollectionAverageFunction extends Scalar<Double, List<Object>> {
 
     public static final String NAME = "collection_avg";
     private final FunctionInfo info;
@@ -67,15 +67,14 @@ public class CollectionAverageFunction extends Scalar<Double, Object> {
     }
 
     @Override
-    public Double evaluate(TransactionContext txnCtx, Input<Object>... args) {
-        // NOTE: always returning double ignoring the input type, maybe better implement type safe
-        Object[] arg0Value = (Object[]) args[0].value();
-        if (arg0Value == null) {
+    public Double evaluate(TransactionContext txnCtx, Input<List<Object>>... args) {
+        List<Object> values = args[0].value();
+        if (values == null) {
             return null;
         }
         double sum = 0;
         long count = 0;
-        for (Object value : arg0Value) {
+        for (Object value : values) {
             sum += ((Number) value).doubleValue();
             count++;
         }

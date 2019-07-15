@@ -28,6 +28,7 @@ import io.crate.testing.UseRandomizedSchema;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.List;
 import java.util.Map;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
@@ -84,7 +85,7 @@ public class GeoShapeIntegrationTest extends SQLTransportIntegrationTest {
             "{coordinates=[[2.0, 2.0], [3.0, 3.0]], type=LineString}]\n"));
 //TODO: Re-enable once SQLResponse also includes the data types for the columns
 //        assertThat(response.columnTypes()[0], is((DataType) new ArrayType(DataTypes.GEO_SHAPE)));
-        assertThat(response.rows()[0][0], instanceOf(Object[].class));
+        assertThat(response.rows()[0][0], instanceOf(List.class));
     }
 
     @Test

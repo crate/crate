@@ -27,6 +27,7 @@ import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.List;
 
 import static org.hamcrest.core.Is.is;
 
@@ -162,7 +163,6 @@ public class WherePKIntegrationTest extends SQLTransportIntegrationTest {
     public void testSelectNestedObjectWherePk() throws Exception {
         execute("create table items (id string primary key, details object as (tags array(string)) )" +
                 "clustered into 3 shards with (number_of_replicas = '0-1')");
-        ensureYellow();
 
         execute("insert into items (id, details) values (?, ?)", new Object[]{
             "123", MapBuilder.newMapBuilder().put("tags", Arrays.asList("small", "blue")).map()
@@ -171,10 +171,10 @@ public class WherePKIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("select id, details['tags'] from items where id = '123'");
         assertThat(response.rowCount(), is(1L));
-        assertThat((String) response.rows()[0][0], is("123"));
+        assertThat(response.rows()[0][0], is("123"));
         //noinspection unchecked
-        String[] tags = Arrays.copyOf((Object[]) response.rows()[0][1], 2, String[].class);
-        assertThat(tags, Matchers.arrayContaining("small", "blue"));
+        List<Object> tags = (List<Object>) response.rows()[0][1];
+        assertThat(tags, Matchers.contains("small", "blue"));
     }
 
     @Test

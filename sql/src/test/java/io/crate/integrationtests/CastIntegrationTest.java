@@ -22,12 +22,13 @@
 
 package io.crate.integrationtests;
 
-import org.hamcrest.Matcher;
+import org.hamcrest.Matchers;
 import org.junit.Test;
+
+import java.util.List;
 
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.collection.IsArrayContainingInOrder.arrayContaining;
 
 public class CastIntegrationTest extends SQLTransportIntegrationTest {
 
@@ -36,8 +37,8 @@ public class CastIntegrationTest extends SQLTransportIntegrationTest {
         execute("select try_cast('2' as integer), try_cast(['1', '2'] as array(integer))," +
                 " try_cast(null as integer) from sys.cluster");
         assertThat(response.rowCount(), is(1L));
-        assertThat((int) response.rows()[0][0], is(2));
-        assertThat(response.rows()[0][1], (Matcher) arrayContaining(1, 2));
+        assertThat(response.rows()[0][0], is(2));
+        assertThat((List<Object>) response.rows()[0][1], Matchers.contains(1, 2));
         assertThat(response.rows()[0][2], is(nullValue()));
     }
 
@@ -59,10 +60,10 @@ public class CastIntegrationTest extends SQLTransportIntegrationTest {
         execute("select try_cast(i as integer), try_cast(str as integer), try_cast(arr as array(byte))" +
                 " from types order by i asc");
         assertThat(response.rowCount(), is(2L));
-        assertThat(((int) response.rows()[0][0]), is(1));
+        assertThat(response.rows()[0][0], is(1));
         assertThat((response.rows()[0][1]), is(nullValue()));
-        assertThat(response.rows()[0][2], (Matcher) arrayContaining((byte) 1, (byte) 2));
-        assertThat(((int) response.rows()[1][0]), is(2));
+        assertThat((List<Object>) response.rows()[0][2], Matchers.contains((byte) 1, (byte) 2));
+        assertThat(response.rows()[1][0], is(2));
         assertThat(response.rows()[1][1], is(nullValue()));
         assertThat(response.rows()[1][2], is(nullValue()));
 

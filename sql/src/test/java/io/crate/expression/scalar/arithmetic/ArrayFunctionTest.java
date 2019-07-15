@@ -22,11 +22,13 @@
 
 package io.crate.expression.scalar.arithmetic;
 
-import io.crate.expression.symbol.Literal;
 import io.crate.exceptions.ConversionException;
 import io.crate.expression.scalar.AbstractScalarFunctionsTest;
+import io.crate.expression.symbol.Literal;
 import io.crate.types.DataTypes;
 import org.junit.Test;
+
+import java.util.List;
 
 import static io.crate.testing.SymbolMatchers.isLiteral;
 
@@ -41,28 +43,30 @@ public class ArrayFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testEvaluateArrayWithExpr() {
-        assertEvaluate("ARRAY[1 + 2]", new Long[]{3L});
-        assertEvaluate("[1 + 1]", new Long[]{2L});
+        assertEvaluate("ARRAY[1 + 2]", List.of(3L));
+        assertEvaluate("[1 + 1]", List.of(2L));
     }
 
     @Test
     public void testEvaluateNestedArrays() {
-        assertEvaluate("ARRAY[[]]", new Object[]{new Object[]{}});
-        assertEvaluate("[ARRAY[]]", new Object[]{new Object[]{}});
-        assertEvaluate("[[1 + 1], ARRAY[1 + 2]]", new Object[]{new Long[]{2L}, new Long[]{3L}});
+        assertEvaluate("ARRAY[[]]", List.of(List.of()));
+        assertEvaluate("[ARRAY[]]", List.of(List.of()));
+        assertEvaluate("[[1 + 1], ARRAY[1 + 2]]", List.of(List.of(2L), List.of(3L)));
     }
 
     public void testEvaluateArrayOnColumnIdents() {
-        assertEvaluate("ARRAY[ARRAY[age], [age]]", new Integer[][]{new Integer[]{2},new Integer[]{1}},
+        assertEvaluate(
+            "ARRAY[ARRAY[age], [age]]",
+            List.of(List.of(2), List.of(1)),
             Literal.of(DataTypes.INTEGER, 2),
             Literal.of(DataTypes.INTEGER, 1));
     }
 
     @Test
     public void testNormalizeArrays() {
-        assertNormalize("ARRAY[1 + 2]", isLiteral(new Long[]{3L}));
-        assertNormalize("[ARRAY[1 + 2]]", isLiteral(new Object[]{new Long[]{3L}}));
+        assertNormalize("ARRAY[1 + 2]", isLiteral(List.of(3L)));
+        assertNormalize("[ARRAY[1 + 2]]", isLiteral(List.of(List.of(3L))));
         assertNormalize("[[null is null], ARRAY[4 is not null], [false]]",
-            isLiteral(new Object[]{new Boolean[]{true}, new Boolean[]{true}, new Boolean[]{false}}));
+            isLiteral(List.of(List.of(true), List.of(true), List.of(false))));
     }
 }

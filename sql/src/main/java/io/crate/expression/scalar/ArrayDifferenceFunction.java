@@ -47,10 +47,10 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
-class ArrayDifferenceFunction extends Scalar<Object[], Object> {
+class ArrayDifferenceFunction extends Scalar<List<Object>, List<Object>> {
 
     public static final String NAME = "array_difference";
-    private FunctionInfo functionInfo;
+    private final FunctionInfo functionInfo;
     private final Optional<Set<Object>> optionalSubtractSet;
 
     private static FunctionInfo createInfo(List<DataType> types) {
@@ -76,7 +76,7 @@ class ArrayDifferenceFunction extends Scalar<Object[], Object> {
     }
 
     @Override
-    public Scalar<Object[], Object> compile(List<Symbol> arguments) {
+    public Scalar<List<Object>, List<Object>> compile(List<Symbol> arguments) {
         Symbol symbol = arguments.get(1);
 
         if (!symbol.symbolType().isValueSymbol()) {
@@ -88,27 +88,27 @@ class ArrayDifferenceFunction extends Scalar<Object[], Object> {
         Object inputValue = input.value();
 
         DataType innerType = ((ArrayType) this.info().returnType()).innerType();
-        Object[] array = (Object[]) inputValue;
+        List<Object> values = (List<Object>) inputValue;
         Set<Object> subtractSet;
-        if (array == null) {
+        if (values == null) {
             subtractSet = Collections.emptySet();
         } else {
             subtractSet = new HashSet<>();
-            for (Object element : array) {
-                subtractSet.add(innerType.hashableValue(element));
+            for (Object element : values) {
+                subtractSet.add(innerType.value(element));
             }
         }
         return new ArrayDifferenceFunction(this.functionInfo, subtractSet);
     }
 
     @Override
-    public Object[] evaluate(TransactionContext txnCtx, Input[] args) {
-        Object[] originalArray = (Object[]) args[0].value();
-        if (originalArray == null) {
+    public List<Object> evaluate(TransactionContext txnCtx, Input[] args) {
+        List<Object> inputValues = (List<Object>) args[0].value();
+        if (inputValues == null) {
             return null;
         }
 
-        DataType innerType = ((ArrayType) this.info().returnType()).innerType();
+        DataType<?> innerType = ((ArrayType) this.info().returnType()).innerType();
         Set<Object> localSubtractSet;
         if (!optionalSubtractSet.isPresent()) {
             localSubtractSet = new HashSet<>();
@@ -118,22 +118,22 @@ class ArrayDifferenceFunction extends Scalar<Object[], Object> {
                     continue;
                 }
 
-                Object[] array = (Object[]) argValue;
-                for (Object element : array) {
-                    localSubtractSet.add(innerType.hashableValue(element));
+                List<Object> values = (List<Object>) argValue;
+                for (Object element : values) {
+                    localSubtractSet.add(innerType.value(element));
                 }
             }
         } else {
             localSubtractSet = optionalSubtractSet.get();
         }
 
-        List<Object> resultList = new ArrayList<>(originalArray.length);
-        for (Object value : originalArray) {
-            if (!localSubtractSet.contains(innerType.hashableValue(value))) {
+        ArrayList<Object> resultList = new ArrayList<>(inputValues.size());
+        for (Object value : inputValues) {
+            if (!localSubtractSet.contains(innerType.value(value))) {
                 resultList.add(value);
             }
         }
-        return resultList.toArray();
+        return resultList;
     }
 
 
