@@ -55,7 +55,6 @@ public class IntervalLiteral extends Literal {
     private final IntervalField startField;
     private final Optional<IntervalField> endField;
 
-
     public IntervalLiteral(String value, Sign sign, IntervalField startField, Optional<IntervalField> endField) {
         checkNotNull(value, "value is null");
         checkNotNull(sign, "sign is null");

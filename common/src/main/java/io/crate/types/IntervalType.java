@@ -28,14 +28,11 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 import java.util.Locale;
-import java.util.function.Function;
 
-public class IntervalType extends DataType<Long> implements FixedWidthType, Streamer<Long> {
+public class IntervalType extends DataType<Interval> implements FixedWidthType, Streamer<Interval> {
 
     public static final int ID = 17;
     public static final IntervalType INSTANCE = new IntervalType();
-
-    private final Function<String, Long> parse = Long::parseLong;
 
     @Override
     public int id() {
@@ -53,20 +50,17 @@ public class IntervalType extends DataType<Long> implements FixedWidthType, Stre
     }
 
     @Override
-    public Streamer<Long> streamer() {
+    public Streamer<Interval> streamer() {
         return this;
     }
 
     @Override
-    public Long value(Object value) throws IllegalArgumentException, ClassCastException {
+    public Interval value(Object value) throws IllegalArgumentException, ClassCastException {
         if (value == null) {
             return null;
         }
-        if (value instanceof String) {
-            return parse.apply((String) value);
-        }
-        if (value instanceof Long) {
-            return (Long) value;
+        if (value instanceof Interval) {
+            return (Interval) value;
         }
         throw new IllegalArgumentException(invalidMsg(value));
     }
@@ -75,25 +69,26 @@ public class IntervalType extends DataType<Long> implements FixedWidthType, Stre
         return String.format(Locale.ENGLISH, "Cannot convert \"%s\" to interval", value);
     }
 
-    public int compareValueTo(Long val1, Long val2) {
-        return nullSafeCompareValueTo(val1, val2, Long::compare);
+    public int compareValueTo(Interval val1, Interval val2) {
+        return nullSafeCompareValueTo(val1, val2, Interval::compare);
     }
 
     @Override
-    public Long readValueFrom(StreamInput in) throws IOException {
-        return in.readBoolean() ? null : in.readLong();
+    public Interval readValueFrom(StreamInput in) throws IOException {
+        return new Interval(in.readLong(), in.readInt(), in.readInt());
     }
 
     @Override
-    public void writeValueTo(StreamOutput out, Long v) throws IOException {
-        out.writeBoolean(v == null);
+    public void writeValueTo(StreamOutput out, Interval v) throws IOException {
         if (v != null) {
-            out.writeLong(v);
+            out.writeLong(v.getMs());
+            out.writeInt(v.getDays());
+            out.writeInt(v.getMonths());
         }
     }
 
     @Override
     public int fixedSize() {
-        return 16; // 8 object overhead, 8 long
+        return 24; // 8 object overhead, 8 long, 4 int, 4 int
     }
 }

@@ -100,6 +100,7 @@ import io.crate.sql.tree.FunctionCall;
 import io.crate.sql.tree.IfExpression;
 import io.crate.sql.tree.InListExpression;
 import io.crate.sql.tree.InPredicate;
+import io.crate.sql.tree.IntervalLiteral;
 import io.crate.sql.tree.IsNotNullPredicate;
 import io.crate.sql.tree.IsNullPredicate;
 import io.crate.sql.tree.LikePredicate;
@@ -127,11 +128,14 @@ import io.crate.sql.tree.WindowFrame;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.Interval;
 import io.crate.types.ObjectType;
 import io.crate.types.UndefinedType;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.time.Duration;
+import java.time.Period;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -141,6 +145,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -914,6 +919,46 @@ public class ExpressionAnalyzer {
                 MapFunction.NAME,
                 arguments,
                 context);
+        }
+
+        @Override
+        public Symbol visitIntervalLiteral(IntervalLiteral node, ExpressionAnalysisContext context) {
+            String value = node.getValue();
+            if (value == null || value.isEmpty() || value.isBlank()) {
+                throw new IllegalArgumentException("Invalid value " + value);
+            }
+            int interval = Integer.parseInt(value);
+
+            Duration duration = null;
+
+            switch (node.getStartField()) {
+                case YEAR:
+                    duration = Duration.ofDays(Period.ofYears(interval).normalized().getDays());
+                    break;
+                case MONTH:
+                    duration = Duration.ofDays(Period.ofMonths(interval).normalized().getDays());
+                    break;
+                case DAY:
+                    duration = Duration.ofDays(interval);
+                    break;
+                case HOUR:
+                    duration = Duration.ofHours(interval);
+                    break;
+                case MINUTE:
+                    duration = Duration.ofMinutes(interval);
+                    break;
+                case SECOND:
+                    duration = Duration.ofSeconds(interval);
+                    break;
+                default:
+                    throw new IllegalArgumentException("Invalid Start Field");
+            }
+
+            int days = (int) TimeUnit.DAYS.convert(duration);
+            int month = days / 30;
+            long ms = TimeUnit.MILLISECONDS.convert(duration);
+
+            return Literal.newInterval(new Interval(ms, days, month));
         }
 
         @Override
