@@ -29,6 +29,7 @@ import org.elasticsearch.search.SearchModule;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 
+import java.util.List;
 import java.util.function.Supplier;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
@@ -124,9 +125,9 @@ public class LuceneQueryBuilderIntegrationTest extends SQLTransportIntegrationTe
         assertThat(response.rowCount(), is(2L));
         execute("select a[1]['b']['n'] from t where 1 = any(a[1]['b']['n'])");
         assertThat(response.rowCount(), is(1L));
-        assertThat((Integer) ((Object[]) response.rows()[0][0])[0], is(1));
-        assertThat((Integer) ((Object[]) response.rows()[0][0])[1], is(2));
-        assertThat((Integer) ((Object[]) response.rows()[0][0])[2], is(3));
+        assertThat(((List) response.rows()[0][0]).get(0), is(1));
+        assertThat(((List) response.rows()[0][0]).get(1), is(2));
+        assertThat(((List) response.rows()[0][0]).get(2), is(3));
     }
 
     @Test
@@ -351,10 +352,10 @@ public class LuceneQueryBuilderIntegrationTest extends SQLTransportIntegrationTe
         execute("select * from t1 where not 5 = any(a)");
         assertThat(printedTable(response.rows()), is("[1, 2, 3]\n"));
         execute("select * from t1 where not ignore3vl(5 = any(a))");
-        assertThat(printedTable(response.rows()), anyOf(is("[1, 2, 3, NULL]\n" +
+        assertThat(printedTable(response.rows()), anyOf(is("[1, 2, 3, null]\n" +
                                                            "[1, 2, 3]\n"),
                                                         is("[1, 2, 3]\n" +
-                                                           "[1, 2, 3, NULL]\n")));
+                                                           "[1, 2, 3, null]\n")));
     }
 
     @Test

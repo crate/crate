@@ -33,10 +33,13 @@ import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.util.BigArrays;
+import org.hamcrest.Matchers;
 import org.junit.Test;
 
+import java.util.List;
+
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 
 public class CollectSetAggregationTest extends AggregationTest {
 
@@ -48,13 +51,14 @@ public class CollectSetAggregationTest extends AggregationTest {
     public void testReturnType() throws Exception {
         FunctionImplementation collectSet = functions.get(
             null, "collect_set", ImmutableList.of(Literal.of(DataTypes.INTEGER, null)), SearchPath.pathWithPGCatalogAndDoc());
-        assertEquals(new ArrayType(DataTypes.INTEGER), collectSet.info().returnType());
+        assertEquals(new ArrayType<>(DataTypes.INTEGER), collectSet.info().returnType());
     }
 
     @Test
     public void testDouble() throws Exception {
-        assertThat((Object[]) executeAggregation(DataTypes.DOUBLE, new Object[][]{{0.7d}, {0.3d}, {0.3d}}),
-                   is(arrayContainingInAnyOrder(0.3d, 0.7d)));
+        assertThat(
+            (List<Object>) executeAggregation(DataTypes.DOUBLE, new Object[][]{{0.7d}, {0.3d}, {0.3d}}),
+            is(Matchers.containsInAnyOrder(0.3d, 0.7d)));
     }
 
     @Test
@@ -73,45 +77,45 @@ public class CollectSetAggregationTest extends AggregationTest {
 
     @Test
     public void testFloat() throws Exception {
-        assertThat((Object[]) executeAggregation(DataTypes.FLOAT, new Object[][]{{0.7f}, {0.3f}, {0.3f}}),
-                   is(arrayContainingInAnyOrder(0.3f, 0.7f)));
+        assertThat((List<Object>) executeAggregation(DataTypes.FLOAT, new Object[][]{{0.7f}, {0.3f}, {0.3f}}),
+                   is(containsInAnyOrder(0.3f, 0.7f)));
     }
 
     @Test
     public void testInteger() throws Exception {
-        assertThat((Object[]) executeAggregation(DataTypes.INTEGER, new Object[][]{{7}, {3}, {3}}),
-                   is(arrayContainingInAnyOrder(3, 7)));
+        assertThat((List<Object>) executeAggregation(DataTypes.INTEGER, new Object[][]{{7}, {3}, {3}}),
+                   is(containsInAnyOrder(3, 7)));
     }
 
     @Test
     public void testLong() throws Exception {
-        assertThat((Object[]) executeAggregation(DataTypes.LONG, new Object[][]{{7L}, {3L}, {3L}}),
-                   is(arrayContainingInAnyOrder(3L, 7L)));
+        assertThat((List<Object>) executeAggregation(DataTypes.LONG, new Object[][]{{7L}, {3L}, {3L}}),
+                   is(containsInAnyOrder(3L, 7L)));
     }
 
     @Test
     public void testShort() throws Exception {
-        assertThat((Object[]) executeAggregation(DataTypes.SHORT,
+        assertThat((List<Object>) executeAggregation(DataTypes.SHORT,
                                                  new Object[][]{{(short) 7}, {(short) 3}, {(short) 3}}),
-                   is(arrayContainingInAnyOrder((short) 3, (short) 7)));
+                   is(containsInAnyOrder((short) 3, (short) 7)));
     }
 
     @Test
     public void testString() throws Exception {
-        assertThat((Object[]) executeAggregation(DataTypes.STRING, new Object[][]{{"Youri"}, {"Ruben"}, {"Ruben"}}),
-                   is(arrayContainingInAnyOrder("Youri", "Ruben")));
+        assertThat((List<Object>) executeAggregation(DataTypes.STRING, new Object[][]{{"Youri"}, {"Ruben"}, {"Ruben"}}),
+                   is(containsInAnyOrder("Youri", "Ruben")));
     }
 
     @Test
     public void testBoolean() throws Exception {
-        assertThat((Object[]) executeAggregation(DataTypes.BOOLEAN, new Object[][]{{true}, {false}, {false}}),
-                   is(arrayContainingInAnyOrder(true, false)));
+        assertThat((List<Object>) executeAggregation(DataTypes.BOOLEAN, new Object[][]{{true}, {false}, {false}}),
+                   is(containsInAnyOrder(true, false)));
     }
 
     @Test
     public void testNullValue() throws Exception {
         assertThat("null values currently ignored",
-                   (Object[]) executeAggregation(DataTypes.STRING, new Object[][]{{"Youri"}, {"Ruben"}, {null}}),
-                   is(arrayContainingInAnyOrder("Youri", "Ruben")));
+                   (List<Object>) executeAggregation(DataTypes.STRING, new Object[][]{{"Youri"}, {"Ruben"}, {null}}),
+                   is(containsInAnyOrder("Youri", "Ruben")));
     }
 }

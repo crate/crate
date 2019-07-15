@@ -35,7 +35,8 @@ import org.elasticsearch.Version;
 import org.elasticsearch.common.util.BigArrays;
 
 import javax.annotation.Nullable;
-import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.List;
 
 class PercentileAggregation extends AggregationFunction<TDigestState, Object> {
 
@@ -90,28 +91,24 @@ class PercentileAggregation extends AggregationFunction<TDigestState, Object> {
 
     private void initState(TDigestState state, Object argValue) {
         if (argValue != null) {
-            if (argValue.getClass().isArray()) {
-                Object[] values = (Object[]) argValue;
-                if (values.length == 0 || Arrays.asList(values).contains(null)) {
+            if (argValue instanceof List) {
+                List values = (List) argValue;
+                if (values.isEmpty() || values.contains(null)) {
                     throw new IllegalArgumentException("no fraction value specified");
                 }
                 state.fractions(toDoubleArray(values));
             } else {
-                state.fractions(
-                    new double[]{DataTypes.DOUBLE.value(argValue)}
-                );
+                state.fractions(new double[]{DataTypes.DOUBLE.value(argValue)});
             }
         }
     }
 
-    private static double[] toDoubleArray(Object[] array) {
-        Object value;
-        double[] values = new double[array.length];
-        for (int i = 0; i < array.length; i++) {
-            value = array[i];
-            values[i] = DataTypes.DOUBLE.value(value);
+    private static double[] toDoubleArray(List values) {
+        double[] result = new double[values.size()];
+        for (int i = 0; i < values.size(); i++) {
+            result[i] = DataTypes.DOUBLE.value(values.get(i));
         }
-        return values;
+        return result;
     }
 
     @Override
@@ -132,14 +129,14 @@ class PercentileAggregation extends AggregationFunction<TDigestState, Object> {
         if (state.isEmpty()) {
             return null;
         }
-        Double[] percentiles = new Double[state.fractions().length];
+        List<Double> percentiles = new ArrayList<>(state.fractions().length);
         if (info.returnType() instanceof ArrayType) {
             for (int i = 0; i < state.fractions().length; i++) {
                 double percentile = state.quantile(state.fractions()[i]);
                 if (Double.isNaN(percentile)) {
-                    percentiles[i] = null;
+                    percentiles.add(null);
                 } else {
-                    percentiles[i] = percentile;
+                    percentiles.add(percentile);
                 }
             }
             return percentiles;

@@ -80,33 +80,6 @@ public final class EqOperator extends Operator<Object> {
         return info;
     }
 
-    private static class ArrayEqOperator extends Operator<Object> {
-
-        private final FunctionInfo info;
-
-        ArrayEqOperator(FunctionInfo info) {
-            this.info = info;
-        }
-
-        @Override
-        public Boolean evaluate(TransactionContext txnCtx, Input[] args) {
-            Object[] left = (Object[]) args[0].value();
-            if (left == null) {
-                return null;
-            }
-            Object[] right = (Object[]) args[1].value();
-            if (right == null) {
-                return null;
-            }
-            return Arrays.deepEquals(left, right);
-        }
-
-        @Override
-        public FunctionInfo info() {
-            return info;
-        }
-    }
-
     private static class ObjectEqOperator extends Operator<Object> {
 
         private final FunctionInfo info;
@@ -142,11 +115,7 @@ public final class EqOperator extends Operator<Object> {
         public FunctionImplementation getForTypes(List<DataType> argumentTypes) throws IllegalArgumentException {
             DataType leftType = argumentTypes.get(0);
             DataType rightType = argumentTypes.get(1);
-
             FunctionInfo info = new FunctionInfo(new FunctionIdent(NAME, argumentTypes), DataTypes.BOOLEAN);
-            if (DataTypes.isArray(leftType) && DataTypes.isArray(rightType)) {
-                return new ArrayEqOperator(info);
-            }
             if (leftType.id() == ObjectType.ID && rightType.id() == ObjectType.ID) {
                 return new ObjectEqOperator(info);
             }

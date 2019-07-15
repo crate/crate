@@ -21,6 +21,7 @@
 
 package io.crate.metadata.information;
 
+import io.crate.common.collections.Lists2;
 import io.crate.expression.reference.information.TablesSettingsExpression;
 import io.crate.expression.reference.information.TablesVersionExpression;
 import io.crate.metadata.ColumnIdent;
@@ -41,10 +42,10 @@ import java.util.List;
 import java.util.Map;
 
 import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
-import static io.crate.types.DataTypes.STRING;
+import static io.crate.types.DataTypes.BOOLEAN;
 import static io.crate.types.DataTypes.INTEGER;
 import static io.crate.types.DataTypes.LONG;
-import static io.crate.types.DataTypes.BOOLEAN;
+import static io.crate.types.DataTypes.STRING;
 import static io.crate.types.DataTypes.STRING_ARRAY;
 
 public class InformationTablesTableInfo extends InformationTableInfo<RelationInfo> {
@@ -55,7 +56,6 @@ public class InformationTablesTableInfo extends InformationTableInfo<RelationInf
     private static final String SELF_REFERENCING_COLUMN_NAME = "_id";
     private static final String REFERENCE_GENERATION = "SYSTEM GENERATED";
 
-    @SuppressWarnings({"unchecked"})
     private static ColumnRegistrar<RelationInfo> columnRegistrar() {
         return new ColumnRegistrar<RelationInfo>(IDENT, RowGranularity.DOC)
             .register("table_schema", STRING, () -> forFunction(r -> r.ident().schema()))
@@ -93,12 +93,7 @@ public class InformationTablesTableInfo extends InformationTableInfo<RelationInf
                         if (partitionedBy == null || partitionedBy.isEmpty()) {
                             return null;
                         }
-
-                        String[] partitions = new String[partitionedBy.size()];
-                        for (int i = 0; i < partitions.length; i++) {
-                            partitions[i] = partitionedBy.get(i).fqn();
-                        }
-                        return partitions;
+                        return Lists2.map(partitionedBy, ColumnIdent::fqn);
                     }
                     return null;
                 }))

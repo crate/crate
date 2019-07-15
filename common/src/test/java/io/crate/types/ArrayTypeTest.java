@@ -27,7 +27,11 @@ import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
-import static org.hamcrest.Matchers.array;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
@@ -37,7 +41,7 @@ public class ArrayTypeTest extends CrateUnitTest {
     @Test
     public void testArrayTypeSerialization() throws Exception {
         // nested string array: [ ["x"], ["y"] ]
-        ArrayType arrayType = new ArrayType(new ArrayType(StringType.INSTANCE));
+        ArrayType arrayType = new ArrayType<>(new ArrayType<>(StringType.INSTANCE));
         BytesStreamOutput out = new BytesStreamOutput();
 
         DataTypes.toStream(arrayType, out);
@@ -57,16 +61,13 @@ public class ArrayTypeTest extends CrateUnitTest {
 
     @Test
     public void testValueSerialization() throws Exception {
-        ArrayType arrayType = new ArrayType(StringType.INSTANCE);
-
-        Streamer streamer = arrayType.streamer();
-
-        String[] serArray = new String[]{
+        ArrayType<String> arrayType = new ArrayType<>(StringType.INSTANCE);
+        Streamer<List<String>> streamer = arrayType.streamer();
+        List<String> serArray = Arrays.asList(
             "foo",
             "bar",
             "foobar"
-        };
-
+        );
         BytesStreamOutput out = new BytesStreamOutput();
         streamer.writeValueTo(out, serArray);
 
@@ -77,9 +78,8 @@ public class ArrayTypeTest extends CrateUnitTest {
 
     @Test
     public void testNullValues() throws Exception {
-        ArrayType arrayType = new ArrayType(StringType.INSTANCE);
-
-        Streamer streamer = arrayType.streamer();
+        ArrayType<String> arrayType = new ArrayType<>(StringType.INSTANCE);
+        var streamer = arrayType.streamer();
 
         BytesStreamOutput out = new BytesStreamOutput();
 
@@ -89,11 +89,11 @@ public class ArrayTypeTest extends CrateUnitTest {
         assertThat(streamer.readValueFrom(in), is(nullValue()));
 
         out.reset();
-        Object[] nullArray = {null};
-        streamer.writeValueTo(out, nullArray);
+        List<String> listWithNullItem = new ArrayList<>();
+        listWithNullItem.add(null);
+        streamer.writeValueTo(out, listWithNullItem);
 
         in = out.bytes().streamInput();
-        Object[] o = (Object[]) streamer.readValueFrom(in);
-        assertThat(o, is(array(nullValue())));
+        assertThat(streamer.readValueFrom(in), contains(nullValue()));
     }
 }

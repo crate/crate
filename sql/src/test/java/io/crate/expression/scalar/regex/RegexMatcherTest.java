@@ -22,9 +22,10 @@
 package io.crate.expression.scalar.regex;
 
 import io.crate.test.integration.CrateUnitTest;
+import org.hamcrest.Matchers;
 import org.junit.Test;
 
-import static org.hamcrest.Matchers.arrayContaining;
+import static org.hamcrest.Matchers.contains;
 
 public class RegexMatcherTest extends CrateUnitTest {
 
@@ -34,27 +35,27 @@ public class RegexMatcherTest extends CrateUnitTest {
         String text = "foobarbequebaz";
         RegexMatcher regexMatcher = new RegexMatcher(pattern);
         assertEquals(false, regexMatcher.match(text));
-        assertArrayEquals(null, regexMatcher.groups());
+        assertThat(regexMatcher.groups(), Matchers.nullValue());
 
         pattern = "ba";
         regexMatcher = new RegexMatcher(pattern);
         assertEquals(true, regexMatcher.match(text));
-        assertThat(regexMatcher.groups(), arrayContaining("ba"));
+        assertThat(regexMatcher.groups(), contains("ba"));
 
         pattern = "(ba)";
         regexMatcher = new RegexMatcher(pattern);
         assertEquals(true, regexMatcher.match(text));
-        assertThat(regexMatcher.groups(), arrayContaining("ba"));
+        assertThat(regexMatcher.groups(), contains("ba"));
 
         pattern = ".*(ba).*";
         regexMatcher = new RegexMatcher(pattern);
         assertEquals(true, regexMatcher.match(text));
-        assertThat(regexMatcher.groups(), arrayContaining("ba"));
+        assertThat(regexMatcher.groups(), contains("ba"));
 
         pattern = "((\\w+?)(ba))";
         regexMatcher = new RegexMatcher(pattern);
         assertEquals(true, regexMatcher.match(text));
-        assertThat(regexMatcher.groups(), arrayContaining("fooba", "foo", "ba"));
+        assertThat(regexMatcher.groups(), contains("fooba", "foo", "ba"));
     }
 
     @Test
@@ -95,6 +96,6 @@ public class RegexMatcherTest extends CrateUnitTest {
         String text = "gcc -Wall --std=c99 -o source source.c";
         RegexMatcher regexMatcher = new RegexMatcher(pattern);
         assertEquals(true, regexMatcher.match(text));
-        assertThat(regexMatcher.groups(), arrayContaining(" --std", null));
+        assertThat(regexMatcher.groups(), contains(" --std", null));
     }
 }

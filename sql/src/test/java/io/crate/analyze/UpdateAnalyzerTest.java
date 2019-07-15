@@ -314,7 +314,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(sources[0].valueType().id(), is(ArrayType.ID));
         assertThat(((ArrayType) sources[0].valueType()).innerType().id(), is(ObjectType.ID));
-        assertThat(((Object[]) ((Literal) sources[0]).value()).length, is(0));
+        assertThat(((List) ((Literal) sources[0]).value()).size(), is(0));
     }
 
     @Test

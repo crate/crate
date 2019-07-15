@@ -24,10 +24,12 @@ package io.crate.expression.scalar;
 
 import io.crate.data.Input;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.TransactionContext;
 
-class ArrayLowerFunction extends Scalar<Integer, Object[]> {
+import java.util.List;
+
+class ArrayLowerFunction extends Scalar<Integer, Object> {
 
     public static final String NAME = "array_lower";
     private FunctionInfo functionInfo;
@@ -47,9 +49,10 @@ class ArrayLowerFunction extends Scalar<Integer, Object[]> {
 
     @Override
     public Integer evaluate(TransactionContext txnCtx, Input[] args) {
-        Object[] array = (Object[]) args[0].value();
+        @SuppressWarnings("unchecked")
+        List<Object> values = (List<Object>) args[0].value();
         Object dimension1Indexed = args[1].value();
-        if (array == null || array.length == 0 || dimension1Indexed == null) {
+        if (values == null || values.isEmpty() || dimension1Indexed == null) {
             return null;
         }
 
@@ -57,13 +60,13 @@ class ArrayLowerFunction extends Scalar<Integer, Object[]> {
         int dimension = (int) dimension1Indexed - 1;
 
         try {
-            Object dimensionValue = array[dimension];
-            if (dimensionValue.getClass().isArray()) {
-                Object[] dimensionArray = (Object[]) dimensionValue;
-                return dimensionArray.length > 0 ? 1 : null;
+            Object dimensionValue = values.get(dimension);
+            if (dimensionValue instanceof List) {
+                List dimensionArray = (List) dimensionValue;
+                return dimensionArray.size() > 0 ? 1 : null;
             }
             return 1;
-        } catch (ArrayIndexOutOfBoundsException e) {
+        } catch (IndexOutOfBoundsException e) {
             return null;
         }
     }

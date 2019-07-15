@@ -29,8 +29,10 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.is;
 
 public class ObjectColumnTest extends SQLTransportIntegrationTest {
@@ -271,7 +273,6 @@ public class ObjectColumnTest extends SQLTransportIntegrationTest {
     @Test
     public void testSelectDynamicObjectNewColumns() throws Exception {
         execute("create table test (message string, person object(dynamic)) with (number_of_replicas=0)");
-        ensureYellow();
         execute("insert into test (message, person) values " +
                 "('I''m addicted to kite', {name='Youri', addresses=[{city='Dirksland', country='NL'}]})");
         execute("refresh table test");
@@ -283,10 +284,9 @@ public class ObjectColumnTest extends SQLTransportIntegrationTest {
         assertEquals(1L, response.rowCount());
         assertArrayEquals(new String[]{"message", "person['name']", "person['addresses']['city']"},
             response.cols());
-        assertArrayEquals(
-            new Object[]{"I'm addicted to kite", "Youri", new Object[]{"Dirksland"}},
-            response.rows()[0]
-        );
+        assertThat(
+            response.rows()[0],
+            arrayContaining("I'm addicted to kite", "Youri", List.of("Dirksland")));
     }
 
     @Test

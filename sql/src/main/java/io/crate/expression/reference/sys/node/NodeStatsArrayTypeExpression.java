@@ -33,7 +33,7 @@ public abstract class NodeStatsArrayTypeExpression<I, R>
         value = null;
         if (nodeStatsContext.isComplete()) {
             super.setNextRow(nodeStatsContext);
-            assert value.length == 0 || !(value[0] instanceof BytesRef) :
+            assert value.size() == 0 || !(value.get(0) instanceof BytesRef) :
                 "Sys table expressions should not be of type BytesRef";
         }
     }

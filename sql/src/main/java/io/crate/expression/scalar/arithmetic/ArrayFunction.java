@@ -29,13 +29,14 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.FunctionResolver;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.params.FuncParams;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.List;
 
 public class ArrayFunction extends Scalar<Object, Object> {
@@ -44,7 +45,8 @@ public class ArrayFunction extends Scalar<Object, Object> {
     private final FunctionInfo info;
 
     public static FunctionInfo createInfo(List<DataType> argumentTypes) {
-        return new FunctionInfo(new FunctionIdent(NAME, argumentTypes), new ArrayType(argumentTypes.get(0)));
+        DataType<?> innerType = argumentTypes.get(0);
+        return new FunctionInfo(new FunctionIdent(NAME, argumentTypes), new ArrayType<>(innerType));
     }
 
     private static final FunctionResolver RESOLVER = new FunctionResolver() {
@@ -73,9 +75,9 @@ public class ArrayFunction extends Scalar<Object, Object> {
     @SafeVarargs
     @Override
     public final Object evaluate(TransactionContext txnCtx, Input<Object>... args) {
-        Object[] values = new Object[args.length];
-        for (int i = 0; i < values.length; i++) {
-            values[i] = args[i].value();
+        ArrayList<Object> values = new ArrayList<>(args.length);
+        for (Input<Object> arg : args) {
+            values.add(arg.value());
         }
         return values;
     }

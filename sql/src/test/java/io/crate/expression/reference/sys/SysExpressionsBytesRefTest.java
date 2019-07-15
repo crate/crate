@@ -27,6 +27,7 @@ import io.crate.test.integration.CrateUnitTest;
 import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
+import java.util.List;
 import java.util.Map;
 
 import static org.hamcrest.Matchers.hasKey;
@@ -76,10 +77,11 @@ public class SysExpressionsBytesRefTest extends CrateUnitTest {
     @Test
     public void testSysObjectArrayReferenceNull() throws Exception {
         NullSysObjectArrayReference nullArrayRef = new NullSysObjectArrayReference();
-        Object[] values = nullArrayRef.value();
-        assertThat(values.length, is(1));
-        assertThat(values[0], instanceOf(Map.class));
-        Map<String, Object> mapValue = (Map<String, Object>) values[0];
+        List<Object> values = nullArrayRef.value();
+        assertThat(values.size(), is(1));
+        assertThat(values.get(0), instanceOf(Map.class));
+        @SuppressWarnings("unchecked")
+        Map<String, Object> mapValue = (Map<String, Object>) values.get(0);
 
         assertThat(mapValue.size(), is(1));
         assertThat(mapValue, hasKey("n"));

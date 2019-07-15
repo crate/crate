@@ -33,8 +33,6 @@ import org.elasticsearch.common.xcontent.json.JsonXContent;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -148,35 +146,6 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
             newMap.put(key, innerType.value(entry.getValue()));
         }
         return newMap;
-    }
-
-    @Override
-    public Object hashableValue(Object value) throws IllegalArgumentException, ClassCastException {
-        if (value instanceof Map) {
-            //noinspection unchecked
-            Map<String, Object> m = (Map<String, Object>) value;
-            HashMap<String, Object> result = new HashMap<>();
-            for (Map.Entry<String, Object> entry : m.entrySet()) {
-                result.put(entry.getKey(), hashableValue(entry.getValue()));
-            }
-            return result;
-        } else if (value instanceof Collection) {
-            Collection collection = (Collection) value;
-            ArrayList<Object> result = new ArrayList<>(collection.size());
-            for (Object o : collection) {
-                result.add(hashableValue(o));
-            }
-            return result;
-        } else if (value.getClass().isArray()) {
-            Object[] arr = (Object[]) value;
-            ArrayList<Object> result = new ArrayList<>(arr.length);
-            for (Object o : arr) {
-                result.add(hashableValue(o));
-            }
-            return result;
-        } else {
-            return value;
-        }
     }
 
     private static Map<String,Object> mapFromJSONString(String value) {

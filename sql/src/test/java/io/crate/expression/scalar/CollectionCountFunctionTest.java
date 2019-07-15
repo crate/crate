@@ -26,14 +26,16 @@ import io.crate.types.ArrayType;
 import io.crate.types.LongType;
 import org.junit.Test;
 
+import java.util.List;
+
 public class CollectionCountFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testEvaluate() throws Exception {
-        assertEvaluate("collection_count(long_array)",
-                       2L,
-                       Literal.of(new Long[]{3L, 7L}, new ArrayType(LongType.INSTANCE))
+        assertEvaluate(
+            "collection_count(long_array)",
+            2L,
+            Literal.of(List.of(3L, 7L), new ArrayType<>(LongType.INSTANCE))
         );
     }
-
 }

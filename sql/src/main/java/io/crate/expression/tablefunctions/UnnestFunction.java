@@ -33,13 +33,13 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.table.StaticTableInfo;
 import io.crate.metadata.table.TableInfo;
@@ -49,6 +49,7 @@ import io.crate.types.DataType;
 import io.crate.types.ObjectType;
 import org.elasticsearch.cluster.ClusterState;
 
+import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -65,7 +66,7 @@ public class UnnestFunction {
     private static final String NAME = "unnest";
     public static final RelationName TABLE_IDENT = new RelationName("", NAME);
 
-    static class UnnestTableFunctionImplementation extends TableFunctionImplementation {
+    static class UnnestTableFunctionImplementation extends TableFunctionImplementation<List<Object>> {
 
         private final FunctionInfo info;
 
@@ -85,9 +86,10 @@ public class UnnestFunction {
          * @return Bucket containing the unnested rows.
          * [ [1, Marvin], [2, Trillian] ]
          */
+        @SafeVarargs
         @Override
-        public Bucket evaluate(TransactionContext txnCtx, Input[] arguments) {
-            final List<Object[]> values = extractValues(arguments);
+        public final Bucket evaluate(TransactionContext txnCtx, Input<List<Object>>... arguments) {
+            final List<List<Object>> values = extractValues(arguments);
             final int numCols = arguments.length;
             final int numRows = maxLength(values);
 
@@ -101,8 +103,9 @@ public class UnnestFunction {
                 }
 
                 @Override
+                @Nonnull
                 public Iterator<Row> iterator() {
-                    return new Iterator<Row>() {
+                    return new Iterator<>() {
 
                         int currentRow = 0;
 
@@ -117,11 +120,11 @@ public class UnnestFunction {
                                 throw new NoSuchElementException("No more rows");
                             }
                             for (int c = 0; c < numCols; c++) {
-                                Object[] columnValues = values.get(c);
-                                if (columnValues == null || columnValues.length <= currentRow) {
+                                List<Object> columnValues = values.get(c);
+                                if (columnValues == null || columnValues.size() <= currentRow) {
                                     cells[c] = null;
                                 } else {
-                                    cells[c] = columnValues[currentRow];
+                                    cells[c] = columnValues.get(currentRow);
                                 }
                             }
                             currentRow++;
@@ -138,16 +141,11 @@ public class UnnestFunction {
             };
         }
 
-        private static List<Object[]> extractValues(Input[] arguments) {
-            List<Object[]> values = new ArrayList<>(arguments.length);
-            for (Input argument : arguments) {
-                Object value = argument.value();
-                if (value == null) {
-                    values.add(null);
-                } else {
-                    assert value instanceof Object[] : "must be an array because unnest only accepts array arguments";
-                    values.add((Object[]) value);
-                }
+        @SafeVarargs
+        private static List<List<Object>> extractValues(Input<List<Object>> ... arguments) {
+            List<List<Object>> values = new ArrayList<>(arguments.length);
+            for (Input<List<Object>> argument : arguments) {
+                values.add(argument.value());
             }
             return values;
         }
@@ -186,11 +184,11 @@ public class UnnestFunction {
         }
     }
 
-    private static int maxLength(List<Object[]> values) {
+    private static int maxLength(List<List<Object>> values) {
         int length = 0;
-        for (Object[] value : values) {
-            if (value != null && value.length > length) {
-                length = value.length;
+        for (List<Object> value : values) {
+            if (value != null && value.size() > length) {
+                length = value.size();
             }
         }
         return length;

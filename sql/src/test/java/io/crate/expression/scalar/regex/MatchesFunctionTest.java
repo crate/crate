@@ -31,6 +31,8 @@ import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.junit.Test;
 
+import java.util.List;
+
 import static io.crate.testing.SymbolMatchers.isLiteral;
 
 public class MatchesFunctionTest extends AbstractScalarFunctionsTest {
@@ -54,13 +56,13 @@ public class MatchesFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testEvaluateWithCompile() throws Exception {
-        String[] expected = new String[]{"ba"};
+        List<String> expected = List.of("ba");
         assertEvaluate("regexp_matches(name, '.*(ba).*')", expected, Literal.of("foobarbequebaz bar"));
     }
 
     @Test
     public void testEvaluate() throws Exception {
-        String[] expected = new String[]{"ba"};
+        List<String> expected = List.of("ba");
         assertEvaluate("regexp_matches(name, regex_pattern)", expected,
             Literal.of("foobarbequebaz bar"),
             Literal.of(".*(ba).*"));
@@ -68,7 +70,7 @@ public class MatchesFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testEvaluateWithFlags() throws Exception {
-        String[] expected = new String[]{"ba"};
+        List<String> expected = List.of("ba");
         assertEvaluate("regexp_matches(name, regex_pattern, 'us')", expected,
             Literal.of("foobarbequebaz bar"),
             Literal.of(".*(ba).*"));
@@ -77,13 +79,13 @@ public class MatchesFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testNormalizeSymbol() throws Exception {
         assertNormalize("regexp_matches('foobarbequebaz bar', '.*(ba).*')",
-            isLiteral(new String[]{"ba"}, new ArrayType(DataTypes.STRING)));
+            isLiteral(List.of("ba"), new ArrayType<>(DataTypes.STRING)));
     }
 
     @Test
     public void testNormalizeSymbolWithFlags() throws Exception {
         assertNormalize("regexp_matches('foobarbequebaz bar', '.*(ba).*', 'us')",
-            isLiteral(new String[]{"ba"}, new ArrayType(DataTypes.STRING)));
+            isLiteral(List.of("ba"), new ArrayType<>(DataTypes.STRING)));
     }
 
     @Test

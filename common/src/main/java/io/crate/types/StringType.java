@@ -30,6 +30,7 @@ import org.elasticsearch.common.unit.TimeValue;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Locale;
 import java.util.Map;
 
@@ -81,7 +82,7 @@ public class StringType extends DataType<String> implements Streamer<String> {
                 return F;
             }
         }
-        if (value instanceof Map) {
+        if (value instanceof Map || value instanceof Collection) {
             throw new IllegalArgumentException(
                 String.format(Locale.ENGLISH, "Cannot cast %s to type string", value));
         }

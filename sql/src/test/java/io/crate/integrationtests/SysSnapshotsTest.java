@@ -32,6 +32,7 @@ import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.snapshots.SnapshotState;
 import org.elasticsearch.test.ESIntegTestCase;
+import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -44,7 +45,6 @@ import java.util.Iterator;
 import java.util.List;
 
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.is;
@@ -143,7 +143,7 @@ public class SysSnapshotsTest extends SQLTransportIntegrationTest {
         assertThat(response.cols(), is(new String[]{"concrete_indices", "finished", "name", "repository", "started", "state", "version"}));
         assertThat(response.columnTypes(), is(
             new DataType[]{
-                new ArrayType(StringType.INSTANCE),
+                new ArrayType<>(StringType.INSTANCE),
                 TimestampType.INSTANCE_WITH_TZ,
                 StringType.INSTANCE,
                 StringType.INSTANCE,
@@ -151,7 +151,7 @@ public class SysSnapshotsTest extends SQLTransportIntegrationTest {
                 StringType.INSTANCE,
                 StringType.INSTANCE
             }));
-        assertThat((Object[]) response.rows()[0][0], arrayContaining(getFqn("test_table")));
+        assertThat((List<Object>) response.rows()[0][0], Matchers.contains(getFqn("test_table")));
         assertThat((Long) response.rows()[0][1], lessThanOrEqualTo(finishedTime));
         assertThat(response.rows()[0][2], is("test_snap_1"));
         assertThat(response.rows()[0][3], is(REPOSITORY_NAME));

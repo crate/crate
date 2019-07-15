@@ -28,6 +28,7 @@ import io.crate.types.ObjectType;
 import org.junit.Test;
 
 import java.util.Collections;
+import java.util.List;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -36,9 +37,9 @@ public class SizeEstimatorFactoryTest {
 
     @Test
     public void testSizeEstimationForArrayType() throws Exception {
-        ArrayType arrayType = new ArrayType(DataTypes.INTEGER);
+        ArrayType<Integer> arrayType = new ArrayType<>(DataTypes.INTEGER);
         SizeEstimator<Object> estimator = SizeEstimatorFactory.create(arrayType);
-        assertThat(estimator.estimateSize(new Integer[]{10, 20, 30}), is(64L));
+        assertThat(estimator.estimateSize(List.of(10, 20, 30)), is(64L));
     }
 
     @Test

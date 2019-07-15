@@ -73,7 +73,7 @@ public final class Param {
 
     public static final Param ANY = of();
     public static final Param NUMERIC = of(DataTypes.NUMERIC_PRIMITIVE_TYPES);
-    public static final Param ANY_ARRAY = of(new ArrayType(DataTypes.UNDEFINED));
+    public static final Param ANY_ARRAY = of(new ArrayType<>(DataTypes.UNDEFINED));
     public static final Param INTEGER = of(IntegerType.INSTANCE);
     public static final Param LONG = of(LongType.INSTANCE);
     public static final Param STRING = of(StringType.INSTANCE);
@@ -145,7 +145,7 @@ public final class Param {
         return validTypes;
     }
 
-    DataType getBoundType(boolean multiBind) {
+    DataType<?> getBoundType(boolean multiBind) {
         final DataType boundType;
         if (multiBind) {
             boundType = this.multiBoundStack.get().removeFirst();
@@ -156,9 +156,9 @@ public final class Param {
             "Type not bound when it should have been.");
         if (this.innerType != null) {
             if (boundType instanceof ArrayType) {
-                DataType innerType = this.innerType.getBoundType(multiBind);
+                DataType<?> innerType = this.innerType.getBoundType(multiBind);
                 if (innerType != null) {
-                    return new ArrayType(innerType);
+                    return new ArrayType<>(innerType);
                 }
             }
         }

@@ -25,12 +25,13 @@ package io.crate.expression.reference.sys;
 
 import io.crate.execution.engine.collect.NestableCollectExpression;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public abstract class ArrayTypeNestableContextCollectExpression<RowType, IterType, ReturnType>
-    implements NestableCollectExpression<RowType, ReturnType[]> {
+    implements NestableCollectExpression<RowType, List<ReturnType>> {
 
-    protected ReturnType[] value;
+    protected List<ReturnType> value;
 
     protected abstract List<IterType> items(RowType rowType);
 
@@ -42,17 +43,16 @@ public abstract class ArrayTypeNestableContextCollectExpression<RowType, IterTyp
     }
 
     @Override
-    public ReturnType[] value() {
+    public List<ReturnType> value() {
         return value;
     }
 
     protected void computeValue(List<IterType> items) {
         int size = items.size();
-        //noinspection unchecked
-        ReturnType[] returnItems = (ReturnType[]) new Object[size];
+        ArrayList<ReturnType> result = new ArrayList<>(size);
         for (int idx = 0; idx < size; idx++) {
-            returnItems[idx] = valueForItem(items.get(idx));
+            result.add(valueForItem(items.get(idx)));
         }
-        value = returnItems;
+        value = result;
     }
 }

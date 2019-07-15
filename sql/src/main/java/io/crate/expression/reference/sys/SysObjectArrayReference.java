@@ -21,50 +21,41 @@
 
 package io.crate.expression.reference.sys;
 
-import com.google.common.base.Function;
 import com.google.common.collect.Maps;
 import io.crate.expression.NestableInput;
 import io.crate.expression.reference.NestedObjectExpression;
 
-import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public abstract class SysObjectArrayReference implements NestableInput<Object[]> {
+public abstract class SysObjectArrayReference implements NestableInput<List<Object>> {
 
     protected abstract List<NestedObjectExpression> getChildImplementations();
 
     @Override
-    public NestableInput<Object[]> getChild(String name) {
+    public NestableInput<List<Object>> getChild(String name) {
         List<NestedObjectExpression> childImplementations = getChildImplementations();
-        final Object[] values = new Object[childImplementations.size()];
-        int i = 0;
+        final ArrayList<Object> values = new ArrayList<>(childImplementations.size());
         for (NestedObjectExpression sysObjectReference : childImplementations) {
             NestableInput<?> child = sysObjectReference.getChild(name);
             if (child != null) {
                 Object value = child.value();
-                values[i++] = value;
+                values.add(value);
             } else {
-                values[i++] = null;
+                values.add(null);
             }
         }
         return () -> values;
     }
 
     @Override
-    public Object[] value() {
+    public List<Object> value() {
         List<NestedObjectExpression> childImplementations = getChildImplementations();
-        Object[] values = new Object[childImplementations.size()];
-        int i = 0;
+        ArrayList<Object> values = new ArrayList<>(childImplementations.size());
         for (NestedObjectExpression expression : childImplementations) {
-            Map<String, Object> map = Maps.transformValues(expression.getChildImplementations(), new Function<NestableInput, Object>() {
-                @Nullable
-                @Override
-                public Object apply(@Nullable NestableInput input) {
-                    return input.value();
-                }
-            });
-            values[i++] = map;
+            Map<String, Object> map = Maps.transformValues(expression.getChildImplementations(), NestableInput::value);
+            values.add(map);
         }
         return values;
     }

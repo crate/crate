@@ -553,7 +553,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         execute("INSERT INTO t (attributes) values ([{name='Trillian', is_nice=True}])");
         refresh();
         execute("select attributes from t");
-        assertThat(((Object[])response.rows()[0][0])[0], is(ImmutableMap.of("name", "Trillian", "is_nice", true)));
+        assertThat(((List<Object>)response.rows()[0][0]).get(0), is(ImmutableMap.of("name", "Trillian", "is_nice", true)));
     }
 
     @Test

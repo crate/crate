@@ -37,8 +37,11 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
@@ -53,7 +56,7 @@ public class PercentileAggregationTest extends AggregationTest {
 
     private Object execArrayFractionPercentile(DataType valueType, Object[][] rows) throws Exception {
         String name = "percentile";
-        return executeAggregation(name, valueType, rows, ImmutableList.of(valueType, new ArrayType(DataTypes.DOUBLE)));
+        return executeAggregation(name, valueType, rows, ImmutableList.of(valueType, new ArrayType<>(DataTypes.DOUBLE)));
     }
 
     private PercentileAggregation singleArgPercentile;
@@ -64,36 +67,32 @@ public class PercentileAggregationTest extends AggregationTest {
         singleArgPercentile = (PercentileAggregation) functions.getQualified(
             new FunctionIdent(NAME, Arrays.asList(DataTypes.DOUBLE, DataTypes.DOUBLE)));
         arraysPercentile = (PercentileAggregation) functions.getQualified(
-            new FunctionIdent(NAME, Arrays.asList(DataTypes.DOUBLE, new ArrayType(DataTypes.DOUBLE))));
+            new FunctionIdent(NAME, Arrays.asList(DataTypes.DOUBLE, new ArrayType<>(DataTypes.DOUBLE))));
     }
 
     @Test
     public void testReturnTypes() throws Exception {
         assertEquals(DataTypes.DOUBLE, singleArgPercentile.info().returnType());
-        assertEquals(new ArrayType(DataTypes.DOUBLE), arraysPercentile.info().returnType());
+        assertEquals(new ArrayType<>(DataTypes.DOUBLE), arraysPercentile.info().returnType());
     }
 
     @Test
     public void testAllTypesReturnSameResult() throws Exception {
         for (DataType valueType : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
-            Double[] fractions = {0.5, 0.8};
+            List<Double> fractions = Arrays.asList(0.5, 0.8);
             Object[][] rowsWithSingleFraction = new Object[10][];
             Object[][] rowsWithFractionsArray = new Object[10][];
             for (int i = 0; i < rowsWithSingleFraction.length; i++) {
-                rowsWithSingleFraction[i] = new Object[]{
-                    valueType.value(i), fractions[0]
-                };
-                rowsWithFractionsArray[i] = new Object[]{
-                    valueType.value(i), fractions
-                };
+                rowsWithSingleFraction[i] = new Object[]{ valueType.value(i), fractions.get(0) };
+                rowsWithFractionsArray[i] = new Object[]{ valueType.value(i), fractions };
             }
             Object result = execSingleFractionPercentile(valueType, rowsWithSingleFraction);
             assertEquals(4.5, result);
             result = execArrayFractionPercentile(valueType, rowsWithFractionsArray);
-            assertTrue(result.getClass().isArray());
-            assertEquals(2, ((Object[]) result).length);
-            assertEquals(4.5, ((Object[]) result)[0]);
-            assertEquals(7.5, ((Object[]) result)[1]);
+            assertThat(result, instanceOf(List.class));
+            assertEquals(2, ((List) result).size());
+            assertEquals(4.5, ((List) result).get(0));
+            assertEquals(7.5, ((List) result).get(1));
         }
     }
 
@@ -109,15 +108,15 @@ public class PercentileAggregationTest extends AggregationTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testEmptyPercentile() throws Exception {
-        Object result = execSingleFractionPercentile(DataTypes.INTEGER, new Object[][]{
-            {1, new Object[]{}},
-            {10, new Object[]{}}
+        execSingleFractionPercentile(DataTypes.INTEGER, new Object[][]{
+            {1, List.of()},
+            {10, List.of()}
         });
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testNullMultiplePercentiles() throws Exception {
-        Double[] fractions = new Double[]{0.25, null};
+        List<Double> fractions = Arrays.asList(0.25, null);
         execSingleFractionPercentile(DataTypes.INTEGER, new Object[][]{
             {1, fractions},
             {10, fractions}
@@ -195,17 +194,17 @@ public class PercentileAggregationTest extends AggregationTest {
 
     @Test
     public void testSingleItemFractionsArgumentResultsInArrayResult() {
-        ArrayType doubleArray = new ArrayType(DataTypes.DOUBLE);
+        ArrayType<Double> doubleArray = new ArrayType<>(DataTypes.DOUBLE);
         AggregationFunction impl = (AggregationFunction<?, ?>) functions.getQualified(
             new FunctionIdent(NAME, Arrays.asList(DataTypes.LONG, doubleArray)));
 
         RamAccountingContext memoryCtx = new RamAccountingContext("dummy", new NoopCircuitBreaker("dummy"));
         Object state = impl.newState(memoryCtx, Version.CURRENT, BigArrays.NON_RECYCLING_INSTANCE);
-        Literal<Object[]> fractions = Literal.of(new Object[]{0.95}, doubleArray);
+        Literal<List<Double>> fractions = Literal.of(Collections.singletonList(0.95D), doubleArray);
         impl.iterate(memoryCtx, state, Literal.of(10L), fractions);
         impl.iterate(memoryCtx, state, Literal.of(20L), fractions);
         Object result = impl.terminatePartial(memoryCtx, state);
 
-        assertThat("result must be an array", result.getClass().isArray(), is(true));
+        assertThat("result must be an array", result, instanceOf(List.class));
     }
 }

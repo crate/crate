@@ -42,6 +42,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -279,9 +280,9 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testCopyFromFileUriArray() throws Exception {
-        Object[] files = $("/f1.json", "/f2.json");
+        List<String> files = Arrays.asList("/f1.json", "/f2.json");
         CopyFromAnalyzedStatement copyFrom = e.analyze("copy users from ?", new Object[]{files});
-        assertThat(copyFrom.uri(), isLiteral($("/f1.json", "/f2.json"), new ArrayType(DataTypes.STRING)));
+        assertThat(copyFrom.uri(), isLiteral(List.of("/f1.json", "/f2.json"), new ArrayType<>(DataTypes.STRING)));
     }
 
     @Test

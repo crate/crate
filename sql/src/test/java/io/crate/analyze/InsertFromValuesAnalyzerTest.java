@@ -376,13 +376,13 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
             }
             });
         assertThat(analysis.sourceMaps().get(0).length, is(2));
-        assertThat((Long) analysis.sourceMaps().get(0)[0], is(0L));
-        assertArrayEquals(
-            (Object[]) analysis.sourceMaps().get(0)[1],
-            new Object[]{
+        assertThat(analysis.sourceMaps().get(0)[0], is(0L));
+        assertThat(
+            (List<Map>) analysis.sourceMaps().get(0)[1],
+            contains(
                 new MapBuilder<String, Object>().put("name", "Jeltz").map(),
-                new MapBuilder<String, Object>().put("name", "Prosser").map(),
-            }
+                new MapBuilder<String, Object>().put("name", "Prosser").map()
+            )
         );
     }
 
@@ -412,7 +412,7 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
     @Test
     public void testInsertInvalidObjectArrayInObject() throws Exception {
         expectedException.expect(ColumnValidationException.class);
-        expectedException.expectMessage("Validation failed for details: invalid value for object array type");
+        expectedException.expectMessage("Validation failed for details: Invalid value '{\"arguments\"=[1, 2, 3], \"awesome\"=true}' in insert statement");
         e.analyze("insert into deeply_nested (details) " +
                 "values (" +
                 "  {awesome=true, arguments=[1,2,3]}" +
@@ -441,21 +441,21 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
             "           {\"name\"='fancy', \"metadata\"=[{\"id\"='2'}, {\"id\"=3}]}" +
             "         ])");
         assertThat(analysis.sourceMaps().size(), is(1));
-        Object[] arrayValue = (Object[]) analysis.sourceMaps().get(0)[0];
-        assertThat(arrayValue.length, is(2));
-        assertThat(arrayValue[0], instanceOf(Map.class));
-        assertThat(((Map) arrayValue[0]).get("name"), is("cool"));
-        assertThat(((Map) arrayValue[1]).get("name"), is("fancy"));
-        assertThat(Arrays.toString(((Object[]) ((Map) arrayValue[0]).get("metadata"))), is("[{id=0}, {id=1}]"));
-        assertThat(Arrays.toString(((Object[]) ((Map) arrayValue[1]).get("metadata"))), is("[{id=2}, {id=3}]"));
+        List<Object> arrayValue = (List<Object>) analysis.sourceMaps().get(0)[0];
+        assertThat(arrayValue.size(), is(2));
+        assertThat(arrayValue.get(0), instanceOf(Map.class));
+        assertThat(((Map) arrayValue.get(0)).get("name"), is("cool"));
+        assertThat(((Map) arrayValue.get(1)).get("name"), is("fancy"));
+        assertThat(((Map) arrayValue.get(0)).get("metadata").toString(), is("[{id=0}, {id=1}]"));
+        assertThat(((Map) arrayValue.get(1)).get("metadata").toString(), is("[{id=2}, {id=3}]"));
     }
 
     @Test
     public void testInsertEmptyObjectArrayParameter() throws Exception {
         InsertFromValuesAnalyzedStatement analysis = e.analyze("insert into users (id, friends) values(?, ?)",
             new Object[]{0, new Map[0]});
-        assertThat((Long) analysis.sourceMaps().get(0)[0], is(0L));
-        assertThat(((Object[]) analysis.sourceMaps().get(0)[1]).length, is(0));
+        assertThat(analysis.sourceMaps().get(0)[0], is(0L));
+        assertThat(((List) analysis.sourceMaps().get(0)[1]).size(), is(0));
     }
 
     @Test(expected = InvalidColumnNameException.class)
@@ -711,8 +711,8 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
             });
 
         assertThat(analysis.sourceMaps().size(), is(2));
-        assertThat((Object[]) analysis.sourceMaps().get(0)[1], arrayContaining((Object) null));
-        assertThat((Object[]) analysis.sourceMaps().get(1)[1], arrayContaining((Object) "foo"));
+        assertThat((List<Object>) analysis.sourceMaps().get(0)[1], contains((Object) null));
+        assertThat((List<Object>) analysis.sourceMaps().get(1)[1], contains((Object) "foo"));
     }
 
     @Test
@@ -810,47 +810,30 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
     public void testDynamicNestedArrayParamLiteral() throws Exception {
         InsertFromValuesAnalyzedStatement analysis = e.analyze("insert into users (id, name, theses) " +
                                                              "values (1, 'Marx', [['string1', 'string2']])");
-        assertThat(analysis.sourceMaps().size(), is(1));
-        assertThat(analysis.sourceMaps().get(0)[0], is(1L));
-        assertThat(analysis.sourceMaps().get(0)[1], is("Marx"));
-        assertThat((Object[]) ((Object[]) analysis.sourceMaps().get(0)[2])[0],
-            arrayContaining(new Object[]{"string1", "string2"}));
+        assertThat(analysis.sourceMaps(), contains(
+            arrayContaining(
+                1L,
+                "Marx",
+                List.of(List.of("string1", "string2")))));
     }
 
     @Test
     public void testDynamicNestedArrayParam() throws Exception {
-        e.analyze("insert into users (id, name, theses) values (1, 'Marx', ?)", new Object[]{
-            new String[][]{
-                new String[]{"string1"},
-                new String[]{"string2"}
-            }
-        });
-        InsertFromValuesAnalyzedStatement analysis = e.analyze("insert into users (id, name, theses) " +
-                                                             "values (1, 'Marx', [['string1', 'string2']])");
-        assertThat(analysis.sourceMaps().size(), is(1));
-        assertThat((Long) analysis.sourceMaps().get(0)[0], is(1L));
-        assertThat(analysis.sourceMaps().get(0)[1], is("Marx"));
-        assertThat((Object[]) ((Object[]) analysis.sourceMaps().get(0)[2])[0],
-            arrayContaining(new Object[]{"string1", "string2"}));
-    }
-
-    @Test
-    public void testDynamicNestedArrayBulkParam() throws Exception {
-        e.analyze("insert into users (id, name, theses) values (1, 'Marx', ?)", new Object[][]{
+        InsertFromValuesAnalyzedStatement analysis = e.analyze(
+            "insert into users (id, name, theses) values (1, 'Marx', ?)",
             new Object[]{
                 new String[][]{
                     new String[]{"string1"},
                     new String[]{"string2"}
                 }
-            }
         });
-        InsertFromValuesAnalyzedStatement analysis = e.analyze("insert into users (id, name, theses) " +
-                                                             "values (1, 'Marx', [['string1', 'string2']])");
-        assertThat(analysis.sourceMaps().size(), is(1));
-        assertThat((Long) analysis.sourceMaps().get(0)[0], is(1L));
-        assertThat(analysis.sourceMaps().get(0)[1], is("Marx"));
-        assertThat((Object[]) ((Object[]) analysis.sourceMaps().get(0)[2])[0],
-            arrayContaining(new Object[]{"string1", "string2"}));
+        assertThat(analysis.sourceMaps(), contains(
+            arrayContaining(
+                is(1L),
+                is("Marx"),
+                is(List.of(List.of("string1"), List.of("string2")))
+            )
+        ));
     }
 
     @Test
@@ -1436,16 +1419,28 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
     @Test
     public void testInsertArrayLiteralWithOneNullValue() throws Exception {
         InsertFromValuesAnalyzedStatement stmt = e.analyze("insert into users (id, tags) values (1, ['foo', 'bar', null])");
-        assertThat(stmt.sourceMaps().get(0), is(new Object[]{1L, new Object[]{"foo", "bar", null}}));
+        assertThat(stmt.sourceMaps().get(0), arrayContaining(
+            1L,
+            Arrays.asList("foo", "bar", null)
+        ));
 
         stmt = e.analyze("insert into users (id, tags) values (1, [null, 'foo', 'bar'])");
-        assertThat(stmt.sourceMaps().get(0), is(new Object[]{1L, new Object[]{null, "foo", "bar"}}));
+        assertThat(stmt.sourceMaps().get(0), arrayContaining(
+            1L,
+            Arrays.asList(null, "foo", "bar")
+       ));
     }
 
     @Test
     public void testInsertArrayLiteralWithOnlyNullValues() throws Exception {
         InsertFromValuesAnalyzedStatement stmt = e.analyze("insert into users (id, tags) values (1, [null, null])");
-        assertThat(stmt.sourceMaps().get(0), is(new Object[]{1L, new Object[]{null, null}}));
+        assertThat(
+            stmt.sourceMaps().get(0),
+            arrayContaining(
+                1L,
+                Arrays.asList(null, null)
+            )
+        );
     }
 
     @Test

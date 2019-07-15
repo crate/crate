@@ -36,10 +36,11 @@ import io.crate.types.DataTypes;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-public class StringToArrayFunction extends Scalar<String[], String> {
+public class StringToArrayFunction extends Scalar<List<String>, String> {
 
     private static final String NAME = "string_to_array";
 
@@ -75,7 +76,7 @@ public class StringToArrayFunction extends Scalar<String[], String> {
     }
 
     @Override
-    public String[] evaluate(TransactionContext txnCtx, Input<String>[] args) {
+    public List<String> evaluate(TransactionContext txnCtx, Input<String>[] args) {
         assert args.length == 2 || args.length == 3 : "number of args must be 2 or 3";
 
         String str = args[0].value();
@@ -83,7 +84,7 @@ public class StringToArrayFunction extends Scalar<String[], String> {
             return null;
         }
         if (str.isEmpty()) {
-            return new String[0];
+            return List.of();
         }
 
         String separator = args[1].value();
@@ -114,25 +115,19 @@ public class StringToArrayFunction extends Scalar<String[], String> {
      *                  if they match. May be {@code null}.
      * @return An array of {@code String}.
      */
-    private String[] split(
-        @Nonnull String str,
-        @Nullable String separator,
-        @Nullable String nullStr) {
-
-        ArrayList<String> subStrings;
+    private static List<String> split(@Nonnull String str, @Nullable String separator, @Nullable String nullStr) {
 
         if (separator == null) {
-            subStrings = new ArrayList<>(str.length());
+            ArrayList<String> subStrings = new ArrayList<>(str.length());
             for (int i = 0; i < str.length(); i++) {
                 String subStr = String.valueOf(str.charAt(i));
                 subStrings.add(setToNullIfMatch(subStr, nullStr));
             }
+            return subStrings;
         } else if (separator.isEmpty()) {
-            return new String[]{
-                setToNullIfMatch(str, nullStr)
-            };
+            return Collections.singletonList(setToNullIfMatch(str, nullStr));
         } else {
-            subStrings = new ArrayList<>();
+            ArrayList<String> subStrings = new ArrayList<>();
             int start = 0;                      // search start position
             int pos = str.indexOf(separator);   // separator position
 
@@ -154,12 +149,12 @@ public class StringToArrayFunction extends Scalar<String[], String> {
             }
             String subStr = str.substring(start);
             subStrings.add(setToNullIfMatch(subStr, nullStr));
+            return subStrings;
         }
-        return subStrings.toArray(new String[0]);
     }
 
     @Nullable
-    private String setToNullIfMatch(String subStr, String nullStr) {
+    private static String setToNullIfMatch(String subStr, String nullStr) {
         if (Objects.equals(subStr, nullStr)) {
             return null;
         }

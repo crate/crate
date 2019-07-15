@@ -27,16 +27,18 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import org.junit.Test;
 
+import java.util.Arrays;
+
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 
 public class ArrayCatFunctionTest extends AbstractScalarFunctionsTest {
 
-    private static final ArrayType INTEGER_ARRAY_TYPE = new ArrayType(DataTypes.INTEGER);
+    private static final ArrayType<Integer> INTEGER_ARRAY_TYPE = new ArrayType<>(DataTypes.INTEGER);
 
     @Test
     public void testNormalizeWithValueSymbols() throws Exception {
-        assertNormalize("array_cat([10, 20], [10, 30])", isLiteral(new Long[]{10L, 20L, 10L, 30L}));
+        assertNormalize("array_cat([10, 20], [10, 30])", isLiteral(Arrays.asList(10L, 20L, 10L, 30L)));
     }
 
     @Test
@@ -46,7 +48,7 @@ public class ArrayCatFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testNullArguments() throws Exception {
-        assertNormalize("array_cat([1, 2, 3], null)", isLiteral(new Long[] {1L, 2L, 3L}));
+        assertNormalize("array_cat([1, 2, 3], null)", isLiteral(Arrays.asList(1L, 2L, 3L)));
     }
 
     @Test
@@ -72,38 +74,38 @@ public class ArrayCatFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testDifferentConvertableInnerTypes() throws Exception {
-        assertEvaluate("array_cat([1::integer], [1::long])", new Object[]{1, 1});
+        assertEvaluate("array_cat([1::integer], [1::long])", Arrays.asList(1, 1));
     }
 
     @Test
     public void testNullElements() throws Exception {
         assertEvaluate("array_cat(int_array, int_array)",
-            new Object[]{1, null, 3, null, 2, 3},
-            Literal.of(new Object[]{1, null, 3}, INTEGER_ARRAY_TYPE),
-            Literal.of(new Object[]{null, 2, 3}, INTEGER_ARRAY_TYPE));
+            Arrays.asList(1, null, 3, null, 2, 3),
+            Literal.of(Arrays.asList(1, null, 3), INTEGER_ARRAY_TYPE),
+            Literal.of(Arrays.asList(null, 2, 3), INTEGER_ARRAY_TYPE));
     }
 
     @Test
     public void testNullValue() throws Exception {
         assertEvaluate("array_cat(int_array, int_array)",
-            new Object[]{1, 2},
+            Arrays.asList(1, 2),
             Literal.of(INTEGER_ARRAY_TYPE, null),
-            Literal.of(new Object[]{1, 2}, INTEGER_ARRAY_TYPE));
+            Literal.of(Arrays.asList(1, 2), INTEGER_ARRAY_TYPE));
     }
 
     @Test
     public void testTwoIntegerArguments() throws Exception {
         assertEvaluate("array_cat(int_array, int_array)",
-            new Object[]{1, 2, 2, 3},
-            Literal.of(new Object[]{1, 2}, INTEGER_ARRAY_TYPE),
-            Literal.of(new Object[]{2, 3}, INTEGER_ARRAY_TYPE));
+            Arrays.asList(1, 2, 2, 3),
+            Literal.of(Arrays.asList(1, 2), INTEGER_ARRAY_TYPE),
+            Literal.of(Arrays.asList(2, 3), INTEGER_ARRAY_TYPE));
     }
 
     @Test
     public void testEmptyArrayAndIntegerArray() throws Exception {
         assertEvaluate("array_cat([], int_array)",
-            new Object[]{1, 2},
-            Literal.of(new Object[]{1, 2}, INTEGER_ARRAY_TYPE));
+            Arrays.asList(1, 2),
+            Literal.of(Arrays.asList(1, 2), INTEGER_ARRAY_TYPE));
     }
 
     @Test

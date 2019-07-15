@@ -38,10 +38,12 @@ import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.util.BigArrays;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
-public class CollectSetAggregation extends AggregationFunction<Map<Object, Object>, Object[]> {
+public class CollectSetAggregation extends AggregationFunction<Map<Object, Object>, List<Object>> {
 
     /**
      * Used to signal there is a value for a key in order to simulate {@link java.util.HashSet#add(Object)} semantics
@@ -56,17 +58,17 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
     private final DataType partialReturnType;
 
     public static void register(AggregationImplModule mod) {
-        for (final DataType dataType : DataTypes.PRIMITIVE_TYPES) {
+        for (final DataType<?> dataType : DataTypes.PRIMITIVE_TYPES) {
             mod.register(new CollectSetAggregation(
                              new FunctionInfo(new FunctionIdent(NAME, ImmutableList.of(dataType)),
-                                              new ArrayType(dataType),
+                                              new ArrayType<>(dataType),
                                               FunctionInfo.Type.AGGREGATE)
                          )
             );
         }
     }
 
-    CollectSetAggregation(FunctionInfo info) {
+    private CollectSetAggregation(FunctionInfo info) {
         this.innerTypeEstimator = SizeEstimatorFactory.create(((ArrayType) info.returnType()).innerType());
         this.info = info;
         this.partialReturnType = UncheckedObjectType.INSTANCE;
@@ -78,7 +80,7 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
     }
 
     @Override
-    public AggregationFunction<Map<Object, Long>, Object[]> optimizeForExecutionAsWindowFunction() {
+    public AggregationFunction<Map<Object, Long>, List<Object>> optimizeForExecutionAsWindowFunction() {
         return new RemovableCumulativeCollectSet(info);
     }
 
@@ -129,8 +131,8 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
     }
 
     @Override
-    public Object[] terminatePartial(RamAccountingContext ramAccountingContext, Map<Object, Object> state) {
-        return state.keySet().toArray(new Object[0]);
+    public List<Object> terminatePartial(RamAccountingContext ramAccountingContext, Map<Object, Object> state) {
+        return new ArrayList<>(state.keySet());
     }
 
     @Override
@@ -150,7 +152,7 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
      *  {2, 3}           - [2, 3]
      *  {3}              - [3]
      */
-    private static class RemovableCumulativeCollectSet extends AggregationFunction<Map<Object, Long>, Object[]> {
+    private static class RemovableCumulativeCollectSet extends AggregationFunction<Map<Object, Long>, List<Object>> {
 
         private final SizeEstimator<Object> innerTypeEstimator;
 
@@ -216,7 +218,7 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
             if (value == null) {
                 return previousAggState;
             }
-            Long occurrencesCountForValue = (Long) previousAggState.get(value);
+            Long occurrencesCountForValue = previousAggState.get(value);
             if (occurrencesCountForValue == 1) {
                 previousAggState.remove(value);
                 ramAccountingContext.addBytes(
@@ -245,8 +247,8 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
         }
 
         @Override
-        public Object[] terminatePartial(RamAccountingContext ramAccountingContext, Map<Object, Long> state) {
-            return state.keySet().toArray(new Object[0]);
+        public List<Object> terminatePartial(RamAccountingContext ramAccountingContext, Map<Object, Long> state) {
+            return new ArrayList<>(state.keySet());
         }
 
         @Override

@@ -44,6 +44,7 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static io.crate.metadata.table.ColumnPolicies.decodeMappingValue;
@@ -184,9 +185,9 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         assertEquals(1L, response.rowCount());
         assertArrayEquals(new String[]{"person['name']", "person['addresses']['city']"},
             response.cols());
-        assertArrayEquals(new Object[]{"Ford", new Object[]{"West Country"}},
-            response.rows()[0]
-        );
+
+        assertThat(response.rows()[0][0], is("Ford"));
+        assertThat((List<Object>) response.rows()[0][1], Matchers.contains("West Country"));
     }
 
     @Test

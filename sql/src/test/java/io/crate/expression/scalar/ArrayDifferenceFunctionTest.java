@@ -29,13 +29,17 @@ import org.hamcrest.Matchers;
 import org.hamcrest.core.IsSame;
 import org.junit.Test;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 
 public class ArrayDifferenceFunctionTest extends AbstractScalarFunctionsTest {
 
-    private static final ArrayType INTEGER_ARRAY_TYPE = new ArrayType(DataTypes.INTEGER);
+    private static final ArrayType<Integer> INTEGER_ARRAY_TYPE = new ArrayType<>(DataTypes.INTEGER);
 
     @Test
     public void testCompileWithValues() throws Exception {
@@ -51,30 +55,30 @@ public class ArrayDifferenceFunctionTest extends AbstractScalarFunctionsTest {
     public void testArrayDifferenceRemovesTheNestedArraysInTheFirstArrayThatAreContainedWithinTheSecondArray() {
         assertEvaluate(
             "array_difference([[1, 2], [1, 3]], [[1, 2]])",
-            Matchers.arrayContaining(Matchers.arrayContaining(1L, 3L)));
+            Matchers.contains(Matchers.contains(1L, 3L)));
     }
 
     @Test
     public void testArrayDifferenceRemovesTheObjectsInTheFirstArrayThatAreContainedInTheSecond() {
         assertEvaluate(
             "array_difference([{x=[1, 2]}, {x=[1, 3]}], [{x=[1, 3]}])",
-            Matchers.arrayContaining(Matchers.hasEntry(is("x"), Matchers.arrayContaining(1L, 2L))));
+            Matchers.contains(Matchers.hasEntry(is("x"), Matchers.contains(1L, 2L))));
     }
 
     @Test
     public void testNormalize() throws Exception {
-        assertNormalize("array_difference([10, 20], [10, 30])", isLiteral(new Long[]{20L}));
-        assertNormalize("array_difference([], [10, 30])", isLiteral(new Object[0]));
+        assertNormalize("array_difference([10, 20], [10, 30])", isLiteral(List.of(20L)));
+        assertNormalize("array_difference([], [10, 30])", isLiteral(List.of()));
     }
 
     @Test
     public void testNormalizeNullArguments() throws Exception {
-        assertNormalize("array_difference([1], null)", isLiteral(new Object[] {1L}));
+        assertNormalize("array_difference([1], null)", isLiteral(List.of(1L)));
     }
 
     @Test
     public void testEvaluateNullArguments() throws Exception {
-        assertEvaluate("array_difference([1], long_array)", new Object[]{1L}, Literal.NULL);
+        assertEvaluate("array_difference([1], long_array)", List.of(1L), Literal.NULL);
         assertEvaluate("array_difference(long_array, [1])", null, Literal.NULL);
     }
 
@@ -93,20 +97,21 @@ public class ArrayDifferenceFunctionTest extends AbstractScalarFunctionsTest {
     }
 
     @Test
-    public void testDifferentBuConvertableInnerTypes() throws Exception {
-        assertEvaluate("array_difference([1::integer], [1::long])", new Object[0]);
+    public void testDifferentButConvertableInnerTypes() throws Exception {
+        assertEvaluate("array_difference([1::integer], [1::long])", List.of());
     }
 
     @Test
     public void testNullElements() throws Exception {
         assertEvaluate("array_difference(int_array, int_array)",
-            new Object[]{1},
-            Literal.of(new Object[]{1, null, 3}, INTEGER_ARRAY_TYPE),
-            Literal.of(new Object[]{null, 2, 3}, INTEGER_ARRAY_TYPE));
+            List.of(1),
+            Literal.of(Arrays.asList(1, null, 3), INTEGER_ARRAY_TYPE),
+            Literal.of(Arrays.asList(null, 2, 3), INTEGER_ARRAY_TYPE)
+        );
         assertEvaluate("array_difference(int_array, int_array)",
-            new Object[]{1, null, 2, null},
-            Literal.of(new Object[]{1, null, 3, 2, null}, INTEGER_ARRAY_TYPE),
-            Literal.of(new Object[]{3}, INTEGER_ARRAY_TYPE));
+            Arrays.asList(1, null, 2, null),
+            Literal.of(Arrays.asList(1, null, 3, 2, null), INTEGER_ARRAY_TYPE),
+            Literal.of(Collections.singletonList(3), INTEGER_ARRAY_TYPE));
     }
 
     @Test

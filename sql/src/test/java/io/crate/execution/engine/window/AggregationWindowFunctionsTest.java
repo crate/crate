@@ -26,8 +26,8 @@ import io.crate.metadata.ColumnIdent;
 import org.junit.Test;
 
 import java.util.Collections;
+import java.util.List;
 
-import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static org.hamcrest.Matchers.contains;
 
 public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
@@ -135,15 +135,15 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
     @Test
     public void testCollectSetOverUnboundedFollowingFrames() throws Exception {
         Object[] expected = new Object[]{
-            $(1, 2),
-            $(2),
-            $(2),
-            $(2),
-            $(2),
-            $(3, 4, 5),
-            $(4, 5),
-            $(5),
-            $()
+            List.of(1, 2),
+            List.of(2),
+            List.of(2),
+            List.of(2),
+            List.of(2),
+            List.of(3, 4, 5),
+            List.of(4, 5),
+            List.of(5),
+            List.of()
         };
         assertEvaluate("collect_set(x) OVER(" +
                             "PARTITION BY x>2 ORDER BY x RANGE BETWEEN CURRENT ROW and UNBOUNDED FOLLOWING" +
@@ -165,14 +165,14 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
     @Test
     public void testCollectSetOverRowsUnboundedPrecedingCurrentRowFrame() throws Exception {
         Object[] expected = new Object[]{
-            $(1),
-            $(1, 2),
-            $(1, 2),
-            $(1, 2),
-            $(3),
-            $(3, 4),
-            $(3, 4, 5),
-            $()
+            List.of(1),
+            List.of(1, 2),
+            List.of(1, 2),
+            List.of(1, 2),
+            List.of(3),
+            List.of(3, 4),
+            List.of(3, 4, 5),
+            List.of()
         };
         assertEvaluate("collect_set(x) OVER(" +
                             "PARTITION BY x>2 ORDER BY x ROWS BETWEEN UNBOUNDED PRECEDING and CURRENT ROW" +

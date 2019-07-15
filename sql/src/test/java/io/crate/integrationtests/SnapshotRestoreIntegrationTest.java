@@ -195,7 +195,7 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
         assertThat(response.rowCount(), is(1L));
 
         execute("select concrete_indices from sys.snapshots");
-        assertThat(response.rows()[0][0], is(new String[]{getFqn("t1")}));
+        assertThat(response.rows()[0][0], is(List.of(getFqn("t1"))));
     }
 
     @Test

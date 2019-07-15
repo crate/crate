@@ -68,7 +68,7 @@ class PGArray extends PGType {
         int dimensions = getDimensions(value);
 
         List<Integer> dimensionsList = new ArrayList<>();
-        buildDimensions((Object[]) value, dimensionsList, dimensions, 1);
+        buildDimensions((List<Object>) value, dimensionsList, dimensions, 1);
 
         int bytesWritten = 4 + 4 + 4;
         final int lenIndex = buffer.writerIndex();
@@ -82,7 +82,7 @@ class PGArray extends PGType {
             buffer.writeInt(dim); // lower bound
             bytesWritten += 8;
         }
-        int len = bytesWritten + writeArrayAsBinary(buffer, (Object[]) value, dimensionsList, 1);
+        int len = bytesWritten + writeArrayAsBinary(buffer, (List<Object>) value, dimensionsList, 1);
         buffer.setInt(lenIndex, len);
         return INT32_BYTE_SIZE + len; // add also the size of the length itself
     }
@@ -93,8 +93,8 @@ class PGArray extends PGType {
 
         do {
             dimensions++;
-            Object[] arr = (Object[]) array;
-            if (arr.length == 0) {
+            List arr = (List) array;
+            if (arr.isEmpty()) {
                 break;
             }
             array = null;
@@ -104,7 +104,7 @@ class PGArray extends PGType {
                 }
                 array = o;
             }
-        } while (array != null && array.getClass().isArray());
+        } while (array instanceof List);
         return dimensions;
     }
 
@@ -121,22 +121,20 @@ class PGArray extends PGType {
             dims[d] = buffer.readInt();
             buffer.readInt(); // lowerBound ignored
         }
-
-        Object[] array = new Object[dims[0]];
-
-        readArrayAsBinary(buffer, array, dims, 0);
-        return array;
+        List<Object> values = new ArrayList<>(dims[0]);
+        readArrayAsBinary(buffer, values, dims, 0);
+        return values;
     }
 
     @Override
     byte[] encodeAsUTF8Text(@Nonnull Object array) {
         boolean isJson = JsonType.OID == innerType.oid();
-        Object[] values = (Object[]) array;
+        List<Object> values = (List<Object>) array;
         List<Byte> encodedValues = new ArrayList<>();
         encodedValues.add((byte) '{');
-        for (int i = 0; i < values.length; i++) {
-            Object o = values[i];
-            if (o instanceof Object[]) { // Nested Array -> recursive call
+        for (int i = 0; i < values.size(); i++) {
+            Object o = values.get(i);
+            if (o instanceof List) { // Nested Array -> recursive call
                 byte[] bytes = encodeAsUTF8Text(o);
                 for (byte b : bytes) {
                     encodedValues.add(b);
@@ -198,7 +196,7 @@ class PGArray extends PGType {
 
         List<Object> values = new ArrayList<>();
         decodeUTF8Text(bytes, 0, bytes.length - 1, values);
-        return values.toArray();
+        return values;
     }
 
     private int decodeUTF8Text(byte[] bytes, int startIdx, int endIdx, List<Object> objects) {
@@ -214,7 +212,7 @@ class PGArray extends PGType {
                             List<Object> nestedObjects = new ArrayList<>();
                             i = decodeUTF8Text(bytes, i + 1, endIdx, nestedObjects);
                             valIdx = i + 1;
-                            objects.add(nestedObjects.toArray());
+                            objects.add(nestedObjects);
                         } else {
                             // 1-dimension array -> call recursively
                             i = decodeUTF8Text(bytes, i + 1, endIdx, objects);
@@ -280,15 +278,15 @@ class PGArray extends PGType {
         }
     }
 
-    private int buildDimensions(Object[] array, List<Integer> dimensionsList, int maxDimensions, int currentDimension) {
-        if (array == null) {
+    private int buildDimensions(List<Object> values, List<Integer> dimensionsList, int maxDimensions, int currentDimension) {
+        if (values == null) {
             return 1;
         }
         // While elements of array are also arrays
         if (currentDimension < maxDimensions) {
             int max = 0;
-            for (Object o : array) {
-                max = Math.max(max, buildDimensions((Object[]) o, dimensionsList, maxDimensions, currentDimension + 1));
+            for (Object o : values) {
+                max = Math.max(max, buildDimensions((List<Object>) o, dimensionsList, maxDimensions, currentDimension + 1));
             }
 
             if (currentDimension == maxDimensions - 1) {
@@ -300,12 +298,12 @@ class PGArray extends PGType {
         }
         // Add the dimensions of 1st dimension
         if (currentDimension == 1) {
-            dimensionsList.add(0, array.length);
+            dimensionsList.add(0, values.size());
         }
-        return array.length;
+        return values.size();
     }
 
-    private int writeArrayAsBinary(ByteBuf buffer, Object[] array, List<Integer> dimensionsList, int currentDimension) {
+    private int writeArrayAsBinary(ByteBuf buffer, List<Object> array, List<Integer> dimensionsList, int currentDimension) {
         int bytesWritten = 0;
 
         if (array == null) {
@@ -335,29 +333,30 @@ class PGArray extends PGType {
             }
         } else {
             for (Object o : array) {
-                bytesWritten += writeArrayAsBinary(buffer, (Object[]) o, dimensionsList, currentDimension + 1);
+                bytesWritten += writeArrayAsBinary(buffer, (List<Object>) o, dimensionsList, currentDimension + 1);
             }
         }
         return bytesWritten;
     }
 
     private void readArrayAsBinary(ByteBuf buffer,
-                                   final Object[] array,
+                                   final List<Object> array,
                                    final int[] dims,
                                    final int thisDimension) {
         if (thisDimension == dims.length - 1) {
             for (int i = 0; i < dims[thisDimension]; ++i) {
                 int len = buffer.readInt();
                 if (len == -1) {
-                    continue;
-
+                    array.add(null);
+                } else {
+                    array.add(innerType.readBinaryValue(buffer, len));
                 }
-                array[i] = innerType.readBinaryValue(buffer, len);
             }
         } else {
             for (int i = 0; i < dims[thisDimension]; ++i) {
-                array[i] = new Object[dims[thisDimension + 1]];
-                readArrayAsBinary(buffer, (Object[]) array[i], dims, thisDimension + 1);
+                ArrayList<Object> list = new ArrayList<>(dims[thisDimension + 1]);
+                array.add(list);
+                readArrayAsBinary(buffer, list, dims, thisDimension + 1);
             }
         }
     }

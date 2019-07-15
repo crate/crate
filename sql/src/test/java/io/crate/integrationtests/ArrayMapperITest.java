@@ -25,6 +25,8 @@ package io.crate.integrationtests;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
+import java.util.List;
+
 public class ArrayMapperITest extends SQLTransportIntegrationTest {
 
     @Test
@@ -34,10 +36,10 @@ public class ArrayMapperITest extends SQLTransportIntegrationTest {
         execute("refresh table t");
 
         execute("select xs from t where id = 1"); // pk lookup
-        assertThat((Object[]) response.rows()[0][0], Matchers.arrayContaining(0.0d, 99.9d, -100.5678d));
+        assertThat((List<Object>) response.rows()[0][0], Matchers.contains(0.0d, 99.9d, -100.5678d));
 
         execute("select xs from t");
-        assertThat((Object[]) response.rows()[0][0], Matchers.arrayContaining(0.0d, 99.9d, -100.5678d));
+        assertThat((List<Object>) response.rows()[0][0], Matchers.contains(0.0d, 99.9d, -100.5678d));
     }
 
     @Test
@@ -47,7 +49,7 @@ public class ArrayMapperITest extends SQLTransportIntegrationTest {
         execute("refresh table t");
 
         execute("select xs from t where 0.0 = any (xs)");
-        assertThat((Object[]) response.rows()[0][0], Matchers.arrayContaining(0.0d, 99.9d, -100.5678d));
+        assertThat((List<Object>) response.rows()[0][0], Matchers.contains(0.0d, 99.9d, -100.5678d));
     }
 
     @Test
@@ -57,6 +59,6 @@ public class ArrayMapperITest extends SQLTransportIntegrationTest {
         execute("refresh table t");
 
         execute("select xs from t");
-        assertThat((Object[]) response.rows()[0][0], Matchers.emptyArray());
+        assertThat((List<Object>) response.rows()[0][0], Matchers.empty());
     }
 }

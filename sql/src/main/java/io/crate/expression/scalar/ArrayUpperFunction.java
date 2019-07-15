@@ -24,10 +24,12 @@ package io.crate.expression.scalar;
 
 import io.crate.data.Input;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.TransactionContext;
 
-public class ArrayUpperFunction extends Scalar<Integer, Object[]> {
+import java.util.List;
+
+public class ArrayUpperFunction extends Scalar<Integer, Object> {
 
     public static final String ARRAY_UPPER = "array_upper";
     public static final String ARRAY_LENGTH = "array_length";
@@ -49,24 +51,23 @@ public class ArrayUpperFunction extends Scalar<Integer, Object[]> {
 
     @Override
     public Integer evaluate(TransactionContext txnCtx, Input[] args) {
-        Object[] array = (Object[]) args[0].value();
+        @SuppressWarnings("unchecked")
+        List<Object> values = (List<Object>) args[0].value();
         Object dimension1Indexed = args[1].value();
-        if (array == null || array.length == 0 || dimension1Indexed == null) {
+        if (values == null || values.isEmpty() || dimension1Indexed == null) {
             return null;
         }
-
         // sql dimensions are 1 indexed
         int dimension = (int) dimension1Indexed - 1;
-
         try {
-            Object dimensionValue = array[dimension];
+            Object dimensionValue = values.get(dimension);
             if (dimensionValue.getClass().isArray()) {
                 Object[] dimensionArray = (Object[]) dimensionValue;
                 return dimensionArray.length;
             }
             // it's a one dimension array so return the argument length
-            return array.length;
-        } catch (ArrayIndexOutOfBoundsException e) {
+            return values.size();
+        } catch (IndexOutOfBoundsException e) {
             return null;
         }
     }
