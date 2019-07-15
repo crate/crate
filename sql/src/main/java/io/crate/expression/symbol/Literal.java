@@ -255,6 +255,10 @@ public class Literal<ReturnType> extends Symbol implements Input<ReturnType>, Co
         return new Literal<>(DataTypes.FLOAT, value);
     }
 
+    public static Literal<Long> newInterval(Object value) {
+        return new Literal<>(DataTypes.INTERVAL, DataTypes.INTERVAL.value(value));
+    }
+
     public static Literal<Point> newGeoPoint(Object point) {
         return new Literal<>(DataTypes.GEO_POINT, DataTypes.GEO_POINT.value(point));
     }

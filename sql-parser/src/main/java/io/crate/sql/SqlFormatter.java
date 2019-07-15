@@ -821,8 +821,8 @@ public final class SqlFormatter {
                 .append(node.getValue())
                 .append(" ")
                 .append(node.getStartField().name());
-                node.getEndField().map(end -> builder.append(" TO " + end.name()));
-                return null;
+            node.getEndField().map(end -> builder.append(" TO " + end.name()));
+            return null;
         }
 
         @Override

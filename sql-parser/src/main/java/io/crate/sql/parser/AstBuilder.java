@@ -195,7 +195,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import static io.crate.sql.tree.IntervalLiteral.IntervalField.DAY;
 import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
 
@@ -245,13 +244,13 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
                 return IntervalLiteral.Sign.NEGATIVE;
             case SqlBaseLexer.PLUS:
                 return IntervalLiteral.Sign.POSITIVE;
+            default:
+                throw new IllegalArgumentException("Unsupported sign: " + token.getText());
         }
-
-        throw new IllegalArgumentException("Unsupported sign: " + token.getText());
     }
 
     private static IntervalLiteral.IntervalField getIntervalFieldType(Token token) {
-        switch(token.getType()) {
+        switch (token.getType()) {
             case SqlBaseLexer.YEAR:
                 return IntervalLiteral.IntervalField.YEAR;
             case SqlBaseLexer.MONTH:
@@ -264,9 +263,9 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
                 return IntervalLiteral.IntervalField.MINUTE;
             case SqlBaseLexer.SECOND:
                 return IntervalLiteral.IntervalField.SECOND;
+            default:
+                throw new IllegalArgumentException("Unsupported interval field: " + token.getText());
         }
-
-        throw new IllegalArgumentException("Unsupported interval field: " + token.getText());
     }
 
     @Override
