@@ -97,9 +97,6 @@ public class Literal<ReturnType> extends Symbol implements Input<ReturnType>, Co
         if (value == null) {
             return true;
         }
-        if (type.equals(DataTypes.STRING) && (value instanceof BytesRef || value instanceof String)) {
-            return true;
-        }
         if (type instanceof ArrayType) {
             DataType innerType = ((ArrayType) type).innerType();
             while (innerType instanceof ArrayType && value.getClass().isArray()) {
@@ -107,16 +104,7 @@ public class Literal<ReturnType> extends Symbol implements Input<ReturnType>, Co
                 innerType = ((ArrayType) innerType).innerType();
                 value = ((Object[]) value)[0];
             }
-            if (innerType.equals(DataTypes.STRING)) {
-                for (Object o : ((Object[]) value)) {
-                    if (o != null && !(o instanceof String || o instanceof BytesRef)) {
-                        return false;
-                    }
-                }
-                return true;
-            } else {
-                return Arrays.equals((Object[]) value, ((ArrayType) type).value(value));
-            }
+            return Arrays.equals((Object[]) value, ((ArrayType) type).value(value));
         }
         if (type.id() == ObjectType.ID) {
             //noinspection unchecked
