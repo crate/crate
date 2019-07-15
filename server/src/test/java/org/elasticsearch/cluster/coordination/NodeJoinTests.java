@@ -184,7 +184,7 @@ public class NodeJoinTests extends ESTestCase {
             new NoOpClusterApplier(),
             Collections.emptyList(),
             random,
-            (s, r) -> {}
+            (s, p, r) -> {}
         );
         transportService.start();
         transportService.acceptIncomingRequests();
