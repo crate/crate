@@ -144,7 +144,7 @@ public final class EqOperator extends Operator<Object> {
             DataType rightType = argumentTypes.get(1);
 
             FunctionInfo info = new FunctionInfo(new FunctionIdent(NAME, argumentTypes), DataTypes.BOOLEAN);
-            if (DataTypes.isCollectionType(leftType) && DataTypes.isCollectionType(rightType)) {
+            if (DataTypes.isArray(leftType) && DataTypes.isArray(rightType)) {
                 return new ArrayEqOperator(info);
             }
             if (leftType.id() == ObjectType.ID && rightType.id() == ObjectType.ID) {

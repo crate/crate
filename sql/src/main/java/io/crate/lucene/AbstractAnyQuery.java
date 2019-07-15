@@ -43,10 +43,10 @@ abstract class AbstractAnyQuery implements FunctionToQuery {
     public Query apply(Function function, LuceneQueryBuilder.Context context) throws IOException {
         Symbol left = function.arguments().get(0);
         Symbol collectionSymbol = function.arguments().get(1);
-        Preconditions.checkArgument(DataTypes.isCollectionType(collectionSymbol.valueType()),
+        Preconditions.checkArgument(DataTypes.isArray(collectionSymbol.valueType()),
             "invalid argument for ANY expression");
 
-        if (DataTypes.isCollectionType(left.valueType())) {
+        if (DataTypes.isArray(left.valueType())) {
             throw new UnsupportedFeatureException(
                 "Cannot use " + function.info().ident().name() + " when the left side is an array");
         }

@@ -26,7 +26,7 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.metadata.Reference;
-import io.crate.types.CollectionType;
+import io.crate.types.ArrayType;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.ConstantScoreQuery;
 import org.apache.lucene.search.Query;
@@ -51,7 +51,7 @@ class IsNullQuery implements FunctionToQuery {
 
         // ExistsQueryBuilder.newFilter doesn't build the correct exists query for arrays
         // because ES isn't really aware of explicit array types
-        if (reference.valueType() instanceof CollectionType) {
+        if (reference.valueType() instanceof ArrayType) {
             MappedFieldType fieldType = context.getFieldTypeOrNull(columnName);
             if (fieldType != null) {
                 return Queries.not(fieldType.existsQuery(context.queryShardContext));

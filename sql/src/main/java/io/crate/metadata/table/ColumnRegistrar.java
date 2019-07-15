@@ -31,7 +31,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.sql.tree.ColumnPolicy;
-import io.crate.types.CollectionType;
+import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
@@ -128,8 +128,8 @@ public class ColumnRegistrar<T> {
     }
 
     private void registerPossibleObjectInnerTypes(String topLevelName, List<String> path, DataType<?> dataType) {
-        if (DataTypes.isCollectionType(dataType)) {
-            dataType = ((CollectionType) dataType).innerType();
+        if (DataTypes.isArray(dataType)) {
+            dataType = ((ArrayType) dataType).innerType();
         }
         if (dataType.id() != ObjectType.ID) {
             return;

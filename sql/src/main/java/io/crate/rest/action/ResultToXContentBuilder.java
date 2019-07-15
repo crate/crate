@@ -24,7 +24,7 @@ package io.crate.rest.action;
 
 import io.crate.data.Row;
 import io.crate.expression.symbol.Field;
-import io.crate.types.CollectionType;
+import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 
@@ -74,10 +74,10 @@ class ResultToXContentBuilder {
     }
 
     private void toXContentNestedDataType(XContentBuilder builder, DataType dataType) throws IOException {
-        if (dataType instanceof CollectionType) {
+        if (dataType instanceof ArrayType) {
             builder.startArray();
             builder.value(dataType.id());
-            toXContentNestedDataType(builder, ((CollectionType) dataType).innerType());
+            toXContentNestedDataType(builder, ((ArrayType) dataType).innerType());
             builder.endArray();
         } else {
             builder.value(dataType.id());

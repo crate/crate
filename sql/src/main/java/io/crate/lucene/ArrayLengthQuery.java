@@ -35,7 +35,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.types.BooleanType;
 import io.crate.types.ByteType;
-import io.crate.types.CollectionType;
+import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.DoubleType;
@@ -117,7 +117,7 @@ public final class ArrayLengthQuery implements InnerFunctionToQuery {
             return null;
         }
         Reference arrayRef = (Reference) arraySymbol;
-        DataType elementType = CollectionType.unnest(arrayRef.valueType());
+        DataType elementType = ArrayType.unnest(arrayRef.valueType());
         if (elementType.id() == ObjectType.ID || elementType.equals(DataTypes.GEO_SHAPE)) {
             // No doc-values for these, can't utilize doc-value-count
             return null;
@@ -239,7 +239,7 @@ public final class ArrayLengthQuery implements InnerFunctionToQuery {
     }
 
     private static IntUnaryOperator getNumTermsPerDocFunction(LeafReader reader, Reference ref) {
-        DataType elementType = CollectionType.unnest(ref.valueType());
+        DataType elementType = ArrayType.unnest(ref.valueType());
         switch (elementType.id()) {
             case BooleanType.ID:
             case ByteType.ID:

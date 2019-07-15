@@ -165,7 +165,7 @@ public final class DataTypes {
         LONG.id(), Set.of(TIMESTAMPZ, TIMESTAMP, DOUBLE),
         FLOAT.id(), Set.of(DOUBLE));
 
-    public static boolean isCollectionType(DataType type) {
+    public static boolean isArray(DataType type) {
         return type.id() == ArrayType.ID;
     }
 

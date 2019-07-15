@@ -43,7 +43,7 @@ import java.util.Map;
 import static io.crate.execution.engine.collect.NestableCollectExpression.constant;
 import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
 import static io.crate.metadata.pgcatalog.OidHash.relationOid;
-import static io.crate.types.DataTypes.isCollectionType;
+import static io.crate.types.DataTypes.isArray;
 import static io.crate.types.DataTypes.STRING;
 import static io.crate.types.DataTypes.INTEGER;
 import static io.crate.types.DataTypes.SHORT;
@@ -67,7 +67,7 @@ public class PgAttributeTable extends StaticTableInfo<ColumnContext> {
             .register("attstattarget", INTEGER, () -> constant(0))
             .register("attlen", SHORT, () -> forFunction(c -> PGTypes.get(c.info.valueType()).typeLen()))
             .register("attnum", INTEGER, () -> forFunction(c -> c.ordinal))
-            .register("attndims", INTEGER, () -> forFunction(c -> isCollectionType(c.info.valueType()) ? 1 : 0))
+            .register("attndims", INTEGER, () -> forFunction(c -> isArray(c.info.valueType()) ? 1 : 0))
             .register("attcacheoff", INTEGER, () -> constant(-1))
             .register("atttypmod", INTEGER, () -> constant(-1))
             .register("attbyval", BOOLEAN, () -> constant(false))

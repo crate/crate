@@ -57,7 +57,7 @@ final class ArrayBoundFunctionResolver extends BaseFunctionResolver {
             "The first argument of the %s function cannot be converted to array", functionName));
 
         Preconditions.checkArgument(!((ArrayType) arrayArgument).innerType().equals(DataTypes.UNDEFINED), String.format(Locale.ENGLISH,
-            "The first argument of the %s function cannot be undefined", functionName));
+                                                                                                                        "The first argument of the %s function cannot be undefined", functionName));
 
         Preconditions.checkArgument(dataTypes.get(1) instanceof IntegerType, String.format(Locale.ENGLISH,
             "The second argument the %s function cannot be converted to integer", functionName));

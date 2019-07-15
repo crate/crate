@@ -59,7 +59,7 @@ import io.crate.sql.tree.CopyFrom;
 import io.crate.sql.tree.CopyTo;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.QualifiedNameReference;
-import io.crate.types.CollectionType;
+import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.settings.Setting;
@@ -133,8 +133,8 @@ class CopyAnalyzer {
         uri = normalizer.normalize(uri, analysis.transactionContext());
 
         if (!(uri.valueType() == DataTypes.STRING ||
-              uri.valueType() instanceof CollectionType &&
-              ((CollectionType) uri.valueType()).innerType() == DataTypes.STRING)) {
+              uri.valueType() instanceof ArrayType &&
+              ((ArrayType) uri.valueType()).innerType() == DataTypes.STRING)) {
             throw CopyFromAnalyzedStatement.raiseInvalidType(uri.valueType());
         }
 

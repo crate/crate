@@ -31,7 +31,7 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.AlterTableAddColumn;
-import io.crate.types.CollectionType;
+import io.crate.types.ArrayType;
 
 import java.util.List;
 import java.util.Locale;
@@ -114,7 +114,7 @@ class AlterTableAddColumnAnalyzer {
             pkColumn.name(pkIdent.name());
             pkColumn.setPrimaryKeyConstraint();
 
-            assert !(pkInfo.valueType() instanceof CollectionType) : "pk can't be an array";
+            assert !(pkInfo.valueType() instanceof ArrayType) : "pk can't be an array";
             pkColumn.dataType(pkInfo.valueType().getName());
             tableElements.add(pkColumn);
         }

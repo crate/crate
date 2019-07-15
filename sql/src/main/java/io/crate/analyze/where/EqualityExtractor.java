@@ -40,7 +40,7 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Reference;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.types.CollectionType;
+import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -176,7 +176,7 @@ public class EqualityExtractor {
         private void initProxies(Map<Function, EqProxy> existingProxies) {
             Symbol left = origin.arguments().get(0);
             DataType leftType = origin.info().ident().argumentTypes().get(0);
-            DataType rightType = ((CollectionType) origin.info().ident().argumentTypes().get(1)).innerType();
+            DataType rightType = ((ArrayType) origin.info().ident().argumentTypes().get(1)).innerType();
             FunctionInfo eqInfo = new FunctionInfo(
                 new FunctionIdent(
                     EqOperator.NAME,

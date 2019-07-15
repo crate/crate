@@ -58,8 +58,8 @@ class EqQuery implements FunctionToQuery {
             // field doesn't exist, can't match
             return Queries.newMatchNoDocsQuery("column does not exist in this index");
         }
-        if (DataTypes.isCollectionType(reference.valueType()) &&
-            DataTypes.isCollectionType(literal.valueType())) {
+        if (DataTypes.isArray(reference.valueType()) &&
+            DataTypes.isArray(literal.valueType())) {
 
             List values = LuceneQueryBuilder.asList(literal);
             if (values.isEmpty()) {

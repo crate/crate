@@ -30,7 +30,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.functions.params.Param;
-import io.crate.types.CollectionType;
+import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 
 import java.util.List;
@@ -93,7 +93,7 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
 
         @Override
         public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-            DataType returnType = ((CollectionType) dataTypes.get(0)).innerType();
+            DataType returnType = ((ArrayType) dataTypes.get(0)).innerType();
             return new SubscriptFunction(createInfo(dataTypes, returnType));
         }
     }

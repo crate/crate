@@ -32,7 +32,7 @@ import io.crate.expression.operator.LteOperator;
 import io.crate.expression.scalar.SubscriptFunction;
 import io.crate.expression.symbol.Function;
 import io.crate.metadata.Reference;
-import io.crate.types.CollectionType;
+import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 import org.apache.lucene.search.BooleanClause;
@@ -76,7 +76,7 @@ class SubscriptQuery implements InnerFunctionToQuery {
         }
         Reference reference = innerPair.reference();
 
-        if (DataTypes.isCollectionType(innerPair.reference().valueType())) {
+        if (DataTypes.isArray(innerPair.reference().valueType())) {
             PreFilterQueryBuilder preFilterQueryBuilder =
                 PRE_FILTER_QUERY_BUILDER_BY_OP.get(parent.info().ident().name());
             if (preFilterQueryBuilder == null) {
@@ -91,7 +91,7 @@ class SubscriptQuery implements InnerFunctionToQuery {
 
             MappedFieldType fieldType = context.getFieldTypeOrNull(reference.column().fqn());
             if (fieldType == null) {
-                if (CollectionType.unnest(reference.valueType()).id() == ObjectType.ID) {
+                if (ArrayType.unnest(reference.valueType()).id() == ObjectType.ID) {
                     return null; // fallback to generic query to enable objects[1] = {x=10}
                 }
                 return Queries.newMatchNoDocsQuery("column doesn't exist in this index");
