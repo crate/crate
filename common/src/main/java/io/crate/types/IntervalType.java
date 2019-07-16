@@ -29,7 +29,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import java.io.IOException;
 import java.util.Locale;
 
-public class IntervalType extends DataType<Interval> implements FixedWidthType, Streamer<Interval> {
+public class IntervalType extends DataType<MonthDaySecondInterval> implements FixedWidthType, Streamer<MonthDaySecondInterval> {
 
     public static final int ID = 17;
     public static final IntervalType INSTANCE = new IntervalType();
@@ -50,17 +50,17 @@ public class IntervalType extends DataType<Interval> implements FixedWidthType, 
     }
 
     @Override
-    public Streamer<Interval> streamer() {
+    public Streamer<MonthDaySecondInterval> streamer() {
         return this;
     }
 
     @Override
-    public Interval value(Object value) throws IllegalArgumentException, ClassCastException {
+    public MonthDaySecondInterval value(Object value) throws IllegalArgumentException, ClassCastException {
         if (value == null) {
             return null;
         }
-        if (value instanceof Interval) {
-            return (Interval) value;
+        if (value instanceof MonthDaySecondInterval) {
+            return (MonthDaySecondInterval) value;
         }
         throw new IllegalArgumentException(invalidMsg(value));
     }
@@ -69,19 +69,19 @@ public class IntervalType extends DataType<Interval> implements FixedWidthType, 
         return String.format(Locale.ENGLISH, "Cannot convert \"%s\" to interval", value);
     }
 
-    public int compareValueTo(Interval val1, Interval val2) {
-        return nullSafeCompareValueTo(val1, val2, Interval::compare);
+    public int compareValueTo(MonthDaySecondInterval val1, MonthDaySecondInterval val2) {
+        return nullSafeCompareValueTo(val1, val2, MonthDaySecondInterval::compare);
     }
 
     @Override
-    public Interval readValueFrom(StreamInput in) throws IOException {
-        return new Interval(in.readLong(), in.readInt(), in.readInt());
+    public MonthDaySecondInterval readValueFrom(StreamInput in) throws IOException {
+        return new MonthDaySecondInterval(in.readLong(), in.readInt(), in.readInt());
     }
 
     @Override
-    public void writeValueTo(StreamOutput out, Interval v) throws IOException {
+    public void writeValueTo(StreamOutput out, MonthDaySecondInterval v) throws IOException {
         if (v != null) {
-            out.writeLong(v.getMs());
+            out.writeDouble(v.getSeconds());
             out.writeInt(v.getDays());
             out.writeInt(v.getMonths());
         }
@@ -89,6 +89,6 @@ public class IntervalType extends DataType<Interval> implements FixedWidthType, 
 
     @Override
     public int fixedSize() {
-        return 24; // 8 object overhead, 8 long, 4 int, 4 int
+        return 24; // 8 object overhead, 8 double, 4 int, 4 int
     }
 }

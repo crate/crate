@@ -24,20 +24,20 @@ package io.crate.types;
 
 import java.util.Objects;
 
-public class Interval implements Comparable<Interval> {
+public class MonthDaySecondInterval implements Comparable<MonthDaySecondInterval> {
 
-    private final long ms;
+    private final double seconds;
     private final int days;
     private final int months;
 
-    public Interval(long ms, int days, int months) {
-        this.ms = ms;
+    public MonthDaySecondInterval(double seconds, int days, int months) {
+        this.seconds = seconds;
         this.days = days;
         this.months = months;
     }
 
-    public long getMs() {
-        return ms;
+    public double getSeconds() {
+        return seconds;
     }
 
     public int getDays() {
@@ -56,24 +56,24 @@ public class Interval implements Comparable<Interval> {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        Interval interval = (Interval) o;
-        return ms == interval.ms &&
-               days == interval.days &&
-               months == interval.months;
+        MonthDaySecondInterval MOnthDaySecondInterval = (MonthDaySecondInterval) o;
+        return Double.compare(MOnthDaySecondInterval.seconds, seconds) == 0 &&
+               days == MOnthDaySecondInterval.days &&
+               months == MOnthDaySecondInterval.months;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(ms, days, months);
+        return Objects.hash(seconds, days, months);
     }
 
     @Override
-    public int compareTo(Interval other) {
+    public int compareTo(MonthDaySecondInterval other) {
         return compare(this, other);
     }
 
-    public static int compare(Interval i1, Interval i2) {
-        int msCmp = Long.compare(i1.ms, i2.ms);
+    public static int compare(MonthDaySecondInterval i1, MonthDaySecondInterval i2) {
+        int msCmp = Double.compare(i1.seconds, i2.seconds);
         if (msCmp != 0) return msCmp;
 
         int daysCmp = Integer.compare(i1.days, i2.days);
