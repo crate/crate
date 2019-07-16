@@ -35,6 +35,9 @@ import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
+import org.locationtech.spatial4j.shape.Point;
+import org.locationtech.spatial4j.shape.impl.PointImpl;
 
 import java.io.File;
 import java.nio.file.Paths;
@@ -1222,8 +1225,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("select p from geo_point_table order by id desc");
 
         assertThat(response.rowCount(), is(2L));
-        assertThat(((Object[]) response.rows()[0][0]), arrayContaining(new Object[]{57.22, 7.12}));
-        assertThat(((Object[]) response.rows()[1][0]), arrayContaining(new Object[]{47.22, 12.09}));
+        assertThat(response.rows()[0][0], is(new PointImpl(57.22, 7.12, JtsSpatialContext.GEO)));
+        assertThat(response.rows()[1][0], is(new PointImpl(47.22, 12.09, JtsSpatialContext.GEO)));
     }
 
     @Test
@@ -1266,38 +1269,38 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         String expectedAggregate = "1| 2296582.8899438097\n";
         assertEquals(expectedAggregate, printedTable(response.rows()));
 
-        Double[] row;
+        Point point;
         // queries
         execute("select p from t where distance(p, 'POINT (11 21)') > 0.0");
         assertThat(response.rowCount(), is(1L));
-        row = Arrays.copyOf((Object[]) response.rows()[0][0], 2, Double[].class);
-        assertThat(row[0], is(10.0d));
-        assertThat(row[1], is(20.0d));
+        point = (Point) response.rows()[0][0];
+        assertThat(point.getX(), is(10.0d));
+        assertThat(point.getY(), is(20.0d));
 
         execute("select p from t where distance(p, 'POINT (11 21)') < 10.0");
         assertThat(response.rowCount(), is(1L));
-        row = Arrays.copyOf((Object[]) response.rows()[0][0], 2, Double[].class);
-        assertThat(row[0], is(11.0d));
-        assertThat(row[1], is(21.0d));
+        point = (Point) response.rows()[0][0];
+        assertThat(point.getX(), is(11.0d));
+        assertThat(point.getY(), is(21.0d));
 
         execute("select p from t where distance(p, 'POINT (11 21)') < 10.0 or distance(p, 'POINT (11 21)') > 10.0");
         assertThat(response.rowCount(), is(2L));
 
         execute("select p from t where distance(p, 'POINT (10 20)') >= 0.0 and distance(p, 'POINT (10 20)') <= 0.1");
         assertThat(response.rowCount(), is(1L));
-        row = Arrays.copyOf((Object[]) response.rows()[0][0], 2, Double[].class);
-        assertThat(row[0], is(10.0d));
-        assertThat(row[1], is(20.0d));
+        point = (Point) response.rows()[0][0];
+        assertThat(point.getX(), is(10.0d));
+        assertThat(point.getY(), is(20.0d));
 
         execute("select p from t where distance(p, 'POINT (10 20)') = 0.0");
         assertThat(response.rowCount(), is(1L));
-        row = Arrays.copyOf((Object[]) response.rows()[0][0], 2, Double[].class);
-        assertThat(row[0], is(10.0d));
-        assertThat(row[1], is(20.0d));
+        point = (Point) response.rows()[0][0];
+        assertThat(point.getX(), is(10.0d));
+        assertThat(point.getY(), is(20.0d));
 
         execute("select p from t where distance(p, 'POINT (10 20)') = 152354.3209044634");
         assertThat(printedTable(response.rows()),
-            is("[11.0, 21.0]\n"));
+            is("Pt(x=11.0,y=21.0)\n"));
     }
 
     @Test

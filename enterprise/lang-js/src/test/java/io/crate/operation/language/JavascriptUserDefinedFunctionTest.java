@@ -39,6 +39,8 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
+import org.locationtech.spatial4j.shape.impl.PointImpl;
 
 import javax.script.ScriptException;
 import java.util.Collections;
@@ -204,14 +206,14 @@ public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTe
     @Test
     public void testGeoTypeReturnTypeWithDoubleArray() throws Exception {
         registerUserDefinedFunction("f", DataTypes.GEO_POINT, ImmutableList.of(), "function f() { return [1, 1]; }");
-        assertEvaluate("f()", new double[]{1.0, 1.0});
+        assertEvaluate("f()", new PointImpl(1.0, 1.0, JtsSpatialContext.GEO));
     }
 
     @Test
     public void testGeoTypeReturnTypeWithWKT() throws Exception {
         registerUserDefinedFunction("f", DataTypes.GEO_POINT, ImmutableList.of(),
             "function f() { return \"POINT (1.0 2.0)\"; }");
-        assertEvaluate("f()", new double[]{1.0, 2.0});
+        assertEvaluate("f()", new PointImpl(1.0, 2.0, JtsSpatialContext.GEO));
     }
 
     @Test

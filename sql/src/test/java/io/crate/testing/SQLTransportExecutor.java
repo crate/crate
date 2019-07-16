@@ -38,6 +38,7 @@ import io.crate.metadata.SearchPath;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
+import io.crate.shade.org.postgresql.geometric.PGpoint;
 import io.crate.shade.org.postgresql.util.PGobject;
 import io.crate.shade.org.postgresql.util.PSQLException;
 import io.crate.shade.org.postgresql.util.ServerErrorMessage;
@@ -64,6 +65,8 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.hamcrest.Matchers;
+import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
+import org.locationtech.spatial4j.shape.impl.PointImpl;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -473,6 +476,10 @@ public class SQLTransportExecutor {
             case "json":
                 String json = resultSet.getString(i + 1);
                 value = jsonToObject(json);
+                break;
+            case "point":
+                PGpoint pGpoint = resultSet.getObject(i + 1, PGpoint.class);
+                value = new PointImpl(pGpoint.x, pGpoint.y, JtsSpatialContext.GEO);
                 break;
             default:
                 value = resultSet.getObject(i + 1);

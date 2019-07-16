@@ -39,6 +39,17 @@ Unreleased Changes
    :local:
 
 
+Breaking Changes
+================
+
+- Changed how columns of type :ref:`geo_point_data_type` are being communicated
+  to PostgreSQL clients: Before clients were told that those columns are double
+  arrays, now they're correctly mapped to the PostgreSQL ``point`` type. This
+  means that applications using clients like ``JDBC`` will have to be adapted
+  to use ``PgPoint``. (See `Geometric DataTypes in JDBC
+  <https://jdbc.postgresql.org/documentation/head/geometric.html>`_)
+
+
 Changes
 =======
 

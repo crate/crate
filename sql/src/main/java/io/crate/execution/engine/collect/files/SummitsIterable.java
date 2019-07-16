@@ -27,7 +27,9 @@ import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.primitives.Ints;
 import io.crate.types.DataTypes;
+import org.locationtech.spatial4j.shape.Point;
 
+import javax.annotation.Nullable;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -72,7 +74,8 @@ public class SummitsIterable implements Iterable<SummitsContext> {
         return summits;
     }
 
-    private Double[] safeParseCoordinates(String value) {
+    @Nullable
+    private static Point safeParseCoordinates(String value) {
         return value.isEmpty() ? null : DataTypes.GEO_POINT.value(value);
     }
 

@@ -21,11 +21,13 @@
 
 package io.crate.expression.scalar.geo;
 
-import io.crate.expression.symbol.Literal;
 import io.crate.exceptions.ConversionException;
 import io.crate.expression.scalar.AbstractScalarFunctionsTest;
+import io.crate.expression.symbol.Literal;
 import io.crate.types.DataTypes;
 import org.junit.Test;
+import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
+import org.locationtech.spatial4j.shape.impl.PointImpl;
 
 import static io.crate.testing.SymbolMatchers.isLiteral;
 
@@ -48,7 +50,7 @@ public class DistanceFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testEvaluateWithTwoGeoPointLiterals() throws Exception {
         assertEvaluate("distance(geopoint, geopoint)", 144572.67952051832,
-            Literal.of(DataTypes.GEO_POINT, new Double[]{10.04, 28.02}),
+            Literal.of(DataTypes.GEO_POINT, new PointImpl(10.04, 28.02, JtsSpatialContext.GEO)),
             Literal.of(DataTypes.GEO_POINT, DataTypes.GEO_POINT.value("POINT(10.30 29.3)")));
     }
 

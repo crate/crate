@@ -21,6 +21,7 @@
 
 package io.crate.integrationtests;
 
+import com.carrotsearch.randomizedtesting.annotations.Seed;
 import io.crate.testing.DataTypeTesting;
 import io.crate.types.DataType;
 import org.elasticsearch.common.settings.Settings;
@@ -38,6 +39,7 @@ import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST)
+@Seed("54904E791E52DEFD")
 public class LuceneQueryBuilderIntegrationTest extends SQLTransportIntegrationTest {
 
     private static final int NUMBER_OF_BOOLEAN_CLAUSES = 10_000;

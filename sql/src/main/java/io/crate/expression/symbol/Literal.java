@@ -32,6 +32,7 @@ import io.crate.types.ObjectType;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.locationtech.spatial4j.shape.Point;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -116,10 +117,6 @@ public class Literal<ReturnType> extends Symbol implements Input<ReturnType>, Co
             } else {
                 return Arrays.equals((Object[]) value, ((ArrayType) type).value(value));
             }
-        }
-        // types like GeoPoint are represented as arrays
-        if (value.getClass().isArray() && Objects.deepEquals(value, type.value(value))) {
-            return true;
         }
         if (type.id() == ObjectType.ID) {
             //noinspection unchecked
@@ -275,7 +272,7 @@ public class Literal<ReturnType> extends Symbol implements Input<ReturnType>, Co
         return new Literal<>(DataTypes.FLOAT, value);
     }
 
-    public static Literal<Double[]> newGeoPoint(Object point) {
+    public static Literal<Point> newGeoPoint(Object point) {
         return new Literal<>(DataTypes.GEO_POINT, DataTypes.GEO_POINT.value(point));
     }
 

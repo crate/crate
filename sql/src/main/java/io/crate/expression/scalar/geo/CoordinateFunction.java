@@ -48,10 +48,10 @@ public final class CoordinateFunction {
 
 
     private static Double getLatitude(Object value) {
-        return (GeoPointType.INSTANCE.value(value))[1];
+        return (GeoPointType.INSTANCE.value(value)).getY();
     }
 
     private static Double getLongitude(Object value) {
-        return (GeoPointType.INSTANCE.value(value))[0];
+        return (GeoPointType.INSTANCE.value(value)).getX();
     }
 }

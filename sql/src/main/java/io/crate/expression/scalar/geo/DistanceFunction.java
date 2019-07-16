@@ -31,19 +31,20 @@ import io.crate.metadata.BaseFunctionResolver;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.functions.params.Param;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.geo.GeoUtils;
+import org.locationtech.spatial4j.shape.Point;
 
 import java.util.Arrays;
 import java.util.List;
 
-public class DistanceFunction extends Scalar<Double, Object> {
+public class DistanceFunction extends Scalar<Double, Point> {
 
     public static final String NAME = "distance";
     private static final Param ALLOWED_PARAM = Param.of(
@@ -65,7 +66,7 @@ public class DistanceFunction extends Scalar<Double, Object> {
         return new FunctionInfo(new FunctionIdent(NAME, argumentTypes), DataTypes.DOUBLE);
     }
 
-    DistanceFunction(FunctionInfo info) {
+    private DistanceFunction(FunctionInfo info) {
         this.info = info;
     }
 
@@ -75,41 +76,21 @@ public class DistanceFunction extends Scalar<Double, Object> {
     }
 
     @Override
-    public Double evaluate(TransactionContext txnCtx, Input[] args) {
+    public Double evaluate(TransactionContext txnCtx, Input<Point>[] args) {
         assert args.length == 2 : "number of args must be 2";
         return evaluate(args[0], args[1]);
     }
 
-    public Double evaluate(Input arg1, Input arg2) {
-        Object value1 = arg1.value();
+    public static Double evaluate(Input<Point> arg1, Input<Point> arg2) {
+        Point value1 = arg1.value();
         if (value1 == null) {
             return null;
         }
-        Object value2 = arg2.value();
+        Point value2 = arg2.value();
         if (value2 == null) {
             return null;
         }
-        double sourceLongitude;
-        double sourceLatitude;
-        double targetLongitude;
-        double targetLatitude;
-
-        // need to handle list also - because e.g. ESSearchTask returns geo_points as list
-        if (value1 instanceof List) {
-            sourceLongitude = (Double) ((List) value1).get(0);
-            sourceLatitude = (Double) ((List) value1).get(1);
-        } else {
-            sourceLongitude = ((Double[]) value1)[0];
-            sourceLatitude = ((Double[]) value1)[1];
-        }
-        if (value2 instanceof List) {
-            targetLongitude = (Double) ((List) value2).get(0);
-            targetLatitude = (Double) ((List) value2).get(1);
-        } else {
-            targetLongitude = ((Double[]) value2)[0];
-            targetLatitude = ((Double[]) value2)[1];
-        }
-        return GeoUtils.arcDistance(sourceLatitude, sourceLongitude, targetLatitude, targetLongitude);
+        return GeoUtils.arcDistance(value1.getY(), value1.getX(), value2.getY(), value2.getX());
     }
 
     @Override

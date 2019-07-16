@@ -29,13 +29,14 @@ import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
 import org.locationtech.spatial4j.exception.InvalidShapeException;
 import org.locationtech.spatial4j.io.WKTReader;
 import org.locationtech.spatial4j.shape.Point;
+import org.locationtech.spatial4j.shape.impl.PointImpl;
 
 import java.io.IOException;
 import java.text.ParseException;
 import java.util.List;
 import java.util.Locale;
 
-public class GeoPointType extends DataType<Double[]> implements Streamer<Double[]>, FixedWidthType {
+public class GeoPointType extends DataType<Point> implements Streamer<Point>, FixedWidthType {
 
     public static final int ID = 13;
     public static final GeoPointType INSTANCE = new GeoPointType();
@@ -61,20 +62,23 @@ public class GeoPointType extends DataType<Double[]> implements Streamer<Double[
     }
 
     @Override
-    public Streamer<Double[]> streamer() {
+    public Streamer<Point> streamer() {
         return this;
     }
 
     @Override
-    public Double[] value(Object value) {
+    public Point value(Object value) {
         if (value == null) {
             return null;
+        }
+        if (value instanceof Point) {
+            return ((Point) value);
         }
         if (value instanceof Double[]) {
             Double[] doubles = (Double[]) value;
             checkLengthIs2(doubles.length);
-            validate(doubles);
-            return doubles;
+            ensurePointsInRange(doubles[0], doubles[1]);
+            return new PointImpl(doubles[0], doubles[1], JtsSpatialContext.GEO);
         }
         if (value instanceof String) {
             return pointFromString((String) value);
@@ -82,30 +86,33 @@ public class GeoPointType extends DataType<Double[]> implements Streamer<Double[
         if (value instanceof List) {
             List values = (List) value;
             checkLengthIs2(values.size());
-            Double[] geoPoint = new Double[]{(Double) values.get(0), (Double) values.get(1)};
-            validate(geoPoint);
-            return geoPoint;
+            PointImpl point = new PointImpl(
+                ((Number) values.get(0)).doubleValue(),
+                ((Number) values.get(1)).doubleValue(),
+                JtsSpatialContext.GEO);
+            ensurePointsInRange(point.getX(), point.getY());
+            return point;
         }
         Object[] values = (Object[]) value;
         checkLengthIs2(values.length);
-        Double[] geoPoint = new Double[]{
+        PointImpl point = new PointImpl(
             ((Number) values[0]).doubleValue(),
-            ((Number) values[1]).doubleValue()};
-        validate(geoPoint);
-        return geoPoint;
+            ((Number) values[1]).doubleValue(),
+            JtsSpatialContext.GEO);
+        ensurePointsInRange(point.getX(), point.getY());
+        return point;
     }
 
-    private void validate(Double[] doubles) {
-        if (!isValid(doubles)) {
+    private void ensurePointsInRange(double x, double y) {
+        if (!arePointsInRange(x, y)) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                 "Failed to validate geo point [lon=%f, lat=%f], not a valid location.",
-                doubles[0], doubles[1]));
+                x, y));
         }
     }
 
-    private static boolean isValid(Double[] geoPoint) {
-        assert geoPoint.length == 2 : "Geo point array must contain 2 Double values.";
-        return (geoPoint[0] >= -180.0d && geoPoint[0] <= 180.0d) && (geoPoint[1] >= -90.0d && geoPoint[1] <= 90.0d);
+    private static boolean arePointsInRange(double x, double y) {
+        return x >= -180.0d && x <= 180.0d && y >= -90.0d && y <= 90.0d;
     }
 
     private static void checkLengthIs2(int actualLength) {
@@ -113,10 +120,9 @@ public class GeoPointType extends DataType<Double[]> implements Streamer<Double[
             "The value of a GeoPoint must be a double array with 2 items, not %s", actualLength);
     }
 
-    private static Double[] pointFromString(String value) {
+    private static Point pointFromString(String value) {
         try {
-            Point point = (Point) WKT_READER.parse(value);
-            return new Double[]{point.getX(), point.getY()};
+            return (Point) WKT_READER.parse(value);
         } catch (ParseException | InvalidShapeException e) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                 "Cannot convert \"%s\" to geo_point. %s", value, e.getLocalizedMessage()), e);
@@ -124,42 +130,39 @@ public class GeoPointType extends DataType<Double[]> implements Streamer<Double[
     }
 
     @Override
-    public int compareValueTo(Double[] val1, Double[] val2) {
+    public int compareValueTo(Point val1, Point val2) {
         if (val1 == null) {
             return -1;
         }
         if (val2 == null) {
             return 1;
         }
-        assert val1.length == 2 : "1st GeoPoint is empty";
-        assert val2.length == 2 : "2nd GeoPoint is empty";
-
         // this is probably not really correct, but should be sufficient for the compareValueTo use case
         // (which is ordering and equality check)
-        int latComp = Double.compare(val1[0], val2[0]);
+        int latComp = Double.compare(val1.getX(), val2.getX());
         if (latComp != 0) {
             return latComp;
         }
-        return Double.compare(val1[1], val2[1]);
+        return Double.compare(val1.getY(), val2.getY());
     }
 
     @Override
-    public Double[] readValueFrom(StreamInput in) throws IOException {
+    public Point readValueFrom(StreamInput in) throws IOException {
         if (in.readBoolean()) {
-            return new Double[]{in.readDouble(), in.readDouble()};
+            return new PointImpl(in.readDouble(), in.readDouble(), JtsSpatialContext.GEO);
         } else {
             return null;
         }
     }
 
     @Override
-    public void writeValueTo(StreamOutput out, Double[] point) throws IOException {
+    public void writeValueTo(StreamOutput out, Point point) throws IOException {
         if (point == null) {
             out.writeBoolean(false);
         } else {
             out.writeBoolean(true);
-            out.writeDouble(point[0]);
-            out.writeDouble(point[1]);
+            out.writeDouble(point.getX());
+            out.writeDouble(point.getY());
         }
     }
 

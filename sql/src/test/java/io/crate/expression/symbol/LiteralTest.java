@@ -27,6 +27,7 @@ import io.crate.types.BooleanType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.junit.Test;
+import org.locationtech.spatial4j.shape.Point;
 
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static org.hamcrest.Matchers.is;
@@ -58,8 +59,8 @@ public class LiteralTest extends CrateUnitTest {
 
     @Test
     public void testHashCodeIsEqualOnArrayValues() throws Exception {
-        Literal<Object[]> l1 = Literal.of(new Double[]{10.0, 20.2}, DataTypes.GEO_POINT);
-        Literal<Object[]> l2 = Literal.of(new Double[]{10.0, 20.2}, DataTypes.GEO_POINT);
+        Literal<Point> l1 = Literal.newGeoPoint(new Double[]{10.0, 20.2});
+        Literal<Point> l2 = Literal.newGeoPoint(new Double[]{10.0, 20.2});
         assertThat(l1.hashCode(), is(l2.hashCode()));
     }
 

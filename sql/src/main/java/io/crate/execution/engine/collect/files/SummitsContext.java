@@ -22,12 +22,14 @@
 
 package io.crate.execution.engine.collect.files;
 
+import org.locationtech.spatial4j.shape.Point;
+
 public class SummitsContext {
 
     public final String mountain;
     public final Integer height;
     public final Integer prominence;
-    public final Double[] coordinates;
+    public final Point coordinates;
     public final String range;
     public final String region;
     public final String classification;
@@ -37,7 +39,7 @@ public class SummitsContext {
     SummitsContext(String mountain,
                    Integer height,
                    Integer prominence,
-                   Double[] coordinates,
+                   Point coordinates,
                    String region,
                    String classification,
                    String range,
@@ -66,7 +68,7 @@ public class SummitsContext {
         return prominence;
     }
 
-    public Double[] coordinates() {
+    public Point coordinates() {
         return coordinates;
     }
 

@@ -37,6 +37,7 @@ import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
 import org.elasticsearch.common.geo.GeoUtils;
 import org.elasticsearch.common.lucene.search.Queries;
+import org.locationtech.spatial4j.shape.Point;
 
 import static io.crate.lucene.LuceneQueryBuilder.genericFunctionFilter;
 
@@ -69,7 +70,7 @@ class DistanceQuery implements InnerFunctionToQuery {
         String parentName = functionLiteralPair.functionName();
         Input geoPointInput = distanceRefLiteral.literal();
         String fieldName = distanceRefLiteral.reference().column().fqn();
-        Double[] pointValue = (Double[]) geoPointInput.value();
+        Point pointValue = (Point) geoPointInput.value();
         return esV5DistanceQuery(parent, context, parentName, fieldName, distance, pointValue);
     }
 
@@ -105,20 +106,20 @@ class DistanceQuery implements InnerFunctionToQuery {
                                            String parentOperatorName,
                                            String columnName,
                                            Double distance,
-                                           Double[] lonLat) {
+                                           Point lonLat) {
         switch (parentOperatorName) {
             // We documented that using distance in the WHERE clause utilizes the index which isn't precise so treating
             // lte & lt the same should be acceptable
             case LteOperator.NAME:
             case LtOperator.NAME:
-                return LatLonPoint.newDistanceQuery(columnName, lonLat[1], lonLat[0], distance);
+                return LatLonPoint.newDistanceQuery(columnName, lonLat.getY(), lonLat.getX(), distance);
             case GteOperator.NAME:
                 if (distance - GeoUtils.TOLERANCE <= 0.0d) {
                     return Queries.newMatchAllQuery();
                 }
                 // fall through
             case GtOperator.NAME:
-                return Queries.not(LatLonPoint.newDistanceQuery(columnName, lonLat[1], lonLat[0], distance));
+                return Queries.not(LatLonPoint.newDistanceQuery(columnName, lonLat.getY(), lonLat.getX(), distance));
             case EqOperator.NAME:
                 return eqDistance(parentFunction, context, columnName, distance, lonLat);
             default:
@@ -130,13 +131,13 @@ class DistanceQuery implements InnerFunctionToQuery {
                                     LuceneQueryBuilder.Context context,
                                     String columnName,
                                     Double distance,
-                                    Double[] lonLat) {
+                                    Point lonLat) {
         double smallDistance = distance * 0.99;
         if (smallDistance <= 0.0) {
-            return LatLonPoint.newDistanceQuery(columnName, lonLat[1], lonLat[0], 0);
+            return LatLonPoint.newDistanceQuery(columnName, lonLat.getY(), lonLat.getX(), 0);
         }
-        Query withinSmallCircle = LatLonPoint.newDistanceQuery(columnName, lonLat[1], lonLat[0], smallDistance);
-        Query withinLargeCircle = LatLonPoint.newDistanceQuery(columnName, lonLat[1], lonLat[0], distance * 1.01);
+        Query withinSmallCircle = LatLonPoint.newDistanceQuery(columnName, lonLat.getY(), lonLat.getX(), smallDistance);
+        Query withinLargeCircle = LatLonPoint.newDistanceQuery(columnName, lonLat.getY(), lonLat.getX(), distance * 1.01);
         return new BooleanQuery.Builder()
             .add(withinLargeCircle, BooleanClause.Occur.MUST)
             .add(withinSmallCircle, BooleanClause.Occur.MUST_NOT)

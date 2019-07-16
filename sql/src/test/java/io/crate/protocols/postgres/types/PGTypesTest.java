@@ -23,6 +23,7 @@
 package io.crate.protocols.postgres.types;
 
 import io.crate.test.integration.CrateUnitTest;
+import io.crate.testing.DataTypeTesting;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -34,6 +35,8 @@ import io.crate.types.StringType;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.junit.Test;
+import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
+import org.locationtech.spatial4j.shape.impl.PointImpl;
 
 import java.util.List;
 
@@ -134,6 +137,7 @@ public class PGTypesTest extends CrateUnitTest {
             new Entry(DataTypes.TIMESTAMP, DataTypes.TIMESTAMP.value(999999999999999L)),
             new Entry(DataTypes.IP, "192.168.1.1"),
             new Entry(DataTypes.BYTE, (byte) 20),
+            new Entry(GEO_POINT, DataTypeTesting.getDataGenerator(GEO_POINT).get()),
             new Entry(new ArrayType(DataTypes.INTEGER), new Integer[]{10, null, 20}),
             new Entry(new ArrayType(DataTypes.INTEGER), new Integer[0]),
             new Entry(new ArrayType(DataTypes.INTEGER), new Integer[]{null, null}),
