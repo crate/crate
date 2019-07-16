@@ -43,6 +43,8 @@ import io.crate.types.ObjectType;
 import io.crate.types.ShortType;
 import io.crate.types.StringType;
 import io.crate.types.TimestampType;
+import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
+import org.locationtech.spatial4j.shape.impl.PointImpl;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -103,10 +105,11 @@ public class DataTypeTesting {
                 return () -> (T) (Long) random.nextLong();
 
             case GeoPointType.ID:
-                return () -> (T) new Double[]{
+                return () -> (T) new PointImpl(
                     BiasedNumbers.randomDoubleBetween(random, -180, 180),
-                    BiasedNumbers.randomDoubleBetween(random, -90, 90)
-                };
+                    BiasedNumbers.randomDoubleBetween(random, -90, 90),
+                    JtsSpatialContext.GEO
+                );
 
             case GeoShapeType.ID:
                 return () -> {
@@ -139,9 +142,6 @@ public class DataTypeTesting {
     }
 
     private static String randomIPv4Address(Random random) {
-        return Integer.toString(random.nextInt(255) + 1) + "." +
-               Integer.toString(random.nextInt(256)) + "." +
-               Integer.toString(random.nextInt(256)) + "." +
-               Integer.toString(random.nextInt(256));
+        return (random.nextInt(255) + 1) + "." + random.nextInt(256) + "." + random.nextInt(256) + "." + random.nextInt(256);
     }
 }

@@ -28,6 +28,8 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.locationtech.spatial4j.shape.impl.PointImpl;
+import org.locationtech.spatial4j.shape.jts.JtsPoint;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -208,6 +210,8 @@ public final class DataTypes {
         entry(Map.class, ObjectType.untyped()),
         entry(String.class, STRING),
         entry(BytesRef.class, STRING),
+        entry(PointImpl.class, GEO_POINT),
+        entry(JtsPoint.class, GEO_POINT),
         entry(Character.class, STRING));
 
     public static DataType<?> guessType(Object value) {

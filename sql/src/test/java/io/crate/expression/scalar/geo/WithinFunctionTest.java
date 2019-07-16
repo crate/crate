@@ -114,7 +114,7 @@ public class WithinFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testNormalizeWithSecondArgAsStringReference() throws Exception {
         Symbol normalized = normalize(FNAME,
-            Literal.of(DataTypes.GEO_POINT, new Double[]{0.0d, 0.0d}),
+            Literal.newGeoPoint(new Double[]{0.0d, 0.0d}),
             createReference("location", DataTypes.STRING));
         assertThat(normalized.symbolType(), is(SymbolType.FUNCTION));
         assertThat(((Function) normalized).info().ident().name(), is(WithinFunction.NAME));

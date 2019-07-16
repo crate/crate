@@ -242,7 +242,7 @@ public class WherePKIntegrationTest extends SQLTransportIntegrationTest {
         execute("select * from explicit_routing where name=','");
         assertThat(response.cols(), is(Matchers.arrayContaining("location", "name")));
         assertThat(response.rowCount(), is(1L));
-        assertThat(TestingHelpers.printedTable(response.rows()), is("[36.567, 52.998]| ,\n"));
+        assertThat(TestingHelpers.printedTable(response.rows()), is("Pt(x=36.567,y=52.998)| ,\n"));
     }
 
     @Test

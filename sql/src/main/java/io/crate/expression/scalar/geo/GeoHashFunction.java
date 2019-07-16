@@ -28,28 +28,24 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.GeoPointType;
 import org.elasticsearch.common.geo.GeoHashUtils;
+import org.locationtech.spatial4j.shape.Point;
 
 import java.util.List;
-import java.util.function.Function;
 
 public final class GeoHashFunction {
 
     private static final List<DataType> SUPPORTED_INPUT_TYPES = ImmutableList.of(DataTypes.GEO_POINT, DataTypes.STRING, DataTypes.DOUBLE_ARRAY);
 
-    private static void register(ScalarFunctionModule module, String name, Function<Object, String> func) {
-        for (DataType inputType : SUPPORTED_INPUT_TYPES) {
-            module.register(new UnaryScalar<>(name, inputType, DataTypes.STRING, func));
-        }
-    }
-
     public static void register(ScalarFunctionModule module) {
-        register(module, "geohash", GeoHashFunction::getGeoHash);
+        for (DataType inputType : SUPPORTED_INPUT_TYPES) {
+            module.register(new UnaryScalar<>("geohash", inputType, DataTypes.STRING, GeoHashFunction::getGeoHash));
+        }
     }
 
 
     private static String getGeoHash(Object value) {
-        Double[] geoValue = GeoPointType.INSTANCE.value(value);
-        return GeoHashUtils.stringEncode(geoValue[0], geoValue[1]);
+        Point geoValue = GeoPointType.INSTANCE.value(value);
+        return GeoHashUtils.stringEncode(geoValue.getX(), geoValue.getY());
     }
 }
 

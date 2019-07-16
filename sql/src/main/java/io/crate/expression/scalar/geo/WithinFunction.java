@@ -31,17 +31,17 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.geo.GeoJSONUtils;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.TransactionContext;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 import org.locationtech.spatial4j.context.SpatialContext;
+import org.locationtech.spatial4j.shape.Point;
 import org.locationtech.spatial4j.shape.Shape;
 import org.locationtech.spatial4j.shape.SpatialRelation;
 
 import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -104,15 +104,14 @@ public class WithinFunction extends Scalar<Boolean, Object> {
     }
 
     @SuppressWarnings("unchecked")
-    private Shape parseLeftShape(Object left) {
+    private static Shape parseLeftShape(Object left) {
         Shape shape;
-        if (left instanceof Double[]) {
+        if (left instanceof Point) {
+            Point point = (Point) left;
+            shape = SpatialContext.GEO.getShapeFactory().pointXY(point.getX(), point.getY());
+        } else if (left instanceof Double[]) {
             Double[] values = (Double[]) left;
             shape = SpatialContext.GEO.getShapeFactory().pointXY(values[0], values[1]);
-        } else if (left instanceof List) { // ESSearchTask / ESGetTask returns it as list
-            List values = (List) left;
-            assert values.size() == 2 : "number of values must be 2";
-            shape = SpatialContext.GEO.getShapeFactory().pointXY((Double) values.get(0), (Double) values.get(1));
         } else if (left instanceof String) {
             shape = GeoJSONUtils.wkt2Shape((String) left);
         } else {

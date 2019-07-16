@@ -30,6 +30,8 @@ import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.core.IsNull;
 import org.junit.Test;
+import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
+import org.locationtech.spatial4j.shape.impl.PointImpl;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -605,12 +607,27 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         execute("refresh table t");
         execute("select points from t order by id");
         assertThat(response.rowCount(), is(3L));
-        assertThat((Object[]) response.rows()[0][0],
-            arrayContaining(new Object[]{new Double[]{1.1, 2.2}, new Double[]{3.3, 4.4}}));
-        assertThat((Object[]) response.rows()[1][0],
-            arrayContaining(new Object[]{new Double[]{5.5, 6.6}, new Double[]{7.7, 8.8}}));
-        assertThat((Object[]) response.rows()[2][0],
-            arrayContaining(new Object[]{new Double[]{9.9, 10.10}, new Double[]{11.11, 12.12}}));
+        assertThat(
+            (Object[]) response.rows()[0][0],
+            arrayContaining(
+                is(new PointImpl(1.1, 2.2, JtsSpatialContext.GEO)),
+                is(new PointImpl(3.3, 4.4, JtsSpatialContext.GEO))
+            )
+        );
+        assertThat(
+            (Object[]) response.rows()[1][0],
+            arrayContaining(
+                is(new PointImpl(5.5, 6.6, JtsSpatialContext.GEO)),
+                is(new PointImpl(7.7, 8.8, JtsSpatialContext.GEO))
+            )
+        );
+        assertThat(
+            (Object[]) response.rows()[2][0],
+            arrayContaining(
+                is(new PointImpl(9.9, 10.10, JtsSpatialContext.GEO)),
+                is(new PointImpl(11.11, 12.12, JtsSpatialContext.GEO))
+            )
+        );
     }
 
     @Test

@@ -26,6 +26,7 @@ import io.crate.action.sql.SQLOperations;
 import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.shade.org.postgresql.PGProperty;
+import io.crate.shade.org.postgresql.geometric.PGpoint;
 import io.crate.shade.org.postgresql.jdbc.PreferQueryMode;
 import io.crate.shade.org.postgresql.util.PSQLException;
 import io.crate.shade.org.postgresql.util.PSQLState;
@@ -52,6 +53,7 @@ import java.util.Properties;
 import java.util.UUID;
 
 import static io.crate.protocols.postgres.PostgresNetty.PSQL_PORT_SETTING;
+import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.emptyIterable;
 import static org.hamcrest.Matchers.emptyOrNullString;
 import static org.hamcrest.Matchers.greaterThan;
@@ -306,7 +308,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
             assertThat(object, is(new Object[]{"foo", "bar"}));
 
             object = (Object[]) resultSet.getArray(3).getArray();
-            assertThat(object, is(new Double[][]{new Double[]{1.1, 2.2}, new Double[]{3.3, 4.4}}));
+            assertThat(object, arrayContaining(new PGpoint(1.1, 2.2), new PGpoint(3.3, 4.4)));
         } catch (BatchUpdateException e) {
             throw e.getNextException();
         }

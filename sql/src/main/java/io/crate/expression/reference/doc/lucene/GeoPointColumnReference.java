@@ -27,14 +27,17 @@ import org.elasticsearch.common.geo.GeoPoint;
 import org.elasticsearch.index.fielddata.IndexGeoPointFieldData;
 import org.elasticsearch.index.fielddata.MultiGeoPointValues;
 import org.elasticsearch.index.mapper.MappedFieldType;
+import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
+import org.locationtech.spatial4j.shape.Point;
+import org.locationtech.spatial4j.shape.impl.PointImpl;
 
 import java.io.IOException;
 
-public class GeoPointColumnReference extends FieldCacheExpression<IndexGeoPointFieldData, Double[]> {
+public class GeoPointColumnReference extends FieldCacheExpression<IndexGeoPointFieldData, Point> {
 
     private final String columnName;
     private MultiGeoPointValues values;
-    private Double[] value;
+    private PointImpl value;
 
     public GeoPointColumnReference(String columnName, MappedFieldType mappedFieldType) {
         super(mappedFieldType);
@@ -42,7 +45,7 @@ public class GeoPointColumnReference extends FieldCacheExpression<IndexGeoPointF
     }
 
     @Override
-    public Double[] value() {
+    public Point value() {
         return value;
     }
 
@@ -53,7 +56,7 @@ public class GeoPointColumnReference extends FieldCacheExpression<IndexGeoPointF
             switch (values.docValueCount()) {
                 case 1:
                     GeoPoint gp = values.nextValue();
-                    value = new Double[]{gp.lon(), gp.lat()};
+                    value = new PointImpl(gp.lon(), gp.lat(), JtsSpatialContext.GEO);
                     break;
 
                 default:

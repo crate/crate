@@ -24,6 +24,7 @@ package io.crate.metadata.sys;
 
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
+import io.crate.execution.engine.collect.files.SummitsContext;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
@@ -32,15 +33,14 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
-import io.crate.execution.engine.collect.files.SummitsContext;
 import org.elasticsearch.cluster.ClusterState;
 
 import java.util.Map;
 
 import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
-import static io.crate.types.DataTypes.STRING;
-import static io.crate.types.DataTypes.INTEGER;
 import static io.crate.types.DataTypes.GEO_POINT;
+import static io.crate.types.DataTypes.INTEGER;
+import static io.crate.types.DataTypes.STRING;
 
 public class SysSummitsTableInfo extends StaticTableInfo<SummitsContext> {
 
