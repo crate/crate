@@ -45,6 +45,7 @@ class PGArray extends PGType {
     static final PGArray VARCHAR_ARRAY = new PGArray(1015, VarCharType.INSTANCE);
     static final PGArray JSON_ARRAY = new PGArray(199, JsonType.INSTANCE);
     static final PGArray POINT_ARRAY = new PGArray(1017, PointType.INSTANCE);
+    static final PGArray INTERVAL_ARRAY = new PGArray(1187, IntervalType.INSTANCE);
 
     private static final byte[] NULL_BYTES = new byte[]{'N', 'U', 'L', 'L'};
 

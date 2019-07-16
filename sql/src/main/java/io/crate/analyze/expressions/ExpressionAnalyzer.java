@@ -128,7 +128,7 @@ import io.crate.sql.tree.WindowFrame;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.Interval;
+import io.crate.types.MonthDaySecondInterval;
 import io.crate.types.ObjectType;
 import io.crate.types.UndefinedType;
 
@@ -145,12 +145,10 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static io.crate.common.collections.Lists2.mapTail;
-
 
 /**
  * <p>This Analyzer can be used to convert Expression from the SQL AST into symbols.</p>
@@ -927,38 +925,41 @@ public class ExpressionAnalyzer {
             if (value == null || value.isEmpty() || value.isBlank()) {
                 throw new IllegalArgumentException("Invalid value " + value);
             }
-            int interval = Integer.parseInt(value);
+            int time = Integer.parseInt(value);
 
-            Duration duration = null;
+            int months = 0;
+            int days = 0;
+            double seconds = 0;
 
+            //TODO include getEndField TO clause
             switch (node.getStartField()) {
                 case YEAR:
-                    duration = Duration.ofDays(Period.ofYears(interval).normalized().getDays());
-                    break;
                 case MONTH:
-                    duration = Duration.ofDays(Period.ofMonths(interval).normalized().getDays());
+                    months = Math.toIntExact(Period.ofMonths(time).toTotalMonths());
                     break;
                 case DAY:
-                    duration = Duration.ofDays(interval);
+                    days = Math.toIntExact(Duration.ofDays(time).toDays());
                     break;
                 case HOUR:
-                    duration = Duration.ofHours(interval);
+                    seconds = Math.toIntExact(Duration.ofHours(time).getSeconds());
                     break;
                 case MINUTE:
-                    duration = Duration.ofMinutes(interval);
+                    seconds = Math.toIntExact(Duration.ofMinutes(time).getSeconds());
                     break;
                 case SECOND:
-                    duration = Duration.ofSeconds(interval);
+                    seconds = Duration.ofSeconds(time).getSeconds();
                     break;
                 default:
-                    throw new IllegalArgumentException("Invalid Start Field");
+                    throw new IllegalArgumentException("Invalid start field");
             }
 
-            int days = (int) TimeUnit.DAYS.convert(duration);
-            int month = days / 30;
-            long ms = TimeUnit.MILLISECONDS.convert(duration);
+            MonthDaySecondInterval MonthDaySecondInterval = new MonthDaySecondInterval(seconds, days, months);
 
-            return Literal.newInterval(new Interval(ms, days, month));
+            if (node.getSign() == IntervalLiteral.Sign.NEGATIVE) {
+                MonthDaySecondInterval = new MonthDaySecondInterval(-seconds, -days, -months);
+            }
+
+            return Literal.newInterval(MonthDaySecondInterval);
         }
 
         @Override

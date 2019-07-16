@@ -37,8 +37,10 @@ import io.crate.types.FloatType;
 import io.crate.types.GeoPointType;
 import io.crate.types.GeoShapeType;
 import io.crate.types.IntegerType;
+import io.crate.types.IntervalType;
 import io.crate.types.IpType;
 import io.crate.types.LongType;
+import io.crate.types.MonthDaySecondInterval;
 import io.crate.types.ObjectType;
 import io.crate.types.ShortType;
 import io.crate.types.StringType;
@@ -59,6 +61,7 @@ public class DataTypeTesting {
         .addAll(DataTypes.PRIMITIVE_TYPES)
         .add(DataTypes.GEO_POINT)
         .add(DataTypes.GEO_SHAPE)
+        .add(DataTypes.INTERVAL)
         .add(ObjectType.untyped())
         .build();
 
@@ -128,6 +131,9 @@ public class DataTypeTesting {
                     map.put("x", innerValueGenerator.get());
                     return (T) map;
                 };
+            case IntervalType.ID:
+                return () -> (T) new MonthDaySecondInterval(1000, 0,0);
+
         }
 
         throw new AssertionError("No data generator for type " + type.getName());
