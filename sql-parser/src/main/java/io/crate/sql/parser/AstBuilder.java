@@ -225,16 +225,27 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     @Override
     public Node visitIntervalLiteral(SqlBaseParser.IntervalLiteralContext context) {
+        IntervalLiteral.IntervalField startField = getIntervalFieldType((Token) context.from.getChild(0).getPayload());
+        Optional<IntervalLiteral.IntervalField> endField = Optional.ofNullable(context.to)
+            .map((x) -> x.getChild(0).getPayload())
+            .map(Token.class::cast)
+            .map(AstBuilder::getIntervalFieldType);
+        endField.ifPresent(
+            end -> {
+                if (startField.compareTo(end) > 0) {
+                    throw new IllegalArgumentException(
+                        String.format("Startfield %s must be less significant than Endfield %s", startField, end));
+                }
+            }
+        );
+
         return new IntervalLiteral(
             ((StringLiteral) visit(context.stringLiteral())).getValue(),
             Optional.ofNullable(context.sign)
                 .map(AstBuilder::getIntervalSign)
                 .orElse(IntervalLiteral.Sign.POSITIVE),
-            getIntervalFieldType((Token) context.from.getChild(0).getPayload()),
-            Optional.ofNullable(context.to)
-                .map((x) -> x.getChild(0).getPayload())
-                .map(Token.class::cast)
-                .map(AstBuilder::getIntervalFieldType));
+            startField,
+            endField);
     }
 
     private static IntervalLiteral.Sign getIntervalSign(Token token) {
@@ -460,8 +471,8 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
                 extractGenericProperties(context.withProperties()));
         }
         return new RestoreSnapshot(getQualifiedName(context.qname()),
-            visitCollection(context.tableWithPartitions().tableWithPartition(), Table.class),
-            extractGenericProperties(context.withProperties()));
+                                   visitCollection(context.tableWithPartitions().tableWithPartition(), Table.class),
+                                   extractGenericProperties(context.withProperties()));
     }
 
     @Override
@@ -517,7 +528,8 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     public Node visitCopyTo(SqlBaseParser.CopyToContext context) {
         return new CopyTo(
             (Table) visit(context.tableWithPartition()),
-            context.columns() == null ? emptyList() : visitCollection(context.columns().primaryExpression(), Expression.class),
+            context.columns() == null ? emptyList() : visitCollection(context.columns().primaryExpression(),
+                                                                      Expression.class),
             visitIfPresent(context.where(), Expression.class),
             context.DIRECTORY() != null,
             (Expression) visit(context.path),
@@ -536,7 +548,8 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
             for (Expression ex : tf.functionCall().getArguments()) {
                 if (!(ex instanceof QualifiedNameReference)) {
                     throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                        "invalid table column reference %s", ex.toString()));
+                                                                     "invalid table column reference %s",
+                                                                     ex.toString()));
                 }
             }
             throw e;
@@ -630,10 +643,11 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     public Node visitSetGlobal(SqlBaseParser.SetGlobalContext context) {
         if (context.PERSISTENT() != null) {
             return new SetStatement(SetStatement.Scope.GLOBAL,
-                SetStatement.SettingType.PERSISTENT,
-                visitCollection(context.setGlobalAssignment(), Assignment.class));
+                                    SetStatement.SettingType.PERSISTENT,
+                                    visitCollection(context.setGlobalAssignment(), Assignment.class));
         }
-        return new SetStatement(SetStatement.Scope.GLOBAL, visitCollection(context.setGlobalAssignment(), Assignment.class));
+        return new SetStatement(SetStatement.Scope.GLOBAL,
+                                visitCollection(context.setGlobalAssignment(), Assignment.class));
     }
 
     @Override
@@ -642,7 +656,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
             new StringLiteral("license"), (Expression) visit(ctx.stringLiteral()));
 
         return new SetStatement(SetStatement.Scope.LICENSE,
-            SetStatement.SettingType.PERSISTENT, Collections.singletonList(assignment));
+                                SetStatement.SettingType.PERSISTENT, Collections.singletonList(assignment));
     }
 
     @Override
@@ -1093,12 +1107,12 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     }
 
     /*
-    * case sensitivity like it is in postgres
-    * see also http://www.thenextage.com/wordpress/postgresql-case-sensitivity-part-1-the-ddl/
-    *
-    * unfortunately this has to be done in the parser because afterwards the
-    * knowledge of the IDENT / QUOTED_IDENT difference is lost
-    */
+     * case sensitivity like it is in postgres
+     * see also http://www.thenextage.com/wordpress/postgresql-case-sensitivity-part-1-the-ddl/
+     *
+     * unfortunately this has to be done in the parser because afterwards the
+     * knowledge of the IDENT / QUOTED_IDENT difference is lost
+     */
     @Override
     public Node visitUnquotedIdentifier(SqlBaseParser.UnquotedIdentifierContext context) {
         return new StringLiteral(context.getText().toLowerCase(Locale.ENGLISH));
@@ -1124,7 +1138,8 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     @Override
     public Node visitTable(SqlBaseParser.TableContext context) {
         if (context.qname() != null) {
-            return new Table(getQualifiedName(context.qname()), visitCollection(context.valueExpression(), Assignment.class));
+            return new Table(getQualifiedName(context.qname()),
+                             visitCollection(context.valueExpression(), Assignment.class));
         }
         FunctionCall fc = new FunctionCall(
             getQualifiedName(context.ident()), visitCollection(context.valueExpression(), Expression.class));
@@ -1461,7 +1476,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     @Override
     public Node visitExtract(SqlBaseParser.ExtractContext context) {
         return new Extract((Expression) visit(context.expr()),
-            (StringLiteral) visit(context.stringLiteralOrIdentifier()));
+                           (StringLiteral) visit(context.stringLiteralOrIdentifier()));
     }
 
     @Override
@@ -1621,7 +1636,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     public Node visitObjectLiteral(SqlBaseParser.ObjectLiteralContext context) {
         Multimap<String, Expression> objAttributes = LinkedListMultimap.create();
         context.objectKeyValue().forEach(attr ->
-            objAttributes.put(getIdentText(attr.key), (Expression) visit(attr.value))
+                                             objAttributes.put(getIdentText(attr.key), (Expression) visit(attr.value))
         );
         return new ObjectLiteral(objAttributes);
     }
@@ -1667,7 +1682,9 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     }
 
     private String getObjectType(Token type) {
-        if (type == null) return null;
+        if (type == null) {
+            return null;
+        }
         switch (type.getType()) {
             case SqlBaseLexer.DYNAMIC:
                 return type.getText().toLowerCase(Locale.ENGLISH);
@@ -1909,8 +1926,10 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     private static void validateFunctionName(QualifiedName functionName) {
         if (functionName.getParts().size() > 2) {
-            throw new IllegalArgumentException(String.format(Locale.ENGLISH, "The function name is not correct! " +
-                "name [%s] does not conform the [[schema_name .] function_name] format.", functionName));
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                                                             "The function name is not correct! " +
+                                                             "name [%s] does not conform the [[schema_name .] function_name] format.",
+                                                             functionName));
         }
     }
 

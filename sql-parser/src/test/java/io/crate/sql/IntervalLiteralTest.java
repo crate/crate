@@ -111,4 +111,24 @@ public class IntervalLiteralTest {
         assertThat(interval.getEndField(), is(Optional.of(IntervalLiteral.IntervalField.SECOND)));
     }
 
+    @Test
+    public void testSecondToHour() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Startfield SECOND must be less significant than Endfield HOUR");
+        SqlParser.createExpression("INTERVAL '1' SECOND TO HOUR");
+    }
+
+    @Test
+    public void testSecondToYear() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Startfield SECOND must be less significant than Endfield YEAR");
+        SqlParser.createExpression("INTERVAL '1' SECOND TO YEAR");
+    }
+
+    @Test
+    public void testDayToYear() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Startfield DAY must be less significant than Endfield YEAR");
+        SqlParser.createExpression("INTERVAL '1' DAY TO YEAR");
+    }
 }
