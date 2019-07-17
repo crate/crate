@@ -73,8 +73,8 @@ public class Interval implements Comparable<Interval> {
     }
 
     public static int compare(Interval i1, Interval i2) {
-        int msCmp = Double.compare(i1.seconds, i2.seconds);
-        if (msCmp != 0) return msCmp;
+        int sCmp = Double.compare(i1.seconds, i2.seconds);
+        if (sCmp != 0) return sCmp;
 
         int daysCmp = Integer.compare(i1.days, i2.days);
         if (daysCmp != 0) return daysCmp;

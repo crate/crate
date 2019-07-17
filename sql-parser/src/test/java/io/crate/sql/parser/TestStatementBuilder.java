@@ -858,7 +858,7 @@ public class TestStatementBuilder {
 
     @Test
     public void testIntervalLiteral() {
-        printStatement("select interval 'foo' HOUR");
+        printStatement("select interval '1' HOUR");
     }
 
     @Test
