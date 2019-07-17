@@ -26,6 +26,8 @@ import javax.annotation.Nullable;
 import java.util.Comparator;
 import java.util.List;
 
+import static io.crate.common.collections.Lists2.findFirstGTEProbeValue;
+import static io.crate.common.collections.Lists2.findFirstLTEProbeValue;
 import static io.crate.common.collections.Lists2.findFirstNonPeer;
 import static io.crate.common.collections.Lists2.findFirstPreviousPeer;
 import static io.crate.sql.tree.WindowFrame.Type.ROWS;
@@ -39,13 +41,22 @@ public class FrameBound extends Node {
                                     int pStart,
                                     int pEnd,
                                     int currentRowIdx,
+                                    @Nullable Object offset,
+                                    @Nullable T offsetProbeValue,
                                     @Nullable Comparator<T> cmp,
                                     List<T> rows) {
                 return pStart;
             }
 
             @Override
-            public <T> int getEnd(WindowFrame.Type frameType, int pStart, int pEnd, int currentRowIdx, @Nullable Comparator<T> cmp, List<T> rows) {
+            public <T> int getEnd(WindowFrame.Type frameType,
+                                  int pStart,
+                                  int pEnd,
+                                  int currentRowIdx,
+                                  @Nullable Object offset,
+                                  @Nullable T offsetProbeValue,
+                                  @Nullable Comparator<T> cmp,
+                                  List<T> rows) {
                 throw new IllegalStateException("UNBOUNDED PRECEDING cannot be the start of a frame");
             }
         },
@@ -55,13 +66,33 @@ public class FrameBound extends Node {
                                     int pStart,
                                     int pEnd,
                                     int currentRowIdx,
+                                    @Nullable Object offset,
+                                    @Nullable T offsetProbeValue,
                                     @Nullable Comparator<T> cmp,
                                     List<T> rows) {
-                throw new UnsupportedOperationException("Custom PRECEDING frames are not supported");
+                if (frameType == ROWS) {
+                    assert offset instanceof Long : "In ROWS mode the offset must be a non-null, non-negative number";
+                    int startIndex = Math.max(pStart, currentRowIdx - ((Long) offset).intValue());
+                    return startIndex > 0 ? startIndex : 0;
+                } else {
+                    int firstGTEProbeValue = findFirstGTEProbeValue(rows, currentRowIdx, offsetProbeValue, cmp);
+                    if (firstGTEProbeValue == -1) {
+                        return currentRowIdx;
+                    } else {
+                        return Math.max(pStart, firstGTEProbeValue);
+                    }
+                }
             }
 
             @Override
-            public <T> int getEnd(WindowFrame.Type frameType, int pStart, int pEnd, int currentRowIdx, @Nullable Comparator<T> cmp, List<T> rows) {
+            public <T> int getEnd(WindowFrame.Type frameType,
+                                  int pStart,
+                                  int pEnd,
+                                  int currentRowIdx,
+                                  @Nullable Object offset,
+                                  @Nullable T offsetProbeValue,
+                                  @Nullable Comparator<T> cmp,
+                                  List<T> rows) {
                 throw new UnsupportedOperationException("Custom PRECEDING frames are not supported");
             }
         },
@@ -78,6 +109,8 @@ public class FrameBound extends Node {
                                     int pStart,
                                     int pEnd,
                                     int currentRowIdx,
+                                    @Nullable Object offset,
+                                    @Nullable T offsetProbeValue,
                                     @Nullable Comparator<T> cmp,
                                     List<T> rows) {
                 if (frameType == ROWS) {
@@ -96,7 +129,14 @@ public class FrameBound extends Node {
             }
 
             @Override
-            public <T> int getEnd(WindowFrame.Type frameType, int pStart, int pEnd, int currentRowIdx, @Nullable Comparator<T> cmp, List<T> rows) {
+            public <T> int getEnd(WindowFrame.Type frameType,
+                                  int pStart,
+                                  int pEnd,
+                                  int currentRowIdx,
+                                  @Nullable Object offset,
+                                  @Nullable T offsetProbeValue,
+                                  @Nullable Comparator<T> cmp,
+                                  List<T> rows) {
                 if (frameType == ROWS) {
                     return currentRowIdx + 1;
                 }
@@ -110,14 +150,29 @@ public class FrameBound extends Node {
                                     int pStart,
                                     int pEnd,
                                     int currentRowIdx,
+                                    @Nullable Object offset,
+                                    @Nullable T offsetProbeValue,
                                     @Nullable Comparator<T> cmp,
                                     List<T> rows) {
                 throw new UnsupportedOperationException("Custom FOLLOWING frames are not supported");
             }
 
             @Override
-            public <T> int getEnd(WindowFrame.Type frameType, int pStart, int pEnd, int currentRowIdx, @Nullable Comparator<T> cmp, List<T> rows) {
-                throw new UnsupportedOperationException("Custom FOLLOWING frames are not supported");
+            public <T> int getEnd(WindowFrame.Type frameType,
+                                  int pStart,
+                                  int pEnd,
+                                  int currentRowIdx,
+                                  @Nullable Object offset,
+                                  @Nullable T offsetProbeValue,
+                                  @Nullable Comparator<T> cmp,
+                                  List<T> rows) {
+                // end index is exclusive so we increment it by one when finding the interval end index
+                if (frameType == ROWS) {
+                    assert offset instanceof Long : "In ROWS mode the offset must be a non-null, non-negative number";
+                    return Math.min(pEnd, currentRowIdx + ((Long) offset).intValue() + 1);
+                } else {
+                    return Math.min(pEnd, findFirstLTEProbeValue(rows, currentRowIdx, offsetProbeValue, cmp) + 1);
+                }
             }
         },
         UNBOUNDED_FOLLOWING {
@@ -126,13 +181,22 @@ public class FrameBound extends Node {
                                     int pStart,
                                     int pEnd,
                                     int currentRowIdx,
+                                    @Nullable Object offset,
+                                    @Nullable T offsetProbeValue,
                                     @Nullable Comparator<T> cmp,
                                     List<T> rows) {
                 throw new IllegalStateException("UNBOUNDED FOLLOWING cannot be the start of a frame");
             }
 
             @Override
-            public <T> int getEnd(WindowFrame.Type frameType, int pStart, int pEnd, int currentRowIdx, @Nullable Comparator<T> cmp, List<T> rows) {
+            public <T> int getEnd(WindowFrame.Type frameType,
+                                  int pStart,
+                                  int pEnd,
+                                  int currentRowIdx,
+                                  @Nullable Object offset,
+                                  @Nullable T offsetProbeValue,
+                                  @Nullable Comparator<T> cmp,
+                                  List<T> rows) {
                 return pEnd;
             }
         };
@@ -141,6 +205,8 @@ public class FrameBound extends Node {
                                          int pStart,
                                          int pEnd,
                                          int currentRowIdx,
+                                         @Nullable Object offset,
+                                         @Nullable T offsetProbeValue,
                                          @Nullable Comparator<T> cmp,
                                          List<T> rows);
 
@@ -148,6 +214,8 @@ public class FrameBound extends Node {
                                        int pStart,
                                        int pEnd,
                                        int currentRowIdx,
+                                       @Nullable Object offset,
+                                       @Nullable T offsetProbeValue,
                                        @Nullable Comparator<T> cmp,
                                        List<T> rows);
     }

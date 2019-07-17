@@ -38,7 +38,7 @@ import org.elasticsearch.common.util.BigArrays;
 import javax.annotation.Nullable;
 import java.util.List;
 
-import static io.crate.execution.engine.window.WindowFrameState.isShrinkingWindow;
+import static io.crate.execution.engine.window.WindowFrameState.isLowerBoundIncreasing;
 
 public class AggregateToWindowFunctionAdapter implements WindowFunction {
 
@@ -80,10 +80,14 @@ public class AggregateToWindowFunctionAdapter implements WindowFunction {
                           Input... args) {
         if (idxInPartition == 0) {
             recomputeFunction(frame, expressions, args);
-        } else if (isShrinkingWindow(frame, seenFrameLowerBound, seenFrameUpperBound)) {
+        } else if (isLowerBoundIncreasing(frame, seenFrameLowerBound)) {
             if (aggregationFunction.isRemovableCumulative()) {
                 removeSeenRowsFromAccumulatedState(frame, expressions, args);
                 resultForCurrentFrame = aggregationFunction.terminatePartial(ramAccountingContext, accumulatedState);
+                if (frame.upperBoundExclusive() > seenFrameUpperBound) {
+                    // if the frame is growing on the upper side, we need to accumulate the new rows
+                    accumulateAndExecuteStartingWithIndex(seenFrameUpperBound, frame, expressions, args);
+                }
                 seenFrameLowerBound = frame.lowerBound();
                 seenFrameUpperBound = frame.upperBoundExclusive();
             } else {
@@ -131,11 +135,18 @@ public class AggregateToWindowFunctionAdapter implements WindowFunction {
          * between the rows in the current frame to the rows in the previous frame, if any).
          */
         int unseenRowsInCurrentFrameStart =
-            !isShrinkingWindow(frame, seenFrameLowerBound, seenFrameUpperBound) && seenFrameUpperBound > 0
+            !isLowerBoundIncreasing(frame, seenFrameLowerBound) && seenFrameUpperBound > 0
                 ? seenFrameUpperBound
                 : frame.lowerBound();
+        accumulateAndExecuteStartingWithIndex(unseenRowsInCurrentFrameStart, frame, expressions, inputs);
+    }
+
+    private void accumulateAndExecuteStartingWithIndex(int indexInFrame,
+                                                       WindowFrameState frame,
+                                                       List<? extends CollectExpression<Row, ?>> expressions,
+                                                       Input[] inputs) {
         var row = new ArrayRow();
-        for (int i = unseenRowsInCurrentFrameStart; i < frame.upperBoundExclusive(); i++) {
+        for (int i = indexInFrame; i < frame.upperBoundExclusive(); i++) {
             Object[] cells = frame.getRowInFrameAtIndexOrNull(i);
             assert cells != null : "No row at idx=" + i + " in current frame=" + frame;
             row.cells(cells);
@@ -144,7 +155,7 @@ public class AggregateToWindowFunctionAdapter implements WindowFunction {
             }
             accumulatedState = aggregationFunction.iterate(ramAccountingContext, accumulatedState, inputs);
         }
-        
+
         resultForCurrentFrame = aggregationFunction.terminatePartial(ramAccountingContext, accumulatedState);
         seenFrameLowerBound = frame.lowerBound();
         seenFrameUpperBound = frame.upperBoundExclusive();

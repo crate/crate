@@ -22,9 +22,8 @@
 
 package io.crate.execution.engine.window;
 
-import com.google.common.base.Supplier;
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.WindowFrameDefinition;
+import io.crate.analyze.WindowDefinition;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.breaker.RowAccounting;
 import io.crate.breaker.RowAccountingWithEstimators;
@@ -44,6 +43,7 @@ import io.crate.metadata.TransactionContext;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.util.BigArrays;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -51,6 +51,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.function.IntSupplier;
+import java.util.function.Supplier;
 
 import static io.crate.execution.engine.sort.Comparators.createComparator;
 
@@ -65,7 +66,11 @@ public class WindowProjector implements Projector {
     private final IntSupplier numThreads;
     private final Executor executor;
     private final RowAccounting<Row> rowAccounting;
-    private final WindowFrameDefinition frameDefinition;
+    private final WindowDefinition windowDefinition;
+    @Nullable
+    private final Object startFrameOffset;
+    @Nullable
+    private final Object endFrameOffset;
 
     public static WindowProjector fromProjection(WindowAggProjection projection,
                                                  Functions functions,
@@ -112,7 +117,9 @@ public class WindowProjector implements Projector {
             Symbols.typeView(projection.standalone()), ramAccountingContext, arrayListElementOverHead);
         return new WindowProjector(
             accounting,
-            windowDefinition.windowFrameDefinition(),
+            windowDefinition,
+            projection.startFrameOffset(),
+            projection.endFrameOffset(),
             partitions.isEmpty() ? null : createComparator(createInputFactoryContext, new OrderBy(windowDefinition.partitions())),
             createComparator(createInputFactoryContext, windowDefinition.orderBy()),
             projection.standalone().size(),
@@ -125,7 +132,9 @@ public class WindowProjector implements Projector {
     }
 
     private WindowProjector(RowAccounting<Row> rowAccounting,
-                            WindowFrameDefinition frameDefinition,
+                            WindowDefinition windowDefinition,
+                            @Nullable Object startFrameOffset,
+                            @Nullable Object endFrameOffset,
                             Comparator<Object[]> cmpPartitionBy,
                             Comparator<Object[]> cmpOrderBy,
                             int cellOffset,
@@ -135,7 +144,9 @@ public class WindowProjector implements Projector {
                             IntSupplier numThreads,
                             Executor executor) {
         this.rowAccounting = rowAccounting;
-        this.frameDefinition = frameDefinition;
+        this.windowDefinition = windowDefinition;
+        this.startFrameOffset = startFrameOffset;
+        this.endFrameOffset = endFrameOffset;
         this.cmpPartitionBy = cmpPartitionBy;
         this.cmpOrderBy = cmpOrderBy;
         this.cellOffset = cellOffset;
@@ -151,7 +162,9 @@ public class WindowProjector implements Projector {
         return WindowFunctionBatchIterator.of(
             source,
             rowAccounting,
-            frameDefinition,
+            windowDefinition,
+            startFrameOffset,
+            endFrameOffset,
             cmpPartitionBy,
             cmpOrderBy,
             cellOffset,

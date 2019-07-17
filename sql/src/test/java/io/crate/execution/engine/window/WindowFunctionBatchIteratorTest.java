@@ -23,6 +23,7 @@
 package io.crate.execution.engine.window;
 
 import com.carrotsearch.randomizedtesting.annotations.Repeat;
+import io.crate.analyze.WindowDefinition;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Input;
 import io.crate.data.Row;
@@ -56,7 +57,9 @@ public class WindowFunctionBatchIteratorTest extends CrateUnitTest {
                 new Object[]{"a", 8, null},
                 new Object[]{"b", 2, null}
             ),
-            RANGE_UNBOUNDED_PRECEDING_CURRENT_ROW,
+            new WindowDefinition(List.of(), null, RANGE_UNBOUNDED_PRECEDING_CURRENT_ROW),
+            null,
+            null,
             OrderingByPosition.arrayOrdering(0, false, false),
             OrderingByPosition.arrayOrdering(1, false, false),
             2,

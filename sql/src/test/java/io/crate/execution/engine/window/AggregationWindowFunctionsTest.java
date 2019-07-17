@@ -46,12 +46,11 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
     public void testSumOverUnboundedPrecedingToUnboundedFollowingFrames() throws Exception {
         Object[] expected = new Object[]{5L, 5L, 5L, 12L, 12L, 12L, null};
         assertEvaluate("sum(x) OVER(" +
-                       "PARTITION BY x>2 ORDER BY x RANGE BETWEEN UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING" +
+                            "PARTITION BY x>2 ORDER BY x RANGE BETWEEN UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING" +
                        ")",
-                       contains(expected),
-                       Collections.singletonMap(new ColumnIdent("x"), 0),
-                       RANGE_UNBOUNDED_PRECEDING_UNBOUNDED_FOLLOWING,
-                       INPUT_ROWS);
+            contains(expected),
+            Collections.singletonMap(new ColumnIdent("x"), 0),
+            INPUT_ROWS);
     }
 
     @Test
@@ -60,10 +59,9 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate("count(x) OVER(" +
                             "PARTITION BY x>2 ORDER BY x RANGE BETWEEN CURRENT ROW and UNBOUNDED FOLLOWING" +
                        ")",
-                       contains(expected),
-                       Collections.singletonMap(new ColumnIdent("x"), 0),
-                       RANGE_CURRENT_ROW_UNBOUNDED_FOLLOWING,
-                       INPUT_ROWS);
+            contains(expected),
+            Collections.singletonMap(new ColumnIdent("x"), 0),
+            INPUT_ROWS);
     }
 
     @Test
@@ -72,10 +70,9 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate("avg(x) OVER(" +
                             "PARTITION BY x>2 ORDER BY x RANGE BETWEEN CURRENT ROW and UNBOUNDED FOLLOWING" +
                        ")",
-                       contains(expected),
-                       Collections.singletonMap(new ColumnIdent("x"), 0),
-                       RANGE_CURRENT_ROW_UNBOUNDED_FOLLOWING,
-                       INPUT_ROWS);
+            contains(expected),
+            Collections.singletonMap(new ColumnIdent("x"), 0),
+            INPUT_ROWS);
     }
 
     @Test
@@ -84,10 +81,9 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate("sum(x) OVER(" +
                             "PARTITION BY x>2 ORDER BY x RANGE BETWEEN CURRENT ROW and UNBOUNDED FOLLOWING" +
                        ")",
-                       contains(expected),
-                       Collections.singletonMap(new ColumnIdent("x"), 0),
-                       RANGE_CURRENT_ROW_UNBOUNDED_FOLLOWING,
-                       INPUT_ROWS);
+            contains(expected),
+            Collections.singletonMap(new ColumnIdent("x"), 0),
+            INPUT_ROWS);
     }
 
     @Test
@@ -96,10 +92,9 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate("variance(x) OVER(" +
                             "PARTITION BY x>2 ORDER BY x RANGE BETWEEN CURRENT ROW and UNBOUNDED FOLLOWING" +
                        ")",
-                       contains(expected),
-                       Collections.singletonMap(new ColumnIdent("x"), 0),
-                       RANGE_CURRENT_ROW_UNBOUNDED_FOLLOWING,
-                       INPUT_ROWS);
+            contains(expected),
+            Collections.singletonMap(new ColumnIdent("x"), 0),
+            INPUT_ROWS);
     }
 
     @Test
@@ -108,10 +103,9 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate("stddev(x) OVER(" +
                             "PARTITION BY x>2 ORDER BY x RANGE BETWEEN CURRENT ROW and UNBOUNDED FOLLOWING" +
                        ")",
-                       contains(expected),
-                       Collections.singletonMap(new ColumnIdent("x"), 0),
-                       RANGE_CURRENT_ROW_UNBOUNDED_FOLLOWING,
-                       INPUT_ROWS);
+            contains(expected),
+            Collections.singletonMap(new ColumnIdent("x"), 0),
+            INPUT_ROWS);
     }
 
     @Test
@@ -120,16 +114,15 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate("string_agg(z, ',') OVER(" +
                             "PARTITION BY z>'b' ORDER BY z RANGE BETWEEN CURRENT ROW and UNBOUNDED FOLLOWING" +
                        ")",
-                       contains(expected),
-                       Collections.singletonMap(new ColumnIdent("z"), 0),
-                       RANGE_CURRENT_ROW_UNBOUNDED_FOLLOWING,
-                       new Object[]{"a", 1},
-                       new Object[]{"b", 2},
-                       new Object[]{"b", 2},
-                       new Object[]{"c", 3},
-                       new Object[]{"d", 4},
-                       new Object[]{"e", 5},
-                       new Object[]{null, null});
+            contains(expected),
+            Collections.singletonMap(new ColumnIdent("z"), 0),
+            new Object[]{"a", 1},
+            new Object[]{"b", 2},
+            new Object[]{"b", 2},
+            new Object[]{"c", 3},
+            new Object[]{"d", 4},
+            new Object[]{"e", 5},
+            new Object[]{null, null});
     }
 
     @Test
@@ -150,16 +143,15 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
                        ")",
                        contains(expected),
                        Collections.singletonMap(new ColumnIdent("x"), 0),
-                       RANGE_CURRENT_ROW_UNBOUNDED_FOLLOWING,
-                       new Object[]{1, 1},
-                       new Object[]{2, 2},
-                       new Object[]{2, 2},
-                       new Object[]{2, 2},
-                       new Object[]{2, 2},
-                       new Object[]{3, 3},
-                       new Object[]{4, 4},
-                       new Object[]{5, 5},
-                       new Object[]{null, null});
+            new Object[]{1, 1},
+            new Object[]{2, 2},
+            new Object[]{2, 2},
+            new Object[]{2, 2},
+            new Object[]{2, 2},
+            new Object[]{3, 3},
+            new Object[]{4, 4},
+            new Object[]{5, 5},
+            new Object[]{null, null});
     }
 
     @Test
@@ -179,7 +171,6 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
                        ")",
             contains(expected),
             Collections.singletonMap(new ColumnIdent("x"), 0),
-            ROWS_UNBOUNDED_PRECEDING_CURRENT_ROW,
             new Object[]{1, 1},
             new Object[]{2, 2},
             new Object[]{2, 2},
@@ -189,4 +180,125 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
             new Object[]{5, 5},
             new Object[]{null, null});
     }
+
+    @Test
+    public void test_agg_over_range_offset_preceding() throws Exception {
+        Object[] expected = new Object[]{
+            2.5,
+            6.5,
+            11.5,
+            15.0,
+            18.5,
+            22.0,
+            26.0,
+            22.0
+        };
+
+        assertEvaluate("sum(d) OVER(" +
+                            "ORDER BY d RANGE BETWEEN 3 PRECEDING and CURRENT ROW" +
+                       ")",
+            contains(expected),
+            Collections.singletonMap(new ColumnIdent("d"), 0),
+            3L,
+            null,
+            new Object[]{2.5, 2.5},
+            new Object[]{4.0, 4.0},
+            new Object[]{5.0, 5.0},
+            new Object[]{6.0, 6.0},
+            new Object[]{7.5, 7.5},
+            new Object[]{8.5, 8.5},
+            new Object[]{10.0, 10.0},
+            new Object[]{12.0, 12.0});
+    }
+
+    @Test
+    public void test_agg_over_rows_offset_preceding() throws Exception {
+        Object[] expected = new Object[]{
+            2.5,
+            6.5,
+            11.5,
+            17.5,
+            22.5,
+            27.0,
+            32.0,
+            38.0
+        };
+
+        assertEvaluate("sum(d) OVER(" +
+                            "ORDER BY d ROWS BETWEEN 3 PRECEDING and CURRENT ROW" +
+                       ")",
+            contains(expected),
+            Collections.singletonMap(new ColumnIdent("d"), 0),
+            3L,
+            null,
+            new Object[]{2.5, 2.5},
+            new Object[]{4.0, 4.0},
+            new Object[]{5.0, 5.0},
+            new Object[]{6.0, 6.0},
+            new Object[]{7.5, 7.5},
+            new Object[]{8.5, 8.5},
+            new Object[]{10.0, 10.0},
+            new Object[]{12.0, 12.0});
+    }
+
+    @Test
+    public void test_agg_over_range_following() throws Exception {
+        Object[] expected = new Object[]{
+            11.5,
+            15.0,
+            18.5,
+            22.0,
+            26.0,
+            18.5,
+            22.0,
+            12.0
+        };
+
+        assertEvaluate("sum(d) OVER(" +
+                               "ORDER BY d RANGE BETWEEN CURRENT ROW and 3 FOLLOWING" +
+                       ")",
+                       contains(expected),
+                       Collections.singletonMap(new ColumnIdent("d"), 0),
+                       null,
+                       3L,
+                       new Object[]{2.5, 2.5},
+                       new Object[]{4.0, 4.0},
+                       new Object[]{5.0, 5.0},
+                       new Object[]{6.0, 6.0},
+                       new Object[]{7.5, 7.5},
+                       new Object[]{8.5, 8.5},
+                       new Object[]{10.0, 10.0},
+                       new Object[]{12.0, 12.0});
+    }
+
+    @Test
+    public void test_agg_over_rows_offset_following() throws Exception {
+        Object[] expected = new Object[]{
+            17.5,
+            22.5,
+            27.0,
+            32.0,
+            38.0,
+            30.5,
+            22.0,
+            12.0
+        };
+
+        assertEvaluate("sum(d) OVER(" +
+                            "ORDER BY d ROWS BETWEEN CURRENT ROW and 3 FOLLOWING" +
+                       ")",
+                       contains(expected),
+                       Collections.singletonMap(new ColumnIdent("d"), 0),
+                       null,
+                       3L,
+                       new Object[]{2.5, 2.5},
+                       new Object[]{4.0, 4.0},
+                       new Object[]{5.0, 5.0},
+                       new Object[]{6.0, 6.0},
+                       new Object[]{7.5, 7.5},
+                       new Object[]{8.5, 8.5},
+                       new Object[]{10.0, 10.0},
+                       new Object[]{12.0, 12.0});
+    }
+
 }

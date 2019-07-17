@@ -21,7 +21,9 @@
 
 package io.crate.expression.symbol;
 
+import io.crate.analyze.FrameBoundDefinition;
 import io.crate.analyze.OrderBy;
+import io.crate.analyze.WindowDefinition;
 
 public abstract class DefaultTraversalSymbolVisitor<C, R> extends SymbolVisitor<C, R> {
 
@@ -44,15 +46,30 @@ public abstract class DefaultTraversalSymbolVisitor<C, R> extends SymbolVisitor<
         for (Symbol arg : symbol.arguments()) {
             process(arg, context);
         }
-        OrderBy orderBy = symbol.windowDefinition().orderBy();
+        WindowDefinition windowDefinition = symbol.windowDefinition();
+        OrderBy orderBy = windowDefinition.orderBy();
         if (orderBy != null) {
             for (Symbol orderBySymbol : orderBy.orderBySymbols()) {
                 process(orderBySymbol, context);
             }
         }
-        for (Symbol partition : symbol.windowDefinition().partitions()) {
+        for (Symbol partition : windowDefinition.partitions()) {
             process(partition, context);
         }
+
+        Symbol frameStartValueSymbol = windowDefinition.windowFrameDefinition().start().value();
+        if (frameStartValueSymbol != null) {
+            process(frameStartValueSymbol, context);
+        }
+
+        FrameBoundDefinition end = windowDefinition.windowFrameDefinition().end();
+        if (end != null) {
+            Symbol frameEndValueSymbol = end.value();
+            if (frameEndValueSymbol != null) {
+                process(frameEndValueSymbol, context);
+            }
+        }
+
         return null;
     }
 

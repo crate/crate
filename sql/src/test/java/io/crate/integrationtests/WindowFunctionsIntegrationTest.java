@@ -195,4 +195,44 @@ public class WindowFunctionsIntegrationTest extends SQLTransportIntegrationTest 
                "50| 3.0| 40.0\n")
         );
     }
+
+    @Test
+    public void test_range_offset_preceding_order_by_expression() {
+        execute("SELECT\n" +
+                "       col1,\n" +
+                "       sum(col1) OVER(ORDER BY power(col1, 2) RANGE BETWEEN 3 PRECEDING and CURRENT ROW)\n" +
+                "FROM\n" +
+                "        unnest(ARRAY[2.5, 4, 5, 6, 7.5, 8.5, 10, 12]) as t(col1)");
+        assertThat(
+            printedTable(response.rows()),
+            is("2.5| 2.5\n" +
+               "4.0| 4.0\n" +
+               "5.0| 5.0\n" +
+               "6.0| 6.0\n" +
+               "7.5| 7.5\n" +
+               "8.5| 8.5\n" +
+               "10.0| 10.0\n" +
+               "12.0| 12.0\n")
+        );
+    }
+
+    @Test
+    public void test_range_offset_preceding_order_by_literal() {
+        execute("SELECT\n" +
+                "       col1,\n" +
+                "       sum(col1) OVER(ORDER BY 22 RANGE BETWEEN 3 PRECEDING and CURRENT ROW)\n" +
+                "FROM\n" +
+                "    unnest(ARRAY[2.5, 4, 5, 6, 7.5, 8.5, 10, 12]) as t(col1)");
+        assertThat(
+            printedTable(response.rows()),
+            is("2.5| 55.5\n" +
+               "4.0| 55.5\n" +
+               "5.0| 55.5\n" +
+               "6.0| 55.5\n" +
+               "7.5| 55.5\n" +
+               "8.5| 55.5\n" +
+               "10.0| 55.5\n" +
+               "12.0| 55.5\n")
+        );
+    }
 }

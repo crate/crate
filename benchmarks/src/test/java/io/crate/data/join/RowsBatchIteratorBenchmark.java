@@ -22,6 +22,7 @@
 
 package io.crate.data.join;
 
+import io.crate.analyze.WindowDefinition;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.breaker.RowAccounting;
 import io.crate.breaker.RowAccountingWithEstimators;
@@ -206,9 +207,11 @@ public class RowsBatchIteratorBenchmark {
         BatchIterator<Row> batchIterator = WindowFunctionBatchIterator.of(
             new InMemoryBatchIterator<>(rows, SENTINEL),
             new NoRowAccounting(),
-            RANGE_UNBOUNDED_PRECEDING_CURRENT_ROW,
+            new WindowDefinition(List.of(), null, RANGE_UNBOUNDED_PRECEDING_CURRENT_ROW),
             null,
             null,
+            (arg1, arg2) -> 0,
+            (arg1, arg2) -> 0,
             1,
             () -> 1,
             Runnable::run,

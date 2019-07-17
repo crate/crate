@@ -22,6 +22,7 @@
 package io.crate.types;
 
 import io.crate.Streamer;
+import io.crate.common.collections.Lists2;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.BytesRef;
@@ -102,6 +103,9 @@ public final class DataTypes {
         INTEGER,
         LONG
     );
+
+    public static final List<DataType> NUMERIC_AND_TIMESTAMP_TYPES = Lists2.concat(NUMERIC_PRIMITIVE_TYPES,
+                                                                                   List.of(TIMESTAMPZ, TIMESTAMP));
 
     /**
      * Type registry mapping type ids to the according data type instance.
