@@ -91,26 +91,6 @@ public class WindowDefinitionTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testCustomPrecedingIsUnsupportedFeature() {
-        expectedException.expect(UnsupportedFeatureException.class);
-        expectedException.expectMessage(
-            "Custom PRECEDING and FOLLOWING offsets are currently not supported as frame bounds");
-        e.analyze(
-            "select sum(col1) over(RANGE BETWEEN 1 PRECEDING and CURRENT ROW) FROM " +
-            "unnest([1, 2, 1, 1, 1, 4])");
-    }
-
-    @Test
-    public void testCustomFollowingIsUnsupportedFeature() {
-        expectedException.expect(UnsupportedFeatureException.class);
-        expectedException.expectMessage(
-            "Custom PRECEDING and FOLLOWING offsets are currently not supported as frame bounds");
-        e.analyze(
-            "select sum(col1) over(RANGE BETWEEN CURRENT ROW and 1 FOLLOWING) FROM " +
-            "unnest([1, 2, 1, 1, 1, 4])");
-    }
-
-    @Test
     public void testEndUnboundedPrecedingIsIllegal() {
         expectedException.expect(IllegalStateException.class);
         expectedException.expectMessage(

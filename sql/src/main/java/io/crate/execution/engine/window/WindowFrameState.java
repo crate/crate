@@ -102,7 +102,7 @@ public final class WindowFrameState {
                '}';
     }
 
-    public static boolean isShrinkingWindow(WindowFrameState frame, int prevLowerBound, int prevUpperBound) {
-        return prevLowerBound < frame.lowerBound() && prevUpperBound == frame.upperBoundExclusive();
+    public static boolean isLowerBoundIncreasing(WindowFrameState frame, int prevLowerBound) {
+        return prevLowerBound < frame.lowerBound();
     }
 }

@@ -53,6 +53,9 @@ Breaking Changes
 Changes
 =======
 
+- Addded support for `offset PRECEDING` and `offset FOLLOWING`
+  :ref:`window definitions <window-definition>`.
+
 - Added support for using :ref:`ref-values` as top-level relation.
 
 - Added an optimization that allows to run `WHERE` clauses on top of

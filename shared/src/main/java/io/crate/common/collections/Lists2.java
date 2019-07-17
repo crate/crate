@@ -239,6 +239,52 @@ public final class Lists2 {
     }
 
     /**
+     * Finds the first item that's less than or equal to the probe in the slice of the sortedItems that starts with the index
+     * specified by @param itemIdx, according to the provided comparator.
+     * @return the index of the first LTE item, or -1 if there isn't any (eg. probe is less than all items)
+     */
+    public static <T> int findFirstLTEProbeValue(List<T> sortedItems, int itemIdx, T probe, Comparator<T> cmp) {
+        int start = itemIdx;
+        int end = sortedItems.size() - 1;
+
+        int firstLTEProbeIdx = -1;
+        while (start <= end) {
+            int mid = (start + end) / 2;
+            // Move to left side if mid is greater than probe
+            if (cmp.compare(sortedItems.get(mid), probe) > 0) {
+                end = mid - 1;
+            } else {
+                firstLTEProbeIdx = mid;
+                start = mid + 1;
+            }
+        }
+        return firstLTEProbeIdx;
+    }
+
+    /**
+     * Finds the first item that's greater than or equal to the probe in the slice of the sortedItems that ends with the index
+     * specified by @param itemIdx, according to the provided comparator.
+     * @return the index of the first GTE item, or -1 if there isn't any (eg. probe is greater than all items)
+     */
+    public static <T> int findFirstGTEProbeValue(List<T> sortedItems, int itemIdx, T probe, Comparator<T> cmp) {
+        int start = 0;
+        int end = itemIdx - 1;
+
+        int firstGTEProbeIdx = -1;
+        while (start <= end) {
+            int mid = (start + end) / 2;
+            // Move to right side if mid is less than probe
+            if (cmp.compare(sortedItems.get(mid), probe) < 0) {
+                start = mid + 1;
+            } else {
+                firstGTEProbeIdx = mid;
+                end = mid - 1;
+            }
+        }
+        return firstGTEProbeIdx;
+    }
+
+    /**
      * Indicates if the items at pos1 and pos2 are equal (ie. peers)  with respect to the provided comparator.
      * @return true if the comparator is null, or true/false if the comparator designates the two items as true or false.
      */

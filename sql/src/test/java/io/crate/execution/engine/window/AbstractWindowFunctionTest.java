@@ -36,6 +36,7 @@ import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.RowN;
+import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.collect.InputCollectExpression;
 import io.crate.expression.InputFactory;
@@ -61,6 +62,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.rules.ExpectedException;
 
+import javax.annotation.Nullable;
 import java.lang.reflect.Array;
 import java.util.Arrays;
 import java.util.List;
@@ -68,7 +70,6 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import static io.crate.analyze.WindowDefinition.RANGE_UNBOUNDED_PRECEDING_CURRENT_ROW;
 import static io.crate.data.SentinelRow.SENTINEL;
 import static io.crate.execution.engine.sort.Comparators.createComparator;
 import static io.crate.sql.tree.FrameBound.Type.CURRENT_ROW;
@@ -120,7 +121,7 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
         final String tableName = "t1";
         DocTableInfo tableInfo = SQLExecutor.tableInfo(
             new RelationName("doc", "t1"),
-            "create table doc.t1 (x int, y bigint, z string)",
+            "create table doc.t1 (x int, y bigint, z string, d double)",
             clusterService);
         DocTableRelation tableRelation = new DocTableRelation(tableInfo);
         Map<QualifiedName, AnalyzedRelation> tableSources = ImmutableMap.of(new QualifiedName(tableName), tableRelation);
@@ -129,7 +130,6 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
         functions = sqlExpressions.functions();
         inputFactory = new InputFactory(functions);
     }
-
 
     private void performInputSanityChecks(Object[]... inputs) {
         List<Integer> inputSizes = Arrays.stream(inputs)
@@ -147,17 +147,19 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
                                       Map<ColumnIdent, Integer> positionInRowByColumn,
                                       Object[]... inputRows) throws Exception {
         assertEvaluate(functionExpression,
-                       expectedValue,
-                       positionInRowByColumn,
-            RANGE_UNBOUNDED_PRECEDING_CURRENT_ROW,
-                       inputRows);
+            expectedValue,
+            positionInRowByColumn,
+            null,
+            null,
+            inputRows);
     }
 
     @SuppressWarnings("unchecked")
     protected <T> void assertEvaluate(String functionExpression,
                                       Matcher<T> expectedValue,
                                       Map<ColumnIdent, Integer> positionInRowByColumn,
-                                      WindowFrameDefinition windowFrameDefinition,
+                                      @Nullable Object startOffsetValue,
+                                      @Nullable Object endOffsetValue,
                                       Object[]... inputRows) throws Exception {
         performInputSanityChecks(inputRows);
 
@@ -187,12 +189,15 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
         }
 
         int numCellsInSourceRows = inputRows[0].length;
+        InputColumns.SourceSymbols sourceSymbols = new InputColumns.SourceSymbols(windowFunctionSymbol.arguments());
         var windowDef = windowFunctionSymbol.windowDefinition();
         var partitionOrderBy = windowDef.partitions().isEmpty() ? null : new OrderBy(windowDef.partitions());
         BatchIterator<Row> iterator = WindowFunctionBatchIterator.of(
             InMemoryBatchIterator.of(Arrays.stream(inputRows).map(RowN::new).collect(Collectors.toList()), SENTINEL),
             new IgnoreRowAccounting(),
-            windowFrameDefinition,
+            windowDef.map(s -> InputColumns.create(s, sourceSymbols)),
+            startOffsetValue,
+            endOffsetValue,
             createComparator(() -> inputFactory.ctxForRefs(txnCtx, referenceResolver), partitionOrderBy),
             createComparator(() -> inputFactory.ctxForRefs(txnCtx, referenceResolver), windowDef.orderBy()),
             numCellsInSourceRows,
@@ -200,7 +205,7 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
             Runnable::run,
             List.of(windowFunctionImpl),
             argsCtx.expressions(),
-            new Input[][]{argsCtx.topLevelInputs().toArray(new Input[0])}
+            argsCtx.topLevelInputs().toArray(new Input[0])
         );
         List<Object> actualResult = BatchIterators.collect(
             iterator,

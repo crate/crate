@@ -299,7 +299,7 @@ public class ExpressionAnalyzer {
         WindowFrameDefinition windowFrameDefinition = WindowDefinition.RANGE_UNBOUNDED_PRECEDING_CURRENT_ROW;
         if (window.getWindowFrame().isPresent()) {
             WindowFrame windowFrame = window.getWindowFrame().get();
-            validateFrame(windowFrame);
+            validateFrame(window, windowFrame);
             FrameBound start = windowFrame.getStart();
             FrameBoundDefinition startBound = convertToAnalyzedFrameBound(context, start);
 
@@ -339,16 +339,19 @@ public class ExpressionAnalyzer {
         return window;
     }
 
-    private void validateFrame(WindowFrame windowFrame) {
+    private void validateFrame(Window window, WindowFrame windowFrame) {
         FrameBound.Type startType = windowFrame.getStart().getType();
         if (startType.equals(FrameBound.Type.FOLLOWING) ||
             startType.equals(FrameBound.Type.UNBOUNDED_FOLLOWING)) {
             throw new IllegalStateException("Frame start cannot be " + startType);
         }
 
-        if (startType.equals(FrameBound.Type.PRECEDING)) {
-            throw new UnsupportedFeatureException(
-                "Custom PRECEDING and FOLLOWING offsets are currently not supported as frame bounds");
+        if (windowFrame.getType() == WindowFrame.Type.RANGE) {
+            if (startType.equals(FrameBound.Type.PRECEDING) && windowFrame.getStart().getValue() != null) {
+                if (window.getOrderBy().size() != 1) {
+                    throw new IllegalStateException("RANGE with offset PRECEDING/FOLLOWING requires exactly one ORDER BY column");
+                }
+            }
         }
 
         windowFrame.getEnd().ifPresent(frameBound -> {
@@ -358,9 +361,12 @@ public class ExpressionAnalyzer {
                 throw new IllegalStateException("Frame end cannot be " + endType);
             }
 
-            if (endType.equals(FrameBound.Type.FOLLOWING)) {
-                throw new UnsupportedFeatureException(
-                    "Custom PRECEDING and FOLLOWING offsets are currently not supported as frame bounds");
+            if (windowFrame.getType() == WindowFrame.Type.RANGE) {
+                if (endType.equals(FrameBound.Type.FOLLOWING) && windowFrame.getEnd().get().getValue() != null) {
+                    if (window.getOrderBy().size() != 1) {
+                        throw new IllegalStateException("RANGE with offset PRECEDING/FOLLOWING requires exactly one ORDER BY column");
+                    }
+                }
             }
         });
     }

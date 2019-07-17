@@ -28,9 +28,11 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.WindowFunction;
 import io.crate.planner.ExplainLeaf;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -45,8 +47,14 @@ public class WindowAggProjection extends Projection {
     private final List<Symbol> standaloneWithInputs;
     private final LinkedHashMap<WindowFunction, List<Symbol>> functionsWithInputs;
     private final ArrayList<Symbol> outputs;
+    @Nullable
+    private Object startFrameOffset;
+    @Nullable
+    private Object endFrameOffset;
 
     public WindowAggProjection(WindowDefinition windowDefinition,
+                               @Nullable Object startFrameOffset,
+                               @Nullable Object endFrameOffset,
                                LinkedHashMap<WindowFunction, List<Symbol>> functionsWithInputs,
                                List<Symbol> standaloneWithInputs) {
         Set<WindowFunction> windowFunctions = functionsWithInputs.keySet();
@@ -55,6 +63,8 @@ public class WindowAggProjection extends Projection {
         assert standaloneWithInputs.stream().noneMatch(Symbols.IS_COLUMN)
             : "Cannot operate on Reference or Field: " + standaloneWithInputs;
         this.windowDefinition = windowDefinition;
+        this.startFrameOffset = startFrameOffset;
+        this.endFrameOffset = endFrameOffset;
         this.functionsWithInputs = functionsWithInputs;
         this.standaloneWithInputs = standaloneWithInputs;
         outputs = new ArrayList<>(windowFunctions);
@@ -63,6 +73,10 @@ public class WindowAggProjection extends Projection {
 
     public WindowAggProjection(StreamInput in) throws IOException {
         windowDefinition = new WindowDefinition(in);
+        if (in.getVersion().onOrAfter(Version.V_4_1_0)) {
+            startFrameOffset = in.readGenericValue();
+            endFrameOffset = in.readGenericValue();
+        }
         standaloneWithInputs = Symbols.listFromStream(in);
         int functionsCount = in.readVInt();
         functionsWithInputs = new LinkedHashMap<>(functionsCount, 1f);
@@ -76,6 +90,16 @@ public class WindowAggProjection extends Projection {
 
     public WindowDefinition windowDefinition() {
         return windowDefinition;
+    }
+
+    @Nullable
+    public Object startFrameOffset() {
+        return startFrameOffset;
+    }
+
+    @Nullable
+    public Object endFrameOffset() {
+        return endFrameOffset;
     }
 
     public LinkedHashMap<WindowFunction, List<Symbol>> functionsWithInputs() {
@@ -118,6 +142,10 @@ public class WindowAggProjection extends Projection {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         windowDefinition.writeTo(out);
+        if (out.getVersion().onOrAfter(Version.V_4_1_0)) {
+            out.writeGenericValue(startFrameOffset);
+            out.writeGenericValue(endFrameOffset);
+        }
         Symbols.toStream(standaloneWithInputs, out);
         out.writeVInt(functionsWithInputs.size());
         for (Map.Entry<WindowFunction, List<Symbol>> functionWithInputs : functionsWithInputs.entrySet()) {

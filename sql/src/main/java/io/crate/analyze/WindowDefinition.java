@@ -75,12 +75,18 @@ public class WindowDefinition implements Writeable {
         return partitions;
     }
 
-    public WindowDefinition map(Function<? super Symbol, ? extends Symbol> mapSymbolsFunction) {
+    public WindowFrameDefinition mapWindowFrameDefinitionBounds(Function<? super Symbol, ? extends Symbol> mapper) {
+        FrameBoundDefinition startFrameBoundDef = windowFrameDefinition.start().map(mapper);
+        FrameBoundDefinition endFrameBoundDef = windowFrameDefinition.end().map(mapper);
+        return new WindowFrameDefinition(windowFrameDefinition.type(), startFrameBoundDef, endFrameBoundDef);
+    }
+
+    public WindowDefinition map(Function<? super Symbol, ? extends Symbol> mapper) {
         if (!partitions.isEmpty() || orderBy != null) {
             return new WindowDefinition(
-                Lists2.map(partitions, mapSymbolsFunction),
-                orderBy != null ? orderBy.map(mapSymbolsFunction) : null,
-                windowFrameDefinition
+                Lists2.map(partitions, mapper),
+                orderBy != null ? orderBy.map(mapper) : null,
+                mapWindowFrameDefinitionBounds(mapper)
             );
         } else {
             return this;

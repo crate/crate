@@ -33,6 +33,7 @@ import org.elasticsearch.common.io.stream.Writeable;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Objects;
+import java.util.function.Function;
 
 public class FrameBoundDefinition implements Writeable {
 
@@ -63,6 +64,17 @@ public class FrameBoundDefinition implements Writeable {
     @Nullable
     public Symbol value() {
         return value;
+    }
+
+    public FrameBoundDefinition map(Function<? super Symbol, ? extends Symbol> mapper) {
+        if (value != null) {
+            return new FrameBoundDefinition(
+                type,
+                mapper.apply(value)
+            );
+        } else {
+            return this;
+        }
     }
 
     @Override

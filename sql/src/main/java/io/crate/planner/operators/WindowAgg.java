@@ -22,8 +22,10 @@
 
 package io.crate.planner.operators;
 
+import io.crate.analyze.FrameBoundDefinition;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WindowDefinition;
+import io.crate.analyze.WindowFrameDefinition;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.MergePhase;
@@ -41,6 +43,7 @@ import io.crate.planner.PlannerContext;
 import io.crate.planner.ResultDescription;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.distribution.DistributionType;
+import io.crate.sql.tree.WindowFrame;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -51,8 +54,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import static io.crate.analyze.SymbolEvaluator.evaluate;
 import static io.crate.execution.dsl.phases.ExecutionPhases.executesOnHandler;
 import static io.crate.planner.operators.LogicalPlanner.extractColumns;
+import static io.crate.types.DataTypes.NUMERIC_AND_TIMESTAMP_TYPES;
 
 public class WindowAgg extends ForwardingLogicalPlan {
 
@@ -117,14 +122,44 @@ public class WindowAgg extends ForwardingLogicalPlan {
                                Row params,
                                SubQueryResults subQueryResults) {
         InputColumns.SourceSymbols sourceSymbols = new InputColumns.SourceSymbols(source.outputs());
-        LinkedHashMap<WindowFunction, List<Symbol>> functionsWithInputs = new LinkedHashMap<>(windowFunctions.size(), 1f);
+        LinkedHashMap<WindowFunction, List<Symbol>> functionsWithInputs =
+            new LinkedHashMap<>(windowFunctions.size(), 1f);
+        SubQueryAndParamBinder binder = new SubQueryAndParamBinder(params, subQueryResults);
+        WindowDefinition mappedWindowDefinition = windowDefinition.map(binder);
+        WindowFrameDefinition windowFrameDefinition = mappedWindowDefinition.windowFrameDefinition();
+        FrameBoundDefinition start = windowFrameDefinition.start();
+        Object startFrameOffset = null;
+        if (start.value() != null) {
+            startFrameOffset = evaluate(
+                plannerContext.transactionContext(),
+                plannerContext.functions(),
+                binder.apply(start.value()),
+                params,
+                subQueryResults);
+            validateOffset(windowFrameDefinition.type(), start.value(), startFrameOffset);
+        }
+
+        FrameBoundDefinition end = windowFrameDefinition.end();
+        Object endFrameOffset = null;
+        if (end.value() != null) {
+            endFrameOffset = evaluate(
+                plannerContext.transactionContext(),
+                plannerContext.functions(),
+                binder.apply(end.value()),
+                params,
+                subQueryResults);
+            validateOffset(windowFrameDefinition.type(), end.value(), endFrameOffset);
+        }
+
         for (WindowFunction windowFunction : windowFunctions) {
             List<Symbol> inputs = InputColumns.create(windowFunction.arguments(), sourceSymbols);
             functionsWithInputs.put(windowFunction, inputs);
         }
         List<Projection> projections = new ArrayList<>();
         WindowAggProjection windowAggProjection = new WindowAggProjection(
-            windowDefinition.map(s -> InputColumns.create(s, sourceSymbols)),
+            mappedWindowDefinition.map(s -> InputColumns.create(s, sourceSymbols)),
+            startFrameOffset,
+            endFrameOffset,
             functionsWithInputs,
             InputColumns.create(this.standalone, sourceSymbols)
         );
@@ -177,6 +212,20 @@ public class WindowAgg extends ForwardingLogicalPlan {
             );
         }
         return sourcePlan;
+    }
+
+    private void validateOffset(WindowFrame.Type frameType, Symbol offsetSymbol, Object offset) {
+        if (frameType == WindowFrame.Type.ROWS) {
+            if (!(offset instanceof Long) || ((Long) offset) < 0) {
+                throw new IllegalArgumentException("In ROWS mode the offset must be a non-null, non-negative number");
+            }
+        } else if (frameType == WindowFrame.Type.RANGE) {
+            if (!NUMERIC_AND_TIMESTAMP_TYPES.contains(offsetSymbol.valueType())) {
+                throw new IllegalArgumentException(
+                    "RANGE with offset PRECEDING/FOLLOWING is not supported for column type " +
+                    offsetSymbol.valueType());
+            }
+        }
     }
 
     @Nullable

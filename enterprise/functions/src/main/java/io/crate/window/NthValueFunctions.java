@@ -36,7 +36,7 @@ import io.crate.types.DataType;
 import java.util.List;
 import java.util.function.BiFunction;
 
-import static io.crate.execution.engine.window.WindowFrameState.isShrinkingWindow;
+import static io.crate.execution.engine.window.WindowFrameState.isLowerBoundIncreasing;
 
 public class NthValueFunctions implements WindowFunction {
 
@@ -65,7 +65,7 @@ public class NthValueFunctions implements WindowFunction {
                           WindowFrameState currentFrame,
                           List<? extends CollectExpression<Row, ?>> expressions,
                           Input... args) {
-        boolean shrinkingWindow = isShrinkingWindow(currentFrame, seenFrameLowerBound, seenFrameUpperBound);
+        boolean shrinkingWindow = isLowerBoundIncreasing(currentFrame, seenFrameLowerBound);
         if (idxInPartition == 0 || currentFrame.upperBoundExclusive() > seenFrameUpperBound || shrinkingWindow) {
             seenFrameLowerBound = currentFrame.lowerBound();
             seenFrameUpperBound = currentFrame.upperBoundExclusive();

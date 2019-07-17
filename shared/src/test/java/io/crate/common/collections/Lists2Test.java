@@ -31,6 +31,8 @@ import java.util.Comparator;
 import java.util.List;
 
 import static io.crate.common.collections.Lists2.arePeers;
+import static io.crate.common.collections.Lists2.findFirstLTEProbeValue;
+import static io.crate.common.collections.Lists2.findFirstGTEProbeValue;
 import static io.crate.common.collections.Lists2.findFirstNonPeer;
 import static io.crate.common.collections.Lists2.findFirstPreviousPeer;
 import static org.hamcrest.core.Is.is;
@@ -122,5 +124,29 @@ public class Lists2Test {
         for (int i = 0; i < numbers.size(); i++) {
             assertThat(findFirstPreviousPeer(numbers, i, integerComparator), is(i));
         }
+    }
+
+    @Test
+    public void test_find_first_gte_probe_when_exists_in_slice() {
+        var numbers = List.of(1, 2, 3, 6, 7, 8);
+        assertThat(findFirstGTEProbeValue(numbers, 4, 4, integerComparator), is(3));
+    }
+
+    @Test
+    public void test_find_first_gte_probe_when_greater_than_all_items_is_minus_one() {
+        var numbers = List.of(1, 2, 3, 6, 7, 8);
+        assertThat(findFirstGTEProbeValue(numbers, 3, 4, integerComparator), is(-1));
+    }
+
+    @Test
+    public void test_find_first_lte_probe_when_exists_in_slice() {
+        var numbers = List.of(1, 2, 3, 6, 7, 8);
+        assertThat(findFirstLTEProbeValue(numbers, 3, 7, integerComparator), is(4));
+    }
+
+    @Test
+    public void test_find_first_lte_probe_when_less_than_all_items_is_minus_one() {
+        var numbers = List.of(1, 2, 3, 4, 5, 6, 7, 8);
+        assertThat(findFirstLTEProbeValue(numbers, 5, 0, integerComparator), is(-1));
     }
 }
