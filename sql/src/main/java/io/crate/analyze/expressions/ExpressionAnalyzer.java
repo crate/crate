@@ -128,7 +128,7 @@ import io.crate.sql.tree.WindowFrame;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.MonthDaySecondInterval;
+import io.crate.types.Interval;
 import io.crate.types.ObjectType;
 import io.crate.types.UndefinedType;
 
@@ -953,16 +953,18 @@ public class ExpressionAnalyzer {
                     seconds = Duration.ofSeconds(time).getSeconds();
                     break;
                 default:
-                    throw new IllegalArgumentException("Invalid start field");
+                    throw new IllegalArgumentException("Invalid start field " + node.getStartField());
             }
 
-            MonthDaySecondInterval MonthDaySecondInterval = new MonthDaySecondInterval(seconds, days, months);
+            Interval interval;
 
             if (node.getSign() == IntervalLiteral.Sign.NEGATIVE) {
-                MonthDaySecondInterval = new MonthDaySecondInterval(-seconds, -days, -months);
+                interval = new Interval(-seconds, -days, -months);
+            } else {
+                interval = new Interval(seconds, days, months);
             }
 
-            return Literal.newInterval(MonthDaySecondInterval);
+            return Literal.newInterval(interval);
         }
 
         @Override

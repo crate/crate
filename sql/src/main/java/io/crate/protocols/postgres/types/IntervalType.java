@@ -22,7 +22,7 @@
 
 package io.crate.protocols.postgres.types;
 
-import io.crate.types.MonthDaySecondInterval;
+import io.crate.types.Interval;
 import io.netty.buffer.ByteBuf;
 
 import javax.annotation.Nonnull;
@@ -45,9 +45,9 @@ public class IntervalType extends PGType {
 
     @Override
     public int writeAsBinary(ByteBuf buffer, @Nonnull Object value) {
-        MonthDaySecondInterval MOnthDaySecondInterval = (MonthDaySecondInterval) value;
+        Interval MOnthDaySecondInterval = (Interval) value;
         buffer.writeInt(TYPE_LEN);
-        buffer.writeDouble(MOnthDaySecondInterval.getSeconds());
+        buffer.writeLong(Double.valueOf(MOnthDaySecondInterval.getSeconds()).longValue());
         buffer.writeInt(MOnthDaySecondInterval.getDays());
         buffer.writeInt(MOnthDaySecondInterval.getMonths());
         return TYPE_LEN;
@@ -57,7 +57,7 @@ public class IntervalType extends PGType {
     public Object readBinaryValue(ByteBuf buffer, int valueLength) {
         assert valueLength == TYPE_LEN : "length should be " + TYPE_LEN + " because interval is 16. Actual length: " +
                                          valueLength;
-        return new MonthDaySecondInterval(buffer.readDouble(), buffer.readInt(), buffer.readInt());
+        return new Interval(buffer.readLong(), buffer.readInt(), buffer.readInt());
     }
 
     @Override
