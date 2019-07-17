@@ -40,7 +40,7 @@ import io.crate.types.IntegerType;
 import io.crate.types.IntervalType;
 import io.crate.types.IpType;
 import io.crate.types.LongType;
-import io.crate.types.MonthDaySecondInterval;
+import io.crate.types.Interval;
 import io.crate.types.ObjectType;
 import io.crate.types.ShortType;
 import io.crate.types.StringType;
@@ -132,7 +132,9 @@ public class DataTypeTesting {
                     return (T) map;
                 };
             case IntervalType.ID:
-                return () -> (T) new MonthDaySecondInterval(1000, 0,0);
+                return () -> {
+                    return (T) new Interval(1000, 0, 0);
+                };
 
         }
 

@@ -24,13 +24,13 @@ package io.crate.types;
 
 import java.util.Objects;
 
-public class MonthDaySecondInterval implements Comparable<MonthDaySecondInterval> {
+public class Interval implements Comparable<Interval> {
 
     private final double seconds;
     private final int days;
     private final int months;
 
-    public MonthDaySecondInterval(double seconds, int days, int months) {
+    public Interval(double seconds, int days, int months) {
         this.seconds = seconds;
         this.days = days;
         this.months = months;
@@ -56,10 +56,10 @@ public class MonthDaySecondInterval implements Comparable<MonthDaySecondInterval
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        MonthDaySecondInterval MOnthDaySecondInterval = (MonthDaySecondInterval) o;
-        return Double.compare(MOnthDaySecondInterval.seconds, seconds) == 0 &&
-               days == MOnthDaySecondInterval.days &&
-               months == MOnthDaySecondInterval.months;
+        Interval interval = (Interval) o;
+        return Double.compare(interval.seconds, seconds) == 0 &&
+               days == interval.days &&
+               months == interval.months;
     }
 
     @Override
@@ -68,11 +68,11 @@ public class MonthDaySecondInterval implements Comparable<MonthDaySecondInterval
     }
 
     @Override
-    public int compareTo(MonthDaySecondInterval other) {
+    public int compareTo(Interval other) {
         return compare(this, other);
     }
 
-    public static int compare(MonthDaySecondInterval i1, MonthDaySecondInterval i2) {
+    public static int compare(Interval i1, Interval i2) {
         int msCmp = Double.compare(i1.seconds, i2.seconds);
         if (msCmp != 0) return msCmp;
 

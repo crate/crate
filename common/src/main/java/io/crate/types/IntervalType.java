@@ -29,7 +29,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import java.io.IOException;
 import java.util.Locale;
 
-public class IntervalType extends DataType<MonthDaySecondInterval> implements FixedWidthType, Streamer<MonthDaySecondInterval> {
+public class IntervalType extends DataType<Interval> implements FixedWidthType, Streamer<Interval> {
 
     public static final int ID = 17;
     public static final IntervalType INSTANCE = new IntervalType();
@@ -50,37 +50,39 @@ public class IntervalType extends DataType<MonthDaySecondInterval> implements Fi
     }
 
     @Override
-    public Streamer<MonthDaySecondInterval> streamer() {
+    public Streamer<Interval> streamer() {
         return this;
     }
 
     @Override
-    public MonthDaySecondInterval value(Object value) throws IllegalArgumentException, ClassCastException {
+    public Interval value(Object value) throws IllegalArgumentException, ClassCastException {
         if (value == null) {
             return null;
         }
-        if (value instanceof MonthDaySecondInterval) {
-            return (MonthDaySecondInterval) value;
+        if (value instanceof Interval) {
+            return (Interval) value;
         }
-        throw new IllegalArgumentException(invalidMsg(value));
+        throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Cannot convert %s to interval", value));
     }
 
-    private String invalidMsg(Object value) {
-        return String.format(Locale.ENGLISH, "Cannot convert \"%s\" to interval", value);
-    }
-
-    public int compareValueTo(MonthDaySecondInterval val1, MonthDaySecondInterval val2) {
-        return nullSafeCompareValueTo(val1, val2, MonthDaySecondInterval::compare);
+    public int compareValueTo(Interval val1, Interval val2) {
+        return nullSafeCompareValueTo(val1, val2, Interval::compare);
     }
 
     @Override
-    public MonthDaySecondInterval readValueFrom(StreamInput in) throws IOException {
-        return new MonthDaySecondInterval(in.readLong(), in.readInt(), in.readInt());
+    public Interval readValueFrom(StreamInput in) throws IOException {
+        if (in.readBoolean()) {
+            return new Interval(in.readLong(), in.readInt(), in.readInt());
+        } else {
+            return null;
+        }
     }
 
     @Override
-    public void writeValueTo(StreamOutput out, MonthDaySecondInterval v) throws IOException {
-        if (v != null) {
+    public void writeValueTo(StreamOutput out, Interval v) throws IOException {
+        if (v == null) {
+            out.writeBoolean(false);
+        } else {
             out.writeDouble(v.getSeconds());
             out.writeInt(v.getDays());
             out.writeInt(v.getMonths());

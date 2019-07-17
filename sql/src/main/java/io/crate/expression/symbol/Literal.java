@@ -28,7 +28,7 @@ import io.crate.exceptions.ConversionException;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.MonthDaySecondInterval;
+import io.crate.types.Interval;
 import io.crate.types.ObjectType;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -273,8 +273,8 @@ public class Literal<ReturnType> extends Symbol implements Input<ReturnType>, Co
         return new Literal<>(DataTypes.FLOAT, value);
     }
 
-    public static Literal<MonthDaySecondInterval> newInterval(MonthDaySecondInterval MOnthDaySecondInterval) {
-        return new Literal<>(DataTypes.INTERVAL, DataTypes.INTERVAL.value(MOnthDaySecondInterval));
+    public static Literal<Interval> newInterval(Interval value) {
+        return new Literal<>(DataTypes.INTERVAL, value);
     }
 
     public static Literal<Point> newGeoPoint(Object point) {

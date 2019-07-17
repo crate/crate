@@ -26,6 +26,7 @@ import io.crate.types.ArrayType;
 import io.crate.types.BooleanType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.Interval;
 import org.junit.Test;
 import org.locationtech.spatial4j.shape.Point;
 
@@ -44,6 +45,8 @@ public class LiteralTest extends CrateUnitTest {
                 value = true;
             } else if (type.id() == DataTypes.IP.id()) {
                 value = type.value("123.34.243.23");
+            } else if (type.id() == DataTypes.INTERVAL.id()) {
+                value = type.value(new Interval(100, 0, 0));
             } else {
                 value = type.value("0");
             }
