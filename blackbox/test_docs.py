@@ -489,7 +489,8 @@ def load_tests(loader, suite, ignore):
                             'interfaces/postgres.rst',
                             'general/ddl/views.rst',
                             'sql/general/value-expressions.rst',
-                            'sql/general/lexical-structure.rst'):
+                            'sql/general/lexical-structure.rst',
+                            'sql/statements/values.rst'):
         tests.append(docsuite(fn, setUp=setUpLocationsAndQuotes))
 
     for fn in doctest_files('general/dql/geo.rst',):

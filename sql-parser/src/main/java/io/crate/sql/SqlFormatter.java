@@ -86,6 +86,8 @@ import io.crate.sql.tree.Table;
 import io.crate.sql.tree.TableFunction;
 import io.crate.sql.tree.TableSubquery;
 import io.crate.sql.tree.Union;
+import io.crate.sql.tree.Values;
+import io.crate.sql.tree.ValuesList;
 import io.crate.sql.tree.Window;
 import io.crate.sql.tree.WindowFrame;
 
@@ -101,6 +103,7 @@ import java.util.TreeMap;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
+import static io.crate.sql.ExpressionFormatter.formatExpression;
 import static io.crate.sql.ExpressionFormatter.formatStandaloneExpression;
 
 public final class SqlFormatter {
@@ -300,6 +303,32 @@ public final class SqlFormatter {
             if (node.getOffset().isPresent()) {
                 append(indent, "OFFSET " + node.getOffset().get())
                     .append('\n');
+            }
+            return null;
+        }
+
+
+        @Override
+        public Void visitValues(Values values, Integer indent) {
+            append(indent, "VALUES ");
+            List<ValuesList> rows = values.rows();
+            for (int i = 0; i < rows.size(); i++) {
+                ValuesList row = rows.get(i);
+
+                append(indent, "(");
+                List<Expression> expressions = row.values();
+                for (int j = 0; j < expressions.size(); j++) {
+                    Expression value = expressions.get(j);
+                    append(indent, formatExpression(value));
+                    if (j + 1 < expressions.size()) {
+                        append(indent, ", ");
+                    }
+                }
+                append(indent, ")");
+
+                if (i + 1 < rows.size()) {
+                    append(indent, ", ");
+                }
             }
             return null;
         }

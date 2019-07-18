@@ -600,4 +600,8 @@ public abstract class AstVisitor<R, C> {
     public R visitReroutePromoteReplica(PromoteReplica promoteReplica, C context) {
         return visitNode(promoteReplica, context);
     }
+
+    public R visitValues(Values values, C context) {
+        return visitRelation(values, context);
+    }
 }

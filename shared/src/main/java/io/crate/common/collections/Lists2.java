@@ -66,6 +66,42 @@ public final class Lists2 {
     }
 
     /**
+     * Change the layout from rows to column oriented.
+     *
+     * <pre>
+     *
+     * rows: [
+     *  [a, 1],
+     *  [b, 2]
+     * ]
+     *
+     * to
+     *
+     * columnValues: [
+     *  [a, b],
+     *  [1, 2]
+     * ]
+     * </pre>
+     */
+    public static <T> List<List<T>> toColumnOrientation(List<? extends List<T>> rows) {
+        if (rows.isEmpty()) {
+            return List.of();
+        }
+        List<T> firstRow = rows.get(0);
+        int numColumns = firstRow.size();
+        ArrayList<List<T>> columns = new ArrayList<>();
+        for (int c = 0; c < numColumns; c++) {
+            ArrayList<T> columnValues = new ArrayList<>(rows.size());
+            for (int r = 0; r < rows.size(); r++) {
+                List<T> row = rows.get(r);
+                columnValues.add(row.get(c));
+            }
+            columns.add(columnValues);
+        }
+        return columns;
+    }
+
+    /**
      * Apply the replace function on each item of the list and replaces the item.
      *
      * This is similar to Guava's com.google.common.collect.Lists#transform(List, com.google.common.base.Function),

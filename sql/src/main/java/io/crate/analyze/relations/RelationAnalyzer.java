@@ -40,11 +40,13 @@ import io.crate.analyze.relations.select.SelectAnalyzer;
 import io.crate.analyze.validator.GroupBySymbolValidator;
 import io.crate.analyze.validator.HavingSymbolValidator;
 import io.crate.analyze.validator.SemanticSortValidator;
+import io.crate.common.collections.Lists2;
 import io.crate.exceptions.AmbiguousColumnAliasException;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.RelationValidationException;
 import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.expression.scalar.arithmetic.ArrayFunction;
 import io.crate.expression.symbol.Aggregations;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.FieldReplacer;
@@ -52,8 +54,10 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
+import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.format.SymbolPrinter;
 import io.crate.expression.tablefunctions.TableFunctionFactory;
+import io.crate.expression.tablefunctions.UnnestFunction;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
@@ -90,7 +94,11 @@ import io.crate.sql.tree.Table;
 import io.crate.sql.tree.TableFunction;
 import io.crate.sql.tree.TableSubquery;
 import io.crate.sql.tree.Union;
+import io.crate.sql.tree.Values;
+import io.crate.sql.tree.ValuesList;
+import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -705,5 +713,81 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             throw new UnsupportedOperationException("subquery in FROM clause must have an alias");
         }
         return super.visitTableSubquery(node, context);
+    }
+
+    @Override
+    public AnalyzedRelation visitValues(Values values, StatementAnalysisContext context) {
+        var expressionAnalyzer = new ExpressionAnalyzer(
+            functions,
+            context.transactionContext(),
+            context.convertParamFunction(),
+            FieldProvider.UNSUPPORTED,
+            new SubqueryAnalyzer(this, context)
+        );
+        var expressionAnalysisContext = new ExpressionAnalysisContext();
+        java.util.function.Function<Expression, Symbol> expressionToSymbol = e -> expressionAnalyzer.convert(e, expressionAnalysisContext);
+
+        ArrayList<List<Symbol>> rows = new ArrayList<>(values.rows().size());
+        List<Symbol> firstRow = null;
+        for (ValuesList row : values.rows()) {
+            List<Symbol> columns = Lists2.map(row.values(), expressionToSymbol);
+            rows.add(columns);
+            if (firstRow == null) {
+                firstRow = columns;
+            } else {
+                if (firstRow.size() != columns.size()) {
+                    throw new IllegalArgumentException(
+                        "VALUES lists must all be the same length. " +
+                        "Found row with " + firstRow.size() + " items and another with " + columns.size() + " items");
+                }
+                for (int i = 0; i < firstRow.size(); i++) {
+                    var typeOfFirstRowAtPos = firstRow.get(i).valueType();
+                    var typeOfCurrentRowAtPos = columns.get(i).valueType();
+                    if (!typeOfCurrentRowAtPos.equals(typeOfFirstRowAtPos)) {
+                        throw new IllegalArgumentException(
+                            "The types of the columns within VALUES lists must match. " +
+                            "Found `" + typeOfFirstRowAtPos + "` and `" + typeOfCurrentRowAtPos + "` at position: " + i);
+                    }
+                }
+            }
+        }
+        assert firstRow != null : "Parser grammar enforces at least 1 row, so firstRow can't be null";
+
+        // We re-write VALUES to a UNNEST table function, so that we can re-use the execution layer logic
+
+        List<List<Symbol>> columns = Lists2.toColumnOrientation(rows);
+        ArrayList<Symbol> arrays = new ArrayList<>(columns.size());
+        for (int i = 0; i < firstRow.size(); i++) {
+            Symbol column = firstRow.get(i);
+            ArrayType<?> arrayType = new ArrayType<>(column.valueType());
+            List<Symbol> columnValues = columns.get(i);
+            arrays.add(new Function(
+                new FunctionInfo(new FunctionIdent(ArrayFunction.NAME, Symbols.typeView(columnValues)), arrayType),
+                columnValues
+            ));
+        }
+        Function function = new Function(
+            new FunctionInfo(
+                new FunctionIdent(UnnestFunction.NAME, Symbols.typeView(arrays)),
+                ObjectType.untyped(),
+                FunctionInfo.Type.TABLE
+            ),
+            arrays
+        );
+        FunctionImplementation implementation = functions.getQualified(function.info().ident());
+        TableFunctionImplementation tableFunc = TableFunctionFactory.from(implementation);
+        TableInfo tableInfo = tableFunc.createTableInfo();
+        Operation.blockedRaiseException(tableInfo, context.currentOperation());
+        QualifiedName qualifiedName = new QualifiedName(UnnestFunction.NAME);
+        TableFunctionRelation relation = new TableFunctionRelation(
+            tableInfo,
+            tableFunc,
+            function,
+            qualifiedName
+        );
+        context.startRelation();
+        context.currentRelationContext().addSourceRelation(qualifiedName, relation);
+        context.endRelation();
+        return relation;
     }
 }

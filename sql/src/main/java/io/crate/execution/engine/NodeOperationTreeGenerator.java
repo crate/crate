@@ -22,13 +22,13 @@
 
 package io.crate.execution.engine;
 
+import io.crate.data.Paging;
 import io.crate.execution.dsl.phases.ExecutionPhase;
 import io.crate.execution.dsl.phases.ExecutionPhases;
 import io.crate.execution.dsl.phases.NodeOperation;
 import io.crate.execution.dsl.phases.NodeOperationTree;
 import io.crate.execution.dsl.phases.UpstreamPhase;
 import io.crate.execution.engine.distribution.DistributingConsumerFactory;
-import io.crate.data.Paging;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.ExecutionPlanVisitor;
 import io.crate.planner.Merge;

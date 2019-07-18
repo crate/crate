@@ -50,3 +50,4 @@ SQL Statements
     show-tables
     show
     update
+    values

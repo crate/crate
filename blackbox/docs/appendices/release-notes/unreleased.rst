@@ -53,6 +53,8 @@ Breaking Changes
 Changes
 =======
 
+- Added support for using :ref:`ref-values` as top-level relation.
+
 - Added an optimization that allows to run `WHERE` clauses on top of
   derived tables containing :ref:`table functions <ref-table-functions>`
   more efficiently in some cases.
