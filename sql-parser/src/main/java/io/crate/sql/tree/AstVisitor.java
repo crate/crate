@@ -604,4 +604,8 @@ public abstract class AstVisitor<R, C> {
     public R visitRow(Row row, C context) {
         return visitExpression(row, context);
     }
+
+    public R visitValues(Values values, C context) {
+        return visitRelation(values, context);
+    }
 }

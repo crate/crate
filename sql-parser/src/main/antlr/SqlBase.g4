@@ -121,7 +121,8 @@ querySpec
       where?
       (GROUP BY expr (',' expr)*)?
       (HAVING having=booleanExpression)?
-      (WINDOW windows+=namedWindow (',' windows+=namedWindow)*)?
+      (WINDOW windows+=namedWindow (',' windows+=namedWindow)*)?                     #defaultQuerySpec
+    | VALUES expr (',' expr)*                                                        #valuesRelation
     ;
 
 selectItem

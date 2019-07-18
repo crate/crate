@@ -86,6 +86,7 @@ import io.crate.sql.tree.Table;
 import io.crate.sql.tree.TableFunction;
 import io.crate.sql.tree.TableSubquery;
 import io.crate.sql.tree.Union;
+import io.crate.sql.tree.Values;
 import io.crate.sql.tree.Window;
 import io.crate.sql.tree.WindowFrame;
 
@@ -300,6 +301,23 @@ public final class SqlFormatter {
             if (node.getOffset().isPresent()) {
                 append(indent, "OFFSET " + node.getOffset().get())
                     .append('\n');
+            }
+            return null;
+        }
+
+
+        @Override
+        public Void visitValues(Values values, Integer indent) {
+            append(indent, "VALUES ");
+            List<Expression> rows = values.rows();
+            for (int i = 0; i < rows.size(); i++) {
+                Expression row = rows.get(i);
+                append(indent, "(");
+                append(indent, formatStandaloneExpression(row, parameters));
+                append(indent, ")");
+                if (i + 1 < rows.size()) {
+                    append(indent, ", ");
+                }
             }
             return null;
         }
