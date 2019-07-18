@@ -225,7 +225,7 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
         );
         transportService.start();
         transportService.acceptIncomingRequests();
-        shardStateAction = new ShardStateAction(clusterService, transportService, null, null, threadPool);
+        shardStateAction = new ShardStateAction(clusterService, transportService, null, null);
     }
 
     @Override

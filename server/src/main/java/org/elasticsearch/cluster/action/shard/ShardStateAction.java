@@ -84,24 +84,27 @@ public class ShardStateAction {
 
     private final TransportService transportService;
     private final ClusterService clusterService;
-    private final ThreadPool threadPool;
 
     // a list of shards that failed during replication
     // we keep track of these shards in order to avoid sending duplicate failed shard requests for a single failing shard.
     private final TransportRequestDeduplicator<FailedShardEntry> remoteFailedShardsDeduplicator = new TransportRequestDeduplicator<>();
 
     @Inject
-    public ShardStateAction(ClusterService clusterService, TransportService transportService,
-                            AllocationService allocationService, RerouteService rerouteService, ThreadPool threadPool) {
+    public ShardStateAction(ClusterService clusterService,
+                            TransportService transportService,
+                            AllocationService allocationService,
+                            RerouteService rerouteService) {
         this.transportService = transportService;
         this.clusterService = clusterService;
-        this.threadPool = threadPool;
-
         transportService.registerRequestHandler(
             SHARD_STARTED_ACTION_NAME,
             ThreadPool.Names.SAME,
             StartedShardEntry::new,
-            new ShardStartedTransportHandler(clusterService, new ShardStartedClusterStateTaskExecutor(allocationService, LOGGER), LOGGER));
+            new ShardStartedTransportHandler(
+                clusterService,
+                new ShardStartedClusterStateTaskExecutor(allocationService, rerouteService, LOGGER),
+                LOGGER
+            ));
         transportService.registerRequestHandler(
             SHARD_FAILED_ACTION_NAME,
             ThreadPool.Names.SAME,
@@ -110,8 +113,7 @@ public class ShardStateAction {
                 clusterService,
                 new ShardFailedClusterStateTaskExecutor(allocationService, rerouteService, LOGGER),
                 LOGGER
-            )
-        );
+            ));
     }
 
     private void sendShardAction(final String actionName, final ClusterState currentState, final TransportRequest request, final ActionListener<Void> listener) {
@@ -295,7 +297,9 @@ public class ShardStateAction {
         private final RerouteService rerouteService;
         private final Logger logger;
 
-        public ShardFailedClusterStateTaskExecutor(AllocationService allocationService, RerouteService rerouteService, Logger logger) {
+        public ShardFailedClusterStateTaskExecutor(AllocationService allocationService,
+                                                   RerouteService rerouteService,
+                                                   Logger logger) {
             this.allocationService = allocationService;
             this.rerouteService = rerouteService;
             this.logger = logger;
@@ -390,7 +394,7 @@ public class ShardStateAction {
                 // assign it again, even if that means putting it back on the node on which it previously failed:
                 final String reason = String.format(Locale.ROOT, "[%d] unassigned shards after failing shards", numberOfUnassignedShards);
                 logger.trace("{}, scheduling a reroute", reason);
-                rerouteService.reroute(reason, Priority.HIGH, ActionListener.wrap(
+                rerouteService.reroute(reason, Priority.NORMAL, ActionListener.wrap(
                     r -> logger.trace("{}, reroute completed", reason),
                     e -> logger.debug(new ParameterizedMessage("{}, reroute failed", reason), e)));
             }
@@ -518,10 +522,14 @@ public class ShardStateAction {
     public static class ShardStartedClusterStateTaskExecutor implements ClusterStateTaskExecutor<StartedShardEntry>, ClusterStateTaskListener {
         private final AllocationService allocationService;
         private final Logger logger;
+        private final RerouteService rerouteService;
 
-        public ShardStartedClusterStateTaskExecutor(AllocationService allocationService, Logger logger) {
+        public ShardStartedClusterStateTaskExecutor(AllocationService allocationService,
+                                                    RerouteService rerouteService,
+                                                    Logger logger) {
             this.allocationService = allocationService;
             this.logger = logger;
+            this.rerouteService = rerouteService;
         }
 
         @Override
@@ -590,6 +598,13 @@ public class ShardStateAction {
         @Override
         public void onFailure(String source, Exception e) {
             logger.error(() -> new ParameterizedMessage("unexpected failure during [{}]", source), e);
+        }
+
+        @Override
+        public void clusterStatePublished(ClusterChangedEvent clusterChangedEvent) {
+            rerouteService.reroute("reroute after starting shards", Priority.NORMAL, ActionListener.wrap(
+                r -> logger.trace("reroute after starting shards succeeded"),
+                e -> logger.debug("reroute after starting shards failed", e)));
         }
     }
 
