@@ -38,7 +38,7 @@ public abstract class Symbol implements FuncArg, Writeable, ExplainLeaf {
 
     public abstract <C, R> R accept(SymbolVisitor<C, R> visitor, C context);
 
-    public abstract DataType valueType();
+    public abstract DataType<?> valueType();
 
     /**
      * Casts this Symbol to a new {@link DataType} by wrapping a cast function around it.

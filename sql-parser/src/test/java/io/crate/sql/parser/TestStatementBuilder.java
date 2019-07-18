@@ -22,7 +22,6 @@
 
 package io.crate.sql.parser;
 
-import com.google.common.base.Charsets;
 import com.google.common.io.Resources;
 import io.crate.sql.Literals;
 import io.crate.sql.SqlFormatter;
@@ -75,6 +74,8 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.google.common.base.Strings.repeat;
@@ -192,7 +193,7 @@ public class TestStatementBuilder {
     @Test
     public void testNullNotAllowedAsArgToExtractField() {
         expectedException.expect(ParsingException.class);
-        expectedException.expectMessage("viable alternative at input 'select extract(null'");
+        expectedException.expectMessage("no viable alternative at input 'select extract(null'");
         printStatement("select extract(null from x)");
     }
 
@@ -1533,6 +1534,13 @@ public class TestStatementBuilder {
         printStatement("DROP VIEW IF EXISTS v1, x.v2, y.v3");
     }
 
+    @Test
+    public void test_values_as_top_relation_parsing() {
+        printStatement("VALUES (1, 2), (2, 3), (3, 4)");
+        printStatement("VALUES (1), (2), (3)");
+        printStatement("VALUES (1, 2, 3 + 3, (SELECT 1))");
+    }
+
     private static void printStatement(String sql) {
         println(sql.trim());
         println("");
@@ -1597,7 +1605,7 @@ public class TestStatementBuilder {
 
     private static String readResource(String name)
         throws IOException {
-        return Resources.toString(Resources.getResource(name), Charsets.UTF_8);
+        return Resources.toString(Resources.getResource(name), StandardCharsets.UTF_8);
     }
 
     private static String fixTpchQuery(String s) {

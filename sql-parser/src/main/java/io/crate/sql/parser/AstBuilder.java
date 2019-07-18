@@ -174,6 +174,7 @@ import io.crate.sql.tree.TrimMode;
 import io.crate.sql.tree.TryCast;
 import io.crate.sql.tree.Union;
 import io.crate.sql.tree.Update;
+import io.crate.sql.tree.Values;
 import io.crate.sql.tree.ValuesList;
 import io.crate.sql.tree.WhenClause;
 import io.crate.sql.tree.Window;
@@ -956,7 +957,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     }
 
     @Override
-    public Node visitQuerySpec(SqlBaseParser.QuerySpecContext context) {
+    public Node visitDefaultQuerySpec(SqlBaseParser.DefaultQuerySpecContext context) {
         List<SelectItem> selectItems = visitCollection(context.selectItem(), SelectItem.class);
         return new QuerySpecification(
             new Select(isDistinct(context.setQuant()), selectItems),
@@ -969,6 +970,11 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
             Optional.empty(),
             Optional.empty()
         );
+    }
+
+    @Override
+    public Node visitValuesRelation(SqlBaseParser.ValuesRelationContext ctx) {
+        return new Values(visitCollection(ctx.values(), ValuesList.class));
     }
 
     private Map<String, Window> getWindowDefinitions(List<SqlBaseParser.NamedWindowContext> windowContexts) {

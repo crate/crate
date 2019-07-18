@@ -22,14 +22,17 @@
 
 package io.crate.analyze.relations;
 
+import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Function;
-import io.crate.exceptions.ColumnUnknownException;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.sql.tree.QualifiedName;
+
+import java.util.function.Consumer;
 
 public class TableFunctionRelation extends TableRelation {
 
@@ -64,5 +67,12 @@ public class TableFunctionRelation extends TableRelation {
             return getField(path);
         }
         throw new UnsupportedOperationException("Table functions don't support write operations");
+    }
+
+    @Override
+    public void visitSymbols(Consumer<? super Symbol> consumer) {
+        for (Symbol argument : function.arguments()) {
+            consumer.accept(argument);
+        }
     }
 }
