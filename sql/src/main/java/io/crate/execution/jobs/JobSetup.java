@@ -57,6 +57,7 @@ import io.crate.execution.dsl.phases.NodeOperation;
 import io.crate.execution.dsl.phases.PKLookupPhase;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.phases.UpstreamPhase;
+import io.crate.execution.dsl.phases.ValuesPhase;
 import io.crate.execution.dsl.projection.AggregationProjection;
 import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.execution.dsl.projection.Projection;
@@ -133,6 +134,7 @@ public class JobSetup {
     private final PKLookupOperation pkLookupOperation;
     private final ExecutorService searchTp;
     private final String nodeName;
+    private final Functions functions;
 
     @Inject
     public JobSetup(Settings settings,
@@ -156,6 +158,7 @@ public class JobSetup {
         this.pkLookupOperation = new PKLookupOperation(indicesService, shardCollectSource);
         this.circuitBreakerService = circuitBreakerService;
         this.distributingConsumerFactory = distributingConsumerFactory;
+        this.functions = functions;
         innerPreparer = new InnerPreparer();
         inputFactory = new InputFactory(functions);
         searchTp = threadPool.executor(ThreadPool.Names.SEARCH);
@@ -569,6 +572,19 @@ public class JobSetup {
                 countOperation,
                 consumer,
                 indexShardMap
+            ));
+            return true;
+        }
+
+        @Override
+        public Boolean visitValues(ValuesPhase valuesPhase, Context context) {
+            RowConsumer consumer = context.getRowConsumer(valuesPhase, 0);
+            context.registerSubContext(new ValuesTask(
+                valuesPhase.phaseId(),
+                consumer,
+                valuesPhase.rows(),
+                functions,
+                context.transactionContext
             ));
             return true;
         }

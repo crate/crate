@@ -37,6 +37,7 @@ import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.RelationNormalizer;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.relations.UnionSelect;
+import io.crate.analyze.relations.ValuesRelation;
 import io.crate.analyze.where.DocKeys;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
@@ -299,6 +300,9 @@ public class LogicalPlanner {
         }
         if (analyzedRelation instanceof AbstractTableRelation) {
             return Collect.create(((AbstractTableRelation) analyzedRelation), toCollect, where);
+        }
+        if (analyzedRelation instanceof ValuesRelation) {
+            return Result.create(((ValuesRelation) analyzedRelation), toCollect, where);
         }
         if (analyzedRelation instanceof MultiSourceSelect) {
             return JoinPlanBuilder.createNodes((MultiSourceSelect) analyzedRelation, where, subqueryPlanner, functions, txnCtx);

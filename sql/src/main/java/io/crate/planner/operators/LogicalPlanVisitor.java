@@ -99,4 +99,8 @@ public class LogicalPlanVisitor<C, R> {
     public R visitWindowAgg(WindowAgg windowAgg, C context) {
         return visitPlan(windowAgg, context);
     }
+
+    public R visitResult(Result result, C context) {
+        return visitPlan(result, context);
+    }
 }

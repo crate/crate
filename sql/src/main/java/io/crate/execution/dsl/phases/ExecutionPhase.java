@@ -50,7 +50,9 @@ public interface ExecutionPhase extends Writeable {
         HASH_JOIN(HashJoinPhase::new),
         TABLE_FUNCTION_COLLECT(in -> {
             throw new UnsupportedOperationException("TableFunctionCollectPhase is not streamable"); }),
-        PKLookup(PKLookupPhase::new);
+        PKLookup(PKLookupPhase::new),
+        VALUES_PHASE(ValuesPhase::new)
+        ;
 
         public static final List<Type> VALUES = ImmutableList.copyOf(values());
 

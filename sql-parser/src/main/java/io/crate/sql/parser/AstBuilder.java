@@ -975,7 +975,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     @Override
     public Node visitValuesRelation(SqlBaseParser.ValuesRelationContext ctx) {
-        return new Values(visitCollection(ctx.expr(), Expression.class));
+        return new Values(visitCollection(ctx.values(), ValuesList.class));
     }
 
     private Map<String, Window> getWindowDefinitions(List<SqlBaseParser.NamedWindowContext> windowContexts) {

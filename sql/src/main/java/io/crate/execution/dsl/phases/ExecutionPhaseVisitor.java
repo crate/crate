@@ -71,4 +71,8 @@ public class ExecutionPhaseVisitor<C, R> {
     public R visitPKLookup(PKLookupPhase pkLookupPhase, C context) {
         return visitCollectPhase(pkLookupPhase, context);
     }
+
+    public R visitValues(ValuesPhase valuesPhase, C context) {
+        return visitExecutionPhase(valuesPhase, context);
+    }
 }

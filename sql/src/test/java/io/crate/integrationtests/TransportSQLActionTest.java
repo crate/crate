@@ -1681,4 +1681,16 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                "Hello World\n")
         );
     }
+
+    @Test
+    @UseJdbc(0)
+    public void test_values_as_top_level_relation() {
+        execute("VALUES (1, 'a'), (2, 'b'), (3, (SELECT 'c'))");
+        assertThat(
+            printedTable(response.rows()),
+            is("1| a\n" +
+               "2| b\n" +
+               "3| c\n")
+        );
+    }
 }

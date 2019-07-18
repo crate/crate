@@ -22,13 +22,14 @@
 
 package io.crate.execution.engine;
 
+import io.crate.data.Paging;
 import io.crate.execution.dsl.phases.ExecutionPhase;
 import io.crate.execution.dsl.phases.ExecutionPhases;
 import io.crate.execution.dsl.phases.NodeOperation;
 import io.crate.execution.dsl.phases.NodeOperationTree;
 import io.crate.execution.dsl.phases.UpstreamPhase;
+import io.crate.execution.dsl.phases.ValuesPhase;
 import io.crate.execution.engine.distribution.DistributingConsumerFactory;
-import io.crate.data.Paging;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.ExecutionPlanVisitor;
 import io.crate.planner.Merge;
@@ -257,6 +258,12 @@ public final class NodeOperationTreeGenerator extends ExecutionPlanVisitor<NodeO
     public Void visitQueryThenFetch(QueryThenFetch node, NodeOperationTreeContext context) {
         process(node.subPlan(), context);
         context.addContextPhase(node.fetchPhase());
+        return null;
+    }
+
+    @Override
+    public Void visitValues(ValuesPhase valuesPhase, NodeOperationTreeContext context) {
+        context.addPhase(valuesPhase);
         return null;
     }
 

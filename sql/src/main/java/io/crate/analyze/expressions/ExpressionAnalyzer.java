@@ -40,6 +40,7 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.FieldProvider;
 import io.crate.analyze.relations.OrderyByAnalyzer;
 import io.crate.analyze.validator.SemanticSortValidator;
+import io.crate.common.collections.Lists2;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ConversionException;
 import io.crate.exceptions.UnsupportedFeatureException;
@@ -65,6 +66,7 @@ import io.crate.expression.scalar.timestamp.CurrentTimestampFunction;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.RowSymbol;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
@@ -115,6 +117,7 @@ import io.crate.sql.tree.ObjectLiteral;
 import io.crate.sql.tree.ParameterExpression;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.QualifiedNameReference;
+import io.crate.sql.tree.Row;
 import io.crate.sql.tree.SearchedCaseExpression;
 import io.crate.sql.tree.SimpleCaseExpression;
 import io.crate.sql.tree.StringLiteral;
@@ -463,6 +466,12 @@ public class ExpressionAnalyzer {
         protected Symbol visitExpression(Expression node, ExpressionAnalysisContext context) {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
                 "Unsupported expression %s", ExpressionFormatter.formatStandaloneExpression(node)));
+        }
+
+        @Override
+        public Symbol visitRow(Row row, ExpressionAnalysisContext context) {
+            List<Symbol> items = Lists2.map(row.items(), e -> e.accept(this, context));
+            return new RowSymbol(items);
         }
 
         @Override

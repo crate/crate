@@ -19,7 +19,6 @@ import java.util.UUID;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 
-@SuppressWarnings("ConstantConditions")
 public class PlannerTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLExecutor e;

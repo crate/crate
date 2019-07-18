@@ -21,6 +21,7 @@
 
 package io.crate.planner;
 
+import io.crate.execution.dsl.phases.ValuesPhase;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.CountPlan;
 import io.crate.planner.node.dql.QueryThenFetch;
@@ -59,5 +60,9 @@ public class ExecutionPlanVisitor<C, R> {
 
     public R visitUnionPlan(UnionExecutionPlan unionExecutionPlan, C context) {
         return visitPlan(unionExecutionPlan, context);
+    }
+
+    public R visitValues(ValuesPhase valuesPhase, C context) {
+        return null;
     }
 }

@@ -1536,8 +1536,9 @@ public class TestStatementBuilder {
 
     @Test
     public void test_values_as_top_relation_parsing() {
-        printStatement("VALUES (1, 2, 3 + 3, (SELECT 1))");
+        printStatement("VALUES (1, 2), (2, 3), (3, 4)");
         printStatement("VALUES (1), (2), (3)");
+        printStatement("VALUES (1, 2, 3 + 3, (SELECT 1))");
     }
 
     private static void printStatement(String sql) {

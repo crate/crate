@@ -20,50 +20,48 @@
  * agreement.
  */
 
-package io.crate.sql.tree;
+package io.crate.expression.symbol;
 
+import io.crate.types.DataType;
+import org.elasticsearch.common.io.stream.StreamOutput;
+
+import java.io.IOException;
 import java.util.List;
+import java.util.StringJoiner;
 
-public final class Values extends QueryBody {
+public final class RowSymbol extends Symbol {
 
-    private List<ValuesList> rows;
+    private List<Symbol> items;
 
-    public Values(List<ValuesList> rows) {
-        this.rows = rows;
-    }
-
-    public List<ValuesList> rows() {
-        return rows;
+    public RowSymbol(List<Symbol> items) {
+        this.items = items;
     }
 
     @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitValues(this, context);
+    public SymbolType symbolType() {
+        return null;
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
+    public <C, R> R accept(SymbolVisitor<C, R> visitor, C context) {
+        return null;
+    }
+
+    @Override
+    public DataType valueType() {
+        return null;
+    }
+
+    @Override
+    public String representation() {
+        StringJoiner joinOnComma = new StringJoiner(", ");
+        for (Symbol item : items) {
+            joinOnComma.add(item.representation());
         }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-
-        Values values = (Values) o;
-
-        return rows.equals(values.rows);
+        return "ROW (" + joinOnComma.toString() + ')';
     }
 
     @Override
-    public int hashCode() {
-        return rows.hashCode();
-    }
-
-    @Override
-    public String toString() {
-        return "Values{" +
-               "rows=" + rows +
-               '}';
+    public void writeTo(StreamOutput out) throws IOException {
     }
 }

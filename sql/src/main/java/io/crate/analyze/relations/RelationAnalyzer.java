@@ -40,6 +40,7 @@ import io.crate.analyze.relations.select.SelectAnalyzer;
 import io.crate.analyze.validator.GroupBySymbolValidator;
 import io.crate.analyze.validator.HavingSymbolValidator;
 import io.crate.analyze.validator.SemanticSortValidator;
+import io.crate.common.collections.Lists2;
 import io.crate.exceptions.AmbiguousColumnAliasException;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.RelationUnknown;
@@ -90,6 +91,8 @@ import io.crate.sql.tree.Table;
 import io.crate.sql.tree.TableFunction;
 import io.crate.sql.tree.TableSubquery;
 import io.crate.sql.tree.Union;
+import io.crate.sql.tree.Values;
+import io.crate.sql.tree.ValuesList;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.inject.Inject;
@@ -705,5 +708,45 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             throw new UnsupportedOperationException("subquery in FROM clause must have an alias");
         }
         return super.visitTableSubquery(node, context);
+    }
+
+    @Override
+    public AnalyzedRelation visitValues(Values values, StatementAnalysisContext context) {
+        var expressionAnalyzer = new ExpressionAnalyzer(
+            functions,
+            context.transactionContext(),
+            context.convertParamFunction(),
+            FieldProvider.UNSUPPORTED,
+            new SubqueryAnalyzer(this, context)
+        );
+        var expressionAnalysisContext = new ExpressionAnalysisContext();
+        java.util.function.Function<Expression, Symbol> expressionToSymbol = e -> expressionAnalyzer.convert(e, expressionAnalysisContext);
+
+        ArrayList<List<Symbol>> rows = new ArrayList<>(values.rows().size());
+        List<Symbol> firstRow = null;
+        for (ValuesList row : values.rows()) {
+            List<Symbol> columns = Lists2.map(row.values(), expressionToSymbol);
+            rows.add(columns);
+            if (firstRow == null) {
+                firstRow = columns;
+            } else {
+                if (firstRow.size() != columns.size()) {
+                    throw new IllegalArgumentException(
+                        "VALUES lists must all be the same length. " +
+                        "Found row with " + firstRow.size() + " items and another with " + columns.size() + " items");
+                }
+                for (int i = 0; i < firstRow.size(); i++) {
+                    var typeOfFirstRowAtPos = firstRow.get(i).valueType();
+                    var typeOfCurrentRowAtPos = columns.get(i).valueType();
+                    if (!typeOfCurrentRowAtPos.equals(typeOfFirstRowAtPos)) {
+                        throw new IllegalArgumentException(
+                            "The types of the columns within VALUES lists must match. " +
+                            "Found `" + typeOfFirstRowAtPos + "` and `" + typeOfCurrentRowAtPos + "` at position: " + i);
+                    }
+                }
+            }
+        }
+
+        return new ValuesRelation(rows);
     }
 }
