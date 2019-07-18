@@ -224,9 +224,10 @@ primaryExpression
     | qname '(' ASTERISK ')' over?                                                   #functionCall
     | ident                                                                          #columnReference
     | qname '(' (setQuant? expr (',' expr)*)? ')' over?                              #functionCall
+    | '(' expr (',' expr)+ ')'                                                       #rowConstructor
+    | ROW '(' expr (',' expr)* ')'                                                   #rowConstructor
     | subqueryExpression                                                             #subqueryExpressionDefault
-    // This case handles a simple parenthesized expression.
-    | '(' expr ')'                                                                   #nestedExpression
+    | '(' expr ')'                                                                   #parenthesizedExpression
     // This is an extension to ANSI SQL, which considers EXISTS to be a <boolean expression>
     | EXISTS '(' query ')'                                                           #exists
     | value=primaryExpression '[' index=valueExpression ']'                          #subscript

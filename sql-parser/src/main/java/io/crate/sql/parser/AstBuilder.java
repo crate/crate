@@ -146,6 +146,7 @@ import io.crate.sql.tree.RerouteOption;
 import io.crate.sql.tree.ResetStatement;
 import io.crate.sql.tree.RestoreSnapshot;
 import io.crate.sql.tree.RevokePrivilege;
+import io.crate.sql.tree.Row;
 import io.crate.sql.tree.SearchedCaseExpression;
 import io.crate.sql.tree.Select;
 import io.crate.sql.tree.SelectItem;
@@ -1458,13 +1459,18 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     }
 
     @Override
-    public Node visitNestedExpression(SqlBaseParser.NestedExpressionContext context) {
-        return visit(context.expr());
+    public Node visitSubqueryExpression(SqlBaseParser.SubqueryExpressionContext context) {
+        return new SubqueryExpression((Query) visit(context.query()));
     }
 
     @Override
-    public Node visitSubqueryExpression(SqlBaseParser.SubqueryExpressionContext context) {
-        return new SubqueryExpression((Query) visit(context.query()));
+    public Node visitRowConstructor(SqlBaseParser.RowConstructorContext ctx) {
+        return new Row(visitCollection(ctx.expr(), Expression.class));
+    }
+
+    @Override
+    public Node visitParenthesizedExpression(SqlBaseParser.ParenthesizedExpressionContext ctx) {
+        return visit(ctx.expr());
     }
 
     @Override

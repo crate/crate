@@ -65,6 +65,7 @@ import io.crate.sql.tree.ObjectColumnType;
 import io.crate.sql.tree.ObjectLiteral;
 import io.crate.sql.tree.ParameterExpression;
 import io.crate.sql.tree.QualifiedNameReference;
+import io.crate.sql.tree.Row;
 import io.crate.sql.tree.SearchedCaseExpression;
 import io.crate.sql.tree.SimpleCaseExpression;
 import io.crate.sql.tree.SortItem;
@@ -81,6 +82,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.StringJoiner;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
@@ -138,6 +140,15 @@ public final class ExpressionFormatter {
         protected String visitExpression(Expression node, @Nullable List<Expression> parameters) {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
                 "not yet implemented: %s.visit%s", getClass().getName(), node.getClass().getSimpleName()));
+        }
+
+        @Override
+        public String visitRow(Row row, List<Expression> context) {
+            StringJoiner joinOnComma = new StringJoiner(", ");
+            for (Expression item : row.items()) {
+                joinOnComma.add(item.accept(this, context));
+            }
+            return '(' + joinOnComma.toString() + ')';
         }
 
         @Override
