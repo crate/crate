@@ -149,8 +149,7 @@ public class TransportVerifyShardBeforeCloseActionTests extends ESTestCase {
             clusterService,
             transportService,
             null,
-            null,
-            threadPool);
+            null);
         action = new TransportVerifyShardBeforeCloseAction(
             Settings.EMPTY,
             transportService,

@@ -71,7 +71,7 @@ public class RetentionLeaseSyncActionTests extends ESTestCase {
         );
         transportService.start();
         transportService.acceptIncomingRequests();
-        shardStateAction = new ShardStateAction(clusterService, transportService, null, null, threadPool);
+        shardStateAction = new ShardStateAction(clusterService, transportService, null, null);
     }
 
     public void tearDown() throws Exception {
