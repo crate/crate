@@ -60,6 +60,11 @@ public class JvmVersionNodeCheckTest {
     }
 
     @Test
+    public void test_java11_ea_version_string_can_be_parsed() {
+        assertThat(JvmVersionNodeCheck.parseVersion("11.0.4-ea"), is(new int[] { 11, 0, 4 }));
+    }
+
+    @Test
     public void testEAVersionStringCanBeParsed() {
         assertThat(JvmVersionNodeCheck.parseVersion("12ea"), is(new int[] { 12, 0, 0 }));
     }

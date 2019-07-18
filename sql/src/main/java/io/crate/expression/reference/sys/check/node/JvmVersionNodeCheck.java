@@ -59,28 +59,28 @@ public final class JvmVersionNodeCheck extends AbstractSysNodeCheck {
      * Parse a Java version string into an array of [major, minor, hotfix]
      */
     static int[] parseVersion(String javaVersion) {
-        StringTokenizer stBuild = new StringTokenizer(javaVersion, "_");
-        String javaVersionWithoutBuildNumber = stBuild.nextToken();
-
-        StringTokenizer stVersionParts = new StringTokenizer(javaVersionWithoutBuildNumber, ".");
-        String firstToken = stVersionParts.nextToken();
-        try {
-            int major = Integer.parseInt(firstToken);
-            if (stVersionParts.hasMoreTokens()) {
-                int minor = Integer.parseInt(stVersionParts.nextToken());
-                int hotfix = Integer.parseInt(stVersionParts.nextToken());
-                return new int[] {major, minor, hotfix};
-            } else {
-                return new int[] {major, 0, 0};
-            }
-        } catch (NumberFormatException e) {
-            if (firstToken.endsWith("ea")) {
-                int offset = firstToken.endsWith("-ea") ? 3 : 2;
-                int major = Integer.parseInt(firstToken.substring(0, firstToken.length() - offset));
-                return new int[] {major, 0, 0};
-            }
-            throw e;
+        StringTokenizer tokenizer = new StringTokenizer(javaVersion, ".-_ea");
+        int major;
+        if (tokenizer.hasMoreTokens()) {
+            major = Integer.parseInt(tokenizer.nextToken());
+        } else {
+            throw new IllegalArgumentException("Cannot parse major version from java version: " + javaVersion);
         }
+        int minor = 0;
+        if (tokenizer.hasMoreTokens()) {
+            try {
+                minor = Integer.parseInt(tokenizer.nextToken());
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        int patch = 0;
+        if (tokenizer.hasMoreTokens()) {
+            try {
+                patch = Integer.parseInt(tokenizer.nextToken());
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        return new int[] { major, minor, patch };
     }
 
     static boolean isOnOrAfter11(String javaVersion) {

@@ -46,3 +46,5 @@ None
 Fixes
 =====
 
+- Fixed an issue that could cause startup to fail with early access builds of
+  Java.
