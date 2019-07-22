@@ -25,11 +25,13 @@ package io.crate.types;
 import io.crate.Streamer;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.joda.time.Duration;
+import org.joda.time.Period;
 
 import java.io.IOException;
 import java.util.Locale;
 
-public class IntervalType extends DataType<Interval> implements FixedWidthType, Streamer<Interval> {
+public class IntervalType extends DataType<Period> implements FixedWidthType, Streamer<Period> {
 
     public static final int ID = 17;
     public static final IntervalType INSTANCE = new IntervalType();
@@ -50,47 +52,55 @@ public class IntervalType extends DataType<Interval> implements FixedWidthType, 
     }
 
     @Override
-    public Streamer<Interval> streamer() {
+    public Streamer<Period> streamer() {
         return this;
     }
 
     @Override
-    public Interval value(Object value) throws IllegalArgumentException, ClassCastException {
+    public Period value(Object value) throws IllegalArgumentException, ClassCastException {
         if (value == null) {
             return null;
         }
-        if (value instanceof Interval) {
-            return (Interval) value;
+
+        if (value instanceof Period) {
+            return (Period) value;
         }
+
         throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Cannot convert %s to interval", value));
     }
 
-    public int compareValueTo(Interval val1, Interval val2) {
-        return nullSafeCompareValueTo(val1, val2, Interval::compare);
+    public int compareValueTo(Period p1, Period p2) {
+        return nullSafeCompareValueTo(p1.toStandardDuration(), p1.toStandardDuration(), Duration::compareTo);
     }
 
     @Override
-    public Interval readValueFrom(StreamInput in) throws IOException {
+    public Period readValueFrom(StreamInput in) throws IOException {
         if (in.readBoolean()) {
-            return new Interval(in.readLong(), in.readInt(), in.readInt());
+            long seconds = in.readLong();
+            int days = in.readInt();
+            int months = in.readInt();
+            return new Period().withSeconds(Math.toIntExact(seconds)).withDays(days).withMonths(months);
         } else {
             return null;
         }
     }
 
     @Override
-    public void writeValueTo(StreamOutput out, Interval v) throws IOException {
-        if (v == null) {
+    public void writeValueTo(StreamOutput out, Period p) throws IOException {
+        if (p == null) {
             out.writeBoolean(false);
         } else {
-            out.writeDouble(v.getSeconds());
-            out.writeInt(v.getDays());
-            out.writeInt(v.getMonths());
+            out.writeDouble(p.getSeconds());
+            out.writeInt(p.getDays());
+            out.writeInt(p.getMonths());
         }
     }
 
     @Override
     public int fixedSize() {
-        return 24; // 8 object overhead, 8 double, 4 int, 4 int
+        return 24; //TODO estimate org.joda.time size
     }
+
+
+
 }

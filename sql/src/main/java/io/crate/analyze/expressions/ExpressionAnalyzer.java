@@ -77,6 +77,7 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.table.Operation;
+import io.crate.protocols.postgres.IntervalFormatParser;
 import io.crate.sql.ExpressionFormatter;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.ArithmeticExpression;
@@ -128,14 +129,14 @@ import io.crate.sql.tree.WindowFrame;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.Interval;
 import io.crate.types.ObjectType;
 import io.crate.types.UndefinedType;
+import org.joda.time.Period;
+import org.joda.time.format.ISOPeriodFormat;
+import org.joda.time.format.PeriodFormat;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.time.Duration;
-import java.time.Period;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -149,12 +150,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static io.crate.common.collections.Lists2.mapTail;
-import static io.crate.sql.tree.IntervalLiteral.IntervalField.DAY;
 import static io.crate.sql.tree.IntervalLiteral.IntervalField.HOUR;
 import static io.crate.sql.tree.IntervalLiteral.IntervalField.MINUTE;
 import static io.crate.sql.tree.IntervalLiteral.IntervalField.MONTH;
 import static io.crate.sql.tree.IntervalLiteral.IntervalField.SECOND;
-import static io.crate.sql.tree.IntervalLiteral.IntervalField.YEAR;
 
 /**
  * <p>This Analyzer can be used to convert Expression from the SQL AST into symbols.</p>
@@ -934,78 +933,95 @@ public class ExpressionAnalyzer {
             if (value == null || value.isEmpty() || value.isBlank()) {
                 throw new IllegalArgumentException("Invalid value " + value);
             }
-            int time = Integer.parseInt(value);
 
-            int months = 0;
-            int days = 0;
-            double seconds = 0;
+            Period period = null;
+
+            try {
+                period = ISOPeriodFormat.standard().parsePeriod(value);
+            } catch (IllegalArgumentException e) {
+                try {
+                    period = PeriodFormat.wordBased(Locale.ENGLISH).parsePeriod(value);
+                } catch (IllegalArgumentException er) {
+                    period = IntervalFormatParser.apply(value);
+                }
+            }
 
             IntervalLiteral.IntervalField startField = node.getStartField();
             IntervalLiteral.IntervalField endField = node.getEndField().orElse(null);
 
-            // This section handles the conversion of the duration between the start and the end
-            // of an interval .e.g. INTERVAL '1' HOUR TO SECOND takes the duration of 1 hour and
-            // converts it to seconds. The end of an interval must always be more significant
-            // than the start e.g. '1' HOUR TO SECOND is valid, '1' SECOND TO HOUR is invalid.
-            // Also it is not possible to convert between month and day since it impossible
-            // to determine what the amount of days of a month are. Therefore only conversions between
-            // year to month, or day to hour, minute, second, or hour to minute, second or
-            // minute to second are possible.
-
-            if (startField == YEAR) {
-                Period yearPeriod = Period.ofYears(time);
-                if (endField == null || endField == MONTH) {
-                    months = Math.toIntExact(yearPeriod.toTotalMonths());
-                } else {
-                    raiseInvalidStartEndCombination(startField, endField);
-                }
-            } else if (startField == MONTH) {
-                Period monthPeriod = Period.ofMonths(time);
-                if (endField == null) {
-                    months = Math.toIntExact(monthPeriod.toTotalMonths());
-                } else {
-                    raiseInvalidStartEndCombination(startField, endField);
-                }
-            } else if (startField == DAY) {
-                Duration dayDuration = Duration.ofDays(time);
-                if (endField == null) {
-                    days = Math.toIntExact(dayDuration.toDays());
-                } else if (endField == HOUR || endField == MINUTE || endField == SECOND) {
-                    seconds = Math.toIntExact(dayDuration.getSeconds());
-                } else {
-                    raiseInvalidStartEndCombination(startField, endField);
-                }
-            } else if (startField == HOUR) {
-                Duration hourDuration = Duration.ofHours(time);
-                if (endField == null || endField == MINUTE || endField == SECOND) {
-                    seconds = Math.toIntExact(hourDuration.getSeconds());
-                } else {
-                    raiseInvalidStartEndCombination(startField, endField);
-                }
-            } else if (startField == MINUTE) {
-                Duration minuteDuration = Duration.ofMinutes(time);
-                if (endField == null || endField == SECOND) {
-                    seconds = Math.toIntExact(minuteDuration.getSeconds());
-                } else {
-                    raiseInvalidStartEndCombination(startField, endField);
-                }
-            } else if (startField == SECOND) {
-                Duration secondDuration = Duration.ofSeconds(time);
-                if (endField == null) {
-                    seconds = Math.toIntExact(secondDuration.getSeconds());
-                } else {
-                    raiseInvalidStartEndCombination(startField, endField);
-                }
+            switch (startField) {
+                case YEAR:
+                    if (endField == MONTH) {
+                        period = new Period().withYears(period.getYears()).withMonths(period.getMonths());
+                    } else if (endField == null) {
+                        period = new Period().withYears(period.getYears());
+                    } else {
+                        raiseInvalidStartEndCombination(startField, endField);
+                    }
+                    break;
+                case MONTH:
+                    if (endField == null) {
+                        period = new Period().withYears(period.getYears()).withMonths(period.getMonths());
+                    } else {
+                        raiseInvalidStartEndCombination(startField, endField);
+                    }
+                    break;
+                case DAY:
+                    if (endField == null) {
+                        period = period.withHours(0).withMinutes(0).withSeconds(0).withMillis(0);
+                    } else if (endField == HOUR) {
+                        period = period.withMinutes(0).withSeconds(0).withMillis(0);
+                    } else if (endField == MINUTE) {
+                        period = period.withSeconds(0).withMillis(0);
+                    } else if (endField == SECOND) {
+                        //noop
+                    } else {
+                        raiseInvalidStartEndCombination(startField, endField);
+                    }
+                    break;
+                case HOUR:
+                    if (endField == null) {
+                        period = period.withMinutes(0).withSeconds(0).withMillis(0);
+                    } else if (endField == MINUTE) {
+                        period = period.withSeconds(0).withMillis(0);
+                    } else if (endField == SECOND) {
+                        //noop
+                    } else {
+                        raiseInvalidStartEndCombination(startField, endField);
+                    }
+                    break;
+                case MINUTE:
+                    if (endField == null) {
+                        period = period.withSeconds(0).withMillis(0);
+                    } else if (endField == SECOND) {
+                        //noop
+                    } else {
+                        raiseInvalidStartEndCombination(startField, endField);
+                    }
+                    break;
+                case SECOND:
+                    if (endField == null) {
+                        //noop
+                    } else {
+                        raiseInvalidStartEndCombination(startField, endField);
+                    }
+                    break;
+                default:
+                    throw new IllegalArgumentException("Invalid start " + startField);
             }
-            Interval interval;
 
-            if (node.getSign() == IntervalLiteral.Sign.NEGATIVE) {
-                interval = new Interval(-seconds, -days, -months);
-            } else {
-                interval = new Interval(seconds, days, months);
+            if (node.getSign() == IntervalLiteral.Sign.MINUS) {
+                period = new Period()
+                    .withYears(-period.getYears())
+                    .withMonths(-period.getMonths())
+                    .withDays(-period.getDays())
+                    .withHours(-period.getHours())
+                    .withMinutes(-period.getMinutes())
+                    .withSeconds(-period.getSeconds())
+                    .withMillis(-period.getMillis());
             }
 
-            return Literal.newInterval(interval);
+            return Literal.newInterval(period);
         }
 
         private void raiseInvalidStartEndCombination(IntervalLiteral.IntervalField startField, IntervalLiteral.IntervalField endField) {

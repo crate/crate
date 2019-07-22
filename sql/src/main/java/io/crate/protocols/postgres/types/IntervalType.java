@@ -22,8 +22,8 @@
 
 package io.crate.protocols.postgres.types;
 
-import io.crate.types.Interval;
 import io.netty.buffer.ByteBuf;
+import org.joda.time.Period;
 
 import javax.annotation.Nonnull;
 
@@ -45,11 +45,11 @@ public class IntervalType extends PGType {
 
     @Override
     public int writeAsBinary(ByteBuf buffer, @Nonnull Object value) {
-        Interval MOnthDaySecondInterval = (Interval) value;
+        Period period = (Period) value;
         buffer.writeInt(TYPE_LEN);
-        buffer.writeLong(Double.valueOf(MOnthDaySecondInterval.getSeconds()).longValue());
-        buffer.writeInt(MOnthDaySecondInterval.getDays());
-        buffer.writeInt(MOnthDaySecondInterval.getMonths());
+        buffer.writeLong(Double.valueOf(period.getSeconds()).longValue());
+        buffer.writeInt(period.getDays());
+        buffer.writeInt(period.getMonths());
         return TYPE_LEN;
     }
 
@@ -57,7 +57,14 @@ public class IntervalType extends PGType {
     public Object readBinaryValue(ByteBuf buffer, int valueLength) {
         assert valueLength == TYPE_LEN : "length should be " + TYPE_LEN + " because interval is 16. Actual length: " +
                                          valueLength;
-        return new Interval(buffer.readLong(), buffer.readInt(), buffer.readInt());
+        if (buffer.readBoolean()) {
+            long seconds = buffer.readLong();
+            int days = buffer.readInt();
+            int months = buffer.readInt();
+            return new Period().withSeconds(Math.toIntExact(seconds)).withDays(days).withMonths(months);
+        } else {
+            return null;
+        }
     }
 
     @Override

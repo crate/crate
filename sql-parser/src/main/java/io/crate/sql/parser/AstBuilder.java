@@ -244,7 +244,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
             ((StringLiteral) visit(context.stringLiteral())).getValue(),
             Optional.ofNullable(context.sign)
                 .map(AstBuilder::getIntervalSign)
-                .orElse(IntervalLiteral.Sign.POSITIVE),
+                .orElse(IntervalLiteral.Sign.PLUS),
             startField,
             endField);
     }
@@ -252,9 +252,9 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     private static IntervalLiteral.Sign getIntervalSign(Token token) {
         switch (token.getType()) {
             case SqlBaseLexer.MINUS:
-                return IntervalLiteral.Sign.NEGATIVE;
+                return IntervalLiteral.Sign.MINUS;
             case SqlBaseLexer.PLUS:
-                return IntervalLiteral.Sign.POSITIVE;
+                return IntervalLiteral.Sign.PLUS;
             default:
                 throw new IllegalArgumentException("Unsupported sign: " + token.getText());
         }

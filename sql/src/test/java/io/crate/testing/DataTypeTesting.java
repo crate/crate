@@ -40,11 +40,11 @@ import io.crate.types.IntegerType;
 import io.crate.types.IntervalType;
 import io.crate.types.IpType;
 import io.crate.types.LongType;
-import io.crate.types.Interval;
 import io.crate.types.ObjectType;
 import io.crate.types.ShortType;
 import io.crate.types.StringType;
 import io.crate.types.TimestampType;
+import org.joda.time.Period;
 import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
 import org.locationtech.spatial4j.shape.impl.PointImpl;
 
@@ -133,7 +133,7 @@ public class DataTypeTesting {
                 };
             case IntervalType.ID:
                 return () -> {
-                    return (T) new Interval(1000, 0, 0);
+                    return (T) new Period().withMillis(1000);
                 };
 
         }

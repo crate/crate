@@ -54,7 +54,6 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.ArrayLiteral;
-import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.FunctionCall;
 import io.crate.sql.tree.LongLiteral;
 import io.crate.sql.tree.QualifiedName;
@@ -65,7 +64,7 @@ import io.crate.testing.SQLExecutor;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
 import io.crate.types.DataTypes;
-import io.crate.types.Interval;
+import org.joda.time.Period;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -418,16 +417,16 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testInterval() throws Exception {
         Literal literal = (Literal) expressions.asSymbol("INTERVAL '1' MONTH");
         assertThat(literal.valueType(), is(DataTypes.INTERVAL));
-        Interval interval = (Interval) literal.value();
-        assertThat(interval, is(new Interval(0,0,1)));
+        Period period = (Period) literal.value();
+        assertThat(period, is(new Period().withMonths(1)));
     }
 
     @Test
     public void testIntervalConversion() throws Exception {
         Literal literal = (Literal) expressions.asSymbol("INTERVAL '1' HOUR to SECOND");
         assertThat(literal.valueType(), is(DataTypes.INTERVAL));
-        Interval interval = (Interval) literal.value();
-        assertThat(interval, is(new Interval(3600,0,0)));
+        Period period = (Period) literal.value();
+        assertThat(period, is(new Period().withHours(1)));
     }
 
     @Test

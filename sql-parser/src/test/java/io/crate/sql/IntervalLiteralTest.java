@@ -43,7 +43,7 @@ public class IntervalLiteralTest {
     public void testYear() {
         IntervalLiteral interval = (IntervalLiteral) SqlParser.createExpression("INTERVAL +'1' YEAR");
         assertThat(interval.getValue(), is("1"));
-        assertThat(interval.getSign(), is(IntervalLiteral.Sign.POSITIVE));
+        assertThat(interval.getSign(), is(IntervalLiteral.Sign.PLUS));
         assertThat(interval.getStartField(), is(IntervalLiteral.IntervalField.YEAR));
         assertThat(interval.getEndField(), is(Optional.empty()));
     }
@@ -52,7 +52,7 @@ public class IntervalLiteralTest {
     public void testMonth() {
         IntervalLiteral interval = (IntervalLiteral) SqlParser.createExpression("INTERVAL +'1' MONTH");
         assertThat(interval.getValue(), is("1"));
-        assertThat(interval.getSign(), is(IntervalLiteral.Sign.POSITIVE));
+        assertThat(interval.getSign(), is(IntervalLiteral.Sign.PLUS));
         assertThat(interval.getStartField(), is(IntervalLiteral.IntervalField.MONTH));
         assertThat(interval.getEndField(), is(Optional.empty()));
     }
@@ -61,7 +61,7 @@ public class IntervalLiteralTest {
     public void testDay() {
         IntervalLiteral interval = (IntervalLiteral) SqlParser.createExpression("INTERVAL +'1' DAY");
         assertThat(interval.getValue(), is("1"));
-        assertThat(interval.getSign(), is(IntervalLiteral.Sign.POSITIVE));
+        assertThat(interval.getSign(), is(IntervalLiteral.Sign.PLUS));
         assertThat(interval.getStartField(), is(IntervalLiteral.IntervalField.DAY));
         assertThat(interval.getEndField(), is(Optional.empty()));
     }
@@ -70,7 +70,7 @@ public class IntervalLiteralTest {
     public void testHour() {
         IntervalLiteral interval = (IntervalLiteral) SqlParser.createExpression("INTERVAL +'1' HOUR");
         assertThat(interval.getValue(), is("1"));
-        assertThat(interval.getSign(), is(IntervalLiteral.Sign.POSITIVE));
+        assertThat(interval.getSign(), is(IntervalLiteral.Sign.PLUS));
         assertThat(interval.getStartField(), is(IntervalLiteral.IntervalField.HOUR));
         assertThat(interval.getEndField(), is(Optional.empty()));
     }
@@ -79,7 +79,7 @@ public class IntervalLiteralTest {
     public void testMinute() {
         IntervalLiteral interval = (IntervalLiteral) SqlParser.createExpression("INTERVAL +'1' MINUTE");
         assertThat(interval.getValue(), is("1"));
-        assertThat(interval.getSign(), is(IntervalLiteral.Sign.POSITIVE));
+        assertThat(interval.getSign(), is(IntervalLiteral.Sign.PLUS));
         assertThat(interval.getStartField(), is(IntervalLiteral.IntervalField.MINUTE));
         assertThat(interval.getEndField(), is(Optional.empty()));
     }
@@ -88,7 +88,7 @@ public class IntervalLiteralTest {
     public void testSecond() {
         IntervalLiteral interval = (IntervalLiteral) SqlParser.createExpression("INTERVAL +'1' SECOND");
         assertThat(interval.getValue(), is("1"));
-        assertThat(interval.getSign(), is(IntervalLiteral.Sign.POSITIVE));
+        assertThat(interval.getSign(), is(IntervalLiteral.Sign.PLUS));
         assertThat(interval.getStartField(), is(IntervalLiteral.IntervalField.SECOND));
         assertThat(interval.getEndField(), is(Optional.empty()));
     }
@@ -97,7 +97,7 @@ public class IntervalLiteralTest {
     public void testNegative() {
         IntervalLiteral interval = (IntervalLiteral) SqlParser.createExpression("INTERVAL -'1' HOUR");
         assertThat(interval.getValue(), is("1"));
-        assertThat(interval.getSign(), is(IntervalLiteral.Sign.NEGATIVE));
+        assertThat(interval.getSign(), is(IntervalLiteral.Sign.MINUS));
         assertThat(interval.getStartField(), is(IntervalLiteral.IntervalField.HOUR));
         assertThat(interval.getEndField(), is(Optional.empty()));
     }
@@ -106,7 +106,7 @@ public class IntervalLiteralTest {
     public void testTo() {
         IntervalLiteral interval = (IntervalLiteral) SqlParser.createExpression("INTERVAL '1' HOUR TO SECOND");
         assertThat(interval.getValue(), is("1"));
-        assertThat(interval.getSign(), is(IntervalLiteral.Sign.POSITIVE));
+        assertThat(interval.getSign(), is(IntervalLiteral.Sign.PLUS));
         assertThat(interval.getStartField(), is(IntervalLiteral.IntervalField.HOUR));
         assertThat(interval.getEndField(), is(Optional.of(IntervalLiteral.IntervalField.SECOND)));
     }

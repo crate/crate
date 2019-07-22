@@ -28,11 +28,11 @@ import io.crate.exceptions.ConversionException;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.Interval;
 import io.crate.types.ObjectType;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.joda.time.Period;
 import org.locationtech.spatial4j.shape.Point;
 
 import java.io.IOException;
@@ -256,7 +256,7 @@ public class Literal<ReturnType> extends Symbol implements Input<ReturnType>, Co
         return new Literal<>(DataTypes.FLOAT, value);
     }
 
-    public static Literal<Interval> newInterval(Interval value) {
+    public static Literal<Period> newInterval(Period value) {
         return new Literal<>(DataTypes.INTERVAL, value);
     }
 

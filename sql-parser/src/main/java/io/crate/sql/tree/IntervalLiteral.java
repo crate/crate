@@ -27,27 +27,23 @@ import java.util.Optional;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+/**
+ * INTERVAL sign=(PLUS | MINUS)? stringLiteral from=intervalField (TO to=intervalField)?
+ */
 public class IntervalLiteral extends Literal {
 
     public enum Sign {
-        POSITIVE {
-            @Override
-            public int multiplier() {
-                return 1;
-            }
-        },
-        NEGATIVE {
-            @Override
-            public int multiplier() {
-                return -1;
-            }
-        };
-
-        public abstract int multiplier();
+        PLUS,
+        MINUS
     }
 
     public enum IntervalField {
-        YEAR, MONTH, DAY, HOUR, MINUTE, SECOND
+        YEAR,
+        MONTH,
+        DAY,
+        HOUR,
+        MINUTE,
+        SECOND
     }
 
     private final String value;
@@ -82,11 +78,6 @@ public class IntervalLiteral extends Literal {
     public Optional<IntervalField> getEndField() {
         return endField;
     }
-
-    public boolean isYearToMonth() {
-        return startField == IntervalField.YEAR || startField == IntervalField.MONTH;
-    }
-
 
     @Override
     public int hashCode() {

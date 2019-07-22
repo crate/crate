@@ -81,4 +81,13 @@ public class Interval implements Comparable<Interval> {
 
         return Integer.compare(i1.months, i2.months);
     }
+
+    @Override
+    public String toString() {
+        return "Interval{" +
+               "seconds=" + seconds +
+               ", days=" + days +
+               ", months=" + months +
+               '}';
+    }
 }
