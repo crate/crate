@@ -63,7 +63,7 @@ If values are supplied for generated columns, these values are validated
 against the result of applying the generation expression::
 
     cr> INSERT INTO computed (dividend, divisor, quotient) VALUES (100.0, 2.0, 12.0);
-    SQLActionException[SQLParseException: Given value 12.0 for generated column does not match defined generated expression value 50.0]
+    SQLActionException[SQLParseException: Given value 12.0 for generated column quotient does not match calculation (dividend / divisor) = 50.0]
 
 .. WARNING::
 

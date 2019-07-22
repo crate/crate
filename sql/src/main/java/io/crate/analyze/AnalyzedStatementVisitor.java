@@ -47,10 +47,6 @@ public class AnalyzedStatementVisitor<C, R> {
         return visitDDLStatement(analysis, context);
     }
 
-    protected R visitInsertFromValuesStatement(InsertFromValuesAnalyzedStatement analysis, C context) {
-        return visitAnalyzedStatement(analysis, context);
-    }
-
     protected R visitInsertFromSubQueryStatement(InsertFromSubQueryAnalyzedStatement analysis, C context) {
         return visitAnalyzedStatement(analysis, context);
     }
@@ -197,10 +193,6 @@ public class AnalyzedStatementVisitor<C, R> {
 
     public R visitAnalyzedUpdateStatement(AnalyzedUpdateStatement statement, C context) {
         return visitAnalyzedStatement(statement, context);
-    }
-
-    public R visitInsert(AnalyzedInsertStatement insert, C context) {
-        return visitAnalyzedStatement(insert, context);
     }
 
     public R visitCreateViewStmt(CreateViewStmt createViewStmt, C context) {

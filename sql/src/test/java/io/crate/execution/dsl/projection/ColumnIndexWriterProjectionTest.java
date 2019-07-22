@@ -52,7 +52,7 @@ public class ColumnIndexWriterProjectionTest {
          *  partitioned by: [ymd, isp]
          *  insert into t   (ymd, domain, area, isp, h) select ...
          *
-         *  We don't write PartitionedBy columns, so they're excluded from the targetColumns:
+         *  We don't write PartitionedBy columns, so they're excluded from the allTargetColumns:
          *
          *  expected targetRefs:      [ domain, area, h ]
          *  expected column symbols:  [ ic1,   ic2, ic4 ]
@@ -69,21 +69,25 @@ public class ColumnIndexWriterProjectionTest {
         Reference hRef = ref(h, DataTypes.INTEGER);
         List<ColumnIdent> primaryKeys = Arrays.asList(ymd, domain, area, isp);
         List<Reference> targetColumns = Arrays.asList(ymdRef, domainRef, areaRef, ispRef, hRef);
+        List<Reference> targetColumnsExclPartitionColumns = Arrays.asList(domainRef, areaRef, hRef);
         InputColumns.SourceSymbols targetColsCtx = new InputColumns.SourceSymbols(targetColumns);
         List<Symbol> primaryKeySymbols = InputColumns.create(
             Arrays.asList(ymdRef, domainRef, areaRef, ispRef), targetColsCtx);
-        List<ColumnIdent> partitionedByColumns = Arrays.asList(ymd, isp);
         List<Symbol> partitionedBySymbols = InputColumns.create(Arrays.asList(ymdRef, ispRef), targetColsCtx);
+        List<Symbol> columnSymbols = InputColumns.create(
+            targetColumnsExclPartitionColumns,
+            targetColsCtx);
 
         ColumnIndexWriterProjection projection = new ColumnIndexWriterProjection(
             relationName,
             null,
             primaryKeys,
             targetColumns,
+            targetColumnsExclPartitionColumns,
+            columnSymbols,
             false,
             null,
             primaryKeySymbols,
-            partitionedByColumns,
             partitionedBySymbols,
             null,
             null,
@@ -91,10 +95,10 @@ public class ColumnIndexWriterProjectionTest {
             true
         );
 
-        assertThat(projection.columnReferences(), Matchers.is(Arrays.asList(
+        assertThat(projection.columnReferencesExclPartition(), Matchers.is(Arrays.asList(
             domainRef, areaRef, hRef)
         ));
-        assertThat(projection.columnSymbols(), Matchers.is(Arrays.asList(
+        assertThat(projection.columnSymbolsExclPartition(), Matchers.is(Arrays.asList(
             new InputColumn(1, DataTypes.STRING),
             new InputColumn(2, DataTypes.STRING),
             new InputColumn(4, DataTypes.INTEGER))));

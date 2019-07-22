@@ -71,18 +71,26 @@ public class Insert implements LogicalPlan {
         if (applyCasts != null) {
             sourcePlan.addProjection(applyCasts);
         }
+
+        var boundIndexWriterProjection = writeToTable
+            .bind(x -> SubQueryAndParamBinder.convert(x, params, subQueryResults));
+
         if (sourcePlan.resultDescription().hasRemainingLimitOrOffset()) {
             ExecutionPlan localMerge = Merge.ensureOnHandler(sourcePlan, plannerContext);
-            localMerge.addProjection(writeToTable);
+            localMerge.addProjection(boundIndexWriterProjection);
             return localMerge;
         } else {
-            sourcePlan.addProjection(writeToTable);
+            sourcePlan.addProjection(boundIndexWriterProjection);
             ExecutionPlan localMerge = Merge.ensureOnHandler(sourcePlan, plannerContext);
             if (sourcePlan != localMerge) {
                 localMerge.addProjection(MergeCountProjection.INSTANCE);
             }
             return localMerge;
         }
+    }
+
+    ColumnIndexWriterProjection columnIndexWriterProjection() {
+        return writeToTable;
     }
 
     @Override

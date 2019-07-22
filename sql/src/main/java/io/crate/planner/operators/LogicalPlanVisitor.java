@@ -64,6 +64,10 @@ public class LogicalPlanVisitor<C, R> {
         return visitPlan(logicalPlan, context);
     }
 
+    public R visitInsert(InsertFromValues logicalPlan, C context) {
+        return visitPlan(logicalPlan, context);
+    }
+
     public R visitNestedLoopJoin(NestedLoopJoin logicalPlan, C context) {
         return visitPlan(logicalPlan, context);
     }

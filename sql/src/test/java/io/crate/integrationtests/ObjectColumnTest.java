@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.hamcrest.Matchers.arrayContaining;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 
 public class ObjectColumnTest extends SQLTransportIntegrationTest {
@@ -115,22 +116,18 @@ public class ObjectColumnTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testAddColumnToStrictObject() throws Exception {
+        Map<String, Object> authorMap = Map.of(
+            "name", Map.of(
+                "first_name", "Douglas",
+                "middle_name", "Noel",
+                "last_name", "Adams"),
+            "age", 49);
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Column author['name']['middle_name'] unknown");
-
-        Map<String, Object> authorMap = new HashMap<String, Object>() {{
-            put("name", new HashMap<String, Object>() {{
-                put("first_name", "Douglas");
-                put("middle_name", "Noel");
-                put("last_name", "Adams");
-            }});
-            put("age", 49);
-        }};
-        execute("insert into ot (title, author) values (?, ?)",
-            new Object[]{
-                "Life, the Universe and Everything",
-                authorMap
-            });
+        expectedException.expectMessage(
+            containsString("dynamic introduction of [middle_name] within [author.name] is not allowed"));
+        execute(
+            "insert into ot (title, author) values (?, ?)",
+            new Object[]{"Life, the Universe and Everything", authorMap});
     }
 
     @Test

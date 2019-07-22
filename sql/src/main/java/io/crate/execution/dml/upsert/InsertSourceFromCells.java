@@ -60,12 +60,12 @@ public final class InsertSourceFromCells implements InsertSourceGen {
     private final GeneratedColumns<Row> generatedColumns;
     private final Object[] defaultValues;
 
-    InsertSourceFromCells(TransactionContext txnCtx,
-                          Functions functions,
-                          DocTableInfo table,
-                          String indexName,
-                          GeneratedColumns.Validation validation,
-                          List<Reference> targets) {
+    public InsertSourceFromCells(TransactionContext txnCtx,
+                                 Functions functions,
+                                 DocTableInfo table,
+                                 String indexName,
+                                 GeneratedColumns.Validation validation,
+                                 List<Reference> targets) {
         Tuple<List<Reference>, Object[]> allTargetColumnsAndDefaults = addDefaults(targets, table, txnCtx, functions);
         this.targets = allTargetColumnsAndDefaults.v1();
         this.defaultValues = allTargetColumnsAndDefaults.v2();

@@ -341,4 +341,11 @@ public class InsertFromSubQueryAnalyzerTest extends CrateDummyClusterServiceUnit
         assertThat(pkSymbols.get(0), isInputColumn(0));
         assertThat(pkSymbols.get(1), isLiteral("crate"));
     }
+
+    @Test
+    public void test_insert_from_query_with_missing_clustered_by_column() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Clustered by value is required but is missing from the insert statement");
+        e.analyze("insert into users_clustered_by_only (name) (select 'user')");
+    }
 }

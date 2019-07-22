@@ -44,6 +44,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import static java.util.Objects.requireNonNull;
 
@@ -53,7 +54,6 @@ public class InsertFromSubQueryAnalyzedStatement implements AnalyzedStatement {
     private final DocTableInfo targetTable;
     private final AnalyzedRelation subQueryRelation;
     private final boolean ignoreDuplicateKeys;
-    @Nullable
     private final Map<Reference, Symbol> onDuplicateKeyAssignments;
     private final List<Reference> targetColumns;
     private final List<Symbol> primaryKeySymbols;
@@ -61,11 +61,11 @@ public class InsertFromSubQueryAnalyzedStatement implements AnalyzedStatement {
     @Nullable
     private final Symbol clusteredBySymbol;
 
-    public InsertFromSubQueryAnalyzedStatement(AnalyzedRelation subQueryRelation,
-                                               DocTableInfo tableInfo,
-                                               List<Reference> targetColumns,
-                                               boolean ignoreDuplicateKeys,
-                                               @Nullable Map<Reference, Symbol> onDuplicateKeyAssignments) {
+    InsertFromSubQueryAnalyzedStatement(AnalyzedRelation subQueryRelation,
+                                        DocTableInfo tableInfo,
+                                        List<Reference> targetColumns,
+                                        boolean ignoreDuplicateKeys,
+                                        Map<Reference, Symbol> onDuplicateKeyAssignments) {
         this.targetTable = tableInfo;
         this.subQueryRelation = subQueryRelation;
         this.ignoreDuplicateKeys = ignoreDuplicateKeys;
@@ -134,7 +134,11 @@ public class InsertFromSubQueryAnalyzedStatement implements AnalyzedStatement {
                 final Symbol symbol;
                 Reference reference = defaultExpressionColumns.get(column);
                 if (reference != null) {
-                    symbol = InputColumns.create(reference.defaultExpression(), sourceSymbols);
+                    symbol = InputColumns.create(
+                        requireNonNull(
+                            reference.defaultExpression(),
+                            "Column " + column + " must contain a default expression"),
+                        sourceSymbols);
                 } else {
                     GeneratedReference generatedRef = generatedColumns.get(column);
                     if (generatedRef == null) {
@@ -185,6 +189,18 @@ public class InsertFromSubQueryAnalyzedStatement implements AnalyzedStatement {
     }
 
     @Override
+    public void visitSymbols(Consumer<? super Symbol> consumer) {
+        Relations.traverseDeepSymbols(subQueryRelation, consumer);
+        targetColumns.forEach(consumer);
+        onDuplicateKeyAssignments.values().forEach(consumer);
+    }
+
+    @Override
+    public boolean isUnboundPlanningSupported() {
+        return true;
+    }
+
+    @Override
     public boolean isWriteOperation() {
         return true;
     }
@@ -193,7 +209,6 @@ public class InsertFromSubQueryAnalyzedStatement implements AnalyzedStatement {
         return ignoreDuplicateKeys;
     }
 
-    @Nullable
     public Map<Reference, Symbol> onDuplicateKeyAssignments() {
         return onDuplicateKeyAssignments;
     }

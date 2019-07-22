@@ -177,6 +177,11 @@ public final class StatementClassifier extends LogicalPlanVisitor<Set<String>, V
     }
 
     @Override
+    public Void visitInsert(InsertFromValues logicalPlan, Set<String> context) {
+        return visitPlan(logicalPlan, context);
+    }
+
+    @Override
     public Void visitOrder(Order logicalPlan, Set<String> context) {
         logicalPlan.source.accept(this, context);
         return visitPlan(logicalPlan, context);

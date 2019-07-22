@@ -24,11 +24,11 @@ package io.crate.execution.engine.indexing;
 
 import org.elasticsearch.index.shard.ShardId;
 
-class ShardLocation {
+public class ShardLocation {
     final ShardId shardId;
     final String nodeId;
 
-    ShardLocation(ShardId shardId, String nodeId) {
+    public ShardLocation(ShardId shardId, String nodeId) {
         this.shardId = shardId;
         this.nodeId = nodeId;
     }
