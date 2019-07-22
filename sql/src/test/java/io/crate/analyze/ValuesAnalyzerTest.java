@@ -51,8 +51,8 @@ public class ValuesAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_error_is_raised_if_the_types_of_the_rows_are_not_compatible() {
         expectedException.expectMessage(
-            "The types of the columns within VALUES lists must match. Found `bigint` and `text` at position: 0");
-        e.analyze("VALUES (1), ('foo')");
+            "The types of the columns within VALUES lists must match. Found `bigint_array` and `text` at position: 0");
+        e.analyze("VALUES ([1]), ('foo')");
     }
 
     @Test

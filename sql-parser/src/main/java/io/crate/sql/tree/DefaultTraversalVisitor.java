@@ -278,15 +278,6 @@ public abstract class DefaultTraversalVisitor<R, C> extends AstVisitor<R, C> {
     }
 
     @Override
-    public R visitInsertFromValues(InsertFromValues<?> node, C context) {
-        node.table().accept(this, context);
-        for (ValuesList valuesList : node.valuesLists()) {
-            valuesList.accept(this, context);
-        }
-        return null;
-    }
-
-    @Override
     public R visitValuesList(ValuesList node, C context) {
         for (Expression value : node.values()) {
             value.accept(this, context);

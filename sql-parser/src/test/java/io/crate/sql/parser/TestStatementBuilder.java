@@ -50,7 +50,7 @@ import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.FunctionCall;
 import io.crate.sql.tree.GCDanglingArtifacts;
 import io.crate.sql.tree.GrantPrivilege;
-import io.crate.sql.tree.InsertFromValues;
+import io.crate.sql.tree.InsertFromSubquery;
 import io.crate.sql.tree.KillStatement;
 import io.crate.sql.tree.LongLiteral;
 import io.crate.sql.tree.MatchPredicate;
@@ -1035,7 +1035,7 @@ public class TestStatementBuilder {
         printStatement("insert into t (a, b, c) values (1, 2), (3, 4) on conflict (c) do update set a = excluded.a + 1, b = 4");
         printStatement("insert into t (a, b, c) values (1, 2), (3, 4) on conflict (c) do update set a = excluded.a + 1, b = excluded.b - 2");
 
-        InsertFromValues<Expression> insert = (InsertFromValues<Expression>) SqlParser.createStatement(
+        InsertFromSubquery<Expression> insert = (InsertFromSubquery<Expression>) SqlParser.createStatement(
                 "insert into test_generated_column (id, ts) values (?, ?) on conflict (id) do update set ts = ?");
         Assignment<Expression> onDuplicateAssignment = insert.getDuplicateKeyContext().getAssignments().get(0);
         assertThat(onDuplicateAssignment.expression(), instanceOf(ParameterExpression.class));

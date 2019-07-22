@@ -66,7 +66,6 @@ import java.util.function.Function;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
-import static io.crate.analyze.InsertFromValuesAnalyzer.verifyOnConflictTargets;
 import static java.util.Objects.requireNonNull;
 
 class InsertFromSubQueryAnalyzer {
@@ -106,7 +105,7 @@ class InsertFromSubQueryAnalyzer {
         this.relationAnalyzer = relationAnalyzer;
     }
 
-    public AnalyzedInsertStatement analyze(InsertFromSubquery insert, ParamTypeHints typeHints, CoordinatorTxnCtx txnCtx) {
+    public InsertFromSubQueryAnalyzedStatement analyze(InsertFromSubquery insert, ParamTypeHints typeHints, CoordinatorTxnCtx txnCtx) {
         DocTableInfo targetTable = (DocTableInfo) schemas.resolveTableInfo(
             insert.table().getName(),
             Operation.INSERT,
@@ -131,7 +130,15 @@ class InsertFromSubQueryAnalyzer {
             insert.getDuplicateKeyContext()
         );
 
-        return new AnalyzedInsertStatement(subQueryRelation, onDuplicateKeyAssignments);
+        final boolean ignoreDuplicateKeys =
+            insert.getDuplicateKeyContext().getType() == Insert.DuplicateKeyContext.Type.ON_CONFLICT_DO_NOTHING;
+
+        return new InsertFromSubQueryAnalyzedStatement(
+            subQueryRelation,
+            targetTable,
+            targetColumns,
+            ignoreDuplicateKeys,
+            onDuplicateKeyAssignments);
     }
 
     public AnalyzedStatement analyze(InsertFromSubquery node, Analysis analysis) {
@@ -173,9 +180,34 @@ class InsertFromSubQueryAnalyzer {
             onDuplicateKeyAssignments);
     }
 
-    static Collection<Reference> resolveTargetColumns(Collection<String> targetColumnNames,
-                                                      DocTableInfo targetTable,
-                                                      int numSourceColumns) {
+    private static void verifyOnConflictTargets(Insert.DuplicateKeyContext duplicateKeyContext, DocTableInfo docTableInfo) {
+        List<String> constraintColumns = duplicateKeyContext.getConstraintColumns();
+        if (constraintColumns.isEmpty()) {
+            return;
+        }
+        List<ColumnIdent> pkColumnIdents = docTableInfo.primaryKey();
+        if (constraintColumns.size() != pkColumnIdents.size()) {
+            throw new IllegalArgumentException(
+                String.format(
+                    Locale.ENGLISH,
+                    "Number of conflict targets (%s) did not match the number of primary key columns (%s)",
+                    constraintColumns, pkColumnIdents));
+        }
+        Collection<Reference> constraintRefs = resolveTargetColumns(constraintColumns, docTableInfo, pkColumnIdents.size());
+        for (Reference contraintRef : constraintRefs) {
+            if (!pkColumnIdents.contains(contraintRef.column())) {
+                throw new IllegalArgumentException(
+                    String.format(
+                        Locale.ENGLISH,
+                        "Conflict target (%s) did not match the primary key columns (%s)",
+                        constraintColumns, pkColumnIdents));
+            }
+        }
+    }
+
+    private static Collection<Reference> resolveTargetColumns(Collection<String> targetColumnNames,
+                                                              DocTableInfo targetTable,
+                                                              int numSourceColumns) {
         if (targetColumnNames.isEmpty()) {
             return targetColumnsFromTargetTable(targetTable, numSourceColumns);
         }

@@ -69,7 +69,6 @@ import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GCDanglingArtifacts;
 import io.crate.sql.tree.GrantPrivilege;
 import io.crate.sql.tree.InsertFromSubquery;
-import io.crate.sql.tree.InsertFromValues;
 import io.crate.sql.tree.KillStatement;
 import io.crate.sql.tree.Node;
 import io.crate.sql.tree.OptimizeStatement;
@@ -113,7 +112,6 @@ public class Analyzer {
     private final OptimizeTableAnalyzer optimizeTableAnalyzer;
     private final AlterTableAnalyzer alterTableAnalyzer;
     private final AlterTableAddColumnAnalyzer alterTableAddColumnAnalyzer;
-    private final InsertFromValuesAnalyzer insertFromValuesAnalyzer;
     private final InsertFromSubQueryAnalyzer insertFromSubQueryAnalyzer;
     private final CopyAnalyzer copyAnalyzer;
     private final UpdateAnalyzer updateAnalyzer;
@@ -161,7 +159,6 @@ public class Analyzer {
         this.showStatementAnalyzer = new ShowStatementAnalyzer(this, schemas);
         this.updateAnalyzer = new UpdateAnalyzer(functions, relationAnalyzer);
         this.deleteAnalyzer = new DeleteAnalyzer(functions, relationAnalyzer);
-        this.insertFromValuesAnalyzer = new InsertFromValuesAnalyzer(functions, schemas);
         this.insertFromSubQueryAnalyzer = new InsertFromSubQueryAnalyzer(functions, schemas, relationAnalyzer);
         this.optimizeTableAnalyzer = new OptimizeTableAnalyzer(schemas, functions);
         this.createRepositoryAnalyzer = new CreateRepositoryAnalyzer(repositoryService, functions);
@@ -190,7 +187,6 @@ public class Analyzer {
             showStatementAnalyzer,
             deleteAnalyzer,
             updateAnalyzer,
-            insertFromValuesAnalyzer,
             insertFromSubQueryAnalyzer,
             explainStatementAnalyzer,
             createTableStatementAnalyzer,
@@ -261,11 +257,6 @@ public class Analyzer {
         @Override
         public AnalyzedStatement visitDelete(Delete node, Analysis context) {
             return deleteAnalyzer.analyze(node, context.paramTypeHints(), context.transactionContext());
-        }
-
-        @Override
-        public AnalyzedStatement visitInsertFromValues(InsertFromValues node, Analysis context) {
-            return insertFromValuesAnalyzer.analyze(node, context);
         }
 
         @Override

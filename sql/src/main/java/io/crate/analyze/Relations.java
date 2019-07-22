@@ -95,22 +95,6 @@ public class Relations {
         }
 
         @Override
-        public Void visitInsert(AnalyzedInsertStatement insert, Consumer<? super Symbol> consumer) {
-            List<List<Symbol>> rows = insert.rows();
-            if (rows != null) {
-                for (List<Symbol> row : rows) {
-                    row.forEach(consumer);
-                }
-            }
-            AnalyzedStatement subRelation = insert.subRelation();
-            if (subRelation != null) {
-                traverseDeepSymbols(subRelation, consumer);
-            }
-            insert.onDuplicateKeyAssignments().values().forEach(consumer);
-            return null;
-        }
-
-        @Override
         public Void visitSelectStatement(AnalyzedRelation relation, Consumer<? super Symbol> consumer) {
             TraverseDeepSymbolsRelations.traverse(relation, consumer);
             return null;

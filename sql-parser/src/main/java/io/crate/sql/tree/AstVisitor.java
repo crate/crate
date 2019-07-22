@@ -492,10 +492,6 @@ public abstract class AstVisitor<R, C> {
         return visitTableElement(node, context);
     }
 
-    public R visitInsertFromValues(InsertFromValues<?> node, C context) {
-        return visitInsert(node, context);
-    }
-
     public R visitIntervalLiteral(IntervalLiteral node, C context) {
         return visitLiteral(node, context);
     }
