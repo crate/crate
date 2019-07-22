@@ -64,7 +64,6 @@ import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GCDanglingArtifacts;
 import io.crate.sql.tree.GrantPrivilege;
 import io.crate.sql.tree.InsertFromSubquery;
-import io.crate.sql.tree.InsertFromValues;
 import io.crate.sql.tree.KillStatement;
 import io.crate.sql.tree.OptimizeStatement;
 import io.crate.sql.tree.Query;
@@ -98,7 +97,6 @@ class UnboundAnalyzer {
                     ShowStatementAnalyzer showStatementAnalyzer,
                     DeleteAnalyzer deleteAnalyzer,
                     UpdateAnalyzer updateAnalyzer,
-                    InsertFromValuesAnalyzer insertFromValuesAnalyzer,
                     InsertFromSubQueryAnalyzer insertFromSubQueryAnalyzer,
                     ExplainStatementAnalyzer explainStatementAnalyzer,
                     CreateTableStatementAnalyzer createTableAnalyzer,
@@ -132,7 +130,6 @@ class UnboundAnalyzer {
             showStatementAnalyzer,
             deleteAnalyzer,
             updateAnalyzer,
-            insertFromValuesAnalyzer,
             insertFromSubQueryAnalyzer,
             explainStatementAnalyzer,
             createTableAnalyzer,
@@ -176,7 +173,6 @@ class UnboundAnalyzer {
         private final ShowStatementAnalyzer showStatementAnalyzer;
         private final DeleteAnalyzer deleteAnalyzer;
         private final UpdateAnalyzer updateAnalyzer;
-        private final InsertFromValuesAnalyzer insertFromValuesAnalyzer;
         private final InsertFromSubQueryAnalyzer insertFromSubQueryAnalyzer;
         private final ExplainStatementAnalyzer explainStatementAnalyzer;
         private final CreateTableStatementAnalyzer createTableAnalyzer;
@@ -210,7 +206,6 @@ class UnboundAnalyzer {
                           ShowStatementAnalyzer showStatementAnalyzer,
                           DeleteAnalyzer deleteAnalyzer,
                           UpdateAnalyzer updateAnalyzer,
-                          InsertFromValuesAnalyzer insertFromValuesAnalyzer,
                           InsertFromSubQueryAnalyzer insertFromSubQueryAnalyzer,
                           ExplainStatementAnalyzer explainStatementAnalyzer,
                           CreateTableStatementAnalyzer createTableAnalyzer,
@@ -243,7 +238,6 @@ class UnboundAnalyzer {
             this.showStatementAnalyzer = showStatementAnalyzer;
             this.deleteAnalyzer = deleteAnalyzer;
             this.updateAnalyzer = updateAnalyzer;
-            this.insertFromValuesAnalyzer = insertFromValuesAnalyzer;
             this.insertFromSubQueryAnalyzer = insertFromSubQueryAnalyzer;
             this.explainStatementAnalyzer = explainStatementAnalyzer;
             this.createTableAnalyzer = createTableAnalyzer;
@@ -463,11 +457,6 @@ class UnboundAnalyzer {
         @Override
         public AnalyzedStatement visitInsertFromSubquery(InsertFromSubquery insert, Analysis analysis) {
             return insertFromSubQueryAnalyzer.analyze(insert, analysis.paramTypeHints(), analysis.transactionContext());
-        }
-
-        @Override
-        public AnalyzedStatement visitInsertFromValues(InsertFromValues insert, Analysis analysis) {
-            return insertFromValuesAnalyzer.analyze(insert, analysis.paramTypeHints(), analysis.transactionContext());
         }
 
         @Override

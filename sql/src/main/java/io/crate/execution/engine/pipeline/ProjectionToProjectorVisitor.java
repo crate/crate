@@ -454,8 +454,8 @@ public class ProjectionToProjectorVisitor
         for (Symbol partitionedBySymbol : projection.partitionedBySymbols()) {
             partitionedByInputs.add(ctx.add(partitionedBySymbol));
         }
-        List<Input<?>> insertInputs = new ArrayList<>(projection.columnSymbols().size());
-        for (Symbol symbol : projection.columnSymbols()) {
+        List<Input<?>> insertInputs = new ArrayList<>(projection.columnSymbolsExclPartition().size());
+        for (Symbol symbol : projection.columnSymbolsExclPartition()) {
             insertInputs.add(ctx.add(symbol));
         }
         ClusterState state = clusterService.state();
@@ -481,7 +481,7 @@ public class ProjectionToProjectorVisitor
             projection.ids(),
             projection.clusteredBy(),
             projection.clusteredByIdent(),
-            projection.columnReferences(),
+            projection.columnReferencesExclPartition(),
             insertInputs,
             ctx.expressions(),
             projection.isIgnoreDuplicateKeys(),

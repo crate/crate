@@ -63,18 +63,14 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
     private final Input<Long> lineNumberInput;
     private final ToLongFunction<Row> estimateRowSize;
 
-    GroupRowsByShard(ClusterService clusterService,
-                     RowShardResolver rowShardResolver,
-                     ToLongFunction<Row> estimateRowSize,
-                     Supplier<String> indexNameResolver,
-                     List<? extends CollectExpression<Row, ?>> expressions,
-                     List<? extends CollectExpression<Row, ?>> sourceInfoExpressions,
-                     Function<String, TItem> itemFactory,
-                     BiConsumer<ShardedRequests, String> itemFailureRecorder,
-                     Predicate<ShardedRequests> hasSourceUriFailure,
-                     Input<String> sourceUriInput,
-                     Input<Long> lineNumberInput,
-                     boolean autoCreateIndices) {
+    public GroupRowsByShard(ClusterService clusterService,
+                            RowShardResolver rowShardResolver,
+                            ToLongFunction<Row> estimateRowSize,
+                            Supplier<String> indexNameResolver,
+                            List<? extends CollectExpression<Row, ?>> expressions,
+                            Function<String, TItem> itemFactory,
+                            boolean autoCreateIndices,
+                            UpsertResultContext upsertContext) {
         this.estimateRowSize = estimateRowSize;
         assert expressions instanceof RandomAccess
             : "expressions should be a RandomAccess list for zero allocation iterations";
@@ -83,13 +79,30 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
         this.rowShardResolver = rowShardResolver;
         this.indexNameResolver = indexNameResolver;
         this.expressions = expressions;
-        this.sourceInfoExpressions = sourceInfoExpressions;
+        this.sourceInfoExpressions = upsertContext.getSourceInfoExpressions();
         this.itemFactory = itemFactory;
-        this.itemFailureRecorder = itemFailureRecorder;
-        this.hasSourceUriFailure = hasSourceUriFailure;
-        this.sourceUriInput = sourceUriInput;
-        this.lineNumberInput = lineNumberInput;
+        this.itemFailureRecorder = upsertContext.getItemFailureRecorder();
+        this.hasSourceUriFailure = upsertContext.getHasSourceUriFailureChecker();
+        this.sourceUriInput = upsertContext.getSourceUriInput();
+        this.lineNumberInput = upsertContext.getLineNumberInput();
         this.autoCreateIndices = autoCreateIndices;
+    }
+
+    public GroupRowsByShard(ClusterService clusterService,
+                            RowShardResolver rowShardResolver,
+                            ToLongFunction<Row> estimateRowSize,
+                            Supplier<String> indexNameResolver,
+                            List<? extends CollectExpression<Row, ?>> expressions,
+                            Function<String, TItem> itemFactory,
+                            boolean autoCreateIndices) {
+        this(clusterService,
+             rowShardResolver,
+             estimateRowSize,
+             indexNameResolver,
+             expressions,
+             itemFactory,
+             autoCreateIndices,
+             UpsertResultContext.forRowCount());
     }
 
     @Override

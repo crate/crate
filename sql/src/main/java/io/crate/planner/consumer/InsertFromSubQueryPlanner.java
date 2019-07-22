@@ -25,6 +25,7 @@ package io.crate.planner.consumer;
 import io.crate.analyze.InsertFromSubQueryAnalyzedStatement;
 import io.crate.execution.dsl.projection.ColumnIndexWriterProjection;
 import io.crate.execution.dsl.projection.EvalProjection;
+import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Reference;
@@ -53,15 +54,29 @@ public final class InsertFromSubQueryPlanner {
                                    PlannerContext plannerContext,
                                    LogicalPlanner logicalPlanner,
                                    SubqueryPlanner subqueryPlanner) {
-        final ColumnIndexWriterProjection indexWriterProjection = new ColumnIndexWriterProjection(
+        List<Reference> targetColsExclPartitionCols = new ArrayList<>(
+            statement.columns().size() - statement.tableInfo().partitionedBy().size());
+        for (Reference column : statement.columns()) {
+            if (statement.tableInfo().partitionedBy().contains(column.column())) {
+                continue;
+            }
+            targetColsExclPartitionCols.add(column);
+        }
+        List<Symbol> columnSymbols = InputColumns.create(
+            targetColsExclPartitionCols,
+            new InputColumns.SourceSymbols(statement.columns()));
+
+
+        ColumnIndexWriterProjection indexWriterProjection = new ColumnIndexWriterProjection(
             statement.tableInfo().ident(),
             null,
             statement.tableInfo().primaryKey(),
             statement.columns(),
+            targetColsExclPartitionCols,
+            columnSymbols,
             statement.isIgnoreDuplicateKeys(),
             statement.onDuplicateKeyAssignments(),
             statement.primaryKeySymbols(),
-            statement.tableInfo().partitionedBy(),
             statement.partitionedBySymbols(),
             statement.tableInfo().clusteredBy(),
             statement.clusteredBySymbol(),

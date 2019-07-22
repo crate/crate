@@ -143,6 +143,10 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         return analyze(query, new StatementAnalysisContext(paramTypeHints, Operation.READ, coordinatorTxnCtx));
     }
 
+    public AnalyzedRelation analyzeUnbound(Query query, StatementAnalysisContext analysisContext) {
+        return analyze(query, analysisContext);
+    }
+
     public AnalyzedRelation analyze(Node node,
                                     CoordinatorTxnCtx coordinatorTxnCtx,
                                     ParameterContext parameterContext) {
@@ -709,6 +713,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         }
         Function function = (Function) symbol;
         FunctionIdent ident = function.info().ident();
+
         FunctionImplementation functionImplementation = functions.getQualified(ident);
         TableFunctionImplementation tableFunction = TableFunctionFactory.from(functionImplementation);
         TableInfo tableInfo = tableFunction.createTableInfo();
@@ -752,9 +757,15 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
         ArrayList<List<Symbol>> columns = new ArrayList<>();
         ArrayList<DataType<?>> targetTypes = new ArrayList<>(numColumns);
+        var parentOutputColumns = context.parentOutputColumns();
         for (int c = 0; c < numColumns; c++) {
             ArrayList<Symbol> columnValues = new ArrayList<>();
-            DataType<?> targetType = DataTypes.UNDEFINED;
+            DataType<?> targetType;
+            if (parentOutputColumns.size() > c) {
+                targetType = parentOutputColumns.get(c).valueType();
+            } else {
+                targetType = DataTypes.UNDEFINED;
+            }
             for (int r = 0; r < rows.size(); r++) {
                 List<Expression> row = rows.get(r).values();
                 if (row.size() != numColumns) {

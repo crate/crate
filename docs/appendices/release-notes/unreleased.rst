@@ -42,7 +42,10 @@ Unreleased Changes
 Breaking Changes
 ================
 
-None
+- Bulk ``INSERT INTO ... VALUES (...)`` statements do not throw an exception
+  any longer when one of the bulk operations fails. The result of the
+  execution is only available via the ``results`` array represented by a
+  row count for each bulk operation.
 
 Deprecations
 ============

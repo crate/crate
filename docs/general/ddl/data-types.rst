@@ -199,8 +199,7 @@ Example::
 
     cr> insert into my_table_ips (fqdn, ip_addr)
     ... values ('localhost', 'not.a.real.ip');
-    SQLActionException[ColumnValidationException: Validation failed for ip_addr: Cannot cast 'not.a.real.ip' to type ip]
-
+    SQLActionException[SQLParseException: Cannot cast 'not.a.real.ip' to type ip]
 
 Ip addresses support the binary operator `<<`, which checks for subnet inclusion
 using `CIDR notation`_ [ip address/prefix_length]. The left operand must be of

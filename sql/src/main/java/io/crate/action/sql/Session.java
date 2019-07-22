@@ -23,13 +23,11 @@
 package io.crate.action.sql;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.crate.analyze.Analysis;
 import io.crate.analyze.AnalyzedBegin;
 import io.crate.analyze.AnalyzedDeallocate;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParamTypeHints;
-import io.crate.analyze.ParameterContext;
 import io.crate.analyze.Relations;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.auth.user.AccessControl;
@@ -126,8 +124,6 @@ public class Session implements AutoCloseable {
     private final JobsLogs jobsLogs;
     private final boolean isReadOnly;
     private final ParameterTypeExtractor parameterTypeExtractor;
-
-    private CoordinatorTxnCtx currentTxnCtx;
 
     public Session(Analyzer analyzer,
                    Planner planner,
@@ -280,27 +276,32 @@ public class Session implements AutoCloseable {
             throw t;
         }
 
-        currentTxnCtx = new CoordinatorTxnCtx(sessionContext);
-
-        var unboundStatement = preparedStmt.unboundStatement();
-        final AnalyzedStatement maybeBoundStatement;
-        if (unboundStatement == null || !unboundStatement.isUnboundPlanningSupported()) {
-            ParameterContext parameterContext = new ParameterContext(new RowN(params.toArray()), List.of());
+        AnalyzedStatement unboundStatement = preparedStmt.unboundStatement();
+        AnalyzedStatement analyzedStatement;
+        if (unboundStatement == null) {
             try {
-                Analysis analysis = analyzer.boundAnalyze(
+                analyzedStatement = analyzer.unboundAnalyze(
                     preparedStmt.parsedStatement(),
-                    currentTxnCtx,
-                    parameterContext);
-                maybeBoundStatement = analysis.analyzedStatement();
+                    sessionContext,
+                    preparedStmt.paramTypes());
             } catch (Throwable t) {
                 jobsLogs.logPreExecutionFailure(
-                    UUID.randomUUID(), preparedStmt.rawStatement(), SQLExceptions.messageOf(t), sessionContext.user());
+                    UUID.randomUUID(),
+                    preparedStmt.rawStatement(),
+                    SQLExceptions.messageOf(t),
+                    sessionContext.user());
                 throw t;
             }
         } else {
-            maybeBoundStatement = unboundStatement;
+            analyzedStatement = unboundStatement;
         }
-        Portal portal = new Portal(portalName, preparedStmt, params, maybeBoundStatement, resultFormatCodes);
+
+        Portal portal = new Portal(
+            portalName,
+            preparedStmt,
+            params,
+            analyzedStatement,
+            resultFormatCodes);
         Portal oldPortal = portals.put(portalName, portal);
         if (oldPortal != null) {
             // According to the wire protocol spec named portals should be removed explicitly and only
@@ -481,19 +482,29 @@ public class Session implements AutoCloseable {
             executor.functions(),
             txnCtx,
             0,
-            null
-        );
-        var bulkArgs = Lists2.map(toExec, x -> (Row) new RowN(x.portal().params().toArray()));
+            null);
 
-        Analysis analysis = analyzer.boundAnalyze(
-            statement, currentTxnCtx, new ParameterContext(Row.EMPTY, bulkArgs));
-        Plan plan;
         PreparedStmt firstPreparedStatement = toExec.get(0).portal().preparedStmt();
+        var unboundStatement = firstPreparedStatement.unboundStatement();
+        AnalyzedStatement analyzedStatement;
+        if (unboundStatement == null) {
+            analyzedStatement = analyzer.unboundAnalyze(
+                statement,
+                sessionContext,
+                firstPreparedStatement.paramTypes());
+        } else {
+            analyzedStatement = unboundStatement;
+        }
+
+        Plan plan;
         try {
-            plan = planner.plan(analysis.analyzedStatement(), plannerContext);
+            plan = planner.plan(analyzedStatement, plannerContext);
         } catch (Throwable t) {
             jobsLogs.logPreExecutionFailure(
-                jobId, firstPreparedStatement.rawStatement(), SQLExceptions.messageOf(t), sessionContext.user());
+                jobId,
+                firstPreparedStatement.rawStatement(),
+                SQLExceptions.messageOf(t),
+                sessionContext.user());
             throw t;
         }
         jobsLogs.logExecutionStart(
@@ -502,6 +513,8 @@ public class Session implements AutoCloseable {
             sessionContext.user(),
             StatementClassifier.classify(plan)
         );
+
+        var bulkArgs = Lists2.map(toExec, x -> (Row) new RowN(x.portal().params().toArray()));
         List<CompletableFuture<Long>> rowCounts = plan.executeBulk(
             executor,
             plannerContext,

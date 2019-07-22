@@ -507,19 +507,11 @@ public class PostgresITest extends SQLTransportIntegrationTest {
             preparedStatement.setString(1, Integer.toString(3));
             preparedStatement.addBatch();
 
-            try {
-                preparedStatement.executeBatch();
-                fail("executeBatch must throw an exception");
-            } catch (BatchUpdateException e) {
-                assertThat(e.getUpdateCounts(), is(new int[]{-3, -3, -3}));
-                SQLException nextException = e.getNextException();
-                assertThat(nextException.getMessage(), Matchers.containsString("Cannot cast 'foobar' to type integer"));
-            }
+            assertThat(preparedStatement.executeBatch(), is(new int[]{-3, -3, -3}));
 
             conn.createStatement().executeUpdate("refresh table t");
             ResultSet rs = conn.createStatement().executeQuery("select count(*) from t");
             assertThat(rs.next(), is(true));
-            // all failed because the error happened during analysis and so nothing is executed
             assertThat(rs.getInt(1), is(0));
         }
     }

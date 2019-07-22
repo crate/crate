@@ -113,6 +113,7 @@ public class LogicalPlanner {
     private final Visitor statementVisitor = new Visitor();
     private final Functions functions;
     private final RelationNormalizer relationNormalizer;
+    private final Optimizer writeOptimizer;
 
     public LogicalPlanner(Functions functions, TableStats tableStats, Supplier<Version> minNodeVersionInCluster) {
         this.optimizer = new Optimizer(
@@ -139,6 +140,10 @@ public class LogicalPlanner {
                 new RewriteCollectToGet(functions),
                 new RewriteGroupByKeysLimitToTopNDistinct()
             ),
+            minNodeVersionInCluster
+        );
+        this.writeOptimizer = new Optimizer(
+            List.of(new RewriteInsertFromSubQueryToInsertFromValues()),
             minNodeVersionInCluster
         );
         this.tableStats = tableStats;
@@ -456,8 +461,15 @@ public class LogicalPlanner {
         @Override
         protected LogicalPlan visitInsertFromSubQueryStatement(InsertFromSubQueryAnalyzedStatement statement, PlannerContext context) {
             SubqueryPlanner subqueryPlanner = new SubqueryPlanner((s) -> planSubSelect(s, context));
-            return InsertFromSubQueryPlanner.plan(
-                statement, context, LogicalPlanner.this, subqueryPlanner);
+            return writeOptimizer.optimize(
+                InsertFromSubQueryPlanner.plan(
+                    statement,
+                    context,
+                    LogicalPlanner.this,
+                    subqueryPlanner),
+                tableStats,
+                context.transactionContext()
+            );
         }
     }
 }

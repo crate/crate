@@ -24,8 +24,6 @@ package io.crate.integrationtests;
 import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import io.crate.action.sql.SQLActionException;
 import io.crate.exceptions.VersioninigValidationException;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.RelationName;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
 import org.elasticsearch.common.collect.MapBuilder;
@@ -35,7 +33,6 @@ import org.junit.Test;
 import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
 import org.locationtech.spatial4j.shape.impl.PointImpl;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -185,7 +182,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testInsertBadIpAdress() throws Exception {
+    public void testInsertBadIPAddress() throws Exception {
         execute("create table t (i ip) with (number_of_replicas=0)");
         ensureYellow();
         expectedException.expect(SQLActionException.class);
@@ -417,7 +414,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         };
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Primary key is required but is missing from the insert statement");
+        expectedException.expectMessage("Column \"pk_col\" is required but is missing from the insert statement");
 
         execute("insert into test (message) values (?)", args);
     }
@@ -985,8 +982,11 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testInsertIntoLongPartitionedBy() throws Exception {
         execute("create table import (col1 int, col2 long primary key) partitioned by (col2)");
-        ensureYellow();
         execute("insert into import (col1, col2) values (1, 1)");
+        assertThat(response.rowCount(), is(1L));
+        refresh();
+        execute("select * from import");
+        assertThat(printedTable(response.rows()), is("1| 1\n"));
     }
 
     @Test
@@ -1041,12 +1041,12 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
                 ") with (number_of_replicas=0)");
         ensureYellow();
         execute("insert into test_generated_column (id, ts) values (?, ?)", new Object[]{
-            1, "2015-11-18T11:11:00"});
+            1, "2015-11-18T11:11:00Z"});
         refresh();
 
         execute("insert into test_generated_column (id, ts) values (?, ?)" +
                 "on conflict (id) do update set ts = ?",
-            new Object[]{1, "2015-11-18T11:11:00", "2015-11-23T14:43:00"});
+            new Object[]{1, "2015-11-18T11:11:00Z", "2015-11-23T14:43:00Z"});
         refresh();
 
         execute("select ts, day from test_generated_column");
@@ -1234,7 +1234,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
 
         // wrong value
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Given value 0 for generated column does not match defined generated expression value 4");
+        expectedException.expectMessage("Given value 0 for generated column col2 does not match calculation (col1 + 3) = 4");
         execute("insert into test(col1, col2) values (1, 0)");
     }
 
@@ -1306,18 +1306,10 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testGeneratedColumnAsPrimaryKeyValueEvaluateToNull() throws Exception {
-        // test that correct exception message is thrown
-        execute("create table generated_test (" +
-                " a double," +
-                " b double," +
-                " c double," +
-                " sum as (a+b/c) PRIMARY KEY" +
-                ")");
-        ensureYellow();
-
+        execute("CREATE TABLE test (col1 TEXT, col2 AS try_cast(col1 AS INT) PRIMARY KEY)");
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("Primary key value must not be NULL");
-        execute("insert into generated_test (a, c) values (1.0, 3.0)");
+        execute("insert into test (col1) values ('a')");
     }
 
     @Test

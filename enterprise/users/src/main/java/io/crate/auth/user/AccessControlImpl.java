@@ -52,7 +52,6 @@ import io.crate.analyze.AnalyzedDropUser;
 import io.crate.analyze.AnalyzedDropView;
 import io.crate.analyze.ExplainAnalyzedStatement;
 import io.crate.analyze.InsertFromSubQueryAnalyzedStatement;
-import io.crate.analyze.InsertFromValuesAnalyzedStatement;
 import io.crate.analyze.AnalyzedKill;
 import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.AnalyzedPrivileges;
@@ -304,17 +303,6 @@ public final class AccessControlImpl implements AccessControl {
         @Override
         protected Void visitAnalyzedDeleteStatement(AnalyzedDeleteStatement delete, User user) {
             visitRelation(delete.relation(), user, Privilege.Type.DML);
-            return null;
-        }
-
-        @Override
-        protected Void visitInsertFromValuesStatement(InsertFromValuesAnalyzedStatement analysis, User user) {
-            Privileges.ensureUserHasPrivilege(
-                Privilege.Type.DML,
-                Privilege.Clazz.TABLE,
-                analysis.tableInfo().ident().toString(),
-                user,
-                defaultSchema);
             return null;
         }
 

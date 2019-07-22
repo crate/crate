@@ -23,7 +23,6 @@
 package io.crate.planner;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
 import io.crate.analyze.AnalyzedAlterBlobTable;
 import io.crate.analyze.AnalyzedAlterTable;
 import io.crate.analyze.AnalyzedAlterTableAddColumn;
@@ -74,18 +73,14 @@ import io.crate.analyze.CreateViewStmt;
 import io.crate.analyze.DCLStatement;
 import io.crate.analyze.ExplainAnalyzedStatement;
 import io.crate.analyze.InsertFromSubQueryAnalyzedStatement;
-import io.crate.analyze.InsertFromValuesAnalyzedStatement;
 import io.crate.analyze.NumberOfShards;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.auth.user.UserManager;
 import io.crate.exceptions.LicenseViolationException;
 import io.crate.execution.ddl.tables.TableCreator;
-import io.crate.expression.symbol.Symbol;
 import io.crate.license.LicenseService;
 import io.crate.metadata.Functions;
-import io.crate.metadata.Reference;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.consumer.UpdatePlanner;
 import io.crate.planner.node.dcl.GenericDCLPlan;
@@ -113,7 +108,6 @@ import io.crate.planner.node.ddl.RefreshTablePlan;
 import io.crate.planner.node.ddl.ResetSettingsPlan;
 import io.crate.planner.node.ddl.RestoreSnapshotPlan;
 import io.crate.planner.node.ddl.UpdateSettingsPlan;
-import io.crate.planner.node.dml.LegacyUpsertById;
 import io.crate.planner.node.management.AlterTableReroutePlan;
 import io.crate.planner.node.management.ExplainPlan;
 import io.crate.planner.node.management.KillPlan;
@@ -273,12 +267,6 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     @Override
     public Plan visitDecommissionNode(AnalyzedDecommissionNode decommissionNode, PlannerContext context) {
         return new DecommissionNodePlan(decommissionNode);
-    }
-
-    @Override
-    protected Plan visitInsertFromValuesStatement(InsertFromValuesAnalyzedStatement statement, PlannerContext context) {
-        Preconditions.checkState(!statement.sourceMaps().isEmpty(), "no values given");
-        return processInsertStatement(statement);
     }
 
     @Override
@@ -538,59 +526,6 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     @Override
     public Plan visitRerouteRetryFailedStatement(AnalyzedRerouteRetryFailed analysis, PlannerContext context) {
         return new RerouteRetryFailedPlan();
-    }
-
-    private static LegacyUpsertById processInsertStatement(InsertFromValuesAnalyzedStatement analysis) {
-        String[] onDuplicateKeyAssignmentsColumns = null;
-        if (analysis.onDuplicateKeyAssignmentsColumns().size() > 0) {
-            onDuplicateKeyAssignmentsColumns = analysis.onDuplicateKeyAssignmentsColumns().get(0);
-        }
-        DocTableInfo tableInfo = analysis.tableInfo();
-        LegacyUpsertById legacyUpsertById = new LegacyUpsertById(
-            analysis.numBulkResponses(),
-            tableInfo.isPartitioned(),
-            analysis.bulkIndices(),
-            analysis.isIgnoreDuplicateKeys(),
-            onDuplicateKeyAssignmentsColumns,
-            analysis.columns().toArray(new Reference[analysis.columns().size()])
-        );
-        if (tableInfo.isPartitioned()) {
-            List<String> partitions = analysis.generatePartitions();
-            String[] indices = partitions.toArray(new String[partitions.size()]);
-            for (int i = 0; i < indices.length; i++) {
-                Symbol[] onDuplicateKeyAssignments = null;
-                if (analysis.onDuplicateKeyAssignmentsColumns().size() > i) {
-                    onDuplicateKeyAssignments = analysis.onDuplicateKeyAssignments().get(i);
-                }
-                legacyUpsertById.add(
-                    indices[i],
-                    analysis.ids().get(i),
-                    analysis.routingValues().get(i),
-                    onDuplicateKeyAssignments,
-                    null,
-                    null,
-                    null,
-                    analysis.sourceMaps().get(i));
-            }
-        } else {
-            for (int i = 0; i < analysis.ids().size(); i++) {
-                Symbol[] onDuplicateKeyAssignments = null;
-                if (analysis.onDuplicateKeyAssignments().size() > i) {
-                    onDuplicateKeyAssignments = analysis.onDuplicateKeyAssignments().get(i);
-                }
-                legacyUpsertById.add(
-                    tableInfo.ident().indexNameOrAlias(),
-                    analysis.ids().get(i),
-                    analysis.routingValues().get(i),
-                    onDuplicateKeyAssignments,
-                    null,
-                    null,
-                    null,
-                    analysis.sourceMaps().get(i));
-            }
-        }
-
-        return legacyUpsertById;
     }
 
     public Functions functions() {

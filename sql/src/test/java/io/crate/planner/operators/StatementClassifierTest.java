@@ -111,10 +111,10 @@ public class StatementClassifierTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testClassifyInsertStatements() {
-        Plan plan = e.plan("INSERT INTO users (id, name) VALUES (1, 'foo')");
+        Plan plan = e.logicalPlan("INSERT INTO users (id, name) VALUES (1, 'foo')");
         StatementClassifier.Classification classification = StatementClassifier.classify(plan);
         assertThat(classification.type(), is(Plan.StatementType.INSERT));
-        assertThat(classification.labels(), is(Collections.emptySet()));
+        assertThat(classification.labels(), contains("InsertFromValues"));
 
         plan = e.logicalPlan("INSERT INTO users (id, name) (SELECT id, name FROM users)");
         classification = StatementClassifier.classify(plan);

@@ -35,15 +35,24 @@ public class StatementAnalysisContext {
 
     private final Operation currentOperation;
     private final CoordinatorTxnCtx coordinatorTxnCtx;
+    private final List<? extends Symbol> parentOutputColumns;
     private final Function<ParameterExpression, Symbol> convertParamFunction;
     private final List<RelationAnalysisContext> lastRelationContextQueue = new ArrayList<>();
 
     public StatementAnalysisContext(Function<ParameterExpression, Symbol> convertParamFunction,
                                     Operation currentOperation,
-                                    CoordinatorTxnCtx coordinatorTxnCtx) {
+                                    CoordinatorTxnCtx coordinatorTxnCtx,
+                                    List<? extends Symbol> parentOutputColumns) {
         this.convertParamFunction = convertParamFunction;
         this.currentOperation = currentOperation;
         this.coordinatorTxnCtx = coordinatorTxnCtx;
+        this.parentOutputColumns = parentOutputColumns;
+    }
+
+    public StatementAnalysisContext(Function<ParameterExpression, Symbol> convertParamFunction,
+                                    Operation currentOperation,
+                                    CoordinatorTxnCtx coordinatorTxnCtx) {
+        this(convertParamFunction, currentOperation, coordinatorTxnCtx, List.of());
     }
 
     public CoordinatorTxnCtx transactionContext() {
@@ -89,5 +98,9 @@ public class StatementAnalysisContext {
 
     public Function<ParameterExpression,Symbol> convertParamFunction() {
         return convertParamFunction;
+    }
+
+    List<? extends Symbol> parentOutputColumns() {
+        return parentOutputColumns;
     }
 }

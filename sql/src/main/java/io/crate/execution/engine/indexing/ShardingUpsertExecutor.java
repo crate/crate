@@ -124,14 +124,9 @@ public class ShardingUpsertExecutor
             estimateRowSize,
             indexNameResolver,
             expressions,
-            upsertResultContext.getSourceInfoExpressions(),
             itemFactory,
-            upsertResultContext.getItemFailureRecorder(),
-            upsertResultContext.getHasSourceUriFailureChecker(),
-            upsertResultContext.getSourceUriInput(),
-            upsertResultContext.getLineNumberInput(),
-            autoCreateIndices
-        );
+            autoCreateIndices,
+            upsertResultContext);
         bulkShardCreationLimiter = new BulkShardCreationLimiter(
             targetTableNumShards,
             targetTableNumReplicas,

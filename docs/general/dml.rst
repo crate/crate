@@ -108,7 +108,8 @@ against the *generation clause* of the column and the currently inserted row::
 
     cr> insert into debit_card (owner, num_part1, num_part2, check_sum) values
     ... ('Arthur Dent', 9876, 5432, 642935);
-    SQLActionException[SQLParseException: Given value 642935 for generated column does not match defined generated expression value 642936]
+    SQLActionException[SQLParseException: Given value 642935 for generated column check_sum does not match calculation ((num_part1 + num_part2) * 42) = 642936]
+
 
 Inserting data by query
 -----------------------

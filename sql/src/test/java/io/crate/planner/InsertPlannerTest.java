@@ -42,9 +42,9 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
-import io.crate.planner.node.dml.LegacyUpsertById;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.join.Join;
+import io.crate.planner.operators.InsertFromValues;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
@@ -57,7 +57,6 @@ import java.util.List;
 
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isInputColumn;
-import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.SymbolMatchers.isReference;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.Matchers.equalTo;
@@ -93,58 +92,6 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table source (id int primary key, name string)")
             .build();
     }
-
-    @Test
-    public void testInsertPlan() {
-        LegacyUpsertById legacyUpsertById = e.plan("insert into users (id, name) values (42, 'Deep Thought')");
-
-        assertThat(legacyUpsertById.insertColumns().length, is(2));
-        Reference idRef = legacyUpsertById.insertColumns()[0];
-        assertThat(idRef.column().fqn(), is("id"));
-        Reference nameRef = legacyUpsertById.insertColumns()[1];
-        assertThat(nameRef.column().fqn(), is("name"));
-
-        assertThat(legacyUpsertById.items().size(), is(1));
-        LegacyUpsertById.Item item = legacyUpsertById.items().get(0);
-        assertThat(item.index(), is("users"));
-        assertThat(item.id(), is("42"));
-        assertThat(item.routing(), is("42"));
-
-        assertThat(item.insertValues().length, is(2));
-        assertThat(item.insertValues()[0], is(42L));
-        assertThat(item.insertValues()[1], is("Deep Thought"));
-    }
-
-    @Test
-    public void testInsertPlanMultipleValues() {
-        LegacyUpsertById legacyUpsertById =
-            e.plan("insert into users (id, name) values (42, 'Deep Thought'), (99, 'Marvin')");
-
-        assertThat(legacyUpsertById.insertColumns().length, is(2));
-        Reference idRef = legacyUpsertById.insertColumns()[0];
-        assertThat(idRef.column().fqn(), is("id"));
-        Reference nameRef = legacyUpsertById.insertColumns()[1];
-        assertThat(nameRef.column().fqn(), is("name"));
-
-        assertThat(legacyUpsertById.items().size(), is(2));
-
-        LegacyUpsertById.Item item1 = legacyUpsertById.items().get(0);
-        assertThat(item1.index(), is("users"));
-        assertThat(item1.id(), is("42"));
-        assertThat(item1.routing(), is("42"));
-        assertThat(item1.insertValues().length, is(2));
-        assertThat(item1.insertValues()[0], is(42L));
-        assertThat(item1.insertValues()[1], is("Deep Thought"));
-
-        LegacyUpsertById.Item item2 = legacyUpsertById.items().get(1);
-        assertThat(item2.index(), is("users"));
-        assertThat(item2.id(), is("99"));
-        assertThat(item2.routing(), is("99"));
-        assertThat(item2.insertValues().length, is(2));
-        assertThat(item2.insertValues()[0], is(99L));
-        assertThat(item2.insertValues()[1], is("Marvin"));
-    }
-
 
     @Test
     public void testInsertFromSubQueryNonDistributedGroupBy() {
@@ -210,9 +157,9 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
         ColumnIndexWriterProjection projection = (ColumnIndexWriterProjection) mergePhase.projections().get(2);
         assertThat(projection.primaryKeys().size(), is(1));
         assertThat(projection.primaryKeys().get(0).fqn(), is("id"));
-        assertThat(projection.columnReferences().size(), is(2));
-        assertThat(projection.columnReferences().get(0).column().fqn(), is("id"));
-        assertThat(projection.columnReferences().get(1).column().fqn(), is("name"));
+        assertThat(projection.columnReferencesExclPartition().size(), is(2));
+        assertThat(projection.columnReferencesExclPartition().get(0).column().fqn(), is("id"));
+        assertThat(projection.columnReferencesExclPartition().get(1).column().fqn(), is("name"));
 
         assertNotNull(projection.clusteredByIdent());
         assertThat(projection.clusteredByIdent().fqn(), is("id"));
@@ -240,8 +187,8 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(projection.primaryKeys().get(0).fqn(), is("id"));
         assertThat(projection.primaryKeys().get(1).fqn(), is("date"));
 
-        assertThat(projection.columnReferences().size(), is(1));
-        assertThat(projection.columnReferences().get(0).column().fqn(), is("id"));
+        assertThat(projection.columnReferencesExclPartition().size(), is(1));
+        assertThat(projection.columnReferencesExclPartition().get(0).column().fqn(), is("id"));
 
         assertThat(projection.partitionedBySymbols().size(), is(1));
         assertThat(((InputColumn) projection.partitionedBySymbols().get(0)).index(), is(1));
@@ -270,13 +217,13 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(mergePhase.projections().get(1), instanceOf(ColumnIndexWriterProjection.class));
         ColumnIndexWriterProjection projection = (ColumnIndexWriterProjection) mergePhase.projections().get(1);
 
-        assertThat(projection.columnReferences().size(), is(2));
-        assertThat(projection.columnReferences().get(0).column().fqn(), is("name"));
-        assertThat(projection.columnReferences().get(1).column().fqn(), is("id"));
+        assertThat(projection.columnReferencesExclPartition().size(), is(2));
+        assertThat(projection.columnReferencesExclPartition().get(0).column().fqn(), is("name"));
+        assertThat(projection.columnReferencesExclPartition().get(1).column().fqn(), is("id"));
 
-        assertThat(projection.columnSymbols().size(), is(2));
-        assertThat(((InputColumn) projection.columnSymbols().get(0)).index(), is(0));
-        assertThat(((InputColumn) projection.columnSymbols().get(1)).index(), is(1));
+        assertThat(projection.columnSymbolsExclPartition().size(), is(2));
+        assertThat(((InputColumn) projection.columnSymbolsExclPartition().get(0)).index(), is(0));
+        assertThat(((InputColumn) projection.columnSymbolsExclPartition().get(1)).index(), is(1));
 
         assertNotNull(projection.clusteredByIdent());
         assertThat(projection.clusteredByIdent().fqn(), is("id"));
@@ -295,10 +242,10 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(collectPhase.projections().get(0), instanceOf(ColumnIndexWriterProjection.class));
         ColumnIndexWriterProjection projection = (ColumnIndexWriterProjection) collectPhase.projections().get(0);
 
-        assertThat(projection.columnReferences().size(), is(3));
-        assertThat(projection.columnReferences().get(0).column().fqn(), is("date"));
-        assertThat(projection.columnReferences().get(1).column().fqn(), is("id"));
-        assertThat(projection.columnReferences().get(2).column().fqn(), is("name"));
+        assertThat(projection.columnReferencesExclPartition().size(), is(3));
+        assertThat(projection.columnReferencesExclPartition().get(0).column().fqn(), is("date"));
+        assertThat(projection.columnReferencesExclPartition().get(1).column().fqn(), is("id"));
+        assertThat(projection.columnReferencesExclPartition().get(2).column().fqn(), is("name"));
         assertThat(((InputColumn) projection.ids().get(0)).index(), is(1));
         assertThat(((InputColumn) projection.clusteredBy()).index(), is(1));
         assertThat(projection.partitionedBySymbols().isEmpty(), is(true));
@@ -317,9 +264,9 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(join.joinPhase().projections().get(2), instanceOf(ColumnIndexWriterProjection.class));
         ColumnIndexWriterProjection projection = (ColumnIndexWriterProjection) join.joinPhase().projections().get(2);
 
-        assertThat(projection.columnReferences().size(), is(2));
-        assertThat(projection.columnReferences().get(0).column().fqn(), is("id"));
-        assertThat(projection.columnReferences().get(1).column().fqn(), is("name"));
+        assertThat(projection.columnReferencesExclPartition().size(), is(2));
+        assertThat(projection.columnReferencesExclPartition().get(0).column().fqn(), is("id"));
+        assertThat(projection.columnReferencesExclPartition().get(1).column().fqn(), is("name"));
         assertThat(((InputColumn) projection.ids().get(0)).index(), is(0));
         assertThat(((InputColumn) projection.clusteredBy()).index(), is(0));
         assertThat(projection.partitionedBySymbols().isEmpty(), is(true));
@@ -384,7 +331,7 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
         ));
         ColumnIndexWriterProjection columnIndexWriterProjection =
             (ColumnIndexWriterProjection) collectPhase.projections().get(1);
-        assertThat(columnIndexWriterProjection.columnReferences(), contains(isReference("id"), isReference("name")));
+        assertThat(columnIndexWriterProjection.columnReferencesExclPartition(), contains(isReference("id"), isReference("name")));
 
         MergePhase mergePhase = merge.mergePhase();
         assertThat(mergePhase.projections(), contains(instanceOf(MergeCountProjection.class)));
@@ -405,37 +352,10 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(collectTopN.outputs(), contains(isInputColumn(0), isFunction("to_text")));
 
         ColumnIndexWriterProjection columnIndexWriterProjection = (ColumnIndexWriterProjection) collectPhase.projections().get(2);
-        assertThat(columnIndexWriterProjection.columnReferences(), contains(isReference("id"), isReference("name")));
+        assertThat(columnIndexWriterProjection.columnReferencesExclPartition(), contains(isReference("id"), isReference("name")));
 
         MergePhase mergePhase = merge.mergePhase();
         assertThat(mergePhase.projections(), contains(instanceOf(MergeCountProjection.class)));
-    }
-
-    @Test
-    public void testInsertFromValuesWithOnDuplicateKey() {
-        LegacyUpsertById node = e.plan(
-            "insert into users (id, name) values (1, null) on conflict (id) do update set name = excluded.name");
-
-        assertThat(node.updateColumns(), is(new String[]{"name"}));
-
-        assertThat(node.insertColumns().length, is(2));
-        Reference idRef = node.insertColumns()[0];
-        assertThat(idRef.column().fqn(), is("id"));
-        Reference nameRef = node.insertColumns()[1];
-        assertThat(nameRef.column().fqn(), is("name"));
-
-        assertThat(node.items().size(), is(1));
-        LegacyUpsertById.Item item = node.items().get(0);
-        assertThat(item.index(), is("users"));
-        assertThat(item.id(), is("1"));
-        assertThat(item.routing(), is("1"));
-
-        assertThat(item.insertValues().length, is(2));
-        assertThat(item.insertValues()[0], is(1L));
-        assertNull(item.insertValues()[1]);
-
-        assertThat(item.updateAssignments().length, is(1));
-        assertThat(item.updateAssignments()[0], isLiteral(null, DataTypes.STRING));
     }
 
     @Test
@@ -507,5 +427,11 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
             isReference("oid"),
             isReference("typname")
         ));
+    }
+
+    @Test
+    public void test_insert_from_query_rewritten_to_insert_from_values() {
+        Plan plan = e.logicalPlan("insert into users (id, name) values (42, 'Deep Thought')");
+        assertThat(plan, instanceOf(InsertFromValues.class));
     }
 }
