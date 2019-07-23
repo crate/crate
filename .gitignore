@@ -32,6 +32,7 @@ __pycache__/
 *.pyc
 *.pyo
 blackbox/get-pip.py
+blackbox/.mypy_cache/
 develop-eggs/
 eggs/
 parts/
