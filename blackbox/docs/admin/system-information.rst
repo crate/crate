@@ -1442,38 +1442,43 @@ have not been recreated, CrateDB will refuse to start.
 To recreate a table, you have to create new tables, copy over the data and
 rename or remove the old table.
 
-1) Use :ref:`ref-show-create-table` to get the schema required to create an
-empty copy of the table to recreate::
+1. Use :ref:`ref-show-create-table` to get the schema required to create an
+   empty copy of the table to recreate::
 
-    SHOW CREATE TABLE your_table;
+       cr> SHOW CREATE TABLE your_table;
 
-2) Create a new temporary table, using the schema returned from
-:ref:`ref-show-create-table`::
+2. Create a new temporary table, using the schema returned from
+   :ref:`ref-show-create-table`::
 
-    CREATE TABLE tmp_your_table (...);
+       cr> CREATE TABLE tmp_your_table (...);
 
-3) Prevent inserts to the original table::
+3. Prevent inserts to the original table::
 
-    ALTER TABLE your_table SET ("blocks.read_only" = true);
+       cr> ALTER TABLE your_table SET ("blocks.read_only" = true);
 
-4) Copy the data::
+4. Copy the data::
 
-    INSERT INTO tmp_your_table (...) (SELECT ... FROM your_table);
+       cr> INSERT INTO tmp_your_table (...) (SELECT ... FROM your_table);
 
-5) Swap the tables::
+5. Swap the tables::
 
-    ALTER CLUSTER SWAP TABLE tmp_your_table TO your_table;
+       cr> ALTER CLUSTER SWAP TABLE tmp_your_table TO your_table;
 
-6) Confirm the new ``your_table`` contains all data and has the new version::
+6. Confirm the new ``your_table`` contains all data and has the new version::
 
-    SELECT count(*) FROM your_table;
-    SELECT version FROM information_schema.tables where table_name = 'your_table';
+       cr> SELECT count(*) FROM your_table;
 
-7) Drop the now obsolete old table::
+   ::
 
-    ALTER TABLE tmp_your_table SET ("blocks.read_only" = false);
-    DROP TABLE tmp_your_table;
+       cr> SELECT version FROM information_schema.tables where table_name = 'your_table';
 
+7. Drop the now obsolete old table::
+
+       cr> ALTER TABLE tmp_your_table SET ("blocks.read_only" = false);
+
+   ::
+
+       cr> DROP TABLE tmp_your_table;
 
 When all tables have been recreated, this cluster check will pass.
 
