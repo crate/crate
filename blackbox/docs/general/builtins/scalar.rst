@@ -356,6 +356,70 @@ The quoted string can be used as an identifier in an SQL statement.
    +----------------------------+
    SELECT 1 row in set (... sec)
 
+.. _scalar-left:
+
+``left('string', len)``
+-----------------------
+
+Returns the first ``len`` characters of ``string`` when ``len`` > 0,
+otherwise all but last ``len`` characters.
+
+Synopsis::
+
+    left(string, len)
+
+Examples::
+
+   cr> select left('crate.io', 5);
+   +---------------------+
+   | left('crate.io', 5) |
+   +---------------------+
+   | crate               |
+   +---------------------+
+   SELECT 1 row in set (... sec)
+
+::
+
+   cr> select left('crate.io', -3);
+   +-----------------------+
+   | left('crate.io', - 3) |
+   +-----------------------+
+   | crate                 |
+   +-----------------------+
+   SELECT 1 row in set (... sec)
+
+.. _scalar-right:
+
+``right('string', len)``
+------------------------
+
+Returns the last ``len`` characters in ``string`` when ``len`` > 0,
+otherwise all but first ``len`` characters.
+
+Synopsis::
+
+  right(string, len)
+
+Examples::
+
+      cr> select right('crate.io', 2);
+      +----------------------+
+      | right('crate.io', 2) |
+      +----------------------+
+      | io                   |
+      +----------------------+
+      SELECT 1 row in set (... sec)
+
+::
+
+      cr> select right('crate.io', -6);
+      +------------------------+
+      | right('crate.io', - 6) |
+      +------------------------+
+      | io                     |
+      +------------------------+
+      SELECT 1 row in set (... sec)
+
 Date and time functions
 =======================
 

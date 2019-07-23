@@ -242,6 +242,8 @@ explicitFunction
     | CURRENT_SCHEMA                                                                 #currentSchema
     | (CURRENT_USER | USER)                                                          #currentUser
     | SESSION_USER                                                                   #sessionUser
+    | LEFT '(' strOrColName=expr ',' len=expr ')'                                    #left
+    | RIGHT '(' strOrColName=expr ',' len=expr ')'                                   #right
     | SUBSTRING '(' expr FROM expr (FOR expr)? ')'                                   #substring
     | TRIM '(' ((trimMode=(LEADING | TRAILING | BOTH))?
                 (charsToTrim=expr)? FROM)? target=expr ')'                           #trim
