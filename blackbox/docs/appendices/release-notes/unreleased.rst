@@ -87,6 +87,8 @@ Changes
   subset of nodes to become unavailable without blocking write operations. See
   the documentation for more details about the implications.
 
+- Added left and right scalar functions.
+
 Fixes
 =====
 
