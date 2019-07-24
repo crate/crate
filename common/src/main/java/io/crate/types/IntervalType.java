@@ -23,6 +23,7 @@
 package io.crate.types;
 
 import io.crate.Streamer;
+import io.crate.interval.IntervalParser;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.joda.time.Period;
@@ -30,7 +31,7 @@ import org.joda.time.Period;
 import java.io.IOException;
 import java.util.Locale;
 
-public class IntervalType extends DataType<Interval> implements FixedWidthType, Streamer<Interval> {
+public class IntervalType extends DataType<Period> implements FixedWidthType, Streamer<Period> {
 
     public static final int ID = 17;
     public static final IntervalType INSTANCE = new IntervalType();
@@ -51,22 +52,18 @@ public class IntervalType extends DataType<Interval> implements FixedWidthType, 
     }
 
     @Override
-    public Streamer<Interval> streamer() {
+    public Streamer<Period> streamer() {
         return this;
     }
 
     @Override
-    public Interval value(Object value) throws IllegalArgumentException, ClassCastException {
+    public Period value(Object value) throws IllegalArgumentException, ClassCastException {
         if (value == null) {
             return null;
         }
 
-        if(value instanceof Interval) {
-            return (Interval) value;
-        }
-
         if (value instanceof Period) {
-            return new Interval((Period) value);
+            return (Period) value;
         }
 
         if(value instanceof String) {
@@ -76,31 +73,31 @@ public class IntervalType extends DataType<Interval> implements FixedWidthType, 
         throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Cannot convert %s to interval", value));
     }
 
-    public int compareValueTo(Interval i1, Interval i2) {
-        return nullSafeCompareValueTo(i1, i2, Interval::compareTo);
+    public int compareValueTo(Period i1, Period i2) {
+            return -1;
+//        return nullSafeCompareValueTo(i1, i2, Interval::compareTo);
     }
 
     @Override
-    public Interval readValueFrom(StreamInput in) throws IOException {
+    public Period readValueFrom(StreamInput in) throws IOException {
         if (in.readBoolean()) {
             long seconds = in.readLong();
             int days = in.readInt();
             int months = in.readInt();
-            Period period = new Period().withSeconds(Math.toIntExact(seconds)).withDays(days).withMonths(months);
-            return new Interval(period);
+            return new Period().withSeconds(Math.toIntExact(seconds)).withDays(days).withMonths(months);
         } else {
             return null;
         }
     }
 
     @Override
-    public void writeValueTo(StreamOutput out, Interval i) throws IOException {
-        if (i == null) {
+    public void writeValueTo(StreamOutput out, Period p) throws IOException {
+        if (p == null) {
             out.writeBoolean(false);
         } else {
-            out.writeDouble(i.getPeriod().getSeconds());
-            out.writeInt(i.getPeriod().getDays());
-            out.writeInt(i.getPeriod().getMonths());
+            out.writeDouble(p.getSeconds());
+            out.writeInt(p.getDays());
+            out.writeInt(p.getMonths());
         }
     }
 

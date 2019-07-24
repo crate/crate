@@ -24,7 +24,6 @@ package io.crate.analyze.expressions;
 
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import io.crate.types.Interval;
 import org.joda.time.Period;
 import org.junit.Before;
 import org.junit.Test;
@@ -45,79 +44,104 @@ public class IntervalAnalysisTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_interval_from_ISO8601_year_month_day() {
         var symbol = e.asSymbol("INTERVAL 'P1Y2M3W4D'");
-        assertThat(symbol, isLiteral(new Interval(new Period().withYears(1).withMonths(2).withWeeks(3).withDays(4))));
+        assertThat(symbol, isLiteral(new Period().withYears(1).withMonths(2).withWeeks(3).withDays(4)));
     }
 
     @Test
     public void test_interval_from_ISO8601_year_month_day_and_time() {
         var symbol = e.asSymbol("INTERVAL 'P1Y2M3DT4H5M6S'");
         assertThat(symbol, isLiteral(
-            new Interval(new Period().withYears(1).withMonths(2).withDays(3).withHours(4).withMinutes(5).withSeconds(6))));
+            new Period().withYears(1).withMonths(2).withDays(3).withHours(4).withMinutes(5).withSeconds(6)));
     }
 
     @Test
     public void test_interval_from_human_readable_duration_string() {
         var symbol = e.asSymbol("INTERVAL '6 years 5 months 4 days 3 hours 2 minutes 1 second'");
         assertThat(symbol, isLiteral(
-           new Interval(new Period().withYears(6).withMonths(5).withDays(4).withHours(3).withMinutes(2).withSeconds(1))));
+           new Period().withYears(6).withMonths(5).withDays(4).withHours(3).withMinutes(2).withSeconds(1)));
     }
 
     @Test
     public void test_psql_format_from_string() {
         var symbol = e.asSymbol("INTERVAL '@ 1 year 1 mon 1 day 1 hour 1 minute 1 secs'");
         assertThat(symbol, isLiteral(
-            new Interval(new Period().withYears(1).withMonths(1).withDays(1).withHours(1).withMinutes(1).withSeconds(1))));
+            new Period().withYears(1).withMonths(1).withDays(1).withHours(1).withMinutes(1).withSeconds(1)));
     }
 
     @Test
     public void test_psql_verbose_format_from_string_with_ago() {
         var symbol = e.asSymbol("INTERVAL '@ 1 year 1 mon 1 day 1 hour 1 minute 1 secs ago'");
         assertThat(symbol, isLiteral(
-            new Interval(new Period().withYears(-1).withMonths(-1).withDays(-1).withHours(-1).withMinutes(-1).withSeconds(-1))));
+            new Period().withYears(-1).withMonths(-1).withDays(-1).withHours(-1).withMinutes(-1).withSeconds(-1)));
     }
 
     @Test
     public void test_psql_verbose_format_from_string_with_negative_values() {
         var symbol = e.asSymbol("INTERVAL '@ 1 year -23 hours -3 mins -3.30 secs'");
         assertThat(symbol, isLiteral(
-           new Interval(new Period().withYears(1).withHours(-23).withMinutes(-3).withSeconds(-3).withMillis(-300))));
+           new Period().withYears(1).withHours(-23).withMinutes(-3).withSeconds(-3).withMillis(-300)));
     }
 
     @Test
     public void test_psql_verbose_format_from_string_with_negative_values_and_ago() {
         var symbol = e.asSymbol("INTERVAL '@ 1 year -23 hours -3 mins -3.30 secs ago'");
         assertThat(symbol, isLiteral(
-           new Interval(new Period().withYears(-1).withHours(23).withMinutes(3).withSeconds(3).withMillis(300))));
+            new Period().withYears(-1).withHours(23).withMinutes(3).withSeconds(3).withMillis(300)));
     }
 
     @Test
     public void test_psql_compact_format_from_string() {
         var symbol = e.asSymbol("INTERVAL '6 years 5 mons 4 days 03:02:01'");
         assertThat(symbol, isLiteral(
-            new Interval(new Period().withYears(6).withMonths(5).withDays(4).withHours(3).withMinutes(2).withSeconds(1))));
+            new Period().withYears(6).withMonths(5).withDays(4).withHours(3).withMinutes(2).withSeconds(1)));
+    }
+
+    @Test
+    public void test_psql_compact_format_from_string_with_start() {
+        var symbol = e.asSymbol("INTERVAL '6 years 5 mons 4 days 03:02:01' YEAR");
+        assertThat(symbol, isLiteral(
+            new Period().withYears(6)));
+    }
+
+    @Test
+    public void test_psql_compact_format_from_string_with_start_end() {
+        var symbol = e.asSymbol("INTERVAL '6 years 5 mons 4 days 03:02:01' YEAR TO MONTH");
+        assertThat(symbol, isLiteral(
+            new Period().withYears(6).withMonths(5)));
+    }
+
+    @Test
+    public void test_psql_compact_format_from_string_with_start_end1() {
+        var symbol = e.asSymbol("INTERVAL '6 years 5 mons 4 days 03:02:01' DAY TO HOUR");
+        assertThat(symbol, isLiteral(
+            new Period().withYears(6).withMonths(5).withDays(4).withHours(3)));
     }
 
     @Test
     public void test_sql_standard_from_string() {
         var symbol = e.asSymbol("INTERVAL '+6-5 +4 +3:02:01'");
         assertThat(symbol, isLiteral(
-            new Interval(new Period().withYears(6).withMonths(5).withDays(4).withHours(3).withMinutes(2).withSeconds(1))));
+            new Period().withYears(6).withMonths(5).withDays(4).withHours(3).withMinutes(2).withSeconds(1)));
+
          symbol = e.asSymbol("INTERVAL '1-1'");
 
         assertThat(symbol, isLiteral(
-            new Interval(new Period().withYears(1).withMonths(1))));
+            new Period().withYears(1).withMonths(1)));
     }
 
     @Test
     public void test_interval() throws Exception {
         var symbol = e.asSymbol("INTERVAL '1' MONTH");
-        assertThat(symbol, isLiteral(new Interval(new Period().withMonths(1))));
+        assertThat(symbol, isLiteral(new Period().withMonths(1)));
     }
 
     @Test
     public void test_interval_conversion() throws Exception {
         var symbol =  e.asSymbol("INTERVAL '1' HOUR to SECOND");
-        assertThat(symbol, isLiteral(new Interval(new Period().withSeconds(1))));
+        assertThat(symbol, isLiteral(new Period().withSeconds(1)));
+
+        symbol =  e.asSymbol( "INTERVAL '100' DAY TO SECOND");
+        assertThat(symbol, isLiteral(new Period().withSeconds(100)));
     }
 
     @Test
@@ -126,5 +150,4 @@ public class IntervalAnalysisTest extends CrateDummyClusterServiceUnitTest {
         expectedException.expectMessage("Startfield MONTH must be less significant than Endfield YEAR");
         e.asSymbol("INTERVAL '1' MONTH TO YEAR");
     }
-
 }

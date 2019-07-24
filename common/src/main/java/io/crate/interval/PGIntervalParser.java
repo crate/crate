@@ -20,45 +20,16 @@
  * agreement.
  */
 
-package io.crate.types;
+package io.crate.interval;
 
 import org.joda.time.Period;
-import org.joda.time.format.ISOPeriodFormat;
-import org.joda.time.format.PeriodFormat;
 
 import java.math.BigDecimal;
-import java.util.Locale;
 import java.util.StringTokenizer;
 
-public class IntervalParser {
+class PGIntervalParser {
 
-    private IntervalParser() {
-    }
-
-    public static Interval apply(String value) {
-        Period period = null;
-        Interval.Format format = null;
-        try {
-            period = parseSeconds(value);
-            format = Interval.Format.NUMERICAL;
-        } catch (IllegalArgumentException e1) {
-            try {
-                period = ISOPeriodFormat.standard().parsePeriod(value);
-                format = Interval.Format.IS0_8601;
-            } catch (IllegalArgumentException e2) {
-                try {
-                    period = ISOPeriodFormat.standard().parsePeriod(value);
-                    format = Interval.Format.IS0_8601;
-                } catch (IllegalArgumentException e3) {
-                    period = parsePsqlFormat(value);
-                    format = Interval.Format.PSQL;
-                }
-            }
-        }
-        return new Interval(period, format);
-    }
-
-    public static Period parsePsqlFormat(String value) {
+    static Period apply(String value) {
         final boolean ISOFormat = !value.startsWith("@");
 
         // Just a simple '0'
@@ -88,7 +59,6 @@ public class IntervalParser {
                         valueToken = token;
                         continue;
                     }
-
                     // This handles hours, minutes, seconds and microseconds for
                     // ISO intervals
                     int offset = (token.charAt(0) == '-') ? 1 : 0;
@@ -137,62 +107,26 @@ public class IntervalParser {
             throw new IllegalArgumentException("Conversion of interval failed", e);
 
         }
+        Period period = new Period(years, months, 0, days, hours, minutes, seconds, milliSeconds);
 
         if (!ISOFormat && value.endsWith("ago")) {
             // Inverse the leading sign
-            return new Period(-years, -months, 0, -days, -hours, -minutes, -seconds, -milliSeconds);
-        } else {
-            return new Period(years, months, 0, days, hours, minutes, seconds, milliSeconds);
+            period = period.negated();
         }
+        return period;
     }
 
-    private static int parseMiliSeconds(String value) throws NumberFormatException {
-        return new BigDecimal(value).subtract(new BigDecimal(parseInteger(value))).multiply(new BigDecimal(1000)).intValue();
+    static int parseMiliSeconds(String value) throws NumberFormatException {
+        return new BigDecimal(value)
+            .subtract(new BigDecimal(parseInteger(value)))
+            .multiply(new BigDecimal(1000)).intValue();
     }
 
-    private static Period parseNumerical(String value) throws NumberFormatException {
-        try {
-            int seconds = parseInteger(value);
-            int milliSeconds = parseDecimal(value) * 1000;
-            return new Period().withSeconds(seconds).withMillis(milliSeconds);
-        } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("Invalid format " + value, e);
-        }
-    }
-
-    private static Period parseSeconds(String value) throws NumberFormatException {
-        try {
-            int seconds = parseInteger(value);
-            int milliSeconds = parseDecimal(value) * 1000;
-            return new Period().withSeconds(seconds).withMillis(milliSeconds);
-        } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("Invalid format " + value, e);
-        }
-    }
-
-    private static int nullSafeIntGet(String value) {
-        try {
+    static int nullSafeIntGet(String value) {
             return (value == null) ? 0 : Integer.parseInt(value);
-        } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("Invalid format " + value, e);
-        }
     }
 
-    public static int parseInteger(String value) {
-        try {
+    static int parseInteger(String value) {
             return new BigDecimal(value).intValue();
-        } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("Invalid format " + value, e);
-        }
     }
-
-    public static int parseDecimal(String value) {
-        try {
-            BigDecimal subtract = new BigDecimal(value).subtract(new BigDecimal(parseInteger(value)));
-            return subtract.intValue();
-        } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("Invalid format " + value, e);
-        }
-    }
-
 }

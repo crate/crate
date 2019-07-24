@@ -128,8 +128,7 @@ import io.crate.sql.tree.WindowFrame;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.Interval;
-import io.crate.types.IntervalParser;
+import io.crate.interval.IntervalParser;
 import io.crate.types.ObjectType;
 import io.crate.types.UndefinedType;
 import org.joda.time.Period;
@@ -149,10 +148,12 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static io.crate.common.collections.Lists2.mapTail;
+import static io.crate.sql.tree.IntervalLiteral.IntervalField.DAY;
 import static io.crate.sql.tree.IntervalLiteral.IntervalField.HOUR;
 import static io.crate.sql.tree.IntervalLiteral.IntervalField.MINUTE;
 import static io.crate.sql.tree.IntervalLiteral.IntervalField.MONTH;
 import static io.crate.sql.tree.IntervalLiteral.IntervalField.SECOND;
+import static io.crate.sql.tree.IntervalLiteral.IntervalField.YEAR;
 
 /**
  * <p>This Analyzer can be used to convert Expression from the SQL AST into symbols.</p>
@@ -926,6 +927,16 @@ public class ExpressionAnalyzer {
                 context);
         }
 
+        private final Map<IntervalLiteral.IntervalField, IntervalParser.Precision> INTERVAL_FIELDS =
+            Map.of(
+                YEAR, IntervalParser.Precision.YEAR,
+                MONTH, IntervalParser.Precision.MONTH,
+                DAY, IntervalParser.Precision.DAY,
+                HOUR, IntervalParser.Precision.HOUR,
+                MINUTE, IntervalParser.Precision.MINUTE,
+                SECOND, IntervalParser.Precision.SECOND
+            );
+
         @Override
         public Symbol visitIntervalLiteral(IntervalLiteral node, ExpressionAnalysisContext context) {
             String value = node.getValue();
@@ -933,123 +944,15 @@ public class ExpressionAnalyzer {
                 throw new IllegalArgumentException("Invalid value " + value);
             }
 
-            int i = IntervalParser.parseInteger(value);
+            IntervalParser.Precision start =INTERVAL_FIELDS.get(node.getStartField());
+            IntervalParser.Precision end = node.getEndField().map(INTERVAL_FIELDS::get).orElse(null);
 
-            IntervalLiteral.IntervalField startField = node.getStartField();
-            IntervalLiteral.IntervalField endField = node.getEndField().orElse(null);
+            Period period = IntervalParser.apply(value, start, end);
 
-            Period period = null;
-
-            if (endField == null) {
-                switch (startField) {
-                    case YEAR:
-                        period = new Period().withYears(i);
-                        break;
-                    case MONTH:
-                        period = new Period().withMonths(i);
-                        break;
-                    case DAY:
-                        period = new Period().withDays(i);
-                        break;
-                    case HOUR:
-                        period = new Period().withHours(i);
-                        break;
-                    case MINUTE:
-                        period = new Period().withMinutes(i);
-                        break;
-                    case SECOND:
-                        period = new Period().withSeconds(i);
-                        break;
-                        //TODO handle ms
-                     default:
-                         throw new IllegalArgumentException("Invalid start");
-                }
-                return Literal.newInterval(new Interval(period));
-            } else {
-                period = adaptPrecision(period, startField, endField);
-
-                if (node.getSign() == IntervalLiteral.Sign.MINUS) {
-                    period = new Period()
-                        .withYears(-period.getYears())
-                        .withMonths(-period.getMonths())
-                        .withDays(-period.getDays())
-                        .withHours(-period.getHours())
-                        .withMinutes(-period.getMinutes())
-                        .withSeconds(-period.getSeconds())
-                        .withMillis(-period.getMillis());
-                }
-                return Literal.newInterval(new Interval(period));
+            if (node.getSign() == IntervalLiteral.Sign.MINUS) {
+                period = period.negated();
             }
-        }
-
-        private Period adaptPrecision(Period period, IntervalLiteral.IntervalField startField, IntervalLiteral.IntervalField endField) {
-            switch (startField) {
-                case YEAR:
-                    if (endField == MONTH) {
-                        period = new Period().withYears(period.getYears()).withMonths(period.getMonths());
-                    } else if (endField == null) {
-                        period = new Period().withYears(period.getYears());
-                    } else {
-                        raiseInvalidStartEndCombination(startField, endField);
-                    }
-                    break;
-                case MONTH:
-                    if (endField == null) {
-                        period = new Period().withYears(period.getYears()).withMonths(period.getMonths());
-                    } else {
-                        raiseInvalidStartEndCombination(startField, endField);
-                    }
-                    break;
-                case DAY:
-                    if (endField == null) {
-                        period = period.withHours(0).withMinutes(0).withSeconds(0).withMillis(0);
-                    } else if (endField == HOUR) {
-                        period = period.withMinutes(0).withSeconds(0).withMillis(0);
-                    } else if (endField == MINUTE) {
-                        period = period.withSeconds(0).withMillis(0);
-                    } else if (endField == SECOND) {
-                        //noop
-                    } else {
-                        raiseInvalidStartEndCombination(startField, endField);
-                    }
-                    break;
-                case HOUR:
-                    if (endField == null) {
-                        period = period.withMinutes(0).withSeconds(0).withMillis(0);
-                    } else if (endField == MINUTE) {
-                        period = period.withSeconds(0).withMillis(0);
-                    } else if (endField == SECOND) {
-                        //noop
-                    } else {
-                        raiseInvalidStartEndCombination(startField, endField);
-                    }
-                    break;
-                case MINUTE:
-                    if (endField == null) {
-                        period = period.withSeconds(0).withMillis(0);
-                    } else if (endField == SECOND) {
-                        //noop
-                    } else {
-                        raiseInvalidStartEndCombination(startField, endField);
-                    }
-                    break;
-                case SECOND:
-                    if (endField == null) {
-                        //noop
-                    } else {
-                        raiseInvalidStartEndCombination(startField, endField);
-                    }
-                    break;
-                default:
-                    throw new IllegalArgumentException("Invalid start " + startField);
-            }
-
-            return period;
-        }
-
-        private void raiseInvalidStartEndCombination(IntervalLiteral.IntervalField startField, IntervalLiteral.IntervalField endField) {
-            throw new IllegalArgumentException(
-                String.format("Invalid combination of start %s and end %s ", startField, endField));
+            return Literal.newInterval(period);
         }
 
         @Override
