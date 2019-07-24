@@ -22,30 +22,78 @@
 
 package io.crate.types;
 
+import org.joda.time.Duration;
+import org.joda.time.Instant;
+import org.joda.time.Period;
+
 import java.util.Objects;
+import java.util.Optional;
+
 
 public class Interval implements Comparable<Interval> {
 
-    private final double seconds;
-    private final int days;
-    private final int months;
+    private Period period;
+    private Interval.Format format;
 
-    public Interval(double seconds, int days, int months) {
-        this.seconds = seconds;
-        this.days = days;
-        this.months = months;
+    public enum Precision {
+        YEAR,
+        MONTH,
+        DAY,
+        HOUR,
+        MINUTE,
+        SECOND
     }
 
-    public double getSeconds() {
-        return seconds;
+    public enum Format {
+        UNDEFINED,
+        NUMERICAL,
+        PSQL,
+        SQL_STANDARD,
+        IS0_8601
     }
 
-    public int getDays() {
-        return days;
+    public Interval(Period period) {
+        this.format = Format.UNDEFINED;
+        this.period = period;
     }
 
-    public int getMonths() {
-        return months;
+    public Interval(Period period, Interval.Format format) {
+        this.format = format;
+        this.period = period;
+    }
+
+    public Period getPeriod() {
+        return period;
+    }
+
+    public Interval withPeriod(Period period) {
+        return new Interval(period, format);
+    }
+
+    @Override
+    public int compareTo(Interval o) {
+        return 0;
+    }
+
+    public static int compare(Interval i1, Interval i2) {
+        int formatCmp = i1.compareTo(i2);
+        if (formatCmp != 0) {
+            return formatCmp;
+        }
+
+        //TODO format + precision
+
+        Duration duration1 = i1.period.toDurationFrom(Instant.EPOCH);
+        Duration duration2 = i2.period.toDurationFrom(Instant.EPOCH);
+        return duration1.compareTo(duration2);
+    }
+
+    @Override
+    public String toString() {
+        return "Interval{" +
+               "period=" + period +
+               ", format=" + format +
+               '}';
     }
 
     @Override
@@ -57,37 +105,12 @@ public class Interval implements Comparable<Interval> {
             return false;
         }
         Interval interval = (Interval) o;
-        return Double.compare(interval.seconds, seconds) == 0 &&
-               days == interval.days &&
-               months == interval.months;
+        return Objects.equals(period, interval.period);
+
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(seconds, days, months);
-    }
-
-    @Override
-    public int compareTo(Interval other) {
-        return compare(this, other);
-    }
-
-    public static int compare(Interval i1, Interval i2) {
-        int sCmp = Double.compare(i1.seconds, i2.seconds);
-        if (sCmp != 0) return sCmp;
-
-        int daysCmp = Integer.compare(i1.days, i2.days);
-        if (daysCmp != 0) return daysCmp;
-
-        return Integer.compare(i1.months, i2.months);
-    }
-
-    @Override
-    public String toString() {
-        return "Interval{" +
-               "seconds=" + seconds +
-               ", days=" + days +
-               ", months=" + months +
-               '}';
+        return Objects.hash(period, format);
     }
 }

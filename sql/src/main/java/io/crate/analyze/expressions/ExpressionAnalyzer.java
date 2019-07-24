@@ -77,7 +77,6 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.table.Operation;
-import io.crate.protocols.postgres.IntervalFormatParser;
 import io.crate.sql.ExpressionFormatter;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.ArithmeticExpression;
@@ -129,11 +128,11 @@ import io.crate.sql.tree.WindowFrame;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.Interval;
+import io.crate.types.IntervalParser;
 import io.crate.types.ObjectType;
 import io.crate.types.UndefinedType;
 import org.joda.time.Period;
-import org.joda.time.format.ISOPeriodFormat;
-import org.joda.time.format.PeriodFormat;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -934,21 +933,56 @@ public class ExpressionAnalyzer {
                 throw new IllegalArgumentException("Invalid value " + value);
             }
 
-            Period period = null;
-
-            try {
-                period = ISOPeriodFormat.standard().parsePeriod(value);
-            } catch (IllegalArgumentException e) {
-                try {
-                    period = PeriodFormat.wordBased(Locale.ENGLISH).parsePeriod(value);
-                } catch (IllegalArgumentException er) {
-                    period = IntervalFormatParser.apply(value);
-                }
-            }
+            int i = IntervalParser.parseInteger(value);
 
             IntervalLiteral.IntervalField startField = node.getStartField();
             IntervalLiteral.IntervalField endField = node.getEndField().orElse(null);
 
+            Period period = null;
+
+            if (endField == null) {
+                switch (startField) {
+                    case YEAR:
+                        period = new Period().withYears(i);
+                        break;
+                    case MONTH:
+                        period = new Period().withMonths(i);
+                        break;
+                    case DAY:
+                        period = new Period().withDays(i);
+                        break;
+                    case HOUR:
+                        period = new Period().withHours(i);
+                        break;
+                    case MINUTE:
+                        period = new Period().withMinutes(i);
+                        break;
+                    case SECOND:
+                        period = new Period().withSeconds(i);
+                        break;
+                        //TODO handle ms
+                     default:
+                         throw new IllegalArgumentException("Invalid start");
+                }
+                return Literal.newInterval(new Interval(period));
+            } else {
+                period = adaptPrecision(period, startField, endField);
+
+                if (node.getSign() == IntervalLiteral.Sign.MINUS) {
+                    period = new Period()
+                        .withYears(-period.getYears())
+                        .withMonths(-period.getMonths())
+                        .withDays(-period.getDays())
+                        .withHours(-period.getHours())
+                        .withMinutes(-period.getMinutes())
+                        .withSeconds(-period.getSeconds())
+                        .withMillis(-period.getMillis());
+                }
+                return Literal.newInterval(new Interval(period));
+            }
+        }
+
+        private Period adaptPrecision(Period period, IntervalLiteral.IntervalField startField, IntervalLiteral.IntervalField endField) {
             switch (startField) {
                 case YEAR:
                     if (endField == MONTH) {
@@ -1010,18 +1044,7 @@ public class ExpressionAnalyzer {
                     throw new IllegalArgumentException("Invalid start " + startField);
             }
 
-            if (node.getSign() == IntervalLiteral.Sign.MINUS) {
-                period = new Period()
-                    .withYears(-period.getYears())
-                    .withMonths(-period.getMonths())
-                    .withDays(-period.getDays())
-                    .withHours(-period.getHours())
-                    .withMinutes(-period.getMinutes())
-                    .withSeconds(-period.getSeconds())
-                    .withMillis(-period.getMillis());
-            }
-
-            return Literal.newInterval(period);
+            return period;
         }
 
         private void raiseInvalidStartEndCombination(IntervalLiteral.IntervalField startField, IntervalLiteral.IntervalField endField) {
