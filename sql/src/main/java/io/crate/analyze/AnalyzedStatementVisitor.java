@@ -79,10 +79,6 @@ public class AnalyzedStatementVisitor<C, R> {
         return visitDDLStatement(analysis, context);
     }
 
-    protected R visitDropTableStatement(DropTableAnalyzedStatement analysis, C context) {
-        return visitDDLStatement(analysis, context);
-    }
-
     protected R visitCreateAnalyzerStatement(CreateAnalyzerAnalyzedStatement analysis, C context) {
         return visitDDLStatement(analysis, context);
     }
@@ -96,10 +92,6 @@ public class AnalyzedStatementVisitor<C, R> {
     }
 
     public R visitCreateBlobTableStatement(CreateBlobTableAnalyzedStatement analysis, C context) {
-        return visitDDLStatement(analysis, context);
-    }
-
-    public R visitDropBlobTableStatement(DropBlobTableAnalyzedStatement analysis, C context) {
         return visitDDLStatement(analysis, context);
     }
 
@@ -245,5 +237,9 @@ public class AnalyzedStatementVisitor<C, R> {
 
     public R visitReroutePromoteReplica(PromoteReplicaStatement promoteReplicaStatement, C context) {
         return visitDDLStatement(promoteReplicaStatement, context);
+    }
+
+    public R visitDropTable(DropTableAnalyzedStatement<?> dropTable, C context) {
+        return visitDDLStatement(dropTable, context);
     }
 }

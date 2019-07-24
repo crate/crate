@@ -42,7 +42,6 @@ import io.crate.analyze.DCLStatement;
 import io.crate.analyze.DDLStatement;
 import io.crate.analyze.DeallocateAnalyzedStatement;
 import io.crate.analyze.DropAnalyzerStatement;
-import io.crate.analyze.DropBlobTableAnalyzedStatement;
 import io.crate.analyze.DropTableAnalyzedStatement;
 import io.crate.analyze.DropViewStmt;
 import io.crate.analyze.ExplainAnalyzedStatement;
@@ -60,6 +59,7 @@ import io.crate.license.LicenseService;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.table.TableInfo;
 import io.crate.planner.consumer.UpdatePlanner;
 import io.crate.planner.node.dcl.GenericDCLPlan;
 import io.crate.planner.node.ddl.CreateDropAnalyzerPlan;
@@ -258,19 +258,12 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     }
 
     @Override
-    public Plan visitDropBlobTableStatement(DropBlobTableAnalyzedStatement analysis, PlannerContext context) {
-        if (analysis.noop()) {
+    public Plan visitDropTable(DropTableAnalyzedStatement<?> dropTable, PlannerContext context) {
+        TableInfo table = dropTable.table();
+        if (table == null) {
             return NoopPlan.INSTANCE;
         }
-        return visitDDLStatement(analysis, context);
-    }
-
-    @Override
-    protected Plan visitDropTableStatement(DropTableAnalyzedStatement analysis, PlannerContext context) {
-        if (analysis.noop()) {
-            return NoopPlan.INSTANCE;
-        }
-        return new DropTablePlan(analysis.table(), analysis.dropIfExists());
+        return new DropTablePlan(table, dropTable.dropIfExists());
     }
 
     @Override

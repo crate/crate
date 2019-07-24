@@ -24,8 +24,11 @@ package io.crate.analyze;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.SchemaUnknownException;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.table.TableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -83,28 +86,21 @@ public class DropTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testDropExistingTable() throws Exception {
-        AnalyzedStatement analyzedStatement = e.analyze(String.format(ENGLISH, "drop table %s", USER_TABLE_IDENT.name()));
-        assertThat(analyzedStatement, instanceOf(DropTableAnalyzedStatement.class));
-        DropTableAnalyzedStatement dropTableAnalysis = (DropTableAnalyzedStatement) analyzedStatement;
-        assertThat(dropTableAnalysis.dropIfExists(), is(false));
-        assertThat(dropTableAnalysis.index(), is(USER_TABLE_IDENT.name()));
+        DropTableAnalyzedStatement<DocTableInfo> dropTable = e.analyze(String.format(ENGLISH, "drop table %s", USER_TABLE_IDENT.name()));
+        assertThat(dropTable.dropIfExists(), is(false));
+        assertThat(dropTable.table().ident().indexNameOrAlias(), is(USER_TABLE_IDENT.name()));
     }
 
     @Test
     public void testDropIfExistExistingTable() throws Exception {
-        AnalyzedStatement analyzedStatement = e.analyze(String.format(ENGLISH, "drop table if exists %s", USER_TABLE_IDENT.name()));
-        assertThat(analyzedStatement, instanceOf(DropTableAnalyzedStatement.class));
-        DropTableAnalyzedStatement dropTableAnalysis = (DropTableAnalyzedStatement) analyzedStatement;
-        assertThat(dropTableAnalysis.dropIfExists(), is(true));
-        assertThat(dropTableAnalysis.index(), is(USER_TABLE_IDENT.name()));
+        DropTableAnalyzedStatement<DocTableInfo> dropTable = e.analyze(String.format(ENGLISH, "drop table if exists %s", USER_TABLE_IDENT.name()));
+        assertThat(dropTable.dropIfExists(), is(true));
+        assertThat(dropTable.table().ident().indexNameOrAlias(), is(USER_TABLE_IDENT.name()));
     }
 
     @Test
     public void testNonExistentTableIsRecognizedCorrectly() throws Exception {
-        AnalyzedStatement analyzedStatement = e.analyze("drop table if exists unknowntable");
-        assertThat(analyzedStatement, instanceOf(DropTableAnalyzedStatement.class));
-        DropTableAnalyzedStatement dropTableAnalysis = (DropTableAnalyzedStatement) analyzedStatement;
-        assertThat(dropTableAnalysis.dropIfExists(), is(true));
-        assertThat(dropTableAnalysis.noop(), is(true));
+        DropTableAnalyzedStatement<TableInfo> dropTable = e.analyze("drop table if exists unknowntable");
+        assertThat(dropTable.table(), Matchers.nullValue());
     }
 }

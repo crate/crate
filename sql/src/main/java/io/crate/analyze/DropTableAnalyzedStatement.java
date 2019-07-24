@@ -21,16 +21,33 @@
 
 package io.crate.analyze;
 
-import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.table.TableInfo;
 
-public class DropTableAnalyzedStatement extends AbstractDropTableAnalyzedStatement<DocTableInfo> {
+import javax.annotation.Nullable;
 
-    public DropTableAnalyzedStatement(DocTableInfo tableInfo, boolean isNoop, boolean dropIfExists) {
-        super(tableInfo, isNoop, dropIfExists);
+public final class DropTableAnalyzedStatement<T extends TableInfo> implements DDLStatement {
+
+    private final boolean dropIfExists;
+
+    @Nullable
+    private final T tableInfo;
+
+    DropTableAnalyzedStatement(@Nullable T tableInfo, boolean dropIfExists) {
+        this.tableInfo = tableInfo;
+        this.dropIfExists = dropIfExists;
+    }
+
+    @Nullable
+    public T table() {
+        return tableInfo;
+    }
+
+    public boolean dropIfExists() {
+        return dropIfExists;
     }
 
     @Override
-    public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
-        return analyzedStatementVisitor.visitDropTableStatement(this, context);
+    public <C, R> R accept(AnalyzedStatementVisitor<C, R> visitor, C context) {
+        return visitor.visitDropTable(this, context);
     }
 }

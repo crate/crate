@@ -25,9 +25,16 @@ import io.crate.action.sql.SessionContext;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.blob.BlobSchemaInfo;
+import io.crate.metadata.blob.BlobTableInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
+import io.crate.metadata.table.TableInfo;
+import io.crate.sql.tree.DropBlobTable;
 import io.crate.sql.tree.DropTable;
+import io.crate.sql.tree.QualifiedName;
+
+import java.util.List;
 
 class DropTableAnalyzer {
 
@@ -37,18 +44,35 @@ class DropTableAnalyzer {
         this.schemas = schemas;
     }
 
-    public DropTableAnalyzedStatement analyze(DropTable node, SessionContext sessionContext) {
-        DocTableInfo tableInfo = null;
-        boolean isNoop = false;
+    public DropTableAnalyzedStatement<DocTableInfo> analyze(DropTable node, SessionContext sessionContext) {
+        return analyze(node.table().getName(), node.dropIfExists(), sessionContext);
+    }
+
+    public DropTableAnalyzedStatement<BlobTableInfo> analyze(DropBlobTable node, SessionContext sessionContext) {
+        List<String> parts = node.table().getName().getParts();
+        if (parts.size() != 1 && !parts.get(0).equals(BlobSchemaInfo.NAME)) {
+            throw new IllegalArgumentException("No blob tables in schema `" + parts.get(0) + "`");
+        } else {
+            QualifiedName name = new QualifiedName(
+                List.of(BlobSchemaInfo.NAME, node.table().getName().getSuffix()));
+            return analyze(name, node.ignoreNonExistentTable(), sessionContext);
+        }
+    }
+
+    private <T extends TableInfo> DropTableAnalyzedStatement<T> analyze(QualifiedName name,
+                                                                        boolean dropIfExists,
+                                                                        SessionContext sessionContext) {
+        T tableInfo;
         try {
-            tableInfo = (DocTableInfo) schemas.resolveTableInfo(node.table().getName(), Operation.DROP, sessionContext.searchPath());
+            //noinspection unchecked
+            tableInfo = (T) schemas.resolveTableInfo(name, Operation.DROP, sessionContext.searchPath());
         } catch (SchemaUnknownException | RelationUnknown e) {
-            if (node.dropIfExists()) {
-                isNoop = true;
+            if (dropIfExists) {
+                tableInfo = null;
             } else {
                 throw e;
             }
         }
-        return new DropTableAnalyzedStatement(tableInfo, isNoop, node.dropIfExists());
+        return new DropTableAnalyzedStatement<>(tableInfo, dropIfExists);
     }
 }

@@ -27,6 +27,7 @@ import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.metadata.blob.BlobSchemaInfo;
+import io.crate.metadata.blob.BlobTableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
@@ -132,20 +133,21 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testDropBlobTable() {
-        DropBlobTableAnalyzedStatement analysis = e.analyze("drop blob table blobs");
-        assertThat(analysis.tableIdent().name(), is("blobs"));
-        assertThat(analysis.tableIdent().schema(), is(BlobSchemaInfo.NAME));
+        DropTableAnalyzedStatement<BlobTableInfo> analysis = e.analyze("drop blob table blobs");
+        assertThat(analysis.table().ident().name(), is("blobs"));
+        assertThat(analysis.table().ident().schema(), is(BlobSchemaInfo.NAME));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testDropBlobTableWithInvalidSchema() {
+        expectedException.expectMessage("No blob tables in schema `doc`");
         e.analyze("drop blob table doc.users");
     }
 
     @Test
     public void testDropBlobTableWithValidSchema() {
-        DropBlobTableAnalyzedStatement analysis = e.analyze("drop blob table \"blob\".blobs");
-        assertThat(analysis.tableIdent().name(), is("blobs"));
+        DropTableAnalyzedStatement<BlobTableInfo> analysis = e.analyze("drop blob table \"blob\".blobs");
+        assertThat(analysis.table().ident().name(), is("blobs"));
     }
 
     @Test(expected = RelationUnknown.class)
@@ -155,15 +157,14 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testDropBlobTableIfExists() {
-        DropBlobTableAnalyzedStatement analysis = e.analyze("drop blob table if exists blobs");
+        DropTableAnalyzedStatement<BlobTableInfo> analysis = e.analyze("drop blob table if exists blobs");
         assertThat(analysis.dropIfExists(), is(true));
-        assertThat(analysis.tableIdent().name(), is("blobs"));
-        assertThat(analysis.tableIdent().schema(), is(BlobSchemaInfo.NAME));
+        assertThat(analysis.table().ident().fqn(), is("blob.blobs"));
     }
 
     @Test
     public void testDropNonExistentBlobTableIfExists() {
-        DropBlobTableAnalyzedStatement analysis = e.analyze("drop blob table if exists unknown");
+        DropTableAnalyzedStatement<BlobTableInfo> analysis = e.analyze("drop blob table if exists unknown");
         assertThat(analysis.dropIfExists(), is(true));
     }
 

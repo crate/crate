@@ -113,7 +113,6 @@ public class Analyzer {
     private final CreateBlobTableAnalyzer createBlobTableAnalyzer;
     private final CreateAnalyzerStatementAnalyzer createAnalyzerStatementAnalyzer;
     private final DropAnalyzerStatementAnalyzer dropAnalyzerStatementAnalyzer;
-    private final DropBlobTableAnalyzer dropBlobTableAnalyzer;
     private final UserManager userManager;
     private final RefreshTableAnalyzer refreshTableAnalyzer;
     private final OptimizeTableAnalyzer optimizeTableAnalyzer;
@@ -160,7 +159,6 @@ public class Analyzer {
         this.relationAnalyzer = relationAnalyzer;
         this.schemas = schemas;
         this.dropTableAnalyzer = new DropTableAnalyzer(schemas);
-        this.dropBlobTableAnalyzer = new DropBlobTableAnalyzer(schemas);
         this.userManager = userManager;
         FulltextAnalyzerResolver fulltextAnalyzerResolver =
             new FulltextAnalyzerResolver(clusterService, analysisRegistry);
@@ -335,7 +333,7 @@ public class Analyzer {
 
         @Override
         public AnalyzedStatement visitDropBlobTable(DropBlobTable node, Analysis context) {
-            return dropBlobTableAnalyzer.analyze(node);
+            return dropTableAnalyzer.analyze(node, context.sessionContext());
         }
 
         @Override
