@@ -78,9 +78,9 @@ public class DropTablePlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testDropBlobTableIfExistsCreatesIterablePlan() throws Exception {
+    public void testDropBlobTableIfExistsCreatesDropTablePlan() throws Exception {
         Plan plan = e.plan("drop blob table if exists screenshots");
-        assertThat(plan, instanceOf(GenericDDLPlan.class));
+        assertThat(plan, instanceOf(DropTablePlan.class));
     }
 
     @Test

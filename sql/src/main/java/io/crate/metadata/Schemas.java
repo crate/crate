@@ -106,7 +106,7 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         String identSchema = schemaName(ident);
         String tableName = relationName(ident);
 
-        SchemaInfo schemaInfo = null;
+        SchemaInfo schemaInfo;
         TableInfo tableInfo = null;
         if (identSchema == null) {
             for (String pathSchema : searchPath) {
@@ -126,11 +126,9 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
                 tableInfo = schemaInfo.getTableInfo(tableName);
             }
         }
-
         if (tableInfo == null) {
             throw new RelationUnknown(ident.toString());
         }
-
         Operation.blockedRaiseException(tableInfo, operation);
         return tableInfo;
     }

@@ -29,6 +29,7 @@ import io.crate.data.RowConsumer;
 import io.crate.execution.ddl.tables.DropTableRequest;
 import io.crate.execution.ddl.tables.DropTableResponse;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.table.TableInfo;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
@@ -46,16 +47,16 @@ public class DropTablePlan implements Plan {
     private static final Row ROW_ZERO = new Row1(0L);
     private static final Row ROW_ONE = new Row1(1L);
 
-    private final DocTableInfo table;
+    private final TableInfo table;
     private final boolean ifExists;
 
-    public DropTablePlan(DocTableInfo table, boolean ifExists) {
+    public DropTablePlan(TableInfo table, boolean ifExists) {
         this.table = table;
         this.ifExists = ifExists;
     }
 
     @VisibleForTesting
-    public DocTableInfo tableInfo() {
+    public TableInfo tableInfo() {
         return table;
     }
 
@@ -70,8 +71,9 @@ public class DropTablePlan implements Plan {
                               RowConsumer consumer,
                               Row params,
                               SubQueryResults subQueryResults) {
-        DropTableRequest request = new DropTableRequest(table.ident(), table.isPartitioned());
-        dependencies.transportDropTableAction().execute(request, new ActionListener<DropTableResponse>() {
+        boolean isPartitioned = table instanceof DocTableInfo && ((DocTableInfo) table).isPartitioned();
+        DropTableRequest request = new DropTableRequest(table.ident(), isPartitioned);
+        dependencies.transportDropTableAction().execute(request, new ActionListener<>() {
             @Override
             public void onResponse(DropTableResponse response) {
                 if (!response.isAcknowledged()) {

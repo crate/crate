@@ -37,7 +37,6 @@ import io.crate.analyze.CreateRepositoryAnalyzedStatement;
 import io.crate.analyze.CreateSnapshotAnalyzedStatement;
 import io.crate.analyze.CreateTableAnalyzedStatement;
 import io.crate.analyze.CreateUserAnalyzedStatement;
-import io.crate.analyze.DropBlobTableAnalyzedStatement;
 import io.crate.analyze.DropFunctionAnalyzedStatement;
 import io.crate.analyze.DropRepositoryAnalyzedStatement;
 import io.crate.analyze.DropSnapshotAnalyzedStatement;
@@ -227,11 +226,6 @@ public class DDLStatementDispatcher {
         @Override
         public CompletableFuture<Long> visitAlterBlobTableStatement(AlterBlobTableAnalyzedStatement analysis, Ctx ctx) {
             return blobAdminClient.get().alterBlobTable(analysis.table().ident().name(), analysis.tableParameter().settings());
-        }
-
-        @Override
-        public CompletableFuture<Long> visitDropBlobTableStatement(DropBlobTableAnalyzedStatement analysis, Ctx ctx) {
-            return blobAdminClient.get().dropBlobTable(analysis.table().ident().name());
         }
 
         @Override

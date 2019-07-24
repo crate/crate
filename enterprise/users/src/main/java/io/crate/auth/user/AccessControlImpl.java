@@ -42,7 +42,6 @@ import io.crate.analyze.CreateTableAnalyzedStatement;
 import io.crate.analyze.CreateUserAnalyzedStatement;
 import io.crate.analyze.CreateViewStmt;
 import io.crate.analyze.DeallocateAnalyzedStatement;
-import io.crate.analyze.DropBlobTableAnalyzedStatement;
 import io.crate.analyze.DropFunctionAnalyzedStatement;
 import io.crate.analyze.DropRepositoryAnalyzedStatement;
 import io.crate.analyze.DropSnapshotAnalyzedStatement;
@@ -80,6 +79,7 @@ import io.crate.exceptions.UnscopedException;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.SetStatement;
 
 import java.util.Locale;
@@ -361,13 +361,16 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        protected Void visitDropTableStatement(DropTableAnalyzedStatement analysis, User user) {
-            Privileges.ensureUserHasPrivilege(
-                Privilege.Type.DDL,
-                Privilege.Clazz.TABLE,
-                analysis.tableIdent().toString(),
-                user,
-                defaultSchema);
+        public Void visitDropTable(DropTableAnalyzedStatement<?> dropTable, User user) {
+            TableInfo table = dropTable.table();
+            if (table != null) {
+                Privileges.ensureUserHasPrivilege(
+                    Privilege.Type.DDL,
+                    Privilege.Clazz.TABLE,
+                    table.ident().toString(),
+                    user,
+                    defaultSchema);
+            }
             return null;
         }
 
@@ -388,17 +391,6 @@ public final class AccessControlImpl implements AccessControl {
                 Privilege.Type.DDL,
                 Privilege.Clazz.SCHEMA,
                 analysis.tableIdent().schema(),
-                user,
-                defaultSchema);
-            return null;
-        }
-
-        @Override
-        public Void visitDropBlobTableStatement(DropBlobTableAnalyzedStatement analysis, User user) {
-            Privileges.ensureUserHasPrivilege(
-                Privilege.Type.DDL,
-                Privilege.Clazz.TABLE,
-                analysis.tableIdent().toString(),
                 user,
                 defaultSchema);
             return null;
