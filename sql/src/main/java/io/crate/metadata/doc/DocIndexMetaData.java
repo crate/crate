@@ -34,8 +34,8 @@ import io.crate.analyze.TableParameterInfo;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.TableReferenceResolver;
-import io.crate.common.collections.Lists2;
 import io.crate.analyze.relations.FieldProvider;
+import io.crate.common.collections.Lists2;
 import io.crate.common.collections.Maps;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
@@ -99,7 +99,7 @@ public class DocIndexMetaData {
     private final RelationName ident;
     private final int numberOfShards;
     private final String numberOfReplicas;
-    private final ImmutableMap<String, Object> tableParameters;
+    private final Map<String, Object> tableParameters;
     private final Map<String, Object> indicesMap;
     private final ImmutableList<ColumnIdent> partitionedBy;
     private final Set<Operation> supportedOperations;
@@ -650,7 +650,7 @@ public class DocIndexMetaData {
         return columnPolicy;
     }
 
-    public ImmutableMap<String, Object> tableParameters() {
+    public Map<String, Object> tableParameters() {
         return tableParameters;
     }
 

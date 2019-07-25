@@ -22,7 +22,6 @@
 package io.crate.metadata;
 
 import com.google.common.base.MoreObjects;
-import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.table.StoredTable;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.Nullable;
@@ -38,7 +37,7 @@ public class PartitionInfo implements StoredTable {
     private final Version versionUpgraded;
     private final boolean closed;
     private final Map<String, Object> values;
-    private final ImmutableMap<String, Object> tableParameters;
+    private final Map<String, Object> tableParameters;
 
     public PartitionInfo(PartitionName name,
                          int numberOfShards,
@@ -47,7 +46,7 @@ public class PartitionInfo implements StoredTable {
                          @Nullable Version versionUpgraded,
                          boolean closed,
                          Map<String, Object> values,
-                         ImmutableMap<String, Object> tableParameters) {
+                         Map<String, Object> tableParameters) {
         this.name = name;
         this.numberOfShards = numberOfShards;
         this.numberOfReplicas = numberOfReplicas;
@@ -112,7 +111,7 @@ public class PartitionInfo implements StoredTable {
             .toString();
     }
 
-    public ImmutableMap<String, Object> tableParameters() {
+    public Map<String, Object> tableParameters() {
         return tableParameters;
     }
 

@@ -245,8 +245,8 @@ public class MetaDataToASTNodeResolver {
             GenericProperties properties = new GenericProperties();
             Expression numReplicas = new StringLiteral(tableInfo.numberOfReplicas());
             properties.add(new GenericProperty(
-                    TableParameterInfo.NUMBER_OF_REPLICAS.getKey(),
-                    numReplicas
+                TableParameterInfo.NUMBER_OF_REPLICAS.getKey(),
+                numReplicas
                 )
             );
             // we want a sorted map of table parameters
