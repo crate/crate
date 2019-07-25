@@ -21,15 +21,12 @@
 
 package io.crate.analyze;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.metadata.settings.NumberOfReplicasSetting;
 import io.crate.metadata.settings.Validators;
 import io.crate.metadata.table.ColumnPolicies;
 import io.crate.sql.tree.ColumnPolicy;
-import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.routing.UnassignedInfo;
 import org.elasticsearch.cluster.routing.allocation.decider.EnableAllocationDecider;
@@ -41,7 +38,6 @@ import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.mapper.MapperService;
-import org.elasticsearch.index.translog.Translog;
 
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.ThreadSafe;
@@ -49,74 +45,62 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * Container for the supported settings that can be used in the `WITH` clause of `CREATE TABLE` statements
+ * or which can be updated via `ALTER TABLE SET` statements.
+ *
+ */
 @Immutable
 @ThreadSafe
 public class TableParameterInfo {
 
     // all available table settings
     static final NumberOfReplicasSetting NUMBER_OF_REPLICAS = new NumberOfReplicasSetting();
-    static final Setting<Integer> NUMBER_OF_SHARDS = IndexMetaData.INDEX_NUMBER_OF_SHARDS_SETTING;
-    public static final Setting<Boolean> READ_ONLY = IndexMetaData.INDEX_READ_ONLY_SETTING;
-    static final Setting<Boolean> READ_ONLY_ALLOW_DELETE = IndexMetaData.INDEX_BLOCKS_READ_ONLY_ALLOW_DELETE_SETTING;
-    public static final Setting<Boolean> BLOCKS_READ = IndexMetaData.INDEX_BLOCKS_READ_SETTING;
-    public static final Setting<Boolean> BLOCKS_WRITE = IndexMetaData.INDEX_BLOCKS_WRITE_SETTING;
-    public static final Setting<Boolean> BLOCKS_METADATA = IndexMetaData.INDEX_BLOCKS_METADATA_SETTING;
-    public static final Setting<Integer> TOTAL_SHARDS_PER_NODE = ShardsLimitAllocationDecider.INDEX_TOTAL_SHARDS_PER_NODE_SETTING;
-    public static final Setting<Long> MAPPING_TOTAL_FIELDS_LIMIT = MapperService.INDEX_MAPPING_TOTAL_FIELDS_LIMIT_SETTING;
-    public static final Setting<EnableAllocationDecider.Allocation> ROUTING_ALLOCATION_ENABLE =
-        EnableAllocationDecider.INDEX_ROUTING_ALLOCATION_ENABLE_SETTING;
-    public static final Setting<ActiveShardCount> SETTING_WAIT_FOR_ACTIVE_SHARDS = IndexMetaData.SETTING_WAIT_FOR_ACTIVE_SHARDS;
-    public static final Setting<ByteSizeValue> FLUSH_THRESHOLD_SIZE = IndexSettings.INDEX_TRANSLOG_FLUSH_THRESHOLD_SIZE_SETTING;
-    public static final Setting<Boolean> WARMER_ENABLED = IndexSettings.INDEX_WARMER_ENABLED_SETTING;
-    public static final Setting<TimeValue> TRANSLOG_SYNC_INTERVAL = IndexSettings.INDEX_TRANSLOG_SYNC_INTERVAL_SETTING;
-    public static final Setting<Translog.Durability> TRANSLOG_DURABILITY = IndexSettings.INDEX_TRANSLOG_DURABILITY_SETTING;
-    public static final Setting<TimeValue> REFRESH_INTERVAL = IndexSettings.INDEX_REFRESH_INTERVAL_SETTING;
-    public static final Setting<TimeValue> UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT = UnassignedInfo.INDEX_DELAYED_NODE_LEFT_TIMEOUT_SETTING;
-    static final Setting<Integer> ALLOCATION_MAX_RETRIES = MaxRetryAllocationDecider.SETTING_ALLOCATION_MAX_RETRY;
-    static final Setting<Integer> MAX_NGRAM_DIFF = IndexSettings.MAX_NGRAM_DIFF_SETTING;
-    static final Setting<Integer> MAX_SHINGLE_DIFF = IndexSettings.MAX_SHINGLE_DIFF_SETTING;
-    static final Setting<String> COLUMN_POLICY =
-        new Setting<String>(
-            new Setting.SimpleKey(ColumnPolicies.ES_MAPPING_NAME),
-            s -> ColumnPolicy.STRICT.lowerCaseName(),
-            s -> ColumnPolicies.encodeMappingValue(ColumnPolicy.of(s)),
-            o -> {
-                if (ColumnPolicies.encodeMappingValue(ColumnPolicy.IGNORED).equals(o)) {
-                    throw new IllegalArgumentException("Invalid value for argument '" + ColumnPolicies.CRATE_NAME + "'");
-                }
-            },
-            Setting.Property.IndexScope);
+    static final Setting<String> COLUMN_POLICY = new Setting<>(
+        new Setting.SimpleKey(ColumnPolicies.ES_MAPPING_NAME),
+        s -> ColumnPolicy.STRICT.lowerCaseName(),
+        s -> ColumnPolicies.encodeMappingValue(ColumnPolicy.of(s)),
+        o -> {
+            if (ColumnPolicies.encodeMappingValue(ColumnPolicy.IGNORED).equals(o)) {
+                throw new IllegalArgumentException("Invalid value for argument '" + ColumnPolicies.CRATE_NAME + "'");
+            }
+        },
+        Setting.Property.IndexScope
+    );
 
     // all available table mapping keys
 
     private static final List<Setting<?>> SUPPORTED_SETTINGS =
-        ImmutableList.<Setting<?>>builder()
-            .add(NUMBER_OF_REPLICAS)
-            .add(REFRESH_INTERVAL)
-            .add(READ_ONLY)
-            .add(READ_ONLY_ALLOW_DELETE)
-            .add(BLOCKS_READ)
-            .add(BLOCKS_WRITE)
-            .add(BLOCKS_METADATA)
-            .add(FLUSH_THRESHOLD_SIZE)
-            .add(ROUTING_ALLOCATION_ENABLE)
-            .add(TRANSLOG_SYNC_INTERVAL)
-            .add(TRANSLOG_DURABILITY)
-            .add(TOTAL_SHARDS_PER_NODE)
-            .add(MAPPING_TOTAL_FIELDS_LIMIT)
-            .add(WARMER_ENABLED)
-            .add(UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT)
-            .add(SETTING_WAIT_FOR_ACTIVE_SHARDS)
-            .add(ALLOCATION_MAX_RETRIES)
-            .add(MAX_NGRAM_DIFF)
-            .add(MAX_SHINGLE_DIFF)
-            .add(IndexMetaData.INDEX_NUMBER_OF_ROUTING_SHARDS_SETTING)
-            .add(IndexMetaData.INDEX_ROUTING_REQUIRE_GROUP_SETTING)
-            .add(IndexMetaData.INDEX_ROUTING_INCLUDE_GROUP_SETTING)
-            .add(IndexMetaData.INDEX_ROUTING_EXCLUDE_GROUP_SETTING)
-            .build();
+        List.of(
+            NUMBER_OF_REPLICAS,
+            IndexSettings.INDEX_REFRESH_INTERVAL_SETTING,
+            IndexMetaData.INDEX_READ_ONLY_SETTING,
+            IndexMetaData.INDEX_BLOCKS_READ_ONLY_ALLOW_DELETE_SETTING,
+            IndexMetaData.INDEX_BLOCKS_READ_SETTING,
+            IndexMetaData.INDEX_BLOCKS_WRITE_SETTING,
+            IndexMetaData.INDEX_BLOCKS_METADATA_SETTING,
+            IndexSettings.INDEX_TRANSLOG_FLUSH_THRESHOLD_SIZE_SETTING,
+            EnableAllocationDecider.INDEX_ROUTING_ALLOCATION_ENABLE_SETTING,
+            IndexSettings.INDEX_TRANSLOG_SYNC_INTERVAL_SETTING,
+            IndexSettings.INDEX_TRANSLOG_DURABILITY_SETTING,
+            ShardsLimitAllocationDecider.INDEX_TOTAL_SHARDS_PER_NODE_SETTING,
+            MapperService.INDEX_MAPPING_TOTAL_FIELDS_LIMIT_SETTING,
+            IndexSettings.INDEX_WARMER_ENABLED_SETTING,
+            UnassignedInfo.INDEX_DELAYED_NODE_LEFT_TIMEOUT_SETTING,
+            IndexMetaData.SETTING_WAIT_FOR_ACTIVE_SHARDS,
+            MaxRetryAllocationDecider.SETTING_ALLOCATION_MAX_RETRY,
+            IndexSettings.MAX_NGRAM_DIFF_SETTING,
+            IndexSettings.MAX_SHINGLE_DIFF_SETTING,
+            IndexMetaData.INDEX_NUMBER_OF_ROUTING_SHARDS_SETTING,
+            IndexMetaData.INDEX_ROUTING_REQUIRE_GROUP_SETTING,
+            IndexMetaData.INDEX_ROUTING_INCLUDE_GROUP_SETTING,
+            IndexMetaData.INDEX_ROUTING_EXCLUDE_GROUP_SETTING
+        );
 
-    static final Set<Setting> SETTINGS_WITH_OTHER_SETTING_FALLBACK = ImmutableSet.of(
+    /**
+     * Settings which have a default value that depends on other settings
+     */
+    static final Set<Setting> SETTINGS_WITH_COMPUTED_DEFAULT = Set.of(
         IndexMetaData.INDEX_NUMBER_OF_ROUTING_SHARDS_SETTING
     );
 
@@ -125,42 +109,41 @@ public class TableParameterInfo {
             .stream()
             .collect(ImmutableMap.toImmutableMap((s) -> stripDotSuffix(stripIndexPrefix(s.getKey())), s -> s));
 
-    private static final List<Setting<?>> EXCLUDED_SETTING_FOR_METADATA_IMPORT = List.of(NUMBER_OF_REPLICAS);
+    private static final Set<Setting<?>> EXCLUDED_SETTING_FOR_METADATA_IMPORT = Set.of(NUMBER_OF_REPLICAS);
 
     private static final Map<String, Setting<?>> SUPPORTED_SETTINGS_INCL_SHARDS
         = ImmutableMap.<String, Setting<?>>builder()
             .putAll(SUPPORTED_SETTINGS_DEFAULT)
-            .put(stripIndexPrefix(NUMBER_OF_SHARDS.getKey()), NUMBER_OF_SHARDS)
+            .put(stripIndexPrefix(IndexMetaData.INDEX_NUMBER_OF_SHARDS_SETTING.getKey()), IndexMetaData.INDEX_NUMBER_OF_SHARDS_SETTING)
             .build();
-
-    private static final Map<String, Setting<?>> SUPPORTED_SETTINGS_FOR_BLOB_CREATION
-        = ImmutableMap.<String, Setting<?>>builder()
-            .put(NUMBER_OF_REPLICAS.getKey(), NUMBER_OF_REPLICAS)
-            .put("blobs_path",
-                Setting.simpleString(BlobIndicesService.SETTING_INDEX_BLOBS_PATH.getKey(),
-                Validators.stringValidator("blobs_path")))
-            .build();
-
-    private static final Map<String, Setting<?>> SUPPORTED_SETTINGS_FOR_BLOB_ALTERING = Map.of(
-        NUMBER_OF_REPLICAS.getKey(), NUMBER_OF_REPLICAS);
 
     private static final Map<String, Setting<?>> SUPPORTED_MAPPINGS_DEFAULT = Map.of("column_policy", COLUMN_POLICY);
 
-    private static final Map<String, Setting<?>> EMPTY_MAP = Map.of();
-
     static final TableParameterInfo TABLE_CREATE_PARAMETER_INFO
         = new TableParameterInfo(SUPPORTED_SETTINGS_DEFAULT, SUPPORTED_MAPPINGS_DEFAULT);
+
     static final TableParameterInfo TABLE_ALTER_PARAMETER_INFO
         = new TableParameterInfo(SUPPORTED_SETTINGS_INCL_SHARDS, SUPPORTED_MAPPINGS_DEFAULT);
-    public static final TableParameterInfo PARTITIONED_TABLE_PARAMETER_INFO_FOR_TEMPLATE_UPDATE
-        = new TableParameterInfo(SUPPORTED_SETTINGS_DEFAULT, EMPTY_MAP);
-    static final TableParameterInfo PARTITION_PARAMETER_INFO
-        = new TableParameterInfo(SUPPORTED_SETTINGS_INCL_SHARDS, EMPTY_MAP);
-    static final TableParameterInfo BLOB_TABLE_CREATE_PARAMETER_INFO
-        = new TableParameterInfo(SUPPORTED_SETTINGS_FOR_BLOB_CREATION, EMPTY_MAP);
-    public static final TableParameterInfo BLOB_TABLE_ALTER_PARAMETER_INFO
-        = new TableParameterInfo(SUPPORTED_SETTINGS_FOR_BLOB_ALTERING, EMPTY_MAP);
 
+    public static final TableParameterInfo PARTITIONED_TABLE_PARAMETER_INFO_FOR_TEMPLATE_UPDATE
+        = new TableParameterInfo(SUPPORTED_SETTINGS_DEFAULT, Map.of());
+
+    static final TableParameterInfo PARTITION_PARAMETER_INFO
+        = new TableParameterInfo(SUPPORTED_SETTINGS_INCL_SHARDS, Map.of());
+
+    static final TableParameterInfo CREATE_BLOB_TABLE_PARAMETERS = new TableParameterInfo(
+        Map.of(
+            NUMBER_OF_REPLICAS.getKey(), NUMBER_OF_REPLICAS,
+            "blobs_path", Setting.simpleString(
+                BlobIndicesService.SETTING_INDEX_BLOBS_PATH.getKey(), Validators.stringValidator("blobs_path"))
+        ),
+        Map.of()
+    );
+
+    public static final TableParameterInfo ALTER_BLOB_TABLE_PARAMETERS = new TableParameterInfo(
+        Map.of(NUMBER_OF_REPLICAS.getKey(), NUMBER_OF_REPLICAS),
+        Map.of()
+    );
 
     private final Map<String, Setting<?>> supportedSettings;
     private final Map<String, Setting<?>> supportedMappings;
@@ -198,7 +181,7 @@ public class TableParameterInfo {
         return key;
     }
 
-    public static ImmutableMap<String, Object> tableParametersFromIndexMetaData(IndexMetaData metaData) {
+    public static Map<String, Object> tableParametersFromIndexMetaData(IndexMetaData metaData) {
         Settings settings = metaData.getSettings();
         ImmutableMap.Builder<String, Object> builder = ImmutableMap.builder();
         for (Setting setting : SUPPORTED_SETTINGS) {

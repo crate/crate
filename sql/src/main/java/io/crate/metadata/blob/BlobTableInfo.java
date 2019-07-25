@@ -60,7 +60,7 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
     private final String index;
     private final LinkedHashSet<Reference> columns = new LinkedHashSet<>();
     private final String blobsPath;
-    private final TableParameterInfo tableParameterInfo;
+    private final TableParameterInfo supportedTableParameters;
     private final Map<String, Object> tableParameters;
     private final Version versionCreated;
     private final Version versionUpgraded;
@@ -89,7 +89,7 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
         this.numberOfShards = numberOfShards;
         this.numberOfReplicas = numberOfReplicas;
         this.blobsPath = blobsPath;
-        this.tableParameterInfo = TableParameterInfo.BLOB_TABLE_ALTER_PARAMETER_INFO;
+        this.supportedTableParameters = TableParameterInfo.ALTER_BLOB_TABLE_PARAMETERS;
         this.tableParameters = tableParameters;
         this.versionCreated = versionCreated;
         this.versionUpgraded = versionUpgraded;
@@ -171,8 +171,8 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
         return blobsPath;
     }
 
-    public TableParameterInfo tableParameterInfo() {
-        return tableParameterInfo;
+    public TableParameterInfo tableParameters() {
+        return supportedTableParameters;
     }
 
     public Map<String, Object> parameters() {

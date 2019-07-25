@@ -46,12 +46,12 @@ class AlterBlobTableAnalyzer {
         if (!node.genericProperties().isEmpty()) {
             TablePropertiesAnalyzer.analyze(
                 tableParameter,
-                tableInfo.tableParameterInfo(),
+                tableInfo.tableParameters(),
                 node.genericProperties(),
                 parameters
             );
         } else if (!node.resetProperties().isEmpty()) {
-            TablePropertiesAnalyzer.analyzeResetProperties(tableParameter, tableInfo.tableParameterInfo(), node.resetProperties());
+            TablePropertiesAnalyzer.analyzeResetProperties(tableParameter, tableInfo.tableParameters(), node.resetProperties());
         }
         return new AlterBlobTableAnalyzedStatement(tableInfo, tableParameter);
     }
