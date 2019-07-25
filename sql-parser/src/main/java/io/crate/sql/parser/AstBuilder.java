@@ -1391,7 +1391,8 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     @Override
     public Node visitFromStringLiteralCast(SqlBaseParser.FromStringLiteralCastContext context) {
         ColumnType targetType = (ColumnType) visit(context.dataType());
-        if (targetType.type() != ColumnType.Type.PRIMITIVE) {
+
+        if (targetType instanceof CollectionColumnType || targetType instanceof ObjectColumnType) {
             throw new UnsupportedOperationException("type 'string' cast notation only supports primitive types. " +
                                                     "Use '::' or cast() operator instead.");
         }
@@ -1623,7 +1624,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     @Override
     public Node visitArrayTypeDefinition(SqlBaseParser.ArrayTypeDefinitionContext context) {
-        return CollectionColumnType.array((ColumnType) visit(context.dataType()));
+        return new CollectionColumnType((ColumnType) visit(context.dataType()));
     }
 
     @Override

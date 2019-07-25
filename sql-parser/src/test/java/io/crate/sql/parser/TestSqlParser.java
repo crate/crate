@@ -59,6 +59,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 public class TestSqlParser {
+
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
@@ -422,7 +423,7 @@ public class TestSqlParser {
     @Test
     public void testDataTypesWithWhitespaceCharacters() {
         Cast cast = (Cast) SqlParser.createExpression("1::double precision");
-        assertThat(cast.getType().type(), is(ColumnType.Type.PRIMITIVE));
+        assertThat(cast.getType().getClass(), is(ColumnType.class));
         assertThat(cast.getType().name(), is("double precision"));
     }
 
