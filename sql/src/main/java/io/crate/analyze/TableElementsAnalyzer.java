@@ -115,8 +115,7 @@ public class TableElementsAnalyzer {
         }
     }
 
-    private static class InnerTableElementsAnalyzer
-        extends DefaultTraversalVisitor<Void, ColumnDefinitionContext> {
+    private static class InnerTableElementsAnalyzer extends DefaultTraversalVisitor<Void, ColumnDefinitionContext> {
 
         @Override
         public Void visitColumnDefinition(ColumnDefinition node, ColumnDefinitionContext context) {
@@ -158,7 +157,7 @@ public class TableElementsAnalyzer {
                     Reference parentRef = context.tableInfo.getReference(parent.ident());
                     if (parentRef != null) {
                         parent.position = parentRef.column().isTopLevel() ? parentRef.position() : null;
-                        if (parentRef.valueType().equals(new ArrayType(ObjectType.untyped()))) {
+                        if (parentRef.valueType().equals(new ArrayType<>(ObjectType.untyped()))) {
                             parent.collectionType(ArrayType.NAME);
                         } else {
                             parent.objectType(parentRef.columnPolicy());
@@ -217,14 +216,9 @@ public class TableElementsAnalyzer {
 
         @Override
         public Void visitCollectionColumnType(CollectionColumnType node, ColumnDefinitionContext context) {
-            if (node.type() == ColumnType.Type.SET) {
-                throw new UnsupportedOperationException("the SET dataType is currently not supported");
-            }
-
             context.analyzedColumnDefinition.collectionType(ArrayType.NAME);
 
-            if (node.innerType().type() != ColumnType.Type.PRIMITIVE &&
-                node.innerType().type() != ColumnType.Type.OBJECT) {
+            if (node.innerType() instanceof CollectionColumnType) {
                 throw new UnsupportedOperationException("Nesting ARRAY or SET types is not supported");
             }
 

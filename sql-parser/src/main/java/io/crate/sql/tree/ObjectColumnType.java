@@ -21,8 +21,6 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.Objects;
-
 import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Optional;
@@ -33,7 +31,7 @@ public class ObjectColumnType extends ColumnType {
     private final List<ColumnDefinition> nestedColumns;
 
     public ObjectColumnType(@Nullable String objectType, List<ColumnDefinition> nestedColumns) {
-        super("object", Type.OBJECT);
+        super("object");
         this.objectType = objectType == null ? Optional.empty() : Optional.of(ColumnPolicy.of(objectType));
         this.nestedColumns = nestedColumns;
     }
@@ -47,26 +45,35 @@ public class ObjectColumnType extends ColumnType {
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hashCode(name, objectType, nestedColumns);
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitObjectColumnType(this, context);
     }
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        if (!super.equals(o)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        if (!super.equals(o)) {
+            return false;
+        }
 
         ObjectColumnType that = (ObjectColumnType) o;
 
-        if (!nestedColumns.equals(that.nestedColumns)) return false;
-        if (!objectType.equals(that.objectType)) return false;
-
-        return true;
+        if (!objectType.equals(that.objectType)) {
+            return false;
+        }
+        return nestedColumns.equals(that.nestedColumns);
     }
 
     @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitObjectColumnType(this, context);
+    public int hashCode() {
+        int result = super.hashCode();
+        result = 31 * result + objectType.hashCode();
+        result = 31 * result + nestedColumns.hashCode();
+        return result;
     }
 }

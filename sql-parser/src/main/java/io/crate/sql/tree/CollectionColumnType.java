@@ -21,10 +21,6 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.Objects;
-
-import java.util.Locale;
-
 /**
  * columntype that contains many values of a single type
  */
@@ -32,16 +28,8 @@ public class CollectionColumnType extends ColumnType {
 
     private final ColumnType innerType;
 
-    public static CollectionColumnType array(ColumnType innerType) {
-        return new CollectionColumnType(innerType, Type.ARRAY);
-    }
-
-    public static CollectionColumnType set(ColumnType innerType) {
-        return new CollectionColumnType(innerType, Type.SET);
-    }
-
-    private CollectionColumnType(ColumnType innerType, Type type) {
-        super(type.name().toUpperCase(Locale.ENGLISH), type);
+    public CollectionColumnType(ColumnType innerType) {
+        super("ARRAY");
         this.innerType = innerType;
     }
 
@@ -50,21 +38,27 @@ public class CollectionColumnType extends ColumnType {
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hashCode(name, type, innerType);
-    }
-
-    @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        if (!super.equals(o)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        if (!super.equals(o)) {
+            return false;
+        }
 
         CollectionColumnType that = (CollectionColumnType) o;
 
-        if (!innerType.equals(that.innerType)) return false;
+        return innerType.equals(that.innerType);
+    }
 
-        return true;
+    @Override
+    public int hashCode() {
+        int result = super.hashCode();
+        result = 31 * result + innerType.hashCode();
+        return result;
     }
 
     @Override

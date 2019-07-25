@@ -125,7 +125,7 @@ public class MetaDataToASTNodeResolver {
                     } else {
                         innerColumnType = new ColumnType(innerType.getName());
                     }
-                    columnType = CollectionColumnType.array(innerColumnType);
+                    columnType = new CollectionColumnType(innerColumnType);
                 } else {
                     columnType = new ColumnType(info.valueType().getName());
                 }
