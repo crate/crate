@@ -36,14 +36,14 @@ public final class TablePropertiesAnalyzer {
     }
 
     public static void analyze(TableParameter tableParameter,
-                               TableParameterInfo tableParameters,
+                               TableParameters tableParameters,
                                GenericProperties properties,
                                Row parameters) {
         analyze(tableParameter, tableParameters, properties, parameters, false);
     }
 
     public static void analyze(TableParameter tableParameter,
-                               TableParameterInfo tableParameters,
+                               TableParameters tableParameters,
                                GenericProperties properties,
                                Row parameters,
                                boolean withDefaults) {
@@ -74,7 +74,7 @@ public final class TablePropertiesAnalyzer {
      * default value.
      */
     static void analyzeResetProperties(TableParameter tableParameter,
-                                       TableParameterInfo tableParameters,
+                                       TableParameters tableParameters,
                                        List<String> properties) {
         Map<String, Setting<?>> settingMap = tableParameters.supportedSettings();
         Map<String, Setting<?>> mappingsMap = tableParameters.supportedMappings();

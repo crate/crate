@@ -246,7 +246,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             "SET (column_policy = 'strict')");
         assertEquals(
             ColumnPolicy.STRICT.lowerCaseName(),
-            analysisSet.tableParameter().mappings().get(TableParameterInfo.COLUMN_POLICY.getKey()));
+            analysisSet.tableParameter().mappings().get(TableParameters.COLUMN_POLICY.getKey()));
     }
 
     @Test

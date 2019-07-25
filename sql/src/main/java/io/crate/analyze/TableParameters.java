@@ -52,7 +52,7 @@ import java.util.Set;
  */
 @Immutable
 @ThreadSafe
-public class TableParameterInfo {
+public class TableParameters {
 
     // all available table settings
     static final NumberOfReplicasSetting NUMBER_OF_REPLICAS = new NumberOfReplicasSetting();
@@ -119,19 +119,19 @@ public class TableParameterInfo {
 
     private static final Map<String, Setting<?>> SUPPORTED_MAPPINGS_DEFAULT = Map.of("column_policy", COLUMN_POLICY);
 
-    static final TableParameterInfo TABLE_CREATE_PARAMETER_INFO
-        = new TableParameterInfo(SUPPORTED_SETTINGS_DEFAULT, SUPPORTED_MAPPINGS_DEFAULT);
+    static final TableParameters TABLE_CREATE_PARAMETER_INFO
+        = new TableParameters(SUPPORTED_SETTINGS_DEFAULT, SUPPORTED_MAPPINGS_DEFAULT);
 
-    static final TableParameterInfo TABLE_ALTER_PARAMETER_INFO
-        = new TableParameterInfo(SUPPORTED_SETTINGS_INCL_SHARDS, SUPPORTED_MAPPINGS_DEFAULT);
+    static final TableParameters TABLE_ALTER_PARAMETER_INFO
+        = new TableParameters(SUPPORTED_SETTINGS_INCL_SHARDS, SUPPORTED_MAPPINGS_DEFAULT);
 
-    public static final TableParameterInfo PARTITIONED_TABLE_PARAMETER_INFO_FOR_TEMPLATE_UPDATE
-        = new TableParameterInfo(SUPPORTED_SETTINGS_DEFAULT, Map.of());
+    public static final TableParameters PARTITIONED_TABLE_PARAMETER_INFO_FOR_TEMPLATE_UPDATE
+        = new TableParameters(SUPPORTED_SETTINGS_DEFAULT, Map.of());
 
-    static final TableParameterInfo PARTITION_PARAMETER_INFO
-        = new TableParameterInfo(SUPPORTED_SETTINGS_INCL_SHARDS, Map.of());
+    static final TableParameters PARTITION_PARAMETER_INFO
+        = new TableParameters(SUPPORTED_SETTINGS_INCL_SHARDS, Map.of());
 
-    static final TableParameterInfo CREATE_BLOB_TABLE_PARAMETERS = new TableParameterInfo(
+    static final TableParameters CREATE_BLOB_TABLE_PARAMETERS = new TableParameters(
         Map.of(
             NUMBER_OF_REPLICAS.getKey(), NUMBER_OF_REPLICAS,
             "blobs_path", Setting.simpleString(
@@ -140,7 +140,7 @@ public class TableParameterInfo {
         Map.of()
     );
 
-    public static final TableParameterInfo ALTER_BLOB_TABLE_PARAMETERS = new TableParameterInfo(
+    public static final TableParameters ALTER_BLOB_TABLE_PARAMETERS = new TableParameters(
         Map.of(NUMBER_OF_REPLICAS.getKey(), NUMBER_OF_REPLICAS),
         Map.of()
     );
@@ -148,7 +148,7 @@ public class TableParameterInfo {
     private final Map<String, Setting<?>> supportedSettings;
     private final Map<String, Setting<?>> supportedMappings;
 
-    protected TableParameterInfo(Map<String, Setting<?>> supportedSettings, Map<String, Setting<?>> supportedMappings) {
+    protected TableParameters(Map<String, Setting<?>> supportedSettings, Map<String, Setting<?>> supportedMappings) {
         this.supportedSettings = supportedSettings;
         this.supportedMappings = supportedMappings;
     }
