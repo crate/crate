@@ -56,7 +56,7 @@ public class CreateBlobTableAnalyzer {
         // apply default in case it is not specified in the genericProperties,
         // if it is it will get overwritten afterwards.
         TablePropertiesAnalyzer.analyze(
-            statement.tableParameter(), TableParameterInfo.CREATE_BLOB_TABLE_PARAMETERS,
+            statement.tableParameter(), TableParameters.CREATE_BLOB_TABLE_PARAMETERS,
             node.genericProperties(), parameterContext.parameters(), true);
 
         return statement;

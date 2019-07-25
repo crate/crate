@@ -30,7 +30,7 @@ import org.elasticsearch.common.settings.Settings;
 
 import java.util.function.Function;
 
-import static io.crate.analyze.TableParameterInfo.stripIndexPrefix;
+import static io.crate.analyze.TableParameters.stripIndexPrefix;
 
 public class NumberOfReplicasSetting extends Setting<Settings> {
 

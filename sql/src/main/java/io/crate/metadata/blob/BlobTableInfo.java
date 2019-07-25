@@ -23,7 +23,7 @@ package io.crate.metadata.blob;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.action.sql.SessionContext;
-import io.crate.analyze.TableParameterInfo;
+import io.crate.analyze.TableParameters;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
@@ -60,7 +60,7 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
     private final String index;
     private final LinkedHashSet<Reference> columns = new LinkedHashSet<>();
     private final String blobsPath;
-    private final TableParameterInfo supportedTableParameters;
+    private final TableParameters supportedTableParameters;
     private final Map<String, Object> tableParameters;
     private final Version versionCreated;
     private final Version versionUpgraded;
@@ -89,7 +89,7 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
         this.numberOfShards = numberOfShards;
         this.numberOfReplicas = numberOfReplicas;
         this.blobsPath = blobsPath;
-        this.supportedTableParameters = TableParameterInfo.ALTER_BLOB_TABLE_PARAMETERS;
+        this.supportedTableParameters = TableParameters.ALTER_BLOB_TABLE_PARAMETERS;
         this.tableParameters = tableParameters;
         this.versionCreated = versionCreated;
         this.versionUpgraded = versionUpgraded;
@@ -171,7 +171,7 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
         return blobsPath;
     }
 
-    public TableParameterInfo tableParameters() {
+    public TableParameters tableParameters() {
         return supportedTableParameters;
     }
 

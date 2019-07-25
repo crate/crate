@@ -30,7 +30,7 @@ import com.google.common.collect.ImmutableSortedSet;
 import io.crate.Constants;
 import io.crate.analyze.NumberOfReplicas;
 import io.crate.analyze.ParamTypeHints;
-import io.crate.analyze.TableParameterInfo;
+import io.crate.analyze.TableParameters;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.TableReferenceResolver;
@@ -134,7 +134,7 @@ public class DocIndexMetaData {
         Settings settings = metaData.getSettings();
         this.numberOfReplicas = NumberOfReplicas.fromSettings(settings);
         this.mappingMap = getMappingMap(metaData);
-        this.tableParameters = TableParameterInfo.tableParametersFromIndexMetaData(metaData);
+        this.tableParameters = TableParameters.tableParametersFromIndexMetaData(metaData);
 
         Map<String, Object> metaMap = Maps.get(mappingMap, "_meta");
         indicesMap = Maps.getOrDefault(metaMap, "indices", ImmutableMap.of());
