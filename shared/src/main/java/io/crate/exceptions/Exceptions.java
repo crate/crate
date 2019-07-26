@@ -36,6 +36,14 @@ public final class Exceptions {
         Exceptions.rethrow(ex);
     }
 
+    public static <T> T rethrowRuntimeException(Throwable t) {
+        if (t instanceof RuntimeException) {
+            throw (RuntimeException) t;
+        } else {
+            throw new RuntimeException(t);
+        }
+    }
+
     @SuppressWarnings("unchecked")
     private static <T extends Throwable> void rethrow(final Throwable t) throws T {
         throw (T) t;

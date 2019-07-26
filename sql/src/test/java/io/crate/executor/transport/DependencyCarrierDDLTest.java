@@ -23,13 +23,10 @@ package io.crate.executor.transport;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.crate.Constants;
 import io.crate.data.Bucket;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
-import io.crate.metadata.IndexParts;
-import io.crate.metadata.PartitionName;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
@@ -38,22 +35,17 @@ import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.Literal;
 import io.crate.testing.TestingRowConsumer;
-import org.elasticsearch.action.admin.indices.alias.Alias;
-import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.collect.MapBuilder;
-import org.elasticsearch.common.settings.Settings;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import static io.crate.testing.TestingHelpers.isRow;
-import static java.util.Collections.singletonList;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
@@ -61,20 +53,6 @@ import static org.mockito.Mockito.mock;
 public class DependencyCarrierDDLTest extends SQLTransportIntegrationTest {
 
     private DependencyCarrier executor;
-
-    private final static Map<String, Object> TEST_PARTITIONED_MAPPING = ImmutableMap.<String, Object>of(
-        "_meta", ImmutableMap.of(
-            "partitioned_by", ImmutableList.of(Arrays.asList("name", "string"))
-        ),
-        "properties", ImmutableMap.of(
-            "id", ImmutableMap.builder()
-                .put("type", "integer").build(),
-            "names", ImmutableMap.builder()
-                .put("type", "keyword").build()
-        ));
-    private final static Settings TEST_SETTINGS = Settings.builder()
-        .put("number_of_replicas", 0)
-        .put("number_of_shards", 2).build();
 
     @Before
     public void transportSetup() {
@@ -87,63 +65,6 @@ public class DependencyCarrierDDLTest extends SQLTransportIntegrationTest {
             .setPersistentSettings(MapBuilder.newMapBuilder().put("stats.enabled", null).map())
             .setTransientSettings(MapBuilder.newMapBuilder().put("stats.enabled", null).put("bulk.request_timeout", null).map())
             .execute().actionGet();
-    }
-
-    @Test
-    public void testCreateTableWithOrphanedPartitions() throws Exception {
-        String partitionName = IndexParts.toIndexName(
-            sqlExecutor.getCurrentSchema(),
-            "test",
-            PartitionName.encodeIdent(singletonList("foo"))
-        );
-        client().admin().indices().prepareCreate(partitionName)
-            .addMapping(Constants.DEFAULT_MAPPING_TYPE, TEST_PARTITIONED_MAPPING)
-            .setSettings(TEST_SETTINGS)
-            .execute().actionGet();
-        ensureGreen();
-
-        execute("create table test (id integer, name string, names string) partitioned by (id)");
-        ensureYellow();
-        execute("select * from information_schema.tables where table_name = 'test'");
-        assertThat(response.rowCount(), is(1L));
-
-        execute("select count(*) from information_schema.columns where table_name = 'test'");
-        assertThat((Long) response.rows()[0][0], is(3L));
-
-        // check that orphaned partition has been deleted
-        assertThat(internalCluster().clusterService().state().metaData().hasIndex(partitionName), is(false));
-    }
-
-    @Test
-    public void testCreateTableWithOrphanedAlias() throws Exception {
-        String partitionName = IndexParts.toIndexName(
-            sqlExecutor.getCurrentSchema(), "test", PartitionName.encodeIdent(singletonList("foo")));
-        client().admin().indices().prepareCreate(partitionName)
-            .addMapping(Constants.DEFAULT_MAPPING_TYPE, TEST_PARTITIONED_MAPPING)
-            .setSettings(TEST_SETTINGS)
-            .addAlias(new Alias("test"))
-            .execute().actionGet();
-        ensureGreen();
-
-        execute("create table test (id integer, name string, names string) " +
-                "clustered into 2 shards " +
-                "partitioned by (id) with (number_of_replicas=0)");
-        assertThat(response.rowCount(), is(1L));
-        ensureGreen();
-
-        execute("select * from information_schema.tables where table_name = 'test'");
-        assertThat(response.rowCount(), is(1L));
-
-        execute("select count(*) from information_schema.columns where table_name = 'test'");
-        assertThat((Long) response.rows()[0][0], is(3L));
-
-        ClusterState state = internalCluster().clusterService().state();
-
-        // check that orphaned alias has been deleted
-        assertThat(state.metaData().hasAlias("test"), is(false));
-        // check that orphaned partition has been deleted
-
-        assertThat(state.metaData().hasIndex(partitionName), is(false));
     }
 
 
