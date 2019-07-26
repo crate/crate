@@ -25,7 +25,7 @@ massive amounts of machine data in real-time.
 .. toctree::
    :maxdepth: 2
 
-   run
+   cli-tools
    config/index
    general/index
    admin/index
