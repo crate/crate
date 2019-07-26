@@ -89,11 +89,6 @@ public class Setting<T> implements ToXContentObject {
 
     public enum Property {
         /**
-         * should be filtered in some api (mask password/credentials)
-         */
-        Filtered,
-
-        /**
          * iff this setting can be dynamically updateable
          */
         Dynamic,
@@ -312,13 +307,6 @@ public class Setting<T> implements ToXContentObject {
      */
     public EnumSet<Property> getProperties() {
         return properties;
-    }
-
-    /**
-     * Returns <code>true</code> if this setting must be filtered, otherwise <code>false</code>
-     */
-    public boolean isFiltered() {
-        return properties.contains(Property.Filtered);
     }
 
     /**
@@ -1354,7 +1342,7 @@ public class Setting<T> implements ToXContentObject {
 
     static void logSettingUpdate(Setting setting, Settings current, Settings previous, Logger logger) {
         if (logger.isInfoEnabled()) {
-            if (setting.isFiltered()) {
+            if (setting.isMasked()) {
                 logger.info("updating [{}]", setting.key);
             } else {
                 logger.info("updating [{}] from [{}] to [{}]", setting.key, setting.getRaw(previous), setting.getRaw(current));

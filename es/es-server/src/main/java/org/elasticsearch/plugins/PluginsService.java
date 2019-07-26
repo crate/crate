@@ -87,10 +87,6 @@ public class PluginsService {
         return plugins.stream().flatMap(p -> p.v2().getSettings().stream()).collect(Collectors.toList());
     }
 
-    public List<String> getPluginSettingsFilter() {
-        return plugins.stream().flatMap(p -> p.v2().getSettingsFilter().stream()).collect(Collectors.toList());
-    }
-
     /**
      * Constructs a new PluginService
      * @param settings The settings of the system

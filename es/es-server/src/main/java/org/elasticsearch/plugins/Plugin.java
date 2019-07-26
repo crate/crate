@@ -160,11 +160,6 @@ public abstract class Plugin implements Closeable {
     public List<Setting<?>> getSettings() { return Collections.emptyList(); }
 
     /**
-     * Returns a list of additional settings filter for this plugin
-     */
-    public List<String> getSettingsFilter() { return Collections.emptyList(); }
-
-    /**
      * Get the setting upgraders provided by this plugin.
      *
      * @return the settings upgraders

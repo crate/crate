@@ -161,6 +161,7 @@ import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toList;
 import static org.elasticsearch.cluster.node.DiscoveryNode.getRolesFromSettings;
+import static org.elasticsearch.discovery.DiscoverySettings.INITIAL_STATE_TIMEOUT_SETTING;
 
 /**
  * A node represent a node within a cluster ({@code cluster.name}). The {@link #client()} can be used
@@ -207,11 +208,6 @@ public class Node implements Closeable {
                 throw new IllegalArgumentException("indices.breaker.type must be one of [hierarchy, none] but was: " + s);
         }
     }, Setting.Property.NodeScope);
-
-    public static final Setting<TimeValue> INITIAL_STATE_TIMEOUT_SETTING =
-        Setting.positiveTimeSetting("discovery.initial_state_timeout", TimeValue.timeValueSeconds(30), Property.NodeScope);
-
-    private static final String CLIENT_TYPE = "node";
 
     private final Lifecycle lifecycle = new Lifecycle();
 
@@ -287,7 +283,6 @@ public class Node implements Closeable {
             resourcesToClose.add(() -> DeprecationLogger.removeThreadContext(threadPool.getThreadContext()));
 
             final List<Setting<?>> additionalSettings = new ArrayList<>(pluginsService.getPluginSettings());
-            final List<String> additionalSettingsFilter = new ArrayList<>(pluginsService.getPluginSettingsFilter());
             for (final ExecutorBuilder<?> builder : threadPool.builders()) {
                 additionalSettings.addAll(builder.getRegisteredSettings());
             }
@@ -303,8 +298,7 @@ public class Node implements Closeable {
                 .flatMap(List::stream)
                 .collect(Collectors.toSet());
 
-            final SettingsModule settingsModule =
-                new SettingsModule(this.settings, additionalSettings, additionalSettingsFilter, settingsUpgraders);
+            final SettingsModule settingsModule = new SettingsModule(this.settings, additionalSettings, settingsUpgraders);
             final NetworkService networkService = new NetworkService(
                 getCustomNameResolvers(pluginsService.filterPlugins(DiscoveryPlugin.class)));
 
