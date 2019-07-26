@@ -59,8 +59,8 @@ The ``cluster.graceful_stop.reallocate`` setting has been marked as deprecated.
 This setting was already being ignored, and setting the value to ``false``
 had no effect.
 
-The node decommission using the ``USR2`` :ref:`signals <cli_signals>` has now
-been deprecated in favour of the :ref:`ALTER CLUSTER DECOMISSION
+The node decommission using the ``USR2`` :ref:`signals <cli-crate-signals>` has
+now been deprecated in favour of the :ref:`ALTER CLUSTER DECOMISSION
 <alter_cluster_decommission>` statement.
 
 The ``CREATE INGEST`` and ``DROP INGEST`` rules have been marked
@@ -145,8 +145,8 @@ Deprecations
 - Marked the ``cluster.graceful_stop.reallocate`` setting as deprecated.
   This setting was already being ignored, setting the value to ``false`` has no effect.
 
-- The node decommission using the ``USR2`` :ref:`signal <cli_signals>` has been
-  deprecated in favour of the :ref:`ALTER CLUSTER DECOMISSION
+- The node decommission using the ``USR2`` :ref:`signal <cli-crate-signals>`
+  has been deprecated in favour of the :ref:`ALTER CLUSTER DECOMISSION
   <alter_cluster_decommission>` statement.
 
 - Marked ``CREATE INGEST`` and ``DROP INGEST`` as deprecated.
