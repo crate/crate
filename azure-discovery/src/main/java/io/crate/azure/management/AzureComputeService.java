@@ -37,16 +37,16 @@ public interface AzureComputeService extends LifecycleComponent {
 
     final class Management {
         public static final Setting<String> SUBSCRIPTION_ID = Setting.simpleString(
-            "cloud.azure.management.subscription.id", Setting.Property.NodeScope, Setting.Property.Filtered);
+            "cloud.azure.management.subscription.id", Setting.Property.NodeScope, Setting.Property.Masked);
         public static final Setting<String> RESOURCE_GROUP_NAME = Setting.simpleString(
             "cloud.azure.management.resourcegroup.name", Setting.Property.NodeScope);
 
         public static final Setting<String> TENANT_ID = Setting.simpleString(
-            "cloud.azure.management.tenant.id", Setting.Property.NodeScope, Setting.Property.Filtered);
+            "cloud.azure.management.tenant.id", Setting.Property.NodeScope, Setting.Property.Masked);
         public static final Setting<String> APP_ID = Setting.simpleString(
-            "cloud.azure.management.app.id", Setting.Property.NodeScope, Setting.Property.Filtered);
+            "cloud.azure.management.app.id", Setting.Property.NodeScope, Setting.Property.Masked);
         public static final Setting<String> APP_SECRET = Setting.simpleString(
-            "cloud.azure.management.app.secret", Setting.Property.NodeScope, Setting.Property.Filtered);
+            "cloud.azure.management.app.secret", Setting.Property.NodeScope, Setting.Property.Masked);
     }
 
     final class Discovery {

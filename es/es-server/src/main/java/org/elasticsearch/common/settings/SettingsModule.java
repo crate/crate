@@ -19,8 +19,6 @@
 
 package org.elasticsearch.common.settings;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.inject.Binder;
 import org.elasticsearch.common.inject.Module;
 
@@ -37,24 +35,20 @@ import java.util.Set;
  * A module that binds the provided settings to the {@link Settings} interface.
  */
 public class SettingsModule implements Module {
-    private static final Logger logger = LogManager.getLogger(SettingsModule.class);
 
     private final Settings settings;
-    private final Set<String> settingsFilterPattern = new HashSet<>();
     private final Map<String, Setting<?>> nodeSettings = new HashMap<>();
     private final Map<String, Setting<?>> indexSettings = new HashMap<>();
     private final IndexScopedSettings indexScopedSettings;
     private final ClusterSettings clusterSettings;
-    private final SettingsFilter settingsFilter;
 
     public SettingsModule(Settings settings, Setting<?>... additionalSettings) {
-        this(settings, Arrays.asList(additionalSettings), Collections.emptyList(), Collections.emptySet());
+        this(settings, Arrays.asList(additionalSettings), Collections.emptySet());
     }
 
     public SettingsModule(
             Settings settings,
             List<Setting<?>> additionalSettings,
-            List<String> settingsFilter,
             Set<SettingUpgrader<?>> settingUpgraders) {
         this.settings = settings;
         ArrayList<Setting<?>> maskedSettings = new ArrayList<>();
@@ -72,9 +66,6 @@ public class SettingsModule implements Module {
             if (setting.isMasked()) {
                 maskedSettings.add(setting);
             }
-        }
-        for (String filter : settingsFilter) {
-            registerSettingsFilter(filter);
         }
 
         final Set<SettingUpgrader<?>> clusterSettingUpgraders = new HashSet<>();
@@ -95,13 +86,11 @@ public class SettingsModule implements Module {
         }
         // by now we are fully configured, lets check node level settings for unregistered index settings
         clusterSettings.validate(settings, true);
-        this.settingsFilter = new SettingsFilter(settingsFilterPattern);
      }
 
     @Override
     public void configure(Binder binder) {
         binder.bind(Settings.class).toInstance(settings);
-        binder.bind(SettingsFilter.class).toInstance(settingsFilter);
         binder.bind(ClusterSettings.class).toInstance(clusterSettings);
         binder.bind(IndexScopedSettings.class).toInstance(indexScopedSettings);
     }
@@ -113,11 +102,6 @@ public class SettingsModule implements Module {
      * the setting during startup.
      */
     private void registerSetting(Setting<?> setting) {
-        if (setting.isFiltered()) {
-            if (settingsFilterPattern.contains(setting.getKey()) == false) {
-                registerSettingsFilter(setting.getKey());
-            }
-        }
         if (setting.hasNodeScope() || setting.hasIndexScope()) {
             if (setting.hasNodeScope()) {
                 Setting<?> existingSetting = nodeSettings.get(setting.getKey());
@@ -138,20 +122,6 @@ public class SettingsModule implements Module {
         }
     }
 
-    /**
-     * Registers a settings filter pattern that allows to filter out certain settings that for instance contain sensitive information
-     * or if a setting is for internal purposes only. The given pattern must either be a valid settings key or a simple regexp pattern.
-     */
-    private void registerSettingsFilter(String filter) {
-        if (SettingsFilter.isValidPattern(filter) == false) {
-            throw new IllegalArgumentException("filter [" + filter +"] is invalid must be either a key or a regex pattern");
-        }
-        if (settingsFilterPattern.contains(filter)) {
-            throw new IllegalArgumentException("filter [" + filter + "] has already been registered");
-        }
-        settingsFilterPattern.add(filter);
-    }
-
     public Settings getSettings() {
         return settings;
     }
@@ -163,9 +133,4 @@ public class SettingsModule implements Module {
     public ClusterSettings getClusterSettings() {
         return clusterSettings;
     }
-
-    public SettingsFilter getSettingsFilter() {
-        return settingsFilter;
-    }
-
 }

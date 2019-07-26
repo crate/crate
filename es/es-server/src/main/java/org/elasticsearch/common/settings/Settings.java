@@ -598,13 +598,12 @@ public final class Settings implements ToXContentFragment {
 
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        Settings settings = SettingsFilter.filterSettings(params, this);
         if (!params.paramAsBoolean("flat_settings", false)) {
-            for (Map.Entry<String, Object> entry : settings.getAsStructuredMap().entrySet()) {
+            for (Map.Entry<String, Object> entry : getAsStructuredMap().entrySet()) {
                 builder.field(entry.getKey(), entry.getValue());
             }
         } else {
-            for (Map.Entry<String, Object> entry : settings.settings.entrySet()) {
+            for (Map.Entry<String, Object> entry : settings.entrySet()) {
                 builder.field(entry.getKey(), entry.getValue());
             }
         }

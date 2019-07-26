@@ -30,93 +30,17 @@ import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.MockLogAppender;
 import org.junit.Test;
 
-import java.io.IOException;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.function.Consumer;
-
-import static org.hamcrest.CoreMatchers.equalTo;
 
 public class SettingsFilterTests extends ESTestCase {
 
     @Test
-    public void testAddingAndRemovingFilters() {
-        HashSet<String> hashSet = new HashSet<>(Arrays.asList("foo", "bar", "baz"));
-        SettingsFilter settingsFilter = new SettingsFilter(hashSet);
-        assertEquals(settingsFilter.getPatterns(), hashSet);
-    }
-
-    @Test
-    public void testSettingsFiltering() throws IOException {
-
-        testFiltering(Settings.builder()
-                        .put("foo", "foo_test")
-                        .put("foo1", "foo1_test")
-                        .put("bar", "bar_test")
-                        .put("bar1", "bar1_test")
-                        .put("bar.2", "bar2_test")
-                        .build(),
-                    Settings.builder()
-                        .put("foo1", "foo1_test")
-                        .build(),
-                "foo", "bar*"
-        );
-
-        testFiltering(Settings.builder()
-                        .put("foo", "foo_test")
-                        .put("foo1", "foo1_test")
-                        .put("bar", "bar_test")
-                        .put("bar1", "bar1_test")
-                        .put("bar.2", "bar2_test")
-                        .build(),
-                Settings.builder()
-                        .put("foo", "foo_test")
-                        .put("foo1", "foo1_test")
-                        .build(),
-                "bar*"
-        );
-
-        testFiltering(Settings.builder()
-                        .put("foo", "foo_test")
-                        .put("foo1", "foo1_test")
-                        .put("bar", "bar_test")
-                        .put("bar1", "bar1_test")
-                        .put("bar.2", "bar2_test")
-                        .build(),
-                Settings.builder()
-                        .build(),
-                "foo", "bar*", "foo*"
-        );
-
-        testFiltering(Settings.builder()
-                        .put("foo", "foo_test")
-                        .put("bar", "bar_test")
-                        .put("baz", "baz_test")
-                        .build(),
-                Settings.builder()
-                        .put("foo", "foo_test")
-                        .put("bar", "bar_test")
-                        .put("baz", "baz_test")
-                        .build()
-        );
-
-        testFiltering(Settings.builder()
-                .put("a.b.something.d", "foo_test")
-                .put("a.b.something.c", "foo1_test")
-                .build(),
-            Settings.builder()
-                .put("a.b.something.c", "foo1_test")
-                .build(),
-            "a.b.*.d"
-        );
-    }
-
-    @Test
-    public void testFilteredSettingIsNotLogged() throws Exception {
+    public void testMaskedSettingIsNotLogged() throws Exception {
         Settings oldSettings = Settings.builder().put("key", "old").build();
         Settings newSettings = Settings.builder().put("key", "new").build();
 
-        Setting<String> filteredSetting = Setting.simpleString("key", Property.Filtered);
+        Setting<String> filteredSetting = Setting.simpleString("key", Property.Masked);
         assertExpectedLogMessages((testLogger) -> Setting.logSettingUpdate(filteredSetting, newSettings, oldSettings, testLogger),
             new MockLogAppender.SeenEventExpectation("secure logging", "org.elasticsearch.test", Level.INFO, "updating [key]"),
             new MockLogAppender.UnseenEventExpectation("unwanted old setting name", "org.elasticsearch.test", Level.INFO, "*old*"),
@@ -148,13 +72,5 @@ public class SettingsFilterTests extends ESTestCase {
         } finally {
             Loggers.removeAppender(testLogger, appender);
         }
-    }
-
-    private void testFiltering(Settings source, Settings filtered, String... patterns) throws IOException {
-        SettingsFilter settingsFilter = new SettingsFilter(Arrays.asList(patterns));
-
-        // Test using direct filtering
-        Settings filteredSettings = settingsFilter.filter(source);
-        assertThat(filteredSettings, equalTo(filtered));
     }
 }
