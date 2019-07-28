@@ -1,11 +1,19 @@
 ---
 trigger: none
 
+variables:
+  GRADLE_USER_HOME: $(Pipeline.Workspace)/.gradle
+
 jobs:
   - job: LinuxJDK11
     pool:
       vmImage: 'Ubuntu 16.04'
     steps:
+      - task: CacheBeta@0
+        inputs:
+          key: $(Agent.OS)
+          path: $(GRADLE_USER_HOME)
+        displayName: Gradle build cache
       - task: Gradle@2
         env:
           CRATE_TESTS_SQL_REQUEST_TIMEOUT: 20
@@ -18,12 +26,17 @@ jobs:
           jdkArchitectureOption: 'x64'
           publishJUnitResults: true
           testResultsFiles: '**/TEST-*.xml'
-          tasks: ':sql:test'
+          tasks: '--no-daemon --build-cache :sql:test'
 
   - job: Windows
     pool:
       vmImage: 'VS2017-Win2016'
     steps:
+      - task: CacheBeta@0
+        inputs:
+          key: $(Agent.OS)
+          path: $(GRADLE_USER_HOME)
+        displayName: Gradle build cache
       - task: Gradle@2
         env:
           CRATE_TESTS_SQL_REQUEST_TIMEOUT: 20
@@ -36,4 +49,4 @@ jobs:
           jdkArchitectureOption: 'x64'
           publishJUnitResults: true
           testResultsFiles: '**/TEST-*.xml'
-          tasks: ':sql:test'
+          tasks: '--no-daemon --build-cache :sql:test'
