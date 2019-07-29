@@ -62,8 +62,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -80,7 +80,7 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
     public static final String DIRECT_RESPONSE_PROFILE = ".direct";
     public static final String HANDSHAKE_ACTION_NAME = "internal:transport/handshake";
 
-    private final CountDownLatch blockIncomingRequestsLatch = new CountDownLatch(1);
+    private final AtomicBoolean handleIncomingRequests = new AtomicBoolean();
     private final DelegatingTransportMessageListener messageListener = new DelegatingTransportMessageListener();
     protected final Transport transport;
     protected final ConnectionManager connectionManager;
@@ -292,7 +292,7 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
      * this method is called
      */
     public final void acceptIncomingRequests() {
-        blockIncomingRequestsLatch.countDown();
+        handleIncomingRequests.set(true);
     }
 
     public TransportStats stats() {
@@ -911,10 +911,8 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
      */
     @Override
     public void onRequestReceived(long requestId, String action) {
-        try {
-            blockIncomingRequestsLatch.await();
-        } catch (InterruptedException e) {
-            LOGGER.trace("interrupted while waiting for incoming requests block to be removed");
+        if (handleIncomingRequests.get() == false) {
+            throw new IllegalStateException("transport not ready yet to handle incoming requests");
         }
         if (tracerLog.isTraceEnabled() && shouldTraceAction(action)) {
             tracerLog.trace("[{}][{}] received request", requestId, action);
