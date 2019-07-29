@@ -48,7 +48,7 @@ public class ExpressionToStringVisitor extends AstVisitor<String, Row> {
     }
 
     public static String convert(Node node, @Nullable Row context) {
-        return INSTANCE.process(node, context);
+        return node.accept(INSTANCE, context);
     }
 
     @Override
@@ -93,12 +93,14 @@ public class ExpressionToStringVisitor extends AstVisitor<String, Row> {
 
     @Override
     protected String visitNegativeExpression(NegativeExpression node, Row context) {
-        return "-" + process(node.getValue(), context);
+        return "-" + node.getValue().accept(this, context);
     }
 
     @Override
     protected String visitSubscriptExpression(SubscriptExpression node, Row context) {
-        return String.format(Locale.ENGLISH, "%s.%s", process(node.name(), context), process(node.index(), context));
+        return String.format(Locale.ENGLISH, "%s.%s",
+                             node.name().accept(this, context),
+                             node.index().accept(this, context));
     }
 
     @Override

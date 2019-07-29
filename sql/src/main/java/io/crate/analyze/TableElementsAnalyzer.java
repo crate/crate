@@ -74,7 +74,7 @@ public class TableElementsAnalyzer {
             int position = positionOffset + i + 1;
             ColumnDefinitionContext ctx = new ColumnDefinitionContext(
                 position, null, parameters, fulltextAnalyzerResolver, analyzedTableElements, relationName, tableInfo);
-            ANALYZER.process(tableElement, ctx);
+            tableElement.accept(ANALYZER, ctx);
             if (ctx.analyzedColumnDefinition.ident() != null) {
                 analyzedTableElements.add(ctx.analyzedColumnDefinition);
             }
@@ -121,10 +121,11 @@ public class TableElementsAnalyzer {
         public Void visitColumnDefinition(ColumnDefinition node, ColumnDefinitionContext context) {
             context.analyzedColumnDefinition.name(node.ident());
             for (ColumnConstraint columnConstraint : node.constraints()) {
-                process(columnConstraint, context);
+                columnConstraint.accept(this, context);
             }
-            if (node.type() != null) {
-                process(node.type(), context);
+            ColumnType type = node.type();
+            if (type != null) {
+                type.accept(this, context);
             }
             if (node.defaultExpression() != null) {
                 context.analyzedColumnDefinition.defaultExpression(node.defaultExpression());
@@ -173,10 +174,11 @@ public class TableElementsAnalyzer {
             }
 
             for (ColumnConstraint columnConstraint : node.constraints()) {
-                process(columnConstraint, context);
+                columnConstraint.accept(this, context);
             }
-            if (node.type() != null) {
-                process(node.type(), context);
+            ColumnType type = node.type();
+            if (type != null) {
+                type.accept(this, context);
             }
             if (node.generatedExpression() != null) {
                 context.analyzedColumnDefinition.generatedExpression(node.generatedExpression());
@@ -207,7 +209,7 @@ public class TableElementsAnalyzer {
                     context.relationName,
                     context.tableInfo
                 );
-                process(columnDefinition, childContext);
+                columnDefinition.accept(this, childContext);
                 context.analyzedColumnDefinition.addChild(childContext.analyzedColumnDefinition);
             }
 
@@ -222,7 +224,7 @@ public class TableElementsAnalyzer {
                 throw new UnsupportedOperationException("Nesting ARRAY or SET types is not supported");
             }
 
-            process(node.innerType(), context);
+            node.innerType().accept(this, context);
             return null;
         }
 

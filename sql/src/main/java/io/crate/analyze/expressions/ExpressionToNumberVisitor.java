@@ -41,7 +41,7 @@ public class ExpressionToNumberVisitor extends AstVisitor<Number, Row> {
     }
 
     public static Number convert(Node node, Row parameters) {
-        return INSTANCE.process(node, parameters);
+        return node.accept(INSTANCE, parameters);
     }
 
     private static Number parseString(String value) {
@@ -96,7 +96,7 @@ public class ExpressionToNumberVisitor extends AstVisitor<Number, Row> {
 
     @Override
     protected Number visitNegativeExpression(NegativeExpression node, Row context) {
-        Number n = process(node.getValue(), context);
+        Number n = node.getValue().accept(this, context);
         return NegativeExpression.negate(n);
     }
 

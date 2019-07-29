@@ -67,9 +67,8 @@ final class TreeAssertions {
     private static List<Node> linearizeTree(Node tree) {
         final ImmutableList.Builder<Node> nodes = ImmutableList.builder();
         new DefaultTraversalVisitor<Node, Void>() {
-            @Override
             public Node process(Node node, @Nullable Void context) {
-                Node result = super.process(node, context);
+                Node result = node.accept(this, context);
                 nodes.add(node);
                 return result;
             }

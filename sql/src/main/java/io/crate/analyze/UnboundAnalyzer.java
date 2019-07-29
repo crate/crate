@@ -73,7 +73,8 @@ class UnboundAnalyzer {
 
     public AnalyzedStatement analyze(Statement statement, SessionContext sessionContext, ParamTypeHints paramTypeHints) {
         CoordinatorTxnCtx coordinatorTxnCtx = new CoordinatorTxnCtx(sessionContext);
-        return dispatcher.process(statement, new Analysis(coordinatorTxnCtx, ParameterContext.EMPTY, paramTypeHints));
+        return statement.accept(dispatcher,
+                                new Analysis(coordinatorTxnCtx, ParameterContext.EMPTY, paramTypeHints));
     }
 
     private static class UnboundDispatcher extends AstVisitor<AnalyzedStatement, Analysis> {

@@ -226,7 +226,7 @@ public class Analyzer {
     }
 
     AnalyzedStatement analyzedStatement(Statement statement, Analysis analysis) {
-        AnalyzedStatement analyzedStatement = dispatcher.process(statement, analysis);
+        AnalyzedStatement analyzedStatement = statement.accept(dispatcher, analysis);
         assert analyzedStatement != null : "analyzed statement must not be null";
         return analyzedStatement;
     }
