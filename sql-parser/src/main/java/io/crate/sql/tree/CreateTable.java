@@ -24,20 +24,20 @@ package io.crate.sql.tree;
 import java.util.List;
 import java.util.Optional;
 
-public final class CreateTable extends Statement {
+public final class CreateTable<T> extends Statement {
 
-    private final Table name;
+    private final Table<T> name;
     private final List<TableElement> tableElements;
     private final Optional<PartitionedBy> partitionedBy;
     private final Optional<ClusteredBy> clusteredBy;
     private final boolean ifNotExists;
-    private final GenericProperties properties;
+    private final GenericProperties<T> properties;
 
-    public CreateTable(Table name,
+    public CreateTable(Table<T> name,
                        List<TableElement> tableElements,
                        Optional<PartitionedBy> partitionedBy,
                        Optional<ClusteredBy> clusteredBy,
-                       GenericProperties genericProperties,
+                       GenericProperties<T> genericProperties,
                        boolean ifNotExists) {
         this.name = name;
         this.tableElements = tableElements;
@@ -51,7 +51,7 @@ public final class CreateTable extends Statement {
         return ifNotExists;
     }
 
-    public Table name() {
+    public Table<T> name() {
         return name;
     }
 
@@ -67,7 +67,7 @@ public final class CreateTable extends Statement {
         return partitionedBy;
     }
 
-    public GenericProperties properties() {
+    public GenericProperties<T> properties() {
         return properties;
     }
 

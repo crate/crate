@@ -35,7 +35,7 @@ public class RerouteMoveShardAnalyzedStatement extends RerouteAnalyzedStatement 
     private final Expression toNodeIdOrName;
 
     public RerouteMoveShardAnalyzedStatement(ShardedTable tableInfo,
-                                             List<Assignment> partitionProperties,
+                                             List<Assignment<Expression>> partitionProperties,
                                              Expression shardId,
                                              Expression fromNodeIdOrName,
                                              Expression toNodeIdOrName) {

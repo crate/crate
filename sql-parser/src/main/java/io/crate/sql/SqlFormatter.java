@@ -396,7 +396,7 @@ public final class SqlFormatter {
         }
 
         @Override
-        protected Void visitTable(Table node, Integer indent) {
+        protected Void visitTable(Table<?> node, Integer indent) {
             if (node.excludePartitions()) {
                 builder.append("ONLY ");
             }

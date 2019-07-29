@@ -46,25 +46,29 @@ import java.util.Set;
  * d=[1, 2, 3, 'abc']
  * </code>
  */
-public class GenericProperties extends Node {
+public class GenericProperties<T> extends Node {
 
-    public static final GenericProperties EMPTY = new GenericProperties(ImmutableMap.of());
+    private static final GenericProperties<?> EMPTY = new GenericProperties<>(ImmutableMap.of());
 
-    private final Map<String, Expression> properties;
+    public static <T> GenericProperties<T> empty() {
+        return (GenericProperties<T>) EMPTY;
+    }
+
+    private final Map<String, T> properties;
 
     public GenericProperties() {
         properties = new HashMap<>();
     }
 
-    private GenericProperties(Map<String, Expression> map) {
+    private GenericProperties(Map<String, T> map) {
         this.properties = map;
     }
 
-    public Map<String, Expression> properties() {
+    public Map<String, T> properties() {
         return Collections.unmodifiableMap(properties);
     }
 
-    public Expression get(String key) {
+    public T get(String key) {
         return properties.get(key);
     }
 
@@ -73,7 +77,7 @@ public class GenericProperties extends Node {
      *
      * @param property
      */
-    public void add(GenericProperty property) {
+    public void add(GenericProperty<T> property) {
         properties.put(property.key(), property.value());
     }
 

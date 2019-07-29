@@ -31,6 +31,7 @@ import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.AlterTable;
 import io.crate.sql.tree.AlterTableRename;
 import io.crate.sql.tree.Assignment;
+import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.Table;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.settings.Settings;
@@ -49,7 +50,7 @@ public class AlterTableAnalyzer {
     }
 
     public AlterTableAnalyzedStatement analyze(AlterTable node, Row parameters, SessionContext sessionContext) {
-        Table table = node.table();
+        Table<Expression> table = node.table();
         DocTableInfo docTableInfo = (DocTableInfo) schemas.resolveTableInfo(table.getName(), Operation.ALTER_BLOCKS,
             sessionContext.searchPath());
         PartitionName partitionName = createPartitionName(table.partitionProperties(), docTableInfo, parameters);
@@ -123,7 +124,7 @@ public class AlterTableAnalyzer {
      * @return An instance of PartitionName based on the supplied partition properties, table info and params.
      */
     @Nullable
-    public static PartitionName createPartitionName(List<Assignment> partitionsProperties,
+    public static PartitionName createPartitionName(List<Assignment<Expression>> partitionsProperties,
                                                     DocTableInfo tableInfo,
                                                     Row parameters) {
         if (partitionsProperties.isEmpty()) {

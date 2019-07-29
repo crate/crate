@@ -121,7 +121,7 @@ public final class UpdateAnalyzer {
         return new AnalyzedUpdateStatement(table, assignmentByTargetCol, normalizedQuery);
     }
 
-    private HashMap<Reference, Symbol> getAssignments(List<Assignment> assignments,
+    private HashMap<Reference, Symbol> getAssignments(List<Assignment<Expression>> assignments,
                                                       ParamTypeHints typeHints,
                                                       CoordinatorTxnCtx txnCtx,
                                                       AbstractTableRelation table,
@@ -142,7 +142,7 @@ public final class UpdateAnalyzer {
             : "assignments should implement RandomAccess for indexed loop to avoid iterator allocations";
         TableInfo tableInfo = table.tableInfo();
         for (int i = 0; i < assignments.size(); i++) {
-            Assignment assignment = assignments.get(i);
+            Assignment<Expression> assignment = assignments.get(i);
             AssignmentNameValidator.ensureNoArrayElementUpdate(assignment.columnName());
 
             Symbol target = normalizer.normalize(targetExprAnalyzer.convert(assignment.columnName(), exprCtx), txnCtx);

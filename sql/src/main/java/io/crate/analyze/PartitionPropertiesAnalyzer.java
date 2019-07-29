@@ -31,6 +31,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.sql.tree.Assignment;
+import io.crate.sql.tree.Expression;
 import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
@@ -42,10 +43,10 @@ import java.util.Map;
 
 public class PartitionPropertiesAnalyzer {
 
-    public static Map<ColumnIdent, Object> assignmentsToMap(List<Assignment> assignments,
+    public static Map<ColumnIdent, Object> assignmentsToMap(List<Assignment<Expression>> assignments,
                                                             Row parameters) {
         Map<ColumnIdent, Object> map = new HashMap<>(assignments.size());
-        for (Assignment assignment : assignments) {
+        for (Assignment<Expression> assignment : assignments) {
             map.put(
                 ColumnIdent.fromPath(ExpressionToStringVisitor.convert(assignment.columnName(), parameters)),
                 ExpressionToObjectVisitor.convert(assignment.expression(), parameters)
@@ -55,7 +56,7 @@ public class PartitionPropertiesAnalyzer {
     }
 
     public static PartitionName toPartitionName(DocTableInfo tableInfo,
-                                                List<Assignment> partitionProperties,
+                                                List<Assignment<Expression>> partitionProperties,
                                                 Row parameters) {
         Preconditions.checkArgument(tableInfo.isPartitioned(), "table '%s' is not partitioned", tableInfo.ident().fqn());
         Preconditions.checkArgument(partitionProperties.size() == tableInfo.partitionedBy().size(),
@@ -85,7 +86,7 @@ public class PartitionPropertiesAnalyzer {
 
     public static PartitionName toPartitionName(RelationName relationName,
                                                 @Nullable DocTableInfo docTableInfo,
-                                                List<Assignment> partitionProperties,
+                                                List<Assignment<Expression>> partitionProperties,
                                                 Row parameters) {
         if (docTableInfo != null) {
             return toPartitionName(docTableInfo, partitionProperties, parameters);
@@ -103,7 +104,7 @@ public class PartitionPropertiesAnalyzer {
     }
 
     public static String toPartitionIdent(DocTableInfo tableInfo,
-                                          List<Assignment> partitionProperties,
+                                          List<Assignment<Expression>> partitionProperties,
                                           Row parameters) {
         return toPartitionName(tableInfo, partitionProperties, parameters).ident();
     }

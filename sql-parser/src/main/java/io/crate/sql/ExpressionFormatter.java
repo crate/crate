@@ -546,10 +546,10 @@ public final class ExpressionFormatter {
         }
 
         @Override
-        public String visitGenericProperties(GenericProperties node, @Nullable List<Expression> parameters) {
+        public String visitGenericProperties(GenericProperties<?> node, @Nullable List<Expression> parameters) {
             return " WITH (" +
                 node.properties().entrySet().stream()
-                    .map(prop -> prop.getKey() + "=" + prop.getValue().accept(this, null))
+                    .map(prop -> prop.getKey() + "=" + ((Expression) prop.getValue()).accept(this, null))
                     .collect(COMMA_JOINER) +
                 ")";
         }

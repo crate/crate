@@ -24,6 +24,7 @@ package io.crate.analyze;
 
 import io.crate.analyze.repositories.RepositoryParamValidator;
 import io.crate.analyze.repositories.RepositorySettingsModule;
+import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.GenericProperty;
 import io.crate.sql.tree.StringLiteral;
@@ -49,7 +50,7 @@ public class RepositoryParamValidatorTest extends CrateUnitTest {
     public void testValidate() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Invalid repository type \"invalid_type\"");
-        validator.convertAndValidate("invalid_type", GenericProperties.EMPTY, ParameterContext.EMPTY);
+        validator.convertAndValidate("invalid_type", GenericProperties.empty(), ParameterContext.EMPTY);
     }
 
     @Test
@@ -57,35 +58,35 @@ public class RepositoryParamValidatorTest extends CrateUnitTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage(
             "The following required parameters are missing to create a repository of type \"fs\": [location]");
-        validator.convertAndValidate("fs", GenericProperties.EMPTY, ParameterContext.EMPTY);
+        validator.convertAndValidate("fs", GenericProperties.empty(), ParameterContext.EMPTY);
     }
 
     @Test
     public void testInvalidSetting() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("setting 'yay' not supported");
-        GenericProperties genericProperties = new GenericProperties();
-        genericProperties.add(new GenericProperty("location", new StringLiteral("foo")));
-        genericProperties.add(new GenericProperty("yay", new StringLiteral("invalid")));
+        GenericProperties<Expression> genericProperties = new GenericProperties<>();
+        genericProperties.add(new GenericProperty<>("location", new StringLiteral("foo")));
+        genericProperties.add(new GenericProperty<>("yay", new StringLiteral("invalid")));
         validator.convertAndValidate("fs", genericProperties, ParameterContext.EMPTY);
     }
 
     @Test
     public void testHdfsDynamicConfParam() throws Exception {
-        GenericProperties genericProperties = new GenericProperties();
-        genericProperties.add(new GenericProperty("path", new StringLiteral("/data")));
-        genericProperties.add(new GenericProperty("conf.foobar", new StringLiteral("bar")));
+        GenericProperties<Expression> genericProperties = new GenericProperties<>();
+        genericProperties.add(new GenericProperty<>("path", new StringLiteral("/data")));
+        genericProperties.add(new GenericProperty<>("conf.foobar", new StringLiteral("bar")));
         Settings settings = validator.convertAndValidate("hdfs", genericProperties, ParameterContext.EMPTY);
         assertThat(settings.get("conf.foobar"), is("bar"));
     }
 
     @Test
     public void testHdfsSecurityPrincipal() throws Exception {
-        GenericProperties genericProperties = new GenericProperties();
-        genericProperties.add(new GenericProperty("uri", new StringLiteral("hdfs://ha-name:8020")));
-        genericProperties.add(new GenericProperty("security.principal", new StringLiteral("myuserid@REALM.DOMAIN")));
-        genericProperties.add(new GenericProperty("path", new StringLiteral("/user/name/data")));
-        genericProperties.add(new GenericProperty("conf.foobar", new StringLiteral("bar")));
+        GenericProperties<Expression> genericProperties = new GenericProperties<>();
+        genericProperties.add(new GenericProperty<>("uri", new StringLiteral("hdfs://ha-name:8020")));
+        genericProperties.add(new GenericProperty<>("security.principal", new StringLiteral("myuserid@REALM.DOMAIN")));
+        genericProperties.add(new GenericProperty<>("path", new StringLiteral("/user/name/data")));
+        genericProperties.add(new GenericProperty<>("conf.foobar", new StringLiteral("bar")));
         Settings settings = validator.convertAndValidate("hdfs", genericProperties, ParameterContext.EMPTY);
         assertThat(settings.get("security.principal"), is("myuserid@REALM.DOMAIN"));
         assertThat(settings.get("uri"), is("hdfs://ha-name:8020"));
@@ -93,19 +94,19 @@ public class RepositoryParamValidatorTest extends CrateUnitTest {
 
     @Test
     public void testS3ConfigParams() throws Exception {
-        GenericProperties genericProperties = new GenericProperties();
-        genericProperties.add(new GenericProperty("access_key", new StringLiteral("foobar")));
-        genericProperties.add(new GenericProperty("base_path", new StringLiteral("/data")));
-        genericProperties.add(new GenericProperty("bucket", new StringLiteral("myBucket")));
-        genericProperties.add(new GenericProperty("buffer_size", new StringLiteral("5mb")));
-        genericProperties.add(new GenericProperty("canned_acl", new StringLiteral("cannedACL")));
-        genericProperties.add(new GenericProperty("chunk_size", new StringLiteral("4g")));
-        genericProperties.add(new GenericProperty("compress", new StringLiteral("true")));
-        genericProperties.add(new GenericProperty("endpoint", new StringLiteral("myEndpoint")));
-        genericProperties.add(new GenericProperty("max_retries", new StringLiteral("8")));
-        genericProperties.add(new GenericProperty("protocol", new StringLiteral("http")));
-        genericProperties.add(new GenericProperty("secret_key", new StringLiteral("thisIsASecretKey")));
-        genericProperties.add(new GenericProperty("server_side_encryption", new StringLiteral("false")));
+        GenericProperties<Expression> genericProperties = new GenericProperties<>();
+        genericProperties.add(new GenericProperty<>("access_key", new StringLiteral("foobar")));
+        genericProperties.add(new GenericProperty<>("base_path", new StringLiteral("/data")));
+        genericProperties.add(new GenericProperty<>("bucket", new StringLiteral("myBucket")));
+        genericProperties.add(new GenericProperty<>("buffer_size", new StringLiteral("5mb")));
+        genericProperties.add(new GenericProperty<>("canned_acl", new StringLiteral("cannedACL")));
+        genericProperties.add(new GenericProperty<>("chunk_size", new StringLiteral("4g")));
+        genericProperties.add(new GenericProperty<>("compress", new StringLiteral("true")));
+        genericProperties.add(new GenericProperty<>("endpoint", new StringLiteral("myEndpoint")));
+        genericProperties.add(new GenericProperty<>("max_retries", new StringLiteral("8")));
+        genericProperties.add(new GenericProperty<>("protocol", new StringLiteral("http")));
+        genericProperties.add(new GenericProperty<>("secret_key", new StringLiteral("thisIsASecretKey")));
+        genericProperties.add(new GenericProperty<>("server_side_encryption", new StringLiteral("false")));
         Settings settings = validator.convertAndValidate("s3", genericProperties, ParameterContext.EMPTY);
         assertThat(settings.get("access_key"), is("foobar"));
         assertThat(settings.get("base_path"), is("/data"));

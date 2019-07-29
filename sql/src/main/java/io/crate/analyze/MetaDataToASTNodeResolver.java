@@ -85,8 +85,8 @@ public class MetaDataToASTNodeResolver {
             this.tableInfo = tableInfo;
         }
 
-        private Table extractTable() {
-            return new Table(QualifiedName.of(tableInfo.ident().fqn()), false);
+        private Table<Expression> extractTable() {
+            return new Table<>(QualifiedName.of(tableInfo.ident().fqn()), false);
         }
 
         private List<TableElement> extractTableElements() {
@@ -210,13 +210,13 @@ public class MetaDataToASTNodeResolver {
                     List<Expression> columns = expressionsFromReferences(indexRef.columns());
                     if (indexRef.indexType().equals(Reference.IndexType.ANALYZED)) {
                         String analyzer = indexRef.analyzer();
-                        GenericProperties properties = new GenericProperties();
+                        GenericProperties<Expression> properties = new GenericProperties<>();
                         if (analyzer != null) {
-                            properties.add(new GenericProperty(FulltextAnalyzerResolver.CustomType.ANALYZER.getName(), new StringLiteral(analyzer)));
+                            properties.add(new GenericProperty<>(FulltextAnalyzerResolver.CustomType.ANALYZER.getName(), new StringLiteral(analyzer)));
                         }
                         elements.add(new IndexDefinition(name, "fulltext", columns, properties));
                     } else if (indexRef.indexType().equals(Reference.IndexType.NOT_ANALYZED)) {
-                        elements.add(new IndexDefinition(name, "plain", columns, GenericProperties.EMPTY));
+                        elements.add(new IndexDefinition(name, "plain", columns, GenericProperties.empty()));
                     }
                 }
             }
@@ -240,11 +240,11 @@ public class MetaDataToASTNodeResolver {
             return Optional.of(new ClusteredBy(Optional.ofNullable(clusteredBy), Optional.of(numShards)));
         }
 
-        private GenericProperties extractTableProperties() {
+        private GenericProperties<Expression> extractTableProperties() {
             // WITH ( key = value, ... )
-            GenericProperties properties = new GenericProperties();
+            GenericProperties<Expression> properties = new GenericProperties<>();
             Expression numReplicas = new StringLiteral(tableInfo.numberOfReplicas());
-            properties.add(new GenericProperty(
+            properties.add(new GenericProperty<>(
                 TableParameters.NUMBER_OF_REPLICAS.getKey(),
                 numReplicas
                 )
@@ -252,13 +252,13 @@ public class MetaDataToASTNodeResolver {
             // we want a sorted map of table parameters
             TreeMap<String, Object> tableParameters = new TreeMap<>(tableInfo.parameters());
             for (Map.Entry<String, Object> entry : tableParameters.entrySet()) {
-                properties.add(new GenericProperty(
+                properties.add(new GenericProperty<>(
                         stripIndexPrefix(entry.getKey()),
                         Literal.fromObject(entry.getValue())
                     )
                 );
             }
-            properties.add(new GenericProperty(
+            properties.add(new GenericProperty<>(
                 "column_policy",
                 new StringLiteral(tableInfo.columnPolicy().lowerCaseName())
             ));
@@ -266,12 +266,12 @@ public class MetaDataToASTNodeResolver {
         }
 
 
-        private CreateTable extractCreateTable() {
-            Table table = extractTable();
+        private CreateTable<Expression> extractCreateTable() {
+            Table<Expression> table = extractTable();
             List<TableElement> tableElements = extractTableElements();
             Optional<PartitionedBy> partitionedBy = createPartitionedBy();
             Optional<ClusteredBy> clusteredBy = createClusteredBy();
-            return new CreateTable(table, tableElements, partitionedBy, clusteredBy, extractTableProperties(), true);
+            return new CreateTable<>(table, tableElements, partitionedBy, clusteredBy, extractTableProperties(), true);
         }
 
         private Expression expressionFromColumn(ColumnIdent ident) {
