@@ -249,7 +249,7 @@ public final class Lists2 {
 
         int firstLTEProbeIdx = -1;
         while (start <= end) {
-            int mid = (start + end) / 2;
+            int mid = (start + end) >>> 1;
             // Move to left side if mid is greater than probe
             if (cmp.compare(sortedItems.get(mid), probe) > 0) {
                 end = mid - 1;
@@ -272,7 +272,7 @@ public final class Lists2 {
 
         int firstGTEProbeIdx = -1;
         while (start <= end) {
-            int mid = (start + end) / 2;
+            int mid = (start + end) >>> 1;
             // Move to right side if mid is less than probe
             if (cmp.compare(sortedItems.get(mid), probe) < 0) {
                 start = mid + 1;
