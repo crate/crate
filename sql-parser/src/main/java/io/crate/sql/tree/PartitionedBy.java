@@ -22,19 +22,26 @@
 package io.crate.sql.tree;
 
 
+import io.crate.common.collections.Lists2;
+
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Function;
 
-public final class PartitionedBy extends Node {
+public final class PartitionedBy<T> extends Node {
 
-    private final List<Expression> columns;
+    private final List<T> columns;
 
-    public PartitionedBy(List<Expression> columns) {
+    public PartitionedBy(List<T> columns) {
         this.columns = columns;
     }
 
-    public List<Expression> columns() {
+    public List<T> columns() {
         return columns;
+    }
+
+    public <U> PartitionedBy<U> map(Function<? super T, ? extends U> mapper) {
+        return new PartitionedBy<>(Lists2.map(columns, mapper));
     }
 
     @Override

@@ -28,15 +28,15 @@ public final class CreateTable<T> extends Statement {
 
     private final Table<T> name;
     private final List<TableElement> tableElements;
-    private final Optional<PartitionedBy> partitionedBy;
-    private final Optional<ClusteredBy> clusteredBy;
+    private final Optional<PartitionedBy<T>> partitionedBy;
+    private final Optional<ClusteredBy<T>> clusteredBy;
     private final boolean ifNotExists;
     private final GenericProperties<T> properties;
 
     public CreateTable(Table<T> name,
                        List<TableElement> tableElements,
-                       Optional<PartitionedBy> partitionedBy,
-                       Optional<ClusteredBy> clusteredBy,
+                       Optional<PartitionedBy<T>> partitionedBy,
+                       Optional<ClusteredBy<T>> clusteredBy,
                        GenericProperties<T> genericProperties,
                        boolean ifNotExists) {
         this.name = name;
@@ -59,11 +59,11 @@ public final class CreateTable<T> extends Statement {
         return tableElements;
     }
 
-    public Optional<ClusteredBy> clusteredBy() {
+    public Optional<ClusteredBy<T>> clusteredBy() {
         return clusteredBy;
     }
 
-    public Optional<PartitionedBy> partitionedBy() {
+    public Optional<PartitionedBy<T>> partitionedBy() {
         return partitionedBy;
     }
 

@@ -223,21 +223,21 @@ public class MetaDataToASTNodeResolver {
             return elements;
         }
 
-        private Optional<PartitionedBy> createPartitionedBy() {
+        private Optional<PartitionedBy<Expression>> createPartitionedBy() {
             if (tableInfo.partitionedBy().isEmpty()) {
                 return Optional.empty();
             } else {
-                return Optional.of(new PartitionedBy(expressionsFromColumns(tableInfo.partitionedBy())));
+                return Optional.of(new PartitionedBy<>(expressionsFromColumns(tableInfo.partitionedBy())));
             }
         }
 
-        private Optional<ClusteredBy> createClusteredBy() {
+        private Optional<ClusteredBy<Expression>> createClusteredBy() {
             ColumnIdent clusteredByColumn = tableInfo.clusteredBy();
             Expression clusteredBy = clusteredByColumn == null || clusteredByColumn.isSystemColumn()
                 ? null
                 : expressionFromColumn(clusteredByColumn);
             Expression numShards = new LongLiteral(Integer.toString(tableInfo.numberOfShards()));
-            return Optional.of(new ClusteredBy(Optional.ofNullable(clusteredBy), Optional.of(numShards)));
+            return Optional.of(new ClusteredBy<>(Optional.ofNullable(clusteredBy), Optional.of(numShards)));
         }
 
         private GenericProperties<Expression> extractTableProperties() {
@@ -269,8 +269,8 @@ public class MetaDataToASTNodeResolver {
         private CreateTable<Expression> extractCreateTable() {
             Table<Expression> table = extractTable();
             List<TableElement> tableElements = extractTableElements();
-            Optional<PartitionedBy> partitionedBy = createPartitionedBy();
-            Optional<ClusteredBy> clusteredBy = createClusteredBy();
+            Optional<PartitionedBy<Expression>> partitionedBy = createPartitionedBy();
+            Optional<ClusteredBy<Expression>> clusteredBy = createClusteredBy();
             return new CreateTable<>(table, tableElements, partitionedBy, clusteredBy, extractTableProperties(), true);
         }
 

@@ -28,6 +28,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 
 /**
@@ -83,6 +85,14 @@ public class GenericProperties<T> extends Node {
 
     public boolean isEmpty() {
         return properties.isEmpty();
+    }
+
+    public <U> GenericProperties<U> map(Function<? super T, ? extends U> mapper) {
+        Map<String, U> mappedProperties = properties.entrySet().stream().collect(Collectors.toMap(
+            Map.Entry::getKey,
+            e -> mapper.apply(e.getValue())
+        ));
+        return new GenericProperties<>(mappedProperties);
     }
 
     @Override

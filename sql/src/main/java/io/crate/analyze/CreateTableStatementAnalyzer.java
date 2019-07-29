@@ -21,8 +21,12 @@
 
 package io.crate.analyze;
 
+import io.crate.analyze.expressions.ExpressionAnalysisContext;
+import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.ExpressionToStringVisitor;
+import io.crate.analyze.relations.FieldProvider;
 import io.crate.data.Row;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FulltextAnalyzerResolver;
@@ -54,6 +58,30 @@ public final class CreateTableStatementAnalyzer {
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
         this.functions = functions;
         this.numberOfShards = numberOfShards;
+    }
+
+    public AnalyzedCreateTable analyze(CreateTable<Expression> createTable,
+                                       ParamTypeHints typeHints,
+                                       CoordinatorTxnCtx txnCtx) {
+        RelationName relationName = RelationName
+            .of(createTable.name().getName(), txnCtx.sessionContext().searchPath().currentSchema());
+        relationName.ensureValidForRelationCreation();
+
+        var exprAnalyzerWithoutFields = new ExpressionAnalyzer(
+            functions, txnCtx, typeHints, FieldProvider.UNSUPPORTED, null);
+        var exprAnalyzerWithFieldsAsString = new ExpressionAnalyzer(
+            functions, txnCtx, typeHints, FieldProvider.FIELDS_AS_STRING, null);
+        var exprCtx = new ExpressionAnalysisContext();
+
+        CreateTable<Symbol> analyzedCreateTable = new CreateTable<>(
+            createTable.name().map(x -> exprAnalyzerWithFieldsAsString.convert(x, exprCtx)),
+            createTable.tableElements(),
+            createTable.partitionedBy().map(x -> x.map(y -> exprAnalyzerWithFieldsAsString.convert(y, exprCtx))),
+            createTable.clusteredBy().map(x -> x.map(y -> exprAnalyzerWithFieldsAsString.convert(y, exprCtx))),
+            createTable.properties().map(x -> exprAnalyzerWithoutFields.convert(x, exprCtx)),
+            createTable.ifNotExists()
+        );
+        return new AnalyzedCreateTable(relationName, analyzedCreateTable);
     }
 
     public CreateTableAnalyzedStatement analyze(CreateTable<Expression> createTable,
@@ -96,7 +124,7 @@ public final class CreateTableStatementAnalyzer {
         return statement;
     }
 
-    private void processClusteredBy(ClusteredBy clusteredBy,
+    private void processClusteredBy(ClusteredBy<Expression> clusteredBy,
                                     CreateTableAnalyzedStatement statement,
                                     ParameterContext parameterContext) {
         if (clusteredBy.column().isPresent()) {
@@ -126,7 +154,7 @@ public final class CreateTableStatementAnalyzer {
         );
     }
 
-    private void processPartitionedBy(PartitionedBy node,
+    private void processPartitionedBy(PartitionedBy<Expression> node,
                                       CreateTableAnalyzedStatement statement,
                                       ParameterContext parameterContext) {
         for (Expression partitionByColumn : node.columns()) {

@@ -23,8 +23,10 @@ package io.crate.sql.tree;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
+import io.crate.common.collections.Lists2;
 
 import java.util.List;
+import java.util.function.Function;
 
 public class Table<T> extends QueryBody {
 
@@ -58,6 +60,14 @@ public class Table<T> extends QueryBody {
 
     public List<Assignment<T>> partitionProperties() {
         return partitionProperties;
+    }
+
+    public <U> Table<U> map(Function<? super T, ? extends U> mapper) {
+        if (partitionProperties.isEmpty()) {
+            return new Table<>(name, excludePartitions);
+        } else {
+            return new Table<>(name, Lists2.map(partitionProperties, x -> x.map(mapper)));
+        }
     }
 
     @Override

@@ -21,6 +21,7 @@
 
 package io.crate.analyze.relations;
 
+import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
@@ -37,4 +38,6 @@ public interface FieldProvider<T extends Symbol> {
             "Columns cannot be used in this context. " +
             "Maybe you wanted to use a string literal which requires single quotes: '" + qualifiedName + "'");
     };
+
+    FieldProvider<Literal> FIELDS_AS_STRING = ((qualifiedName, path, operation) -> Literal.of(qualifiedName.toString()));
 }

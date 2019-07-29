@@ -242,4 +242,8 @@ public class AnalyzedStatementVisitor<C, R> {
     public R visitDropTable(DropTableAnalyzedStatement<?> dropTable, C context) {
         return visitDDLStatement(dropTable, context);
     }
+
+    public R visitCreateTable(AnalyzedCreateTable createTable, C context) {
+        return visitDDLStatement(createTable, context);
+    }
 }
