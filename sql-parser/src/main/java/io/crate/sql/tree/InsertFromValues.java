@@ -26,15 +26,15 @@ import com.google.common.base.Objects;
 
 import java.util.List;
 
-public class InsertFromValues extends Insert {
+public class InsertFromValues<T> extends Insert<T> {
 
     private final List<ValuesList> valuesLists;
     private final int maxValuesLength;
 
-    public InsertFromValues(Table table,
+    public InsertFromValues(Table<T> table,
                             List<ValuesList> valuesLists,
                             List<String> columns,
-                            DuplicateKeyContext duplicateKeyContext) {
+                            DuplicateKeyContext<T> duplicateKeyContext) {
         super(table, columns, duplicateKeyContext);
         this.valuesLists = valuesLists;
 

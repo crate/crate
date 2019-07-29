@@ -39,6 +39,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.ShardedTable;
 import io.crate.planner.operators.SubQueryResults;
+import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.types.DataTypes;
 import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteRequest;
@@ -170,7 +171,7 @@ public final class RerouteActions {
         return shardedTable.concreteIndices()[0];
     }
 
-    static boolean validateCancelRerouteProperty(String propertyKey, GenericProperties properties, Row parameters) throws IllegalArgumentException {
+    static boolean validateCancelRerouteProperty(String propertyKey, GenericProperties<Expression> properties, Row parameters) throws IllegalArgumentException {
         if (properties != null) {
             for (String key : properties.keys()) {
                 if (propertyKey.equals(key)) {

@@ -34,12 +34,12 @@ import com.google.common.base.Objects;
  * Instance of {@link io.crate.sql.tree.AnalyzerElement} but frequently used in other
  * {@link io.crate.sql.tree.GenericProperties} contexts.
  */
-public class GenericProperty extends AnalyzerElement {
+public class GenericProperty<T> extends AnalyzerElement {
 
     private final String key;
-    private final Expression value;
+    private final T value;
 
-    public GenericProperty(String key, Expression value) {
+    public GenericProperty(String key, T value) {
         this.key = key;
         this.value = value;
     }
@@ -49,7 +49,7 @@ public class GenericProperty extends AnalyzerElement {
         return key;
     }
 
-    public Expression value() {
+    public T value() {
         return value;
     }
 

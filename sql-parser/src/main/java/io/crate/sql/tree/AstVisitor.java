@@ -212,7 +212,7 @@ public abstract class AstVisitor<R, C> {
         return visitNode(node, context);
     }
 
-    protected R visitTable(Table node, C context) {
+    protected R visitTable(Table<?> node, C context) {
         return visitQueryBody(node, context);
     }
 
@@ -264,7 +264,7 @@ public abstract class AstVisitor<R, C> {
         return visitStatement(node, context);
     }
 
-    public R visitAssignment(Assignment node, C context) {
+    public R visitAssignment(Assignment<?> node, C context) {
         return visitNode(node, context);
     }
 
@@ -348,11 +348,11 @@ public abstract class AstVisitor<R, C> {
         return visitNode(node, context);
     }
 
-    public R visitGenericProperties(GenericProperties node, C context) {
+    public R visitGenericProperties(GenericProperties<?> node, C context) {
         return visitNode(node, context);
     }
 
-    public R visitGenericProperty(GenericProperty node, C context) {
+    public R visitGenericProperty(GenericProperty<?> node, C context) {
         return visitNode(node, context);
     }
 
@@ -492,7 +492,7 @@ public abstract class AstVisitor<R, C> {
         return visitTableElement(node, context);
     }
 
-    public R visitInsertFromValues(InsertFromValues node, C context) {
+    public R visitInsertFromValues(InsertFromValues<?> node, C context) {
         return visitInsert(node, context);
     }
 
@@ -500,7 +500,7 @@ public abstract class AstVisitor<R, C> {
         return visitLiteral(node, context);
     }
 
-    public R visitInsertFromSubquery(InsertFromSubquery node, C context) {
+    public R visitInsertFromSubquery(InsertFromSubquery<?> node, C context) {
         return visitInsert(node, context);
     }
 

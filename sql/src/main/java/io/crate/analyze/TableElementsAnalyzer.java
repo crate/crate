@@ -305,7 +305,8 @@ public class TableElementsAnalyzer {
             context.analyzedColumnDefinition.geoSettings(geoSettings);
         }
 
-        private void setAnalyzer(GenericProperties properties, ColumnDefinitionContext context,
+        private void setAnalyzer(GenericProperties<Expression> properties,
+                                 ColumnDefinitionContext context,
                                  String indexMethod) {
             context.analyzedColumnDefinition.indexConstraint(Reference.IndexType.ANALYZED);
 

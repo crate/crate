@@ -27,9 +27,9 @@ import com.google.common.base.Objects;
 public class NamedProperties extends Node {
 
     private final String ident;
-    private final GenericProperties properties;
+    private final GenericProperties<Expression> properties;
 
-    public NamedProperties(String ident, GenericProperties properties) {
+    public NamedProperties(String ident, GenericProperties<Expression> properties) {
         this.ident = ident;
         this.properties = properties;
     }
@@ -38,7 +38,7 @@ public class NamedProperties extends Node {
         return ident;
     }
 
-    public GenericProperties properties() {
+    public GenericProperties<Expression> properties() {
         return properties;
     }
 

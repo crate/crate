@@ -112,7 +112,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
     }
 
 
-    public AnalyzedInsertStatement analyze(InsertFromValues insert, ParamTypeHints typeHints, CoordinatorTxnCtx txnCtx) {
+    public AnalyzedInsertStatement analyze(InsertFromValues<Expression> insert, ParamTypeHints typeHints, CoordinatorTxnCtx txnCtx) {
         if (insert.valuesLists().isEmpty()) {
             throw new IllegalArgumentException("VALUES clause must not be empty");
         }
@@ -165,7 +165,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         return new AnalyzedInsertStatement(rows, onDuplicateKeyAssignments);
     }
 
-    public AnalyzedStatement analyze(InsertFromValues node, Analysis analysis) {
+    public AnalyzedStatement analyze(InsertFromValues<Expression> node, Analysis analysis) {
         DocTableInfo tableInfo = (DocTableInfo) schemas.resolveTableInfo(node.table().getName(), Operation.INSERT,
             analysis.sessionContext().searchPath());
 
@@ -277,7 +277,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                                ValuesResolver valuesResolver,
                                ExpressionAnalyzer valuesAwareExpressionAnalyzer,
                                ValuesList node,
-                               List<Assignment> onDuplicateKeyAssignments,
+                               List<Assignment<Expression>> onDuplicateKeyAssignments,
                                InsertFromValuesAnalyzedStatement statement,
                                ParameterContext parameterContext,
                                ReferenceToLiteralConverter refToLiteral) {
@@ -339,7 +339,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                            ValuesResolver valuesResolver,
                            ExpressionAnalyzer valuesAwareExpressionAnalyzer,
                            ValuesList node,
-                           List<Assignment> onDuplicateKeyAssignments,
+                           List<Assignment<Expression>> onDuplicateKeyAssignments,
                            InsertFromValuesAnalyzedStatement context,
                            ReferenceToLiteralConverter refToLiteral,
                            int numPrimaryKeys,
@@ -416,7 +416,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
             Symbol[] onDupKeyAssignments = new Symbol[onDuplicateKeyAssignments.size()];
             valuesResolver.assignmentColumns = new ArrayList<>(onDuplicateKeyAssignments.size());
             for (int i = 0; i < onDuplicateKeyAssignments.size(); i++) {
-                Assignment assignment = onDuplicateKeyAssignments.get(i);
+                Assignment<Expression> assignment = onDuplicateKeyAssignments.get(i);
                 Reference columnName = tableRelation.resolveField(
                     (Field) expressionAnalyzer.convert(assignment.columnName(), expressionAnalysisContext));
                 assert columnName != null : "columnName must not be null";

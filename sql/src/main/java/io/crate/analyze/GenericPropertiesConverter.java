@@ -62,28 +62,28 @@ public class GenericPropertiesConverter {
     }
 
     private static void genericPropertiesToSettings(Settings.Builder builder,
-                                                    GenericProperties genericProperties,
+                                                    GenericProperties<Expression> genericProperties,
                                                     Row parameters) {
         for (Map.Entry<String, Expression> entry : genericProperties.properties().entrySet()) {
             genericPropertyToSetting(builder, entry.getKey(), entry.getValue(), parameters);
         }
     }
 
-    static Settings genericPropertiesToSettings(GenericProperties genericProperties, Row parameters) {
+    static Settings genericPropertiesToSettings(GenericProperties<Expression> genericProperties, Row parameters) {
         Settings.Builder builder = Settings.builder();
         genericPropertiesToSettings(builder, genericProperties, parameters);
         return builder.build();
     }
 
 
-    static Settings.Builder settingsFromProperties(GenericProperties properties,
+    static Settings.Builder settingsFromProperties(GenericProperties<Expression> properties,
                                                    Row parameters,
                                                    Map<String, Setting<?>> supportedSettings) {
 
         return settingsFromProperties(properties, parameters, supportedSettings, true);
     }
 
-    public static Settings.Builder settingsFromProperties(GenericProperties properties,
+    public static Settings.Builder settingsFromProperties(GenericProperties<Expression> properties,
                                                           Row parameters,
                                                           Map<String, Setting<?>> supportedSettings,
                                                           boolean setDefaults) {
@@ -94,7 +94,7 @@ public class GenericPropertiesConverter {
     }
 
     static void settingsFromProperties(Settings.Builder builder,
-                                       GenericProperties properties,
+                                       GenericProperties<Expression> properties,
                                        Row parameters,
                                        Map<String, Setting<?>> supportedSettings,
                                        boolean setDefaults,

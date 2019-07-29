@@ -34,7 +34,7 @@ public class RerouteAllocateReplicaShardAnalyzedStatement extends RerouteAnalyze
     private final Expression nodeId;
 
     public RerouteAllocateReplicaShardAnalyzedStatement(ShardedTable tableInfo,
-                                                        List<Assignment> partitionProperties,
+                                                        List<Assignment<Expression>> partitionProperties,
                                                         Expression shardId,
                                                         Expression nodeId) {
         super(tableInfo, partitionProperties);

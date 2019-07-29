@@ -31,13 +31,13 @@ public class MatchPredicate extends Expression {
 
     private final List<MatchPredicateColumnIdent> idents;
     private final Expression value;
-    private final GenericProperties properties;
+    private final GenericProperties<Expression> properties;
     private final String matchType;
 
     public MatchPredicate(List<MatchPredicateColumnIdent> idents,
                           Expression value,
                           @Nullable String matchType,
-                          GenericProperties properties) {
+                          GenericProperties<Expression> properties) {
         Preconditions.checkArgument(idents.size() > 0, "at least one ident must be given");
         Preconditions.checkNotNull(value, "query_term is null");
         this.idents = idents;
@@ -59,7 +59,7 @@ public class MatchPredicate extends Expression {
         return matchType;
     }
 
-    public GenericProperties properties() {
+    public GenericProperties<Expression> properties() {
         return properties;
     }
 
