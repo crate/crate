@@ -34,7 +34,7 @@ public class TableParameter {
     private Settings settings;
     private Map<String, Object> mappings;
 
-    TableParameter() {
+    public TableParameter() {
         settingsBuilder = Settings.builder();
         mappingsBuilder = Settings.builder();
     }

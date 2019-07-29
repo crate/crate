@@ -23,18 +23,21 @@ package io.crate.sql.tree;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
+import io.crate.common.collections.Lists2;
 
 import java.util.List;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
-public class PrimaryKeyConstraint extends TableElement {
+public class PrimaryKeyConstraint<T> extends TableElement<T> {
 
-    private final List<Expression> columns;
+    private final List<T> columns;
 
-    public PrimaryKeyConstraint(List<Expression> columns) {
+    public PrimaryKeyConstraint(List<T> columns) {
         this.columns = columns;
     }
 
-    public List<Expression> columns() {
+    public List<T> columns() {
         return columns;
     }
 
@@ -63,5 +66,15 @@ public class PrimaryKeyConstraint extends TableElement {
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitPrimaryKeyConstraint(this, context);
+    }
+
+    @Override
+    public <U> TableElement<U> map(Function<? super T, ? extends U> mapper) {
+        return new PrimaryKeyConstraint<>(Lists2.map(columns, mapper));
+    }
+
+    @Override
+    public void visit(Consumer<? super T> consumer) {
+        columns.forEach(consumer);
     }
 }

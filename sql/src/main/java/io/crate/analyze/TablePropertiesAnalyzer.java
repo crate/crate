@@ -69,6 +69,30 @@ public final class TablePropertiesAnalyzer {
             INVALID_MESSAGE);
     }
 
+    public static void analyzeWithBoundValues(TableParameter tableParameter,
+                                              TableParameters tableParameters,
+                                              GenericProperties<Object> properties,
+                                              boolean withDefaults) {
+        Map<String, Setting<?>> settingMap = tableParameters.supportedSettings();
+        Map<String, Setting<?>> mappingsMap = tableParameters.supportedMappings();
+
+        GenericPropertiesConverter.settingsFromProperties(
+            tableParameter.settingsBuilder(),
+            properties,
+            settingMap,
+            withDefaults,
+            mappingsMap::containsKey,
+            INVALID_MESSAGE);
+
+        GenericPropertiesConverter.settingsFromProperties(
+            tableParameter.mappingsBuilder(),
+            properties,
+            mappingsMap,
+            withDefaults,
+            settingMap::containsKey,
+            INVALID_MESSAGE);
+    }
+
     /**
      * Processes the property names which should be reset and updates the settings or mappings with the related
      * default value.

@@ -87,7 +87,7 @@ public class Literal<ReturnType> extends Symbol implements Input<ReturnType>, Co
         value = type.streamer().readValueFrom(in);
     }
 
-    private Literal(DataType type, ReturnType value) {
+    protected Literal(DataType type, ReturnType value) {
         assert typeMatchesValue(type, value) :
             String.format(Locale.ENGLISH, "value %s is not of type %s", value, type.getName());
         this.type = type;

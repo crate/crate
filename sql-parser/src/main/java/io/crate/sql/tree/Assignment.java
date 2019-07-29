@@ -24,9 +24,11 @@ package io.crate.sql.tree;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
+import io.crate.common.collections.Lists2;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Function;
 
 public class Assignment<T> extends Node {
 
@@ -71,6 +73,9 @@ public class Assignment<T> extends Node {
         return expressions;
     }
 
+    public <U> Assignment<U> map(Function<? super T, ? extends U> mapper) {
+        return new Assignment<>(mapper.apply(columnName), Lists2.map(expressions, mapper));
+    }
 
     @Override
     public int hashCode() {

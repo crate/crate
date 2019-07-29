@@ -300,9 +300,10 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         SqlBaseParser.PartitionedByOrClusteredIntoContext tableOptsCtx = context.partitionedByOrClusteredInto();
         Optional<ClusteredBy> clusteredBy = visitIfPresent(tableOptsCtx.clusteredBy(), ClusteredBy.class);
         Optional<PartitionedBy> partitionedBy = visitIfPresent(tableOptsCtx.partitionedBy(), PartitionedBy.class);
+        var tableElements = Lists2.map(context.tableElement(), x -> (TableElement<Expression>) visit(x));
         return new CreateTable(
             (Table) visit(context.table()),
-            visitCollection(context.tableElement(), TableElement.class),
+            tableElements,
             partitionedBy,
             clusteredBy,
             extractGenericProperties(context.withProperties()),
@@ -782,24 +783,24 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     @Override
     public Node visitPrimaryKeyConstraint(SqlBaseParser.PrimaryKeyConstraintContext context) {
-        return new PrimaryKeyConstraint(visitCollection(context.columns().primaryExpression(), Expression.class));
+        return new PrimaryKeyConstraint<>(visitCollection(context.columns().primaryExpression(), Expression.class));
     }
 
     @Override
     public Node visitColumnIndexOff(SqlBaseParser.ColumnIndexOffContext context) {
-        return IndexColumnConstraint.OFF;
+        return IndexColumnConstraint.off();
     }
 
     @Override
     public Node visitColumnIndexConstraint(SqlBaseParser.ColumnIndexConstraintContext context) {
-        return new IndexColumnConstraint(
+        return new IndexColumnConstraint<>(
             getIdentText(context.method),
             extractGenericProperties(context.withProperties()));
     }
 
     @Override
     public Node visitIndexDefinition(SqlBaseParser.IndexDefinitionContext context) {
-        return new IndexDefinition(
+        return new IndexDefinition<>(
             getIdentText(context.name),
             getIdentText(context.method),
             visitCollection(context.columns().primaryExpression(), Expression.class),
@@ -808,24 +809,24 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     @Override
     public Node visitColumnStorageDefinition(SqlBaseParser.ColumnStorageDefinitionContext ctx) {
-        return new ColumnStorageDefinition(extractGenericProperties(ctx.withProperties()));
+        return new ColumnStorageDefinition<>(extractGenericProperties(ctx.withProperties()));
     }
 
     @Override
     public Node visitPartitionedBy(SqlBaseParser.PartitionedByContext context) {
-        return new PartitionedBy(visitCollection(context.columns().primaryExpression(), Expression.class));
+        return new PartitionedBy<>(visitCollection(context.columns().primaryExpression(), Expression.class));
     }
 
     @Override
     public Node visitClusteredBy(SqlBaseParser.ClusteredByContext context) {
-        return new ClusteredBy(
+        return new ClusteredBy<>(
             visitIfPresent(context.routing, Expression.class),
             visitIfPresent(context.numShards, Expression.class));
     }
 
     @Override
     public Node visitBlobClusteredInto(SqlBaseParser.BlobClusteredIntoContext ctx) {
-        return new ClusteredBy(null, visitIfPresent(ctx.numShards, Expression.class));
+        return new ClusteredBy<>(null, visitIfPresent(ctx.numShards, Expression.class));
     }
 
     @Override
@@ -866,7 +867,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     // Properties
 
-    private GenericProperties extractGenericProperties(ParserRuleContext context) {
+    private GenericProperties<Expression> extractGenericProperties(ParserRuleContext context) {
         return visitIfPresent(context, GenericProperties.class).orElse(GenericProperties.empty());
     }
 

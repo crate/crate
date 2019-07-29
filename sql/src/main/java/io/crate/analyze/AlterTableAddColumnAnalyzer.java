@@ -31,6 +31,7 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.AlterTableAddColumn;
+import io.crate.sql.tree.Expression;
 import io.crate.types.ArrayType;
 
 import java.util.List;
@@ -50,24 +51,25 @@ class AlterTableAddColumnAnalyzer {
         this.functions = functions;
     }
 
-    public AddColumnAnalyzedStatement analyze(AlterTableAddColumn node, Analysis analysis) {
+    public AddColumnAnalyzedStatement analyze(AlterTableAddColumn<Expression> node, Analysis analysis) {
         if (!node.table().partitionProperties().isEmpty()) {
             throw new UnsupportedOperationException("Adding a column to a single partition is not supported");
         }
         DocTableInfo tableInfo = (DocTableInfo) schemas.resolveTableInfo(node.table().getName(), Operation.ALTER,
             analysis.sessionContext().searchPath());
-        AnalyzedTableElements tableElements = TableElementsAnalyzer.analyze(
+        AnalyzedTableElements<Object> tableElements = TableElementsAnalyzer.analyze(
             node.tableElement(),
             analysis.parameterContext().parameters(),
             fulltextAnalyzerResolver,
             tableInfo
         );
-        for (AnalyzedColumnDefinition column : tableElements.columns()) {
+        for (AnalyzedColumnDefinition<Object> column : tableElements.columns()) {
             ensureColumnLeafsAreNew(column, tableInfo);
         }
         addExistingPrimaryKeys(tableInfo, tableElements);
         ensureNoIndexDefinitions(tableElements.columns());
-        tableElements.finalizeAndValidate(
+        AnalyzedTableElements.finalizeAndValidate(
+            tableElements,
             tableInfo.ident(),
             tableInfo.columns(),
             functions,
@@ -79,7 +81,7 @@ class AlterTableAddColumnAnalyzer {
             numCurrentPks -= 1;
         }
 
-        boolean hasNewPrimaryKeys = tableElements.primaryKeys().size() > numCurrentPks;
+        boolean hasNewPrimaryKeys = AnalyzedTableElements.primaryKeys(tableElements).size() > numCurrentPks;
         boolean hasGeneratedColumns = tableElements.hasGeneratedColumns();
         return new AddColumnAnalyzedStatement(
             tableInfo,
@@ -89,19 +91,19 @@ class AlterTableAddColumnAnalyzer {
         );
     }
 
-    private static void ensureColumnLeafsAreNew(AnalyzedColumnDefinition column, TableInfo tableInfo) {
+    private static void ensureColumnLeafsAreNew(AnalyzedColumnDefinition<Object> column, TableInfo tableInfo) {
         if ((!column.isParentColumn() || !column.hasChildren()) && tableInfo.getReference(column.ident()) != null) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                 "The table %s already has a column named %s",
                 tableInfo.ident().sqlFqn(),
                 column.ident().sqlFqn()));
         }
-        for (AnalyzedColumnDefinition child : column.children()) {
+        for (AnalyzedColumnDefinition<Object> child : column.children()) {
             ensureColumnLeafsAreNew(child, tableInfo);
         }
     }
 
-    private static void addExistingPrimaryKeys(DocTableInfo tableInfo, AnalyzedTableElements tableElements) {
+    private static void addExistingPrimaryKeys(DocTableInfo tableInfo, AnalyzedTableElements<Object> tableElements) {
         for (ColumnIdent pkIdent : tableInfo.primaryKey()) {
             if (pkIdent.name().equals("_id")) {
                 continue;
@@ -109,7 +111,7 @@ class AlterTableAddColumnAnalyzer {
             Reference pkInfo = tableInfo.getReference(pkIdent);
             assert pkInfo != null : "pk must not be null";
 
-            AnalyzedColumnDefinition pkColumn = new AnalyzedColumnDefinition(null, null);
+            AnalyzedColumnDefinition<Object> pkColumn = new AnalyzedColumnDefinition<>(null, null);
             pkColumn.ident(pkIdent);
             pkColumn.name(pkIdent.name());
             pkColumn.setPrimaryKeyConstraint();
@@ -120,12 +122,12 @@ class AlterTableAddColumnAnalyzer {
         }
 
         for (ColumnIdent columnIdent : tableInfo.partitionedBy()) {
-            tableElements.changeToPartitionedByColumn(columnIdent, true, tableInfo.ident());
+            AnalyzedTableElements.changeToPartitionedByColumn(tableElements, columnIdent, true, tableInfo.ident());
         }
     }
 
-    private static void ensureNoIndexDefinitions(List<AnalyzedColumnDefinition> columns) {
-        for (AnalyzedColumnDefinition column : columns) {
+    private static void ensureNoIndexDefinitions(List<AnalyzedColumnDefinition<Object>> columns) {
+        for (AnalyzedColumnDefinition<Object> column : columns) {
             if (column.isIndexColumn()) {
                 throw new UnsupportedOperationException(
                     "Adding an index using ALTER TABLE ADD COLUMN is not supported");

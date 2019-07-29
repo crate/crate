@@ -32,6 +32,7 @@ import io.crate.execution.ddl.views.TransportDropViewAction;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.PhasesTaskFactory;
 import io.crate.license.LicenseService;
+import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Schemas;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -63,6 +64,7 @@ public class DependencyCarrier {
     private final TransportDropViewAction dropViewAction;
     private final TransportSwapRelationsAction swapRelationsAction;
     private final LicenseService licenseService;
+    private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
 
     @Inject
     public DependencyCarrier(Settings settings,
@@ -78,7 +80,8 @@ public class DependencyCarrier {
                              TransportDropTableAction transportDropTableAction,
                              TransportCreateViewAction createViewAction,
                              TransportDropViewAction dropViewAction,
-                             TransportSwapRelationsAction swapRelationsAction) {
+                             TransportSwapRelationsAction swapRelationsAction,
+                             FulltextAnalyzerResolver fulltextAnalyzerResolver) {
         this.settings = settings;
         this.transportActionProvider = transportActionProvider;
         this.phasesTaskFactory = phasesTaskFactory;
@@ -94,6 +97,7 @@ public class DependencyCarrier {
         this.createViewAction = createViewAction;
         this.dropViewAction = dropViewAction;
         this.swapRelationsAction = swapRelationsAction;
+        this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
     }
 
     public Schemas schemas() {
@@ -162,5 +166,9 @@ public class DependencyCarrier {
 
     public TransportDropViewAction dropViewAction() {
         return dropViewAction;
+    }
+
+    public FulltextAnalyzerResolver fulltextAnalyzerResolver() {
+        return fulltextAnalyzerResolver;
     }
 }

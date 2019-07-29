@@ -24,14 +24,21 @@ package io.crate.sql.tree;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 
-public class IndexColumnConstraint extends ColumnConstraint {
+import java.util.function.Consumer;
+import java.util.function.Function;
 
-    public static final IndexColumnConstraint OFF = new IndexColumnConstraint("OFF", GenericProperties.empty());
+public class IndexColumnConstraint<T> extends ColumnConstraint<T> {
+
+    private static final IndexColumnConstraint<?> OFF = new IndexColumnConstraint<>("OFF", GenericProperties.empty());
+
+    public static <T> IndexColumnConstraint<T> off() {
+        return (IndexColumnConstraint<T>) OFF;
+    }
 
     private final String indexMethod;
-    private final GenericProperties<Expression> properties;
+    private final GenericProperties<T> properties;
 
-    public IndexColumnConstraint(String indexMethod, GenericProperties<Expression> properties) {
+    public IndexColumnConstraint(String indexMethod, GenericProperties<T> properties) {
         this.indexMethod = indexMethod;
         this.properties = properties;
     }
@@ -40,7 +47,7 @@ public class IndexColumnConstraint extends ColumnConstraint {
         return indexMethod;
     }
 
-    public GenericProperties<Expression> properties() {
+    public GenericProperties<T> properties() {
         return properties;
     }
 
@@ -73,5 +80,15 @@ public class IndexColumnConstraint extends ColumnConstraint {
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitIndexColumnConstraint(this, context);
+    }
+
+    @Override
+    public <U> ColumnConstraint<U> map(Function<? super T, ? extends U> mapper) {
+        return new IndexColumnConstraint<>(indexMethod, properties.map(mapper));
+    }
+
+    @Override
+    public void visit(Consumer<? super T> consumer) {
+        properties.properties().values().forEach(consumer);
     }
 }

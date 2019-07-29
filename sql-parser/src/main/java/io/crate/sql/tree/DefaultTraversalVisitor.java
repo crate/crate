@@ -344,7 +344,7 @@ public abstract class DefaultTraversalVisitor<R, C> extends AstVisitor<R, C> {
     }
 
     @Override
-    public R visitCreateTable(CreateTable node, C context) {
+    public R visitCreateTable(CreateTable<?> node, C context) {
         node.name().accept(this, context);
         return null;
     }

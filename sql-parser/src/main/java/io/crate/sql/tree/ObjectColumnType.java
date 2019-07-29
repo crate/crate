@@ -21,16 +21,20 @@
 
 package io.crate.sql.tree;
 
+import io.crate.common.collections.Lists2;
+
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 
-public class ObjectColumnType extends ColumnType {
+public class ObjectColumnType<T> extends ColumnType<T> {
 
     private final Optional<ColumnPolicy> objectType;
-    private final List<ColumnDefinition> nestedColumns;
+    private final List<ColumnDefinition<T>> nestedColumns;
 
-    public ObjectColumnType(@Nullable String objectType, List<ColumnDefinition> nestedColumns) {
+    public ObjectColumnType(@Nullable String objectType, List<ColumnDefinition<T>> nestedColumns) {
         super("object");
         this.objectType = objectType == null ? Optional.empty() : Optional.of(ColumnPolicy.of(objectType));
         this.nestedColumns = nestedColumns;
@@ -40,13 +44,45 @@ public class ObjectColumnType extends ColumnType {
         return objectType;
     }
 
-    public List<ColumnDefinition> nestedColumns() {
+    public List<ColumnDefinition<T>> nestedColumns() {
         return nestedColumns;
     }
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitObjectColumnType(this, context);
+    }
+
+    @Override
+    public <U> ObjectColumnType<U> map(Function<? super T, ? extends U> mapper) {
+        String objectTypeString = null;
+        if (objectType.isPresent()) {
+            objectTypeString = objectType.get().lowerCaseName();
+        }
+        return new ObjectColumnType<>(
+            objectTypeString,
+            Lists2.map(nestedColumns, x -> x.map(mapper))
+        );
+    }
+
+    @Override
+    public <U> ColumnType<U> mapExpressions(ColumnType<U> mappedType,
+                                            Function<? super T, ? extends U> mapper) {
+        ObjectColumnType<U> mappedObjectType = (ObjectColumnType<U>) mappedType;
+        String objectTypeString = null;
+        if (objectType.isPresent()) {
+            objectTypeString = objectType.get().lowerCaseName();
+        }
+        ArrayList<ColumnDefinition<U>> nestedMappedColumns = new ArrayList<>(nestedColumns.size());
+        for (int i = 0; i < nestedColumns.size(); i++) {
+            ColumnDefinition<U> columnDefinition =
+                (ColumnDefinition<U>) nestedColumns.get(i).mapExpressions(mappedObjectType.nestedColumns.get(i), mapper);
+            nestedMappedColumns.add(columnDefinition);
+        }
+        return new ObjectColumnType<>(
+            objectTypeString,
+            nestedMappedColumns
+        );
     }
 
     @Override

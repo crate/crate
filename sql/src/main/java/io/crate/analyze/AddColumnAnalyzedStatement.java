@@ -22,16 +22,19 @@
 package io.crate.analyze;
 
 import io.crate.metadata.doc.DocTableInfo;
+import org.elasticsearch.common.settings.Settings;
+
+import java.util.Map;
 
 public class AddColumnAnalyzedStatement implements DDLStatement {
 
     private final DocTableInfo tableInfo;
-    private final AnalyzedTableElements analyzedTableElements;
+    private final AnalyzedTableElements<Object> analyzedTableElements;
     private final boolean newPrimaryKeys;
     private final boolean hasNewGeneratedColumns;
 
     protected AddColumnAnalyzedStatement(DocTableInfo tableInfo,
-                                         AnalyzedTableElements tableElements,
+                                         AnalyzedTableElements<Object> tableElements,
                                          boolean newPrimaryKeys,
                                          boolean hasNewGeneratedColumns) {
         this.tableInfo = tableInfo;
@@ -49,7 +52,7 @@ public class AddColumnAnalyzedStatement implements DDLStatement {
         return visitor.visitAddColumnStatement(this, context);
     }
 
-    public AnalyzedTableElements analyzedTableElements() {
+    public AnalyzedTableElements<Object> analyzedTableElements() {
         return this.analyzedTableElements;
     }
 
@@ -59,5 +62,13 @@ public class AddColumnAnalyzedStatement implements DDLStatement {
 
     public boolean hasNewGeneratedColumns() {
         return hasNewGeneratedColumns;
+    }
+
+    public Map<String, Object> mapping() {
+        return AnalyzedTableElements.toMapping(analyzedTableElements);
+    }
+
+    public Settings settings() {
+        return analyzedTableElements.settings();
     }
 }

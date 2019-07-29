@@ -27,6 +27,7 @@ import io.crate.analyze.AlterTableRenameAnalyzedStatement;
 import io.crate.analyze.AlterUserAnalyzedStatement;
 import io.crate.analyze.AnalyzedBegin;
 import io.crate.analyze.AnalyzedCommit;
+import io.crate.analyze.AnalyzedCreateTable;
 import io.crate.analyze.AnalyzedDeleteStatement;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.AnalyzedStatementVisitor;
@@ -38,7 +39,6 @@ import io.crate.analyze.CreateBlobTableAnalyzedStatement;
 import io.crate.analyze.CreateFunctionAnalyzedStatement;
 import io.crate.analyze.CreateRepositoryAnalyzedStatement;
 import io.crate.analyze.CreateSnapshotAnalyzedStatement;
-import io.crate.analyze.CreateTableAnalyzedStatement;
 import io.crate.analyze.CreateUserAnalyzedStatement;
 import io.crate.analyze.CreateViewStmt;
 import io.crate.analyze.DeallocateAnalyzedStatement;
@@ -276,11 +276,11 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
-        protected Void visitCreateTableStatement(CreateTableAnalyzedStatement analysis, User user) {
+        public Void visitCreateTable(AnalyzedCreateTable createTable, User user) {
             Privileges.ensureUserHasPrivilege(
                 Privilege.Type.DDL,
                 Privilege.Clazz.SCHEMA,
-                analysis.tableIdent().schema(),
+                createTable.relationName().schema(),
                 user,
                 defaultSchema);
             return null;
