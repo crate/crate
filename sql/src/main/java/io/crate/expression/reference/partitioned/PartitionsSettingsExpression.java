@@ -21,10 +21,15 @@
 
 package io.crate.expression.reference.partitioned;
 
-import io.crate.analyze.TableParameterInfo;
 import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.reference.ObjectCollectExpression;
 import io.crate.metadata.PartitionInfo;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.routing.UnassignedInfo;
+import org.elasticsearch.cluster.routing.allocation.decider.EnableAllocationDecider;
+import org.elasticsearch.cluster.routing.allocation.decider.ShardsLimitAllocationDecider;
+import org.elasticsearch.index.IndexSettings;
+import org.elasticsearch.index.mapper.MapperService;
 
 import java.util.Map;
 
@@ -44,7 +49,7 @@ public class PartitionsSettingsExpression extends ObjectCollectExpression<Partit
                 Map.of(
                     "wait_for_active_shards",
                     forFunction((PartitionInfo pi) ->
-                        pi.tableParameters().get(TableParameterInfo.SETTING_WAIT_FOR_ACTIVE_SHARDS.getKey())))
+                        pi.tableParameters().get(IndexMetaData.SETTING_WAIT_FOR_ACTIVE_SHARDS.getKey())))
             )
         )));
     }
@@ -104,7 +109,7 @@ public class PartitionsSettingsExpression extends ObjectCollectExpression<Partit
         public static final String LIMIT = "limit";
 
         PartitionSettingsMappingTotalFieldsExpression() {
-            childImplementations.put(LIMIT, new PartitionTableParameterExpression(TableParameterInfo.MAPPING_TOTAL_FIELDS_LIMIT.getKey()));
+            childImplementations.put(LIMIT, new PartitionTableParameterExpression(MapperService.INDEX_MAPPING_TOTAL_FIELDS_LIMIT_SETTING.getKey()));
         }
     }
 
@@ -122,10 +127,10 @@ public class PartitionsSettingsExpression extends ObjectCollectExpression<Partit
         static final String METADATA = "metadata";
 
         private void addChildImplementations() {
-            childImplementations.put(READ_ONLY, new PartitionTableParameterExpression(TableParameterInfo.READ_ONLY.getKey()));
-            childImplementations.put(READ, new PartitionTableParameterExpression(TableParameterInfo.BLOCKS_READ.getKey()));
-            childImplementations.put(WRITE, new PartitionTableParameterExpression(TableParameterInfo.BLOCKS_WRITE.getKey()));
-            childImplementations.put(METADATA, new PartitionTableParameterExpression(TableParameterInfo.BLOCKS_METADATA.getKey()));
+            childImplementations.put(READ_ONLY, new PartitionTableParameterExpression(IndexMetaData.INDEX_READ_ONLY_SETTING.getKey()));
+            childImplementations.put(READ, new PartitionTableParameterExpression(IndexMetaData.INDEX_BLOCKS_READ_SETTING.getKey()));
+            childImplementations.put(WRITE, new PartitionTableParameterExpression(IndexMetaData.INDEX_BLOCKS_WRITE_SETTING.getKey()));
+            childImplementations.put(METADATA, new PartitionTableParameterExpression(IndexMetaData.INDEX_BLOCKS_METADATA_SETTING.getKey()));
         }
     }
 
@@ -154,8 +159,8 @@ public class PartitionsSettingsExpression extends ObjectCollectExpression<Partit
         static final String TOTAL_SHARDS_PER_NODE = "total_shards_per_node";
 
         private void addChildImplementations() {
-            childImplementations.put(ENABLE, new StringPartitionTableParameterExpression(TableParameterInfo.ROUTING_ALLOCATION_ENABLE.getKey()));
-            childImplementations.put(TOTAL_SHARDS_PER_NODE, new PartitionTableParameterExpression(TableParameterInfo.TOTAL_SHARDS_PER_NODE.getKey()));
+            childImplementations.put(ENABLE, new StringPartitionTableParameterExpression(EnableAllocationDecider.INDEX_ROUTING_ALLOCATION_ENABLE_SETTING.getKey()));
+            childImplementations.put(TOTAL_SHARDS_PER_NODE, new PartitionTableParameterExpression(ShardsLimitAllocationDecider.INDEX_TOTAL_SHARDS_PER_NODE_SETTING.getKey()));
         }
     }
 
@@ -170,7 +175,7 @@ public class PartitionsSettingsExpression extends ObjectCollectExpression<Partit
         static final String ENABLED = "enabled";
 
         private void addChildImplementations() {
-            childImplementations.put(ENABLED, new PartitionTableParameterExpression(TableParameterInfo.WARMER_ENABLED.getKey()));
+            childImplementations.put(ENABLED, new PartitionTableParameterExpression(IndexSettings.INDEX_WARMER_ENABLED_SETTING.getKey()));
         }
     }
 
@@ -187,9 +192,9 @@ public class PartitionsSettingsExpression extends ObjectCollectExpression<Partit
         static final String DURABILITY = "durability";
 
         private void addChildImplementations() {
-            childImplementations.put(FLUSH_THRESHOLD_SIZE, new PartitionTableParameterExpression(TableParameterInfo.FLUSH_THRESHOLD_SIZE.getKey()));
-            childImplementations.put(SYNC_INTERVAL, new PartitionTableParameterExpression(TableParameterInfo.TRANSLOG_SYNC_INTERVAL.getKey()));
-            childImplementations.put(DURABILITY, new PartitionTableParameterExpression(TableParameterInfo.TRANSLOG_DURABILITY.getKey()));
+            childImplementations.put(FLUSH_THRESHOLD_SIZE, new PartitionTableParameterExpression(IndexSettings.INDEX_TRANSLOG_FLUSH_THRESHOLD_SIZE_SETTING.getKey()));
+            childImplementations.put(SYNC_INTERVAL, new PartitionTableParameterExpression(IndexSettings.INDEX_TRANSLOG_SYNC_INTERVAL_SETTING.getKey()));
+            childImplementations.put(DURABILITY, new PartitionTableParameterExpression(IndexSettings.INDEX_TRANSLOG_DURABILITY_SETTING.getKey()));
         }
     }
 
@@ -218,7 +223,7 @@ public class PartitionsSettingsExpression extends ObjectCollectExpression<Partit
         static final String DELAYED_TIMEOUT = "delayed_timeout";
 
         private void addChildImplementations() {
-            childImplementations.put(DELAYED_TIMEOUT, new PartitionTableParameterExpression(TableParameterInfo.UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT.getKey()));
+            childImplementations.put(DELAYED_TIMEOUT, new PartitionTableParameterExpression(UnassignedInfo.INDEX_DELAYED_NODE_LEFT_TIMEOUT_SETTING.getKey()));
         }
     }
 }

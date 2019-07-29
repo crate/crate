@@ -36,19 +36,19 @@ public final class TablePropertiesAnalyzer {
     }
 
     public static void analyze(TableParameter tableParameter,
-                               TableParameterInfo tableParameterInfo,
+                               TableParameters tableParameters,
                                GenericProperties properties,
                                Row parameters) {
-        analyze(tableParameter, tableParameterInfo, properties, parameters, false);
+        analyze(tableParameter, tableParameters, properties, parameters, false);
     }
 
     public static void analyze(TableParameter tableParameter,
-                               TableParameterInfo tableParameterInfo,
+                               TableParameters tableParameters,
                                GenericProperties properties,
                                Row parameters,
                                boolean withDefaults) {
-        Map<String, Setting<?>> settingMap = tableParameterInfo.supportedSettings();
-        Map<String, Setting<?>> mappingsMap = tableParameterInfo.supportedMappings();
+        Map<String, Setting<?>> settingMap = tableParameters.supportedSettings();
+        Map<String, Setting<?>> mappingsMap = tableParameters.supportedMappings();
 
         GenericPropertiesConverter.settingsFromProperties(
             tableParameter.settingsBuilder(),
@@ -74,10 +74,10 @@ public final class TablePropertiesAnalyzer {
      * default value.
      */
     static void analyzeResetProperties(TableParameter tableParameter,
-                                       TableParameterInfo tableParameterInfo,
+                                       TableParameters tableParameters,
                                        List<String> properties) {
-        Map<String, Setting<?>> settingMap = tableParameterInfo.supportedSettings();
-        Map<String, Setting<?>> mappingsMap = tableParameterInfo.supportedMappings();
+        Map<String, Setting<?>> settingMap = tableParameters.supportedSettings();
+        Map<String, Setting<?>> mappingsMap = tableParameters.supportedMappings();
 
         GenericPropertiesConverter.resetSettingsFromProperties(
             tableParameter.settingsBuilder(),

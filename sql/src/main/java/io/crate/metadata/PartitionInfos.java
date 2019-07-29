@@ -24,7 +24,7 @@ package io.crate.metadata;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import io.crate.Constants;
 import io.crate.analyze.NumberOfReplicas;
-import io.crate.analyze.TableParameterInfo;
+import io.crate.analyze.TableParameters;
 import io.crate.metadata.doc.DocIndexMetaData;
 import io.crate.metadata.doc.PartitionedByMappingExtractor;
 import io.crate.types.DataType;
@@ -79,7 +79,7 @@ public class PartitionInfos implements Iterable<PartitionInfo> {
                 settings.getAsVersion(IndexMetaData.SETTING_VERSION_UPGRADED, null),
                 DocIndexMetaData.isClosed(indexMetaData, mappingMap, false),
                 valuesMap,
-                TableParameterInfo.tableParametersFromIndexMetaData(indexMetaData));
+                TableParameters.tableParametersFromIndexMetaData(indexMetaData));
         } catch (Exception e) {
             LOGGER.trace("error extracting partition infos from index {}", e, indexMetaDataEntry.key);
             return null; // must filter on null

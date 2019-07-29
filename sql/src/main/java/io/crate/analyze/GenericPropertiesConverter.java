@@ -146,7 +146,7 @@ public class GenericPropertiesConverter {
         for (Map.Entry<String, Setting<?>> entry : supportedSettings.entrySet()) {
             SettingHolder settingHolder = new SettingHolder(entry.getValue());
             // We'd set the "wrong" default for settings that base their default on other settings
-            if (TableParameterInfo.SETTINGS_WITH_OTHER_SETTING_FALLBACK.contains(settingHolder.setting)) {
+            if (TableParameters.SETTINGS_WITH_COMPUTED_DEFAULT.contains(settingHolder.setting)) {
                 continue;
             }
             settingHolder.applyDefault(builder);

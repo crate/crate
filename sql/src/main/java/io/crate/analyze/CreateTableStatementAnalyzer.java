@@ -69,7 +69,7 @@ public final class CreateTableStatementAnalyzer {
         // if it is it will get overwritten afterwards.
         TablePropertiesAnalyzer.analyze(
             statement.tableParameter(),
-            TableParameterInfo.TABLE_CREATE_PARAMETER_INFO,
+            TableParameters.TABLE_CREATE_PARAMETER_INFO,
             createTable.properties(),
             parameters,
             true

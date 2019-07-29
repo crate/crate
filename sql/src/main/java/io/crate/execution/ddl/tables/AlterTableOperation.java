@@ -34,7 +34,7 @@ import io.crate.analyze.AlterTableAnalyzedStatement;
 import io.crate.analyze.AlterTableOpenCloseAnalyzedStatement;
 import io.crate.analyze.AlterTableRenameAnalyzedStatement;
 import io.crate.analyze.TableParameter;
-import io.crate.analyze.TableParameterInfo;
+import io.crate.analyze.TableParameters;
 import io.crate.concurrent.MultiBiConsumer;
 import io.crate.data.Row;
 import io.crate.execution.ddl.index.SwapAndDropIndexRequest;
@@ -213,7 +213,7 @@ public class AlterTableOperation {
 
                 if (!analysis.excludePartitions()) {
                     // create new filtered partition table settings
-                    List<String> supportedSettings = TableParameterInfo.PARTITIONED_TABLE_PARAMETER_INFO_FOR_TEMPLATE_UPDATE
+                    List<String> supportedSettings = TableParameters.PARTITIONED_TABLE_PARAMETER_INFO_FOR_TEMPLATE_UPDATE
                         .supportedSettings()
                         .values()
                         .stream()

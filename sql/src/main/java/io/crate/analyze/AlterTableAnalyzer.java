@@ -53,8 +53,8 @@ public class AlterTableAnalyzer {
         DocTableInfo docTableInfo = (DocTableInfo) schemas.resolveTableInfo(table.getName(), Operation.ALTER_BLOCKS,
             sessionContext.searchPath());
         PartitionName partitionName = createPartitionName(table.partitionProperties(), docTableInfo, parameters);
-        TableParameterInfo tableParameterInfo = getTableParameterInfo(table, partitionName);
-        TableParameter tableParameter = getTableParameter(node, parameters, tableParameterInfo);
+        TableParameters tableParameters = getTableParameterInfo(table, partitionName);
+        TableParameter tableParameter = getTableParameter(node, parameters, tableParameters);
         maybeRaiseBlockedException(docTableInfo, tableParameter.settings());
         return new AlterTableAnalyzedStatement(docTableInfo, partitionName, tableParameter, table.excludePartitions());
     }
@@ -84,21 +84,21 @@ public class AlterTableAnalyzer {
         return new AlterTableRenameAnalyzedStatement(tableInfo, newRelationName);
     }
 
-    private static TableParameterInfo getTableParameterInfo(Table table,
-                                                            @Nullable PartitionName partitionName) {
+    private static TableParameters getTableParameterInfo(Table table,
+                                                         @Nullable PartitionName partitionName) {
         if (partitionName == null) {
-            return TableParameterInfo.TABLE_ALTER_PARAMETER_INFO;
+            return TableParameters.TABLE_ALTER_PARAMETER_INFO;
         }
         assert !table.excludePartitions() : "Alter table ONLY not supported when using a partition";
-        return TableParameterInfo.PARTITION_PARAMETER_INFO;
+        return TableParameters.PARTITION_PARAMETER_INFO;
     }
 
-    private static TableParameter getTableParameter(AlterTable node, Row parameters, TableParameterInfo tableParameterInfo) {
+    private static TableParameter getTableParameter(AlterTable node, Row parameters, TableParameters tableParameters) {
         TableParameter tableParameter = new TableParameter();
         if (!node.genericProperties().isEmpty()) {
-            TablePropertiesAnalyzer.analyze(tableParameter, tableParameterInfo, node.genericProperties(), parameters);
+            TablePropertiesAnalyzer.analyze(tableParameter, tableParameters, node.genericProperties(), parameters);
         } else if (!node.resetProperties().isEmpty()) {
-            TablePropertiesAnalyzer.analyzeResetProperties(tableParameter, tableParameterInfo, node.resetProperties());
+            TablePropertiesAnalyzer.analyzeResetProperties(tableParameter, tableParameters, node.resetProperties());
         }
         return tableParameter;
     }

@@ -32,6 +32,7 @@ import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.AutoExpandReplicas;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
@@ -307,7 +308,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
             "alter table parted set (number_of_shards=10)");
         assertThat(analysis.partitionName().isPresent(), is(false));
         assertThat(analysis.table().isPartitioned(), is(true));
-        assertEquals("10", analysis.tableParameter().settings().get(TableParameterInfo.NUMBER_OF_SHARDS.getKey()));
+        assertEquals("10", analysis.tableParameter().settings().get(IndexMetaData.INDEX_NUMBER_OF_SHARDS_SETTING.getKey()));
     }
 
     @Test
@@ -316,7 +317,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
             "alter table parted partition (date=1395874800000) set (number_of_shards=1)");
         assertThat(analysis.partitionName().isPresent(), is(true));
         assertThat(analysis.table().isPartitioned(), is(true));
-        assertEquals("1", analysis.tableParameter().settings().get(TableParameterInfo.NUMBER_OF_SHARDS.getKey()));
+        assertEquals("1", analysis.tableParameter().settings().get(IndexMetaData.INDEX_NUMBER_OF_SHARDS_SETTING.getKey()));
     }
 
     @Test
@@ -325,7 +326,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
             "alter table parted partition (date=1395874800000) reset (number_of_shards)");
         assertThat(analysis.partitionName().isPresent(), is(true));
         assertThat(analysis.table().isPartitioned(), is(true));
-        assertEquals("5", analysis.tableParameter().settings().get(TableParameterInfo.NUMBER_OF_SHARDS.getKey()));
+        assertEquals("5", analysis.tableParameter().settings().get(IndexMetaData.INDEX_NUMBER_OF_SHARDS_SETTING.getKey()));
     }
 
     @Test
@@ -352,11 +353,11 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
     public void testAlterTableWithWaitForActiveShards() {
         AlterTableAnalyzedStatement analyzedStatement = e.analyze(
             "ALTER TABLE parted SET (\"write.wait_for_active_shards\"= 'ALL')");
-        assertThat(analyzedStatement.tableParameter().settings().get(TableParameterInfo.SETTING_WAIT_FOR_ACTIVE_SHARDS.getKey()),
+        assertThat(analyzedStatement.tableParameter().settings().get(IndexMetaData.SETTING_WAIT_FOR_ACTIVE_SHARDS.getKey()),
             is("ALL"));
 
         analyzedStatement = e.analyze("ALTER TABLE parted RESET (\"write.wait_for_active_shards\")");
-        assertThat(analyzedStatement.tableParameter().settings().get(TableParameterInfo.SETTING_WAIT_FOR_ACTIVE_SHARDS.getKey()),
+        assertThat(analyzedStatement.tableParameter().settings().get(IndexMetaData.SETTING_WAIT_FOR_ACTIVE_SHARDS.getKey()),
             is("1"));
     }
 }

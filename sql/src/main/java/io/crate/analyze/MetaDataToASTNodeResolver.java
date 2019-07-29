@@ -68,7 +68,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.TreeMap;
 
-import static io.crate.analyze.TableParameterInfo.stripIndexPrefix;
+import static io.crate.analyze.TableParameters.stripIndexPrefix;
 
 public class MetaDataToASTNodeResolver {
 
@@ -245,8 +245,8 @@ public class MetaDataToASTNodeResolver {
             GenericProperties properties = new GenericProperties();
             Expression numReplicas = new StringLiteral(tableInfo.numberOfReplicas());
             properties.add(new GenericProperty(
-                    TableParameterInfo.NUMBER_OF_REPLICAS.getKey(),
-                    numReplicas
+                TableParameters.NUMBER_OF_REPLICAS.getKey(),
+                numReplicas
                 )
             );
             // we want a sorted map of table parameters

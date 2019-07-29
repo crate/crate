@@ -21,14 +21,20 @@
 
 package io.crate.expression.reference.information;
 
-import io.crate.analyze.TableParameterInfo;
 import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.metadata.RelationInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.routing.UnassignedInfo;
+import org.elasticsearch.cluster.routing.allocation.decider.EnableAllocationDecider;
+import org.elasticsearch.cluster.routing.allocation.decider.ShardsLimitAllocationDecider;
+import org.elasticsearch.index.IndexSettings;
 
 import java.util.HashMap;
 import java.util.Map;
+
+import static org.elasticsearch.index.IndexSettings.INDEX_REFRESH_INTERVAL_SETTING;
+import static org.elasticsearch.index.mapper.MapperService.INDEX_MAPPING_TOTAL_FIELDS_LIMIT_SETTING;
 
 public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
 
@@ -40,7 +46,7 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
 
     private void addChildImplementations() {
 
-        childImplementations.put(REFRESH_INTERVAL, new TableParameterExpression(TableParameterInfo.REFRESH_INTERVAL.getKey()));
+        childImplementations.put(REFRESH_INTERVAL, new TableParameterExpression(INDEX_REFRESH_INTERVAL_SETTING.getKey()));
         childImplementations.put(TablesSettingsBlocksExpression.NAME, new TablesSettingsBlocksExpression());
         childImplementations.put(TablesSettingsMappingExpression.NAME, new TablesSettingsMappingExpression());
         childImplementations.put(TablesSettingsRoutingExpression.NAME, new TablesSettingsRoutingExpression());
@@ -113,7 +119,7 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
         public static final String LIMIT = "limit";
 
         TablesSettingsMappingTotalFieldsExpression() {
-            childImplementations.put(LIMIT, new TableParameterExpression(TableParameterInfo.MAPPING_TOTAL_FIELDS_LIMIT.getKey()));
+            childImplementations.put(LIMIT, new TableParameterExpression(INDEX_MAPPING_TOTAL_FIELDS_LIMIT_SETTING.getKey()));
         }
     }
 
@@ -131,10 +137,10 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
         static final String METADATA = "metadata";
 
         private void addChildImplementations() {
-            childImplementations.put(READ_ONLY, new TableParameterExpression(TableParameterInfo.READ_ONLY.getKey()));
-            childImplementations.put(READ, new TableParameterExpression(TableParameterInfo.BLOCKS_READ.getKey()));
-            childImplementations.put(WRITE, new TableParameterExpression(TableParameterInfo.BLOCKS_WRITE.getKey()));
-            childImplementations.put(METADATA, new TableParameterExpression(TableParameterInfo.BLOCKS_METADATA.getKey()));
+            childImplementations.put(READ_ONLY, new TableParameterExpression(IndexMetaData.INDEX_READ_ONLY_SETTING.getKey()));
+            childImplementations.put(READ, new TableParameterExpression(IndexMetaData.INDEX_BLOCKS_READ_SETTING.getKey()));
+            childImplementations.put(WRITE, new TableParameterExpression(IndexMetaData.INDEX_BLOCKS_WRITE_SETTING.getKey()));
+            childImplementations.put(METADATA, new TableParameterExpression(IndexMetaData.INDEX_BLOCKS_METADATA_SETTING.getKey()));
         }
     }
 
@@ -166,8 +172,8 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
         static final String EXCLUDE = "exclude";
 
         private void addChildImplementations() {
-            childImplementations.put(ENABLE, new StringTableParameterExpression(TableParameterInfo.ROUTING_ALLOCATION_ENABLE.getKey()));
-            childImplementations.put(TOTAL_SHARDS_PER_NODE, new TableParameterExpression(TableParameterInfo.TOTAL_SHARDS_PER_NODE.getKey()));
+            childImplementations.put(ENABLE, new StringTableParameterExpression(EnableAllocationDecider.INDEX_ROUTING_ALLOCATION_ENABLE_SETTING.getKey()));
+            childImplementations.put(TOTAL_SHARDS_PER_NODE, new TableParameterExpression(ShardsLimitAllocationDecider.INDEX_TOTAL_SHARDS_PER_NODE_SETTING.getKey()));
             childImplementations.put(REQUIRE, NestableCollectExpression.<RelationInfo, Map<String, Object>>forFunction(
                 r -> mapOfDynamicGroupSetting(IndexMetaData.INDEX_ROUTING_REQUIRE_GROUP_PREFIX, r)));
             childImplementations.put(INCLUDE, NestableCollectExpression.<RelationInfo, Map<String, Object>>forFunction(
@@ -204,7 +210,7 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
         static final String ENABLED = "enabled";
 
         private void addChildImplementations() {
-            childImplementations.put(ENABLED, new TableParameterExpression(TableParameterInfo.WARMER_ENABLED.getKey()));
+            childImplementations.put(ENABLED, new TableParameterExpression(IndexSettings.INDEX_WARMER_ENABLED_SETTING.getKey()));
         }
     }
 
@@ -221,9 +227,9 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
         static final String DURABILITY = "durability";
 
         private void addChildImplementations() {
-            childImplementations.put(FLUSH_THRESHOLD_SIZE, new TableParameterExpression(TableParameterInfo.FLUSH_THRESHOLD_SIZE.getKey()));
-            childImplementations.put(SYNC_INTERVAL, new TableParameterExpression(TableParameterInfo.TRANSLOG_SYNC_INTERVAL.getKey()));
-            childImplementations.put(DURABILITY, new TableParameterExpression(TableParameterInfo.TRANSLOG_DURABILITY.getKey()));
+            childImplementations.put(FLUSH_THRESHOLD_SIZE, new TableParameterExpression(IndexSettings.INDEX_TRANSLOG_FLUSH_THRESHOLD_SIZE_SETTING.getKey()));
+            childImplementations.put(SYNC_INTERVAL, new TableParameterExpression(IndexSettings.INDEX_TRANSLOG_SYNC_INTERVAL_SETTING.getKey()));
+            childImplementations.put(DURABILITY, new TableParameterExpression(IndexSettings.INDEX_TRANSLOG_DURABILITY_SETTING.getKey()));
         }
     }
 
@@ -240,7 +246,7 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
         private void addChildImplementations() {
             childImplementations.put(
                 WAIT_FOR_ACTIVE_SHARDS,
-                new StringTableParameterExpression(TableParameterInfo.SETTING_WAIT_FOR_ACTIVE_SHARDS.getKey()));
+                new StringTableParameterExpression(IndexMetaData.SETTING_WAIT_FOR_ACTIVE_SHARDS.getKey()));
         }
     }
 
@@ -269,7 +275,7 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
         static final String DELAYED_TIMEOUT = "delayed_timeout";
 
         private void addChildImplementations() {
-            childImplementations.put(DELAYED_TIMEOUT, new TableParameterExpression(TableParameterInfo.UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT.getKey()));
+            childImplementations.put(DELAYED_TIMEOUT, new TableParameterExpression(UnassignedInfo.INDEX_DELAYED_NODE_LEFT_TIMEOUT_SETTING.getKey()));
         }
     }
 }

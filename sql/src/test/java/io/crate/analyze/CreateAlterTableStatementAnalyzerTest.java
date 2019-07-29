@@ -47,8 +47,12 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.AutoExpandReplicas;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.routing.allocation.decider.EnableAllocationDecider;
+import org.elasticsearch.cluster.routing.allocation.decider.MaxRetryAllocationDecider;
 import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.IndexSettings;
+import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.test.ClusterServiceUtils;
 import org.junit.Before;
 import org.junit.Test;
@@ -129,7 +133,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             "create table foo (id integer primary key, name string not null) " +
             "clustered into 3 shards with (number_of_replicas=0)");
 
-        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.NUMBER_OF_SHARDS.getKey()), is("3"));
+        assertThat(analysis.tableParameter().settings().get(IndexMetaData.INDEX_NUMBER_OF_SHARDS_SETTING.getKey()), is("3"));
         assertThat(analysis.tableParameter().settings().get(IndexMetaData.INDEX_NUMBER_OF_REPLICAS_SETTING.getKey()), is("0"));
 
         Map<String, Object> metaMapping = ((Map) analysis.mapping().get("_meta"));
@@ -156,7 +160,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     @Test
     public void testCreateTableWithDefaultNumberOfShards() {
         CreateTableAnalyzedStatement analysis = e.analyze("create table foo (id integer primary key, name string)");
-        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.NUMBER_OF_SHARDS.getKey()), is("6"));
+        assertThat(analysis.tableParameter().settings().get(IndexMetaData.INDEX_NUMBER_OF_SHARDS_SETTING.getKey()), is("6"));
     }
 
     @Test
@@ -164,7 +168,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         CreateTableAnalyzedStatement analysis = e.analyze(
             "create table foo (id integer primary key) clustered by (id)"
         );
-        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.NUMBER_OF_SHARDS.getKey()), is("6"));
+        assertThat(analysis.tableParameter().settings().get(IndexMetaData.INDEX_NUMBER_OF_SHARDS_SETTING.getKey()), is("6"));
     }
 
     @Test
@@ -173,7 +177,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             "create table foo (id integer primary key) " +
             "clustered by (id) into 8 shards"
         );
-        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.NUMBER_OF_SHARDS.getKey()), is("8"));
+        assertThat(analysis.tableParameter().settings().get(IndexMetaData.INDEX_NUMBER_OF_SHARDS_SETTING.getKey()), is("8"));
     }
 
     @Test
@@ -181,7 +185,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         CreateTableAnalyzedStatement analysis = e.analyze(
             "CREATE TABLE foo (id int primary key) " +
             "with (\"mapping.total_fields.limit\"=5000)");
-        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.MAPPING_TOTAL_FIELDS_LIMIT.getKey()), is("5000"));
+        assertThat(analysis.tableParameter().settings().get(MapperService.INDEX_MAPPING_TOTAL_FIELDS_LIMIT_SETTING.getKey()), is("5000"));
     }
 
     @Test
@@ -189,7 +193,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         CreateTableAnalyzedStatement analysis = e.analyze(
             "CREATE TABLE foo (id int primary key, content string) " +
             "with (refresh_interval='5000ms')");
-        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.REFRESH_INTERVAL.getKey()), is("5s"));
+        assertThat(analysis.tableParameter().settings().get(IndexSettings.INDEX_REFRESH_INTERVAL_SETTING.getKey()), is("5s"));
     }
 
     @Test
@@ -212,13 +216,13 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         AlterTableAnalyzedStatement analysisSet = e.analyze(
             "ALTER TABLE user_refresh_interval " +
             "SET (refresh_interval = '5000ms')");
-        assertEquals("5s", analysisSet.tableParameter().settings().get(TableParameterInfo.REFRESH_INTERVAL.getKey()));
+        assertEquals("5s", analysisSet.tableParameter().settings().get(IndexSettings.INDEX_REFRESH_INTERVAL_SETTING.getKey()));
 
         // alter t reset
         AlterTableAnalyzedStatement analysisReset = e.analyze(
             "ALTER TABLE user_refresh_interval " +
             "RESET (refresh_interval)");
-        assertEquals("1s", analysisReset.tableParameter().settings().get(TableParameterInfo.REFRESH_INTERVAL.getKey()));
+        assertEquals("1s", analysisReset.tableParameter().settings().get(IndexSettings.INDEX_REFRESH_INTERVAL_SETTING.getKey()));
     }
 
     @Test
@@ -226,13 +230,13 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         AlterTableAnalyzedStatement analysisSet = e.analyze(
             "ALTER TABLE users " +
             "SET (\"mapping.total_fields.limit\" = '5000')");
-        assertEquals("5000", analysisSet.tableParameter().settings().get(TableParameterInfo.MAPPING_TOTAL_FIELDS_LIMIT.getKey()));
+        assertEquals("5000", analysisSet.tableParameter().settings().get(MapperService.INDEX_MAPPING_TOTAL_FIELDS_LIMIT_SETTING.getKey()));
 
         // Check if resetting total_fields results in default value
         AlterTableAnalyzedStatement analysisReset = e.analyze(
             "ALTER TABLE users " +
             "RESET (\"mapping.total_fields.limit\")");
-        assertEquals("1000", analysisReset.tableParameter().settings().get(TableParameterInfo.MAPPING_TOTAL_FIELDS_LIMIT.getKey()));
+        assertEquals("1000", analysisReset.tableParameter().settings().get(MapperService.INDEX_MAPPING_TOTAL_FIELDS_LIMIT_SETTING.getKey()));
     }
 
     @Test
@@ -242,7 +246,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             "SET (column_policy = 'strict')");
         assertEquals(
             ColumnPolicy.STRICT.lowerCaseName(),
-            analysisSet.tableParameter().mappings().get(TableParameterInfo.COLUMN_POLICY.getKey()));
+            analysisSet.tableParameter().mappings().get(TableParameters.COLUMN_POLICY.getKey()));
     }
 
     @Test
@@ -258,7 +262,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         AlterTableAnalyzedStatement analysisSet = e.analyze(
             "ALTER TABLE users " +
             "SET (max_ngram_diff = 42)");
-        assertThat(analysisSet.tableParameter().settings().get(TableParameterInfo.MAX_NGRAM_DIFF.getKey()), is("42"));
+        assertThat(analysisSet.tableParameter().settings().get(IndexSettings.MAX_NGRAM_DIFF_SETTING.getKey()), is("42"));
     }
 
     @Test
@@ -266,7 +270,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         AlterTableAnalyzedStatement analysisSet = e.analyze(
             "ALTER TABLE users " +
             "SET (max_shingle_diff = 43)");
-        assertThat(analysisSet.tableParameter().settings().get(TableParameterInfo.MAX_SHINGLE_DIFF.getKey()), is("43"));
+        assertThat(analysisSet.tableParameter().settings().get(IndexSettings.MAX_SHINGLE_DIFF_SETTING.getKey()), is("43"));
     }
 
     @Test
@@ -723,7 +727,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     public void testCreateTableWithClusteredIntoShardsParameter() {
         CreateTableAnalyzedStatement analysis = e.analyze(
             "create table t (id int primary key) clustered into ? shards", new Object[]{2});
-        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.NUMBER_OF_SHARDS.getKey()), is("2"));
+        assertThat(analysis.tableParameter().settings().get(IndexMetaData.INDEX_NUMBER_OF_SHARDS_SETTING.getKey()), is("2"));
     }
 
     @Test
@@ -807,70 +811,70 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     public void testChangeReadBlock() {
         AlterTableAnalyzedStatement analysis =
             e.analyze("alter table users set (\"blocks.read\"=true)");
-        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.BLOCKS_READ.getKey()), is("true"));
+        assertThat(analysis.tableParameter().settings().get(IndexMetaData.INDEX_BLOCKS_READ_SETTING.getKey()), is("true"));
     }
 
     @Test
     public void testChangeWriteBlock() {
         AlterTableAnalyzedStatement analysis =
             e.analyze("alter table users set (\"blocks.write\"=true)");
-        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.BLOCKS_WRITE.getKey()), is("true"));
+        assertThat(analysis.tableParameter().settings().get(IndexMetaData.INDEX_BLOCKS_WRITE_SETTING.getKey()), is("true"));
     }
 
     @Test
     public void testChangeMetadataBlock() {
         AlterTableAnalyzedStatement analysis =
             e.analyze("alter table users set (\"blocks.metadata\"=true)");
-        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.BLOCKS_METADATA.getKey()), is("true"));
+        assertThat(analysis.tableParameter().settings().get(IndexMetaData.INDEX_BLOCKS_METADATA_SETTING.getKey()), is("true"));
     }
 
     @Test
     public void testChangeReadOnlyBlock() {
         AlterTableAnalyzedStatement analysis =
             e.analyze("alter table users set (\"blocks.read_only\"=true)");
-        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.READ_ONLY.getKey()), is("true"));
+        assertThat(analysis.tableParameter().settings().get(IndexMetaData.INDEX_READ_ONLY_SETTING.getKey()), is("true"));
     }
 
     @Test
     public void testChangeBlockReadOnlyAllowDelete() {
         AlterTableAnalyzedStatement analysis =
             e.analyze("alter table users set (\"blocks.read_only_allow_delete\"=true)");
-        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.READ_ONLY_ALLOW_DELETE.getKey()), is("true"));
+        assertThat(analysis.tableParameter().settings().get(IndexMetaData.INDEX_BLOCKS_READ_ONLY_ALLOW_DELETE_SETTING.getKey()), is("true"));
     }
 
     @Test
     public void testChangeBlockReadOnlyAllowedDeletePartitionedTable() {
         AlterTableAnalyzedStatement analysis =
             e.analyze("alter table parted set (\"blocks.read_only_allow_delete\"=true)");
-        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.READ_ONLY_ALLOW_DELETE.getKey()), is("true"));
+        assertThat(analysis.tableParameter().settings().get(IndexMetaData.INDEX_BLOCKS_READ_ONLY_ALLOW_DELETE_SETTING.getKey()), is("true"));
     }
 
     @Test
     public void testChangeFlushThresholdSize() {
         AlterTableAnalyzedStatement analysis =
             e.analyze("alter table users set (\"translog.flush_threshold_size\"='300b')");
-        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.FLUSH_THRESHOLD_SIZE.getKey()), is("300b"));
+        assertThat(analysis.tableParameter().settings().get(IndexSettings.INDEX_TRANSLOG_FLUSH_THRESHOLD_SIZE_SETTING.getKey()), is("300b"));
     }
 
     @Test
     public void testChangeTranslogInterval() {
         AlterTableAnalyzedStatement analysis =
             e.analyze("alter table users set (\"translog.sync_interval\"='100ms')");
-        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.TRANSLOG_SYNC_INTERVAL.getKey()), is("100ms"));
+        assertThat(analysis.tableParameter().settings().get(IndexSettings.INDEX_TRANSLOG_SYNC_INTERVAL_SETTING.getKey()), is("100ms"));
     }
 
     @Test
     public void testChangeTranslogDurability() {
         AlterTableAnalyzedStatement analysis =
             e.analyze("alter table users set (\"translog.durability\"='ASYNC')");
-        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.TRANSLOG_DURABILITY.getKey()), is("ASYNC"));
+        assertThat(analysis.tableParameter().settings().get(IndexSettings.INDEX_TRANSLOG_DURABILITY_SETTING.getKey()), is("ASYNC"));
     }
 
     @Test
     public void testRoutingAllocationEnable() {
         AlterTableAnalyzedStatement analysis =
             e.analyze("alter table users set (\"routing.allocation.enable\"=\"none\")");
-        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.ROUTING_ALLOCATION_ENABLE.getKey()), is("none"));
+        assertThat(analysis.tableParameter().settings().get(EnableAllocationDecider.INDEX_ROUTING_ALLOCATION_ENABLE_SETTING.getKey()), is("none"));
     }
 
     @Test
@@ -884,7 +888,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         AlterTableAnalyzedStatement analysis =
             e.analyze("alter table users set (\"number_of_shards\"=1)");
         assertThat(analysis.table().ident().name(), is("users"));
-        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.NUMBER_OF_SHARDS.getKey()), is("1"));
+        assertThat(analysis.tableParameter().settings().get(IndexMetaData.INDEX_NUMBER_OF_SHARDS_SETTING.getKey()), is("1"));
     }
 
     @Test
@@ -892,7 +896,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         AlterTableAnalyzedStatement analysis =
             e.analyze("alter table users reset (\"number_of_shards\")");
         assertThat(analysis.table().ident().name(), is("users"));
-        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.NUMBER_OF_SHARDS.getKey()), is("5"));
+        assertThat(analysis.tableParameter().settings().get(IndexMetaData.INDEX_NUMBER_OF_SHARDS_SETTING.getKey()), is("5"));
     }
 
     @Test
@@ -900,14 +904,14 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         AlterTableAnalyzedStatement analysis =
             e.analyze("alter table users set (\"translog.sync_interval\"='1s')");
         assertThat(analysis.table().ident().name(), is("users"));
-        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.TRANSLOG_SYNC_INTERVAL.getKey()), is("1s"));
+        assertThat(analysis.tableParameter().settings().get(IndexSettings.INDEX_TRANSLOG_SYNC_INTERVAL_SETTING.getKey()), is("1s"));
     }
 
     @Test
     public void testAllocationMaxRetriesValidation() {
         AlterTableAnalyzedStatement analysis =
             e.analyze("alter table users set (\"allocation.max_retries\"=1)");
-        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.ALLOCATION_MAX_RETRIES.getKey()), is("1"));
+        assertThat(analysis.tableParameter().settings().get(MaxRetryAllocationDecider.SETTING_ALLOCATION_MAX_RETRY.getKey()), is("1"));
     }
 
     @Test
@@ -915,7 +919,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         CreateTableAnalyzedStatement analysis = e.analyze(
             "create table foo (id integer primary key, name string) "
             + "clustered into 3 shards with (\"blocks.read_only\"=true)");
-        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.READ_ONLY.getKey()), is("true"));
+        assertThat(analysis.tableParameter().settings().get(IndexMetaData.INDEX_READ_ONLY_SETTING.getKey()), is("true"));
     }
 
     @SuppressWarnings("unchecked")
