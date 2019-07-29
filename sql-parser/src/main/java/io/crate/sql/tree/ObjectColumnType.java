@@ -25,12 +25,12 @@ import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Optional;
 
-public class ObjectColumnType extends ColumnType {
+public class ObjectColumnType<T> extends ColumnType {
 
     private final Optional<ColumnPolicy> objectType;
-    private final List<ColumnDefinition> nestedColumns;
+    private final List<ColumnDefinition<T>> nestedColumns;
 
-    public ObjectColumnType(@Nullable String objectType, List<ColumnDefinition> nestedColumns) {
+    public ObjectColumnType(@Nullable String objectType, List<ColumnDefinition<T>> nestedColumns) {
         super("object");
         this.objectType = objectType == null ? Optional.empty() : Optional.of(ColumnPolicy.of(objectType));
         this.nestedColumns = nestedColumns;
@@ -40,7 +40,7 @@ public class ObjectColumnType extends ColumnType {
         return objectType;
     }
 
-    public List<ColumnDefinition> nestedColumns() {
+    public List<ColumnDefinition<T>> nestedColumns() {
         return nestedColumns;
     }
 

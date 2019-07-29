@@ -25,6 +25,7 @@ import io.crate.sql.tree.CollectionColumnType;
 import io.crate.sql.tree.ColumnDefinition;
 import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.DefaultTraversalVisitor;
+import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.ObjectColumnType;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -55,8 +56,9 @@ public final class DataTypeAnalyzer extends DefaultTraversalVisitor<DataType<?>,
 
     @Override
     public DataType<?> visitObjectColumnType(ObjectColumnType node, Void context) {
+        ObjectColumnType<Expression> objectColumnType = node;
         ObjectType.Builder builder = ObjectType.builder();
-        for (ColumnDefinition columnDefinition : node.nestedColumns()) {
+        for (ColumnDefinition columnDefinition : objectColumnType.nestedColumns()) {
             ColumnType type = columnDefinition.type();
             // can be null for generated columns, as then the type is inferred from the expression.
             builder.setInnerType(

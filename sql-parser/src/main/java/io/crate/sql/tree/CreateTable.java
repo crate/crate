@@ -27,14 +27,14 @@ import java.util.Optional;
 public final class CreateTable<T> extends Statement {
 
     private final Table<T> name;
-    private final List<TableElement> tableElements;
+    private final List<TableElement<T>> tableElements;
     private final Optional<PartitionedBy<T>> partitionedBy;
     private final Optional<ClusteredBy<T>> clusteredBy;
     private final boolean ifNotExists;
     private final GenericProperties<T> properties;
 
     public CreateTable(Table<T> name,
-                       List<TableElement> tableElements,
+                       List<TableElement<T>> tableElements,
                        Optional<PartitionedBy<T>> partitionedBy,
                        Optional<ClusteredBy<T>> clusteredBy,
                        GenericProperties<T> genericProperties,
@@ -55,7 +55,7 @@ public final class CreateTable<T> extends Statement {
         return name;
     }
 
-    public List<TableElement> tableElements() {
+    public List<TableElement<T>> tableElements() {
         return tableElements;
     }
 

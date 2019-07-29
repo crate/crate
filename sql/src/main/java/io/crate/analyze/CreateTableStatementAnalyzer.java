@@ -25,6 +25,7 @@ import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.ExpressionToStringVisitor;
 import io.crate.analyze.relations.FieldProvider;
+import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
@@ -75,7 +76,7 @@ public final class CreateTableStatementAnalyzer {
 
         CreateTable<Symbol> analyzedCreateTable = new CreateTable<>(
             createTable.name().map(x -> exprAnalyzerWithFieldsAsString.convert(x, exprCtx)),
-            createTable.tableElements(),
+            Lists2.map(createTable.tableElements(), x -> x.map(y -> exprAnalyzerWithFieldsAsString.convert(y, exprCtx))),
             createTable.partitionedBy().map(x -> x.map(y -> exprAnalyzerWithFieldsAsString.convert(y, exprCtx))),
             createTable.clusteredBy().map(x -> x.map(y -> exprAnalyzerWithFieldsAsString.convert(y, exprCtx))),
             createTable.properties().map(x -> exprAnalyzerWithoutFields.convert(x, exprCtx)),

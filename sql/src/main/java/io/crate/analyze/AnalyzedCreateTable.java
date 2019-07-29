@@ -26,6 +26,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.CreateTable;
+import io.crate.sql.tree.TableElement;
 
 import java.util.function.Consumer;
 
@@ -53,7 +54,9 @@ public class AnalyzedCreateTable implements DDLStatement {
             consumer.accept(partitionProperty.expression());
             partitionProperty.expressions().forEach(consumer);
         }
-        // TODO: analyzedCreateTable.tableElements()
+        for (TableElement<Symbol> tableElement : createTable.tableElements()) {
+            tableElement.visit(consumer);
+        }
         createTable.clusteredBy().ifPresent(x -> {
             x.column().ifPresent(consumer);
             x.numberOfShards().ifPresent(consumer);

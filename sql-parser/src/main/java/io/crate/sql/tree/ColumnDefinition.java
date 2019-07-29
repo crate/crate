@@ -23,30 +23,33 @@ package io.crate.sql.tree;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
+import io.crate.common.collections.Lists2;
 
 import javax.annotation.Nullable;
 import java.util.List;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
-public class ColumnDefinition extends TableElement {
+public class ColumnDefinition<T> extends TableElement<T> {
 
     private final String ident;
 
     @Nullable
-    private final Expression defaultExpression;
+    private final T defaultExpression;
 
     @Nullable
-    private final Expression generatedExpression;
+    private final T generatedExpression;
 
     @Nullable
     private final ColumnType type;
 
-    private final List<ColumnConstraint> constraints;
+    private final List<ColumnConstraint<T>> constraints;
 
     public ColumnDefinition(String ident,
-                            @Nullable Expression defaultExpression,
-                            @Nullable Expression generatedExpression,
+                            @Nullable T defaultExpression,
+                            @Nullable T generatedExpression,
                             @Nullable ColumnType type,
-                            List<ColumnConstraint> constraints) {
+                            List<ColumnConstraint<T>> constraints) {
         this.ident = ident;
         this.defaultExpression = defaultExpression;
         this.generatedExpression = generatedExpression;
@@ -72,12 +75,12 @@ public class ColumnDefinition extends TableElement {
     }
 
     @Nullable
-    public Expression generatedExpression() {
+    public T generatedExpression() {
         return generatedExpression;
     }
 
     @Nullable
-    public Expression defaultExpression() {
+    public T defaultExpression() {
         return defaultExpression;
     }
 
@@ -86,7 +89,7 @@ public class ColumnDefinition extends TableElement {
         return type;
     }
 
-    public List<ColumnConstraint> constraints() {
+    public List<ColumnConstraint<T>> constraints() {
         return constraints;
     }
 
@@ -127,5 +130,29 @@ public class ColumnDefinition extends TableElement {
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitColumnDefinition(this, context);
+    }
+
+    @Override
+    public <U> TableElement<U> map(Function<? super T, ? extends U> mapper) {
+        return new ColumnDefinition<>(
+            ident,
+            defaultExpression == null ? null : mapper.apply(defaultExpression),
+            generatedExpression == null ? null : mapper.apply(generatedExpression),
+            type,
+            Lists2.map(constraints, x -> x.map(mapper))
+        );
+    }
+
+    @Override
+    public void visit(Consumer<? super T> consumer) {
+        if (defaultExpression != null) {
+            consumer.accept(defaultExpression);
+        }
+        if (generatedExpression != null) {
+            consumer.accept(generatedExpression);
+        }
+        for (ColumnConstraint<T> constraint : constraints) {
+            constraint.visit(consumer);
+        }
     }
 }
