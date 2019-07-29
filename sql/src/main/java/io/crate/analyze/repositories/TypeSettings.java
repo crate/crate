@@ -23,6 +23,7 @@
 package io.crate.analyze.repositories;
 
 import com.google.common.collect.ImmutableMap;
+import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GenericProperties;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.unit.ByteSizeUnit;
@@ -58,7 +59,7 @@ public class TypeSettings {
     /**
      * Return possible dynamic GenericProperties which will not be validated.
      */
-    public GenericProperties dynamicProperties(GenericProperties genericProperties) {
-        return GenericProperties.EMPTY;
+    public GenericProperties<Expression> dynamicProperties(GenericProperties<Expression> genericProperties) {
+        return GenericProperties.empty();
     }
 }

@@ -32,7 +32,7 @@ public class Tokenizer extends AnalyzerElement {
         this.namedProperties = namedProperties;
     }
 
-    public GenericProperties properties() {
+    public GenericProperties<Expression> properties() {
         return namedProperties.properties();
     }
 

@@ -26,6 +26,7 @@ import io.crate.exceptions.PartitionUnknownException;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.sql.tree.Assignment;
+import io.crate.sql.tree.Expression;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -35,7 +36,7 @@ import java.util.List;
 final class TableAnalyzer {
 
     static Collection<String> filteredIndices(ParameterContext parameterContext,
-                                              List<Assignment> partitionProperties,
+                                              List<Assignment<Expression>> partitionProperties,
                                               DocTableInfo tableInfo) {
         if (partitionProperties.isEmpty()) {
             return Arrays.asList(tableInfo.concreteOpenIndices());

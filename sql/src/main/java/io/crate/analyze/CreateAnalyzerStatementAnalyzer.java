@@ -62,10 +62,10 @@ class CreateAnalyzerStatementAnalyzer
 
     static class Context {
 
-        Analysis analysis;
+        final Analysis analysis;
         CreateAnalyzerAnalyzedStatement statement;
 
-        public Context(Analysis analysis) {
+        Context(Analysis analysis) {
             this.analysis = analysis;
         }
     }
@@ -89,7 +89,7 @@ class CreateAnalyzerStatementAnalyzer
     @Override
     public CreateAnalyzerAnalyzedStatement visitTokenizer(Tokenizer tokenizer, Context context) {
         String name = tokenizer.ident();
-        GenericProperties properties = tokenizer.properties();
+        GenericProperties<Expression> properties = tokenizer.properties();
 
         if (properties.isEmpty()) {
             // use a builtin tokenizer without parameters
@@ -131,10 +131,12 @@ class CreateAnalyzerStatementAnalyzer
     }
 
     @Override
-    public CreateAnalyzerAnalyzedStatement visitGenericProperty(GenericProperty property, Context context) {
-        GenericPropertiesConverter.genericPropertyToSetting(context.statement.genericAnalyzerSettingsBuilder(),
-            ANALYZER.buildSettingChildName(context.statement.ident(), property.key()),
-            property.value(),
+    public CreateAnalyzerAnalyzedStatement visitGenericProperty(GenericProperty<?> property, Context context) {
+        GenericProperty<Expression> property1 = (GenericProperty<Expression>) property;
+        GenericPropertiesConverter.genericPropertyToSetting(
+            context.statement.genericAnalyzerSettingsBuilder(),
+            ANALYZER.buildSettingChildName(context.statement.ident(), property1.key()),
+            property1.value(),
             context.analysis.parameterContext().parameters()
         );
         return null;
@@ -145,7 +147,7 @@ class CreateAnalyzerStatementAnalyzer
         for (NamedProperties tokenFilterNode : tokenFilters.tokenFilters()) {
 
             String name = tokenFilterNode.ident();
-            GenericProperties properties = tokenFilterNode.properties();
+            GenericProperties<Expression> properties = tokenFilterNode.properties();
 
             // use a builtin token-filter without parameters
             if (properties.isEmpty()) {
@@ -170,7 +172,7 @@ class CreateAnalyzerStatementAnalyzer
                         throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                             "token-filter name '%s' is reserved, 'type' property forbidden here", name));
                     }
-                    properties.add(new GenericProperty("type", new StringLiteral(name)));
+                    properties.add(new GenericProperty<>("type", new StringLiteral(name)));
                 }
 
                 // build
@@ -194,7 +196,7 @@ class CreateAnalyzerStatementAnalyzer
         for (NamedProperties charFilterNode : charFilters.charFilters()) {
 
             String name = charFilterNode.ident();
-            GenericProperties properties = charFilterNode.properties();
+            GenericProperties<Expression> properties = charFilterNode.properties();
 
             // use a builtin char-filter without parameters
             if (properties.isEmpty()) {
@@ -236,7 +238,7 @@ class CreateAnalyzerStatementAnalyzer
     /**
      * Validate and process `type` property
      */
-    private String extractType(GenericProperties properties, ParameterContext parameterContext) {
+    private static String extractType(GenericProperties<Expression> properties, ParameterContext parameterContext) {
         Expression expression = properties.get("type");
         if (expression == null) {
             throw new IllegalArgumentException("'type' property missing");

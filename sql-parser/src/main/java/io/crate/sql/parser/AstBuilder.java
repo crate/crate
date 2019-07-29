@@ -25,6 +25,7 @@ package io.crate.sql.parser;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Multimap;
+import io.crate.common.collections.Lists2;
 import io.crate.sql.parser.antlr.v4.SqlBaseBaseVisitor;
 import io.crate.sql.parser.antlr.v4.SqlBaseLexer;
 import io.crate.sql.parser.antlr.v4.SqlBaseParser;
@@ -527,7 +528,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
                 conflictColumns = emptyList();
             }
             if (onConflictContext.NOTHING() != null) {
-                return new Insert.DuplicateKeyContext(
+                return new Insert.DuplicateKeyContext<>(
                     Insert.DuplicateKeyContext.Type.ON_CONFLICT_DO_NOTHING,
                     emptyList(),
                     conflictColumns);
@@ -535,13 +536,14 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
                 if (conflictColumns.isEmpty()) {
                     throw new IllegalStateException("ON CONFLICT <conflict_target> <- conflict_target missing");
                 }
-                return new Insert.DuplicateKeyContext(
+                var assignments = Lists2.map(onConflictContext.assignment(), x -> (Assignment<Expression>) visit(x));
+                return new Insert.DuplicateKeyContext<>(
                     Insert.DuplicateKeyContext.Type.ON_CONFLICT_DO_UPDATE_SET,
-                    visitCollection(onConflictContext.assignment(), Assignment.class),
+                    assignments,
                     conflictColumns);
             }
         } else {
-            return Insert.DuplicateKeyContext.NONE;
+            return Insert.DuplicateKeyContext.none();
         }
     }
 
@@ -559,9 +561,10 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     @Override
     public Node visitUpdate(SqlBaseParser.UpdateContext context) {
+        var assignments = Lists2.map(context.assignment(), x -> (Assignment<Expression>) visit(x));
         return new Update(
             (Relation) visit(context.aliasedRelation()),
-            visitCollection(context.assignment(), Assignment.class),
+            assignments,
             visitIfPresent(context.where(), Expression.class));
     }
 
@@ -577,24 +580,25 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     private Assignment prepareSetAssignment(SqlBaseParser.SetContext context) {
         Expression settingName = new QualifiedNameReference(getQualifiedName(context.qname()));
         if (context.DEFAULT() != null) {
-            return new Assignment(settingName, ImmutableList.of());
+            return new Assignment<>(settingName, ImmutableList.of());
         }
-        return new Assignment(settingName, visitCollection(context.setExpr(), Expression.class));
+        return new Assignment<>(settingName, visitCollection(context.setExpr(), Expression.class));
     }
 
     @Override
     public Node visitSetGlobal(SqlBaseParser.SetGlobalContext context) {
+        var assignments = Lists2.map(context.setGlobalAssignment(), x -> (Assignment<Expression>) visit(x));
         if (context.PERSISTENT() != null) {
             return new SetStatement(SetStatement.Scope.GLOBAL,
                 SetStatement.SettingType.PERSISTENT,
-                visitCollection(context.setGlobalAssignment(), Assignment.class));
+                assignments);
         }
-        return new SetStatement(SetStatement.Scope.GLOBAL, visitCollection(context.setGlobalAssignment(), Assignment.class));
+        return new SetStatement(SetStatement.Scope.GLOBAL, assignments);
     }
 
     @Override
     public Node visitSetLicense(SqlBaseParser.SetLicenseContext ctx) {
-        Assignment assignment = new Assignment(
+        Assignment<Expression> assignment = new Assignment<>(
             new StringLiteral("license"), (Expression) visit(ctx.stringLiteral()));
 
         return new SetStatement(SetStatement.Scope.LICENSE,
@@ -603,7 +607,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     @Override
     public Node visitSetSessionTransactionMode(SqlBaseParser.SetSessionTransactionModeContext ctx) {
-        Assignment assignment = new Assignment(
+        Assignment<Expression> assignment = new Assignment<>(
             new StringLiteral("transaction_mode"),
             visitCollection(ctx.setExpr(), Expression.class));
         return new SetStatement(SetStatement.Scope.SESSION_TRANSACTION_MODE, assignment);
@@ -805,7 +809,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     // Properties
 
     private GenericProperties extractGenericProperties(ParserRuleContext context) {
-        return visitIfPresent(context, GenericProperties.class).orElse(GenericProperties.EMPTY);
+        return visitIfPresent(context, GenericProperties.class).orElse(GenericProperties.empty());
     }
 
     @Override
@@ -815,14 +819,14 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     @Override
     public Node visitGenericProperties(SqlBaseParser.GenericPropertiesContext context) {
-        GenericProperties properties = new GenericProperties();
-        context.genericProperty().forEach(p -> properties.add((GenericProperty) visit(p)));
+        GenericProperties<Expression> properties = new GenericProperties<>();
+        context.genericProperty().forEach(p -> properties.add((GenericProperty<Expression>) visit(p)));
         return properties;
     }
 
     @Override
     public Node visitGenericProperty(SqlBaseParser.GenericPropertyContext context) {
-        return new GenericProperty(getIdentText(context.ident()), (Expression) visit(context.expr()));
+        return new GenericProperty<>(getIdentText(context.ident()), (Expression) visit(context.expr()));
     }
 
     // Amending tables
@@ -1083,7 +1087,8 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     @Override
     public Node visitTable(SqlBaseParser.TableContext context) {
         if (context.qname() != null) {
-            return new Table(getQualifiedName(context.qname()), visitCollection(context.valueExpression(), Assignment.class));
+            var assignments = Lists2.map(context.valueExpression(), x -> (Assignment<Expression>) visit(x));
+            return new Table<>(getQualifiedName(context.qname()), assignments);
         }
         FunctionCall fc = new FunctionCall(
             getQualifiedName(context.ident()), visitCollection(context.valueExpression(), Expression.class));

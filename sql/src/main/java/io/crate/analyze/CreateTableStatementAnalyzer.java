@@ -56,7 +56,7 @@ public final class CreateTableStatementAnalyzer {
         this.numberOfShards = numberOfShards;
     }
 
-    public CreateTableAnalyzedStatement analyze(CreateTable createTable,
+    public CreateTableAnalyzedStatement analyze(CreateTable<Expression> createTable,
                                                 ParameterContext parameterContext,
                                                 CoordinatorTxnCtx coordinatorTxnCtx) {
         CreateTableAnalyzedStatement statement = new CreateTableAnalyzedStatement();

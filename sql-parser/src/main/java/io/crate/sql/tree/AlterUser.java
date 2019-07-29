@@ -27,15 +27,15 @@ import com.google.common.base.Objects;
 
 public class AlterUser extends Statement {
 
-    private final GenericProperties genericProperties;
+    private final GenericProperties<Expression> genericProperties;
     private final String name;
 
-    public AlterUser(String name, GenericProperties genericProperties) {
+    public AlterUser(String name, GenericProperties<Expression> genericProperties) {
         this.genericProperties = genericProperties;
         this.name = name;
     }
 
-    public GenericProperties genericProperties() {
+    public GenericProperties<Expression> genericProperties() {
         return genericProperties;
     }
 

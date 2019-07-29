@@ -24,16 +24,16 @@ package io.crate.analyze;
 
 import io.crate.metadata.table.ShardedTable;
 import io.crate.sql.tree.Assignment;
+import io.crate.sql.tree.Expression;
 
 import java.util.List;
 
 public abstract class RerouteAnalyzedStatement implements DDLStatement {
 
-
     private final ShardedTable tableInfo;
-    private final List<Assignment> partitionProperties;
+    private final List<Assignment<Expression>> partitionProperties;
 
-    public RerouteAnalyzedStatement(ShardedTable tableInfo, List<Assignment> partitionProperties) {
+    public RerouteAnalyzedStatement(ShardedTable tableInfo, List<Assignment<Expression>> partitionProperties) {
         this.tableInfo = tableInfo;
         this.partitionProperties = partitionProperties;
     }
@@ -42,7 +42,7 @@ public abstract class RerouteAnalyzedStatement implements DDLStatement {
         return tableInfo;
     }
 
-    public List<Assignment> partitionProperties() {
+    public List<Assignment<Expression>> partitionProperties() {
         return partitionProperties;
     }
 }

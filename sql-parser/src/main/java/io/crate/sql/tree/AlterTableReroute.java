@@ -26,11 +26,11 @@ import com.google.common.base.MoreObjects;
 
 public class AlterTableReroute extends Statement {
 
-    private final Table table;
+    private final Table<Expression> table;
     private final RerouteOption rerouteOption;
     private final boolean blob;
 
-    public AlterTableReroute(Table table, boolean blob, RerouteOption rerouteOption) {
+    public AlterTableReroute(Table<Expression> table, boolean blob, RerouteOption rerouteOption) {
         this.table = table;
         this.blob = blob;
         this.rerouteOption = rerouteOption;
@@ -42,7 +42,7 @@ public class AlterTableReroute extends Statement {
         return visitor.visitAlterTableReroute(this, context);
     }
 
-    public Table table() {
+    public Table<Expression> table() {
         return table;
     }
 

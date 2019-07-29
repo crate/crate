@@ -33,13 +33,13 @@ public class RerouteCancelShardAnalyzedStatement extends RerouteAnalyzedStatemen
 
     private final Expression shardId;
     private final Expression nodeId;
-    private final GenericProperties properties;
+    private final GenericProperties<Expression> properties;
 
     public RerouteCancelShardAnalyzedStatement(ShardedTable tableInfo,
-                                               List<Assignment> partitionProperties,
+                                               List<Assignment<Expression>> partitionProperties,
                                                Expression shardId,
                                                Expression nodeId,
-                                               GenericProperties properties) {
+                                               GenericProperties<Expression> properties) {
         super(tableInfo, partitionProperties);
         this.shardId = shardId;
         this.nodeId = nodeId;
@@ -59,7 +59,7 @@ public class RerouteCancelShardAnalyzedStatement extends RerouteAnalyzedStatemen
         return nodeId;
     }
 
-    public GenericProperties properties() {
+    public GenericProperties<Expression> properties() {
         return properties;
     }
 }

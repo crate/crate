@@ -26,10 +26,11 @@ import com.google.common.collect.ImmutableList;
 
 import java.util.List;
 
-public class Table extends QueryBody {
+public class Table<T> extends QueryBody {
+
     private final QualifiedName name;
     private final boolean excludePartitions;
-    private final List<Assignment> partitionProperties;
+    private final List<Assignment<T>> partitionProperties;
 
     public Table(QualifiedName name) {
         this(name, true);
@@ -41,7 +42,7 @@ public class Table extends QueryBody {
         this.partitionProperties = ImmutableList.of();
     }
 
-    public Table(QualifiedName name, List<Assignment> partitionProperties) {
+    public Table(QualifiedName name, List<Assignment<T>> partitionProperties) {
         this.name = name;
         this.excludePartitions = false;
         this.partitionProperties = partitionProperties;
@@ -55,7 +56,7 @@ public class Table extends QueryBody {
         return excludePartitions;
     }
 
-    public List<Assignment> partitionProperties() {
+    public List<Assignment<T>> partitionProperties() {
         return partitionProperties;
     }
 

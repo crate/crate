@@ -35,8 +35,8 @@ import io.crate.sql.tree.ObjectLiteral;
 import io.crate.sql.tree.ParameterExpression;
 import io.crate.sql.tree.ResetStatement;
 import io.crate.sql.tree.SetStatement;
-import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -54,7 +54,7 @@ class SetStatementAnalyzer {
 
         boolean isPersistent = node.settingType().equals(SetStatement.SettingType.PERSISTENT);
         Map<String, List<Expression>> settings = new HashMap<>();
-        Assignment assignment;
+        Assignment<Expression> assignment;
 
         switch (node.scope()) {
             case LICENSE:
@@ -67,7 +67,7 @@ class SetStatementAnalyzer {
 
                 return new SetLicenseAnalyzedStatement(licenseKey);
             case GLOBAL:
-                for (Assignment anAssignment : node.assignments()) {
+                for (Assignment<Expression> anAssignment : node.assignments()) {
                     for (String setting : ExpressionToSettingNameListVisitor.convert(anAssignment)) {
                         CrateSettings.checkIfRuntimeSetting(setting);
                     }
@@ -120,9 +120,10 @@ class SetStatementAnalyzer {
         }
 
         @Override
-        public Collection<String> visitAssignment(Assignment node, String context) {
-            String left = ExpressionToStringVisitor.convert(node.columnName(), Row.EMPTY);
-            return node.expression().accept(this, left);
+        public Collection<String> visitAssignment(Assignment<?> node, String context) {
+            Assignment<Expression> assignment = (Assignment<Expression>) node;
+            String left = ExpressionToStringVisitor.convert(assignment.columnName(), Row.EMPTY);
+            return assignment.expression().accept(this, left);
         }
 
         @Override

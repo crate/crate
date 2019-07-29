@@ -26,12 +26,12 @@ import com.google.common.base.Objects;
 
 public class IndexColumnConstraint extends ColumnConstraint {
 
-    public static final IndexColumnConstraint OFF = new IndexColumnConstraint("OFF", GenericProperties.EMPTY);
+    public static final IndexColumnConstraint OFF = new IndexColumnConstraint("OFF", GenericProperties.empty());
 
     private final String indexMethod;
-    private final GenericProperties properties;
+    private final GenericProperties<Expression> properties;
 
-    public IndexColumnConstraint(String indexMethod, GenericProperties properties) {
+    public IndexColumnConstraint(String indexMethod, GenericProperties<Expression> properties) {
         this.indexMethod = indexMethod;
         this.properties = properties;
     }
@@ -40,7 +40,7 @@ public class IndexColumnConstraint extends ColumnConstraint {
         return indexMethod;
     }
 
-    public GenericProperties properties() {
+    public GenericProperties<Expression> properties() {
         return properties;
     }
 

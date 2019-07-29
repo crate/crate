@@ -47,6 +47,7 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.Assignment;
+import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.Insert;
 import io.crate.sql.tree.InsertFromSubquery;
 import io.crate.sql.tree.ParameterExpression;
@@ -242,7 +243,7 @@ class InsertFromSubQueryAnalyzer {
                                                        ExpressionAnalyzer exprAnalyzer,
                                                        CoordinatorTxnCtx txnCtx,
                                                        Function<ParameterExpression, Symbol> paramConverter,
-                                                       Insert.DuplicateKeyContext duplicateKeyContext) {
+                                                       Insert.DuplicateKeyContext<Expression> duplicateKeyContext) {
         if (duplicateKeyContext.getAssignments().isEmpty()) {
             return Collections.emptyMap();
         }
@@ -258,7 +259,7 @@ class InsertFromSubQueryAnalyzer {
         var expressionAnalyzer = new ExpressionAnalyzer(functions, txnCtx, paramConverter, fieldProvider, null);
         var normalizer = new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, null, targetTable);
         Map<Reference, Symbol> updateAssignments = new HashMap<>(duplicateKeyContext.getAssignments().size());
-        for (Assignment assignment : duplicateKeyContext.getAssignments()) {
+        for (Assignment<Expression> assignment : duplicateKeyContext.getAssignments()) {
             Reference targetCol = requireNonNull(
                 targetTable.resolveField((Field) exprAnalyzer.convert(assignment.columnName(), exprCtx)),
                 "resolveField must work on a field that was just resolved"

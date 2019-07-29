@@ -28,20 +28,20 @@ import java.util.List;
 
 public class AlterTable extends Statement {
 
-    private final Table table;
-    private final GenericProperties genericProperties;
+    private final Table<Expression> table;
+    private final GenericProperties<Expression> genericProperties;
     private final List<String> resetProperties;
 
-    public AlterTable(Table table, GenericProperties genericProperties) {
+    public AlterTable(Table<Expression> table, GenericProperties<Expression> genericProperties) {
         this.table = table;
         this.genericProperties = genericProperties;
         this.resetProperties = ImmutableList.of();
     }
 
-    public AlterTable(Table table, List<String> resetProperties) {
+    public AlterTable(Table<Expression> table, List<String> resetProperties) {
         this.table = table;
         this.resetProperties = resetProperties;
-        this.genericProperties = GenericProperties.EMPTY;
+        this.genericProperties = GenericProperties.empty();
     }
 
     @Override
@@ -49,11 +49,11 @@ public class AlterTable extends Statement {
         return visitor.visitAlterTable(this, context);
     }
 
-    public Table table() {
+    public Table<Expression> table() {
         return table;
     }
 
-    public GenericProperties genericProperties() {
+    public GenericProperties<Expression> genericProperties() {
         return genericProperties;
     }
 

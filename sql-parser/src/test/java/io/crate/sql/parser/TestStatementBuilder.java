@@ -1019,9 +1019,9 @@ public class TestStatementBuilder {
         printStatement("insert into t (a, b, c) values (1, 2), (3, 4) on conflict (c) do update set a = excluded.a + 1, b = 4");
         printStatement("insert into t (a, b, c) values (1, 2), (3, 4) on conflict (c) do update set a = excluded.a + 1, b = excluded.b - 2");
 
-        InsertFromValues insert = (InsertFromValues) SqlParser.createStatement(
+        InsertFromValues<Expression> insert = (InsertFromValues<Expression>) SqlParser.createStatement(
                 "insert into test_generated_column (id, ts) values (?, ?) on conflict (id) do update set ts = ?");
-        Assignment onDuplicateAssignment = insert.getDuplicateKeyContext().getAssignments().get(0);
+        Assignment<Expression> onDuplicateAssignment = insert.getDuplicateKeyContext().getAssignments().get(0);
         assertThat(onDuplicateAssignment.expression(), instanceOf(ParameterExpression.class));
         assertThat(onDuplicateAssignment.expressions().get(0).toString(), is("$3"));
 

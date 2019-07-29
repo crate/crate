@@ -28,10 +28,10 @@ import com.google.common.base.Preconditions;
 import java.util.Collections;
 import java.util.List;
 
-public class Assignment extends Node {
+public class Assignment<T> extends Node {
 
-    private final Expression columnName;
-    private final List<Expression> expressions;
+    private final T columnName;
+    private final List<T> expressions;
 
     /**
      * Constructor for SET SESSION/LOCAL statements
@@ -41,7 +41,7 @@ public class Assignment extends Node {
      *                        value can be either string literal, numeric literal, or ident
      * VALUE, VALUE, ...   -> two or more items in expressions list
      */
-    public Assignment(Expression columnName, List<Expression> expressions) {
+    public Assignment(T columnName, List<T> expressions) {
         Preconditions.checkNotNull(columnName, "columnname is null");
         Preconditions.checkNotNull(expressions, "expression is null");
         this.columnName = columnName;
@@ -52,22 +52,22 @@ public class Assignment extends Node {
      * Constructor for SET GLOBAL statements
      * only single expression is allowed on right side of assignment
      */
-    public Assignment(Expression columnName, Expression expression) {
+    public Assignment(T columnName, T expression) {
         Preconditions.checkNotNull(columnName, "columnname is null");
         Preconditions.checkNotNull(expression, "expression is null");
         this.columnName = columnName;
         this.expressions = Collections.singletonList(expression);
     }
 
-    public Expression columnName() {
+    public T columnName() {
         return columnName;
     }
 
-    public Expression expression() {
+    public T expression() {
         return expressions.isEmpty() ? null : expressions.get(0);
     }
 
-    public List<Expression> expressions() {
+    public List<T> expressions() {
         return expressions;
     }
 
