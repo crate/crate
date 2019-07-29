@@ -23,6 +23,8 @@
 package io.crate.analyze.ddl;
 
 import com.google.common.collect.ImmutableSet;
+import io.crate.analyze.GenericPropertiesConverter;
+import io.crate.sql.tree.GenericProperties;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.SettingsException;
 import org.elasticsearch.common.unit.DistanceUnit;
@@ -37,7 +39,8 @@ public class GeoSettingsApplier {
     private static final Set<String> SUPPORTED_OPTIONS = ImmutableSet.of(
         "precision", "distance_error_pct", "tree_levels");
 
-    public static void applySettings(Map<String, Object> mapping, Settings geoSettings, @Nullable String geoTree) {
+    public static void applySettings(Map<String, Object> mapping, GenericProperties<Object> properties, @Nullable String geoTree) {
+        Settings geoSettings = GenericPropertiesConverter.genericPropertiesToSettings(properties);
         validate(geoSettings);
         if (geoTree != null) {
             mapping.put("tree", geoTree);

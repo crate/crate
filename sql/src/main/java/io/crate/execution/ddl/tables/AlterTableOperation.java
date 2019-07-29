@@ -346,8 +346,8 @@ public class AlterTableOperation {
                 null,
                 analysis.table().isPartitioned(),
                 false,
-                analysis.analyzedTableElements().settings(),
-                analysis.analyzedTableElements().toMapping()
+                analysis.settings(),
+                analysis.mapping()
             );
             transportAlterTableAction.execute(request, result);
             return result;

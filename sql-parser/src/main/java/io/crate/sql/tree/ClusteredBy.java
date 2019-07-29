@@ -25,23 +25,28 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 
 import java.util.Optional;
+import java.util.function.Function;
 
-public final class ClusteredBy extends Node {
+public final class ClusteredBy<T> extends Node {
 
-    private final Optional<Expression> column;
-    private final Optional<Expression> numberOfShards;
+    private final Optional<T> column;
+    private final Optional<T> numberOfShards;
 
-    public ClusteredBy(Optional<Expression> column, Optional<Expression> numberOfShards) {
+    public ClusteredBy(Optional<T> column, Optional<T> numberOfShards) {
         this.column = column;
         this.numberOfShards = numberOfShards;
     }
 
-    public Optional<Expression> column() {
+    public Optional<T> column() {
         return column;
     }
 
-    public Optional<Expression> numberOfShards() {
+    public Optional<T> numberOfShards() {
         return numberOfShards;
+    }
+
+    public <U> ClusteredBy<U> map(Function<? super T, ? extends U> mapper) {
+        return new ClusteredBy<>(column.map(mapper), numberOfShards.map(mapper));
     }
 
     @Override

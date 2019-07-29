@@ -22,7 +22,9 @@
 package io.crate.sql.tree;
 
 
-public class ColumnType extends Expression {
+import java.util.function.Function;
+
+public class ColumnType<T> extends Expression {
 
     protected final String name;
 
@@ -56,5 +58,14 @@ public class ColumnType extends Expression {
     @Override
     public int hashCode() {
         return name.hashCode();
+    }
+
+    public <U> ColumnType<U> map(Function<? super T, ? extends U> mapper) {
+        return new ColumnType<>(name);
+    }
+
+    public <U> ColumnType<U> mapExpressions(ColumnType<U> mappedType,
+                                            Function<? super T, ? extends U> mapper) {
+        return mappedType;
     }
 }

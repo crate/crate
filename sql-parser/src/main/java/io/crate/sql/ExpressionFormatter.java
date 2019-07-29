@@ -634,17 +634,17 @@ public final class ExpressionFormatter {
         }
 
         @Override
-        public String visitColumnType(ColumnType node, @Nullable List<Expression> parameters) {
+        public String visitColumnType(ColumnType<?> node, @Nullable List<Expression> parameters) {
             return node.name();
         }
 
         @Override
-        public String visitCollectionColumnType(CollectionColumnType node, @Nullable List<Expression> parameters) {
+        public String visitCollectionColumnType(CollectionColumnType<?> node, @Nullable List<Expression> parameters) {
             return node.name() + "(" + node.innerType().accept(this, parameters) + ")";
         }
 
         @Override
-        public String visitObjectColumnType(ObjectColumnType node, @Nullable List<Expression> parameters) {
+        public String visitObjectColumnType(ObjectColumnType<?> node, @Nullable List<Expression> parameters) {
             return node.name();
         }
 

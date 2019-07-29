@@ -23,17 +23,20 @@ package io.crate.sql.tree;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
+import io.crate.common.collections.Lists2;
 
 import java.util.List;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
-public class IndexDefinition extends TableElement {
+public class IndexDefinition<T> extends TableElement<T> {
 
     private final String ident;
     private final String method;
-    private final List<Expression> columns;
-    private final GenericProperties properties;
+    private final List<T> columns;
+    private final GenericProperties<T> properties;
 
-    public IndexDefinition(String ident, String method, List<Expression> columns, GenericProperties properties) {
+    public IndexDefinition(String ident, String method, List<T> columns, GenericProperties<T> properties) {
         this.ident = ident;
         this.method = method;
         this.columns = columns;
@@ -48,11 +51,11 @@ public class IndexDefinition extends TableElement {
         return method;
     }
 
-    public List<Expression> columns() {
+    public List<T> columns() {
         return columns;
     }
 
-    public GenericProperties properties() {
+    public GenericProperties<T> properties() {
         return properties;
     }
 
@@ -89,5 +92,21 @@ public class IndexDefinition extends TableElement {
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitIndexDefinition(this, context);
+    }
+
+    @Override
+    public <U> TableElement<U> map(Function<? super T, ? extends U> mapper) {
+        return new IndexDefinition<>(
+            ident,
+            method,
+            Lists2.map(columns, mapper),
+            properties.map(mapper)
+        );
+    }
+
+    @Override
+    public void visit(Consumer<? super T> consumer) {
+        columns.forEach(consumer);
+        properties.properties().values().forEach(consumer);
     }
 }

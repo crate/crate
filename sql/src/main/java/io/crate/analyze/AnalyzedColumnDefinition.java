@@ -27,11 +27,13 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import io.crate.analyze.ddl.GeoSettingsApplier;
+import io.crate.common.collections.Lists2;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.Reference;
 import io.crate.metadata.table.ColumnPolicies;
 import io.crate.sql.tree.ColumnPolicy;
-import io.crate.sql.tree.Expression;
+import io.crate.sql.tree.GenericProperties;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.GeoShapeType;
@@ -49,10 +51,11 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 
 import static org.elasticsearch.index.mapper.TypeParsers.DOC_VALUES;
 
-public class AnalyzedColumnDefinition {
+public class AnalyzedColumnDefinition<T> {
 
     private static final DeprecationLogger DEPRECATION_LOGGER =
         new DeprecationLogger(LogManager.getLogger(AnalyzedColumnDefinition.class));
@@ -69,45 +72,135 @@ public class AnalyzedColumnDefinition {
         DataTypes.GEO_SHAPE.id()
     );
 
-    private final AnalyzedColumnDefinition parent;
+    private static final String COLUMN_STORE_PROPERTY = "columnstore";
+
+    private final AnalyzedColumnDefinition<T> parent;
     public Integer position;
     private ColumnIdent ident;
     private String name;
     private DataType dataType;
     private String collectionType;
-    private Reference.IndexType indexType;
+
     private String geoTree;
-    private String analyzer;
+    private GenericProperties<T> geoProperties;
+
+    private Reference.IndexType indexType;
+    private T analyzer;
+    private String indexMethod;
+    private Settings analyzerSettings = Settings.EMPTY;
 
     @VisibleForTesting
     ColumnPolicy objectType = ColumnPolicy.DYNAMIC;
 
     private boolean isPrimaryKey = false;
     private boolean isNotNull = false;
-    private Settings analyzerSettings = Settings.EMPTY;
-    private Settings geoSettings = Settings.EMPTY;
 
-    private List<AnalyzedColumnDefinition> children = new ArrayList<>();
+    private List<AnalyzedColumnDefinition<T>> children = new ArrayList<>();
     private boolean isIndex = false;
     private ArrayList<String> copyToTargets;
     private boolean isParentColumn;
-    private boolean columnStore = true;
+    private GenericProperties<T> storageProperties;
+
+    private boolean generated;
 
     @Nullable
     private String formattedGeneratedExpression;
     @Nullable
-    private Expression generatedExpression;
+    private T generatedExpression;
 
     @Nullable
     private String formattedDefaultExpression;
 
     @Nullable
-    private Expression defaultExpression;
+    private T defaultExpression;
 
-    AnalyzedColumnDefinition(Integer position, @Nullable AnalyzedColumnDefinition parent) {
+    public AnalyzedColumnDefinition(Integer position, @Nullable AnalyzedColumnDefinition<T> parent) {
         this.position = position;
         this.parent = parent;
     }
+
+    private AnalyzedColumnDefinition(AnalyzedColumnDefinition<T> parent,
+                                     Integer position,
+                                     ColumnIdent ident,
+                                     String name,
+                                     DataType dataType,
+                                     String collectionType,
+                                     Reference.IndexType indexType,
+                                     String geoTree,
+                                     T analyzer,
+                                     String indexMethod,
+                                     ColumnPolicy objectType,
+                                     boolean isPrimaryKey,
+                                     boolean isNotNull,
+                                     Settings analyzerSettings,
+                                     GenericProperties<T> geoProperties,
+                                     List<AnalyzedColumnDefinition<T>> children,
+                                     boolean isIndex,
+                                     ArrayList<String> copyToTargets,
+                                     boolean isParentColumn,
+                                     GenericProperties<T> storageProperties,
+                                     @Nullable String formattedGeneratedExpression,
+                                     @Nullable T generatedExpression,
+                                     @Nullable String formattedDefaultExpression,
+                                     @Nullable T defaultExpression,
+                                     boolean generated) {
+        this.parent = parent;
+        this.position = position;
+        this.ident = ident;
+        this.name = name;
+        this.dataType = dataType;
+        this.collectionType = collectionType;
+        this.indexType = indexType;
+        this.geoTree = geoTree;
+        this.analyzer = analyzer;
+        this.indexMethod = indexMethod;
+        this.objectType = objectType;
+        this.isPrimaryKey = isPrimaryKey;
+        this.isNotNull = isNotNull;
+        this.analyzerSettings = analyzerSettings;
+        this.geoProperties = geoProperties;
+        this.children = children;
+        this.isIndex = isIndex;
+        this.copyToTargets = copyToTargets;
+        this.isParentColumn = isParentColumn;
+        this.storageProperties = storageProperties;
+        this.formattedGeneratedExpression = formattedGeneratedExpression;
+        this.generatedExpression = generatedExpression;
+        this.formattedDefaultExpression = formattedDefaultExpression;
+        this.defaultExpression = defaultExpression;
+        this.generated = generated;
+    }
+
+    public <U> AnalyzedColumnDefinition<U> map(Function<? super T, ? extends U> mapper) {
+        return new AnalyzedColumnDefinition<>(
+            parent == null ? null : (AnalyzedColumnDefinition<U>) parent,   // parent is expected to be mapped already
+            position,
+            ident,
+            name,
+            dataType,
+            collectionType,
+            indexType,
+            geoTree,
+            analyzer == null ? null : mapper.apply(analyzer),
+            indexMethod,
+            objectType,
+            isPrimaryKey,
+            isNotNull,
+            analyzerSettings,
+            geoProperties == null ? null : geoProperties.map(mapper),
+            Lists2.map(children, x -> x.map(mapper)),
+            isIndex,
+            copyToTargets,
+            isParentColumn,
+            storageProperties == null ? null : storageProperties.map(mapper),
+            formattedDefaultExpression,
+            generatedExpression == null ? null : mapper.apply(generatedExpression),
+            formattedDefaultExpression,
+            defaultExpression == null ? null : mapper.apply(defaultExpression),
+            generated
+        );
+    }
+
 
     public void name(String name) {
         this.name = name;
@@ -118,8 +211,12 @@ public class AnalyzedColumnDefinition {
         }
     }
 
-    public void analyzer(String analyzer) {
+    public void analyzer(T analyzer) {
         this.analyzer = analyzer;
+    }
+
+    void indexMethod(String indexMethod) {
+        this.indexMethod = indexMethod;
     }
 
     void indexConstraint(Reference.IndexType indexType) {
@@ -131,16 +228,17 @@ public class AnalyzedColumnDefinition {
         return indexType;
     }
 
+    private void analyzerSettings(Settings settings) {
+        this.analyzerSettings = settings;
+    }
+
+
     void geoTree(String geoTree) {
         this.geoTree = geoTree;
     }
 
-    public void analyzerSettings(Settings settings) {
-        this.analyzerSettings = settings;
-    }
-
-    void geoSettings(Settings settings) {
-        this.geoSettings = settings;
+    void geoProperties(GenericProperties<T> properties) {
+        this.geoProperties = properties;
     }
 
     public void dataType(String dataType) {
@@ -170,7 +268,7 @@ public class AnalyzedColumnDefinition {
         return collectionType;
     }
 
-    boolean isIndexColumn() {
+    public boolean isIndexColumn() {
         return isIndex;
     }
 
@@ -178,36 +276,89 @@ public class AnalyzedColumnDefinition {
         this.isIndex = true;
     }
 
-    void addChild(AnalyzedColumnDefinition analyzedColumnDefinition) {
+    void addChild(AnalyzedColumnDefinition<T> analyzedColumnDefinition) {
         children.add(analyzedColumnDefinition);
     }
 
-    boolean hasChildren() {
+    public boolean hasChildren() {
         return !children.isEmpty();
     }
 
-    public Settings analyzerSettings() {
+    Settings builtAnalyzerSettings() {
         if (!children().isEmpty()) {
             Settings.Builder builder = Settings.builder();
             builder.put(analyzerSettings);
-            for (AnalyzedColumnDefinition child : children()) {
-                builder.put(child.analyzerSettings());
+            for (AnalyzedColumnDefinition<T> child : children()) {
+                builder.put(child.builtAnalyzerSettings());
             }
             return builder.build();
         }
         return analyzerSettings;
     }
 
+    private static void applyAndValidateStorageSettings(Map<String, Object> mapping,
+                                                        AnalyzedColumnDefinition<Object> definition) {
+        if (definition.storageProperties == null) {
+            return;
+        }
+        Settings storageSettings = GenericPropertiesConverter.genericPropertiesToSettings(definition.storageProperties);
+        for (String property : storageSettings.names()) {
+            if (property.equals(COLUMN_STORE_PROPERTY)) {
+                DataType dataType = definition.dataType();
+                boolean val = storageSettings.getAsBoolean(property, true);
+                if (val == false) {
+                    if (dataType != DataTypes.STRING) {
+                        throw new IllegalArgumentException(
+                            String.format(Locale.ENGLISH, "Invalid storage option \"columnstore\" for data type \"%s\"",
+                                          dataType.getName()));
+                    }
+
+                    mapping.put(DOC_VALUES, "false");
+                }
+            } else {
+                throw new IllegalArgumentException(
+                    String.format(Locale.ENGLISH, "Invalid storage option \"%s\"", storageSettings.get(property)));
+            }
+        }
+    }
+
+    static void applyAndValidateAnalyzerSettings(AnalyzedColumnDefinition<Object> definition,
+                                                 FulltextAnalyzerResolver fulltextAnalyzerResolver) {
+        if (definition.analyzer == null) {
+            if (definition.indexMethod != null) {
+                if (definition.indexMethod.equals("plain")) {
+                    definition.analyzer("keyword");
+                } else {
+                    definition.analyzer("standard");
+                }
+            }
+        } else {
+            if (definition.analyzer instanceof Object[]) {
+                throw new IllegalArgumentException("array literal not allowed for the analyzer property");
+            }
+
+            String analyzerName = StringType.INSTANCE.value(definition.analyzer);
+            if (fulltextAnalyzerResolver.hasCustomAnalyzer(analyzerName)) {
+                Settings settings = fulltextAnalyzerResolver.resolveFullCustomAnalyzerSettings(analyzerName);
+                definition.analyzerSettings(settings);
+            }
+        }
+
+        for (AnalyzedColumnDefinition<Object> child : definition.children()) {
+            applyAndValidateAnalyzerSettings(child, fulltextAnalyzerResolver);
+        }
+    }
+
     public void validate() {
-        if (analyzer != null && !"not_analyzed".equals(analyzer) && !DataTypes.STRING.equals(dataType)) {
+        if (indexType == Reference.IndexType.ANALYZED && !DataTypes.STRING.equals(dataType)) {
             throw new IllegalArgumentException(
                 String.format(Locale.ENGLISH, "Can't use an Analyzer on column %s because analyzers are only allowed on columns of type \"string\".",
-                    ident.sqlFqn()
+                              ident.sqlFqn()
                 ));
         }
         if (indexType != null && UNSUPPORTED_INDEX_TYPE_IDS.contains(dataType.id())) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                "INDEX constraint cannot be used on columns of type \"%s\"", dataType));
+                                                             "INDEX constraint cannot be used on columns of type \"%s\"", dataType));
         }
 
         if (DataTypes.STORAGE_UNSUPPORTED.contains(dataType)) {
@@ -216,7 +367,7 @@ public class AnalyzedColumnDefinition {
         if (hasPrimaryKeyConstraint()) {
             ensureTypeCanBeUsedAsKey();
         }
-        for (AnalyzedColumnDefinition child : children) {
+        for (AnalyzedColumnDefinition<T> child : children) {
             child.validate();
         }
     }
@@ -240,43 +391,38 @@ public class AnalyzedColumnDefinition {
         return name;
     }
 
-    Map<String, Object> toMapping() {
+    static Map<String, Object> toMapping(AnalyzedColumnDefinition<Object> definition) {
         Map<String, Object> mapping = new HashMap<>();
-        addTypeOptions(mapping);
-        mapping.put("type", typeNameForESMapping());
+        addTypeOptions(mapping, definition);
+        mapping.put("type", definition.typeNameForESMapping());
 
-        if (position != null) {
-            mapping.put("position", position);
+        if (definition.position != null) {
+            mapping.put("position", definition.position);
         }
-        if (indexType == Reference.IndexType.NO) {
+        if (definition.indexType == Reference.IndexType.NO) {
             // we must use a boolean <p>false</p> and NO string "false", otherwise parser support for old indices will fail
             mapping.put("index", false);
         }
-        if (copyToTargets != null) {
-            mapping.put("copy_to", copyToTargets);
+        if (definition.copyToTargets != null) {
+            mapping.put("copy_to", definition.copyToTargets);
         }
 
-        if ("array".equals(collectionType)) {
+        if ("array".equals(definition.collectionType)) {
             Map<String, Object> outerMapping = new HashMap<>();
             outerMapping.put("type", "array");
-            if (dataType().id() == ObjectType.ID) {
-                objectMapping(mapping);
+            if (definition.dataType().id() == ObjectType.ID) {
+                objectMapping(mapping, definition);
             }
             outerMapping.put("inner", mapping);
             return outerMapping;
-        } else if (dataType().id() == ObjectType.ID) {
-            objectMapping(mapping);
+        } else if (definition.dataType().id() == ObjectType.ID) {
+            objectMapping(mapping, definition);
         }
 
-        if (columnStore == false) {
-            mapping.put(DOC_VALUES, "false");
-        }
+        applyAndValidateStorageSettings(mapping, definition);
 
-        assert ((formattedDefaultExpression != null && defaultExpression != null) ||
-               (formattedDefaultExpression == null && defaultExpression == null))
-            : "Default Expression is not properly initialized";
-        if (formattedDefaultExpression != null) {
-            mapping.put("default_expr", formattedDefaultExpression);
+        if (definition.formattedDefaultExpression != null) {
+            mapping.put("default_expr", definition.formattedDefaultExpression);
         }
 
         return mapping;
@@ -289,8 +435,8 @@ public class AnalyzedColumnDefinition {
         return DataTypes.esMappingNameFrom(dataType.id());
     }
 
-    private void addTypeOptions(Map<String, Object> mapping) {
-        switch (dataType.id()) {
+    private static void addTypeOptions(Map<String, Object> mapping, AnalyzedColumnDefinition<Object> definition) {
+        switch (definition.dataType.id()) {
             case TimestampType.ID_WITH_TZ:
                 /*
                  * We want 1000 not be be interpreted as year 1000AD but as 1970-01-01T00:00:01.000
@@ -303,11 +449,13 @@ public class AnalyzedColumnDefinition {
                 mapping.put("ignore_timezone", true);
                 break;
             case GeoShapeType.ID:
-                GeoSettingsApplier.applySettings(mapping, geoSettings, geoTree);
+                if (definition.geoProperties != null) {
+                    GeoSettingsApplier.applySettings(mapping, definition.geoProperties, definition.geoTree);
+                }
                 break;
             case StringType.ID:
-                if (analyzer != null) {
-                    mapping.put("analyzer", analyzer);
+                if (definition.analyzer != null) {
+                    mapping.put("analyzer", DataTypes.STRING.value(definition.analyzer));
                 }
                 break;
 
@@ -317,11 +465,11 @@ public class AnalyzedColumnDefinition {
         }
     }
 
-    private void objectMapping(Map<String, Object> mapping) {
-        mapping.put("dynamic", ColumnPolicies.encodeMappingValue(objectType));
+    private static void objectMapping(Map<String, Object> mapping, AnalyzedColumnDefinition<Object> definition) {
+        mapping.put("dynamic", ColumnPolicies.encodeMappingValue(definition.objectType));
         Map<String, Object> childProperties = new HashMap<>();
-        for (AnalyzedColumnDefinition child : children) {
-            childProperties.put(child.name(), child.toMapping());
+        for (AnalyzedColumnDefinition<Object> child : definition.children) {
+            childProperties.put(child.name(), toMapping(child));
         }
         mapping.put("properties", childProperties);
     }
@@ -330,7 +478,7 @@ public class AnalyzedColumnDefinition {
         return ident;
     }
 
-    void setPrimaryKeyConstraint() {
+    public void setPrimaryKeyConstraint() {
         this.isPrimaryKey = true;
     }
 
@@ -370,7 +518,7 @@ public class AnalyzedColumnDefinition {
         return MoreObjects.toStringHelper(this).add("ident", ident).toString();
     }
 
-    public List<AnalyzedColumnDefinition> children() {
+    public List<AnalyzedColumnDefinition<T>> children() {
         return children;
     }
 
@@ -395,8 +543,16 @@ public class AnalyzedColumnDefinition {
      * @return true if this column has a defined child
      * (which is not coming from an object column definition payload in case of ADD COLUMN)
      */
-    boolean isParentColumn() {
+    public boolean isParentColumn() {
         return isParentColumn;
+    }
+
+    public void setGenerated(boolean generated) {
+        this.generated = generated;
+    }
+
+    public boolean isGenerated() {
+        return generated;
     }
 
     public void formattedGeneratedExpression(String formattedGeneratedExpression) {
@@ -408,33 +564,29 @@ public class AnalyzedColumnDefinition {
         return formattedGeneratedExpression;
     }
 
-    public void generatedExpression(Expression generatedExpression) {
+    public void generatedExpression(T generatedExpression) {
         this.generatedExpression = generatedExpression;
     }
 
     @Nullable
-    public Expression generatedExpression() {
+    public T generatedExpression() {
         return generatedExpression;
     }
 
-    public void formattedDefaultExpression(String formattedDefaultExpression) {
+    void formattedDefaultExpression(String formattedDefaultExpression) {
         this.formattedDefaultExpression = formattedDefaultExpression;
     }
 
     @Nullable
-    public Expression defaultExpression() {
+    public T defaultExpression() {
         return defaultExpression;
     }
 
-    public void defaultExpression(Expression defaultExpression) {
+    public void defaultExpression(T defaultExpression) {
         this.defaultExpression = defaultExpression;
     }
 
-    void setColumnStore(boolean columnStore) {
-        this.columnStore = columnStore;
-    }
-
-    public boolean isColumnStoreEnabled() {
-        return columnStore;
+    void setStorageProperties(GenericProperties<T> storageProperties) {
+        this.storageProperties = storageProperties;
     }
 }

@@ -25,10 +25,12 @@ import io.crate.analyze.expressions.ExpressionToNumberVisitor;
 import io.crate.data.Row;
 import io.crate.sql.tree.ClusteredBy;
 import io.crate.sql.tree.Expression;
+import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
+import java.util.Locale;
 import java.util.Optional;
 
 @Singleton
@@ -43,7 +45,7 @@ public class NumberOfShards {
         this.clusterService = clusterService;
     }
 
-    int fromClusteredByClause(ClusteredBy clusteredBy, Row parameters) {
+    int fromClusteredByClause(ClusteredBy<Expression> clusteredBy, Row parameters) {
         Optional<Expression> numberOfShards = clusteredBy.numberOfShards();
         if (numberOfShards.isPresent()) {
             int numShards = ExpressionToNumberVisitor.convert(numberOfShards.get(), parameters).intValue();
@@ -55,7 +57,26 @@ public class NumberOfShards {
         return defaultNumberOfShards();
     }
 
-    int defaultNumberOfShards() {
+    public int fromClusteredByClause(ClusteredBy<Object> clusteredBy) {
+        Optional<Object> numberOfShards = clusteredBy.numberOfShards();
+        if (numberOfShards.isPresent()) {
+            Object value = numberOfShards.get();
+            int numShards;
+            try {
+                numShards = DataTypes.INTEGER.value(value);
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException(
+                    String.format(Locale.ENGLISH, "invalid number '%s'", value), e);
+            }
+            if (numShards < 1) {
+                throw new IllegalArgumentException("num_shards in CLUSTERED clause must be greater than 0");
+            }
+            return numShards;
+        }
+        return defaultNumberOfShards();
+    }
+
+    public int defaultNumberOfShards() {
         int numDataNodes = clusterService.state().nodes().getDataNodes().size();
         assert numDataNodes > 0 : "number of data nodes cannot be less than 0";
         return Math.max(MIN_NUM_SHARDS, numDataNodes * 2);

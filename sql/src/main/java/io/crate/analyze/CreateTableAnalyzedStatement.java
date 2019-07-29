@@ -34,7 +34,7 @@ import java.util.Map;
 
 public class CreateTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
 
-    private AnalyzedTableElements analyzedTableElements;
+    private AnalyzedTableElements<Object> analyzedTableElements;
     private Map<String, Object> mapping;
     private ColumnIdent routingColumn;
     private RelationName relationName;
@@ -101,21 +101,21 @@ public class CreateTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
     }
 
     @SuppressWarnings("unchecked")
-    public Map<String, Object> mappingProperties() {
+    Map<String, Object> mappingProperties() {
         return (Map) mapping().get("properties");
     }
 
     public Collection<String> primaryKeys() {
-        return analyzedTableElements.primaryKeys();
+        return AnalyzedTableElements.primaryKeys(analyzedTableElements);
     }
 
     public Collection<String> notNullColumns() {
-        return analyzedTableElements.notNullColumns();
+        return AnalyzedTableElements.notNullColumns(analyzedTableElements);
     }
 
     public Map<String, Object> mapping() {
         if (mapping == null) {
-            mapping = analyzedTableElements.toMapping();
+            mapping = AnalyzedTableElements.toMapping(analyzedTableElements);
             Map<String, Object> metaMap = (Map<String, Object>) mapping.get("_meta");
             if (routingColumn != null) {
                 metaMap.put("routing", routingColumn.fqn());
@@ -145,16 +145,16 @@ public class CreateTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
     /**
      * return true if a columnDefinition with name <code>columnIdent</code> exists
      */
-    public boolean hasColumnDefinition(ColumnIdent columnIdent) {
+    boolean hasColumnDefinition(ColumnIdent columnIdent) {
         return (analyzedTableElements().columnIdents().contains(columnIdent) ||
                 columnIdent.name().equalsIgnoreCase("_id"));
     }
 
-    public void analyzedTableElements(AnalyzedTableElements analyze) {
+    public void analyzedTableElements(AnalyzedTableElements<Object> analyze) {
         this.analyzedTableElements = analyze;
     }
 
-    public AnalyzedTableElements analyzedTableElements() {
+    AnalyzedTableElements<Object> analyzedTableElements() {
         return analyzedTableElements;
     }
 

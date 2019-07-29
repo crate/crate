@@ -69,6 +69,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.WindowFunction;
 import io.crate.expression.symbol.format.SymbolFormatter;
+import io.crate.interval.IntervalParser;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
@@ -127,7 +128,6 @@ import io.crate.sql.tree.WindowFrame;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.interval.IntervalParser;
 import io.crate.types.ObjectType;
 import io.crate.types.UndefinedType;
 import org.joda.time.Period;
@@ -1046,12 +1046,12 @@ public class ExpressionAnalyzer {
         return allocateFunction(functionName, arguments, null, context, functions, coordinatorTxnCtx);
     }
 
-    static Symbol allocateFunction(String functionName,
-                                   List<Symbol> arguments,
-                                   Symbol filter,
-                                   ExpressionAnalysisContext context,
-                                   Functions functions,
-                                   CoordinatorTxnCtx coordinatorTxnCtx) {
+    public static Symbol allocateFunction(String functionName,
+                                          List<Symbol> arguments,
+                                          Symbol filter,
+                                          ExpressionAnalysisContext context,
+                                          Functions functions,
+                                          CoordinatorTxnCtx coordinatorTxnCtx) {
         return allocateBuiltinOrUdfFunction(
             null, functionName, arguments, filter, context, functions, null, coordinatorTxnCtx);
     }
