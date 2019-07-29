@@ -116,7 +116,7 @@ class SetStatementAnalyzer {
         private static final ExpressionToSettingNameListVisitor INSTANCE = new ExpressionToSettingNameListVisitor();
 
         public static Collection<String> convert(Node node) {
-            return INSTANCE.process(node, null);
+            return node.accept(INSTANCE, null);
         }
 
         @Override

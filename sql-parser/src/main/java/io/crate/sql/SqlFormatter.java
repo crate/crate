@@ -120,7 +120,8 @@ public final class SqlFormatter {
 
     public static String formatSql(Node root, @Nullable List<Expression> parameters) {
         StringBuilder builder = new StringBuilder();
-        new Formatter(builder, parameters).process(root, 0);
+        Formatter formatter = new Formatter(builder, parameters);
+        root.accept(formatter, 0);
         return builder.toString();
     }
 
@@ -148,7 +149,7 @@ public final class SqlFormatter {
             append(indent, swapTable.target().toString());
             if (!swapTable.properties().isEmpty()) {
                 append(indent, " ");
-                process(swapTable.properties(), indent);
+                swapTable.properties().accept(this, indent);
             }
             return null;
         }
@@ -163,19 +164,19 @@ public final class SqlFormatter {
         public Void visitAlterClusterDecommissionNode(DecommissionNodeStatement decommissionNodeStatement,
                                                       Integer indent) {
             append(indent, "ALTER CLUSTER DECOMMISSION ");
-            process(decommissionNodeStatement.nodeIdOrName(), indent);
+            decommissionNodeStatement.nodeIdOrName().accept(this, indent);
             return null;
         }
 
         @Override
         public Void visitCopyFrom(CopyFrom node, Integer indent) {
             append(indent, "COPY ");
-            process(node.table(), indent);
+            node.table().accept(this, indent);
             append(indent, " FROM ");
-            process(node.path(), indent);
+            node.path().accept(this, indent);
             if (!node.genericProperties().isEmpty()) {
                 append(indent, " ");
-                process(node.genericProperties(), indent);
+                node.genericProperties().accept(this, indent);
             }
             if (node.isReturnSummary()) {
                 append(indent," RETURN SUMMARY");
@@ -207,7 +208,7 @@ public final class SqlFormatter {
 
         @Override
         protected Void visitQuery(Query node, Integer indent) {
-            process(node.getQueryBody(), indent);
+            node.getQueryBody().accept(this, indent);
 
             if (!node.getOrderBy().isEmpty()) {
                 append(indent,
@@ -232,7 +233,7 @@ public final class SqlFormatter {
 
         @Override
         protected Void visitQuerySpecification(QuerySpecification node, Integer indent) {
-            process(node.getSelect(), indent);
+            node.getSelect().accept(this, indent);
 
             if (!node.getFrom().isEmpty()) {
                 append(indent, "FROM");
@@ -241,7 +242,7 @@ public final class SqlFormatter {
                     append(indent, "  ");
                     Iterator<Relation> relations = node.getFrom().iterator();
                     while (relations.hasNext()) {
-                        process(relations.next(), indent);
+                        relations.next().accept(this, indent);
                         if (relations.hasNext()) {
                             builder.append('\n');
                             append(indent, ", ");
@@ -249,7 +250,7 @@ public final class SqlFormatter {
                     }
                 } else {
                     builder.append(' ');
-                    process(Iterables.getOnlyElement(node.getFrom()), indent);
+                    Iterables.getOnlyElement(node.getFrom()).accept(this, indent);
                 }
             }
 
@@ -279,7 +280,7 @@ public final class SqlFormatter {
                 while (windows.hasNext()) {
                     Map.Entry<String, Window> window = windows.next();
                     append(indent, window.getKey()).append(" AS ");
-                    process(window.getValue(), indent);
+                    window.getValue().accept(this, indent);
                     if (windows.hasNext()) {
                         append(indent, ", ");
                     }
@@ -347,12 +348,12 @@ public final class SqlFormatter {
                         .append(indentString(indent))
                         .append(first ? "  " : ", ");
 
-                    process(item, indent);
+                    item.accept(this, indent);
                     first = false;
                 }
             } else {
                 builder.append(' ');
-                process(Iterables.getOnlyElement(node.getSelectItems()), indent);
+                Iterables.getOnlyElement(node.getSelectItems()).accept(this, indent);
             }
 
             builder.append('\n');
@@ -385,7 +386,7 @@ public final class SqlFormatter {
             Iterator<Expression> iterator = node.functionCall().getArguments().iterator();
             while (iterator.hasNext()) {
                 Expression expression = iterator.next();
-                process(expression, context);
+                expression.accept(this, context);
                 if (iterator.hasNext()) {
                     builder.append(", ");
                 }
@@ -674,7 +675,7 @@ public final class SqlFormatter {
             appendFlatNodeList(node.columns(), indent);
             if (!node.properties().isEmpty()) {
                 builder.append(" ");
-                process(node.properties(), indent);
+                node.properties().accept(this, indent);
             }
             return null;
         }
@@ -688,13 +689,13 @@ public final class SqlFormatter {
 
         @Override
         protected Void visitUnion(Union node, Integer context) {
-            process(node.getLeft(), context);
+            node.getLeft().accept(this, context);
             builder.append("UNION ");
             if (!node.isDistinct()) {
                 builder.append(" ALL");
             }
             builder.append(" ");
-            process(node.getRight(), context);
+            node.getRight().accept(this, context);
             return null;
         }
 
@@ -707,12 +708,12 @@ public final class SqlFormatter {
             }
 
             builder.append('(');
-            process(node.getLeft(), indent);
+            node.getLeft().accept(this, indent);
 
             builder.append('\n');
             append(indent, type).append(" JOIN ");
 
-            process(node.getRight(), indent);
+            node.getRight().accept(this, indent);
 
             if (criteria instanceof JoinUsing) {
                 JoinUsing using = (JoinUsing) criteria;
@@ -735,7 +736,7 @@ public final class SqlFormatter {
 
         @Override
         protected Void visitAliasedRelation(AliasedRelation node, Integer indent) {
-            process(node.getRelation(), indent);
+            node.getRelation().accept(this, indent);
             builder.append(' ')
                 .append(node.getAlias());
             appendAliasColumns(builder, node.getColumnNames());
@@ -747,7 +748,7 @@ public final class SqlFormatter {
             builder.append('(')
                 .append('\n');
 
-            process(node.getQuery(), indent + 1);
+            node.getQuery().accept(this, indent + 1);
 
             append(indent, ")");
 
@@ -788,7 +789,7 @@ public final class SqlFormatter {
             if (node.dropIfExists()) {
                 builder.append("IF EXISTS ");
             }
-            process(node.table(), indent);
+            node.table().accept(this, indent);
             return null;
         }
 
@@ -798,7 +799,7 @@ public final class SqlFormatter {
             if (node.ignoreNonExistentTable()) {
                 builder.append("IF EXISTS ");
             }
-            process(node.table(), indent);
+            node.table().accept(this, indent);
             return null;
         }
 
@@ -849,7 +850,7 @@ public final class SqlFormatter {
                 append(indent, " PARTITION BY ");
                 var partitions = window.getPartitions().iterator();
                 while (partitions.hasNext()) {
-                    process(partitions.next(), indent);
+                    partitions.next().accept(this, indent);
                     if (partitions.hasNext()) {
                         append(indent, ", ");
                     }
@@ -859,7 +860,7 @@ public final class SqlFormatter {
                 append(indent, " ORDER BY ");
                 var sortItems = window.getOrderBy().iterator();
                 while (sortItems.hasNext()) {
-                    process(sortItems.next(), indent);
+                    sortItems.next().accept(this, indent);
                     if (sortItems.hasNext()) {
                         append(indent, ", ");
                     }
@@ -876,14 +877,20 @@ public final class SqlFormatter {
             append(indent, frame.getType().name());
 
             append(indent, " ");
-            process(frame.getStart().getValue(), indent);
-            append(indent, " ");
+            Expression startOffset = frame.getStart().getValue();
+            if (startOffset != null) {
+                startOffset.accept(this, indent);
+                append(indent, " ");
+            }
             append(indent, frame.getStart().getType().name());
 
             frame.getEnd().map(end -> {
                 append(indent, " AND ");
-                process(end.getValue(), indent);
-                append(indent, " ");
+                Expression endOffset = end.getValue();
+                if (endOffset != null) {
+                    endOffset.accept(this, indent);
+                    append(indent, " ");
+                }
                 append(indent, end.getType().name());
                 return null;
             });
@@ -892,7 +899,7 @@ public final class SqlFormatter {
 
         @Override
         protected Void visitSortItem(SortItem node, Integer indent) {
-            process(node.getSortKey(), indent);
+            node.getSortKey().accept(this, indent);
             return null;
         }
 

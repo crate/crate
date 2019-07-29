@@ -42,7 +42,7 @@ public class ExpressionToColumnIdentVisitor extends AstVisitor<ColumnIdent, List
     }
 
     public static ColumnIdent convert(Node node) {
-        return INSTANCE.process(node, null);
+        return node.accept(INSTANCE, null);
     }
 
     @Override
@@ -86,8 +86,8 @@ public class ExpressionToColumnIdentVisitor extends AstVisitor<ColumnIdent, List
         if (context == null) {
             context = new ArrayList<>();
         }
-        ColumnIdent colIdent = process(node.name(), context);
-        process(node.index(), context);
+        ColumnIdent colIdent = node.name().accept(this, context);
+        node.index().accept(this, context);
 
 
         return colIdent;

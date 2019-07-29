@@ -115,7 +115,7 @@ public final class ExpressionFormatter {
     public static <T extends Formatter> String formatStandaloneExpression(Expression expression,
                                                                           @Nullable List<Expression> parameters,
                                                                           T formatter) {
-        String formattedExpression = formatter.process(expression, parameters);
+        String formattedExpression = expression.accept(formatter, parameters);
         if (formattedExpression.startsWith("(") && formattedExpression.endsWith(")")) {
             return formattedExpression.substring(1, formattedExpression.length() - 1);
         } else {
@@ -188,7 +188,7 @@ public final class ExpressionFormatter {
 
         @Override
         protected String visitExtract(Extract node, @Nullable List<Expression> parameters) {
-            return "EXTRACT(" + node.getField() + " FROM " + process(node.getExpression(), parameters) + ")";
+            return "EXTRACT(" + node.getField() + " FROM " + node.getExpression().accept(this, parameters) + ")";
         }
 
         @Override
@@ -335,7 +335,7 @@ public final class ExpressionFormatter {
                 sb.append(formatOrderBy(node.getOrderBy(), parameters));
             }
             if (node.getWindowFrame().isPresent()) {
-                sb.append(process(node.getWindowFrame().get(), parameters));
+                sb.append(node.getWindowFrame().get().accept(this, parameters));
             }
             if (Character.isWhitespace(sb.charAt(sb.length() - 1))) {
                 sb.setLength(sb.length() - 1);
@@ -358,11 +358,11 @@ public final class ExpressionFormatter {
 
             if (node.getEnd().isPresent()) {
                 builder.append("BETWEEN ")
-                    .append(process(node.getStart(), parameters))
+                    .append(node.getStart().accept(this, parameters))
                     .append(" AND ")
-                    .append(process(node.getEnd().get(), parameters));
+                    .append(node.getEnd().get().accept(this, parameters));
             } else {
-                builder.append(process(node.getStart(), parameters));
+                builder.append(node.getStart().accept(this, parameters));
             }
             return builder.toString();
         }
@@ -372,12 +372,18 @@ public final class ExpressionFormatter {
             switch (node.getType()) {
                 case UNBOUNDED_PRECEDING:
                     return "UNBOUNDED PRECEDING";
-                case PRECEDING:
-                    return process(node.getValue(), parameters) + " PRECEDING";
+                case PRECEDING: {
+                    Expression value = node.getValue();
+                    assert value != null : "Value for FrameBound must be available if type is PRECEDING";
+                    return value.accept(this, parameters) + " PRECEDING";
+                }
                 case CURRENT_ROW:
                     return "CURRENT ROW";
-                case FOLLOWING:
-                    return process(node.getValue(), parameters) + " FOLLOWING";
+                case FOLLOWING: {
+                    Expression value = node.getValue();
+                    assert value != null : "Value for FrameBound must be available if type is FOLLOWING";
+                    return value.accept(this, parameters) + " FOLLOWING";
+                }
                 case UNBOUNDED_FOLLOWING:
                     return "UNBOUNDED FOLLOWING";
                 default:
@@ -397,7 +403,7 @@ public final class ExpressionFormatter {
 
         @Override
         protected String visitNotExpression(NotExpression node, @Nullable List<Expression> parameters) {
-            return "(NOT " + process(node.getValue(), parameters) + ")";
+            return "(NOT " + node.getValue().accept(this, parameters) + ")";
         }
 
         @Override
@@ -412,24 +418,24 @@ public final class ExpressionFormatter {
 
         @Override
         protected String visitIsNullPredicate(IsNullPredicate node, @Nullable List<Expression> parameters) {
-            return "(" + process(node.getValue(), parameters) + " IS NULL)";
+            return "(" + node.getValue().accept(this, parameters) + " IS NULL)";
         }
 
         @Override
         protected String visitIsNotNullPredicate(IsNotNullPredicate node, @Nullable List<Expression> parameters) {
-            return "(" + process(node.getValue(), parameters) + " IS NOT NULL)";
+            return "(" + node.getValue().accept(this, parameters) + " IS NOT NULL)";
         }
 
         @Override
         protected String visitIfExpression(IfExpression node, @Nullable List<Expression> parameters) {
             StringBuilder builder = new StringBuilder();
             builder.append("IF(")
-                .append(process(node.getCondition(), parameters))
+                .append(node.getCondition().accept(this, parameters))
                 .append(", ")
-                .append(process(node.getTrueValue(), parameters));
+                .append(node.getTrueValue().accept(this, parameters));
             if (node.getFalseValue().isPresent()) {
                 builder.append(", ")
-                    .append(process(node.getFalseValue().get(), parameters));
+                    .append(node.getFalseValue().get().accept(this, parameters));
             }
             builder.append(")");
             return builder.toString();
@@ -437,7 +443,7 @@ public final class ExpressionFormatter {
 
         @Override
         protected String visitNegativeExpression(NegativeExpression node, @Nullable List<Expression> parameters) {
-            return "- " + process(node.getValue(), parameters);
+            return "- " + node.getValue().accept(this, parameters);
         }
 
         @Override
@@ -454,13 +460,13 @@ public final class ExpressionFormatter {
             StringBuilder builder = new StringBuilder();
 
             builder.append('(')
-                .append(process(node.getValue(), parameters))
+                .append(node.getValue().accept(this, parameters))
                 .append(" LIKE ")
-                .append(process(node.getPattern(), parameters));
+                .append(node.getPattern().accept(this, parameters));
 
             if (node.getEscape() != null) {
                 builder.append(" ESCAPE ")
-                    .append(process(node.getEscape(), parameters));
+                    .append(node.getEscape().accept(this, parameters));
             }
 
             builder.append(')');
@@ -472,16 +478,16 @@ public final class ExpressionFormatter {
         public String visitArrayLikePredicate(ArrayLikePredicate node, @Nullable List<Expression> parameters) {
             StringBuilder builder = new StringBuilder();
             builder.append('(')
-                .append(process(node.getPattern(), parameters))
+                .append(node.getPattern().accept(this, parameters))
                 .append(node.inverse() ? " NOT" : "")
                 .append(" LIKE ")
                 .append(node.quantifier().name())
                 .append(" (")
-                .append(process(node.getValue(), parameters))
+                .append(node.getValue().accept(this, parameters))
                 .append(") ");
             if (node.getEscape() != null) {
                 builder.append("ESCAPE ")
-                    .append(process(node.getEscape(), parameters));
+                    .append(node.getEscape().accept(this, parameters));
             }
             builder.append(')');
             return builder.toString();
@@ -492,7 +498,7 @@ public final class ExpressionFormatter {
             StringBuilder builder = new StringBuilder();
             builder.append("MATCH (");
             if (node.idents().size() == 1) {
-                builder.append(process(node.idents().get(0).columnIdent(), parameters));
+                builder.append(node.idents().get(0).columnIdent().accept(this, parameters));
             } else {
                 builder.append("(");
                 List<MatchPredicateColumnIdent> idents = node.idents();
@@ -505,12 +511,12 @@ public final class ExpressionFormatter {
                 }
                 builder.append(")");
             }
-            builder.append(", ").append(process(node.value(), parameters));
+            builder.append(", ").append(node.value().accept(this, parameters));
             builder.append(")");
             if (node.matchType() != null) {
                 builder.append(" USING ").append(node.matchType()).append(" ");
                 if (node.properties().properties().size() > 0) {
-                    builder.append(process(node.properties(), parameters));
+                    builder.append(node.properties().accept(this, parameters));
                 }
             }
             return builder.toString();
@@ -518,7 +524,7 @@ public final class ExpressionFormatter {
 
         @Override
         public String visitMatchPredicateColumnIdent(MatchPredicateColumnIdent node, @Nullable List<Expression> parameters) {
-            String column = process(node.columnIdent(), null);
+            String column = node.columnIdent().accept(this, null);
             if (!(node.boost() instanceof NullLiteral)) {
                 column = column + " " + node.boost().toString();
             }
@@ -529,7 +535,7 @@ public final class ExpressionFormatter {
         public String visitGenericProperties(GenericProperties node, @Nullable List<Expression> parameters) {
             return " WITH (" +
                 node.properties().entrySet().stream()
-                    .map(prop -> prop.getKey() + "=" + process(prop.getValue(), null))
+                    .map(prop -> prop.getKey() + "=" + prop.getValue().accept(this, null))
                     .collect(COMMA_JOINER) +
                 ")";
         }
@@ -545,13 +551,15 @@ public final class ExpressionFormatter {
 
         @Override
         public String visitCast(Cast node, @Nullable List<Expression> parameters) {
-            return "CAST(" + process(node.getExpression(), parameters) + " AS " + process(node.getType(), parameters) + ")";
+            return "CAST(" + node.getExpression().accept(this, parameters) + " AS " +
+                   node.getType().accept(this, parameters) + ")";
         }
 
         @Override
         protected String visitTryCast(TryCast node, @Nullable List<Expression> parameters) {
-            return "TRY_CAST(" + process(node.getExpression(), parameters) + " AS " + process(node.getType(), parameters) +
-                ")";
+            return "TRY_CAST(" + node.getExpression().accept(this, parameters) + " AS " +
+                   node.getType().accept(this, parameters) +
+                   ")";
         }
 
         @Override
@@ -559,11 +567,11 @@ public final class ExpressionFormatter {
             ImmutableList.Builder<String> parts = ImmutableList.builder();
             parts.add("CASE");
             for (WhenClause whenClause : node.getWhenClauses()) {
-                parts.add(process(whenClause, parameters));
+                parts.add(whenClause.accept(this, parameters));
             }
             if (node.getDefaultValue() != null) {
                 parts.add("ELSE")
-                    .add(process(node.getDefaultValue(), parameters));
+                    .add(node.getDefaultValue().accept(this, parameters));
             }
             parts.add("END");
 
@@ -574,13 +582,13 @@ public final class ExpressionFormatter {
         protected String visitSimpleCaseExpression(SimpleCaseExpression node, @Nullable List<Expression> parameters) {
             ImmutableList.Builder<String> parts = ImmutableList.builder();
             parts.add("CASE")
-                .add(process(node.getOperand(), parameters));
+                .add(node.getOperand().accept(this, parameters));
             for (WhenClause whenClause : node.getWhenClauses()) {
-                parts.add(process(whenClause, parameters));
+                parts.add(whenClause.accept(this, parameters));
             }
             if (node.getDefaultValue() != null) {
                 parts.add("ELSE")
-                    .add(process(node.getDefaultValue(), parameters));
+                    .add(node.getDefaultValue().accept(this, parameters));
             }
             parts.add("END");
 
@@ -589,18 +597,21 @@ public final class ExpressionFormatter {
 
         @Override
         protected String visitWhenClause(WhenClause node, @Nullable List<Expression> parameters) {
-            return "WHEN " + process(node.getOperand(), parameters) + " THEN " + process(node.getResult(), parameters);
+            return "WHEN " + node.getOperand().accept(this, parameters) + " THEN " +
+                   node.getResult().accept(this, parameters);
         }
 
         @Override
         protected String visitBetweenPredicate(BetweenPredicate node, @Nullable List<Expression> parameters) {
-            return "(" + process(node.getValue(), parameters) + " BETWEEN " +
-                process(node.getMin(), parameters) + " AND " + process(node.getMax(), parameters) + ")";
+            return "(" + node.getValue().accept(this, parameters) + " BETWEEN " +
+                   node.getMin().accept(this, parameters) + " AND " +
+                   node.getMax().accept(this, parameters) + ")";
         }
 
         @Override
         protected String visitInPredicate(InPredicate node, @Nullable List<Expression> parameters) {
-            return "(" + process(node.getValue(), parameters) + " IN " + process(node.getValueList(), parameters) + ")";
+            return "(" + node.getValue().accept(this, parameters) + " IN " +
+                   node.getValueList().accept(this, parameters) + ")";
         }
 
         @Override
@@ -615,7 +626,7 @@ public final class ExpressionFormatter {
 
         @Override
         public String visitCollectionColumnType(CollectionColumnType node, @Nullable List<Expression> parameters) {
-            return node.name() + "(" + process(node.innerType(), parameters) + ")";
+            return node.name() + "(" + node.innerType().accept(this, parameters) + ")";
         }
 
         @Override
@@ -627,12 +638,13 @@ public final class ExpressionFormatter {
                                               Expression left,
                                               Expression right,
                                               @Nullable List<Expression> parameters) {
-            return '(' + process(left, parameters) + ' ' + operator + ' ' + process(right, parameters) + ')';
+            return '(' + left.accept(this, parameters) + ' ' + operator + ' ' +
+                   right.accept(this, parameters) + ')';
         }
 
         private String joinExpressions(List<Expression> expressions) {
             return expressions.stream()
-                .map(expression -> process(expression, null))
+                .map(expression -> expression.accept(this, null))
                 .collect(COMMA_JOINER);
         }
 

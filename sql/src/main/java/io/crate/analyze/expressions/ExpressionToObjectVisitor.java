@@ -50,7 +50,7 @@ public class ExpressionToObjectVisitor extends AstVisitor<Object, Row> {
     }
 
     public static Object convert(Node node, Row parameters) {
-        return INSTANCE.process(node, parameters);
+        return node.accept(INSTANCE, parameters);
     }
 
     @Override
@@ -90,7 +90,9 @@ public class ExpressionToObjectVisitor extends AstVisitor<Object, Row> {
 
     @Override
     protected String visitSubscriptExpression(SubscriptExpression node, Row context) {
-        return String.format(Locale.ENGLISH, "%s.%s", process(node.name(), context), process(node.index(), context));
+        return String.format(Locale.ENGLISH, "%s.%s",
+                             node.name().accept(this, context),
+                             node.index().accept(this, context));
     }
 
     @Override
@@ -119,7 +121,7 @@ public class ExpressionToObjectVisitor extends AstVisitor<Object, Row> {
 
     @Override
     protected Object visitNegativeExpression(NegativeExpression node, Row context) {
-        Object o = process(node.getValue(), context);
+        Object o = node.getValue().accept(this, context);
         return NegativeExpression.negate(o);
     }
 

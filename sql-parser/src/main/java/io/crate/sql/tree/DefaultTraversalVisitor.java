@@ -21,53 +21,53 @@
 
 package io.crate.sql.tree;
 
-public abstract class DefaultTraversalVisitor<R, C>
-    extends AstVisitor<R, C> {
+public abstract class DefaultTraversalVisitor<R, C> extends AstVisitor<R, C> {
+
     @Override
     protected R visitExtract(Extract node, C context) {
-        return process(node.getExpression(), context);
+        return node.getExpression().accept(this, context);
     }
 
     @Override
     protected R visitCast(Cast node, C context) {
-        return process(node.getExpression(), context);
+        return node.getExpression().accept(this, context);
     }
 
     @Override
     protected R visitTryCast(TryCast node, C context) {
-        return process(node.getExpression(), context);
+        return node.getExpression().accept(this, context);
     }
 
     @Override
     protected R visitArithmeticExpression(ArithmeticExpression node, C context) {
-        process(node.getLeft(), context);
-        process(node.getRight(), context);
+        node.getLeft().accept(this, context);
+        node.getRight().accept(this, context);
 
         return null;
     }
 
     @Override
     protected R visitBetweenPredicate(BetweenPredicate node, C context) {
-        process(node.getValue(), context);
-        process(node.getMin(), context);
-        process(node.getMax(), context);
+        node.getValue().accept(this, context);
+        node.getMin().accept(this, context);
+        node.getMax().accept(this, context);
 
         return null;
     }
 
     @Override
     protected R visitComparisonExpression(ComparisonExpression node, C context) {
-        process(node.getLeft(), context);
-        process(node.getRight(), context);
+        node.getLeft().accept(this, context);
+        node.getRight().accept(this, context);
 
         return null;
     }
 
     @Override
     protected R visitQuery(Query node, C context) {
-        process(node.getQueryBody(), context);
+        node.getQueryBody().accept(this, context);
         for (SortItem sortItem : node.getOrderBy()) {
-            process(sortItem, context);
+            sortItem.accept(this, context);
         }
 
         return null;
@@ -76,7 +76,7 @@ public abstract class DefaultTraversalVisitor<R, C>
     @Override
     protected R visitSelect(Select node, C context) {
         for (SelectItem item : node.getSelectItems()) {
-            process(item, context);
+            item.accept(this, context);
         }
 
         return null;
@@ -84,23 +84,23 @@ public abstract class DefaultTraversalVisitor<R, C>
 
     @Override
     protected R visitSingleColumn(SingleColumn node, C context) {
-        process(node.getExpression(), context);
+        node.getExpression().accept(this, context);
 
         return null;
     }
 
     @Override
     protected R visitWhenClause(WhenClause node, C context) {
-        process(node.getOperand(), context);
-        process(node.getResult(), context);
+        node.getOperand().accept(this, context);
+        node.getResult().accept(this, context);
 
         return null;
     }
 
     @Override
     protected R visitInPredicate(InPredicate node, C context) {
-        process(node.getValue(), context);
-        process(node.getValueList(), context);
+        node.getValue().accept(this, context);
+        node.getValueList().accept(this, context);
 
         return null;
     }
@@ -108,7 +108,7 @@ public abstract class DefaultTraversalVisitor<R, C>
     @Override
     protected R visitFunctionCall(FunctionCall node, C context) {
         for (Expression argument : node.getArguments()) {
-            process(argument, context);
+            argument.accept(this, context);
         }
 
         return null;
@@ -116,12 +116,12 @@ public abstract class DefaultTraversalVisitor<R, C>
 
     @Override
     protected R visitSimpleCaseExpression(SimpleCaseExpression node, C context) {
-        process(node.getOperand(), context);
+        node.getOperand().accept(this, context);
         for (WhenClause clause : node.getWhenClauses()) {
-            process(clause, context);
+            clause.accept(this, context);
         }
         if (node.getDefaultValue() != null) {
-            process(node.getDefaultValue(), context);
+            node.getDefaultValue().accept(this, context);
         }
 
         return null;
@@ -130,7 +130,7 @@ public abstract class DefaultTraversalVisitor<R, C>
     @Override
     protected R visitInListExpression(InListExpression node, C context) {
         for (Expression value : node.getValues()) {
-            process(value, context);
+            value.accept(this, context);
         }
 
         return null;
@@ -138,10 +138,10 @@ public abstract class DefaultTraversalVisitor<R, C>
 
     @Override
     protected R visitIfExpression(IfExpression node, C context) {
-        process(node.getCondition(), context);
-        process(node.getTrueValue(), context);
+        node.getCondition().accept(this, context);
+        node.getTrueValue().accept(this, context);
         if (node.getFalseValue().isPresent()) {
-            process(node.getFalseValue().get(), context);
+            node.getFalseValue().get().accept(this, context);
         }
 
         return null;
@@ -149,21 +149,22 @@ public abstract class DefaultTraversalVisitor<R, C>
 
     @Override
     protected R visitNegativeExpression(NegativeExpression node, C context) {
-        return process(node.getValue(), context);
+        return node.getValue().accept(this, context);
     }
 
     @Override
     protected R visitNotExpression(NotExpression node, C context) {
-        return process(node.getValue(), context);
+        return node.getValue().accept(this, context);
     }
 
     @Override
     protected R visitSearchedCaseExpression(SearchedCaseExpression node, C context) {
         for (WhenClause clause : node.getWhenClauses()) {
-            process(clause, context);
+            clause.accept(this, context);
         }
-        if (node.getDefaultValue() != null) {
-            process(node.getDefaultValue(), context);
+        Expression defaultValue = node.getDefaultValue();
+        if (defaultValue != null) {
+            defaultValue.accept(this, context);
         }
 
         return null;
@@ -171,10 +172,11 @@ public abstract class DefaultTraversalVisitor<R, C>
 
     @Override
     protected R visitLikePredicate(LikePredicate node, C context) {
-        process(node.getValue(), context);
-        process(node.getPattern(), context);
-        if (node.getEscape() != null) {
-            process(node.getEscape(), context);
+        node.getValue().accept(this, context);
+        node.getPattern().accept(this, context);
+        Expression escape = node.getEscape();
+        if (escape != null) {
+            escape.accept(this, context);
         }
 
         return null;
@@ -182,30 +184,30 @@ public abstract class DefaultTraversalVisitor<R, C>
 
     @Override
     protected R visitIsNotNullPredicate(IsNotNullPredicate node, C context) {
-        return process(node.getValue(), context);
+        return node.getValue().accept(this, context);
     }
 
     @Override
     protected R visitIsNullPredicate(IsNullPredicate node, C context) {
-        return process(node.getValue(), context);
+        return node.getValue().accept(this, context);
     }
 
     @Override
     protected R visitLogicalBinaryExpression(LogicalBinaryExpression node, C context) {
-        process(node.getLeft(), context);
-        process(node.getRight(), context);
+        node.getLeft().accept(this, context);
+        node.getRight().accept(this, context);
 
         return null;
     }
 
     @Override
     protected R visitSubqueryExpression(SubqueryExpression node, C context) {
-        return process(node.getQuery(), context);
+        return node.getQuery().accept(this, context);
     }
 
     @Override
     protected R visitSortItem(SortItem node, C context) {
-        return process(node.getSortKey(), context);
+        return node.getSortKey().accept(this, context);
     }
 
     @Override
@@ -213,63 +215,63 @@ public abstract class DefaultTraversalVisitor<R, C>
 
         // visit the from first, since this qualifies the select
         for (Relation relation : node.getFrom()) {
-            process(relation, context);
+            relation.accept(this, context);
         }
 
-        process(node.getSelect(), context);
+        node.getSelect().accept(this, context);
         if (node.getWhere().isPresent()) {
-            process(node.getWhere().get(), context);
+            node.getWhere().get().accept(this, context);
         }
         for (Expression expression : node.getGroupBy()) {
-            process(expression, context);
+            expression.accept(this, context);
         }
         if (node.getHaving().isPresent()) {
-            process(node.getHaving().get(), context);
+            node.getHaving().get().accept(this, context);
         }
         for (SortItem sortItem : node.getOrderBy()) {
-            process(sortItem, context);
+            sortItem.accept(this, context);
         }
         return null;
     }
 
     @Override
     protected R visitUnion(Union node, C context) {
-        process(node.getLeft(), context);
-        process(node.getRight(), context);
+        node.getLeft().accept(this, context);
+        node.getRight().accept(this, context);
         return null;
     }
 
     @Override
     protected R visitIntersect(Intersect node, C context) {
-        process(node.getLeft(), context);
-        process(node.getRight(), context);
+        node.getLeft().accept(this, context);
+        node.getRight().accept(this, context);
         return null;
     }
 
     @Override
     protected R visitExcept(Except node, C context) {
-        process(node.getLeft(), context);
-        process(node.getRight(), context);
+        node.getLeft().accept(this, context);
+        node.getRight().accept(this, context);
         return null;
     }
 
     @Override
     protected R visitTableSubquery(TableSubquery node, C context) {
-        return process(node.getQuery(), context);
+        return node.getQuery().accept(this, context);
     }
 
     @Override
     protected R visitAliasedRelation(AliasedRelation node, C context) {
-        return process(node.getRelation(), context);
+        return node.getRelation().accept(this, context);
     }
 
     @Override
     protected R visitJoin(Join node, C context) {
-        process(node.getLeft(), context);
-        process(node.getRight(), context);
+        node.getLeft().accept(this, context);
+        node.getRight().accept(this, context);
 
         if (node.getCriteria().isPresent() && node.getCriteria().get() instanceof JoinOn) {
-            process(((JoinOn) node.getCriteria().get()).getExpression(), context);
+            ((JoinOn) node.getCriteria().get()).getExpression().accept(this, context);
         }
 
         return null;
@@ -277,9 +279,9 @@ public abstract class DefaultTraversalVisitor<R, C>
 
     @Override
     public R visitInsertFromValues(InsertFromValues node, C context) {
-        process(node.table(), context);
+        node.table().accept(this, context);
         for (ValuesList valuesList : node.valuesLists()) {
-            process(valuesList, context);
+            valuesList.accept(this, context);
         }
         return null;
     }
@@ -287,76 +289,76 @@ public abstract class DefaultTraversalVisitor<R, C>
     @Override
     public R visitValuesList(ValuesList node, C context) {
         for (Expression value : node.values()) {
-            process(value, context);
+            value.accept(this, context);
         }
         return null;
     }
 
     @Override
     public R visitUpdate(Update node, C context) {
-        process(node.relation(), context);
+        node.relation().accept(this, context);
         for (Assignment assignment : node.assignements()) {
-            process(assignment, context);
+            assignment.accept(this, context);
         }
         if (node.whereClause().isPresent()) {
-            process(node.whereClause().get(), context);
+            node.whereClause().get().accept(this, context);
         }
         return null;
     }
 
     @Override
     public R visitDelete(Delete node, C context) {
-        process(node.getRelation(), context);
+        node.getRelation().accept(this, context);
         return null;
     }
 
     @Override
     public R visitCopyFrom(CopyFrom node, C context) {
-        process(node.table(), context);
+        node.table().accept(this, context);
         return null;
     }
 
     @Override
     public R visitCopyTo(CopyTo node, C context) {
-        process(node.table(), context);
+        node.table().accept(this, context);
         return null;
     }
 
     @Override
     public R visitAlterTable(AlterTable node, C context) {
-        process(node.table(), context);
+        node.table().accept(this, context);
         return null;
     }
 
     @Override
     public R visitInsertFromSubquery(InsertFromSubquery node, C context) {
-        process(node.table(), context);
-        process(node.subQuery(), context);
+        node.table().accept(this, context);
+        node.subQuery().accept(this, context);
         return null;
     }
 
     @Override
     public R visitDropTable(DropTable node, C context) {
-        process(node.table(), context);
+        node.table().accept(this, context);
         return super.visitDropTable(node, context);
     }
 
     @Override
     public R visitCreateTable(CreateTable node, C context) {
-        process(node.name(), context);
+        node.name().accept(this, context);
         return null;
     }
 
     @Override
     public R visitShowCreateTable(ShowCreateTable node, C context) {
-        process(node.table(), context);
+        node.table().accept(this, context);
         return null;
     }
 
     @Override
     public R visitRefreshStatement(RefreshStatement node, C context) {
         for (Table nodeTable : node.tables()) {
-            process(nodeTable, context);
+            nodeTable.accept(this, context);
         }
         return null;
     }
@@ -364,10 +366,10 @@ public abstract class DefaultTraversalVisitor<R, C>
     @Override
     public R visitMatchPredicate(MatchPredicate node, C context) {
         for (MatchPredicateColumnIdent columnIdent : node.idents()) {
-            process(columnIdent.columnIdent(), context);
-            process(columnIdent.boost(), context);
+            columnIdent.columnIdent().accept(this, context);
+            columnIdent.boost().accept(this, context);
         }
-        process(node.value(), context);
+        node.value().accept(this, context);
 
         return null;
     }

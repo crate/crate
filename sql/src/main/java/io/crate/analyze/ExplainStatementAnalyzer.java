@@ -32,6 +32,7 @@ import io.crate.sql.tree.CopyFrom;
 import io.crate.sql.tree.Explain;
 import io.crate.sql.tree.Node;
 import io.crate.sql.tree.Query;
+import io.crate.sql.tree.Statement;
 
 import java.util.Collections;
 
@@ -44,18 +45,19 @@ public class ExplainStatementAnalyzer {
     }
 
     public ExplainAnalyzedStatement analyze(Explain node, Analysis analysis) {
-        CHECK_VISITOR.process(node.getStatement(), null);
+        Statement statement = node.getStatement();
+        statement.accept(CHECK_VISITOR, null);
 
         final AnalyzedStatement subStatement;
         ProfilingContext profilingContext;
         if (node.isAnalyze()) {
             profilingContext = new ProfilingContext(Collections::emptyList);
             Timer timer = profilingContext.createAndStartTimer(ExplainPlan.Phase.Analyze.name());
-            subStatement = analyzer.analyzedStatement(node.getStatement(), analysis);
+            subStatement = analyzer.analyzedStatement(statement, analysis);
             profilingContext.stopTimerAndStoreDuration(timer);
         } else {
             profilingContext = null;
-            subStatement = analyzer.analyzedStatement(node.getStatement(), analysis);
+            subStatement = analyzer.analyzedStatement(statement, analysis);
         }
         String columnName = SqlFormatter.formatSql(node);
         ExplainAnalyzedStatement explainAnalyzedStatement =
@@ -64,7 +66,7 @@ public class ExplainStatementAnalyzer {
         return explainAnalyzedStatement;
     }
 
-    private static final AstVisitor<Void, Void> CHECK_VISITOR = new AstVisitor<Void, Void>() {
+    private static final AstVisitor<Void, Void> CHECK_VISITOR = new AstVisitor<>() {
 
         @Override
         protected Void visitQuery(Query node, Void context) {

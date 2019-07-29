@@ -67,9 +67,7 @@ public class AlterTableRerouteAnalyzer {
             relationName = schemas.resolveRelation(node.table().getName(), context.sessionContext().searchPath());
         }
         tableInfo = schemas.getTableInfo(relationName, Operation.ALTER_REROUTE);
-        return rerouteOptionVisitor.process(
-            node.rerouteOption(),
-            new Context(
+        return node.rerouteOption().accept(rerouteOptionVisitor, new Context(
                 tableInfo,
                 node.table().partitionProperties(),
                 context.transactionContext(),

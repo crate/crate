@@ -182,12 +182,12 @@ public final class UpdateAnalyzer {
         private static final AssignmentNameValidator INSTANCE = new AssignmentNameValidator();
 
         static void ensureNoArrayElementUpdate(Expression expression) {
-            INSTANCE.process(expression, false);
+            expression.accept(INSTANCE, false);
         }
 
         @Override
         protected Void visitSubscriptExpression(SubscriptExpression node, Boolean childOfSubscript) {
-            process(node.index(), true);
+            node.index().accept(this, true);
             return super.visitSubscriptExpression(node, childOfSubscript);
         }
 

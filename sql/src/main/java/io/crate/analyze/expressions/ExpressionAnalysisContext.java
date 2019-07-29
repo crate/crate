@@ -74,7 +74,7 @@ public class ExpressionAnalysisContext {
      * @param arrayExpressionChild the expression to register
      */
     void registerArrayChild(Expression arrayExpressionChild) {
-        arrayChildVisitor.process(arrayExpressionChild, null);
+        arrayExpressionChild.accept(arrayChildVisitor, null);
     }
 
     /**
