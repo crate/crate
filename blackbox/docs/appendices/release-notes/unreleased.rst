@@ -53,6 +53,8 @@ Breaking Changes
 Changes
 =======
 
+- Added :ref:`TIMEZONE <scalar-timezone>` scalar function.
+
 - Added support for the filter clause in the
   :ref:`aggregate expressions <aggregate-expressions>`.
 
