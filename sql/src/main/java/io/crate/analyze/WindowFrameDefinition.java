@@ -36,7 +36,6 @@ public class WindowFrameDefinition implements Writeable {
 
     private final Type type;
     private final FrameBoundDefinition start;
-    @Nullable
     private final FrameBoundDefinition end;
 
     public WindowFrameDefinition(StreamInput in) throws IOException {

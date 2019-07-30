@@ -25,6 +25,7 @@ package io.crate.execution.engine.window;
 import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.FrameBoundDefinition;
 import io.crate.analyze.OrderBy;
+import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.WindowFrameDefinition;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
@@ -49,6 +50,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -62,7 +64,6 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.rules.ExpectedException;
 
-import javax.annotation.Nullable;
 import java.lang.reflect.Array;
 import java.util.Arrays;
 import java.util.List;
@@ -131,7 +132,7 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
         inputFactory = new InputFactory(functions);
     }
 
-    private void performInputSanityChecks(Object[]... inputs) {
+    private static void performInputSanityChecks(Object[]... inputs) {
         List<Integer> inputSizes = Arrays.stream(inputs)
             .map(Array::getLength)
             .distinct()
@@ -142,32 +143,17 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
         }
     }
 
-    protected <T> void assertEvaluate(String functionExpression,
-                                      Matcher<T> expectedValue,
-                                      Map<ColumnIdent, Integer> positionInRowByColumn,
-                                      Object[]... inputRows) throws Exception {
-        assertEvaluate(functionExpression,
-            expectedValue,
-            positionInRowByColumn,
-            null,
-            null,
-            inputRows);
-    }
-
     @SuppressWarnings("unchecked")
     protected <T> void assertEvaluate(String functionExpression,
                                       Matcher<T> expectedValue,
                                       Map<ColumnIdent, Integer> positionInRowByColumn,
-                                      @Nullable Object startOffsetValue,
-                                      @Nullable Object endOffsetValue,
                                       Object[]... inputRows) throws Exception {
         performInputSanityChecks(inputRows);
 
         Symbol normalizedFunctionSymbol = sqlExpressions.normalize(sqlExpressions.asSymbol(functionExpression));
         assertThat(normalizedFunctionSymbol, instanceOf(io.crate.expression.symbol.WindowFunction.class));
 
-        io.crate.expression.symbol.WindowFunction windowFunctionSymbol =
-            (io.crate.expression.symbol.WindowFunction) normalizedFunctionSymbol;
+        var windowFunctionSymbol = (io.crate.expression.symbol.WindowFunction) normalizedFunctionSymbol;
         ReferenceResolver<InputCollectExpression> referenceResolver =
             r -> new InputCollectExpression(positionInRowByColumn.get(r.column()));
 
@@ -192,6 +178,14 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
         InputColumns.SourceSymbols sourceSymbols = new InputColumns.SourceSymbols(windowFunctionSymbol.arguments());
         var windowDef = windowFunctionSymbol.windowDefinition();
         var partitionOrderBy = windowDef.partitions().isEmpty() ? null : new OrderBy(windowDef.partitions());
+        Symbol startOffset = windowDef.windowFrameDefinition().start().value();
+        Object startOffsetValue = startOffset == null
+            ? null
+            : SymbolEvaluator.evaluate(txnCtx, functions, startOffset, Row.EMPTY, SubQueryResults.EMPTY);
+        Symbol endOffset = windowDef.windowFrameDefinition().end().value();
+        Object endOffsetValue = endOffset == null
+            ? null
+            : SymbolEvaluator.evaluate(txnCtx, functions, endOffset, Row.EMPTY, SubQueryResults.EMPTY);
         BatchIterator<Row> iterator = WindowFunctionBatchIterator.of(
             InMemoryBatchIterator.of(Arrays.stream(inputRows).map(RowN::new).collect(Collectors.toList()), SENTINEL),
             new IgnoreRowAccounting(),

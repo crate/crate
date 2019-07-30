@@ -193,14 +193,11 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
             26.0,
             22.0
         };
-
         assertEvaluate("sum(d) OVER(" +
                             "ORDER BY d RANGE BETWEEN 3 PRECEDING and CURRENT ROW" +
                        ")",
             contains(expected),
             Collections.singletonMap(new ColumnIdent("d"), 0),
-            3L,
-            null,
             new Object[]{2.5, 2.5},
             new Object[]{4.0, 4.0},
             new Object[]{5.0, 5.0},
@@ -229,8 +226,6 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
                        ")",
             contains(expected),
             Collections.singletonMap(new ColumnIdent("d"), 0),
-            3L,
-            null,
             new Object[]{2.5, 2.5},
             new Object[]{4.0, 4.0},
             new Object[]{5.0, 5.0},
@@ -259,8 +254,6 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
                        ")",
                        contains(expected),
                        Collections.singletonMap(new ColumnIdent("d"), 0),
-                       null,
-                       3L,
                        new Object[]{2.5, 2.5},
                        new Object[]{4.0, 4.0},
                        new Object[]{5.0, 5.0},
@@ -289,8 +282,6 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
                        ")",
                        contains(expected),
                        Collections.singletonMap(new ColumnIdent("d"), 0),
-                       null,
-                       3L,
                        new Object[]{2.5, 2.5},
                        new Object[]{4.0, 4.0},
                        new Object[]{5.0, 5.0},
