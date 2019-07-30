@@ -25,6 +25,7 @@ package io.crate.sql.tree;
 import javax.annotation.Nullable;
 import java.util.Comparator;
 import java.util.List;
+import java.util.function.Function;
 
 import static io.crate.common.collections.Lists2.findFirstGTEProbeValue;
 import static io.crate.common.collections.Lists2.findFirstLTEProbeValue;
@@ -60,6 +61,21 @@ public class FrameBound extends Node {
                 throw new IllegalStateException("UNBOUNDED PRECEDING cannot be the start of a frame");
             }
         },
+        /**
+         * <pre>
+         * {@code
+         * { ROWS | RANGE } <offset> PRECEDING
+         *
+         * ROWS mode:
+         *   ROWS <offset> PRECEDING
+         *   the start of the frame is *literally* <offset> number of rows before the current row
+         *
+         * RANGE MODE:
+         *   ORDER BY x RANGE <offset> PRECEDING
+         *   Every row before the current row where the value for `x` is >= `x - <offset>` is within the frame
+         * }
+         * </pre>
+         */
         PRECEDING {
             @Override
             public <T> int getStart(WindowFrame.Mode mode,
@@ -72,8 +88,7 @@ public class FrameBound extends Node {
                                     List<T> rows) {
                 if (mode == ROWS) {
                     assert offset instanceof Long : "In ROWS mode the offset must be a non-null, non-negative number";
-                    int startIndex = Math.max(pStart, currentRowIdx - ((Long) offset).intValue());
-                    return startIndex > 0 ? startIndex : 0;
+                    return Math.max(pStart, currentRowIdx - ((Long) offset).intValue());
                 } else {
                     int firstGTEProbeValue = findFirstGTEProbeValue(rows, currentRowIdx, offsetProbeValue, cmp);
                     if (firstGTEProbeValue == -1) {
@@ -201,14 +216,25 @@ public class FrameBound extends Node {
             }
         };
 
-        public abstract <T> int getStart(WindowFrame.Mode mode,
-                                         int pStart,
-                                         int pEnd,
-                                         int currentRowIdx,
-                                         @Nullable Object offset,
-                                         @Nullable T offsetProbeValue,
-                                         @Nullable Comparator<T> cmp,
-                                         List<T> rows);
+        /**
+         * @param computeOffset compute the offset value (`offset` PRECEDING or `offset` FOLLOWING) given a row
+         * @param getOrderingValue retrieve the value of the `ORDER BY` column for a given row.
+         *                         This is only provided for RANGE `offset` PRECEDING or FOLLOWING,
+         *                         where the ORDER BY clause is restricted to 1 column
+         * @param cmpCell a comparator for the column values
+         * @param cmpRow a comparator for the full row, considering all columns included in a ORDER BY expression
+         * @param <T> type of the row
+         * @param <U> type of a single value
+         */
+        public abstract <T, U> int getStart(WindowFrame.Mode mode,
+                                            int pStart,
+                                            int pEnd,
+                                            int currentRowIdx,
+                                            Function<T, U> computeOffset,
+                                            Function<T, U> getOrderingValue,
+                                            @Nullable Comparator<U> cmpCell,
+                                            @Nullable Comparator<T> cmpRow,
+                                            List<T> rows);
 
         public abstract <T> int getEnd(WindowFrame.Mode mode,
                                        int pStart,

@@ -189,21 +189,6 @@ public final class WindowFunctionBatchIterator {
             private final int end = sortedRows.size();
             private final WindowFrameState frame = new WindowFrameState(start, end, sortedRows);
             private final WindowFrameDefinition frameDefinition = windowDefinition.windowFrameDefinition();
-            private final Tuple<Object[], int[]> startOffsetCellsAndPositions =
-                getOffsetCellsAndPositions(windowDefinition, startFrameOffset, numCellsInSourceRow);
-
-            private final Tuple<Object[], int[]> endOffsetCellsAndPositions =
-                getOffsetCellsAndPositions(windowDefinition, endFrameOffset, numCellsInSourceRow);
-
-            @Nullable
-            private final BinaryOperator<Object> substractFunction =
-                getFunctionForRangeCustomOffset(windowDefinition, startFrameOffset, ArithmeticOperatorsFactory::getSubtractFunction);
-            @Nullable
-            private final BinaryOperator<Object> addFunction =
-                getFunctionForRangeCustomOffset(windowDefinition, endFrameOffset, ArithmeticOperatorsFactory::getAddFunction);
-
-            private final Object[] startProbeValue = new Object[numCellsInSourceRow];
-            private final Object[] endProbeValue = new Object[numCellsInSourceRow];
 
             private int pStart = start;
             private int pEnd = findFirstNonPeer(sortedRows, pStart, end, cmpPartitionBy);
@@ -225,25 +210,6 @@ public final class WindowFunctionBatchIterator {
                     pStart = i;
                     idxInPartition = 0;
                     pEnd = findFirstNonPeer(sortedRows, pStart, end, cmpPartitionBy);
-                }
-
-                if (windowDefinition.windowFrameDefinition().type() == RANGE) {
-                    // if the offsetCell position is -1 the window is ordered by a Literal so we leave the
-                    // probe value to null so it doesn't impact ordering (ie. all values will be consistently GT or LT
-                    // `null`)
-                    for (int offsetCellPos : startOffsetCellsAndPositions.v2()) {
-                        if (offsetCellPos != -1) {
-                            startProbeValue[offsetCellPos] = substractFunction
-                                .apply(sortedRows.get(i)[offsetCellPos], startOffsetCellsAndPositions.v1()[offsetCellPos]);
-                        }
-                    }
-
-                    for (int offsetCellPos : endOffsetCellsAndPositions.v2()) {
-                        if (offsetCellPos != -1) {
-                            endProbeValue[offsetCellPos] = addFunction
-                                .apply(sortedRows.get(i)[offsetCellPos], endOffsetCellsAndPositions.v1()[offsetCellPos]);
-                        }
-                    }
                 }
 
                 int wBegin = frameDefinition.start().type().getStart(
