@@ -364,10 +364,9 @@ public final class SqlFormatter {
         protected Void visitSingleColumn(SingleColumn node, Integer indent) {
             builder.append(formatStandaloneExpression(node.getExpression(), parameters));
             if (node.getAlias() != null) {
-                builder.append(' ')
-                    .append('"')
-                    .append(node.getAlias())
-                    .append('"'); // TODO: handle quoting properly
+                builder
+                    .append(' ')
+                    .append(quoteIdentifierIfNeeded(node.getAlias()));
             }
 
             return null;

@@ -825,6 +825,17 @@ rows in every distinct group of a ``GROUP BY`` statement. Aggregating
 |                     | timestamp     | column.                          | or we got no value at |
 |                     | column        | NULL-values are ignored.         | all                   |
 +---------------------+---------------+----------------------------------+-----------------------+
+| STRING_AGG          | an expression | Concatenated input values into   | text                  |
+|                     | and delimiter | a string, separated by a         |                       |
+|                     | of a text type| delimiter.                       |                       |
+|                     |               | NULL-values are ignored.         |                       |
++---------------------+---------------+----------------------------------+-----------------------+
+| PERCENTILE          | column of a   | Returns the provided percentile  | a double precision    |
+|                     | numeric type  | of the values in the argument    | value                 |
+|                     | and a double  | column.                          |                       |
+|                     | percentile    | NULL-values are ignored.         |                       |
+|                     | value         |                                  |                       |
++---------------------+---------------+----------------------------------+-----------------------+
 | SUM                 | column name of| Returns the sum of the values in | double or NULL        |
 |                     | a numeric or  | the argument column.             | if all values of all  |
 |                     | timestamp     | NULL-values are ignored.         | matching rows in that |

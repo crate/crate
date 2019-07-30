@@ -21,7 +21,6 @@
 
 package io.crate.execution.dsl.projection.builder;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.execution.dsl.projection.AggregationProjection;
 import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.FilterProjection;
@@ -35,6 +34,7 @@ import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
+import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionInfo;
@@ -85,26 +85,35 @@ public class ProjectionBuilder {
             assert function.info().type() == FunctionInfo.Type.AGGREGATE :
                 "function type must be " + FunctionInfo.Type.AGGREGATE;
             List<Symbol> aggregationInputs;
+            Symbol filterInput;
             switch (mode) {
                 case ITER_FINAL:
                 case ITER_PARTIAL:
                     // ITER means that there is no aggregation part upfront, therefore the input
                     // symbols need to be in arguments
                     aggregationInputs = InputColumns.create(function.arguments(), sourceSymbols);
-
+                    Symbol filter = function.filter();
+                    if (filter != null) {
+                        filterInput = InputColumns.create(filter, sourceSymbols);
+                    } else {
+                        filterInput = Literal.BOOLEAN_TRUE;
+                    }
                     break;
 
                 case PARTIAL_FINAL:
-                    aggregationInputs = ImmutableList.of(sourceSymbols.getICForSource(function));
+                    aggregationInputs = List.of(sourceSymbols.getICForSource(function));
+                    filterInput = Literal.BOOLEAN_TRUE;
                     break;
 
                 default:
                     throw new AssertionError("Invalid mode: " + mode.name());
             }
+
             Aggregation aggregation = new Aggregation(
                 function.info(),
                 mode.returnType(((AggregationFunction) this.functions.getQualified(function.info().ident()))),
-                aggregationInputs
+                aggregationInputs,
+                filterInput
             );
             aggregations.add(aggregation);
         }

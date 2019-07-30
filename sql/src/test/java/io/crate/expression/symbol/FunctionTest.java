@@ -21,7 +21,6 @@
 
 package io.crate.expression.symbol;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.test.integration.CrateUnitTest;
@@ -31,26 +30,33 @@ import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
-import java.util.Collections;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Set;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiLettersOfLength;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.nullValue;
 
 public class FunctionTest extends CrateUnitTest {
+
+    private FunctionIdent functionIdent = new FunctionIdent(
+        randomAsciiLettersOfLength(10),
+        List.of(DataTypes.BOOLEAN)
+    );
 
     @Test
     public void testSerialization() throws Exception {
         Function fn = new Function(
             new FunctionInfo(
-                new FunctionIdent(
-                    randomAsciiLettersOfLength(10),
-                    ImmutableList.of(DataTypes.BOOLEAN)
-                ),
-                TestingHelpers.randomPrimitiveType(), FunctionInfo.Type.SCALAR, randomFeatures()),
-            Collections.singletonList(TestingHelpers.createReference(randomAsciiLettersOfLength(2), DataTypes.BOOLEAN))
+                functionIdent,
+                TestingHelpers.randomPrimitiveType(),
+                FunctionInfo.Type.SCALAR,
+                randomFeatures()
+            ),
+            List.of(TestingHelpers.createReference(randomAsciiLettersOfLength(2), DataTypes.BOOLEAN))
         );
 
         BytesStreamOutput output = new BytesStreamOutput();
@@ -63,7 +69,31 @@ public class FunctionTest extends CrateUnitTest {
         assertThat(fn.hashCode(), is(fn2.hashCode()));
     }
 
-    private Set<FunctionInfo.Feature> randomFeatures() {
+    @Test
+    public void testSerializationWithFilterSymbol() throws Exception {
+        Function fn = new Function(
+            new FunctionInfo(
+                functionIdent,
+                TestingHelpers.randomPrimitiveType(),
+                FunctionInfo.Type.SCALAR,
+                randomFeatures()
+            ),
+            List.of(TestingHelpers.createReference(randomAsciiLettersOfLength(2), DataTypes.BOOLEAN)),
+            Literal.of(true)
+        );
+
+        BytesStreamOutput output = new BytesStreamOutput();
+        Symbols.toStream(fn, output);
+
+        StreamInput input = output.bytes().streamInput();
+        Function fn2 = (Function) Symbols.fromStream(input);
+
+        assertThat(fn2.filter(), not(nullValue()));
+        assertThat(fn, is(equalTo(fn2)));
+        assertThat(fn.hashCode(), is(fn2.hashCode()));
+    }
+
+    private static Set<FunctionInfo.Feature> randomFeatures() {
         Set<FunctionInfo.Feature> features = EnumSet.noneOf(FunctionInfo.Feature.class);
         for (FunctionInfo.Feature feature : FunctionInfo.Feature.values()) {
             if (randomBoolean()) {
