@@ -60,17 +60,18 @@ public class WindowAggProjectionSerialisationTest {
         WindowDefinition partitionByTwoWindowDef =
             new WindowDefinition(singletonList(Literal.of(2L)), null, null);
 
-        WindowFunction firstWindowFunction = new WindowFunction(sumFunctionImpl.info(), Arrays.asList(Literal.of(1L)), partitionByOneWindowDef);
-        WindowFunction secondWindowFunction = new WindowFunction(sumFunctionImpl.info(), Arrays.asList(Literal.of(2L)), partitionByTwoWindowDef);
+        WindowFunction firstWindowFunction = new WindowFunction(
+            sumFunctionImpl.info(), singletonList(Literal.of(1L)), partitionByOneWindowDef);
+        WindowFunction secondWindowFunction = new WindowFunction(
+            sumFunctionImpl.info(), singletonList(Literal.of(2L)), partitionByTwoWindowDef);
 
         LinkedHashMap<WindowFunction, List<Symbol>> functionsWithInputs = new LinkedHashMap<>(2, 1f);
-        functionsWithInputs.put(firstWindowFunction, Arrays.asList(Literal.of(1L)));
-        functionsWithInputs.put(secondWindowFunction, Arrays.asList(Literal.of(2L)));
+        functionsWithInputs.put(firstWindowFunction, singletonList(Literal.of(1L)));
+        functionsWithInputs.put(secondWindowFunction, singletonList(Literal.of(2L)));
 
         WindowAggProjection windowAggProjection =
-            new WindowAggProjection(partitionByOneWindowDef,
-                null,
-                null,
+            new WindowAggProjection(
+                partitionByOneWindowDef,
                 functionsWithInputs,
                 Collections.singletonList(Literal.of(42L)));
         BytesStreamOutput output = new BytesStreamOutput();
