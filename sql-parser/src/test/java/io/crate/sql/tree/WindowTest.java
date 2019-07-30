@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static io.crate.sql.tree.FrameBound.Type.CURRENT_ROW;
-import static io.crate.sql.tree.WindowFrame.Type.RANGE;
+import static io.crate.sql.tree.WindowFrame.Mode.RANGE;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 
