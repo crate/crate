@@ -122,6 +122,9 @@ public final class Lists2 {
      * Opposed to {@link java.util.stream.Stream#map(Function)} / {@link Collectors#toList()} this minimizes allocations.
      */
     public static <I, O> List<O> map(Collection<I> list, Function<? super I, ? extends O> mapper) {
+        if (list.isEmpty()) {
+            return List.of();
+        }
         List<O> copy = new ArrayList<>(list.size());
         for (I item : list) {
             copy.add(mapper.apply(item));

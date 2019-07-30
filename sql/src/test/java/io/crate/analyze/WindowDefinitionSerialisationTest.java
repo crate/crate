@@ -40,7 +40,7 @@ public class WindowDefinitionSerialisationTest {
 
     @Test
     public void testSerialisationWithMissingFields() throws IOException {
-        FrameBoundDefinition start = new FrameBoundDefinition(FrameBound.Type.UNBOUNDED_PRECEDING, null);
+        FrameBoundDefinition start = new FrameBoundDefinition(FrameBound.Type.UNBOUNDED_PRECEDING, Literal.NULL);
         WindowFrameDefinition frameDefinition = new WindowFrameDefinition(WindowFrame.Type.RANGE, start, null);
         WindowDefinition windowDefinition = new WindowDefinition(singletonList(Literal.of(2L)), null, frameDefinition);
 

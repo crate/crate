@@ -22,15 +22,16 @@
 
 package io.crate.analyze;
 
+import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.sql.tree.FrameBound;
 import io.crate.sql.tree.FrameBound.Type;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Objects;
 import java.util.function.Function;
@@ -38,49 +39,50 @@ import java.util.function.Function;
 public class FrameBoundDefinition implements Writeable {
 
     private final Type type;
-
-    @Nullable
     private final Symbol value;
 
-    public FrameBoundDefinition(StreamInput in) throws IOException {
-        type = in.readEnum(FrameBound.Type.class);
-        value = Symbols.nullableFromStream(in);
-    }
-
-    public FrameBoundDefinition(Type type, @Nullable Symbol value) {
+    public FrameBoundDefinition(Type type, Symbol value) {
         assert type != null : "type must not be null";
+        assert value != null : "value must not be null";
         this.type = type;
         this.value = value;
     }
 
-    public FrameBoundDefinition(Type type) {
-        this(type, null);
-    }
-
-    public Type type() {
-        return type;
-    }
-
-    @Nullable
-    public Symbol value() {
-        return value;
-    }
-
-    public FrameBoundDefinition map(Function<? super Symbol, ? extends Symbol> mapper) {
-        if (value != null) {
-            return new FrameBoundDefinition(
-                type,
-                mapper.apply(value)
-            );
+    public FrameBoundDefinition(StreamInput in) throws IOException {
+        type = in.readEnum(FrameBound.Type.class);
+        if (in.getVersion().onOrAfter(Version.V_4_1_0)) {
+            value = Symbols.fromStream(in);
         } else {
-            return this;
+            Symbol val = Symbols.nullableFromStream(in);
+            value = val == null ? Literal.NULL : val;
         }
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeEnum(type);
-        Symbols.nullableToStream(value, out);
+        if (out.getVersion().onOrAfter(Version.V_4_1_0)) {
+            Symbols.toStream(value, out);
+        } else {
+            Symbols.nullableToStream(value, out);
+        }
+    }
+
+    public Type type() {
+        return type;
+    }
+
+    public Symbol value() {
+        return value;
+    }
+
+    public FrameBoundDefinition map(Function<? super Symbol, ? extends Symbol> mapper) {
+        Symbol newValue = mapper.apply(value);
+        if (newValue == value) {
+            return this;
+        } else {
+            return new FrameBoundDefinition(type, newValue);
+        }
     }
 
     @Override

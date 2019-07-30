@@ -305,7 +305,7 @@ public class ExpressionAnalyzer {
 
             FrameBoundDefinition endBound = windowFrame.getEnd()
                 .map(end -> convertToAnalyzedFrameBound(context, end))
-                .orElse(new FrameBoundDefinition(FrameBound.Type.CURRENT_ROW));
+                .orElse(new FrameBoundDefinition(FrameBound.Type.CURRENT_ROW, Literal.NULL));
             windowFrameDefinition = new WindowFrameDefinition(windowFrame.getType(), startBound, endBound);
         }
 
@@ -372,11 +372,9 @@ public class ExpressionAnalyzer {
     }
 
     private FrameBoundDefinition convertToAnalyzedFrameBound(ExpressionAnalysisContext context, FrameBound frameBound) {
-        Symbol startBoundValue = null;
-        if (frameBound.getValue() != null) {
-            startBoundValue = convert(frameBound.getValue(), context);
-        }
-        return new FrameBoundDefinition(frameBound.getType(), startBoundValue);
+        Expression offsetExpression = frameBound.getValue();
+        Symbol offsetSymbol = offsetExpression == null ? Literal.NULL : convert(offsetExpression, context);
+        return new FrameBoundDefinition(frameBound.getType(), offsetSymbol);
     }
 
     public ExpressionAnalyzer copyForOperation(Operation operation) {
