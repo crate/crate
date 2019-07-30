@@ -69,6 +69,7 @@ import java.lang.reflect.Array;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -134,7 +135,7 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
     protected <T> void assertEvaluate(String functionExpression,
                                       Matcher<T> expectedValue,
                                       Map<ColumnIdent, Integer> positionInRowByColumn,
-                                      Object[]... inputRows) throws Exception {
+                                      Object[]... inputRows) throws Throwable {
         performInputSanityChecks(inputRows);
 
         Symbol normalizedFunctionSymbol = sqlExpressions.normalize(sqlExpressions.asSymbol(functionExpression));
@@ -184,9 +185,14 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
             argsCtx.expressions(),
             argsCtx.topLevelInputs().toArray(new Input[0])
         );
-        List<Object> actualResult = BatchIterators.collect(
-            iterator,
-            Collectors.mapping(row -> row.get(numCellsInSourceRows), Collectors.toList())).get(5, TimeUnit.SECONDS);
+        List<Object> actualResult;
+        try {
+            actualResult = BatchIterators.collect(
+                iterator,
+                Collectors.mapping(row -> row.get(numCellsInSourceRows), Collectors.toList())).get(5, TimeUnit.SECONDS);
+        } catch (ExecutionException e) {
+            throw e.getCause();
+        }
         assertThat((T) actualResult, expectedValue);
     }
 }

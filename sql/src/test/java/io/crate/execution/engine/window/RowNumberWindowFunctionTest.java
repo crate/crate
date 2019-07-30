@@ -32,7 +32,7 @@ import static org.hamcrest.Matchers.contains;
 public class RowNumberWindowFunctionTest extends AbstractWindowFunctionTest {
 
     @Test
-    public void testRowNumberFunction() throws Exception {
+    public void testRowNumberFunction() throws Throwable {
         Object[] expected = new Object[] {1, 2, 3, 4};
 
         assertEvaluate("row_number() over(order by x)",
@@ -46,7 +46,7 @@ public class RowNumberWindowFunctionTest extends AbstractWindowFunctionTest {
     }
 
     @Test
-    public void testRowNumberOverPartitionedWindow() throws Exception {
+    public void testRowNumberOverPartitionedWindow() throws Throwable {
         Object[] expected = new Object[]{1, 2, 3, 1, 2, 3, 1};
         assertEvaluate("row_number() over(partition by x>2)",
                        contains(expected),
@@ -61,7 +61,7 @@ public class RowNumberWindowFunctionTest extends AbstractWindowFunctionTest {
     }
 
     @Test
-    public void testRowNumberOverPartitionedOrderedWindow() throws Exception {
+    public void testRowNumberOverPartitionedOrderedWindow() throws Throwable {
         Object[] expected = new Object[]{1, 2, 3, 1, 2, 3, 1};
         assertEvaluate("row_number() over(partition by x>2 order by x)",
                        contains(expected),
@@ -76,7 +76,7 @@ public class RowNumberWindowFunctionTest extends AbstractWindowFunctionTest {
     }
 
     @Test
-    public void testRowNumberOverUnboundedFollowingFrames() throws Exception {
+    public void testRowNumberOverUnboundedFollowingFrames() throws Throwable {
         Object[] expected = new Object[]{1, 2, 3, 1, 2, 3, 1};
         assertEvaluate("row_number() OVER(" +
                             "PARTITION BY x>2 ORDER BY x RANGE BETWEEN CURRENT ROW and UNBOUNDED FOLLOWING" +
