@@ -42,6 +42,7 @@ import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.collect.InputCollectExpression;
 import io.crate.expression.InputFactory;
 import io.crate.expression.reference.ReferenceResolver;
+import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -75,30 +76,16 @@ import static io.crate.data.SentinelRow.SENTINEL;
 import static io.crate.execution.engine.sort.Comparators.createComparator;
 import static io.crate.sql.tree.FrameBound.Type.CURRENT_ROW;
 import static io.crate.sql.tree.FrameBound.Type.UNBOUNDED_FOLLOWING;
-import static io.crate.sql.tree.FrameBound.Type.UNBOUNDED_PRECEDING;
 import static io.crate.sql.tree.WindowFrame.Type.RANGE;
-import static io.crate.sql.tree.WindowFrame.Type.ROWS;
 import static org.elasticsearch.common.util.BigArrays.NON_RECYCLING_INSTANCE;
 import static org.hamcrest.Matchers.instanceOf;
 
 public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServiceUnitTest {
 
-    public static final WindowFrameDefinition RANGE_CURRENT_ROW_UNBOUNDED_FOLLOWING = new WindowFrameDefinition(
+    static final WindowFrameDefinition RANGE_CURRENT_ROW_UNBOUNDED_FOLLOWING = new WindowFrameDefinition(
         RANGE,
-        new FrameBoundDefinition(CURRENT_ROW),
-        new FrameBoundDefinition(UNBOUNDED_FOLLOWING)
-    );
-
-    public static final WindowFrameDefinition RANGE_UNBOUNDED_PRECEDING_UNBOUNDED_FOLLOWING = new WindowFrameDefinition(
-        RANGE,
-        new FrameBoundDefinition(UNBOUNDED_PRECEDING),
-        new FrameBoundDefinition(UNBOUNDED_FOLLOWING)
-    );
-
-    public static final WindowFrameDefinition ROWS_UNBOUNDED_PRECEDING_CURRENT_ROW = new WindowFrameDefinition(
-        ROWS,
-        new FrameBoundDefinition(UNBOUNDED_PRECEDING),
-        new FrameBoundDefinition(CURRENT_ROW)
+        new FrameBoundDefinition(CURRENT_ROW, Literal.NULL),
+        new FrameBoundDefinition(UNBOUNDED_FOLLOWING, Literal.NULL)
     );
 
     private RamAccountingContext RAM_ACCOUNTING_CONTEXT = new RamAccountingContext
@@ -178,14 +165,10 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
         InputColumns.SourceSymbols sourceSymbols = new InputColumns.SourceSymbols(windowFunctionSymbol.arguments());
         var windowDef = windowFunctionSymbol.windowDefinition();
         var partitionOrderBy = windowDef.partitions().isEmpty() ? null : new OrderBy(windowDef.partitions());
-        Symbol startOffset = windowDef.windowFrameDefinition().start().value();
-        Object startOffsetValue = startOffset == null
-            ? null
-            : SymbolEvaluator.evaluate(txnCtx, functions, startOffset, Row.EMPTY, SubQueryResults.EMPTY);
-        Symbol endOffset = windowDef.windowFrameDefinition().end().value();
-        Object endOffsetValue = endOffset == null
-            ? null
-            : SymbolEvaluator.evaluate(txnCtx, functions, endOffset, Row.EMPTY, SubQueryResults.EMPTY);
+        Object startOffsetValue = SymbolEvaluator.evaluate(
+            txnCtx, functions, windowDef.windowFrameDefinition().start().value(), Row.EMPTY, SubQueryResults.EMPTY);
+        Object endOffsetValue = SymbolEvaluator.evaluate(
+            txnCtx, functions, windowDef.windowFrameDefinition().end().value(), Row.EMPTY, SubQueryResults.EMPTY);
         BatchIterator<Row> iterator = WindowFunctionBatchIterator.of(
             InMemoryBatchIterator.of(Arrays.stream(inputRows).map(RowN::new).collect(Collectors.toList()), SENTINEL),
             new IgnoreRowAccounting(),

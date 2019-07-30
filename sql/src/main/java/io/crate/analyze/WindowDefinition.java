@@ -24,6 +24,7 @@ package io.crate.analyze;
 
 
 import io.crate.common.collections.Lists2;
+import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.planner.ExplainLeaf;
@@ -48,8 +49,8 @@ public class WindowDefinition implements Writeable {
 
     public static final WindowFrameDefinition RANGE_UNBOUNDED_PRECEDING_CURRENT_ROW = new WindowFrameDefinition(
         RANGE,
-        new FrameBoundDefinition(UNBOUNDED_PRECEDING),
-        new FrameBoundDefinition(CURRENT_ROW)
+        new FrameBoundDefinition(UNBOUNDED_PRECEDING, Literal.NULL),
+        new FrameBoundDefinition(CURRENT_ROW, Literal.NULL)
     );
 
     private final List<Symbol> partitions;
@@ -75,22 +76,12 @@ public class WindowDefinition implements Writeable {
         return partitions;
     }
 
-    public WindowFrameDefinition mapWindowFrameDefinitionBounds(Function<? super Symbol, ? extends Symbol> mapper) {
-        FrameBoundDefinition startFrameBoundDef = windowFrameDefinition.start().map(mapper);
-        FrameBoundDefinition endFrameBoundDef = windowFrameDefinition.end().map(mapper);
-        return new WindowFrameDefinition(windowFrameDefinition.type(), startFrameBoundDef, endFrameBoundDef);
-    }
-
     public WindowDefinition map(Function<? super Symbol, ? extends Symbol> mapper) {
-        if (!partitions.isEmpty() || orderBy != null) {
-            return new WindowDefinition(
-                Lists2.map(partitions, mapper),
-                orderBy != null ? orderBy.map(mapper) : null,
-                mapWindowFrameDefinitionBounds(mapper)
-            );
-        } else {
-            return this;
-        }
+        return new WindowDefinition(
+            Lists2.map(partitions, mapper),
+            orderBy != null ? orderBy.map(mapper) : null,
+            windowFrameDefinition.map(mapper)
+        );
     }
 
     @Nullable

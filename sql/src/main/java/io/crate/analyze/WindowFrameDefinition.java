@@ -22,6 +22,8 @@
 
 package io.crate.analyze;
 
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
 import io.crate.sql.tree.FrameBound;
 import io.crate.sql.tree.WindowFrame.Type;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -31,6 +33,7 @@ import org.elasticsearch.common.io.stream.Writeable;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Objects;
+import java.util.function.Function;
 
 public class WindowFrameDefinition implements Writeable {
 
@@ -50,7 +53,7 @@ public class WindowFrameDefinition implements Writeable {
         if (end != null) {
             this.end = end;
         } else {
-            this.end = new FrameBoundDefinition(FrameBound.Type.CURRENT_ROW);
+            this.end = new FrameBoundDefinition(FrameBound.Type.CURRENT_ROW, Literal.NULL);
         }
     }
 
@@ -64,6 +67,16 @@ public class WindowFrameDefinition implements Writeable {
 
     public FrameBoundDefinition end() {
         return end;
+    }
+
+    public WindowFrameDefinition map(Function<? super Symbol, ? extends Symbol> mapper) {
+        FrameBoundDefinition newStart = start.map(mapper);
+        FrameBoundDefinition newEnd = end.map(mapper);
+        if (newStart == start && newEnd == end) {
+            return this;
+        } else {
+            return new WindowFrameDefinition(type, newStart, newEnd);
+        }
     }
 
     @Override
