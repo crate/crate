@@ -41,7 +41,7 @@ public class WindowDefinitionSerialisationTest {
     @Test
     public void testSerialisationWithMissingFields() throws IOException {
         FrameBoundDefinition start = new FrameBoundDefinition(FrameBound.Type.UNBOUNDED_PRECEDING, Literal.NULL);
-        WindowFrameDefinition frameDefinition = new WindowFrameDefinition(WindowFrame.Type.RANGE, start, null);
+        WindowFrameDefinition frameDefinition = new WindowFrameDefinition(WindowFrame.Mode.RANGE, start, null);
         WindowDefinition windowDefinition = new WindowDefinition(singletonList(Literal.of(2L)), null, frameDefinition);
 
         BytesStreamOutput output = new BytesStreamOutput();
@@ -58,7 +58,7 @@ public class WindowDefinitionSerialisationTest {
     public void testFullyConstructedWindowDefinitionSerialisation() throws IOException {
         FrameBoundDefinition start = new FrameBoundDefinition(FrameBound.Type.UNBOUNDED_PRECEDING, Literal.of(5L));
         FrameBoundDefinition end = new FrameBoundDefinition(FrameBound.Type.FOLLOWING, Literal.of(3L));
-        WindowFrameDefinition frameDefinition = new WindowFrameDefinition(WindowFrame.Type.RANGE, start, end);
+        WindowFrameDefinition frameDefinition = new WindowFrameDefinition(WindowFrame.Mode.RANGE, start, end);
         OrderBy orderBy = new OrderBy(singletonList(Literal.of(1L)), new boolean[]{true}, new boolean[]{true});
         WindowDefinition windowDefinition = new WindowDefinition(singletonList(Literal.of(2L)), orderBy, frameDefinition);
 

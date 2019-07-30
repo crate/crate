@@ -40,7 +40,7 @@ import java.util.function.Function;
 
 import static io.crate.sql.tree.FrameBound.Type.CURRENT_ROW;
 import static io.crate.sql.tree.FrameBound.Type.UNBOUNDED_PRECEDING;
-import static io.crate.sql.tree.WindowFrame.Type.RANGE;
+import static io.crate.sql.tree.WindowFrame.Mode.RANGE;
 
 /**
  * Representation of a window used to describe the window function calls target.

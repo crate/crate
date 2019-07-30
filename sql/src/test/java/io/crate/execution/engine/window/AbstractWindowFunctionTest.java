@@ -77,7 +77,7 @@ import static io.crate.data.SentinelRow.SENTINEL;
 import static io.crate.execution.engine.sort.Comparators.createComparator;
 import static io.crate.sql.tree.FrameBound.Type.CURRENT_ROW;
 import static io.crate.sql.tree.FrameBound.Type.UNBOUNDED_FOLLOWING;
-import static io.crate.sql.tree.WindowFrame.Type.RANGE;
+import static io.crate.sql.tree.WindowFrame.Mode.RANGE;
 import static org.elasticsearch.common.util.BigArrays.NON_RECYCLING_INSTANCE;
 import static org.hamcrest.Matchers.instanceOf;
 

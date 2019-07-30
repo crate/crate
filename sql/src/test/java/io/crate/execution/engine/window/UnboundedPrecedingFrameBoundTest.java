@@ -30,7 +30,7 @@ import java.util.Comparator;
 import java.util.List;
 
 import static io.crate.sql.tree.FrameBound.Type.UNBOUNDED_PRECEDING;
-import static io.crate.sql.tree.WindowFrame.Type.RANGE;
+import static io.crate.sql.tree.WindowFrame.Mode.RANGE;
 import static org.hamcrest.core.Is.is;
 
 public class UnboundedPrecedingFrameBoundTest extends CrateUnitTest {

@@ -25,7 +25,7 @@ package io.crate.analyze;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.sql.tree.FrameBound;
-import io.crate.sql.tree.WindowFrame.Type;
+import io.crate.sql.tree.WindowFrame.Mode;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
@@ -37,17 +37,17 @@ import java.util.function.Function;
 
 public class WindowFrameDefinition implements Writeable {
 
-    private final Type type;
+    private final Mode type;
     private final FrameBoundDefinition start;
     private final FrameBoundDefinition end;
 
     public WindowFrameDefinition(StreamInput in) throws IOException {
-        type = in.readEnum(Type.class);
+        type = in.readEnum(Mode.class);
         start = new FrameBoundDefinition(in);
         end = in.readOptionalWriteable(FrameBoundDefinition::new);
     }
 
-    public WindowFrameDefinition(Type type, FrameBoundDefinition start, @Nullable FrameBoundDefinition end) {
+    public WindowFrameDefinition(Mode type, FrameBoundDefinition start, @Nullable FrameBoundDefinition end) {
         this.type = type;
         this.start = start;
         if (end != null) {
@@ -57,7 +57,7 @@ public class WindowFrameDefinition implements Writeable {
         }
     }
 
-    public Type type() {
+    public Mode type() {
         return type;
     }
 

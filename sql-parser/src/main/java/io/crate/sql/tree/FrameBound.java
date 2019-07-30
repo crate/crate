@@ -30,14 +30,14 @@ import static io.crate.common.collections.Lists2.findFirstGTEProbeValue;
 import static io.crate.common.collections.Lists2.findFirstLTEProbeValue;
 import static io.crate.common.collections.Lists2.findFirstNonPeer;
 import static io.crate.common.collections.Lists2.findFirstPreviousPeer;
-import static io.crate.sql.tree.WindowFrame.Type.ROWS;
+import static io.crate.sql.tree.WindowFrame.Mode.ROWS;
 
 public class FrameBound extends Node {
 
     public enum Type {
         UNBOUNDED_PRECEDING {
             @Override
-            public <T> int getStart(WindowFrame.Type frameType,
+            public <T> int getStart(WindowFrame.Mode mode,
                                     int pStart,
                                     int pEnd,
                                     int currentRowIdx,
@@ -49,7 +49,7 @@ public class FrameBound extends Node {
             }
 
             @Override
-            public <T> int getEnd(WindowFrame.Type frameType,
+            public <T> int getEnd(WindowFrame.Mode mode,
                                   int pStart,
                                   int pEnd,
                                   int currentRowIdx,
@@ -62,7 +62,7 @@ public class FrameBound extends Node {
         },
         PRECEDING {
             @Override
-            public <T> int getStart(WindowFrame.Type frameType,
+            public <T> int getStart(WindowFrame.Mode mode,
                                     int pStart,
                                     int pEnd,
                                     int currentRowIdx,
@@ -70,7 +70,7 @@ public class FrameBound extends Node {
                                     @Nullable T offsetProbeValue,
                                     @Nullable Comparator<T> cmp,
                                     List<T> rows) {
-                if (frameType == ROWS) {
+                if (mode == ROWS) {
                     assert offset instanceof Long : "In ROWS mode the offset must be a non-null, non-negative number";
                     int startIndex = Math.max(pStart, currentRowIdx - ((Long) offset).intValue());
                     return startIndex > 0 ? startIndex : 0;
@@ -85,7 +85,7 @@ public class FrameBound extends Node {
             }
 
             @Override
-            public <T> int getEnd(WindowFrame.Type frameType,
+            public <T> int getEnd(WindowFrame.Mode mode,
                                   int pStart,
                                   int pEnd,
                                   int currentRowIdx,
@@ -105,7 +105,7 @@ public class FrameBound extends Node {
          */
         CURRENT_ROW {
             @Override
-            public <T> int getStart(WindowFrame.Type frameType,
+            public <T> int getStart(WindowFrame.Mode mode,
                                     int pStart,
                                     int pEnd,
                                     int currentRowIdx,
@@ -113,7 +113,7 @@ public class FrameBound extends Node {
                                     @Nullable T offsetProbeValue,
                                     @Nullable Comparator<T> cmp,
                                     List<T> rows) {
-                if (frameType == ROWS) {
+                if (mode == ROWS) {
                     return currentRowIdx;
                 }
 
@@ -129,7 +129,7 @@ public class FrameBound extends Node {
             }
 
             @Override
-            public <T> int getEnd(WindowFrame.Type frameType,
+            public <T> int getEnd(WindowFrame.Mode mode,
                                   int pStart,
                                   int pEnd,
                                   int currentRowIdx,
@@ -137,7 +137,7 @@ public class FrameBound extends Node {
                                   @Nullable T offsetProbeValue,
                                   @Nullable Comparator<T> cmp,
                                   List<T> rows) {
-                if (frameType == ROWS) {
+                if (mode == ROWS) {
                     return currentRowIdx + 1;
                 }
 
@@ -146,7 +146,7 @@ public class FrameBound extends Node {
         },
         FOLLOWING {
             @Override
-            public <T> int getStart(WindowFrame.Type frameType,
+            public <T> int getStart(WindowFrame.Mode mode,
                                     int pStart,
                                     int pEnd,
                                     int currentRowIdx,
@@ -158,7 +158,7 @@ public class FrameBound extends Node {
             }
 
             @Override
-            public <T> int getEnd(WindowFrame.Type frameType,
+            public <T> int getEnd(WindowFrame.Mode mode,
                                   int pStart,
                                   int pEnd,
                                   int currentRowIdx,
@@ -167,7 +167,7 @@ public class FrameBound extends Node {
                                   @Nullable Comparator<T> cmp,
                                   List<T> rows) {
                 // end index is exclusive so we increment it by one when finding the interval end index
-                if (frameType == ROWS) {
+                if (mode == ROWS) {
                     assert offset instanceof Long : "In ROWS mode the offset must be a non-null, non-negative number";
                     return Math.min(pEnd, currentRowIdx + ((Long) offset).intValue() + 1);
                 } else {
@@ -177,7 +177,7 @@ public class FrameBound extends Node {
         },
         UNBOUNDED_FOLLOWING {
             @Override
-            public <T> int getStart(WindowFrame.Type frameType,
+            public <T> int getStart(WindowFrame.Mode mode,
                                     int pStart,
                                     int pEnd,
                                     int currentRowIdx,
@@ -189,7 +189,7 @@ public class FrameBound extends Node {
             }
 
             @Override
-            public <T> int getEnd(WindowFrame.Type frameType,
+            public <T> int getEnd(WindowFrame.Mode mode,
                                   int pStart,
                                   int pEnd,
                                   int currentRowIdx,
@@ -201,7 +201,7 @@ public class FrameBound extends Node {
             }
         };
 
-        public abstract <T> int getStart(WindowFrame.Type frameType,
+        public abstract <T> int getStart(WindowFrame.Mode mode,
                                          int pStart,
                                          int pEnd,
                                          int currentRowIdx,
@@ -210,7 +210,7 @@ public class FrameBound extends Node {
                                          @Nullable Comparator<T> cmp,
                                          List<T> rows);
 
-        public abstract <T> int getEnd(WindowFrame.Type frameType,
+        public abstract <T> int getEnd(WindowFrame.Mode mode,
                                        int pStart,
                                        int pEnd,
                                        int currentRowIdx,

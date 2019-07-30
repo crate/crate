@@ -874,7 +874,7 @@ public final class SqlFormatter {
         @Override
         public Void visitWindowFrame(WindowFrame frame, Integer indent) {
             append(indent, " ");
-            append(indent, frame.getType().name());
+            append(indent, frame.mode().name());
 
             append(indent, " ");
             Expression startOffset = frame.getStart().getValue();

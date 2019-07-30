@@ -1910,12 +1910,12 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         }
     }
 
-    private static WindowFrame.Type getFrameType(Token type) {
+    private static WindowFrame.Mode getFrameType(Token type) {
         switch (type.getType()) {
             case SqlBaseLexer.RANGE:
-                return WindowFrame.Type.RANGE;
+                return WindowFrame.Mode.RANGE;
             case SqlBaseLexer.ROWS:
-                return WindowFrame.Type.ROWS;
+                return WindowFrame.Mode.ROWS;
             default:
                 throw new IllegalArgumentException("Unsupported frame type: " + type.getText());
         }
