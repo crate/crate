@@ -23,6 +23,7 @@
 package io.crate.execution.engine.window;
 
 import io.crate.analyze.OrderBy;
+import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.WindowDefinition;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.breaker.RowAccounting;
@@ -40,6 +41,7 @@ import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.metadata.TransactionContext;
+import io.crate.planner.operators.SubQueryResults;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.util.BigArrays;
 
@@ -118,8 +120,8 @@ public class WindowProjector implements Projector {
         return new WindowProjector(
             accounting,
             windowDefinition,
-            projection.startFrameOffset(),
-            projection.endFrameOffset(),
+            SymbolEvaluator.evaluate(txnCtx, functions, windowDefinition.windowFrameDefinition().start().value(), Row.EMPTY, SubQueryResults.EMPTY),
+            SymbolEvaluator.evaluate(txnCtx, functions, windowDefinition.windowFrameDefinition().end().value(), Row.EMPTY, SubQueryResults.EMPTY),
             partitions.isEmpty() ? null : createComparator(createInputFactoryContext, new OrderBy(windowDefinition.partitions())),
             createComparator(createInputFactoryContext, windowDefinition.orderBy()),
             projection.standalone().size(),
