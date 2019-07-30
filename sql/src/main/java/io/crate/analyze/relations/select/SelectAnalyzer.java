@@ -49,7 +49,7 @@ public class SelectAnalyzer {
                                                ExpressionAnalysisContext expressionAnalysisContext) {
         SelectAnalysis selectAnalysis = new SelectAnalysis(
             select.getSelectItems().size(), sources, expressionAnalyzer, expressionAnalysisContext);
-        INSTANCE.process(select, selectAnalysis);
+        select.accept(INSTANCE, selectAnalysis);
         SelectSymbolValidator.validate(selectAnalysis.outputSymbols());
         return selectAnalysis;
     }

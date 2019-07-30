@@ -33,18 +33,18 @@ import io.crate.types.ObjectType;
 
 import java.util.Locale;
 
-public final class DataTypeAnalyzer extends DefaultTraversalVisitor<DataType, Void> {
+public final class DataTypeAnalyzer extends DefaultTraversalVisitor<DataType<?>, Void> {
 
     private DataTypeAnalyzer() {}
 
     private static final DataTypeAnalyzer INSTANCE = new DataTypeAnalyzer();
 
     public static DataType convert(ColumnType columnType) {
-        return INSTANCE.process(columnType, null);
+        return columnType.accept(INSTANCE, null);
     }
 
     @Override
-    public DataType visitColumnType(ColumnType node, Void context) {
+    public DataType<?> visitColumnType(ColumnType node, Void context) {
         String typeName = node.name();
         if (typeName == null) {
             return DataTypes.NOT_SUPPORTED;
@@ -54,17 +54,22 @@ public final class DataTypeAnalyzer extends DefaultTraversalVisitor<DataType, Vo
     }
 
     @Override
-    public DataType visitObjectColumnType(ObjectColumnType node, Void context) {
+    public DataType<?> visitObjectColumnType(ObjectColumnType node, Void context) {
         ObjectType.Builder builder = ObjectType.builder();
         for (ColumnDefinition columnDefinition : node.nestedColumns()) {
-            builder.setInnerType(columnDefinition.ident(), process(columnDefinition.type(), context));
+            ColumnType type = columnDefinition.type();
+            // can be null for generated columns, as then the type is inferred from the expression.
+            builder.setInnerType(
+                columnDefinition.ident(),
+                type == null ? DataTypes.UNDEFINED : type.accept(this, context)
+            );
         }
         return builder.build();
     }
 
     @Override
-    public DataType visitCollectionColumnType(CollectionColumnType node, Void context) {
-        DataType innerType = process(node.innerType(), context);
-        return new ArrayType(innerType);
+    public DataType<?> visitCollectionColumnType(CollectionColumnType node, Void context) {
+        DataType<?> innerType = node.innerType().accept(this, context);
+        return new ArrayType<>(innerType);
     }
 }

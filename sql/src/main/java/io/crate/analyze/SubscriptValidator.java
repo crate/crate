@@ -47,7 +47,7 @@ public final class SubscriptValidator {
     }
 
     public static void validate(SubscriptExpression node, SubscriptContext subscriptContext) {
-        SubscriptNameVisitor.INSTANCE.process(node, subscriptContext);
+        node.accept(SubscriptNameVisitor.INSTANCE, subscriptContext);
     }
 
     private static class SubscriptNameVisitor extends AstVisitor<Void, SubscriptContext> {

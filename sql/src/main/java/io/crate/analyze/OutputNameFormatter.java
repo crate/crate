@@ -36,7 +36,7 @@ public class OutputNameFormatter {
     private static final InnerOutputNameFormatter INSTANCE = new InnerOutputNameFormatter();
 
     public static String format(Expression expression) {
-        return INSTANCE.process(expression, null);
+        return expression.accept(INSTANCE, null);
     }
 
     private static class InnerOutputNameFormatter extends ExpressionFormatter.Formatter {
@@ -51,15 +51,15 @@ public class OutputNameFormatter {
 
         @Override
         protected String visitSubscriptExpression(SubscriptExpression node, List<Expression> parameters) {
-            return process(node.name(), null) + '[' + process(node.index(), null) + ']';
+            return node.name().accept(this, null) + '[' + node.index().accept(this, null) + ']';
         }
 
         @Override
         public String visitArrayComparisonExpression(ArrayComparisonExpression node, List<Expression> parameters) {
-            return process(node.getLeft(), null) + ' ' +
+            return node.getLeft().accept(this, null) + ' ' +
                    node.getType().getValue() + ' ' +
                    node.quantifier().name() + '(' +
-                   process(node.getRight(), null) + ')';
+                   node.getRight().accept(this, null) + ')';
         }
 
         @Override

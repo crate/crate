@@ -132,7 +132,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     }
 
     public AnalyzedRelation analyze(Node node, StatementAnalysisContext statementContext) {
-        return process(node, statementContext);
+        return node.accept(this, statementContext);
     }
 
     public AnalyzedRelation analyzeUnbound(Query query,
@@ -149,7 +149,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
     @Override
     protected AnalyzedRelation visitQuery(Query node, StatementAnalysisContext statementContext) {
-        AnalyzedRelation childRelation = process(node.getQueryBody(), statementContext);
+        AnalyzedRelation childRelation = node.getQueryBody().accept(this, statementContext);
         if (node.getOrderBy().isEmpty() && node.getLimit().isEmpty() && node.getOffset().isEmpty()) {
             return childRelation;
         }
@@ -211,8 +211,8 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         if (node.isDistinct()) {
             throw new UnsupportedFeatureException("UNION [DISTINCT] is not supported");
         }
-        AnalyzedRelation left = process(node.getLeft(), context);
-        AnalyzedRelation right = process(node.getRight(), context);
+        AnalyzedRelation left = node.getLeft().accept(this, context);
+        AnalyzedRelation right = node.getRight().accept(this, context);
 
         ensureUnionOutputsHaveTheSameSize(left, right);
         ensureUnionOutputsHaveCompatibleTypes(left, right);
@@ -249,8 +249,8 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
     @Override
     protected AnalyzedRelation visitJoin(Join node, StatementAnalysisContext statementContext) {
-        process(node.getLeft(), statementContext);
-        process(node.getRight(), statementContext);
+        node.getLeft().accept(this, statementContext);
+        node.getRight().accept(this, statementContext);
 
         RelationAnalysisContext relationContext = statementContext.currentRelationContext();
         Optional<JoinCriteria> optCriteria = node.getCriteria();
@@ -294,7 +294,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         for (Relation relation : from) {
             // different from relations have to be isolated from each other
             RelationAnalysisContext innerContext = statementContext.startRelation();
-            process(relation, statementContext);
+            relation.accept(this, statementContext);
             statementContext.endRelation();
             for (Map.Entry<QualifiedName, AnalyzedRelation> entry : innerContext.sources().entrySet()) {
                 currentRelationContext.addSourceRelation(entry.getKey(), entry.getValue());
@@ -626,7 +626,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     @Override
     protected AnalyzedRelation visitAliasedRelation(AliasedRelation node, StatementAnalysisContext context) {
         context.startRelation(true);
-        AnalyzedRelation childRelation = process(node.getRelation(), context);
+        AnalyzedRelation childRelation = node.getRelation().accept(this, context);
         AnalyzedRelation aliasedRelation = new AliasedAnalyzedRelation(childRelation,
                                                                        new QualifiedName(node.getAlias()),
                                                                        node.getColumnNames());
@@ -662,7 +662,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             }
             ViewMetaData view = viewMetaData.v1();
             relationName = viewMetaData.v2();
-            AnalyzedRelation resolvedView = process(SqlParser.createStatement(view.stmt()), context);
+            AnalyzedRelation resolvedView = SqlParser.createStatement(view.stmt()).accept(this, context);
             relation = new AnalyzedView(relationName, view.owner(), resolvedView);
         }
 

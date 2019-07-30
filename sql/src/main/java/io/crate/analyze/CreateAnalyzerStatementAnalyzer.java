@@ -57,7 +57,7 @@ class CreateAnalyzerStatementAnalyzer
     }
 
     public CreateAnalyzerAnalyzedStatement analyze(Node node, Analysis analysis) {
-        return super.process(node, new Context(analysis));
+        return node.accept(this, new Context(analysis));
     }
 
     static class Context {
@@ -80,7 +80,7 @@ class CreateAnalyzerStatementAnalyzer
         }
 
         for (AnalyzerElement element : node.elements()) {
-            process(element, context);
+            element.accept(this, context);
         }
 
         return context.statement;
