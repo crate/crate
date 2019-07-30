@@ -32,7 +32,7 @@ import static org.hamcrest.Matchers.anything;
 public class WindowFunctionsTestingFrameworkTest extends AbstractWindowFunctionTest {
 
     @Test
-    public void testInputOfDifferentSizeRaiseException() throws Exception {
+    public void testInputOfDifferentSizeRaiseException() throws Throwable {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Inputs need to be of equal size");
 
