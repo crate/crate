@@ -24,7 +24,7 @@ package io.crate.execution.engine.window;
 
 import org.junit.Test;
 
-import java.util.Collections;
+import java.util.List;
 
 import static org.hamcrest.Matchers.anything;
 
@@ -36,9 +36,10 @@ public class WindowFunctionsTestingFrameworkTest extends AbstractWindowFunctionT
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Inputs need to be of equal size");
 
-        assertEvaluate("row_number() over()",
+        assertEvaluate(
+            "row_number() over()",
             anything("does not matter"),
-            Collections.emptyMap(),
+            List.of(),
             new Object[]{1},
             new Object[]{1, 2}
         );

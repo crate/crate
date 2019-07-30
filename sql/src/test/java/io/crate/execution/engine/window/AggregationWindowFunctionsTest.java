@@ -25,9 +25,9 @@ package io.crate.execution.engine.window;
 import io.crate.metadata.ColumnIdent;
 import org.junit.Test;
 
-import java.util.Collections;
 import java.util.List;
 
+import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static org.hamcrest.Matchers.contains;
 
 public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
@@ -49,8 +49,9 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
                             "PARTITION BY x>2 ORDER BY x RANGE BETWEEN UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING" +
                        ")",
             contains(expected),
-            Collections.singletonMap(new ColumnIdent("x"), 0),
-            INPUT_ROWS);
+            List.of(new ColumnIdent("x")),
+            INPUT_ROWS
+        );
     }
 
     @Test
@@ -60,69 +61,75 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
                             "PARTITION BY x>2 ORDER BY x RANGE BETWEEN CURRENT ROW and UNBOUNDED FOLLOWING" +
                        ")",
             contains(expected),
-            Collections.singletonMap(new ColumnIdent("x"), 0),
-            INPUT_ROWS);
+            List.of(new ColumnIdent("x")),
+            INPUT_ROWS
+        );
     }
 
     @Test
     public void testAvgOverUnboundedFollowingFrames() throws Throwable {
         Object[] expected = new Object[]{1.6666666666666667, 2.0, 2.0, 4.0, 4.5, 5.0, null};
-        assertEvaluate("avg(x) OVER(" +
-                            "PARTITION BY x>2 ORDER BY x RANGE BETWEEN CURRENT ROW and UNBOUNDED FOLLOWING" +
-                       ")",
+        assertEvaluate(
+            "avg(x) OVER(" +
+            "   PARTITION BY x>2 ORDER BY x RANGE BETWEEN CURRENT ROW and UNBOUNDED FOLLOWING" +
+            ")",
             contains(expected),
-            Collections.singletonMap(new ColumnIdent("x"), 0),
+            List.of(new ColumnIdent("x")),
             INPUT_ROWS);
     }
 
     @Test
     public void testSumOverUnboundedFollowingFrames() throws Throwable {
         Object[] expected = new Object[]{5L, 4L, 4L, 12L, 9L, 5L, null};
-        assertEvaluate("sum(x) OVER(" +
-                            "PARTITION BY x>2 ORDER BY x RANGE BETWEEN CURRENT ROW and UNBOUNDED FOLLOWING" +
-                       ")",
+        assertEvaluate(
+            "sum(x) OVER(" +
+            "   PARTITION BY x>2 ORDER BY x RANGE BETWEEN CURRENT ROW and UNBOUNDED FOLLOWING" +
+            ")",
             contains(expected),
-            Collections.singletonMap(new ColumnIdent("x"), 0),
+            List.of(new ColumnIdent("x")),
             INPUT_ROWS);
     }
 
     @Test
     public void testVarianceOverUnboundedFollowingFrames() throws Throwable {
         Object[] expected = new Object[]{0.22222222222222202, 0.0, 0.0, 0.6666666666666666, 0.25, 0.0, null};
-        assertEvaluate("variance(x) OVER(" +
-                            "PARTITION BY x>2 ORDER BY x RANGE BETWEEN CURRENT ROW and UNBOUNDED FOLLOWING" +
-                       ")",
+        assertEvaluate(
+            "variance(x) OVER(" +
+            "   PARTITION BY x>2 ORDER BY x RANGE BETWEEN CURRENT ROW and UNBOUNDED FOLLOWING" +
+            ")",
             contains(expected),
-            Collections.singletonMap(new ColumnIdent("x"), 0),
+            List.of(new ColumnIdent("x")),
             INPUT_ROWS);
     }
 
     @Test
     public void testStdDevOverUnboundedFollowingFrames() throws Throwable {
         Object[] expected = new Object[]{0.47140452079103146, 0.0, 0.0, 0.816496580927726, 0.5, 0.0, null};
-        assertEvaluate("stddev(x) OVER(" +
-                            "PARTITION BY x>2 ORDER BY x RANGE BETWEEN CURRENT ROW and UNBOUNDED FOLLOWING" +
-                       ")",
+        assertEvaluate(
+            "stddev(x) OVER(" +
+            "   PARTITION BY x>2 ORDER BY x RANGE BETWEEN CURRENT ROW and UNBOUNDED FOLLOWING" +
+            ")",
             contains(expected),
-            Collections.singletonMap(new ColumnIdent("x"), 0),
+            List.of(new ColumnIdent("x")),
             INPUT_ROWS);
     }
 
     @Test
     public void testStringAggOverUnboundedFollowingFrames() throws Throwable {
         Object[] expected = new Object[]{"a,b,b", "b,b", "b,b", "c,d,e", "d,e", "e", null};
-        assertEvaluate("string_agg(z, ',') OVER(" +
-                            "PARTITION BY z>'b' ORDER BY z RANGE BETWEEN CURRENT ROW and UNBOUNDED FOLLOWING" +
-                       ")",
+        assertEvaluate(
+            "string_agg(z, ',') OVER(" +
+            "   PARTITION BY z>'b' ORDER BY z RANGE BETWEEN CURRENT ROW and UNBOUNDED FOLLOWING" +
+            ")",
             contains(expected),
-            Collections.singletonMap(new ColumnIdent("z"), 0),
-            new Object[]{"a", 1},
-            new Object[]{"b", 2},
-            new Object[]{"b", 2},
-            new Object[]{"c", 3},
-            new Object[]{"d", 4},
-            new Object[]{"e", 5},
-            new Object[]{null, null});
+            List.of(new ColumnIdent("z")),
+            new Object[]{"a"},
+            new Object[]{"b"},
+            new Object[]{"b"},
+            new Object[]{"c"},
+            new Object[]{"d"},
+            new Object[]{"e"},
+            new Object[]{null});
     }
 
     @Test
@@ -138,20 +145,21 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
             List.of(5),
             List.of()
         };
-        assertEvaluate("collect_set(x) OVER(" +
-                            "PARTITION BY x>2 ORDER BY x RANGE BETWEEN CURRENT ROW and UNBOUNDED FOLLOWING" +
-                       ")",
-                       contains(expected),
-                       Collections.singletonMap(new ColumnIdent("x"), 0),
-            new Object[]{1, 1},
-            new Object[]{2, 2},
-            new Object[]{2, 2},
-            new Object[]{2, 2},
-            new Object[]{2, 2},
-            new Object[]{3, 3},
-            new Object[]{4, 4},
-            new Object[]{5, 5},
-            new Object[]{null, null});
+        assertEvaluate(
+            "collect_set(x) OVER(" +
+            "   PARTITION BY x>2 ORDER BY x RANGE BETWEEN CURRENT ROW and UNBOUNDED FOLLOWING" +
+            ")",
+            contains(expected),
+            List.of(new ColumnIdent("x")),
+            new Object[]{1},
+            new Object[]{2},
+            new Object[]{2},
+            new Object[]{2},
+            new Object[]{2},
+            new Object[]{3},
+            new Object[]{4},
+            new Object[]{5},
+            new Object[]{null});
     }
 
     @Test
@@ -170,7 +178,7 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
                             "PARTITION BY x>2 ORDER BY x ROWS BETWEEN UNBOUNDED PRECEDING and CURRENT ROW" +
                        ")",
             contains(expected),
-            Collections.singletonMap(new ColumnIdent("x"), 0),
+            List.of(new ColumnIdent("x")),
             new Object[]{1, 1},
             new Object[]{2, 2},
             new Object[]{2, 2},
@@ -197,7 +205,7 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
                             "ORDER BY d RANGE BETWEEN 3 PRECEDING and CURRENT ROW" +
                        ")",
             contains(expected),
-            Collections.singletonMap(new ColumnIdent("d"), 0),
+            List.of(new ColumnIdent("d")),
             new Object[]{2.5, 2.5},
             new Object[]{4.0, 4.0},
             new Object[]{5.0, 5.0},
@@ -225,7 +233,7 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
                             "ORDER BY d ROWS BETWEEN 3 PRECEDING and CURRENT ROW" +
                        ")",
             contains(expected),
-            Collections.singletonMap(new ColumnIdent("d"), 0),
+            List.of(new ColumnIdent("d")),
             new Object[]{2.5, 2.5},
             new Object[]{4.0, 4.0},
             new Object[]{5.0, 5.0},
@@ -253,7 +261,7 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
                                "ORDER BY d RANGE BETWEEN CURRENT ROW and 3 FOLLOWING" +
                        ")",
                        contains(expected),
-                       Collections.singletonMap(new ColumnIdent("d"), 0),
+                       List.of(new ColumnIdent("d")),
                        new Object[]{2.5, 2.5},
                        new Object[]{4.0, 4.0},
                        new Object[]{5.0, 5.0},
@@ -281,7 +289,7 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
                             "ORDER BY d ROWS BETWEEN CURRENT ROW and 3 FOLLOWING" +
                        ")",
                        contains(expected),
-                       Collections.singletonMap(new ColumnIdent("d"), 0),
+                       List.of(new ColumnIdent("d")),
                        new Object[]{2.5, 2.5},
                        new Object[]{4.0, 4.0},
                        new Object[]{5.0, 5.0},
@@ -291,5 +299,4 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
                        new Object[]{10.0, 10.0},
                        new Object[]{12.0, 12.0});
     }
-
 }
