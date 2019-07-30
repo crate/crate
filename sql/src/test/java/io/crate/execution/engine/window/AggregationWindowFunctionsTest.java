@@ -43,7 +43,7 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
     };
 
     @Test
-    public void testSumOverUnboundedPrecedingToUnboundedFollowingFrames() throws Exception {
+    public void testSumOverUnboundedPrecedingToUnboundedFollowingFrames() throws Throwable {
         Object[] expected = new Object[]{5L, 5L, 5L, 12L, 12L, 12L, null};
         assertEvaluate("sum(x) OVER(" +
                             "PARTITION BY x>2 ORDER BY x RANGE BETWEEN UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING" +
@@ -54,7 +54,7 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
     }
 
     @Test
-    public void testCountOverUnboundedFollowingFrames() throws Exception {
+    public void testCountOverUnboundedFollowingFrames() throws Throwable {
         Object[] expected = new Object[]{3L, 2L, 2L, 3L, 2L, 1L, 0L};
         assertEvaluate("count(x) OVER(" +
                             "PARTITION BY x>2 ORDER BY x RANGE BETWEEN CURRENT ROW and UNBOUNDED FOLLOWING" +
@@ -65,7 +65,7 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
     }
 
     @Test
-    public void testAvgOverUnboundedFollowingFrames() throws Exception {
+    public void testAvgOverUnboundedFollowingFrames() throws Throwable {
         Object[] expected = new Object[]{1.6666666666666667, 2.0, 2.0, 4.0, 4.5, 5.0, null};
         assertEvaluate("avg(x) OVER(" +
                             "PARTITION BY x>2 ORDER BY x RANGE BETWEEN CURRENT ROW and UNBOUNDED FOLLOWING" +
@@ -76,7 +76,7 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
     }
 
     @Test
-    public void testSumOverUnboundedFollowingFrames() throws Exception {
+    public void testSumOverUnboundedFollowingFrames() throws Throwable {
         Object[] expected = new Object[]{5L, 4L, 4L, 12L, 9L, 5L, null};
         assertEvaluate("sum(x) OVER(" +
                             "PARTITION BY x>2 ORDER BY x RANGE BETWEEN CURRENT ROW and UNBOUNDED FOLLOWING" +
@@ -87,7 +87,7 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
     }
 
     @Test
-    public void testVarianceOverUnboundedFollowingFrames() throws Exception {
+    public void testVarianceOverUnboundedFollowingFrames() throws Throwable {
         Object[] expected = new Object[]{0.22222222222222202, 0.0, 0.0, 0.6666666666666666, 0.25, 0.0, null};
         assertEvaluate("variance(x) OVER(" +
                             "PARTITION BY x>2 ORDER BY x RANGE BETWEEN CURRENT ROW and UNBOUNDED FOLLOWING" +
@@ -98,7 +98,7 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
     }
 
     @Test
-    public void testStdDevOverUnboundedFollowingFrames() throws Exception {
+    public void testStdDevOverUnboundedFollowingFrames() throws Throwable {
         Object[] expected = new Object[]{0.47140452079103146, 0.0, 0.0, 0.816496580927726, 0.5, 0.0, null};
         assertEvaluate("stddev(x) OVER(" +
                             "PARTITION BY x>2 ORDER BY x RANGE BETWEEN CURRENT ROW and UNBOUNDED FOLLOWING" +
@@ -109,7 +109,7 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
     }
 
     @Test
-    public void testStringAggOverUnboundedFollowingFrames() throws Exception {
+    public void testStringAggOverUnboundedFollowingFrames() throws Throwable {
         Object[] expected = new Object[]{"a,b,b", "b,b", "b,b", "c,d,e", "d,e", "e", null};
         assertEvaluate("string_agg(z, ',') OVER(" +
                             "PARTITION BY z>'b' ORDER BY z RANGE BETWEEN CURRENT ROW and UNBOUNDED FOLLOWING" +
@@ -126,7 +126,7 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
     }
 
     @Test
-    public void testCollectSetOverUnboundedFollowingFrames() throws Exception {
+    public void testCollectSetOverUnboundedFollowingFrames() throws Throwable {
         Object[] expected = new Object[]{
             List.of(1, 2),
             List.of(2),
@@ -155,7 +155,7 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
     }
 
     @Test
-    public void testCollectSetOverRowsUnboundedPrecedingCurrentRowFrame() throws Exception {
+    public void testCollectSetOverRowsUnboundedPrecedingCurrentRowFrame() throws Throwable {
         Object[] expected = new Object[]{
             List.of(1),
             List.of(1, 2),
@@ -182,7 +182,7 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
     }
 
     @Test
-    public void test_agg_over_range_offset_preceding() throws Exception {
+    public void test_agg_over_range_offset_preceding() throws Throwable {
         Object[] expected = new Object[]{
             2.5,
             6.5,
@@ -209,7 +209,7 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
     }
 
     @Test
-    public void test_agg_over_rows_offset_preceding() throws Exception {
+    public void test_agg_over_rows_offset_preceding() throws Throwable {
         Object[] expected = new Object[]{
             2.5,
             6.5,
@@ -237,7 +237,7 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
     }
 
     @Test
-    public void test_agg_over_range_following() throws Exception {
+    public void test_agg_over_range_following() throws Throwable {
         Object[] expected = new Object[]{
             11.5,
             15.0,
@@ -265,7 +265,7 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
     }
 
     @Test
-    public void test_agg_over_rows_offset_following() throws Exception {
+    public void test_agg_over_rows_offset_following() throws Throwable {
         Object[] expected = new Object[]{
             17.5,
             22.5,

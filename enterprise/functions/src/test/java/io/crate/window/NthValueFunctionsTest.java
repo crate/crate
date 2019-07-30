@@ -41,7 +41,7 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
     }
 
     @Test
-    public void testLastValueWithEmptyOver() throws Exception {
+    public void testLastValueWithEmptyOver() throws Throwable {
         assertEvaluate("last_value(x) over()",
             contains(new Object[] {4, 4, 4, 4}),
             Collections.singletonMap(new ColumnIdent("x"), 0),
@@ -53,7 +53,7 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
     }
 
     @Test
-    public void testLastValueWithOrderByClause() throws Exception {
+    public void testLastValueWithOrderByClause() throws Throwable {
         Map<ColumnIdent, Integer> mapping = new HashMap<>();
         mapping.put(new ColumnIdent("x"), 0);
         mapping.put(new ColumnIdent("y"), 1);
@@ -69,7 +69,7 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
     }
 
     @Test
-    public void testLastValueUseSymbolMultipleTimes() throws Exception {
+    public void testLastValueUseSymbolMultipleTimes() throws Throwable {
         Map<ColumnIdent, Integer> mapping = new HashMap<>();
         mapping.put(new ColumnIdent("x"), 0);
         mapping.put(new ColumnIdent("y"), 1);
@@ -85,7 +85,7 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
     }
 
     @Test
-    public void testFirstValueWithEmptyOver() throws Exception {
+    public void testFirstValueWithEmptyOver() throws Throwable {
         assertEvaluate("first_value(x) over()",
             contains(new Object[] {1, 1, 1, 1}),
             Collections.singletonMap(new ColumnIdent("x"), 0),
@@ -97,7 +97,7 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
     }
 
     @Test
-    public void testFirstValueWithOrderByClause() throws Exception {
+    public void testFirstValueWithOrderByClause() throws Throwable {
         Map<ColumnIdent, Integer> mapping = new HashMap<>();
         mapping.put(new ColumnIdent("x"), 0);
         mapping.put(new ColumnIdent("y"), 1);
@@ -113,7 +113,7 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
     }
 
         @Test
-    public void testNthValueWithEmptyOver() throws Exception {
+    public void testNthValueWithEmptyOver() throws Throwable {
         assertEvaluate("nth_value(x, 3) over()",
             contains(new Object[] {3, 3, 3, 3}),
             Collections.singletonMap(new ColumnIdent("x"), 0),
@@ -125,7 +125,7 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
     }
 
     @Test
-    public void testNthValueWithOrderByClause() throws Exception {
+    public void testNthValueWithOrderByClause() throws Throwable {
         Map<ColumnIdent, Integer> mapping = new HashMap<>();
         mapping.put(new ColumnIdent("x"), 0);
         mapping.put(new ColumnIdent("y"), 1);
@@ -141,7 +141,7 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
     }
 
     @Test
-    public void testNthValueWithNullPositionReturnsNull() throws Exception {
+    public void testNthValueWithNullPositionReturnsNull() throws Throwable {
         Map<ColumnIdent, Integer> mapping = new HashMap<>();
         mapping.put(new ColumnIdent("x"), 0);
         mapping.put(new ColumnIdent("y"), 1);
@@ -157,7 +157,7 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
     }
 
     @Test
-    public void testRowNthValueOverPartitionedWindow() throws Exception {
+    public void testRowNthValueOverPartitionedWindow() throws Throwable {
         Object[] expected = new Object[]{2, 2, 2, 4, 4, 4, null};
         assertEvaluate("nth_value(x, 2) over(partition by x > 2)",
                        contains(expected),
@@ -172,7 +172,7 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
     }
 
     @Test
-    public void testNthValueOverPartitionedOrderedWindow() throws Exception {
+    public void testNthValueOverPartitionedOrderedWindow() throws Throwable {
         Object[] expected = new Object[]{null, 2, 2, null, 4, 4, null};
         assertEvaluate("nth_value(x, 2) over(partition by x > 2 order by x)",
                        contains(expected),
@@ -187,7 +187,7 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
     }
 
     @Test
-    public void testNthValueOverUnboundedFollowingWindow() throws Exception {
+    public void testNthValueOverUnboundedFollowingWindow() throws Throwable {
         Object[] expected = new Object[]{2, 2, 2, 4, 5, null, null};
         assertEvaluate("nth_value(x, 2) OVER(PARTITION BY x>2 ORDER BY x RANGE BETWEEN CURRENT ROW and UNBOUNDED FOLLOWING)",
                        contains(expected),
@@ -202,7 +202,7 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
     }
 
     @Test
-    public void testNthValueOverRangeModeOneRowFrames() throws Exception {
+    public void testNthValueOverRangeModeOneRowFrames() throws Throwable {
         Object[] expected = new Object[]{1, 1};
         assertEvaluate("nth_value(x, 1) OVER(ORDER BY x RANGE BETWEEN UNBOUNDED PRECEDING and CURRENT ROW)",
             contains(expected),
@@ -212,7 +212,7 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
     }
 
     @Test
-    public void testNthValueOverRowsModeOneRowFrames() throws Exception {
+    public void testNthValueOverRowsModeOneRowFrames() throws Throwable {
         Object[] expected = new Object[]{1, 1};
         assertEvaluate("nth_value(x, 1) OVER(ORDER BY x ROWS BETWEEN UNBOUNDED PRECEDING and CURRENT ROW)",
             contains(expected),
