@@ -306,7 +306,7 @@ public class ExpressionAnalyzer {
             FrameBoundDefinition endBound = windowFrame.getEnd()
                 .map(end -> convertToAnalyzedFrameBound(context, end))
                 .orElse(new FrameBoundDefinition(FrameBound.Type.CURRENT_ROW, Literal.NULL));
-            windowFrameDefinition = new WindowFrameDefinition(windowFrame.getType(), startBound, endBound);
+            windowFrameDefinition = new WindowFrameDefinition(windowFrame.mode(), startBound, endBound);
         }
 
         return new WindowDefinition(partitionSymbols, orderBy, windowFrameDefinition);
@@ -346,7 +346,7 @@ public class ExpressionAnalyzer {
             throw new IllegalStateException("Frame start cannot be " + startType);
         }
 
-        if (windowFrame.getType() == WindowFrame.Type.RANGE) {
+        if (windowFrame.mode() == WindowFrame.Mode.RANGE) {
             if (startType.equals(FrameBound.Type.PRECEDING) && windowFrame.getStart().getValue() != null) {
                 if (window.getOrderBy().size() != 1) {
                     throw new IllegalStateException("RANGE with offset PRECEDING/FOLLOWING requires exactly one ORDER BY column");
@@ -361,7 +361,7 @@ public class ExpressionAnalyzer {
                 throw new IllegalStateException("Frame end cannot be " + endType);
             }
 
-            if (windowFrame.getType() == WindowFrame.Type.RANGE) {
+            if (windowFrame.mode() == WindowFrame.Mode.RANGE) {
                 if (endType.equals(FrameBound.Type.FOLLOWING) && windowFrame.getEnd().get().getValue() != null) {
                     if (window.getOrderBy().size() != 1) {
                         throw new IllegalStateException("RANGE with offset PRECEDING/FOLLOWING requires exactly one ORDER BY column");

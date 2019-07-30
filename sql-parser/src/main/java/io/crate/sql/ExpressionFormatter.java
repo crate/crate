@@ -354,7 +354,7 @@ public final class ExpressionFormatter {
         public String visitWindowFrame(WindowFrame node, @Nullable List<Expression> parameters) {
             StringBuilder builder = new StringBuilder(" ");
 
-            builder.append(node.getType().toString()).append(' ');
+            builder.append(node.mode().toString()).append(' ');
 
             if (node.getEnd().isPresent()) {
                 builder.append("BETWEEN ")

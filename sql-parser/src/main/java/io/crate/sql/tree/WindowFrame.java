@@ -26,23 +26,23 @@ import java.util.Optional;
 
 public class WindowFrame extends Node {
 
-    public enum Type {
+    public enum Mode {
         RANGE,
         ROWS
     }
 
-    private final Type frameType;
+    private final Mode mode;
     private final FrameBound start;
     private final Optional<FrameBound> end;
 
-    public WindowFrame(Type frameType, FrameBound start, Optional<FrameBound> end) {
-        this.frameType = frameType;
+    public WindowFrame(Mode mode, FrameBound start, Optional<FrameBound> end) {
+        this.mode = mode;
         this.start = start;
         this.end = end;
     }
 
-    public Type getType() {
-        return frameType;
+    public Mode mode() {
+        return mode;
     }
 
     public FrameBound getStart() {
@@ -60,14 +60,14 @@ public class WindowFrame extends Node {
 
         WindowFrame that = (WindowFrame) o;
 
-        if (frameType != that.frameType) return false;
+        if (mode != that.mode) return false;
         if (!start.equals(that.start)) return false;
         return end.equals(that.end);
     }
 
     @Override
     public int hashCode() {
-        int result = frameType.hashCode();
+        int result = mode.hashCode();
         result = 31 * result + start.hashCode();
         result = 31 * result + end.hashCode();
         return result;
@@ -76,7 +76,7 @@ public class WindowFrame extends Node {
     @Override
     public String toString() {
         return "WindowFrame{" +
-               "frameType=" + frameType +
+               "frameType=" + mode +
                ", start=" + start +
                ", end=" + end +
                '}';

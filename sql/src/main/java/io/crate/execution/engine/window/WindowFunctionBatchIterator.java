@@ -56,7 +56,7 @@ import java.util.function.IntSupplier;
 import java.util.stream.Collectors;
 
 import static io.crate.common.collections.Lists2.findFirstNonPeer;
-import static io.crate.sql.tree.WindowFrame.Type.RANGE;
+import static io.crate.sql.tree.WindowFrame.Mode.RANGE;
 
 /**
  * BatchIterator which computes window functions (incl. partitioning + ordering)

@@ -29,10 +29,9 @@ import org.junit.Test;
 import java.util.Comparator;
 import java.util.List;
 
-import static io.crate.sql.tree.FrameBound.Type.CURRENT_ROW;
 import static io.crate.sql.tree.FrameBound.Type.PRECEDING;
-import static io.crate.sql.tree.WindowFrame.Type.RANGE;
-import static io.crate.sql.tree.WindowFrame.Type.ROWS;
+import static io.crate.sql.tree.WindowFrame.Mode.RANGE;
+import static io.crate.sql.tree.WindowFrame.Mode.ROWS;
 import static org.hamcrest.core.Is.is;
 
 public class OffsetPrecedingFrameBoundTest extends CrateUnitTest {
