@@ -34,6 +34,7 @@ import io.crate.execution.engine.aggregation.impl.SumAggregation;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.InputCollectExpression;
 import io.crate.expression.symbol.AggregateMode;
+import io.crate.expression.symbol.Literal;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Functions;
 import io.crate.test.integration.CrateUnitTest;
@@ -72,6 +73,7 @@ public class GroupBySingleNumberCollectorTest extends CrateUnitTest {
             AggregateMode.ITER_FINAL,
             new AggregationFunction[]{sumAgg},
             new Input[][]{new Input[]{keyInput}},
+            new Input[] {Literal.BOOLEAN_TRUE},
             RAM_ACCOUNTING_CONTEXT,
             keyInput,
             Version.CURRENT,

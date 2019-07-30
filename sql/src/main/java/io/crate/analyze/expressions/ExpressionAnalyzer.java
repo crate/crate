@@ -242,6 +242,10 @@ public class ExpressionAnalyzer {
             name = parts.get(1);
         }
 
+        Symbol filter = node.filter()
+            .map(expression -> convert(expression, context))
+            .orElse(null);
+
         WindowDefinition windowDefinition = getWindowDefinition(node.getWindow(), context);
         if (node.isDistinct()) {
             if (arguments.size() > 1) {
@@ -251,19 +255,23 @@ public class ExpressionAnalyzer {
             Symbol collectSetFunction = allocateFunction(
                 CollectSetAggregation.NAME,
                 arguments,
-                context);
+                filter,
+                context,
+                functions,
+                coordinatorTxnCtx);
 
             // define the outer function which contains the inner function as argument.
             String nodeName = "collection_" + name;
-            List<Symbol> outerArguments = ImmutableList.of(collectSetFunction);
+            List<Symbol> outerArguments = List.of(collectSetFunction);
             try {
-                return allocateBuiltinOrUdfFunction(schema, nodeName, outerArguments, windowDefinition, context);
+                return allocateBuiltinOrUdfFunction(
+                    schema, nodeName, outerArguments, null, windowDefinition, context);
             } catch (UnsupportedOperationException ex) {
                 throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
                     "unknown function %s(DISTINCT %s)", name, arguments.get(0).valueType()), ex);
             }
         } else {
-            return allocateBuiltinOrUdfFunction(schema, name, arguments, windowDefinition, context);
+            return allocateBuiltinOrUdfFunction(schema, name, arguments, filter, windowDefinition, context);
         }
     }
 
@@ -1019,23 +1027,27 @@ public class ExpressionAnalyzer {
     private Symbol allocateBuiltinOrUdfFunction(String schema,
                                                 String functionName,
                                                 List<Symbol> arguments,
+                                                Symbol filter,
                                                 WindowDefinition windowDefinition,
                                                 ExpressionAnalysisContext context) {
-        return allocateBuiltinOrUdfFunction(schema, functionName, arguments, context, functions, windowDefinition, coordinatorTxnCtx);
+        return allocateBuiltinOrUdfFunction(
+            schema, functionName, arguments, filter, context, functions, windowDefinition, coordinatorTxnCtx);
     }
 
     private Symbol allocateFunction(String functionName,
                                     List<Symbol> arguments,
                                     ExpressionAnalysisContext context) {
-        return allocateFunction(functionName, arguments, context, functions, coordinatorTxnCtx);
+        return allocateFunction(functionName, arguments, null, context, functions, coordinatorTxnCtx);
     }
 
     static Symbol allocateFunction(String functionName,
                                    List<Symbol> arguments,
+                                   Symbol filter,
                                    ExpressionAnalysisContext context,
                                    Functions functions,
                                    CoordinatorTxnCtx coordinatorTxnCtx) {
-        return allocateBuiltinOrUdfFunction(null, functionName, arguments, context, functions, null, coordinatorTxnCtx);
+        return allocateBuiltinOrUdfFunction(
+            null, functionName, arguments, filter, context, functions, null, coordinatorTxnCtx);
     }
 
     /**
@@ -1045,6 +1057,7 @@ public class ExpressionAnalyzer {
      * @param schema The schema for udf functions
      * @param functionName The function name of the new function.
      * @param arguments The arguments to provide to the {@link Function}.
+     * @param filter The filter clause to filter {@link Function}'s input values.
      * @param context Context holding the state for the current translation.
      * @param functions The {@link Functions} to normalize constant expressions.
      * @param windowDefinition The definition of the window the allocated function will be executed against.
@@ -1054,6 +1067,7 @@ public class ExpressionAnalyzer {
     private static Symbol allocateBuiltinOrUdfFunction(@Nullable String schema,
                                                        String functionName,
                                                        List<Symbol> arguments,
+                                                       @Nullable Symbol filter,
                                                        ExpressionAnalysisContext context,
                                                        Functions functions,
                                                        @Nullable WindowDefinition windowDefinition,
@@ -1070,9 +1084,16 @@ public class ExpressionAnalyzer {
         if (windowDefinition == null) {
             if (functionInfo.type() == FunctionInfo.Type.AGGREGATE) {
                 context.indicateAggregates();
+            } else if (filter != null) {
+                throw new UnsupportedOperationException(
+                    "Only aggregate functions allow a FILTER clause");
             }
-            newFunction = new Function(functionInfo, castArguments);
+            newFunction = new Function(functionInfo, castArguments, filter);
         } else {
+            if (filter != null) {
+                throw new UnsupportedOperationException(
+                    "Window function calls do not support a FILTER clause");
+            }
             if (functionInfo.type() != FunctionInfo.Type.WINDOW && functionInfo.type() != FunctionInfo.Type.AGGREGATE) {
                 throw new IllegalArgumentException(String.format(
                     Locale.ENGLISH,
@@ -1186,7 +1207,8 @@ public class ExpressionAnalyzer {
             }
             left = allocateFunction(
                 opName,
-                ImmutableList.of(left, right),
+                List.of(left, right),
+                null,
                 context,
                 functions,
                 coordinatorTxnCtx);

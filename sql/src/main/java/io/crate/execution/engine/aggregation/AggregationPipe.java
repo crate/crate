@@ -47,11 +47,14 @@ public class AggregationPipe implements Projector {
                            BigArrays bigArrays) {
         AggregationFunction[] functions = new AggregationFunction[aggregations.length];
         Input[][] inputs = new Input[aggregations.length][];
+        Input[] filters = new Input[aggregations.length];
         for (int i = 0; i < aggregations.length; i++) {
             AggregationContext aggregation = aggregations[i];
             functions[i] = aggregation.function();
             inputs[i] = aggregation.inputs();
+            filters[i] = aggregation.filter();
         }
+
         collector = new AggregateCollector(
             expressions,
             ramAccountingContext,
@@ -59,7 +62,8 @@ public class AggregationPipe implements Projector {
             functions,
             indexVersionCreated,
             bigArrays,
-            inputs
+            inputs,
+            filters
         );
     }
 

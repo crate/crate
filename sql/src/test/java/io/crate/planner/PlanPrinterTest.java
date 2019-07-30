@@ -82,8 +82,8 @@ public class PlanPrinterTest extends CrateDummyClusterServiceUnitTest {
                "collectPhase={COLLECT={type=executionPhase, id=0, executionNodes=[n1], " +
                    "distribution={distributedByColumn=0, type=BROADCAST}, toCollect=Ref{doc.t1.x, integer}, Ref{doc.t1.a, text}, " +
                    "projections=[" +
-                       "{type=HashAggregation, keys=IC{1, text}, aggregations=Aggregation{max, args=[IC{0, integer}]}}, " +
-                       "{type=HashAggregation, keys=IC{0, text}, aggregations=Aggregation{max, args=[IC{1, integer}]}}, " +
+                       "{type=HashAggregation, keys=IC{1, text}, aggregations=Aggregation{max, args=[IC{0, integer}], filter=true}}, " +
+                       "{type=HashAggregation, keys=IC{0, text}, aggregations=Aggregation{max, args=[IC{1, integer}], filter=true}}, " +
                        "{type=Filter, filter=IC{1, integer} > 10}, " +
                        "{type=OrderByTopN, limit=-1, offset=0, outputs=IC{0, text}, IC{1, integer}, orderBy=[IC{0, text} ASC]}], " +
                     "routing={n1={t1=[0, 1, 2, 3]}}, where=true}}}}"));

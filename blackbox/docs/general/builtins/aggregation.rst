@@ -13,33 +13,91 @@ Aggregation
 Introduction
 ============
 
-An *aggregation function* operates on multiple values of the specified column
-of your ``SELECT``. For example, ``SELECT avg(temperature)`` will return the
-average value of the ``temperature`` column across all rows being considered.
+An *aggregate function* computes a single result from a set of input values.
 
-You can apply aggregation functions to the results of a whole query, or to each
-of the rows produced by a :ref:`sql_dql_group_by` query.
+::
 
-So for example, ``GROUP BY type, location`` will produce one result row for
-every distinct combination of type and location. In this instance,
-``avg(temperature)`` would return the average temperature for every grouped
-row.
+   cr> SELECT count(*)
+   ... FROM locations;
+   +----------+
+   | count(*) |
+   +----------+
+   |       13 |
+   +----------+
+   SELECT 1 row in set (... sec)
 
-If you're not using `GROUP BY`, an aggregation function will collapse your
-query result into one row, with one returned aggregation value.
+In the example above the ``count(*)`` aggregate function computes the result
+across all rows.
 
-For a tabulated summary of aggregation functions, see
-:ref:`sql_dql_aggregation`.
+Aggregate functions can be used with the :ref:`sql_dql_group_by` clause of
+the :ref:`sql_reference_select` statement. If so, an aggregate function computes
+a single result per each group of input values produced by a query.
+
+::
+
+   cr> SELECT kind, count(*)
+   ... FROM locations
+   ... GROUP BY kind;
+   +-------------+----------+
+   | kind        | count(*) |
+   +-------------+----------+
+   | Galaxy      |        4 |
+   | Star System |        4 |
+   | Planet      |        5 |
+   +-------------+----------+
+   SELECT 3 rows in set (... sec)
+
+For a tabulated summary of aggregate functions, see :ref:`sql_dql_aggregation`.
+
+.. _aggregate-expressions:
+
+Aggregate Expressions
+=====================
+
+An *aggregate expression* represents the application of an aggregate function
+across rows selected by a query. Besides the function signature, expressions
+might contain supplementary clauses and keywords.
+
+Synopsis
+--------
+
+The synopsis of an aggregate expression is one of the following
+
+::
+
+   aggregate_function ( * ) [ FILTER ( WHERE condition ) ]
+   aggregate_function ( [ DISTINCT ] expression [ , ... ] ) [ FILTER ( WHERE condition ) ]
+
+where ``aggregate_function`` is a name of an
+:ref:`aggregate function <aggregate-functions>`.
+
+and ``expression`` is a column reference, scalar function or literal.
+
+If ``FILTER`` is specified, then only the rows that met the
+:ref:`sql_dql_where_clause` condition are supplied to the aggregate function.
+
+The optional ``DISTINCT`` keyword is only supported by aggregate functions
+that explicitly mention its support. Please refer to existing
+:ref:`limitations <aggregation-limitations>` for further information.
+
+The aggregate expression form that uses a ``wildcard`` instead of an
+``expression`` as a function argument is supported only by the ``count(*)``
+aggregate function.
+
+.. _aggregate-functions:
+
+Aggregate functions
+===================
 
 ``count``
-=========
+---------
 
 .. _aggregation-count-star:
 
 ``count(*)``
-------------
+~~~~~~~~~~~~
 
-This aggregation function simply returns the number of rows that match the
+This aggregate function simply returns the number of rows that match the
 query.
 
 ``count(columName)`` is also possible, but currently only works on a primary key
@@ -70,7 +128,7 @@ The return value is always of type ``bigint``.
     SELECT 3 rows in set (... sec)
 
 ``count(columnName)``
----------------------
+~~~~~~~~~~~~~~~~~~~~~
 
 In contrast to the :ref:`aggregation-count-star` function the ``count``
 function used with a column name as parameter will return the number of rows
@@ -90,9 +148,9 @@ Example::
     SELECT 3 rows in set (... sec)
 
 ``count(distinct columnName)``
-------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The ``count`` aggregation function also supports the ``distinct`` keyword. This
+The ``count`` aggregate function also supports the ``distinct`` keyword. This
 keyword changes the behaviour of the function so that it will only count the
 number of distinct values in this column that are not ``NULL``::
 
@@ -119,9 +177,9 @@ number of distinct values in this column that are not ``NULL``::
     SELECT 1 row in set (... sec)
 
 ``min``
-=======
+-------
 
-The ``min`` aggregation function returns the smallest value in a column that is
+The ``min`` aggregate function returns the smallest value in a column that is
 not ``NULL``. Its single argument is a column name and its return value is
 always of the type of that column.
 
@@ -168,7 +226,7 @@ return the lexicographically smallest.
     SELECT 3 rows in set (... sec)
 
 ``max``
-=======
+-------
 
 It behaves exactly like ``min`` but returns the biggest value in a column that
 is not ``NULL``.
@@ -210,7 +268,7 @@ Some Examples::
     SELECT 3 rows in set (... sec)
 
 ``sum``
-=======
+-------
 
 returns the sum of a set of numeric input values that are not ``NULL``.
 Depending on the argument type a suitable return type is chosen. For ``real``
@@ -248,9 +306,9 @@ exceeded an `ArithmeticException` will be raised.
     SQLActionException[SQLParseException: Cannot cast name to type [double precision, real, bigint, integer, smallint, char]]
 
 ``avg`` and ``mean``
-====================
+--------------------
 
-The ``avg`` and ``mean`` aggregation function returns the arithmetic mean, the
+The ``avg`` and ``mean`` aggregate function returns the arithmetic mean, the
 *average*, of all values in a column that are not ``NULL`` as a
 ``double precision`` value. It accepts all numeric columns and timestamp
 columns as single argument. Using ``avg`` on other column types is not allowed.
@@ -269,9 +327,9 @@ Example::
     SELECT 3 rows in set (... sec)
 
 ``avg(distinct columnName)``
-----------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The ``avg`` aggregation function also supports the ``distinct`` keyword. This
+The ``avg`` aggregate function also supports the ``distinct`` keyword. This
 keyword changes the behaviour of the function so that it will only average the
 number of distinct values in this column that are not ``NULL``::
 
@@ -301,14 +359,14 @@ number of distinct values in this column that are not ``NULL``::
 .. _string_agg:
 
 ``string_agg``
-==============
+--------------
 
 ::
 
    string_agg(text, text) -> text
    string_agg(expression, delimiter)
 
-The ``string_agg`` aggregation function concatenates the input values into a
+The ``string_agg`` aggregate function concatenates the input values into a
 string, where each value is separated by a delimiter.
 
 If all input values are null, null is returned as a result.
@@ -326,9 +384,9 @@ If all input values are null, null is returned as a result.
 
 
 ``geometric_mean``
-==================
+------------------
 
-The ``geometric_mean`` aggregation function computes the geometric mean, a mean
+The ``geometric_mean`` aggregate function computes the geometric mean, a mean
 for positive numbers. For details see: `Geometric Mean`_.
 
 ``geometric mean`` is defined on all numeric types and on timestamp. It always
@@ -339,7 +397,7 @@ the result will be ``0.0`` as well.
 .. CAUTION::
 
     Due to java double precision arithmetic it is possible that any two
-    executions of the aggregation function on the same data produce slightly
+    executions of the aggregate function on the same data produce slightly
     differing results.
 
 Example::
@@ -356,9 +414,9 @@ Example::
     SELECT 3 rows in set (... sec)
 
 ``variance``
-============
+------------
 
-The ``variance`` aggregation function computes the `Variance`_ of the set of
+The ``variance`` aggregate function computes the `Variance`_ of the set of
 non-null values in a column. It is a measure about how far a set of numbers is
 spread. A variance of ``0.0`` indicates that all values are the same.
 
@@ -382,13 +440,13 @@ Example::
 .. CAUTION::
 
     Due to java double precision arithmetic it is possible that any two
-    executions of the aggregation function on the same data produce slightly
+    executions of the aggregate function on the same data produce slightly
     differing results.
 
 ``stddev``
-==========
+----------
 
-The ``stddev`` aggregation function computes the `Standard Deviation`_ of the
+The ``stddev`` aggregate function computes the `Standard Deviation`_ of the
 set of non-null values in a column. It is a measure of the variation of data
 values. A low standard deviation indicates that the values tend to be near the
 mean.
@@ -413,13 +471,13 @@ Example::
 .. CAUTION::
 
     Due to java double precision arithmetic it is possible that any two
-    executions of the aggregation function on the same data produce slightly
+    executions of the aggregate function on the same data produce slightly
     differing results.
 
 ``percentile``
-==============
+--------------
 
-The ``percentile`` aggregation function computes a `Percentile`_ over numeric
+The ``percentile`` aggregate function computes a `Percentile`_ over numeric
 non-null values in a column.
 
 Percentiles show the point at which a certain percentage of observed values
@@ -473,9 +531,9 @@ in this implementation:
       on your data distribution and volume of data being aggregated
 
 ``arbitrary``
-=============
+-------------
 
-The ``arbitrary`` aggregation function returns a single value of a column.
+The ``arbitrary`` aggregate function returns a single value of a column.
 Which value it returns is not defined.
 
 It accepts references to columns of all primitive types.
@@ -514,13 +572,13 @@ and get the ``username`` for every group, that means every user. This works as
 rows with same ``user_id`` have the same ``username``.  This method performs
 better than grouping on ``username`` as grouping on number types is generally
 faster than on strings.  The advantage is that the ``arbitrary`` function does
-very little to no computation as for example ``max`` aggregation function would
+very little to no computation as for example ``max`` aggregate function would
 do.
 
 .. _aggregation-hll-distinct:
 
 ``hyperloglog_distinct``
-========================
+------------------------
 
 .. note::
 
@@ -562,13 +620,13 @@ Examples::
     +-----------------------------------+
     SELECT 1 row in set (... sec)
 
+.. _aggregation-limitations:
+
 Limitations
 ===========
 
  - ``DISTINCT`` is not supported with aggregations on :ref:`sql_joins`.
- - Prior to 2.0.0, unless documented, global aggregation functions are
-   unsupported in combination with ``DISTINCT``.
- - Aggregation functions can only be applied to columns with a plain index,
+ - Aggregate functions can only be applied to columns with a plain index,
    which is the default for all :ref:`primitive type
    <sql_ddl_datatypes_primitives>` columns. For more information, please refer
    to :ref:`sql_ddl_index_plain`.

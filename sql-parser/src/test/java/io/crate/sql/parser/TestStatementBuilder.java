@@ -75,7 +75,6 @@ import org.junit.rules.ExpectedException;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.google.common.base.Strings.repeat;
@@ -1539,6 +1538,25 @@ public class TestStatementBuilder {
         printStatement("VALUES (1, 2), (2, 3), (3, 4)");
         printStatement("VALUES (1), (2), (3)");
         printStatement("VALUES (1, 2, 3 + 3, (SELECT 1))");
+    }
+
+    @Test
+    public void test_wildcard_aggregate_with_filter_clause() {
+        printStatement("SELECT COUNT(*) FILTER (WHERE x > 10) FROM t");
+    }
+
+    @Test
+    public void test_distinct_aggregate_with_filter_clause() {
+        printStatement("SELECT AVG(DISTINCT x) FILTER (WHERE 1 = 1) FROM t");
+    }
+
+    @Test
+    public void test_multiple_aggregates_with_filter_clauses() {
+        printStatement(
+            "SELECT " +
+            "   SUM(x) FILTER (WHERE x > 10), " +
+            "   AVG(x) FILTER (WHERE 1 = 1) " +
+            "FROM t");
     }
 
     private static void printStatement(String sql) {

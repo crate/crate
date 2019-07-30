@@ -29,6 +29,7 @@ import io.crate.data.Row1;
 import io.crate.execution.engine.aggregation.impl.SumAggregation;
 import io.crate.execution.engine.collect.InputCollectExpression;
 import io.crate.expression.symbol.AggregateMode;
+import io.crate.expression.symbol.Literal;
 import io.crate.metadata.FunctionIdent;
 import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
@@ -75,7 +76,8 @@ public class AggregateCollectorBenchmark {
             new AggregationFunction[] { sumAggregation },
             Version.CURRENT,
             BigArrays.NON_RECYCLING_INSTANCE,
-            new Input[] { inExpr0 }
+            new Input[][] { {inExpr0 } },
+            new Input[] { Literal.BOOLEAN_TRUE }
         );
     }
 

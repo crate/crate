@@ -30,6 +30,7 @@ import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.execution.engine.collect.CollectExpression;
+import io.crate.expression.InputCondition;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.types.DataType;
 import org.elasticsearch.Version;
@@ -60,6 +61,7 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
     private final AggregationFunction[] aggregations;
     private final AggregateMode mode;
     private final Input[][] inputs;
+    private final Input[] filters;
     private final RamAccountingContext ramAccountingContext;
     private final BiConsumer<K, Object[]> applyKeyToCells;
     private final int numKeyColumns;
@@ -73,6 +75,7 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
                                                AggregateMode mode,
                                                AggregationFunction[] aggregations,
                                                Input[][] inputs,
+                                               Input[] filters,
                                                RamAccountingContext ramAccountingContext,
                                                Input<?> keyInput,
                                                DataType keyType,
@@ -83,6 +86,7 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
             aggregations,
             mode,
             inputs,
+            filters,
             ramAccountingContext,
             (key, cells) -> cells[0] = key,
             1,
@@ -97,6 +101,7 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
                                                     AggregateMode mode,
                                                     AggregationFunction[] aggregations,
                                                     Input[][] inputs,
+                                                    Input[] filters,
                                                     RamAccountingContext ramAccountingContext,
                                                     List<Input<?>> keyInputs,
                                                     List<? extends DataType> keyTypes,
@@ -107,6 +112,7 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
             aggregations,
             mode,
             inputs,
+            filters,
             ramAccountingContext,
             GroupingCollector::applyKeysToCells,
             keyInputs.size(),
@@ -135,6 +141,7 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
                               AggregationFunction[] aggregations,
                               AggregateMode mode,
                               Input[][] inputs,
+                              Input[] filters,
                               RamAccountingContext ramAccountingContext,
                               BiConsumer<K, Object[]> applyKeyToCells,
                               int numKeyColumns,
@@ -146,6 +153,7 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
         this.aggregations = aggregations;
         this.mode = mode;
         this.inputs = inputs;
+        this.filters = filters;
         this.ramAccountingContext = ramAccountingContext;
         this.applyKeyToCells = applyKeyToCells;
         this.numKeyColumns = numKeyColumns;
@@ -154,6 +162,7 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
         this.indexVersionCreated = indexVersionCreated;
         this.bigArrays = bigArrays;
         this.accumulator = mode == AggregateMode.PARTIAL_FINAL ? this::reduce : this::iter;
+
     }
 
     @Override
@@ -219,7 +228,10 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
         } else {
             for (int i = 0; i < aggregations.length; i++) {
                 //noinspection unchecked
-                states[i] = aggregations[i].iterate(ramAccountingContext, states[i], inputs[i]);
+                if (InputCondition.matches(filters[i])) {
+                    //noinspection unchecked
+                    states[i] = aggregations[i].iterate(ramAccountingContext, states[i], inputs[i]);
+                }
             }
         }
     }
@@ -229,16 +241,21 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
         states = new Object[aggregations.length];
         for (int i = 0; i < aggregations.length; i++) {
             AggregationFunction aggregation = aggregations[i];
+
+            var newState = aggregation.newState(ramAccountingContext, indexVersionCreated, bigArrays);
             //noinspection unchecked
-            states[i] = aggregation.iterate(
-                ramAccountingContext,
-                aggregation.newState(ramAccountingContext, indexVersionCreated, bigArrays), inputs[i]);
+            if (InputCondition.matches(filters[i])) {
+                //noinspection unchecked
+                states[i] = aggregation.iterate(ramAccountingContext, newState, inputs[i]);
+            } else {
+                states[i] = newState;
+            }
         }
         addWithAccounting(statesByKey, key, states);
     }
 
     private Iterable<Row> mapToRows(Map<K, Object[]> statesByKey) {
-        return Iterables.transform(statesByKey.entrySet(), new com.google.common.base.Function<Map.Entry<K, Object[]>, Row>() {
+        return Iterables.transform(statesByKey.entrySet(), new com.google.common.base.Function<>() {
 
             RowN row = new RowN(numKeyColumns + aggregations.length);
             Object[] cells = new Object[row.numColumns()];
