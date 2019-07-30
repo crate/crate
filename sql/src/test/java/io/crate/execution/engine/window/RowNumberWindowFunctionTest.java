@@ -25,7 +25,7 @@ package io.crate.execution.engine.window;
 import io.crate.metadata.ColumnIdent;
 import org.junit.Test;
 
-import java.util.Collections;
+import java.util.List;
 
 import static org.hamcrest.Matchers.contains;
 
@@ -37,7 +37,7 @@ public class RowNumberWindowFunctionTest extends AbstractWindowFunctionTest {
 
         assertEvaluate("row_number() over(order by x)",
             contains(expected),
-            Collections.singletonMap(new ColumnIdent("x"), 0),
+           List.of(new ColumnIdent("x")),
             new Object[] {4},
             new Object[] {3},
             new Object[] {2},
@@ -50,7 +50,7 @@ public class RowNumberWindowFunctionTest extends AbstractWindowFunctionTest {
         Object[] expected = new Object[]{1, 2, 3, 1, 2, 3, 1};
         assertEvaluate("row_number() over(partition by x>2)",
                        contains(expected),
-                       Collections.singletonMap(new ColumnIdent("x"), 0),
+                       List.of(new ColumnIdent("x")),
                        new Object[]{1},
                        new Object[]{2},
                        new Object[]{2},
@@ -65,7 +65,7 @@ public class RowNumberWindowFunctionTest extends AbstractWindowFunctionTest {
         Object[] expected = new Object[]{1, 2, 3, 1, 2, 3, 1};
         assertEvaluate("row_number() over(partition by x>2 order by x)",
                        contains(expected),
-                       Collections.singletonMap(new ColumnIdent("x"), 0),
+                       List.of(new ColumnIdent("x")),
                        new Object[]{1, 1},
                        new Object[]{2, 2},
                        new Object[]{2, 2},
@@ -82,7 +82,7 @@ public class RowNumberWindowFunctionTest extends AbstractWindowFunctionTest {
                             "PARTITION BY x>2 ORDER BY x RANGE BETWEEN CURRENT ROW and UNBOUNDED FOLLOWING" +
                        ")",
                        contains(expected),
-                       Collections.singletonMap(new ColumnIdent("x"), 0),
+                       List.of(new ColumnIdent("x")),
                        new Object[]{1, 1},
                        new Object[]{2, 2},
                        new Object[]{2, 2},

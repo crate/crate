@@ -31,6 +31,7 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.auth.user.User;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.common.collections.Lists2;
 import io.crate.data.BatchIterator;
 import io.crate.data.BatchIterators;
 import io.crate.data.InMemoryBatchIterator;
@@ -134,7 +135,7 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
     @SuppressWarnings("unchecked")
     protected <T> void assertEvaluate(String functionExpression,
                                       Matcher<T> expectedValue,
-                                      Map<ColumnIdent, Integer> positionInRowByColumn,
+                                      List<ColumnIdent> rowsColumnDescription,
                                       Object[]... inputRows) throws Throwable {
         performInputSanityChecks(inputRows);
 
@@ -143,7 +144,9 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
 
         var windowFunctionSymbol = (io.crate.expression.symbol.WindowFunction) normalizedFunctionSymbol;
         ReferenceResolver<InputCollectExpression> referenceResolver =
-            r -> new InputCollectExpression(positionInRowByColumn.get(r.column()));
+            r -> new InputCollectExpression(rowsColumnDescription.indexOf(r.column()));
+
+        List<Symbol> sourceSymbols = Lists2.map(rowsColumnDescription, x -> sqlExpressions.normalize(sqlExpressions.asSymbol(x.sqlFqn())));
 
         var argsCtx = inputFactory.ctxForRefs(txnCtx, referenceResolver);
         argsCtx.add(windowFunctionSymbol.arguments());
@@ -163,7 +166,7 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
         }
 
         int numCellsInSourceRows = inputRows[0].length;
-        InputColumns.SourceSymbols sourceSymbols = new InputColumns.SourceSymbols(windowFunctionSymbol.arguments());
+        InputColumns.SourceSymbols inputColSources = new InputColumns.SourceSymbols(sourceSymbols);
         var windowDef = windowFunctionSymbol.windowDefinition();
         var partitionOrderBy = windowDef.partitions().isEmpty() ? null : new OrderBy(windowDef.partitions());
         Object startOffsetValue = SymbolEvaluator.evaluate(
@@ -173,7 +176,7 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
         BatchIterator<Row> iterator = WindowFunctionBatchIterator.of(
             InMemoryBatchIterator.of(Arrays.stream(inputRows).map(RowN::new).collect(Collectors.toList()), SENTINEL),
             new IgnoreRowAccounting(),
-            windowDef.map(s -> InputColumns.create(s, sourceSymbols)),
+            windowDef.map(s -> InputColumns.create(s, inputColSources)),
             startOffsetValue,
             endOffsetValue,
             createComparator(() -> inputFactory.ctxForRefs(txnCtx, referenceResolver), partitionOrderBy),
