@@ -20,9 +20,8 @@
  * agreement.
  */
 
-package io.crate.execution.engine.window;
+package io.crate.sql.tree;
 
-import io.crate.test.integration.CrateUnitTest;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -33,8 +32,9 @@ import static io.crate.sql.tree.FrameBound.Type.CURRENT_ROW;
 import static io.crate.sql.tree.WindowFrame.Mode.RANGE;
 import static io.crate.sql.tree.WindowFrame.Mode.ROWS;
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
 
-public class CurrentRowFrameBoundTest extends CrateUnitTest {
+public class CurrentRowFrameBoundTest {
 
     private List<Integer> partition;
     private Comparator<Integer> intComparator;
@@ -99,5 +99,4 @@ public class CurrentRowFrameBoundTest extends CrateUnitTest {
         int frameStartForSixthRow = CURRENT_ROW.getStart(RANGE, 4, 7, 5, null, null, intComparator, window);
         assertThat("frame start shouldn't be outside of the partition bounds", frameStartForSixthRow, is(4));
     }
-
 }
