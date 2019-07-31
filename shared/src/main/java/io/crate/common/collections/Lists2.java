@@ -290,17 +290,4 @@ public final class Lists2 {
         }
         return firstGTEProbeIdx;
     }
-
-    /**
-     * Indicates if the items at pos1 and pos2 are equal (ie. peers)  with respect to the provided comparator.
-     * @return true if the comparator is null, or true/false if the comparator designates the two items as true or false.
-     */
-    public static <T> boolean arePeers(List<T> items, int pos1, int pos2, @Nullable Comparator<T> cmp) {
-        if (cmp == null) {
-            return true;
-        }
-        T fst = items.get(pos1);
-        return cmp.compare(fst, items.get(pos2)) == 0;
-    }
-
 }
