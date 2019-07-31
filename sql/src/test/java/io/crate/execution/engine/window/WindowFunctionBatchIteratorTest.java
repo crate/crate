@@ -22,31 +22,11 @@
 
 package io.crate.execution.engine.window;
 
-import com.carrotsearch.randomizedtesting.annotations.Repeat;
-import io.crate.analyze.WindowDefinition;
-import io.crate.common.collections.Lists2;
-import io.crate.data.Input;
-import io.crate.data.Row;
-import io.crate.execution.engine.collect.CollectExpression;
-import io.crate.execution.engine.sort.OrderingByPosition;
-import io.crate.metadata.FunctionInfo;
 import io.crate.test.integration.CrateUnitTest;
-import org.hamcrest.Matchers;
-import org.junit.Test;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-
-import static io.crate.analyze.WindowDefinition.RANGE_UNBOUNDED_PRECEDING_CURRENT_ROW;
-import static io.crate.execution.engine.window.WindowFunctionBatchIterator.sortAndComputeWindowFunctions;
-import static org.hamcrest.Matchers.contains;
 
 public class WindowFunctionBatchIteratorTest extends CrateUnitTest {
 
+    /*
     @Test
     public void testWindowFunctionComputation() throws Exception {
         Iterable<Object[]> result = sortAndComputeWindowFunctions(
@@ -125,4 +105,6 @@ public class WindowFunctionBatchIteratorTest extends CrateUnitTest {
         }
         return end;
     }
+    *
+     */
 }

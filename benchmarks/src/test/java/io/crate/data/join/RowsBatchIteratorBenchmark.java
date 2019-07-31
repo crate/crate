@@ -22,24 +22,19 @@
 
 package io.crate.data.join;
 
-import io.crate.analyze.WindowDefinition;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.breaker.RowAccounting;
 import io.crate.breaker.RowAccountingWithEstimators;
 import io.crate.data.BatchIterator;
-import io.crate.data.BatchIterators;
 import io.crate.data.CloseAssertingBatchIterator;
 import io.crate.data.InMemoryBatchIterator;
-import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowN;
 import io.crate.data.SkippingBatchIterator;
-import io.crate.execution.engine.collect.InputCollectExpression;
 import io.crate.execution.engine.join.HashInnerJoinBatchIterator;
 import io.crate.execution.engine.join.RamAccountingBatchIterator;
 import io.crate.execution.engine.window.WindowFunction;
-import io.crate.execution.engine.window.WindowFunctionBatchIterator;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Functions;
 import io.crate.module.EnterpriseFunctionsModule;
@@ -65,7 +60,6 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.StreamSupport;
 
-import static io.crate.analyze.WindowDefinition.RANGE_UNBOUNDED_PRECEDING_CURRENT_ROW;
 import static io.crate.data.SentinelRow.SENTINEL;
 
 @BenchmarkMode(Mode.AverageTime)
@@ -201,6 +195,7 @@ public class RowsBatchIteratorBenchmark {
         }
     }
 
+    /*
     @Benchmark
     public void measureConsumeWindowBatchIterator(Blackhole blackhole) throws Exception{
         InputCollectExpression input = new InputCollectExpression(0);
@@ -221,6 +216,7 @@ public class RowsBatchIteratorBenchmark {
         );
         BatchIterators.collect(batchIterator, Collectors.summingInt(x -> { blackhole.consume(x); return 1; })).get();
     }
+     */
 
     private static class NoRowAccounting implements RowAccounting<Row> {
         @Override

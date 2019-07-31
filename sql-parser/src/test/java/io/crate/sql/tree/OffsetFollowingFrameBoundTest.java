@@ -22,11 +22,11 @@
 
 package io.crate.sql.tree;
 
-import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.function.Function;
 
 import static io.crate.sql.tree.FrameBound.Type.FOLLOWING;
 import static io.crate.sql.tree.WindowFrame.Mode.RANGE;
@@ -36,24 +36,51 @@ import static org.junit.Assert.assertThat;
 
 public class OffsetFollowingFrameBoundTest {
 
-    private Comparator<Integer> intComparator;
-    private List<Integer> partition;
-
-    @Before
-    public void setupPartitionAndComparator() {
-        intComparator = Comparator.comparing(x -> x);
-        partition = List.of(1, 2, 3, 6, 7);
-    }
-
     @Test
     public void test_following_end_in_range_mode() {
-        int frameStart = FOLLOWING.getEnd(RANGE, 1, 5, 1, 2, 4, intComparator, partition);
-        assertThat(frameStart, is(3));
+        Comparator<Integer> comparing = Comparator.comparing(x -> x);
+        var rows = List.of(1, 2, 3, 6, 7);
+        int pStart = 1;
+        int pEnd = 5;
+        Function<Integer, Integer> getOffset = row -> 2;
+        Function<Integer, Integer> getOrderingValue = row -> row;
+        int currentRowIdx = 1;
+        int frameEnd = FOLLOWING.getEnd(
+            RANGE,
+            pStart,
+            pEnd,
+            currentRowIdx,
+            getOffset,
+            getOrderingValue,
+            Integer::sum,
+            comparing,
+            null,
+            rows
+        );
+        assertThat(frameEnd, is(3));
     }
 
     @Test
     public void test_following_end_in_rows_mode() {
-        int frameStart = FOLLOWING.getEnd(ROWS, 1, 5, 1, 2L, null, intComparator, partition);
-        assertThat(frameStart, is(4));
+        Comparator<Integer> comparing = Comparator.comparing(x -> x);
+        var rows = List.of(1, 2, 3, 6, 7);
+        int pStart = 1;
+        int pEnd = 5;
+        Function<Integer, Integer> getOffset = row -> 2;
+        Function<Integer, Integer> getOrderingValue = row -> row;
+        int currentRowIdx = 1;
+        int frameEnd = FOLLOWING.getEnd(
+            ROWS,
+            pStart,
+            pEnd,
+            currentRowIdx,
+            getOffset,
+            getOrderingValue,
+            Integer::sum,
+            comparing,
+            null,
+            rows
+        );
+        assertThat(frameEnd, is(4));
     }
 }

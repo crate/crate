@@ -25,9 +25,9 @@ package io.crate.sql.tree;
 import javax.annotation.Nullable;
 import java.util.Comparator;
 import java.util.List;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
-import static io.crate.common.collections.Lists2.findFirstGTEProbeValue;
-import static io.crate.common.collections.Lists2.findFirstLTEProbeValue;
 import static io.crate.common.collections.Lists2.findFirstNonPeer;
 import static io.crate.common.collections.Lists2.findFirstPreviousPeer;
 import static io.crate.sql.tree.WindowFrame.Mode.ROWS;
@@ -37,62 +37,73 @@ public class FrameBound extends Node {
     public enum Type {
         UNBOUNDED_PRECEDING {
             @Override
-            public <T> int getStart(WindowFrame.Mode mode,
-                                    int pStart,
-                                    int pEnd,
-                                    int currentRowIdx,
-                                    @Nullable Object offset,
-                                    @Nullable T offsetProbeValue,
-                                    @Nullable Comparator<T> cmp,
-                                    List<T> rows) {
+            public <T, U, V> int getStart(WindowFrame.Mode mode,
+                                          int pStart,
+                                          int pEnd,
+                                          int currentRowIdx,
+                                          Function<T, U> getOffset,
+                                          Function<T, V> getOrderValue,
+                                          BiFunction<V, U, V> minus,
+                                          Comparator<V> cmpOrderingValue,
+                                          Comparator<T> cmpRow,
+                                          List<T> rows) {
                 return pStart;
             }
 
             @Override
-            public <T> int getEnd(WindowFrame.Mode mode,
-                                  int pStart,
-                                  int pEnd,
-                                  int currentRowIdx,
-                                  @Nullable Object offset,
-                                  @Nullable T offsetProbeValue,
-                                  @Nullable Comparator<T> cmp,
-                                  List<T> rows) {
+            public <T, U, V> int getEnd(WindowFrame.Mode mode,
+                                        int pStart,
+                                        int pEnd,
+                                        int currentRowIdx,
+                                        Function<T, U> getOffset,
+                                        Function<T, V> getOrderingValue,
+                                        BiFunction<V, U, V> plus,
+                                        Comparator<V> cmpOrderingValue,
+                                        Comparator<T> cmp, List<T> rows) {
                 throw new IllegalStateException("UNBOUNDED PRECEDING cannot be the start of a frame");
             }
         },
         PRECEDING {
             @Override
-            public <T> int getStart(WindowFrame.Mode mode,
-                                    int pStart,
-                                    int pEnd,
-                                    int currentRowIdx,
-                                    @Nullable Object offset,
-                                    @Nullable T offsetProbeValue,
-                                    @Nullable Comparator<T> cmp,
-                                    List<T> rows) {
+            public <T, U, V> int getStart(WindowFrame.Mode mode,
+                                          int pStart,
+                                          int pEnd,
+                                          int currentRowIdx,
+                                          Function<T, U> getOffset,
+                                          Function<T, V> getOrderValue,
+                                          BiFunction<V, U, V> minus,
+                                          Comparator<V> cmpOrderingValue,
+                                          Comparator<T> cmpRow,
+                                          List<T> rows) {
+                T row = rows.get(currentRowIdx);
+                U offset = getOffset.apply(row);
                 if (mode == ROWS) {
                     assert offset instanceof Long : "In ROWS mode the offset must be a non-null, non-negative number";
-                    int startIndex = Math.max(pStart, currentRowIdx - ((Long) offset).intValue());
-                    return startIndex > 0 ? startIndex : 0;
+                    return Math.max(pStart, currentRowIdx - ((Long) offset).intValue());
                 } else {
-                    int firstGTEProbeValue = findFirstGTEProbeValue(rows, currentRowIdx, offsetProbeValue, cmp);
-                    if (firstGTEProbeValue == -1) {
-                        return currentRowIdx;
-                    } else {
-                        return Math.max(pStart, firstGTEProbeValue);
+                    V lowerBoundary = minus.apply(getOrderValue.apply(row), offset);
+                    for (int i = currentRowIdx - 1; i >= pStart; i--) {
+                        V orderingValueForI = getOrderValue.apply(rows.get(i));
+                        // RANGE <offset> PRECEDING
+                        // -> all rows before current where where orderingValueForI >= lowerBoundary fall into the frame
+                        if (cmpOrderingValue.compare(orderingValueForI, lowerBoundary) < 0) {
+                            return i + 1;
+                        }
                     }
+                    return pStart;
                 }
             }
 
             @Override
-            public <T> int getEnd(WindowFrame.Mode mode,
-                                  int pStart,
-                                  int pEnd,
-                                  int currentRowIdx,
-                                  @Nullable Object offset,
-                                  @Nullable T offsetProbeValue,
-                                  @Nullable Comparator<T> cmp,
-                                  List<T> rows) {
+            public <T, U, V> int getEnd(WindowFrame.Mode mode,
+                                        int pStart,
+                                        int pEnd,
+                                        int currentRowIdx,
+                                        Function<T, U> getOffset,
+                                        Function<T, V> getOrderingValue,
+                                        BiFunction<V, U, V> plus,
+                                        Comparator<V> cmpOrderingValue,
+                                        Comparator<T> cmp, List<T> rows) {
                 throw new UnsupportedOperationException("Custom PRECEDING frames are not supported");
             }
         },
@@ -105,14 +116,16 @@ public class FrameBound extends Node {
          */
         CURRENT_ROW {
             @Override
-            public <T> int getStart(WindowFrame.Mode mode,
-                                    int pStart,
-                                    int pEnd,
-                                    int currentRowIdx,
-                                    @Nullable Object offset,
-                                    @Nullable T offsetProbeValue,
-                                    @Nullable Comparator<T> cmp,
-                                    List<T> rows) {
+            public <T, U, V> int getStart(WindowFrame.Mode mode,
+                                          int pStart,
+                                          int pEnd,
+                                          int currentRowIdx,
+                                          Function<T, U> getOffset,
+                                          Function<T, V> getOrderValue,
+                                          BiFunction<V, U, V> minus,
+                                          Comparator<V> cmpOrderingValue,
+                                          Comparator<T> cmpRow,
+                                          List<T> rows) {
                 if (mode == ROWS) {
                     return currentRowIdx;
                 }
@@ -120,8 +133,8 @@ public class FrameBound extends Node {
                 if (pStart == currentRowIdx) {
                     return pStart;
                 } else {
-                    if (cmp != null) {
-                        return Math.max(pStart, findFirstPreviousPeer(rows, currentRowIdx, cmp));
+                    if (cmpRow != null) {
+                        return Math.max(pStart, findFirstPreviousPeer(rows, currentRowIdx, cmpRow));
                     } else {
                         return currentRowIdx;
                     }
@@ -129,14 +142,15 @@ public class FrameBound extends Node {
             }
 
             @Override
-            public <T> int getEnd(WindowFrame.Mode mode,
-                                  int pStart,
-                                  int pEnd,
-                                  int currentRowIdx,
-                                  @Nullable Object offset,
-                                  @Nullable T offsetProbeValue,
-                                  @Nullable Comparator<T> cmp,
-                                  List<T> rows) {
+            public <T, U, V> int getEnd(WindowFrame.Mode mode,
+                                        int pStart,
+                                        int pEnd,
+                                        int currentRowIdx,
+                                        Function<T, U> getOffset,
+                                        Function<T, V> getOrderingValue,
+                                        BiFunction<V, U, V> plus,
+                                        Comparator<V> cmpOrderingValue,
+                                        Comparator<T> cmp, List<T> rows) {
                 if (mode == ROWS) {
                     return currentRowIdx + 1;
                 }
@@ -146,78 +160,106 @@ public class FrameBound extends Node {
         },
         FOLLOWING {
             @Override
-            public <T> int getStart(WindowFrame.Mode mode,
-                                    int pStart,
-                                    int pEnd,
-                                    int currentRowIdx,
-                                    @Nullable Object offset,
-                                    @Nullable T offsetProbeValue,
-                                    @Nullable Comparator<T> cmp,
-                                    List<T> rows) {
+            public <T, U, V> int getStart(WindowFrame.Mode mode,
+                                          int pStart,
+                                          int pEnd,
+                                          int currentRowIdx,
+                                          Function<T, U> getOffset,
+                                          Function<T, V> getOrderValue,
+                                          BiFunction<V, U, V> minus,
+                                          Comparator<V> cmpOrderingValue,
+                                          Comparator<T> cmpRow,
+                                          List<T> rows) {
                 throw new UnsupportedOperationException("Custom FOLLOWING frames are not supported");
             }
 
             @Override
-            public <T> int getEnd(WindowFrame.Mode mode,
-                                  int pStart,
-                                  int pEnd,
-                                  int currentRowIdx,
-                                  @Nullable Object offset,
-                                  @Nullable T offsetProbeValue,
-                                  @Nullable Comparator<T> cmp,
-                                  List<T> rows) {
+            public <T, U, V> int getEnd(WindowFrame.Mode mode,
+                                        int pStart,
+                                        int pEnd,
+                                        int currentRowIdx,
+                                        Function<T, U> getOffset,
+                                        Function<T, V> getOrderingValue,
+                                        BiFunction<V, U, V> plus,
+                                        Comparator<V> cmpOrderingValue,
+                                        Comparator<T> cmp,
+                                        List<T> rows) {
+                assert getOffset != null : "getOffset must be available for FOLLOWING.getEnd";
+                assert plus != null : "plus must be available for FOLLOWING.getEnd";
+                assert getOrderingValue != null : "getOrderingValue must be available for FOLLOWING.getEnd";
+                assert cmpOrderingValue != null : "cmpOrderingValue must be available for FOLLOWING.getEnd";
+
+                T row = rows.get(currentRowIdx);
+                U offset = getOffset.apply(row);
                 // end index is exclusive so we increment it by one when finding the interval end index
                 if (mode == ROWS) {
-                    assert offset instanceof Long : "In ROWS mode the offset must be a non-null, non-negative number";
-                    return Math.min(pEnd, currentRowIdx + ((Long) offset).intValue() + 1);
+                    assert offset instanceof Number : "In ROWS mode the offset must be a non-null, non-negative number";
+                    return Math.min(pEnd, currentRowIdx + ((Number) offset).intValue() + 1);
                 } else {
-                    return Math.min(pEnd, findFirstLTEProbeValue(rows, currentRowIdx, offsetProbeValue, cmp) + 1);
+                    V upperBoundary = plus.apply(getOrderingValue.apply(row), offset);
+                    for (int i = currentRowIdx + 1; i < pEnd; i++) {
+                        V orderingValAtI = getOrderingValue.apply(rows.get(i));
+                        // orderingValAtI <= x@currentRow + offset --> within frame
+                        //                   ^^^^^^^^^^^^^^^^^^^^^
+                        //                   upperBoundary
+                        if (cmpOrderingValue.compare(orderingValAtI, upperBoundary) > 0) {
+                            return i;
+                        }
+                    }
+                    return currentRowIdx;
                 }
             }
         },
         UNBOUNDED_FOLLOWING {
             @Override
-            public <T> int getStart(WindowFrame.Mode mode,
-                                    int pStart,
-                                    int pEnd,
-                                    int currentRowIdx,
-                                    @Nullable Object offset,
-                                    @Nullable T offsetProbeValue,
-                                    @Nullable Comparator<T> cmp,
-                                    List<T> rows) {
+            public <T, U, V> int getStart(WindowFrame.Mode mode,
+                                          int pStart,
+                                          int pEnd,
+                                          int currentRowIdx,
+                                          Function<T, U> getOffset,
+                                          Function<T, V> getOrderValue,
+                                          BiFunction<V, U, V> minus,
+                                          Comparator<V> cmpOrderingValue,
+                                          Comparator<T> cmpRow,
+                                          List<T> rows) {
                 throw new IllegalStateException("UNBOUNDED FOLLOWING cannot be the start of a frame");
             }
 
             @Override
-            public <T> int getEnd(WindowFrame.Mode mode,
-                                  int pStart,
-                                  int pEnd,
-                                  int currentRowIdx,
-                                  @Nullable Object offset,
-                                  @Nullable T offsetProbeValue,
-                                  @Nullable Comparator<T> cmp,
-                                  List<T> rows) {
+            public <T, U, V> int getEnd(WindowFrame.Mode mode,
+                                        int pStart,
+                                        int pEnd,
+                                        int currentRowIdx,
+                                        Function<T, U> getOffset,
+                                        Function<T, V> getOrderingValue,
+                                        BiFunction<V, U, V> plus,
+                                        Comparator<V> cmpOrderingValue,
+                                        Comparator<T> cmp, List<T> rows) {
                 return pEnd;
             }
         };
 
-        public abstract <T> int getStart(WindowFrame.Mode mode,
-                                         int pStart,
-                                         int pEnd,
-                                         int currentRowIdx,
-                                         @Nullable Object offset,
-                                         @Nullable T offsetProbeValue,
-                                         @Nullable Comparator<T> cmp,
-                                         List<T> rows);
+        public abstract <T, U, V> int getStart(WindowFrame.Mode mode,
+                                               int pStart,
+                                               int pEnd,
+                                               int currentRowIdx,
+                                               Function<T, U> getOffset,
+                                               Function<T, V> getOrderValue,
+                                               BiFunction<V, U, V> minus,
+                                               Comparator<V> cmpOrderingValue,
+                                               Comparator<T> cmpRow,
+                                               List<T> rows);
 
-        public abstract <T> int getEnd(WindowFrame.Mode mode,
-                                       int pStart,
-                                       int pEnd,
-                                       int currentRowIdx,
-                                       @Nullable Object offset,
-                                       @Nullable T offsetProbeValue,
-                                       @Nullable Comparator<T> cmp,
-                                       List<T> rows);
+        public abstract <T, U, V> int getEnd(WindowFrame.Mode mode,
+                                             int pStart,
+                                             int pEnd,
+                                             int currentRowIdx,
+                                             Function<T, U> getOffset,
+                                             Function<T, V> getOrderingValue,
+                                             BiFunction<V, U, V> plus,
+                                             Comparator<V> cmpOrderingValue,
+                                             Comparator<T> cmp,
+                                             List<T> rows);
     }
 
     private final Type type;

@@ -22,36 +22,43 @@
 
 package io.crate.execution.engine.window;
 
+import io.crate.analyze.FrameBoundDefinition;
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.SymbolEvaluator;
-import io.crate.analyze.WindowDefinition;
+import io.crate.analyze.WindowFrameDefinition;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.breaker.RowAccounting;
 import io.crate.breaker.RowAccountingWithEstimators;
+import io.crate.common.collections.Lists2;
 import io.crate.data.BatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Projector;
 import io.crate.data.Row;
+import io.crate.data.RowN;
 import io.crate.execution.dsl.projection.WindowAggProjection;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.collect.CollectExpression;
+import io.crate.execution.engine.sort.NullAwareComparator;
+import io.crate.expression.ExpressionsInput;
 import io.crate.expression.InputFactory;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.metadata.TransactionContext;
-import io.crate.planner.operators.SubQueryResults;
+import io.crate.sql.tree.FrameBound;
+import io.crate.sql.tree.WindowFrame;
+import io.crate.types.DataType;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.util.BigArrays;
 
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executor;
+import java.util.function.BinaryOperator;
+import java.util.function.Function;
 import java.util.function.IntSupplier;
 import java.util.function.Supplier;
 
@@ -59,6 +66,8 @@ import static io.crate.execution.engine.sort.Comparators.createComparator;
 
 public class WindowProjector implements Projector {
 
+    private final ComputeFrameBoundary<Object[]> computeFrameStart;
+    private final ComputeFrameBoundary<Object[]> computeFrameEnd;
     private final Comparator<Object[]> cmpPartitionBy;
     private final Comparator<Object[]> cmpOrderBy;
     private final int cellOffset;
@@ -68,11 +77,6 @@ public class WindowProjector implements Projector {
     private final IntSupplier numThreads;
     private final Executor executor;
     private final RowAccounting<Row> rowAccounting;
-    private final WindowDefinition windowDefinition;
-    @Nullable
-    private final Object startFrameOffset;
-    @Nullable
-    private final Object endFrameOffset;
 
     public static WindowProjector fromProjection(WindowAggProjection projection,
                                                  Functions functions,
@@ -117,13 +121,33 @@ public class WindowProjector implements Projector {
         int arrayListElementOverHead = 32;
         RowAccountingWithEstimators accounting = new RowAccountingWithEstimators(
             Symbols.typeView(projection.standalone()), ramAccountingContext, arrayListElementOverHead);
+
+        OrderBy orderBy = windowDefinition.orderBy();
+        Comparator<Object[]> cmpRow = createComparator(createInputFactoryContext, orderBy);
+        WindowFrameDefinition windowFrameDefinition = windowDefinition.windowFrameDefinition();
+        // TODO: de-duplicate logic in createComputeFrameStart and createComputeFrameEnd
+        ComputeFrameBoundary<Object[]> computeFrameStart = createComputeFrameStart(
+            inputFactory,
+            txnCtx,
+            windowFrameDefinition.mode(),
+            windowFrameDefinition.start(),
+            cmpRow,
+            orderBy
+        );
+        ComputeFrameBoundary<Object[]> computeFrameEnd = createComputeFrameEnd(
+            inputFactory,
+            txnCtx,
+            windowFrameDefinition.mode(),
+            windowFrameDefinition.end(),
+            cmpRow,
+            orderBy
+        );
         return new WindowProjector(
             accounting,
-            windowDefinition,
-            SymbolEvaluator.evaluate(txnCtx, functions, windowDefinition.windowFrameDefinition().start().value(), Row.EMPTY, SubQueryResults.EMPTY),
-            SymbolEvaluator.evaluate(txnCtx, functions, windowDefinition.windowFrameDefinition().end().value(), Row.EMPTY, SubQueryResults.EMPTY),
+            computeFrameStart,
+            computeFrameEnd,
             partitions.isEmpty() ? null : createComparator(createInputFactoryContext, new OrderBy(windowDefinition.partitions())),
-            createComparator(createInputFactoryContext, windowDefinition.orderBy()),
+            cmpRow,
             projection.standalone().size(),
             windowFunctions,
             windowFuncArgsExpressions,
@@ -133,10 +157,110 @@ public class WindowProjector implements Projector {
         );
     }
 
+    public static ComputeFrameBoundary<Object[]> createComputeFrameEnd(InputFactory inputFactory,
+                                                                        TransactionContext txnCtx,
+                                                                        WindowFrame.Mode mode,
+                                                                        FrameBoundDefinition end,
+                                                                        Comparator<Object[]> cmpRow,
+                                                                        OrderBy orderBy) {
+        BinaryOperator<Object> plus;
+        Function<Object[], Object> getOffset;
+        Function<Object[], Object> getOrderingValue;
+        Comparator<Object> cmpOrderingValue;
+        if (end.type() == FrameBound.Type.FOLLOWING) {
+            Symbol orderSymbol = Lists2.getOnlyElement(orderBy.orderBySymbols());
+            DataType<Object> dataType = (DataType<Object>) orderSymbol.valueType();
+
+            InputFactory.Context<CollectExpression<Row, ?>> ctxGetOffset = inputFactory.ctxForInputColumns(txnCtx);
+            Input<?> offsetInput = ctxGetOffset.add(end.value());
+            ExpressionsInput<Row, ?> offset = new ExpressionsInput<>(offsetInput, ctxGetOffset.expressions());
+            // TODO: Avoid new RowN by using a shared Row; Maybe make a ExpressionsInput that works with Object[]
+            getOffset = cells -> dataType.value(offset.value(new RowN(cells)));
+
+            InputFactory.Context<CollectExpression<Row, ?>> ctxOrderingValue = inputFactory.ctxForInputColumns(txnCtx);
+            Input<?> orderingInput = ctxOrderingValue.add(orderSymbol);
+            ExpressionsInput<Row, ?> orderingValue = new ExpressionsInput<>(orderingInput, ctxOrderingValue.expressions());
+            getOrderingValue = cells -> orderingValue.value(new RowN(cells));
+
+            // TODO: need to handle reverseFlags/nullsFirst -> utilize NullAwareComparator
+            plus = ArithmeticOperatorsFactory.getAddFunction(dataType);
+            cmpOrderingValue = new NullAwareComparator<>(
+                x -> (Comparable<Object>) x,
+                orderBy.reverseFlags()[0],
+                orderBy.nullsFirst()[0]
+            );
+        } else {
+            plus = null;
+            getOffset = row -> null;
+            getOrderingValue = row -> null;
+            cmpOrderingValue = (val1, val2) -> 0;
+        }
+        return (partitionStart, partitionEnd, currentIndex, sortedRows) -> end.type().getEnd(
+            mode,
+            partitionStart,
+            partitionEnd,
+            currentIndex,
+            getOffset,
+            getOrderingValue,
+            plus,
+            cmpOrderingValue,
+            cmpRow,
+            sortedRows
+        );
+    }
+
+    public static ComputeFrameBoundary<Object[]> createComputeFrameStart(InputFactory inputFactory,
+                                                                          TransactionContext txnCtx,
+                                                                          WindowFrame.Mode mode,
+                                                                          FrameBoundDefinition start,
+                                                                          Comparator<Object[]> cmpRow,
+                                                                          OrderBy orderBy) {
+        BinaryOperator<Object> minus;
+        Function<Object[], Object> getOffset;
+        Function<Object[], Object> getOrderingValue;
+        Comparator<Object> cmpOrderingValue;
+        if (start.type() == FrameBound.Type.PRECEDING) {
+            Symbol orderSymbol = Lists2.getOnlyElement(orderBy.orderBySymbols());
+            DataType<Object> dataType = (DataType<Object>) orderSymbol.valueType();
+            minus = ArithmeticOperatorsFactory.getSubtractFunction(dataType);
+            InputFactory.Context<CollectExpression<Row, ?>> ctxGetOffset = inputFactory.ctxForInputColumns(txnCtx);
+            Input<?> offsetInput = ctxGetOffset.add(start.value());
+            ExpressionsInput<Row, ?> offset = new ExpressionsInput<>(offsetInput, ctxGetOffset.expressions());
+            // TODO: Avoid new RowN by using a shared Row; Maybe make a ExpressionsInput that works with Object[]
+            getOffset = cells -> dataType.value(offset.value(new RowN(cells)));
+
+            InputFactory.Context<CollectExpression<Row, ?>> ctxOrderingValue = inputFactory.ctxForInputColumns(txnCtx);
+            Input<?> orderingInput = ctxOrderingValue.add(orderSymbol);
+            ExpressionsInput<Row, ?> orderingValue = new ExpressionsInput<>(orderingInput, ctxOrderingValue.expressions());
+            getOrderingValue = cells -> orderingValue.value(new RowN(cells));
+            cmpOrderingValue = new NullAwareComparator<>(
+                x -> (Comparable<Object>) x,
+                orderBy.reverseFlags()[0],
+                orderBy.nullsFirst()[0]
+            );
+        } else {
+            minus = null;
+            getOffset = row -> null;
+            getOrderingValue = row -> null;
+            cmpOrderingValue = (val1, val2) -> 0;
+        }
+        return (partitionStart, partitionEnd, currentIndex, sortedRows) -> start.type().getStart(
+            mode,
+            partitionStart,
+            partitionEnd,
+            currentIndex,
+            getOffset,
+            getOrderingValue,
+            minus,
+            cmpOrderingValue,
+            cmpRow,
+            sortedRows
+        );
+    }
+
     private WindowProjector(RowAccounting<Row> rowAccounting,
-                            WindowDefinition windowDefinition,
-                            @Nullable Object startFrameOffset,
-                            @Nullable Object endFrameOffset,
+                            ComputeFrameBoundary<Object[]> computeFrameStart,
+                            ComputeFrameBoundary<Object[]> computeFrameEnd,
                             Comparator<Object[]> cmpPartitionBy,
                             Comparator<Object[]> cmpOrderBy,
                             int cellOffset,
@@ -146,9 +270,8 @@ public class WindowProjector implements Projector {
                             IntSupplier numThreads,
                             Executor executor) {
         this.rowAccounting = rowAccounting;
-        this.windowDefinition = windowDefinition;
-        this.startFrameOffset = startFrameOffset;
-        this.endFrameOffset = endFrameOffset;
+        this.computeFrameStart = computeFrameStart;
+        this.computeFrameEnd = computeFrameEnd;
         this.cmpPartitionBy = cmpPartitionBy;
         this.cmpOrderBy = cmpOrderBy;
         this.cellOffset = cellOffset;
@@ -164,9 +287,8 @@ public class WindowProjector implements Projector {
         return WindowFunctionBatchIterator.of(
             source,
             rowAccounting,
-            windowDefinition,
-            startFrameOffset,
-            endFrameOffset,
+            computeFrameStart,
+            computeFrameEnd,
             cmpPartitionBy,
             cmpOrderBy,
             cellOffset,

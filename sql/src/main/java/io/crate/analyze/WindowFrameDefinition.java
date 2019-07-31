@@ -37,18 +37,18 @@ import java.util.function.Function;
 
 public class WindowFrameDefinition implements Writeable {
 
-    private final Mode type;
+    private final Mode mode;
     private final FrameBoundDefinition start;
     private final FrameBoundDefinition end;
 
     public WindowFrameDefinition(StreamInput in) throws IOException {
-        type = in.readEnum(Mode.class);
+        mode = in.readEnum(Mode.class);
         start = new FrameBoundDefinition(in);
         end = in.readOptionalWriteable(FrameBoundDefinition::new);
     }
 
-    public WindowFrameDefinition(Mode type, FrameBoundDefinition start, @Nullable FrameBoundDefinition end) {
-        this.type = type;
+    public WindowFrameDefinition(Mode mode, FrameBoundDefinition start, @Nullable FrameBoundDefinition end) {
+        this.mode = mode;
         this.start = start;
         if (end != null) {
             this.end = end;
@@ -57,8 +57,8 @@ public class WindowFrameDefinition implements Writeable {
         }
     }
 
-    public Mode type() {
-        return type;
+    public Mode mode() {
+        return mode;
     }
 
     public FrameBoundDefinition start() {
@@ -75,13 +75,13 @@ public class WindowFrameDefinition implements Writeable {
         if (newStart == start && newEnd == end) {
             return this;
         } else {
-            return new WindowFrameDefinition(type, newStart, newEnd);
+            return new WindowFrameDefinition(mode, newStart, newEnd);
         }
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeEnum(type);
+        out.writeEnum(mode);
         start.writeTo(out);
         out.writeOptionalWriteable(end);
     }
@@ -91,20 +91,20 @@ public class WindowFrameDefinition implements Writeable {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         WindowFrameDefinition that = (WindowFrameDefinition) o;
-        return type == that.type &&
+        return mode == that.mode &&
                Objects.equals(start, that.start) &&
                Objects.equals(end, that.end);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(type, start, end);
+        return Objects.hash(mode, start, end);
     }
 
     @Override
     public String toString() {
         return "WindowFrame{" +
-               "type=" + type +
+               "type=" + mode +
                ", start=" + start +
                ", end=" + end +
                '}';

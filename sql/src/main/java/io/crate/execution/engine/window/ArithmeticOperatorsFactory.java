@@ -45,40 +45,40 @@ class ArithmeticOperatorsFactory {
     private static final BinaryOperator<Long> SUB_LONG_FUNCTION = (arg0, arg1) -> arg0 - arg1;
     private static final BinaryOperator<Float> SUB_FLOAT_FUNCTION = (arg0, arg1) -> arg0 - arg1;
 
-    static BinaryOperator getAddFunction(DataType dataType) {
+    static <T> BinaryOperator<T> getAddFunction(DataType<T> dataType) {
         switch (dataType.id()) {
             case LongType.ID:
             case TimestampType.ID_WITH_TZ:
             case TimestampType.ID_WITHOUT_TZ:
-                return ADD_LONG_FUNCTION;
+                return (BinaryOperator<T>) ADD_LONG_FUNCTION;
             case DoubleType.ID:
-                return ADD_DOUBLE_FUNCTION;
+                return (BinaryOperator<T>) ADD_DOUBLE_FUNCTION;
             case FloatType.ID:
-                return ADD_FLOAT_FUNCTION;
+                return (BinaryOperator<T>) ADD_FLOAT_FUNCTION;
             case ByteType.ID:
             case ShortType.ID:
             case IntegerType.ID:
-                return ADD_INTEGER_FUNCTION;
+                return (BinaryOperator<T>) ADD_INTEGER_FUNCTION;
             default:
                 throw new UnsupportedOperationException(
                     "Cannot create add function for data type " + dataType.getName());
         }
     }
 
-    static BinaryOperator getSubtractFunction(DataType dataType) {
+    static <T> BinaryOperator<T> getSubtractFunction(DataType<T> dataType) {
         switch (dataType.id()) {
             case LongType.ID:
             case TimestampType.ID_WITH_TZ:
             case TimestampType.ID_WITHOUT_TZ:
-                return SUB_LONG_FUNCTION;
+                return (BinaryOperator<T>) SUB_LONG_FUNCTION;
             case DoubleType.ID:
-                return SUB_DOUBLE_FUNCTION;
+                return (BinaryOperator<T>) SUB_DOUBLE_FUNCTION;
             case FloatType.ID:
-                return SUB_FLOAT_FUNCTION;
+                return (BinaryOperator<T> ) SUB_FLOAT_FUNCTION;
             case ByteType.ID:
             case ShortType.ID:
             case IntegerType.ID:
-                return SUB_INTEGER_FUNCTION;
+                return (BinaryOperator<T>) SUB_INTEGER_FUNCTION;
             default:
                 throw new UnsupportedOperationException(
                     "Cannot create subtract function for data type " + dataType.getName());

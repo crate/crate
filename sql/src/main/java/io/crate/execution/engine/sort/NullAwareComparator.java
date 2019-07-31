@@ -32,14 +32,14 @@ import java.util.function.Function;
  * We favour this over chaining Comparator.nullsFirst/nullsLast + .reversed()
  * Because sorting is often one of the main bottlenecks and we want to have a small call stack for that.
  */
-class NullAwareComparator<T> implements Comparator<T> {
+public class NullAwareComparator<T> implements Comparator<T> {
 
     private final int mod;
     private final Function<T, Comparable<Object>> keyExtractor;
     private final int leftNull;
     private final int rightNull;
 
-    NullAwareComparator(Function<T, Comparable<Object>> keyExtractor, boolean reverse, boolean nullsFirst) {
+    public NullAwareComparator(Function<T, Comparable<Object>> keyExtractor, boolean reverse, boolean nullsFirst) {
         this.keyExtractor = keyExtractor;
         this.mod = reverse ? -1 : 1;
         this.leftNull = nullsFirst ? -1 : 1;

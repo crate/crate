@@ -51,7 +51,7 @@ public class UnboundedPrecedingFrameBoundTest {
 
     @Test
     public void testStartForFirstFrame() {
-        int end = UNBOUNDED_PRECEDING.getStart(RANGE, 0, 3, 1, null, null, intComparator, partition);
+        int end = UNBOUNDED_PRECEDING.getStart(RANGE, 0, 3, 1, null, null, null, null, intComparator, partition);
         assertThat("the start boundary should always be the start of the partition for the UNBOUNDED PRECEDING frames",
                    end,
                    is(0));
@@ -59,7 +59,7 @@ public class UnboundedPrecedingFrameBoundTest {
 
     @Test
     public void testStartForSecondFrame() {
-        int end = UNBOUNDED_PRECEDING.getStart(RANGE, 0, 3, 2, null, null, intComparator, partition);
+        int end = UNBOUNDED_PRECEDING.getStart(RANGE, 0, 3, 2, null, null, null, null, intComparator, partition);
         assertThat("the start boundary should always be the start of the partition for the UNBOUNDED PRECEDING frames",
                    end,
                    is(0));
@@ -69,6 +69,6 @@ public class UnboundedPrecedingFrameBoundTest {
     public void testUnboundePrecedingCannotBeTheEndOfTheFrame() {
         expectedException.expect(IllegalStateException.class);
         expectedException.expectMessage("UNBOUNDED PRECEDING cannot be the start of a frame");
-        UNBOUNDED_PRECEDING.getEnd(RANGE, 0, 3, 1, null, null, intComparator, partition);
+        UNBOUNDED_PRECEDING.getEnd(RANGE, 0, 3, 1, null, null, null, null, intComparator, null);
     }
 }

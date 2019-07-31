@@ -22,43 +22,14 @@
 
 package io.crate.execution.engine.window;
 
-import com.google.common.collect.Lists;
-import io.crate.analyze.WindowDefinition;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.breaker.RowAccountingWithEstimators;
-import io.crate.common.collections.Lists2;
-import io.crate.data.BatchIterator;
 import io.crate.data.Input;
-import io.crate.data.Row;
-import io.crate.execution.engine.collect.CollectExpression;
-import io.crate.execution.engine.sort.OrderingByPosition;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
-import io.crate.testing.BatchIteratorTester;
-import io.crate.testing.BatchSimulatingIterator;
-import io.crate.testing.TestingBatchIterators;
-import io.crate.testing.TestingRowConsumer;
-import io.crate.types.DataTypes;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.junit.Before;
-import org.junit.Test;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-
-import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
-import static io.crate.analyze.WindowDefinition.RANGE_UNBOUNDED_PRECEDING_CURRENT_ROW;
-import static io.crate.execution.engine.window.AbstractWindowFunctionTest.RANGE_CURRENT_ROW_UNBOUNDED_FOLLOWING;
-import static io.crate.execution.engine.window.WindowFunctionBatchIterator.sortAndComputeWindowFunctions;
-import static org.elasticsearch.common.collect.Tuple.tuple;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.is;
 
 public class WindowBatchIteratorTest {
 
@@ -73,6 +44,7 @@ public class WindowBatchIteratorTest {
         ramAccountingContext = new RamAccountingContext("dummy", new NoopCircuitBreaker("dummy"));
     }
 
+    /*
     @Test
     public void testWindowBatchIterator() throws Exception {
         BatchIteratorTester tester = new BatchIteratorTester(
@@ -410,5 +382,7 @@ public class WindowBatchIteratorTest {
             }
         };
     }
+
+     */
 
 }
