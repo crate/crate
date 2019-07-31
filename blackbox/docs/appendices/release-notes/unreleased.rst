@@ -46,5 +46,7 @@ None
 Fixes
 =====
 
+- Fixed parsing of timestamps with a time zone offset of `+0000`.
+
 - Fixed an issue that could cause startup to fail with early access builds of
   Java.

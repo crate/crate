@@ -133,7 +133,7 @@ public final class TimestampType extends DataType<Long>
 
     static long parseTimestamp(String timestamp) {
         try {
-            return Long.valueOf(timestamp);
+            return Long.parseLong(timestamp);
         } catch (NumberFormatException e) {
             TemporalAccessor dt = TIMESTAMP_PARSER.parseBest(
                 timestamp, OffsetDateTime::from, LocalDateTime::from, LocalDate::from);
@@ -153,7 +153,7 @@ public final class TimestampType extends DataType<Long>
 
     static long parseTimestampIgnoreTimeZone(String timestamp) {
         try {
-            return Long.valueOf(timestamp);
+            return Long.parseLong(timestamp);
         } catch (NumberFormatException e) {
             TemporalAccessor dt = TIMESTAMP_PARSER.parseBest(
                 timestamp, LocalDateTime::from, LocalDate::from);
@@ -178,6 +178,6 @@ public final class TimestampType extends DataType<Long>
                 .optionalEnd()
             .append(ISO_LOCAL_TIME)
             .optionalStart()
-                .appendPattern("[VV][x][xx][xxx]")
+                .appendPattern("[Z][VV][x][xx][xxx]")
         .toFormatter(Locale.ENGLISH).withResolverStyle(ResolverStyle.STRICT);
 }

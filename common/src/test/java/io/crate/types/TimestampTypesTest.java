@@ -22,6 +22,8 @@ public class TimestampTypesTest {
         assertThat(TimestampType.parseTimestamp("1999-01-08T04:00:00+0300"), is(915757200000L));
         assertThat(TimestampType.parseTimestamp("1999-01-08T04:00:00+03:00"), is(915757200000L));
         assertThat(TimestampType.parseTimestamp("1999-01-08T04:00:00.123456789+03:00"), is(915757200123L));
+        assertThat(TimestampType.parseTimestamp("1999-01-08T04:00:00+0000"), is(915768000000L));
+        assertThat(TimestampType.parseTimestamp("1999-01-08T04:00:00.123456789-0000"), is(915768000123L));
     }
 
     @Test
