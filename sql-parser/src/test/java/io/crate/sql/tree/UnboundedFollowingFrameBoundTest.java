@@ -20,11 +20,12 @@
  * agreement.
  */
 
-package io.crate.execution.engine.window;
+package io.crate.sql.tree;
 
-import io.crate.test.integration.CrateUnitTest;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.util.Comparator;
 import java.util.List;
@@ -32,8 +33,12 @@ import java.util.List;
 import static io.crate.sql.tree.FrameBound.Type.UNBOUNDED_FOLLOWING;
 import static io.crate.sql.tree.WindowFrame.Mode.RANGE;
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
 
-public class UnboundedFollowingFrameBoundTest extends CrateUnitTest {
+public class UnboundedFollowingFrameBoundTest {
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
     private List<Integer> partition;
     private Comparator<Integer> intComparator;
