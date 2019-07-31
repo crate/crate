@@ -46,6 +46,9 @@ None
 Fixes
 =====
 
+- Fixed an issue with the version payload returned by HTTP, which resulted in
+  falsely displaying CrateDB's version as a ``-SNAPSHOT`` version at the AdminUI.
+
 - Fixed parsing of timestamps with a time zone offset of `+0000`.
 
 - Fixed an issue that could cause startup to fail with early access builds of

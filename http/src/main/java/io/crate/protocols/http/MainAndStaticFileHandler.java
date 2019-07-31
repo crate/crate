@@ -181,7 +181,7 @@ public class MainAndStaticFileHandler extends SimpleChannelInboundHandler<FullHt
             .field("number", Version.CURRENT.externalNumber())
             .field("build_hash", Build.CURRENT.hash())
             .field("build_timestamp", Build.CURRENT.timestamp())
-            .field("build_snapshot", Version.CURRENT.build)
+            .field("build_snapshot", Version.CURRENT.isSnapshot())
             .field("lucene_version", org.apache.lucene.util.Version.LATEST.toString())
             .endObject();
         builder.endObject();
