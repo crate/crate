@@ -60,6 +60,21 @@ public class FrameBound extends Node {
                 throw new IllegalStateException("UNBOUNDED PRECEDING cannot be the start of a frame");
             }
         },
+        /**
+         * <pre>
+         * {@code
+         * { ROWS | RANGE } <offset> PRECEDING
+         *
+         * ROWS mode:
+         *   ROWS <offset> PRECEDING
+         *   the start of the frame is *literally* <offset> number of rows before the current row
+         *
+         * RANGE MODE:
+         *   ORDER BY x RANGE <offset> PRECEDING
+         *   Every row before the current row where the value for `x` is >= `x@currentRow - <offset>` is within the frame
+         * }
+         * </pre>
+         */
         PRECEDING {
             @Override
             public <T> int getStart(WindowFrame.Mode mode,
@@ -92,7 +107,8 @@ public class FrameBound extends Node {
                                   @Nullable T offsetProbeValue,
                                   @Nullable Comparator<T> cmp,
                                   List<T> rows) {
-                throw new UnsupportedOperationException("Custom PRECEDING frames are not supported");
+                throw new UnsupportedOperationException(
+                    "`<offset> PRECEDING` cannot be used to calculate the end of a window frame");
             }
         },
         /*
@@ -143,6 +159,21 @@ public class FrameBound extends Node {
                 return findFirstNonPeer(rows, currentRowIdx, pEnd, cmp);
             }
         },
+        /**
+         * <pre>
+         * {@code
+         * { ROWS | RANGE } [..] <offset> FOLLOWING
+         *
+         * ROWS mode:
+         *   ROWS [...] <offset> FOLLOWING
+         *   the end of the frame is *literally* <offset> number of rows after the current row
+         *
+         * RANGE MODE:
+         *   ORDER BY x RANGE [...] <offset> FOLLOWING
+         *   Every row after the current row where the value for `x` is <= `x@currentRow + <offset>` is within the frame
+         * }
+         * </pre>
+         */
         FOLLOWING {
             @Override
             public <T> int getStart(WindowFrame.Mode mode,
@@ -153,7 +184,8 @@ public class FrameBound extends Node {
                                     @Nullable T offsetProbeValue,
                                     @Nullable Comparator<T> cmp,
                                     List<T> rows) {
-                throw new UnsupportedOperationException("Custom FOLLOWING frames are not supported");
+                throw new UnsupportedOperationException(
+                    "`<offset> FOLLOWING` cannot be used to calculate the start of a window frame");
             }
 
             @Override
