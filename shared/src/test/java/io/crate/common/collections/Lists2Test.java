@@ -129,24 +129,24 @@ public class Lists2Test {
     @Test
     public void test_find_first_gte_probe_when_exists_in_slice() {
         var numbers = List.of(1, 2, 3, 6, 7, 8);
-        assertThat(findFirstGTEProbeValue(numbers, 4, 4, integerComparator), is(3));
+        assertThat(findFirstGTEProbeValue(numbers, 0, 4, 4, integerComparator), is(3));
     }
 
     @Test
     public void test_find_first_gte_probe_when_greater_than_all_items_is_minus_one() {
         var numbers = List.of(1, 2, 3, 6, 7, 8);
-        assertThat(findFirstGTEProbeValue(numbers, 3, 4, integerComparator), is(-1));
+        assertThat(findFirstGTEProbeValue(numbers, 0, 3, 4, integerComparator), is(-1));
     }
 
     @Test
     public void test_find_first_lte_probe_when_exists_in_slice() {
         var numbers = List.of(1, 2, 3, 6, 7, 8);
-        assertThat(findFirstLTEProbeValue(numbers, 3, 7, integerComparator), is(4));
+        assertThat(findFirstLTEProbeValue(numbers, numbers.size(), 3, 7, integerComparator), is(4));
     }
 
     @Test
     public void test_find_first_lte_probe_when_less_than_all_items_is_minus_one() {
         var numbers = List.of(1, 2, 3, 4, 5, 6, 7, 8);
-        assertThat(findFirstLTEProbeValue(numbers, 5, 0, integerComparator), is(-1));
+        assertThat(findFirstLTEProbeValue(numbers, numbers.size(), 5, 0, integerComparator), is(-1));
     }
 }

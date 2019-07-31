@@ -227,7 +227,7 @@ public final class WindowFunctionBatchIterator {
                     pEnd = findFirstNonPeer(sortedRows, pStart, end, cmpPartitionBy);
                 }
 
-                if (windowDefinition.windowFrameDefinition().type() == RANGE) {
+                if (windowDefinition.windowFrameDefinition().mode() == RANGE) {
                     // if the offsetCell position is -1 the window is ordered by a Literal so we leave the
                     // probe value to null so it doesn't impact ordering (ie. all values will be consistently GT or LT
                     // `null`)
@@ -247,7 +247,7 @@ public final class WindowFunctionBatchIterator {
                 }
 
                 int wBegin = frameDefinition.start().type().getStart(
-                    frameDefinition.type(),
+                    frameDefinition.mode(),
                     pStart,
                     pEnd,
                     i,
@@ -258,7 +258,7 @@ public final class WindowFunctionBatchIterator {
                 );
 
                 int wEnd = frameDefinition.end().type().getEnd(
-                    frameDefinition.type(),
+                    frameDefinition.mode(),
                     pStart,
                     pEnd,
                     i,
@@ -288,7 +288,7 @@ public final class WindowFunctionBatchIterator {
     private static BinaryOperator<Object> getFunctionForRangeCustomOffset(WindowDefinition windowDefinition,
                                                                           @Nullable Object frameOffset,
                                                                           Function<DataType, BinaryOperator<Object>> functionSupplier) {
-        if (windowDefinition.windowFrameDefinition().type() == RANGE && frameOffset != null) {
+        if (windowDefinition.windowFrameDefinition().mode() == RANGE && frameOffset != null) {
             assert windowDefinition.orderBy() !=
                    null : "The window definition must be ordered if custom offsets are specified";
             DataType orderByDataType = windowDefinition.orderBy().orderBySymbols().get(0).valueType();

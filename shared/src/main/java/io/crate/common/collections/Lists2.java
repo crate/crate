@@ -246,9 +246,13 @@ public final class Lists2 {
      * specified by @param itemIdx, according to the provided comparator.
      * @return the index of the first LTE item, or -1 if there isn't any (eg. probe is less than all items)
      */
-    public static <T> int findFirstLTEProbeValue(List<T> sortedItems, int itemIdx, T probe, Comparator<T> cmp) {
+    public static <T> int findFirstLTEProbeValue(List<T> sortedItems,
+                                                 int upperBoundary,
+                                                 int itemIdx,
+                                                 T probe,
+                                                 Comparator<T> cmp) {
         int start = itemIdx;
-        int end = sortedItems.size() - 1;
+        int end = upperBoundary - 1;
 
         int firstLTEProbeIdx = -1;
         while (start <= end) {
@@ -269,8 +273,8 @@ public final class Lists2 {
      * specified by @param itemIdx, according to the provided comparator.
      * @return the index of the first GTE item, or -1 if there isn't any (eg. probe is greater than all items)
      */
-    public static <T> int findFirstGTEProbeValue(List<T> sortedItems, int itemIdx, T probe, Comparator<T> cmp) {
-        int start = 0;
+    public static <T> int findFirstGTEProbeValue(List<T> sortedItems, int lowerBoundary, int itemIdx, T probe, Comparator<T> cmp) {
+        int start = lowerBoundary;
         int end = itemIdx - 1;
 
         int firstGTEProbeIdx = -1;
