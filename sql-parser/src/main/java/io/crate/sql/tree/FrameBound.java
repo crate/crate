@@ -72,14 +72,13 @@ public class FrameBound extends Node {
                                     List<T> rows) {
                 if (mode == ROWS) {
                     assert offset instanceof Long : "In ROWS mode the offset must be a non-null, non-negative number";
-                    int startIndex = Math.max(pStart, currentRowIdx - ((Long) offset).intValue());
-                    return startIndex > 0 ? startIndex : 0;
+                    return Math.max(pStart, currentRowIdx - ((Long) offset).intValue());
                 } else {
-                    int firstGTEProbeValue = findFirstGTEProbeValue(rows, currentRowIdx, offsetProbeValue, cmp);
+                    int firstGTEProbeValue = findFirstGTEProbeValue(rows, pStart, currentRowIdx, offsetProbeValue, cmp);
                     if (firstGTEProbeValue == -1) {
                         return currentRowIdx;
                     } else {
-                        return Math.max(pStart, firstGTEProbeValue);
+                        return firstGTEProbeValue;
                     }
                 }
             }
@@ -171,7 +170,7 @@ public class FrameBound extends Node {
                     assert offset instanceof Long : "In ROWS mode the offset must be a non-null, non-negative number";
                     return Math.min(pEnd, currentRowIdx + ((Long) offset).intValue() + 1);
                 } else {
-                    return Math.min(pEnd, findFirstLTEProbeValue(rows, currentRowIdx, offsetProbeValue, cmp) + 1);
+                    return findFirstLTEProbeValue(rows, pEnd, currentRowIdx, offsetProbeValue, cmp) + 1;
                 }
             }
         },

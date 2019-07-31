@@ -146,8 +146,8 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
         ReferenceResolver<InputCollectExpression> referenceResolver =
             r -> new InputCollectExpression(rowsColumnDescription.indexOf(r.column()));
 
-        List<Symbol> sourceSymbols = Lists2.map(rowsColumnDescription, x -> sqlExpressions.normalize(sqlExpressions.asSymbol(x.sqlFqn())));
-
+        var sourceSymbols = Lists2.map(rowsColumnDescription, x -> sqlExpressions.normalize(sqlExpressions.asSymbol(x.sqlFqn())));
+        ensureInputRowsHaveCorrectType(sourceSymbols, inputRows);
         var argsCtx = inputFactory.ctxForRefs(txnCtx, referenceResolver);
         argsCtx.add(windowFunctionSymbol.arguments());
 
@@ -197,5 +197,13 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
             throw e.getCause();
         }
         assertThat((T) actualResult, expectedValue);
+    }
+
+    private static void ensureInputRowsHaveCorrectType(List<Symbol> sourceSymbols, Object[][] inputRows) {
+        for (int i = 0; i < sourceSymbols.size(); i++) {
+            for (Object[] inputRow : inputRows) {
+                inputRow[i] = sourceSymbols.get(i).valueType().value(inputRow[i]);
+            }
+        }
     }
 }

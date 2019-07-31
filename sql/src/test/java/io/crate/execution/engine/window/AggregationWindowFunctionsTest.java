@@ -299,4 +299,38 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
                        new Object[]{10.0, 10.0},
                        new Object[]{12.0, 12.0});
     }
+
+    @Test
+    public void test_sum_with_range_offset_preceding_following_including_partitions() throws Throwable {
+        Object[][] rows = new Object[][] {
+            $("Male", 1000),
+            $("Male", 2000),
+            $("Female", 3000),
+            $("Female", 4000),
+            $("Male", 5000),
+            $("Female", 6000),
+            $("Male", 7000),
+            $("Female", 8000),
+            $("Male", 9000),
+            $("Male", 9500),
+        };
+        Object[] expected = new Object[] {
+            7000.0d,
+            7000.0d,
+            6000.0d,
+            8000.0d,
+            3000.0d,
+            3000.0d,
+            5000.0d,
+            7000.0d,
+            18500.0d,
+            18500.0d,
+        };
+        assertEvaluate(
+            "sum(d) over (partition by z order by d range between 1000 preceding and 1000 following)",
+            contains(expected),
+            List.of(new ColumnIdent("z"), new ColumnIdent("d")),
+            rows
+        );
+    }
 }

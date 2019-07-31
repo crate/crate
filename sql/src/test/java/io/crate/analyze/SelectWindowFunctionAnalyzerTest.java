@@ -140,7 +140,7 @@ public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUn
         WindowFunction windowFunction = (WindowFunction) outputSymbols.get(0);
         assertThat(windowFunction.arguments().size(), is(1));
         WindowFrameDefinition frameDefinition = windowFunction.windowDefinition().windowFrameDefinition();
-        assertThat(frameDefinition.type(), is(WindowFrame.Mode.RANGE));
+        assertThat(frameDefinition.mode(), is(WindowFrame.Mode.RANGE));
         assertThat(frameDefinition.start().type(), is(FrameBound.Type.UNBOUNDED_PRECEDING));
         assertThat(frameDefinition.end().type(), is(FrameBound.Type.UNBOUNDED_FOLLOWING));
     }
