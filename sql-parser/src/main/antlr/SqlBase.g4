@@ -135,6 +135,10 @@ where
     : WHERE condition=booleanExpression
     ;
 
+filter
+    : FILTER '(' where ')'
+    ;
+
 relation
     : left=relation
       ( CROSS JOIN right=aliasedRelation
@@ -222,9 +226,9 @@ valueExpression
 primaryExpression
     : parameterOrLiteral                                                             #defaultParamOrLiteral
     | explicitFunction                                                               #explicitFunctionDefault
-    | qname '(' ASTERISK ')' over?                                                   #functionCall
+    | qname '(' ASTERISK ')' filter? over?                                           #functionCall
     | ident                                                                          #columnReference
-    | qname '(' (setQuant? expr (',' expr)*)? ')' over?                              #functionCall
+    | qname '(' (setQuant? expr (',' expr)*)? ')' filter? over?                      #functionCall
     | subqueryExpression                                                             #subqueryExpressionDefault
     // This case handles a simple parenthesized expression.
     | '(' expr ')'                                                                   #nestedExpression
@@ -644,7 +648,7 @@ nonReserved
     | REPOSITORY | SNAPSHOT | RESTORE | GENERATED | ALWAYS | BEGIN | COMMIT
     | ISOLATION | TRANSACTION | CHARACTERISTICS | LEVEL | LANGUAGE | OPEN | CLOSE | RENAME
     | PRIVILEGES | SCHEMA | PREPARE
-    | REROUTE | MOVE | SHARD | ALLOCATE | REPLICA | CANCEL | CLUSTER | RETRY | FAILED
+    | REROUTE | MOVE | SHARD | ALLOCATE | REPLICA | CANCEL | CLUSTER | RETRY | FAILED | FILTER
     | DO | NOTHING | CONFLICT | TRANSACTION_ISOLATION | RETURN | SUMMARY
     | WORK | SERIALIZABLE | REPEATABLE | COMMITTED | UNCOMMITTED | READ | WRITE | WINDOW | DEFERRABLE
     | STRING_TYPE | IP | DOUBLE | FLOAT | TIMESTAMP | LONG | INT | INTEGER | SHORT | BYTE | BOOLEAN | PRECISION
@@ -864,6 +868,7 @@ SHARDS: 'SHARDS';
 PRIMARY_KEY: 'PRIMARY KEY';
 OFF: 'OFF';
 FULLTEXT: 'FULLTEXT';
+FILTER: 'FILTER';
 PLAIN: 'PLAIN';
 INDEX: 'INDEX';
 STORAGE: 'STORAGE';

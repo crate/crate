@@ -314,9 +314,17 @@ public final class ExpressionFormatter {
                 builder.append('(').append(arguments).append(')');
             }
 
-            if (node.getWindow().isPresent()) {
-                builder.append(" OVER ").append(visitWindow(node.getWindow().get(), parameters));
-            }
+            node.filter()
+                .ifPresent(filter -> builder
+                    .append(" FILTER (WHERE ")
+                    .append(formatExpression(filter))
+                    .append(")"));
+
+            node.getWindow()
+                .ifPresent(window -> builder
+                    .append(" OVER ")
+                    .append(visitWindow(window, parameters)));
+
             return builder.toString();
         }
 

@@ -22,6 +22,7 @@
 package io.crate.sql.tree;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 public class FunctionCall extends Expression {
@@ -30,16 +31,22 @@ public class FunctionCall extends Expression {
     private final boolean distinct;
     private final List<Expression> arguments;
     private final Optional<Window> window;
+    private final Optional<Expression> filter;
 
     public FunctionCall(QualifiedName name, List<Expression> arguments) {
-        this(name, false, arguments, Optional.empty());
+        this(name, false, arguments, Optional.empty(), Optional.empty());
     }
 
-    public FunctionCall(QualifiedName name, boolean distinct, List<Expression> arguments, Optional<Window> window) {
+    public FunctionCall(QualifiedName name,
+                        boolean distinct,
+                        List<Expression> arguments,
+                        Optional<Window> window,
+                        Optional<Expression> filter) {
         this.name = name;
         this.distinct = distinct;
         this.arguments = arguments;
         this.window = window;
+        this.filter = filter;
     }
 
     public QualifiedName getName() {
@@ -58,6 +65,10 @@ public class FunctionCall extends Expression {
         return window;
     }
 
+    public Optional<Expression> filter() {
+        return filter;
+    }
+
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitFunctionCall(this, context);
@@ -65,23 +76,22 @@ public class FunctionCall extends Expression {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         FunctionCall that = (FunctionCall) o;
-
-        if (distinct != that.distinct) return false;
-        if (!name.equals(that.name)) return false;
-        if (!arguments.equals(that.arguments)) return false;
-        return window.equals(that.window);
+        return distinct == that.distinct &&
+               Objects.equals(name, that.name) &&
+               Objects.equals(arguments, that.arguments) &&
+               Objects.equals(window, that.window) &&
+               Objects.equals(filter, that.filter);
     }
 
     @Override
     public int hashCode() {
-        int result = name.hashCode();
-        result = 31 * result + (distinct ? 1 : 0);
-        result = 31 * result + arguments.hashCode();
-        result = 31 * result + window.hashCode();
-        return result;
+        return Objects.hash(name, distinct, arguments, window, filter);
     }
 }

@@ -27,7 +27,6 @@ import io.crate.sql.tree.DefaultTraversalVisitor;
 import io.crate.sql.tree.Node;
 import io.crate.sql.tree.Statement;
 
-import javax.annotation.Nullable;
 import java.util.List;
 
 import static io.crate.sql.SqlFormatter.formatSql;
@@ -67,12 +66,11 @@ final class TreeAssertions {
     private static List<Node> linearizeTree(Node tree) {
         final ImmutableList.Builder<Node> nodes = ImmutableList.builder();
         new DefaultTraversalVisitor<Node, Void>() {
-            public Node process(Node node, @Nullable Void context) {
-                Node result = node.accept(this, context);
+            void process(Node node) {
+                node.accept(this, null);
                 nodes.add(node);
-                return result;
             }
-        }.process(tree, null);
+        }.process(tree);
         return nodes.build();
     }
 
