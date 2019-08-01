@@ -77,13 +77,9 @@ final class PGIntervalParser {
                     hours = nullSafeIntGet(token.substring(offset + 0, endHours));
                     minutes = nullSafeIntGet(token.substring(endHours + 1, endHours + 3));
 
-                    // Pre 7.4 servers do not put second information into the results
-                    // unless it is non-zero.
                     int endMinutes = token.indexOf(':', endHours + 1);
-                    if (endMinutes != -1) {
-                        seconds = parseInteger(token.substring(endMinutes + 1));
-                        milliSeconds = parseMilliSeconds(token.substring(endMinutes + 1));
-                    }
+                    seconds = parseInteger(token.substring(endMinutes + 1));
+                    milliSeconds = parseMilliSeconds(token.substring(endMinutes + 1));
 
                     if (offset == 1) {
                         hours = -hours;

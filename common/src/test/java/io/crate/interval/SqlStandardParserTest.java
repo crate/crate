@@ -22,97 +22,96 @@
 
 package io.crate.interval;
 
+import io.crate.test.integration.CrateUnitTest;
 import org.joda.time.Period;
-import org.junit.Assert;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
+
+import static org.hamcrest.core.Is.is;
 
 
-public class SqlStandardParserTest {
+public class SqlStandardParserTest extends CrateUnitTest {
 
     @Test
     public void parse_year_month_day_hours_minutes() {
         Period result = SQLStandardIntervalParser.apply("120-1 1 15:30");
-        Assert.assertEquals(new Period().withYears(120).withMonths(1).withDays(1).withHours(15).withMinutes(30), result);
+        assertThat(result, is(new Period().withYears(120).withMonths(1).withDays(1).withHours(15).withMinutes(30)));
     }
 
     @Test
     public void negative_parse_year_month_negative_day_negative_hours_minutes() {
         Period result = SQLStandardIntervalParser.apply("-120-1 -1 -15:30");
-        Assert.assertEquals(new Period().withYears(-120).withMonths(-1).withDays(-1).withHours(-15).withMinutes(-30), result);
+        assertThat(result, is(new Period().withYears(-120).withMonths(-1).withDays(-1).withHours(-15).withMinutes(-30)));
     }
 
     @Test
     public void parse_year_month_day() {
         Period result = SQLStandardIntervalParser.apply("120-1 1");
-        Assert.assertEquals(new Period().withYears(120).withMonths(1).withSeconds(1), result);
+        assertThat(result, is(new Period().withYears(120).withMonths(1).withSeconds(1)));
     }
 
     @Test
     public void parse_negative_year_month_negative_day() {
         Period result = SQLStandardIntervalParser.apply("-120-1 -1");
-        Assert.assertEquals(new Period().withYears(-120).withMonths(-1).withSeconds(-1), result);
+        assertThat(result, is(new Period().withYears(-120).withMonths(-1).withSeconds(-1)));
     }
 
     @Test
     public void parse_year_month() {
         Period result = SQLStandardIntervalParser.apply("120-1");
-        Assert.assertEquals(new Period().withYears(120).withMonths(1), result);
+        assertThat(result, is(new Period().withYears(120).withMonths(1)));
     }
 
     @Test
     public void parse_negative_year_month() {
         Period result = SQLStandardIntervalParser.apply("-120-1");
-        Assert.assertEquals(new Period().withYears(-120).withMonths(-1), result);
+        assertThat(result, is(new Period().withYears(-120).withMonths(-1)));
     }
 
     @Test
     public void parse_year_month_hours_minutes() {
         Period result = SQLStandardIntervalParser.apply("120-1 15:30");
-        Assert.assertEquals(new Period().withYears(120).withMonths(1).withHours(15).withMinutes(30), result);
+        assertThat(result, is(new Period().withYears(120).withMonths(1).withHours(15).withMinutes(30)));
     }
 
     @Test
     public void parse_hours_minutes() {
         Period result = SQLStandardIntervalParser.apply("15:30");
-        Assert.assertEquals(new Period().withHours(15).withMinutes(30), result);
+        assertThat(result, is(new Period().withHours(15).withMinutes(30)));
     }
 
     @Test
     public void parse_negative_hours_minutes() {
         Period result = SQLStandardIntervalParser.apply("-15:30");
-        Assert.assertEquals(new Period().withHours(-15).withMinutes(-30), result);
+        assertThat(result, is(new Period().withHours(-15).withMinutes(-30)));
     }
 
     @Test
     public void parse_hours_minutes_seconds() {
         Period result = SQLStandardIntervalParser.apply("15:30:10");
-        Assert.assertEquals(new Period().withHours(15).withMinutes(30).withSeconds(10), result);
+        assertThat(result, is(new Period().withHours(15).withMinutes(30).withSeconds(10)));
     }
 
     @Test
     public void parse_days_hours_minutes_seconds() {
         Period result = SQLStandardIntervalParser.apply("1 15:30:10");
-        Assert.assertEquals(new Period().withDays(1).withHours(15).withMinutes(30).withSeconds(10), result);
+        assertThat(result, is(new Period().withDays(1).withHours(15).withMinutes(30).withSeconds(10)));
     }
 
     @Test
     public void parse_negative_days_negative_hours_minutes_seconds() {
         Period result = SQLStandardIntervalParser.apply("-1 -15:30:10");
-        Assert.assertEquals(new Period().withDays(-1).withHours(-15).withMinutes(-30).withSeconds(-10), result);
+        assertThat(result, is(new Period().withDays(-1).withHours(-15).withMinutes(-30).withSeconds(-10)));
     }
 
     @Test
     public void parse_days_seconds() {
         Period result = SQLStandardIntervalParser.apply("1 1");
-        Assert.assertEquals(new Period().withDays(1).withSeconds(1), result);
+        assertThat(result, is(new Period().withDays(1).withSeconds(1)));
     }
 
     @Test
     public void parse_negtive_days_negative_seconds() {
         Period result = SQLStandardIntervalParser.apply("-1 -1");
-        Assert.assertEquals(new Period().withDays(-1).withSeconds(-1), result);
+        assertThat(result, is(new Period().withDays(-1).withSeconds(-1)));
     }
-
 }
