@@ -31,9 +31,6 @@ import org.junit.rules.ExpectedException;
 
 public class PGIntervalParserTest {
 
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
-
     @Test
     public void test_psql_format_from_string() {
         Period period = PGIntervalParser.apply("@ 1 year 1 mon 1 day 1 hour 1 minute 1 secs");

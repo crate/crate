@@ -24,10 +24,12 @@ package io.crate.interval;
 
 import org.joda.time.Period;
 
+import javax.annotation.Nullable;
+
 import static io.crate.interval.IntervalParser.nullSafeIntGet;
 import static io.crate.interval.IntervalParser.roundToPrecision;
 
-class SQLStandardIntervalParser {
+final class SQLStandardIntervalParser {
 
     private enum ParserState {
         NOTHING_PARSED,
@@ -36,7 +38,9 @@ class SQLStandardIntervalParser {
         YEAR_MONTH_PARSED
     }
 
-    static Period apply(String value, IntervalParser.Precision start, IntervalParser.Precision end) {
+    static Period apply(String value,
+                        @Nullable IntervalParser.Precision start,
+                        @Nullable IntervalParser.Precision end) {
         return roundToPrecision(apply(value), start, end);
     }
 
@@ -128,7 +132,7 @@ class SQLStandardIntervalParser {
                 }
             }
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("Invalid interval fornat" + value);
+            throw new IllegalArgumentException("Invalid interval fornat " + value);
         }
         return new Period(years, months, 0, days, hours, minutes, seconds, 0);
     }

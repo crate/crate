@@ -31,9 +31,6 @@ import org.junit.rules.ExpectedException;
 
 public class SqlStandardParserTest {
 
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
-
     @Test
     public void parse_year_month_day_hours_minutes() {
         Period result = SQLStandardIntervalParser.apply("120-1 1 15:30");
