@@ -426,7 +426,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         Literal literal = (Literal) expressions.asSymbol("INTERVAL '1' HOUR to SECOND");
         assertThat(literal.valueType(), is(DataTypes.INTERVAL));
         Period period = (Period) literal.value();
-        assertThat(period, is(new Period().withHours(1)));
+        assertThat(period, is(new Period().withSeconds(1)));
     }
 
     @Test
