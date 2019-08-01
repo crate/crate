@@ -235,8 +235,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
         if (endField != null) {
             if (startField.compareTo(endField) > 0) {
-                throw new IllegalArgumentException(
-                    String.format("Startfield %s must be less significant than Endfield %s", startField, endField));
+                throw new IllegalArgumentException("Startfield must be less significant than Endfield");
             }
         }
 

@@ -115,21 +115,21 @@ public class IntervalLiteralTest {
     @Test
     public void testSecondToHour() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Startfield SECOND must be less significant than Endfield HOUR");
+        expectedException.expectMessage("Startfield must be less significant than Endfield");
         SqlParser.createExpression("INTERVAL '1' SECOND TO HOUR");
     }
 
     @Test
     public void testSecondToYear() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Startfield SECOND must be less significant than Endfield YEAR");
+        expectedException.expectMessage("Startfield must be less significant than Endfield");
         SqlParser.createExpression("INTERVAL '1' SECOND TO YEAR");
     }
 
     @Test
     public void testDayToYear() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Startfield DAY must be less significant than Endfield YEAR");
+        expectedException.expectMessage("Startfield must be less significant than Endfield");
         SqlParser.createExpression("INTERVAL '1' DAY TO YEAR");
     }
 }
