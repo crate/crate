@@ -22,8 +22,6 @@
 
 package io.crate.expression.symbol;
 
-import com.google.common.collect.ImmutableList;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -60,7 +58,7 @@ public abstract class FunctionCopyVisitor<C> extends SymbolVisitor<C, Symbol> {
 
     private Function manyArgs(Function func, C context) {
         List<Symbol> args = func.arguments();
-        List<Symbol> newArgs = new ArrayList<>(args.size());
+        ArrayList<Symbol> newArgs = new ArrayList<>(args.size());
         boolean changed = false;
         for (Symbol arg : args) {
             Symbol newArg = requireNonNull(process(arg, context), "function arguments must never be NULL");
@@ -68,7 +66,7 @@ public abstract class FunctionCopyVisitor<C> extends SymbolVisitor<C, Symbol> {
             newArgs.add(newArg);
         }
         if (changed) {
-            return new Function(func.info(), newArgs);
+            return new Function(func.info(), newArgs, func.filter());
         }
         return func;
     }
@@ -84,7 +82,7 @@ public abstract class FunctionCopyVisitor<C> extends SymbolVisitor<C, Symbol> {
         if (arg1 == newArg1 && arg2 == newArg2) {
             return func;
         }
-        return new Function(func.info(), ImmutableList.of(newArg1, newArg2));
+        return new Function(func.info(), List.of(newArg1, newArg2), func.filter());
     }
 
     private Function oneArg(Function func, C context) {
@@ -95,7 +93,7 @@ public abstract class FunctionCopyVisitor<C> extends SymbolVisitor<C, Symbol> {
         if (arg == newArg) {
             return func;
         }
-        return new Function(func.info(), ImmutableList.of(newArg));
+        return new Function(func.info(), List.of(newArg), func.filter());
     }
 
     @Override
