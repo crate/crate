@@ -4,6 +4,7 @@ trigger: none
 variables:
   GRADLE_USER_HOME: $(Pipeline.Workspace)/.gradle
 
+
 jobs:
   - job: LinuxJDK11
     pool:
