@@ -27,18 +27,29 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
 import org.hamcrest.Matchers;
+import org.junit.Before;
 import org.junit.Test;
 
+import static io.crate.testing.SymbolMatchers.isField;
 import static io.crate.testing.SymbolMatchers.isFunction;
+import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.SymbolMatchers.isReference;
 import static org.hamcrest.Matchers.contains;
 
 public class SplitPointsTest extends CrateDummyClusterServiceUnitTest {
 
+    private SQLExecutor e;
+
+    @Before
+    public void setUpExecutor() throws Exception {
+        e = SQLExecutor.builder(clusterService)
+            .addTable(T3.T1_DEFINITION)
+            .addTable("create table t2 (x int, xs array(integer))")
+            .build();
+    }
+
     @Test
     public void testSplitPointsCreationWithFunctionInAggregation() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService).addTable(T3.T1_DEFINITION).build();
-
         AnalyzedRelation relation = e.normalize("select sum(coalesce(x, 0::integer)) + 10 from t1");
 
         SplitPoints splitPoints = SplitPointsBuilder.create(relation);
@@ -49,9 +60,11 @@ public class SplitPointsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testSplitPointsCreationSelectItemAggregationsAreAlwaysAdded() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService).addTable(T3.T1_DEFINITION).build();
-
-        AnalyzedRelation relation = e.normalize("select sum(coalesce(x, 0::integer)), sum(coalesce(x, 0::integer)) + 10 from t1");
+        AnalyzedRelation relation = e.normalize(
+            "select" +
+            "   sum(coalesce(x, 0::integer)), " +
+            "   sum(coalesce(x, 0::integer)) + 10 " +
+            "from t1");
 
         SplitPoints splitPoints = SplitPointsBuilder.create(relation);
 
@@ -62,7 +75,6 @@ public class SplitPointsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testScalarIsNotCollectedEarly() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService).addTable(T3.T1_DEFINITION).build();
         AnalyzedRelation relation = e.normalize("select x + 1 from t1 group by x");
 
         SplitPoints splitPoints = SplitPointsBuilder.create(relation);
@@ -72,10 +84,7 @@ public class SplitPointsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testTableFunctionArgsAndStandaloneColumnsAreAddedToCollect() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table t1 (x int, xs array(integer))")
-            .build();
-        AnalyzedRelation relation = e.normalize("select unnest(xs), x from t1");
+        AnalyzedRelation relation = e.normalize("select unnest(xs), x from t2");
         SplitPoints splitPoints = SplitPointsBuilder.create(relation);
         assertThat(splitPoints.toCollect(), contains(isReference("xs"), isReference("x")));
         assertThat(splitPoints.tableFunctions(), contains(isFunction("unnest")));
@@ -83,13 +92,23 @@ public class SplitPointsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testAggregationPlusTableFunctionUsingAggregation() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table t1 (x int)")
-            .build();
         AnalyzedRelation relation = e.normalize("select max(x), generate_series(0, max(x)) from t1");
         SplitPoints splitPoints = SplitPointsBuilder.create(relation);
         assertThat(splitPoints.toCollect(), contains(isReference("x")));
         assertThat(splitPoints.aggregates(), contains(isFunction("max")));
         assertThat(splitPoints.tableFunctions(), contains(isFunction("generate_series")));
+    }
+
+    @Test
+    public void test_split_points_creation_with_filter_in_aggregate_expression() {
+        AnalyzedRelation relation = e.normalize("select sum(i) filter (where x > 1) from t1");
+
+        SplitPoints splitPoints = SplitPointsBuilder.create(relation);
+
+        assertThat(splitPoints.toCollect(), contains(
+            isReference("i"),
+            isFunction("op_>", isField("x"), isLiteral(1)))
+        );
+        assertThat(splitPoints.aggregates(), contains(isFunction("sum")));
     }
 }
