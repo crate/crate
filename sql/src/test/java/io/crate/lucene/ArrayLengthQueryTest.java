@@ -27,6 +27,7 @@ import io.crate.testing.DataTypeTesting;
 import io.crate.testing.QueryTester;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 import org.elasticsearch.Version;
 import org.junit.After;
@@ -273,6 +274,10 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testArrayLengthWithAllSupportedTypes() throws Exception {
         for (DataType<?> type : DataTypeTesting.ALL_TYPES_EXCEPT_ARRAYS) {
+            // This is temporary as long as interval is not fully implemented
+            if(type.equals(DataTypes.INTERVAL)) {
+                continue;
+            }
             Supplier dataGenerator = DataTypeTesting.getDataGenerator(type);
             Object val1 = dataGenerator.get();
             Object val2 = dataGenerator.get();
