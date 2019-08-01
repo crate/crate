@@ -24,19 +24,24 @@ package io.crate.interval;
 
 import org.joda.time.Period;
 
+import javax.annotation.Nullable;
+
 import static io.crate.interval.IntervalParser.parseInteger;
 import static io.crate.interval.IntervalParser.parseMilliSeconds;
 
 
-class NumericalIntervalParser {
+final class NumericalIntervalParser {
 
-    private NumericalIntervalParser() { }
+    private NumericalIntervalParser() {
+    }
 
     static Period apply(String value) {
         return apply(value, null, null);
     }
 
-    static Period apply(String value, IntervalParser.Precision start, IntervalParser.Precision end) {
+    static Period apply(String value,
+                        @Nullable IntervalParser.Precision start,
+                        @Nullable IntervalParser.Precision end) {
         try {
             return roundToPrecision(parseInteger(value), parseMilliSeconds(value), start, end);
         } catch (NumberFormatException e) {
@@ -45,55 +50,63 @@ class NumericalIntervalParser {
     }
 
     private static Period roundToPrecision(int value,
-                                   int millis,
-                                   IntervalParser.Precision start,
-                                   IntervalParser.Precision end) {
+                                           int millis,
+                                           @Nullable IntervalParser.Precision start,
+                                           @Nullable IntervalParser.Precision end) {
         if (start == null && end == null) {
-            return roundToSecondsWithMillis(value, millis);
+            return buildSecondsWithMillisPeriod(value, millis);
         }
-        if (start == IntervalParser.Precision.YEAR && end == null) {
-            return Period.years(value);
-        }
-        if (start == IntervalParser.Precision.YEAR && end == IntervalParser.Precision.MONTH) {
-            return Period.months(value);
+        if (start == IntervalParser.Precision.YEAR) {
+            if (end == null) {
+                return Period.years(value);
+            }
+            if (end == IntervalParser.Precision.MONTH) {
+                return Period.months(value);
+            }
         }
         if (start == IntervalParser.Precision.MONTH && end == null) {
             return Period.months(value);
         }
-        if (start == IntervalParser.Precision.DAY && end == null) {
-            return Period.days(value);
+        if (start == IntervalParser.Precision.DAY) {
+            if (end == null) {
+                return Period.days(value);
+            }
+            if (end == IntervalParser.Precision.HOUR) {
+                return Period.hours(value);
+            }
+            if (end == IntervalParser.Precision.MINUTE) {
+                return Period.minutes(value);
+            }
+            if (end == IntervalParser.Precision.SECOND) {
+                return buildSecondsWithMillisPeriod(value, millis);
+            }
         }
-        if (start == IntervalParser.Precision.DAY && end == IntervalParser.Precision.HOUR) {
-            return Period.hours(value);
+        if (start == IntervalParser.Precision.HOUR) {
+            if (end == null) {
+                return Period.hours(value);
+            }
+            if (end == IntervalParser.Precision.MINUTE) {
+                return Period.minutes(value);
+            }
+            if (end == IntervalParser.Precision.SECOND) {
+                return buildSecondsWithMillisPeriod(value, millis);
+            }
         }
-        if (start == IntervalParser.Precision.DAY && end == IntervalParser.Precision.MINUTE) {
-            return Period.minutes(value);
-        }
-        if (start == IntervalParser.Precision.DAY && end == IntervalParser.Precision.SECOND) {
-            return roundToSecondsWithMillis(value, millis);
-        }
-        if (start == IntervalParser.Precision.HOUR && end == null) {
-            return Period.hours(value);
-        }
-        if (start == IntervalParser.Precision.HOUR && end == IntervalParser.Precision.MINUTE) {
-            return Period.minutes(value);
-        }
-        if (start == IntervalParser.Precision.HOUR && end == IntervalParser.Precision.SECOND) {
-            return roundToSecondsWithMillis(value, millis);
-        }
-        if (start == IntervalParser.Precision.MINUTE && end == null) {
-            return Period.minutes(value);
-        }
-        if (start == IntervalParser.Precision.MINUTE && end == IntervalParser.Precision.SECOND) {
-            return Period.seconds(value);
+        if (start == IntervalParser.Precision.MINUTE) {
+            if (end == null) {
+                return Period.minutes(value);
+            }
+            if (end == IntervalParser.Precision.SECOND) {
+                return Period.seconds(value);
+            }
         }
         if (start == IntervalParser.Precision.SECOND && end == null) {
-            return roundToSecondsWithMillis(value, millis);
+            return buildSecondsWithMillisPeriod(value, millis);
         }
-        throw new IllegalArgumentException(String.format("Invalid start %s and end %s combination", start, end));
+        throw new IllegalArgumentException("Invalid start and end combination");
     }
 
-    private static Period roundToSecondsWithMillis(int seconds, int millis) {
+    private static Period buildSecondsWithMillisPeriod(int seconds, int millis) {
         Period period = Period.seconds(seconds);
         if (millis != 0) {
             period = period.withMillis(millis);

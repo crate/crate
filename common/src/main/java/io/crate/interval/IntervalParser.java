@@ -23,10 +23,12 @@
 package io.crate.interval;
 
 import org.joda.time.Period;
+import org.joda.time.format.ISOPeriodFormat;
 
+import javax.annotation.Nullable;
 import java.math.BigDecimal;
 
-public class IntervalParser {
+public final class IntervalParser {
 
     public enum Precision {
         YEAR,
@@ -43,13 +45,17 @@ public class IntervalParser {
         return apply(value, null, null);
     }
 
-    public static Period apply(String value, Precision start, Precision end) {
+    public static Period apply(String value, @Nullable Precision start, @Nullable Precision end) {
+        if (value == null || value.isEmpty() || value.isBlank()) {
+            throw new IllegalArgumentException("Invalid interval format  " + value);
+        }
+
         Period result;
         try {
             result = NumericalIntervalParser.apply(value, start, end);
         } catch (IllegalArgumentException e1) {
             try {
-                result = IsoIntervalParser.apply(value, start, end);
+                result = roundToPrecision(ISOPeriodFormat.standard().parsePeriod(value), start, end);
             } catch (IllegalArgumentException e2) {
                 try {
                     result = SQLStandardIntervalParser.apply(value, start, end);
@@ -65,46 +71,54 @@ public class IntervalParser {
         if (start == null && end == null) {
             return period;
         }
-        if (start == Precision.YEAR && end == null) {
-            return Period.years(period.getYears());
-        }
-        if (start == Precision.YEAR && end == Precision.MONTH) {
-            return Period.years(period.getYears()).withMonths(period.getMonths());
+        if (start == Precision.YEAR) {
+            if (end == null) {
+                return Period.years(period.getYears());
+            }
+            if (end == Precision.MONTH) {
+                return Period.years(period.getYears()).withMonths(period.getMonths());
+            }
         }
         if (start == Precision.MONTH && end == null) {
             return Period.years(period.getYears()).withMonths(period.getMonths());
         }
-        if (start == Precision.DAY && end == null) {
-            return new Period(period).withHours(0).withMinutes(0).withSeconds(0).withMillis(0);
+        if (start == Precision.DAY) {
+            if (end == null) {
+                return period.withHours(0).withMinutes(0).withSeconds(0).withMillis(0);
+            }
+            if (end == Precision.HOUR) {
+                return period.withMinutes(0).withSeconds(0).withMillis(0);
+            }
+            if (end == Precision.MINUTE) {
+                return period.withSeconds(0).withMillis(0);
+            }
+            if (end == Precision.SECOND) {
+                return period.withMillis(0);
+            }
         }
-        if (start == Precision.DAY && end == Precision.HOUR) {
-            return new Period(period).withMinutes(0).withSeconds(0).withMillis(0);
+        if (start == Precision.HOUR) {
+            if (end == null) {
+                return period.withMinutes(0).withSeconds(0).withMillis(0);
+            }
+            if (end == Precision.MINUTE) {
+                return period.withSeconds(0).withMillis(0);
+            }
+            if (end == Precision.SECOND) {
+                return new Period(period).withMillis(0);
+            }
         }
-        if (start == Precision.DAY && end == Precision.MINUTE) {
-            return new Period(period).withSeconds(0).withMillis(0);
-        }
-        if (start == Precision.DAY && end == Precision.SECOND) {
-            return new Period(period).withMillis(0);
-        }
-        if (start == Precision.HOUR && end == null) {
-            return new Period(period).withMinutes(0).withSeconds(0).withMillis(0);
-        }
-        if (start == Precision.HOUR && end == Precision.MINUTE) {
-            return new Period(period).withSeconds(0).withMillis(0);
-        }
-        if (start == Precision.HOUR && end == Precision.SECOND) {
-            return new Period(period).withMillis(0);
-        }
-        if (start == Precision.MINUTE && end == null) {
-            return new Period(period).withSeconds(0).withMillis(0);
-        }
-        if (start == Precision.MINUTE && end == Precision.SECOND) {
-            return new Period(period).withMillis(0);
+        if (start == Precision.MINUTE) {
+            if (end == null) {
+                return period.withSeconds(0).withMillis(0);
+            }
+            if (end == Precision.SECOND) {
+                return new Period(period).withMillis(0);
+            }
         }
         if (start == Precision.SECOND && end == null) {
             return new Period(period).withMillis(0);
         }
-        throw new IllegalArgumentException(String.format("Invalid start and end combination", start, end));
+        throw new IllegalArgumentException("Invalid start and end combination");
     }
 
     static int parseMilliSeconds(String value) throws NumberFormatException {
@@ -121,5 +135,4 @@ public class IntervalParser {
     static int nullSafeIntGet(String value) {
         return (value == null) ? 0 : Integer.parseInt(value);
     }
-
 }

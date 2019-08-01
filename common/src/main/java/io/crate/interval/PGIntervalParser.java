@@ -24,6 +24,7 @@ package io.crate.interval;
 
 import org.joda.time.Period;
 
+import javax.annotation.Nullable;
 import java.util.StringTokenizer;
 
 import static io.crate.interval.IntervalParser.nullSafeIntGet;
@@ -31,9 +32,11 @@ import static io.crate.interval.IntervalParser.parseInteger;
 import static io.crate.interval.IntervalParser.parseMilliSeconds;
 import static io.crate.interval.IntervalParser.roundToPrecision;
 
-class PGIntervalParser {
+final class PGIntervalParser {
 
-    static Period apply(String value, IntervalParser.Precision start, IntervalParser.Precision end) {
+    static Period apply(String value,
+                        @Nullable IntervalParser.Precision start,
+                        @Nullable IntervalParser.Precision end) {
         return roundToPrecision(apply(value), start, end);
     }
 
