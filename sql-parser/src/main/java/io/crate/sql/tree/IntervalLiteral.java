@@ -49,6 +49,7 @@ public class IntervalLiteral extends Literal {
     private final String value;
     private final Sign sign;
     private final IntervalField startField;
+    @Nullable
     private final IntervalField endField;
 
     public IntervalLiteral(String value, Sign sign, IntervalField startField, @Nullable IntervalField endField) {
@@ -73,8 +74,9 @@ public class IntervalLiteral extends Literal {
     public IntervalField getStartField() {
         return startField;
     }
-
-    public @Nullable IntervalField getEndField() {
+    
+    @Nullable
+    public IntervalField getEndField() {
         return endField;
     }
 
