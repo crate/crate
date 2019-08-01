@@ -25,6 +25,7 @@ package io.crate.testing;
 import com.carrotsearch.randomizedtesting.RandomizedContext;
 import com.carrotsearch.randomizedtesting.RandomizedTest;
 import com.carrotsearch.randomizedtesting.generators.BiasedNumbers;
+import com.carrotsearch.randomizedtesting.generators.RandomNumbers;
 import com.carrotsearch.randomizedtesting.generators.RandomPicks;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
@@ -133,7 +134,7 @@ public class DataTypeTesting {
                 };
             case IntervalType.ID:
                 return () -> {
-                    return (T) new Period().withMillis(1000);
+                    return (T) new Period().withSeconds(RandomNumbers.randomIntBetween(random, 0, Integer.MAX_VALUE));
                 };
 
         }
