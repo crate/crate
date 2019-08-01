@@ -432,7 +432,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testIntervalInvalidStartEnd() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Startfield MONTH must be less significant than Endfield YEAR");
+        expectedException.expectMessage("Startfield must be less significant than Endfield");
         expressions.asSymbol("INTERVAL '1' MONTH TO YEAR");
     }
 }
