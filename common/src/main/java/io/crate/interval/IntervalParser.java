@@ -104,7 +104,7 @@ public final class IntervalParser {
                 return period.withSeconds(0).withMillis(0);
             }
             if (end == Precision.SECOND) {
-                return new Period(period).withMillis(0);
+                return period.withMillis(0);
             }
         }
         if (start == Precision.MINUTE) {
@@ -112,11 +112,11 @@ public final class IntervalParser {
                 return period.withSeconds(0).withMillis(0);
             }
             if (end == Precision.SECOND) {
-                return new Period(period).withMillis(0);
+                return period.withMillis(0);
             }
         }
         if (start == Precision.SECOND && end == null) {
-            return new Period(period).withMillis(0);
+            return period.withMillis(0);
         }
         throw new IllegalArgumentException("Invalid start and end combination");
     }
