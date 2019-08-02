@@ -22,6 +22,7 @@
 
 package io.crate.expression.symbol;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -59,14 +60,23 @@ public abstract class FunctionCopyVisitor<C> extends SymbolVisitor<C, Symbol> {
     private Function manyArgs(Function func, C context) {
         List<Symbol> args = func.arguments();
         ArrayList<Symbol> newArgs = new ArrayList<>(args.size());
+
+        Symbol filter = func.filter();
+        Symbol newFilter = processSafe(filter, context);
+
         boolean changed = false;
         for (Symbol arg : args) {
-            Symbol newArg = requireNonNull(process(arg, context), "function arguments must never be NULL");
+            Symbol newArg = requireNonNull(
+                process(arg, context),
+                "function arguments must never be NULL"
+            );
             changed |= arg != newArg;
             newArgs.add(newArg);
         }
+        changed |= filter != newFilter;
+
         if (changed) {
-            return new Function(func.info(), newArgs, func.filter());
+            return new Function(func.info(), newArgs, newFilter);
         }
         return func;
     }
@@ -79,10 +89,13 @@ public abstract class FunctionCopyVisitor<C> extends SymbolVisitor<C, Symbol> {
         Symbol arg2 = func.arguments().get(1);
         Symbol newArg2 = requireNonNull(process(arg2, context), "function arguments must never be NULL");
 
-        if (arg1 == newArg1 && arg2 == newArg2) {
+        Symbol filter = func.filter();
+        Symbol newFilter = processSafe(filter, context);
+
+        if (arg1 == newArg1 && arg2 == newArg2 && filter == newFilter) {
             return func;
         }
-        return new Function(func.info(), List.of(newArg1, newArg2), func.filter());
+        return new Function(func.info(), List.of(newArg1, newArg2), newFilter);
     }
 
     private Function oneArg(Function func, C context) {
@@ -90,10 +103,21 @@ public abstract class FunctionCopyVisitor<C> extends SymbolVisitor<C, Symbol> {
         Symbol arg = func.arguments().get(0);
         Symbol newArg = requireNonNull(process(arg, context), "function arguments must never be NULL");
 
-        if (arg == newArg) {
+        Symbol filter = func.filter();
+        Symbol newFilter = processSafe(filter, context);
+
+        if (arg == newArg && filter == newFilter) {
             return func;
         }
-        return new Function(func.info(), List.of(newArg), func.filter());
+        return new Function(func.info(), List.of(newArg), newFilter);
+    }
+
+    @Nullable
+    private Symbol processSafe(@Nullable Symbol symbol, C context) {
+        if (symbol != null) {
+            return process(symbol, context);
+        }
+        return null;
     }
 
     @Override

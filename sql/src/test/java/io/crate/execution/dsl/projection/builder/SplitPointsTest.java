@@ -107,7 +107,7 @@ public class SplitPointsTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(splitPoints.toCollect(), contains(
             isReference("i"),
-            isFunction("op_>", isField("x"), isLiteral(1)))
+            isFunction("op_>", isReference("x"), isLiteral(1)))
         );
         assertThat(splitPoints.aggregates(), contains(isFunction("sum")));
     }
