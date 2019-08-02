@@ -140,6 +140,15 @@ public class PGTypesTest extends CrateUnitTest {
     }
 
     @Test
+    public void test_period_text_round_trip_streaming() {
+        Entry entry = new Entry(DataTypes.INTERVAL, new Period(1, 2, 3, 4, 5, 6, 7, 8));
+        assertThat(
+            writeAndReadAsText(entry, IntervalType.INSTANCE),
+            is(entry.value)
+        );
+    }
+
+    @Test
     public void testReadWriteVarCharType() {
         assertEntryOfPgType(new Entry(DataTypes.STRING, "test"), VarCharType.INSTANCE);
     }
