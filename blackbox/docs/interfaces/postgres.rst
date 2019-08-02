@@ -184,8 +184,10 @@ CrateDB::
     | 1115 | _timestamp without time zone |        0 |    1114 |     -1 |
     | 1184 | timestamptz                  |     1185 |       0 |      8 |
     | 1185 | _timestamptz                 |        0 |    1184 |     -1 |
+    | 1186 | interval                     |     1187 |       0 |     16 |
+    | 1187 | _interval                    |        0 |    1186 |     -1 |
     +------+------------------------------+----------+---------+--------+
-    SELECT 25 rows in set (... sec)
+    SELECT 27 rows in set (... sec)
 
 
 .. NOTE::
