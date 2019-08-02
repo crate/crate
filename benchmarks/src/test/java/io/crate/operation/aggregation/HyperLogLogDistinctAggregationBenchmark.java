@@ -30,6 +30,7 @@ import io.crate.execution.engine.aggregation.AggregateCollector;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.collect.InputCollectExpression;
 import io.crate.expression.symbol.AggregateMode;
+import io.crate.expression.symbol.Literal;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Functions;
 import io.crate.module.EnterpriseFunctionsModule;
@@ -85,7 +86,8 @@ public class HyperLogLogDistinctAggregationBenchmark {
             new AggregationFunction[] { hllAggregation },
             Version.CURRENT,
             BigArrays.NON_RECYCLING_INSTANCE,
-            new Input[] { inExpr0 }
+            new Input[][] { {inExpr0 } },
+            new Input[] { Literal.BOOLEAN_TRUE }
         );
     }
 

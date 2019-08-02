@@ -38,6 +38,10 @@ public abstract class DefaultTraversalSymbolVisitor<C, R> extends SymbolVisitor<
         for (Symbol arg : symbol.arguments()) {
             process(arg, context);
         }
+        var filter = symbol.filter();
+        if (filter != null) {
+            process(filter, context);
+        }
         return null;
     }
 

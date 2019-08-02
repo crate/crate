@@ -27,6 +27,7 @@ import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.execution.engine.collect.CollectExpression;
+import io.crate.expression.InputCondition;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.types.ByteType;
 import io.crate.types.DataType;
@@ -59,13 +60,14 @@ public final class GroupBySingleNumberCollector implements Collector<Row, GroupB
     private final AggregateMode mode;
     private final AggregationFunction[] aggregations;
     private final Input[][] inputs;
+    private final Input[] filters;
     private final RamAccountingContext ramAccounting;
     private final Input<Number> keyInput;
     private final Version indexVersionCreated;
     private final BigArrays bigArrays;
     private final BiConsumer<Groups, Row> accumulator;
 
-    public static final Set<DataType<?>> SUPPORTED_TYPES = Set.of(
+    static final Set<DataType<?>> SUPPORTED_TYPES = Set.of(
         DataTypes.BYTE,
         DataTypes.SHORT,
         DataTypes.INTEGER,
@@ -79,6 +81,7 @@ public final class GroupBySingleNumberCollector implements Collector<Row, GroupB
                                  AggregateMode mode,
                                  AggregationFunction[] aggregations,
                                  Input[][] inputs,
+                                 Input[] filters,
                                  RamAccountingContext ramAccounting,
                                  Input keyInput,
                                  Version indexVersionCreated,
@@ -88,6 +91,7 @@ public final class GroupBySingleNumberCollector implements Collector<Row, GroupB
         this.mode = mode;
         this.aggregations = aggregations;
         this.inputs = inputs;
+        this.filters = filters;
         this.ramAccounting = ramAccounting;
         this.keyInput = keyInput;
         this.indexVersionCreated = indexVersionCreated;
@@ -246,7 +250,13 @@ public final class GroupBySingleNumberCollector implements Collector<Row, GroupB
             } else {
                 for (int i = 0; i < aggregations.length; i++) {
                     //noinspection unchecked
-                    groups.statesByNullValue[i] = aggregations[i].iterate(ramAccounting, groups.statesByNullValue[i], inputs[i]);
+                    if (InputCondition.matches(filters[i])) {
+                        groups.statesByNullValue[i] = aggregations[i].iterate(
+                            ramAccounting,
+                            groups.statesByNullValue[i],
+                            inputs[i]
+                        );
+                    }
                 }
             }
         } else {
@@ -256,7 +266,9 @@ public final class GroupBySingleNumberCollector implements Collector<Row, GroupB
             } else {
                 for (int i = 0; i < aggregations.length; i++) {
                     //noinspection unchecked
-                    states[i] = aggregations[i].iterate(ramAccounting, states[i], inputs[i]);
+                    if (InputCondition.matches(filters[i])) {
+                        states[i] = aggregations[i].iterate(ramAccounting, states[i], inputs[i]);
+                    }
                 }
             }
         }
@@ -277,12 +289,15 @@ public final class GroupBySingleNumberCollector implements Collector<Row, GroupB
         Object[] states = new Object[aggregations.length];
         for (int i = 0; i < aggregations.length; i++) {
             AggregationFunction aggregation = aggregations[i];
+
+            var newState = aggregation.newState(ramAccounting, indexVersionCreated, bigArrays);
             //noinspection unchecked
-            states[i] = aggregation.iterate(
-                ramAccounting,
-                aggregation.newState(ramAccounting, indexVersionCreated, bigArrays),
-                inputs[i]
-            );
+            if (InputCondition.matches(filters[i])) {
+                //noinspection unchecked
+                states[i] = aggregation.iterate(ramAccounting, newState, inputs[i]);
+            } else {
+                states[i] = newState;
+            }
         }
 
         // account for the states object array

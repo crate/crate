@@ -62,7 +62,7 @@ public abstract class FunctionCopyVisitor<C> extends SymbolVisitor<C, Symbol> {
         ArrayList<Symbol> newArgs = new ArrayList<>(args.size());
 
         Symbol filter = func.filter();
-        Symbol newFilter = processSafe(filter, context);
+        Symbol newFilter = processNullable(filter, context);
 
         boolean changed = false;
         for (Symbol arg : args) {
@@ -90,7 +90,7 @@ public abstract class FunctionCopyVisitor<C> extends SymbolVisitor<C, Symbol> {
         Symbol newArg2 = requireNonNull(process(arg2, context), "function arguments must never be NULL");
 
         Symbol filter = func.filter();
-        Symbol newFilter = processSafe(filter, context);
+        Symbol newFilter = processNullable(filter, context);
 
         if (arg1 == newArg1 && arg2 == newArg2 && filter == newFilter) {
             return func;
@@ -104,7 +104,7 @@ public abstract class FunctionCopyVisitor<C> extends SymbolVisitor<C, Symbol> {
         Symbol newArg = requireNonNull(process(arg, context), "function arguments must never be NULL");
 
         Symbol filter = func.filter();
-        Symbol newFilter = processSafe(filter, context);
+        Symbol newFilter = processNullable(filter, context);
 
         if (arg == newArg && filter == newFilter) {
             return func;
@@ -113,9 +113,9 @@ public abstract class FunctionCopyVisitor<C> extends SymbolVisitor<C, Symbol> {
     }
 
     @Nullable
-    private Symbol processSafe(@Nullable Symbol symbol, C context) {
+    private Symbol processNullable(@Nullable Symbol symbol, C context) {
         if (symbol != null) {
-            return process(symbol, context);
+            return symbol.accept(this, context);
         }
         return null;
     }
