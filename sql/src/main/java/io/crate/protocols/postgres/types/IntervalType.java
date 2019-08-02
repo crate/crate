@@ -67,24 +67,49 @@ public class IntervalType extends PGType {
     public int writeAsBinary(ByteBuf buffer, @Nonnull Object value) {
         Period period = (Period) value;
         buffer.writeInt(TYPE_LEN);
-        buffer.writeLong(period.getSeconds());
-        buffer.writeInt(period.getDays());
-        buffer.writeInt(period.getMonths());
-        return TYPE_LEN;
+        // from PostgreSQL code:
+        // pq_sendint64(&buf, interval->time);
+        // pq_sendint32(&buf, interval->day);
+        // pq_sendint32(&buf, interval->month);
+        buffer.writeLong(
+            (period.getHours() * 60 * 60 * 1000_000L)
+            + (period.getMinutes() * 60 * 1000_000L)
+            + (period.getSeconds() * 1000_000L)
+            + (period.getMillis() * 1000)
+        );
+        buffer.writeInt((period.getWeeks() * 7) + period.getDays());
+        buffer.writeInt((period.getYears() * 12) + period.getMonths());
+        return INT32_BYTE_SIZE + TYPE_LEN;
     }
 
     @Override
     public Object readBinaryValue(ByteBuf buffer, int valueLength) {
         assert valueLength == TYPE_LEN : "length should be " + TYPE_LEN + " because interval is 16. Actual length: " +
                                          valueLength;
-        if (buffer.readBoolean()) {
-            long seconds = buffer.readLong();
-            int days = buffer.readInt();
-            int months = buffer.readInt();
-            return Period.seconds(Math.toIntExact(seconds)).withDays(days).withMonths(months);
-        } else {
-            return null;
-        }
+        long micros = buffer.readLong();
+        int days = buffer.readInt();
+        int months = buffer.readInt();
+
+        long microsInAnHour = 60 * 60 * 1000_000L;
+        int hours = Math.toIntExact(micros / microsInAnHour);
+        long microsWithoutHours = micros % microsInAnHour;
+
+        long microsInAMinute = 60 * 1000_000L;
+        int minutes = Math.toIntExact(microsWithoutHours / microsInAMinute);
+        long microsWithoutMinutes = microsWithoutHours % microsInAMinute;
+
+        int seconds = Math.toIntExact(microsWithoutMinutes / 1000_000);
+        int millis = Math.toIntExact((microsWithoutMinutes % 1000_000) / 1000);
+        return new Period(
+            months / 12,
+            months % 12,
+            days / 7,
+            days % 7,
+            hours,
+            minutes,
+            seconds,
+            millis
+        );
     }
 
     @Override
