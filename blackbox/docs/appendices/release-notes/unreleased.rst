@@ -92,6 +92,9 @@ Changes
 Fixes
 =====
 
+- Fixed an issue with the ``collect_set`` function. It could compute an
+  incorrect result if used as a window function with shrinking window frames.
+
 - Fixed an issue with the version payload returned by HTTP, which resulted in
   falsely displaying CrateDB's version as a ``-SNAPSHOT`` version at the AdminUI.
 
