@@ -25,8 +25,6 @@ package io.crate.protocols.postgres.types;
 import io.netty.buffer.ByteBuf;
 import org.joda.time.Period;
 import org.joda.time.ReadablePeriod;
-import org.joda.time.format.PeriodFormatter;
-import org.joda.time.format.PeriodFormatterBuilder;
 
 import javax.annotation.Nonnull;
 import java.nio.charset.StandardCharsets;
@@ -37,25 +35,6 @@ public class IntervalType extends PGType {
     private static final int TYPE_LEN = 16;
     private static final int TYPE_MOD = -1;
     public static final IntervalType INSTANCE = new IntervalType();
-    private static final PeriodFormatter PERIOD_FORMATTER = new PeriodFormatterBuilder()
-        .appendYears()
-        .appendSuffix(" year", " years")
-        .appendSeparator(" ")
-        .appendMonths()
-        .appendSuffix(" mon", " mons")
-        .appendSeparator(" ")
-        .appendWeeks()
-        .appendSuffix(" weeks")
-        .appendSeparator(" ")
-        .appendDays()
-        .appendSuffix(" day", " days")
-        .appendSeparator(" ")
-        .appendHours()
-        .appendSeparator(":")
-        .appendMinutes()
-        .appendSeparator(":")
-        .appendSecondsWithOptionalMillis()
-        .toFormatter();
 
     private IntervalType() {
         super(OID, TYPE_LEN, TYPE_MOD, "interval");
@@ -118,12 +97,12 @@ public class IntervalType extends PGType {
     @Override
     byte[] encodeAsUTF8Text(@Nonnull Object value) {
         StringBuffer sb = new StringBuffer();
-        PERIOD_FORMATTER.printTo(sb, (ReadablePeriod) value);
+        io.crate.types.IntervalType.PERIOD_FORMATTER.printTo(sb, (ReadablePeriod) value);
         return sb.toString().getBytes(StandardCharsets.UTF_8);
     }
 
     @Override
     Object decodeUTF8Text(byte[] bytes) {
-        return PERIOD_FORMATTER.parsePeriod(new String(bytes, StandardCharsets.UTF_8));
+        return io.crate.types.IntervalType.PERIOD_FORMATTER.parsePeriod(new String(bytes, StandardCharsets.UTF_8));
     }
 }

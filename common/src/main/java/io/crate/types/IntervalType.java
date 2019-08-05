@@ -27,6 +27,8 @@ import io.crate.interval.IntervalParser;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.joda.time.Period;
+import org.joda.time.format.PeriodFormatter;
+import org.joda.time.format.PeriodFormatterBuilder;
 
 import java.io.IOException;
 import java.util.Comparator;
@@ -36,6 +38,25 @@ public class IntervalType extends DataType<Period> implements FixedWidthType, St
 
     public static final int ID = 17;
     public static final IntervalType INSTANCE = new IntervalType();
+    public static final PeriodFormatter PERIOD_FORMATTER = new PeriodFormatterBuilder()
+        .appendYears()
+        .appendSuffix(" year", " years")
+        .appendSeparator(" ")
+        .appendMonths()
+        .appendSuffix(" mon", " mons")
+        .appendSeparator(" ")
+        .appendWeeks()
+        .appendSuffix(" weeks")
+        .appendSeparator(" ")
+        .appendDays()
+        .appendSuffix(" day", " days")
+        .appendSeparator(" ")
+        .appendHours()
+        .appendSeparator(":")
+        .appendMinutes()
+        .appendSeparator(":")
+        .appendSecondsWithOptionalMillis()
+        .toFormatter();
 
     @Override
     public int id() {
