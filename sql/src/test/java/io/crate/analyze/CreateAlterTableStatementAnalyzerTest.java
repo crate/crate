@@ -1244,4 +1244,11 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             e.analyze("alter table users reset (\"routing.allocation.exclude.foo\")");
         assertThat(analysis.tableParameter().settings().get(INDEX_ROUTING_EXCLUDE_GROUP_SETTING.getKey() + "foo"), nullValue());
     }
+
+    @Test
+    public void testCreateTableWithIntervalFails() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Cannot use `INTERVAL` data type for column");
+        e.analyze("create table test (i interval)");
+    }
 }

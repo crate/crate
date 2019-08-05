@@ -209,6 +209,10 @@ public class AnalyzedColumnDefinition {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                 "INDEX constraint cannot be used on columns of type \"%s\"", dataType));
         }
+        if(DataTypes.INTERVAL.equals(dataType)) {
+            throw new IllegalArgumentException(
+                String.format(Locale.ENGLISH, "Cannot use `INTERVAL` data type for column"));
+        }
         if (hasPrimaryKeyConstraint()) {
             ensureTypeCanBeUsedAsKey();
         }
