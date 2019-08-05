@@ -98,6 +98,10 @@ public final class DataTypes {
         TIMESTAMP
     );
 
+    public static final Set<DataType> STORAGE_UNSUPPORTED = Set.of(
+        INTERVAL
+    );
+
     public static final List<DataType> NUMERIC_PRIMITIVE_TYPES = List.of(
         DOUBLE,
         FLOAT,

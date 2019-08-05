@@ -1248,7 +1248,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     @Test
     public void testCreateTableWithIntervalFails() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot use `INTERVAL` data type for column");
+        expectedException.expectMessage("Cannot use the type `interval` for column: i");
         e.analyze("create table test (i interval)");
     }
 }
