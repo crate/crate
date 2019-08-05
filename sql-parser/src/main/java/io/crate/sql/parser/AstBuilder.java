@@ -1552,8 +1552,14 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
             getQualifiedName(context.qname()),
             isDistinct(context.setQuant()),
             visitCollection(context.expr(), Expression.class),
-            visitIfPresent(context.over(), Window.class)
+            visitIfPresent(context.over(), Window.class),
+            visitIfPresent(context.filter(), Expression.class)
         );
+    }
+
+    @Override
+    public Node visitFilter(SqlBaseParser.FilterContext context) {
+        return visit(context.where());
     }
 
     // Literals

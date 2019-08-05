@@ -23,37 +23,51 @@
 package io.crate.expression.symbol;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import io.crate.expression.scalar.arithmetic.ArrayFunction;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.planner.ExplainLeaf;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 
 public class Function extends Symbol implements Cloneable {
 
     private final List<Symbol> arguments;
     private final FunctionInfo info;
+    @Nullable
+    private final Symbol filter;
 
     public Function(StreamInput in) throws IOException {
         info = new FunctionInfo(in);
-        arguments = ImmutableList.copyOf(Symbols.listFromStream(in));
+        if (in.getVersion().onOrAfter(Version.V_4_1_0)) {
+            filter = Symbols.nullableFromStream(in);
+        } else {
+            filter = null;
+        }
+        arguments = List.copyOf(Symbols.listFromStream(in));
     }
 
     public Function(FunctionInfo info, List<Symbol> arguments) {
+        this(info, arguments, null);
+    }
+
+    public Function(FunctionInfo info, List<Symbol> arguments, Symbol filter) {
         Preconditions.checkNotNull(info, "function info is null");
         Preconditions.checkArgument(arguments.size() == info.ident().argumentTypes().size(),
             "number of arguments must match the number of argumentTypes of the FunctionIdent");
         this.info = info;
-        this.arguments = ImmutableList.copyOf(arguments);
+        this.arguments = List.copyOf(arguments);
+        this.filter = filter;
     }
 
     public List<Symbol> arguments() {
@@ -62,6 +76,11 @@ public class Function extends Symbol implements Cloneable {
 
     public FunctionInfo info() {
         return info;
+    }
+
+    @Nullable
+    public Symbol filter() {
+        return filter;
     }
 
     @Override
@@ -125,6 +144,9 @@ public class Function extends Symbol implements Cloneable {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         info.writeTo(out);
+        if (out.getVersion().onOrAfter(Version.V_4_1_0)) {
+            Symbols.nullableToStream(filter, out);
+        }
         Symbols.toStream(arguments, out);
     }
 
@@ -136,24 +158,29 @@ public class Function extends Symbol implements Cloneable {
                    + " " + name.substring(3).toUpperCase(Locale.ENGLISH)
                    + " " + arguments.get(1).representation();
         }
-        return name + '(' + ExplainLeaf.printList(arguments) + ')';
+        var sb = new StringBuilder(name + '(' + ExplainLeaf.printList(arguments) + ')');
+        if (filter != null) {
+            sb.append("FILTER (WHERE " + filter.representation() + ')');
+        }
+        return sb.toString();
     }
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         Function function = (Function) o;
-
-        if (!arguments.equals(function.arguments)) return false;
-        return info.equals(function.info);
+        return Objects.equals(arguments, function.arguments) &&
+               Objects.equals(info, function.info) &&
+               Objects.equals(filter, function.filter);
     }
 
     @Override
     public int hashCode() {
-        int result = arguments.hashCode();
-        result = 31 * result + info.hashCode();
-        return result;
+        return Objects.hash(arguments, info, filter);
     }
 }

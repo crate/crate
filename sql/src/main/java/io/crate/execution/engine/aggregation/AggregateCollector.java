@@ -23,6 +23,7 @@
 package io.crate.execution.engine.aggregation;
 
 import io.crate.data.RowN;
+import io.crate.expression.InputCondition;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.Input;
@@ -50,6 +51,7 @@ public class AggregateCollector implements Collector<Row, Object[], Iterable<Row
     private final AggregationFunction[] aggregations;
     private final Version indexVersionCreated;
     private final BigArrays bigArrays;
+    private final Input[] filters;
     private final Input[][] inputs;
     private final BiConsumer<Object[], Row> accumulator;
     private final Function<Object[], Iterable<Row>> finisher;
@@ -60,12 +62,14 @@ public class AggregateCollector implements Collector<Row, Object[], Iterable<Row
                        AggregationFunction[] aggregations,
                        Version indexVersionCreated,
                        BigArrays bigArrays,
-                       Input[]... inputs) {
+                       Input[][] inputs,
+                       Input[] filters) {
         this.expressions = expressions;
         this.ramAccounting = ramAccounting;
         this.aggregations = aggregations;
         this.indexVersionCreated = indexVersionCreated;
         this.bigArrays = bigArrays;
+        this.filters = filters;
         this.inputs = inputs;
         switch (mode) {
             case ITER_PARTIAL:
@@ -126,7 +130,9 @@ public class AggregateCollector implements Collector<Row, Object[], Iterable<Row
     private void iterate(Object[] state, Row row) {
         setRow(row);
         for (int i = 0; i < aggregations.length; i++) {
-            state[i] = aggregations[i].iterate(ramAccounting, state[i], inputs[i]);
+            if (InputCondition.matches(filters[i])) {
+                state[i] = aggregations[i].iterate(ramAccounting, state[i], inputs[i]);
+            }
         }
     }
 

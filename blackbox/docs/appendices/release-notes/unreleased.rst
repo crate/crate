@@ -53,7 +53,10 @@ Breaking Changes
 Changes
 =======
 
-- Addded support for `offset PRECEDING` and `offset FOLLOWING`
+- Added support for the filter clause in the
+  :ref:`aggregate expressions <aggregate-expressions>`.
+
+- Added support for `offset PRECEDING` and `offset FOLLOWING`
   :ref:`window definitions <window-definition>`.
 
 - Added support for using :ref:`ref-values` as top-level relation.

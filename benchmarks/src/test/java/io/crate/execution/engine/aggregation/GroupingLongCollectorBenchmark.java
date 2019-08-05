@@ -36,6 +36,7 @@ import io.crate.execution.engine.collect.collectors.LuceneBatchIterator;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LongColumnReference;
 import io.crate.expression.symbol.AggregateMode;
+import io.crate.expression.symbol.Literal;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Functions;
 import io.crate.types.DataTypes;
@@ -133,6 +134,7 @@ public class GroupingLongCollectorBenchmark {
             AggregateMode.ITER_FINAL,
             new AggregationFunction[] { sumAgg },
             new Input[][] { new Input[] { keyInput }},
+            new Input[] { Literal.BOOLEAN_TRUE },
             RAM_ACCOUNTING_CONTEXT,
             keyInput,
             Version.CURRENT,
@@ -150,6 +152,7 @@ public class GroupingLongCollectorBenchmark {
             AggregateMode.ITER_FINAL,
             new AggregationFunction[] { sumAgg },
             new Input[][] { new Input[] { keyInput }},
+            new Input[] { Literal.BOOLEAN_TRUE },
             RAM_ACCOUNTING_CONTEXT,
             keyInputs.get(0),
             DataTypes.LONG,

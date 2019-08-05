@@ -69,6 +69,7 @@ import org.junit.Test;
 
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Map;
 
 import static io.crate.testing.SymbolMatchers.isField;
@@ -260,19 +261,22 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         String functionName = CoalesceFunction.NAME;
         Symbol fn1 = ExpressionAnalyzer.allocateFunction(
             functionName,
-            Collections.singletonList(Literal.BOOLEAN_FALSE),
+            List.of(Literal.BOOLEAN_FALSE),
+            null,
             localContext,
             functions,
             CoordinatorTxnCtx.systemTransactionContext());
         Symbol fn2 = ExpressionAnalyzer.allocateFunction(
             functionName,
-            Collections.singletonList(Literal.BOOLEAN_FALSE),
+            List.of(Literal.BOOLEAN_FALSE),
+            null,
             localContext,
             functions,
             CoordinatorTxnCtx.systemTransactionContext());
         Symbol fn3 = ExpressionAnalyzer.allocateFunction(
             functionName,
-            Collections.singletonList(Literal.BOOLEAN_TRUE),
+            List.of(Literal.BOOLEAN_TRUE),
+            null,
             localContext,
             functions,
             CoordinatorTxnCtx.systemTransactionContext());
