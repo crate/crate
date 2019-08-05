@@ -22,6 +22,7 @@
 package io.crate.execution.engine.aggregation.impl;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.FunctionImplementation;
@@ -33,7 +34,10 @@ import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.util.BigArrays;
+import org.hamcrest.Matchers;
 import org.junit.Test;
+
+import java.util.List;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
@@ -69,6 +73,24 @@ public class CollectSetAggregationTest extends AggregationTest {
 
         Object newState = impl.partialType().streamer().readValueFrom(streamOutput.bytes().streamInput());
         assertEquals(state, newState);
+    }
+
+    @Test
+    public void test_value_adding_and_removal() {
+        AggregationFunction impl = (AggregationFunction) functions.get(
+            null, "collect_set", ImmutableList.of(Literal.of(DataTypes.LONG, null)), SearchPath.pathWithPGCatalogAndDoc());
+        AggregationFunction aggregationFunction = impl.optimizeForExecutionAsWindowFunction();
+
+        Object state = aggregationFunction.newState(
+            ramAccountingContext, Version.CURRENT, BigArrays.NON_RECYCLING_INSTANCE);
+        state = aggregationFunction.iterate(ramAccountingContext, state, Literal.of(10));
+        state = aggregationFunction.iterate(ramAccountingContext, state, Literal.of(10));
+
+        aggregationFunction.removeFromAggregatedState(ramAccountingContext, state, new Input[] { Literal.of(10) });
+        aggregationFunction.removeFromAggregatedState(ramAccountingContext, state, new Input[] { Literal.of(10) });
+
+        Object values = aggregationFunction.terminatePartial(ramAccountingContext, state);
+        assertThat((Object[]) values, Matchers.emptyArray());
     }
 
     @Test
