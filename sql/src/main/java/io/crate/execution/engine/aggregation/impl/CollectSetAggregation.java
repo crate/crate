@@ -216,8 +216,11 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
             if (value == null) {
                 return previousAggState;
             }
-            Long occurrencesCountForValue = (Long) previousAggState.get(value);
-            if (occurrencesCountForValue == 1) {
+            Long numTimesValueSeen = previousAggState.get(value);
+            if (numTimesValueSeen == null) {
+                return previousAggState;
+            }
+            if (numTimesValueSeen == 1) {
                 previousAggState.remove(value);
                 ramAccountingContext.addBytes(
                     // we initially accounted for values size + 32 bytes for entry, 4 bytes for increased capacity
@@ -225,7 +228,7 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
                     -RamAccountingContext.roundUp(innerTypeEstimator.estimateSize(value) + 48L)
                 );
             } else {
-                occurrencesCountForValue--;
+                previousAggState.put(value, numTimesValueSeen - 1);
             }
             return previousAggState;
         }
