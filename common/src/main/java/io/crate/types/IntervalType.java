@@ -82,10 +82,16 @@ public class IntervalType extends DataType<Period> implements FixedWidthType, St
     @Override
     public Period readValueFrom(StreamInput in) throws IOException {
         if (in.readBoolean()) {
-            int seconds = Math.toIntExact(in.readLong());
-            int days = in.readInt();
-            int months = in.readInt();
-            return new Period().withSeconds(seconds).withDays(days).withMonths(months);
+            return new Period(
+                in.readVInt(),
+                in.readVInt(),
+                in.readVInt(),
+                in.readVInt(),
+                in.readVInt(),
+                in.readVInt(),
+                in.readVInt(),
+                in.readVInt()
+            );
         } else {
             return null;
         }
@@ -96,9 +102,15 @@ public class IntervalType extends DataType<Period> implements FixedWidthType, St
         if (p == null) {
             out.writeBoolean(false);
         } else {
-            out.writeLong(p.getSeconds());
-            out.writeInt(p.getDays());
-            out.writeInt(p.getMonths());
+            out.writeBoolean(true);
+            out.writeVInt(p.getYears());
+            out.writeVInt(p.getMonths());
+            out.writeVInt(p.getWeeks());
+            out.writeVInt(p.getDays());
+            out.writeVInt(p.getHours());
+            out.writeVInt(p.getMinutes());
+            out.writeVInt(p.getSeconds());
+            out.writeVInt(p.getMillis());
         }
     }
 
