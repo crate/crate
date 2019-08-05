@@ -36,7 +36,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.function.Function;
 
-import static com.google.common.collect.Lists.transform;
+import static io.crate.analyze.QueriedSelectRelation.outputNamesOfFieldsWithUnifiedPossibleAliases;
 
 public final class QueriedTable<TR extends AbstractTableRelation> implements AnalyzedRelation {
 
@@ -67,7 +67,7 @@ public final class QueriedTable<TR extends AbstractTableRelation> implements Ana
         return new QueriedTable<>(
             isDistinct,
             tableRelation,
-            transform(fields.asList(), Field::path),
+            outputNamesOfFieldsWithUnifiedPossibleAliases(fields.asList()),
             querySpec.map(mapper)
         );
     }
