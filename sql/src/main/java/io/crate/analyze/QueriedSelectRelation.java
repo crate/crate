@@ -24,7 +24,6 @@ package io.crate.analyze;
 
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
-import io.crate.common.collections.Lists2;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.FieldReplacer;
@@ -35,11 +34,11 @@ import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.function.Function;
-
-import static com.google.common.collect.Lists.transform;
+import java.util.stream.Collectors;
 
 public class QueriedSelectRelation<T extends AnalyzedRelation> implements AnalyzedRelation {
 
@@ -159,7 +158,7 @@ public class QueriedSelectRelation<T extends AnalyzedRelation> implements Analyz
         return new QueriedSelectRelation<>(
             isDistinct,
             newSubRelation,
-            transform(fields.asList(), Field::path),
+            outputNamesOfFieldsWithUnifiedPossibleAliases(fields.asList()),
             querySpec.map(mapFieldsToNewRelation)
         );
     }
@@ -168,8 +167,23 @@ public class QueriedSelectRelation<T extends AnalyzedRelation> implements Analyz
         return new QueriedSelectRelation<>(
             isDistinct,
             subRelation,
-            Lists2.map(fields.asList(), Field::path),
+            outputNamesOfFieldsWithUnifiedPossibleAliases(fields.asList()),
             querySpec.map(mapper)
         );
+    }
+
+    /**
+     * Return a list of field paths.
+     * If multiple fields are pointing to the same symbol with different path, only the last path will be used.
+     * (e.g. if a column is referenced multiple times by using column aliases).
+     * This is required as a <p>reverseMapping</p> of a possible {@link io.crate.planner.operators.RelationBoundary}
+     * will act the same and thus won't return all different field path for the same pointers.
+     */
+    private static List<ColumnIdent> outputNamesOfFieldsWithUnifiedPossibleAliases(List<Field> fieldList) {
+        HashMap<Symbol, Field> fieldMap = new HashMap<>();
+        for (Field f : fieldList) {
+            fieldMap.put(f.pointer(), f);
+        }
+        return fieldList.stream().map(f -> fieldMap.get(f.pointer()).path()).collect(Collectors.toList());
     }
 }

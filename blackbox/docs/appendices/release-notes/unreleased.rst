@@ -95,6 +95,10 @@ Changes
 Fixes
 =====
 
+- Fixed an issue with using the same column under a different name/alias inside
+  more complex queries. Example:
+  ``SELECT count(*), t.x, t.x AS tx FROM t GROUP BY t.x``
+
 - Fixed an issue with the ``collect_set`` function. It could compute an
   incorrect result if used as a window function with shrinking window frames.
 
