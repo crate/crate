@@ -60,4 +60,17 @@ public class RelationAliasITest extends SQLTransportIntegrationTest {
                                                      "40| 2.5| 40.0\n" +
                                                      "50| 3.0| 40.0\n"));
     }
+
+    @Test
+    public void testSameColumnWithDifferentOutputNamesAndARelationBoundary() {
+        execute("create table t1 (id int, a text)");
+        execute("insert into t1 (id, a) values (1, 'foo'), (2, 'foo'), (3, 'bar')");
+        refresh();
+        execute("select count(*) as cnt, t.a as a_alias, t.a" +
+                " from t1 t" +
+                " group by 2" +
+                " order by 1");
+        assertThat(printedTable(response.rows()), is("1| bar| bar\n" +
+                                                     "2| foo| foo\n"));
+    }
 }

@@ -269,21 +269,4 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         QueriedTable queriedTable = (QueriedTable) ((AliasedAnalyzedRelation) relation.subRelation()).relation();
         assertThat(queriedTable.tableRelation().tableInfo(), is(t1Info));
     }
-
-    @Test
-    public void testPreserveMultipleAliasesOnSubSelect() throws Exception {
-        QueriedSelectRelation relation =
-            analyze("SELECT tt1.i, i as ii, tt1.ii + 2, ii as iii, abs(x), abs(tt1.x) as absx " +
-                    "FROM (select i, i+1 as ii, x from t1) as tt1");
-        assertThat(relation.fields().size(), is(6));
-        assertThat(relation.fields().get(0), isField("i"));
-        assertThat(relation.fields().get(1), isField("ii"));
-        assertThat(relation.fields().get(2), isField("(ii + 2)"));
-        assertThat(relation.fields().get(3), isField("iii"));
-        assertThat(relation.fields().get(4), isField("abs(x)"));
-        assertThat(relation.fields().get(5), isField("absx"));
-
-        QueriedTable queriedTable = (QueriedTable) ((AliasedAnalyzedRelation) relation.subRelation()).relation();
-        assertThat(queriedTable.tableRelation().tableInfo(), is(t1Info));
-    }
 }

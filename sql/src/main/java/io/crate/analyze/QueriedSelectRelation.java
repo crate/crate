@@ -34,10 +34,10 @@ import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-
-import static com.google.common.collect.Lists.transform;
+import java.util.stream.Collectors;
 
 public class QueriedSelectRelation implements AnalyzedRelation {
 
@@ -157,8 +157,23 @@ public class QueriedSelectRelation implements AnalyzedRelation {
         return new QueriedSelectRelation(
             isDistinct,
             newSubRelation,
-            transform(fields.asList(), Field::path),
+            outputNamesOfFieldsWithUnifiedPossibleAliases(fields.asList()),
             querySpec.map(mapFieldsToNewRelation)
         );
+    }
+
+    /**
+     * Return a list of field paths.
+     * If multiple fields are pointing to the same symbol with different path, only the last path will be used.
+     * (e.g. if a column is referenced multiple times by using column aliases).
+     * This is required as a <p>reverseMapping</p> of a possible {@link io.crate.planner.operators.RelationBoundary}
+     * will act the same and thus won't return all different field path for the same pointers.
+     */
+    public static List<ColumnIdent> outputNamesOfFieldsWithUnifiedPossibleAliases(List<Field> fieldList) {
+        HashMap<Symbol, Field> fieldMap = new HashMap<>();
+        for (Field f : fieldList) {
+            fieldMap.put(f.pointer(), f);
+        }
+        return fieldList.stream().map(f -> fieldMap.get(f.pointer()).path()).collect(Collectors.toList());
     }
 }
