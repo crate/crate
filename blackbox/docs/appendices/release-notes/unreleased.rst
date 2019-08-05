@@ -53,6 +53,9 @@ Breaking Changes
 Changes
 =======
 
+- Extended :ref:`table-functions-generate-series` to work with timestamp and
+  interval types.
+
 - Added support for the filter clause in the
   :ref:`aggregate expressions <aggregate-expressions>`.
 
