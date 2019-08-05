@@ -26,8 +26,6 @@ import com.google.common.collect.Ordering;
 import io.crate.analyze.where.DocKeys;
 import io.crate.common.collections.Lists2;
 import io.crate.common.collections.Sorted;
-import io.crate.data.Bucket;
-import io.crate.data.Buckets;
 import io.crate.data.Row;
 import io.crate.execution.engine.aggregation.impl.AggregationImplModule;
 import io.crate.execution.engine.window.WindowFunctionModule;
@@ -72,6 +70,7 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Function;
+import java.util.stream.StreamSupport;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
@@ -92,8 +91,11 @@ public class TestingHelpers {
         return printRows(Arrays.asList(result));
     }
 
-    public static String printedTable(Bucket result) {
-        return printRows(Arrays.asList(Buckets.materialize(result)));
+    public static String printedTable(Iterable<Row> result) {
+        return printRows(StreamSupport.stream(result.spliterator(), false)
+            .map(Row::materialize)
+            ::iterator
+        );
     }
 
     public static String printRows(Iterable<Object[]> rows) {

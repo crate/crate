@@ -22,18 +22,18 @@
 
 package io.crate.metadata.tablefunctions;
 
-import io.crate.data.Bucket;
+import io.crate.data.Row;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.TableInfo;
 
 /**
  * Interface which needs to be implemented by functions returning whole tables as result.
  */
-public abstract class TableFunctionImplementation<T> extends Scalar<Bucket, T> {
+public abstract class TableFunctionImplementation<T> extends Scalar<Iterable<Row>, T> {
 
     @Override
     public Symbol normalizeSymbol(Function function, TransactionContext txnCtx) {
