@@ -66,6 +66,9 @@ Changes
 
 - Added :ref:`AT TIME ZONE <timestamp-at-time-zone>` syntax.
 
+- Extended :ref:`table-functions-generate-series` to work with timestamp and
+  interval types.
+
 - Added the :ref:`cluster.routing.allocation.total_shards_per_node
   <cluster.routing.allocation.total_shards_per_node>` setting.
 
