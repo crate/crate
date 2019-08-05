@@ -53,6 +53,9 @@ Breaking Changes
 Changes
 =======
 
+- Extended :ref:`table-functions-generate-series` to work with timestamp and
+  interval types.
+
 - Addded support for `offset PRECEDING` and `offset FOLLOWING`
   :ref:`window definitions <window-definition>`.
 

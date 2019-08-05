@@ -107,10 +107,16 @@ possible to access values of the object using the subscript notation::
 
 Generate a series of values from inclusive start to inclusive stop with
 ``step`` increments.
-The ``step`` parameter is optional and defaults to 1.
 
-The arguments can be either of type ``integer`` or ``bigint`` and the return
-value will match the argument types.
+The argument can be ``integer`` or ``bigint``, in which case ``step`` is
+optional and defaults to ``1``.
+
+``start`` and ``stop`` can also be of type ``timestamp with time zone`` or
+``timestamp without time zone`` in which case ``step`` is required and must be
+of type ``interval``.
+
+The return value always matches the ``start`` / ``stop`` types.
+
 
 ::
 
@@ -124,3 +130,18 @@ value will match the argument types.
     |    4 |
     +------+
     SELECT 4 rows in set (... sec)
+
+::
+
+    cr> SELECT 
+    ...     x,
+    ...     date_format('%Y-%m-%d, %H:%i', x) 
+    ...     FROM generate_series('2019-01-01 00:00'::timestamp, '2019-01-04 00:00'::timestamp, '30 hours'::interval) AS t(x);
+    +---------------+-----------------------------------+
+    |             x | date_format('%Y-%m-%d, %H:%i', x) |
+    +---------------+-----------------------------------+
+    | 1546300800000 | 2019-01-01, 00:00                 |
+    | 1546408800000 | 2019-01-02, 06:00                 |
+    | 1546516800000 | 2019-01-03, 12:00                 |
+    +---------------+-----------------------------------+
+    SELECT 3 rows in set (... sec)
