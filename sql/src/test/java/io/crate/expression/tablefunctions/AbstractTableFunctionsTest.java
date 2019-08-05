@@ -24,8 +24,10 @@ package io.crate.expression.tablefunctions;
 
 import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.relations.DocTableRelation;
+import io.crate.data.ArrayBucket;
 import io.crate.data.Bucket;
 import io.crate.data.Input;
+import io.crate.data.Row;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -54,13 +56,15 @@ public abstract class AbstractTableFunctionsTest extends CrateUnitTest {
         functions = sqlExpressions.getInstance(Functions.class);
     }
 
-    protected Bucket execute(String expr) {
+    protected Iterable<Row> execute(String expr) {
         Symbol functionSymbol = sqlExpressions.asSymbol(expr);
         functionSymbol = sqlExpressions.normalize(functionSymbol);
         Function function = (Function) functionSymbol;
         FunctionIdent ident = function.info().ident();
         TableFunctionImplementation<?> tableFunction = (TableFunctionImplementation) functions.getQualified(ident);
-        return tableFunction.evaluate(txnCtx, function.arguments().stream().map(a -> (Input) a).toArray(Input[]::new));
+        return tableFunction.evaluate(
+            txnCtx,
+            function.arguments().stream().map(a -> (Input) a).toArray(Input[]::new));
     }
 
     protected void assertExecute(String expr, String expected) {

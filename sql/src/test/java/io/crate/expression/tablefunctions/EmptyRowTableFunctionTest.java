@@ -22,7 +22,8 @@
 
 package io.crate.expression.tablefunctions;
 
-import io.crate.data.Bucket;
+import com.google.common.collect.Iterables;
+import io.crate.data.Row;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;
@@ -36,7 +37,7 @@ public class EmptyRowTableFunctionTest extends AbstractTableFunctionsTest {
 
     @Test
     public void testEmptyRowReturnsOneRow() {
-        Bucket result = execute("empty_row()");
-        assertThat(result.size(), is(1));
+        Iterable<Row> result = execute("empty_row()");
+        assertThat(Iterables.size(result), is(1));
     }
 }
