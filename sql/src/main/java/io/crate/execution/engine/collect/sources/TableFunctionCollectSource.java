@@ -25,7 +25,6 @@ package io.crate.execution.engine.collect.sources;
 import com.google.common.collect.Iterables;
 import io.crate.analyze.OrderBy;
 import io.crate.data.BatchIterator;
-import io.crate.data.Bucket;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Row;
@@ -39,9 +38,9 @@ import io.crate.execution.engine.collect.ValueAndInputRow;
 import io.crate.expression.InputCondition;
 import io.crate.expression.InputFactory;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import org.elasticsearch.common.inject.Inject;
@@ -80,9 +79,9 @@ public class TableFunctionCollectSource implements CollectSource {
             topLevelInputs.add(ctx.add(symbol));
         }
 
-        Bucket buckets = functionImplementation.evaluate(txnCtx, inputs.toArray(new Input[0]));
+        Iterable<Row> result = functionImplementation.evaluate(txnCtx, inputs.toArray(new Input[0]));
         Iterable<Row> rows = Iterables.transform(
-            buckets,
+            result,
             new ValueAndInputRow<>(topLevelInputs, ctx.expressions()));
         Input<Boolean> condition = (Input<Boolean>) ctx.add(phase.where());
         rows = Iterables.filter(rows, InputCondition.asPredicate(condition));
