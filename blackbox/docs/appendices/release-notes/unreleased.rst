@@ -53,6 +53,9 @@ Breaking Changes
 Changes
 =======
 
+- Added the :ref:`cluster.routing.allocation.total_shards_per_node
+  <cluster.routing.allocation.total_shards_per_node>` setting.
+
 - Added :ref:`TIMEZONE <scalar-timezone>` scalar function.
 
 - Added support for the filter clause in

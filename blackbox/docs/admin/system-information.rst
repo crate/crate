@@ -150,6 +150,7 @@ applied cluster settings.
     | settings['cluster']['routing']['allocation']['require']['_id']                    | text             |
     | settings['cluster']['routing']['allocation']['require']['_ip']                    | text             |
     | settings['cluster']['routing']['allocation']['require']['_name']                  | text             |
+    | settings['cluster']['routing']['allocation']['total_shards_per_node']             | integer          |
     | settings['cluster']['routing']['rebalance']                                       | object           |
     | settings['cluster']['routing']['rebalance']['enable']                             | text             |
     | settings['discovery']                                                             | object           |
