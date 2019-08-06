@@ -66,8 +66,8 @@ public class VarianceAggregation extends AggregationFunction<VarianceAggregation
 
         private final Variance variance;
 
-        public VarianceState() {
-            this.variance = new Variance();
+        public VarianceState(Variance variance) {
+            this.variance = variance;
         }
 
         private void addValue(double val) {
@@ -127,9 +127,7 @@ public class VarianceAggregation extends AggregationFunction<VarianceAggregation
 
         @Override
         public VarianceState readValueFrom(StreamInput in) throws IOException {
-            VarianceState state = new VarianceState();
-            state.variance.readFrom(in);
-            return state;
+            return new VarianceState(new Variance(in));
         }
 
         @Override
@@ -156,7 +154,7 @@ public class VarianceAggregation extends AggregationFunction<VarianceAggregation
                                   Version indexVersionCreated,
                                   BigArrays bigArrays) {
         ramAccountingContext.addBytes(VarianceStateType.INSTANCE.fixedSize());
-        return new VarianceState();
+        return new VarianceState(new Variance());
     }
 
     @Override

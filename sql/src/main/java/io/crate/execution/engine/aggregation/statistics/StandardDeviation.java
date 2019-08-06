@@ -22,8 +22,19 @@
 package io.crate.execution.engine.aggregation.statistics;
 
 import org.apache.commons.math3.util.FastMath;
+import org.elasticsearch.common.io.stream.StreamInput;
+
+import java.io.IOException;
 
 public class StandardDeviation extends Variance {
+
+    public StandardDeviation() {
+    }
+
+    public StandardDeviation(StreamInput in) throws IOException {
+        super(in);
+    }
+
     @Override
     public double result() {
         return FastMath.sqrt(super.result());

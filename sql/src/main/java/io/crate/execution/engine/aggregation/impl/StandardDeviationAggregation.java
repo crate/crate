@@ -65,8 +65,8 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
 
         private final StandardDeviation stdDev;
 
-        public StdDevState() {
-            this.stdDev = new StandardDeviation();
+        public StdDevState(StandardDeviation stdDev) {
+            this.stdDev = stdDev;
         }
 
         private void addValue(double val) {
@@ -131,9 +131,7 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
 
         @Override
         public StdDevState readValueFrom(StreamInput in) throws IOException {
-            StdDevState state = new StdDevState();
-            state.stdDev.readFrom(in);
-            return state;
+            return new StdDevState(new StandardDeviation(in));
         }
 
         @Override
@@ -154,7 +152,7 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
                                 Version indexVersionCreated,
                                 BigArrays bigArrays) {
         ramAccountingContext.addBytes(StdDevStateType.INSTANCE.fixedSize());
-        return new StdDevState();
+        return new StdDevState(new StandardDeviation());
     }
 
     @Override
