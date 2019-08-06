@@ -27,7 +27,7 @@ import org.elasticsearch.common.io.stream.Writeable;
 
 import java.io.IOException;
 
-public class Variance implements Writeable {
+public class Variance implements Writeable, Comparable<Variance> {
 
     private double sumOfSqrs;
     private double sum;
@@ -77,4 +77,8 @@ public class Variance implements Writeable {
         count += other.count;
     }
 
+    @Override
+    public int compareTo(Variance o) {
+        return Double.compare(result(), o.result());
+    }
 }
