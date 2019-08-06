@@ -27,7 +27,7 @@ import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Streamable;
+import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.xcontent.ToXContentObject;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
@@ -53,7 +53,7 @@ public class ReplicationResponse extends ActionResponse {
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        shardInfo = ReplicationResponse.ShardInfo.readShardInfo(in);
+        shardInfo = new ReplicationResponse.ShardInfo(in);
     }
 
     @Override
@@ -70,25 +70,44 @@ public class ReplicationResponse extends ActionResponse {
         this.shardInfo = shardInfo;
     }
 
-    public static class ShardInfo implements Streamable, ToXContentObject {
+    public static class ShardInfo implements Writeable, ToXContentObject {
 
         private static final String TOTAL = "total";
         private static final String SUCCESSFUL = "successful";
         private static final String FAILED = "failed";
         private static final String FAILURES = "failures";
 
-        private int total;
-        private int successful;
-        private Failure[] failures = EMPTY;
-
-        public ShardInfo() {
-        }
+        private final int total;
+        private final int successful;
+        private final Failure[] failures;
 
         public ShardInfo(int total, int successful, Failure... failures) {
             assert total >= 0 && successful >= 0;
             this.total = total;
             this.successful = successful;
             this.failures = failures;
+        }
+
+        public ShardInfo(StreamInput in) throws IOException {
+            total = in.readVInt();
+            successful = in.readVInt();
+            int size = in.readVInt();
+            failures = new Failure[size];
+            for (int i = 0; i < size; i++) {
+                Failure failure = new Failure();
+                failure.readFrom(in);
+                failures[i] = failure;
+            }
+        }
+
+        @Override
+        public void writeTo(StreamOutput out) throws IOException {
+            out.writeVInt(total);
+            out.writeVInt(successful);
+            out.writeVInt(failures.length);
+            for (Failure failure : failures) {
+                failure.writeTo(out);
+            }
         }
 
         /**
@@ -132,29 +151,6 @@ public class ReplicationResponse extends ActionResponse {
         }
 
         @Override
-        public void readFrom(StreamInput in) throws IOException {
-            total = in.readVInt();
-            successful = in.readVInt();
-            int size = in.readVInt();
-            failures = new Failure[size];
-            for (int i = 0; i < size; i++) {
-                Failure failure = new Failure();
-                failure.readFrom(in);
-                failures[i] = failure;
-            }
-        }
-
-        @Override
-        public void writeTo(StreamOutput out) throws IOException {
-            out.writeVInt(total);
-            out.writeVInt(successful);
-            out.writeVInt(failures.length);
-            for (Failure failure : failures) {
-                failure.writeTo(out);
-            }
-        }
-
-        @Override
         public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
             builder.startObject();
             builder.field(TOTAL, total);
@@ -192,7 +188,7 @@ public class ReplicationResponse extends ActionResponse {
                 } else if (token == XContentParser.Token.START_ARRAY) {
                     if (FAILURES.equals(currentFieldName)) {
                         failuresList = new ArrayList<>();
-                        while ((token = parser.nextToken()) != XContentParser.Token.END_ARRAY) {
+                        while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
                             failuresList.add(Failure.fromXContent(parser));
                         }
                     } else {
@@ -202,10 +198,7 @@ public class ReplicationResponse extends ActionResponse {
                     parser.skipChildren(); // skip potential inner arrays for forward compatibility
                 }
             }
-            Failure[] failures = EMPTY;
-            if (failuresList != null) {
-                failures = failuresList.toArray(new Failure[failuresList.size()]);
-            }
+            Failure[] failures = failuresList == null ? EMPTY : failuresList.toArray(new Failure[0]);
             return new ShardInfo(total, successful, failures);
         }
 
@@ -216,12 +209,6 @@ public class ReplicationResponse extends ActionResponse {
                 ", successful=" + successful +
                 ", failures=" + Arrays.toString(failures) +
                 '}';
-        }
-
-        static ShardInfo readShardInfo(StreamInput in) throws IOException {
-            ShardInfo shardInfo = new ShardInfo();
-            shardInfo.readFrom(in);
-            return shardInfo;
         }
 
         public static class Failure extends ShardOperationFailedException implements ToXContentObject {
