@@ -24,29 +24,20 @@ package io.crate.monitor;
 
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Streamable;
+import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.monitor.os.OsStats;
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
-public class ExtendedOsStats implements Streamable {
+public class ExtendedOsStats implements Writeable {
 
-    private Cpu cpu;
-    private OsStats osStats;
-    private long timestamp;
-    private long uptime = -1;
-    private double[] loadAverage = new double[0];
-
-    public static ExtendedOsStats readExtendedOsStat(StreamInput in) throws IOException {
-        ExtendedOsStats stat = new ExtendedOsStats();
-        stat.readFrom(in);
-        return stat;
-    }
-
-    public ExtendedOsStats() {
-    }
+    private final Cpu cpu;
+    private final OsStats osStats;
+    private final long timestamp;
+    private final long uptime;
+    private final double[] loadAverage;
 
     public ExtendedOsStats(long timestamp, Cpu cpu, double[] load, long uptime, OsStats osStats) {
         this.timestamp = timestamp;
@@ -76,12 +67,11 @@ public class ExtendedOsStats implements Streamable {
         return osStats;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
+    public ExtendedOsStats(StreamInput in) throws IOException {
         timestamp = in.readLong();
         uptime = in.readLong();
         loadAverage = in.readDoubleArray();
-        cpu = in.readOptionalStreamable(Cpu::new);
+        cpu = in.readOptionalWriteable(Cpu::new);
         osStats = in.readOptionalWriteable(OsStats::new);
     }
 
@@ -90,21 +80,17 @@ public class ExtendedOsStats implements Streamable {
         out.writeLong(timestamp);
         out.writeLong(uptime);
         out.writeDoubleArray(loadAverage);
-        out.writeOptionalStreamable(cpu);
+        out.writeOptionalWriteable(cpu);
         out.writeOptionalWriteable(osStats);
     }
 
-    public static class Cpu implements Streamable {
+    public static class Cpu implements Writeable {
 
-        private short sys;
-        private short user;
-        private short idle;
-        private short stolen;
-        private short percent;
-
-        Cpu() {
-            this((short) -1);
-        }
+        private final short sys;
+        private final short user;
+        private final short idle;
+        private final short stolen;
+        private final short percent;
 
         Cpu(short percent) {
             this((short) -1, (short) -1, (short) -1, (short) -1, percent);
@@ -138,8 +124,7 @@ public class ExtendedOsStats implements Streamable {
             return percent;
         }
 
-        @Override
-        public void readFrom(StreamInput in) throws IOException {
+        public Cpu(StreamInput in) throws IOException {
             sys = in.readShort();
             user = in.readShort();
             idle = in.readShort();

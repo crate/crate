@@ -312,7 +312,7 @@ public class NodeStatsContext implements Writeable {
         this.processStats = in.readOptionalWriteable(ProcessStats::new);
         this.osStats = in.readOptionalWriteable(OsStats::new);
         this.fsInfo = in.readOptionalWriteable(FsInfo::new);
-        this.extendedOsStats = in.readBoolean() ? ExtendedOsStats.readExtendedOsStat(in) : null;
+        this.extendedOsStats = in.readOptionalWriteable(ExtendedOsStats::new);
         this.threadPools = in.readOptionalWriteable(ThreadPoolStats::new);
         this.httpStats = in.readOptionalWriteable(HttpStats::new);
         this.psqlStats = in.readOptionalWriteable(ConnectionStats::new);
@@ -351,7 +351,7 @@ public class NodeStatsContext implements Writeable {
         out.writeOptionalWriteable(processStats);
         out.writeOptionalWriteable(osStats);
         out.writeOptionalWriteable(fsInfo);
-        out.writeOptionalStreamable(extendedOsStats);
+        out.writeOptionalWriteable(extendedOsStats);
         out.writeOptionalWriteable(threadPools);
         out.writeOptionalWriteable(httpStats);
         out.writeOptionalWriteable(psqlStats);
