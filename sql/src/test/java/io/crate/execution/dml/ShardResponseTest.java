@@ -34,7 +34,7 @@ public class ShardResponseTest extends CrateUnitTest {
         ShardResponse shardResponse = new ShardResponse();
         shardResponse.add(0);
         shardResponse.add(1);
-        shardResponse.add(2, new ShardResponse.Failure());
+        shardResponse.add(2, new ShardResponse.Failure("dummyId", "dummyMessage", false));
 
         var result = new ShardResponse.CompressedResult();
         result.update(shardResponse);
