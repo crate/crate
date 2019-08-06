@@ -47,12 +47,12 @@ public class NodeStatsResponse extends TransportResponse {
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        context = in.readOptionalStreamable(() -> new NodeStatsContext(true));
+        context = in.readOptionalWriteable(streamInput -> new NodeStatsContext(streamInput, true));
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeOptionalStreamable(context);
+        out.writeOptionalWriteable(context);
     }
 }

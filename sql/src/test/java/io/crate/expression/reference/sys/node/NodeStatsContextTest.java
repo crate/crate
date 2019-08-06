@@ -26,6 +26,7 @@ import io.crate.monitor.ExtendedNodeInfo;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.Build;
 import org.elasticsearch.Version;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.InputStreamStreamInput;
 import org.elasticsearch.common.io.stream.OutputStreamStreamOutput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -91,8 +92,7 @@ public class NodeStatsContextTest extends CrateUnitTest {
 
         ByteArrayInputStream inBuffer = new ByteArrayInputStream(outBuffer.toByteArray());
         InputStreamStreamInput in = new InputStreamStreamInput(inBuffer);
-        NodeStatsContext ctx2 = new NodeStatsContext(true);
-        ctx2.readFrom(in);
+        NodeStatsContext ctx2 = new NodeStatsContext(in, true);
 
         assertThat(ctx1.id(), is(ctx2.id()));
         assertThat(ctx1.name(), is(ctx2.name()));
@@ -116,14 +116,11 @@ public class NodeStatsContextTest extends CrateUnitTest {
     @Test
     public void testStreamEmptyContext() throws Exception {
         NodeStatsContext ctx1 = new NodeStatsContext(false);
-        ByteArrayOutputStream outBuffer = new ByteArrayOutputStream();
-        StreamOutput out = new OutputStreamStreamOutput(outBuffer);
+        var out = new BytesStreamOutput();
         ctx1.writeTo(out);
 
-        ByteArrayInputStream inBuffer = new ByteArrayInputStream(outBuffer.toByteArray());
-        InputStreamStreamInput in = new InputStreamStreamInput(inBuffer);
-        NodeStatsContext ctx2 = new NodeStatsContext(false);
-        ctx2.readFrom(in);
+        var in = out.bytes().streamInput();
+        NodeStatsContext ctx2 = new NodeStatsContext(in, false);
 
         assertNull(ctx2.id());
         assertNull(ctx2.name());
@@ -145,14 +142,11 @@ public class NodeStatsContextTest extends CrateUnitTest {
         NodeStatsContext ctx1 = new NodeStatsContext(false);
         ctx1.transportPort(4300);
         ctx1.httpPort(null);
-        ByteArrayOutputStream outBuffer = new ByteArrayOutputStream();
-        StreamOutput out = new OutputStreamStreamOutput(outBuffer);
+        var out = new BytesStreamOutput();
         ctx1.writeTo(out);
 
-        ByteArrayInputStream inBuffer = new ByteArrayInputStream(outBuffer.toByteArray());
-        InputStreamStreamInput in = new InputStreamStreamInput(inBuffer);
-        NodeStatsContext ctx2 = new NodeStatsContext(false);
-        ctx2.readFrom(in);
+        var in = out.bytes().streamInput();
+        NodeStatsContext ctx2 = new NodeStatsContext(in, false);
 
         assertThat(ctx2.httpPort(), nullValue());
         assertThat(ctx2.transportPort(), is(4300));
