@@ -23,11 +23,11 @@
 package io.crate.execution.dsl.phases;
 
 import com.google.common.collect.ImmutableList;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Streamable;
-import org.apache.logging.log4j.LogManager;
+import org.elasticsearch.common.io.stream.Writeable;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -35,7 +35,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-public class NodeOperation implements Streamable {
+public class NodeOperation implements Writeable {
 
     private static final Logger LOGGER = LogManager.getLogger(NodeOperation.class);
 
@@ -57,7 +57,28 @@ public class NodeOperation implements Streamable {
     }
 
     public NodeOperation(StreamInput in) throws IOException {
-        readFrom(in);
+        executionPhase = ExecutionPhases.fromStream(in);
+        downstreamExecutionPhaseId = in.readVInt();
+        downstreamExecutionPhaseInputId = in.readByte();
+        int numExecutionNodes = in.readVInt();
+
+        List<String> executionNodes = new ArrayList<>();
+        for (int i = 0; i < numExecutionNodes; i++) {
+            executionNodes.add(in.readString());
+        }
+        this.downstreamNodes = executionNodes;
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        ExecutionPhases.toStream(out, executionPhase);
+        out.writeVInt(downstreamExecutionPhaseId);
+        out.writeByte(downstreamExecutionPhaseInputId);
+
+        out.writeVInt(downstreamNodes.size());
+        for (String executionNode : downstreamNodes) {
+            out.writeString(executionNode);
+        }
     }
 
     public static NodeOperation withoutDownstream(ExecutionPhase executionPhase) {
@@ -119,32 +140,6 @@ public class NodeOperation implements Streamable {
 
     public int downstreamExecutionPhaseId() {
         return downstreamExecutionPhaseId;
-    }
-
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        executionPhase = ExecutionPhases.fromStream(in);
-        downstreamExecutionPhaseId = in.readVInt();
-        downstreamExecutionPhaseInputId = in.readByte();
-        int numExecutionNodes = in.readVInt();
-
-        List<String> executionNodes = new ArrayList<>();
-        for (int i = 0; i < numExecutionNodes; i++) {
-            executionNodes.add(in.readString());
-        }
-        this.downstreamNodes = executionNodes;
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        ExecutionPhases.toStream(out, executionPhase);
-        out.writeVInt(downstreamExecutionPhaseId);
-        out.writeByte(downstreamExecutionPhaseInputId);
-
-        out.writeVInt(downstreamNodes.size());
-        for (String executionNode : downstreamNodes) {
-            out.writeString(executionNode);
-        }
     }
 
     @Override
