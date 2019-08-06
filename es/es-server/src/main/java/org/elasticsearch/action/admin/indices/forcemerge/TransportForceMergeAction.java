@@ -58,7 +58,7 @@ public class TransportForceMergeAction extends TransportBroadcastByNodeAction<Fo
 
     @Override
     protected EmptyResult readShardResult(StreamInput in) throws IOException {
-        return EmptyResult.readEmptyResultFrom(in);
+        return EmptyResult.INSTANCE;
     }
 
     @Override
