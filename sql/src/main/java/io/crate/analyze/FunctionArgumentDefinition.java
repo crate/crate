@@ -33,7 +33,7 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Streamable;
+import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
@@ -44,31 +44,34 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-public class FunctionArgumentDefinition implements Streamable, ToXContent {
+public class FunctionArgumentDefinition implements Writeable, ToXContent {
 
-    private String name;
-    private DataType type;
+    @Nullable
+    private final String name;
+    private final DataType<?> type;
 
-    private FunctionArgumentDefinition(@Nullable String name, DataType dataType) {
+    private FunctionArgumentDefinition(@Nullable String name, DataType<?> dataType) {
         this.name = name;
         this.type = dataType;
     }
 
-    private FunctionArgumentDefinition() {
+    public FunctionArgumentDefinition(StreamInput in) throws IOException {
+        name = in.readOptionalString();
+        type = DataTypes.fromStream(in);
     }
 
-    public static FunctionArgumentDefinition of(String name, DataType dataType) {
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        out.writeOptionalString(name);
+        DataTypes.toStream(type, out);
+    }
+
+    public static FunctionArgumentDefinition of(String name, DataType<?> dataType) {
         return new FunctionArgumentDefinition(name, dataType);
     }
 
-    public static FunctionArgumentDefinition of(DataType dataType) {
+    public static FunctionArgumentDefinition of(DataType<?> dataType) {
         return new FunctionArgumentDefinition(null, dataType);
-    }
-
-    public static FunctionArgumentDefinition fromStream(StreamInput in) throws IOException {
-        FunctionArgumentDefinition argumentDefinition = new FunctionArgumentDefinition();
-        argumentDefinition.readFrom(in);
-        return argumentDefinition;
     }
 
     public static List<FunctionArgumentDefinition> toFunctionArgumentDefinitions(List<FunctionArgument> arguments) {
@@ -83,17 +86,6 @@ public class FunctionArgumentDefinition implements Streamable, ToXContent {
         return type;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        name = in.readOptionalString();
-        type = DataTypes.fromStream(in);
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        out.writeOptionalString(name);
-        DataTypes.toStream(type, out);
-    }
 
     @Override
     public boolean equals(Object o) {
@@ -130,7 +122,7 @@ public class FunctionArgumentDefinition implements Streamable, ToXContent {
             throw new IllegalArgumentException("Expected a START_OBJECT but got " + parser.currentToken());
         }
         String name = null;
-        DataType type = null;
+        DataType type = DataTypes.UNDEFINED;
         XContentParser.Token token;
         while ((token = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
             if (token == XContentParser.Token.FIELD_NAME) {
