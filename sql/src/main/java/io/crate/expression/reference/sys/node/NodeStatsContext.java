@@ -30,7 +30,7 @@ import org.elasticsearch.Build;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Streamable;
+import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.http.HttpStats;
 import org.elasticsearch.monitor.fs.FsInfo;
 import org.elasticsearch.monitor.jvm.JvmStats;
@@ -41,7 +41,7 @@ import org.elasticsearch.threadpool.ThreadPoolStats;
 
 import java.io.IOException;
 
-public class NodeStatsContext implements Streamable {
+public class NodeStatsContext implements Writeable {
 
     private final boolean complete;
 
@@ -295,37 +295,37 @@ public class NodeStatsContext implements Streamable {
         this.openTransportConnections = openTransportConnections;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        id = DataTypes.STRING.readValueFrom(in);
-        name = DataTypes.STRING.readValueFrom(in);
-        hostname = DataTypes.STRING.readValueFrom(in);
-        timestamp = in.readLong();
-        version = in.readBoolean() ? Version.readVersion(in) : null;
-        build = in.readBoolean() ? Build.readBuild(in) : null;
-        restUrl = DataTypes.STRING.readValueFrom(in);
-        pgPort = in.readOptionalVInt();
-        httpPort = in.readOptionalVInt();
-        transportPort = in.readOptionalVInt();
-        jvmStats = in.readOptionalWriteable(JvmStats::new);
-        osInfo = in.readOptionalWriteable(OsInfo::new);
-        processStats = in.readOptionalWriteable(ProcessStats::new);
-        osStats = in.readOptionalWriteable(OsStats::new);
-        fsInfo = in.readOptionalWriteable(FsInfo::new);
-        extendedOsStats = in.readBoolean() ? ExtendedOsStats.readExtendedOsStat(in) : null;
-        threadPools = in.readOptionalWriteable(ThreadPoolStats::new);
-        httpStats = in.readOptionalWriteable(HttpStats::new);
-        psqlStats = in.readOptionalWriteable(ConnectionStats::new);
-        openTransportConnections = in.readLong();
-        clusterStateVersion = in.readLong();
+    public NodeStatsContext(StreamInput in, boolean complete) throws IOException {
+        this.complete = complete;
+        this.id = DataTypes.STRING.readValueFrom(in);
+        this.name = DataTypes.STRING.readValueFrom(in);
+        this.hostname = DataTypes.STRING.readValueFrom(in);
+        this.timestamp = in.readLong();
+        this.version = in.readBoolean() ? Version.readVersion(in) : null;
+        this.build = in.readBoolean() ? Build.readBuild(in) : null;
+        this.restUrl = DataTypes.STRING.readValueFrom(in);
+        this.pgPort = in.readOptionalVInt();
+        this.httpPort = in.readOptionalVInt();
+        this.transportPort = in.readOptionalVInt();
+        this.jvmStats = in.readOptionalWriteable(JvmStats::new);
+        this.osInfo = in.readOptionalWriteable(OsInfo::new);
+        this.processStats = in.readOptionalWriteable(ProcessStats::new);
+        this.osStats = in.readOptionalWriteable(OsStats::new);
+        this.fsInfo = in.readOptionalWriteable(FsInfo::new);
+        this.extendedOsStats = in.readBoolean() ? ExtendedOsStats.readExtendedOsStat(in) : null;
+        this.threadPools = in.readOptionalWriteable(ThreadPoolStats::new);
+        this.httpStats = in.readOptionalWriteable(HttpStats::new);
+        this.psqlStats = in.readOptionalWriteable(ConnectionStats::new);
+        this.openTransportConnections = in.readLong();
+        this.clusterStateVersion = in.readLong();
 
-        osName = DataTypes.STRING.readValueFrom(in);
-        osArch = DataTypes.STRING.readValueFrom(in);
-        osVersion = DataTypes.STRING.readValueFrom(in);
-        javaVersion = DataTypes.STRING.readValueFrom(in);
-        jvmName = DataTypes.STRING.readValueFrom(in);
-        jvmVendor = DataTypes.STRING.readValueFrom(in);
-        jvmVersion = DataTypes.STRING.readValueFrom(in);
+        this.osName = DataTypes.STRING.readValueFrom(in);
+        this.osArch = DataTypes.STRING.readValueFrom(in);
+        this.osVersion = DataTypes.STRING.readValueFrom(in);
+        this.javaVersion = DataTypes.STRING.readValueFrom(in);
+        this.jvmName = DataTypes.STRING.readValueFrom(in);
+        this.jvmVendor = DataTypes.STRING.readValueFrom(in);
+        this.jvmVersion = DataTypes.STRING.readValueFrom(in);
     }
 
     @Override
