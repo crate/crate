@@ -156,11 +156,8 @@ public final class IntervalParser {
             .multiply(new BigDecimal(1000)).intValue();
     }
 
-    static int parseInteger(String value) {
-        return new BigDecimal(value).intValue();
+    static int nullSafeIntGet(String value) {
+        return (value == null) ? null : Integer.parseInt(value);
     }
 
-    static int nullSafeIntGet(String value) {
-        return (value == null) ? 0 : Integer.parseInt(value);
-    }
 }

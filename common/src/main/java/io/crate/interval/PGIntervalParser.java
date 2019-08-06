@@ -25,10 +25,10 @@ package io.crate.interval;
 import org.joda.time.Period;
 
 import javax.annotation.Nullable;
+import java.math.BigDecimal;
 import java.util.StringTokenizer;
 
 import static io.crate.interval.IntervalParser.nullSafeIntGet;
-import static io.crate.interval.IntervalParser.parseInteger;
 import static io.crate.interval.IntervalParser.parseMilliSeconds;
 import static io.crate.interval.IntervalParser.roundToPrecision;
 
@@ -47,7 +47,7 @@ final class PGIntervalParser {
         if (!ISOFormat && value.length() == 3 && value.charAt(2) == '0') {
             return new Period();
         }
-
+        boolean dataParsed = false;
         int years = 0;
         int months = 0;
         int days = 0;
@@ -87,7 +87,6 @@ final class PGIntervalParser {
                         seconds = -seconds;
                         milliSeconds = -milliSeconds;
                     }
-
                     valueToken = null;
                 } else {
                     // This handles years, months, days for both, ISO and
@@ -108,13 +107,20 @@ final class PGIntervalParser {
                     } else if (token.startsWith("sec")) {
                         seconds = parseInteger(valueToken);
                         milliSeconds = parseMilliSeconds(valueToken);
+                    } else {
+                        throw new IllegalArgumentException("Invalid interval format " + value);
                     }
+                    dataParsed = true;
                 }
             }
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("Conversion of interval failed", e);
-
+            throw new IllegalArgumentException("Invalid interval format " + value);
         }
+
+        if (!dataParsed) {
+            throw new IllegalArgumentException("Invalid interval format " + value);
+        }
+
         Period period = new Period(years, months, 0, days, hours, minutes, seconds, milliSeconds);
 
         if (!ISOFormat && value.endsWith("ago")) {
@@ -125,4 +131,7 @@ final class PGIntervalParser {
     }
 
 
+    private static int parseInteger(String value) {
+        return new BigDecimal(value).intValue();
+    }
 }

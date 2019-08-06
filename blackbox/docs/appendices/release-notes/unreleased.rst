@@ -53,6 +53,10 @@ Breaking Changes
 Changes
 =======
 
+- Added the :ref:`INTERVAL <interval_data_type>` datatype and extended
+  :ref:`table-functions-generate-series` to work with timestamps and the
+  new :ref:`INTERVAL <interval_data_type>` type
+
 - Added the :ref:`PG_TYPEOF <pg_typeof>` system function.
 
 - Support implicit object creation in update statements. E.g. ``UPDATE t SET
@@ -65,9 +69,6 @@ Changes
   to control the compression algorithm used to store data.
 
 - Added :ref:`AT TIME ZONE <timestamp-at-time-zone>` syntax.
-
-- Extended :ref:`table-functions-generate-series` to work with timestamp and
-  interval types.
 
 - Added the :ref:`cluster.routing.allocation.total_shards_per_node
   <cluster.routing.allocation.total_shards_per_node>` setting.

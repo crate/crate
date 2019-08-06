@@ -26,7 +26,9 @@ import org.joda.time.Period;
 
 import javax.annotation.Nullable;
 
-import static io.crate.interval.IntervalParser.parseInteger;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+
 import static io.crate.interval.IntervalParser.parseMilliSeconds;
 
 
@@ -104,6 +106,15 @@ final class NumericalIntervalParser {
             return buildSecondsWithMillisPeriod(value, millis);
         }
         throw new IllegalArgumentException("Invalid start and end combination");
+    }
+
+    private static int parseInteger(String value) {
+        BigInteger result = new BigDecimal(value).toBigInteger();
+        if (result.compareTo(BigInteger.valueOf(Integer.MAX_VALUE)) > 0 ||
+            result.compareTo(BigInteger.valueOf(Integer.MIN_VALUE)) < 0) {
+            throw new ArithmeticException("Interval field value out of range " + value);
+        }
+        return result.intValue();
     }
 
     private static Period buildSecondsWithMillisPeriod(int seconds, int millis) {

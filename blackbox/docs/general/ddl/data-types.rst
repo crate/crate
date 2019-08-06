@@ -338,7 +338,7 @@ In these expressions, the desired time zone is specified as a string
 
 The scalar function :ref:`TIMEZONE <scalar-timezone>` (zone, timestamp) is
 equivalent to the SQL-conforming construct timestamp AT TIME ZONE zone.
-=======
+
 .. _interval_data_type:
 
 Interval
@@ -387,13 +387,15 @@ subset of these fields.
         INTERVAL [ {+ | -} ]'yy' <interval_qualifier> |
         INTERVAL [ {+ | -} ]'[ yy- ] mm' <interval_qualifier>
 
-For example
+For example::
 
-::
-
-    INTERVAL '01' YEAR              - 1 year
-    INTERVAL '02' MONTH             - 2 months
-    INTERVAL '01-02' YEAR TO MONTH  - 1 year and 2 months
+    cr> select INTERVAL '01-02' YEAR TO MONTH;
+    +--------------------------------+
+    | INTERVAL '01-02' YEAR TO MONTH |
+    +--------------------------------+
+    | 1 year 2 mons 00:00:00         |
+    +--------------------------------+
+    SELECT 1 row in set (... sec)
 
 .. _day-time-literal:
 
@@ -415,13 +417,75 @@ seconds precision of ``SECOND`` ranges from 0 to 6 digits.
         INTERVAL [ {+ | -} ]'mm [ :ss [ .nn ]]' <interval_qualifier>
         INTERVAL [ {+ | -} ]'ss [ .nn ]' <interval_qualifier>
 
-For example
+For example::
 
-::
+    cr> select INTERVAL '10 23:10' DAY TO MINUTE;
+    +-----------------------------------+
+    | INTERVAL '10 23:10' DAY TO MINUTE |
+    +-----------------------------------+
+    | 1 weeks 3 days 23:10:00           |
+    +-----------------------------------+
+    SELECT 1 row in set (... sec)
 
-    INTERVAL '100.123' SECOND         - 100.123 seconds
-    INTERVAL '40 23' DAY TO HOUR      - 40 days and 23 hours
-    INTERVAL '10 23:10' DAY TO MINUTE - 10 days, 23 hours and 10 minutes
+
+.. _string-literal:
+
+string-literal
+^^^^^^^^^^^^^^
+
+An interval ``string-literal`` can be defined by a combination of
+:ref:`day-time-literal <day-time-literal>` and
+:ref:`year-month-literal <year-month-literal>`
+or using the :ref:`iso-8601-format <iso-8601-format>` or
+:ref:`PostgreSQL-format <postgresql-format>`.
+
+For example::
+
+    cr> select INTERVAL '1-2 3 4:5:6';
+    +---------------------------------+
+    | CAST('1-2 3 4:5:6' AS interval) |
+    +---------------------------------+
+    | 1 year 2 mons 3 days 04:05:06   |
+    +---------------------------------+
+    SELECT 1 row in set (... sec)
+
+
+.. _iso-8601-format:
+
+ISO-8601 format
+"""""""""""""""
+
+The iso-8601 format describes a duration of time using the
+`ISO 8601 duration format`_ syntax.
+
+For example::
+
+    cr> select INTERVAL 'P1Y2M3DT4H5M6S';
+    +------------------------------------+
+    | CAST('P1Y2M3DT4H5M6S' AS interval) |
+    +------------------------------------+
+    | 1 year 2 mons 3 days 04:05:06      |
+    +------------------------------------+
+    SELECT 1 row in set (... sec)
+
+
+.. _postgresql-format:
+
+PostgreSQL format
+"""""""""""""""""
+
+The ``PostgreSQL`` format describes a duration of time using the `PostgreSQL interval format`_ syntax.
+
+For example::
+
+    cr> select INTERVAL '1 year 2 months 3 days 4 hours 5 minutes 6 seconds';
+    +------------------------------------------------------------------------+
+    | CAST('1 year 2 months 3 days 4 hours 5 minutes 6 seconds' AS interval) |
+    +------------------------------------------------------------------------+
+    | 1 year 2 mons 3 days 04:05:06                                          |
+    +------------------------------------------------------------------------+
+    SELECT 1 row in set (... sec)
+
 
 .. _temporal-arithmetic:
 
@@ -1113,3 +1177,6 @@ See the table below for a full list of aliases:
 .. _Trie: https://en.wikipedia.org/wiki/Trie
 .. _Tries: https://en.wikipedia.org/wiki/Trie
 .. _IEEE 754: http://ieeexplore.ieee.org/document/30711/?arnumber=30711&filter=AND(p_Publication_Number:2355)
+.. _PostgreSQL interval format: https://www.postgresql.org/docs/current/datatype-datetime.html#DATATYPE-INTERVAL-INPUT
+.. _ISO 8601 duration format: https://en.wikipedia.org/wiki/ISO_8601#Durations
+
