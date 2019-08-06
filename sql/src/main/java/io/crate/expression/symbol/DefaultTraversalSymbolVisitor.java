@@ -50,6 +50,9 @@ public abstract class DefaultTraversalSymbolVisitor<C, R> extends SymbolVisitor<
         for (Symbol arg : symbol.arguments()) {
             process(arg, context);
         }
+        if (symbol.filter() != null) {
+            process(symbol.filter(), context);
+        }
         WindowDefinition windowDefinition = symbol.windowDefinition();
         OrderBy orderBy = windowDefinition.orderBy();
         if (orderBy != null) {

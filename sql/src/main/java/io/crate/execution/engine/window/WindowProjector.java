@@ -33,10 +33,11 @@ import io.crate.data.Input;
 import io.crate.data.Projector;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.WindowAggProjection;
+import io.crate.execution.engine.aggregation.AggregationContext;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.expression.InputFactory;
-import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
@@ -48,9 +49,7 @@ import org.elasticsearch.common.util.BigArrays;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.function.IntSupplier;
 import java.util.function.Supplier;
@@ -83,23 +82,35 @@ public class WindowProjector implements Projector {
                                                  Version indexVersionCreated,
                                                  IntSupplier numThreads,
                                                  Executor executor) {
-        LinkedHashMap<io.crate.expression.symbol.WindowFunction, List<Symbol>> functionsWithInputs = projection.functionsWithInputs();
-        ArrayList<WindowFunction> windowFunctions = new ArrayList<>(functionsWithInputs.size());
-        List<CollectExpression<Row, ?>> windowFuncArgsExpressions = new ArrayList<>(functionsWithInputs.size());
-        Input[][] windowFuncArgsInputs = new Input[functionsWithInputs.size()][];
-        int inputsIndex = 0;
-        for (Map.Entry<io.crate.expression.symbol.WindowFunction, List<Symbol>> functionAndInputsEntry : functionsWithInputs.entrySet()) {
-            InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns(txnCtx);
-            ctx.add(functionAndInputsEntry.getValue());
-            windowFuncArgsInputs[inputsIndex] = ctx.topLevelInputs().toArray(new Input[0]);
-            inputsIndex++;
-            windowFuncArgsExpressions.addAll(ctx.expressions());
+        var windowFunctionContexts = projection.windowFunctionContexts();
+        var numWindowFunctions = windowFunctionContexts.size();
 
-            FunctionImplementation impl = functions.getQualified(functionAndInputsEntry.getKey().info().ident());
+        ArrayList<WindowFunction> windowFunctions = new ArrayList<>(numWindowFunctions);
+        ArrayList<CollectExpression<Row, ?>> windowFuncArgsExpressions = new ArrayList<>(numWindowFunctions);
+        Input[][] windowFuncArgsInputs = new Input[numWindowFunctions][];
+
+        for (int idx = 0; idx < numWindowFunctions; idx++) {
+            var windowFunctionContext = windowFunctionContexts.get(idx);
+
+            InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns(txnCtx);
+            ctx.add(windowFunctionContext.inputs());
+
+            FunctionImplementation impl = functions.getQualified(
+                windowFunctionContext.function().info().ident());
             if (impl instanceof AggregationFunction) {
+                Input<Boolean> filter;
+
+                if (windowFunctionContext.filter().symbolType() == SymbolType.LITERAL) {
+                    //noinspection unchecked
+                    filter = (Input<Boolean>) windowFunctionContext.filter();
+                } else {
+                    ctx.add(windowFunctionContext.filter());
+                    //noinspection unchecked
+                    filter = (Input<Boolean>) ctx.expressions().get(ctx.expressions().size() - 1);
+                }
                 windowFunctions.add(
                     new AggregateToWindowFunctionAdapter(
-                        (AggregationFunction) impl,
+                        new AggregationContext((AggregationFunction) impl, filter),
                         indexVersionCreated,
                         bigArrays,
                         ramAccountingContext)
@@ -109,6 +120,8 @@ public class WindowProjector implements Projector {
             } else {
                 throw new AssertionError("Function needs to be either a window or an aggregate function");
             }
+            windowFuncArgsExpressions.addAll(ctx.expressions());
+            windowFuncArgsInputs[idx] = ctx.topLevelInputs().toArray(new Input[0]);
         }
         var windowDefinition = projection.windowDefinition();
         var partitions = windowDefinition.partitions();
@@ -141,7 +154,7 @@ public class WindowProjector implements Projector {
                             Comparator<Object[]> cmpOrderBy,
                             int cellOffset,
                             ArrayList<WindowFunction> windowFunctions,
-                            List<CollectExpression<Row, ?>> argsExpressions,
+                            ArrayList<CollectExpression<Row, ?>> argsExpressions,
                             Input[][] args,
                             IntSupplier numThreads,
                             Executor executor) {

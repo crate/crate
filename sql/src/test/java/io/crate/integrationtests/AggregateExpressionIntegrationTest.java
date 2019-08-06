@@ -22,10 +22,10 @@
 
 package io.crate.integrationtests;
 
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import static io.crate.testing.TestingHelpers.printedTable;
+import static org.hamcrest.CoreMatchers.is;
 
 public class AggregateExpressionIntegrationTest extends SQLTransportIntegrationTest {
 
@@ -41,8 +41,8 @@ public class AggregateExpressionIntegrationTest extends SQLTransportIntegrationT
                 "GROUP BY y " +
                 "ORDER BY y");
         assertThat(printedTable(response.rows()),
-                   Matchers.is("a| [4]| [3, 4]\n" +
-                               "b| [4, 5]| [3, 4, 5]\n")
+                   is("a| [4]| [3, 4]\n" +
+                      "b| [4, 5]| [3, 4, 5]\n")
         );
     }
 
@@ -57,8 +57,8 @@ public class AggregateExpressionIntegrationTest extends SQLTransportIntegrationT
                 "GROUP BY y " +
                 "ORDER BY y");
         assertThat(printedTable(response.rows()),
-                   Matchers.is("a| [4]\n" +
-                               "NULL| [4, 5]\n")
+                   is("a| [4]\n" +
+                      "NULL| [4, 5]\n")
         );
     }
 
@@ -68,7 +68,7 @@ public class AggregateExpressionIntegrationTest extends SQLTransportIntegrationT
                 "   COLLECT_SET(x) FILTER (WHERE x > 3), " +
                 "   collect_set(x) FILTER (WHERE x > 2) " +
                 "FROM UNNEST([1, 3, 4, 2, 5, 4]) AS t(x, y)");
-        assertThat(printedTable(response.rows()), Matchers.is("[4, 5]| [3, 4, 5]\n"));
+        assertThat(printedTable(response.rows()), is("[4, 5]| [3, 4, 5]\n"));
     }
 
     // grouping by a single numeric value would result in a different
@@ -82,8 +82,8 @@ public class AggregateExpressionIntegrationTest extends SQLTransportIntegrationT
                 "   [1, 1, 2, 2]) AS t(x, y) " +
                 "GROUP BY y");
         assertThat(printedTable(response.rows()),
-                   Matchers.is("[2]\n" +
-                               "[3]\n"));
+                   is("[2]\n" +
+                      "[3]\n"));
     }
 
     @Test
@@ -95,8 +95,8 @@ public class AggregateExpressionIntegrationTest extends SQLTransportIntegrationT
                 "   [1, 1, null, null]) AS t(x, y) " +
                 "GROUP BY y");
         assertThat(printedTable(response.rows()),
-                   Matchers.is("[2]\n" +
-                               "[3]\n"));
+                   is("[2]\n" +
+                      "[3]\n"));
     }
 
     @Test
@@ -105,7 +105,7 @@ public class AggregateExpressionIntegrationTest extends SQLTransportIntegrationT
                 "   COLLECT_SET(x) FILTER (WHERE x in (SELECT UNNEST([1, 3]))) " +
                 "FROM UNNEST([1, 2]) AS t(x)");
         assertThat(printedTable(response.rows()),
-                   Matchers.is("[1]\n"));
+                   is("[1]\n"));
     }
 
     @Test
@@ -120,7 +120,7 @@ public class AggregateExpressionIntegrationTest extends SQLTransportIntegrationT
                 "GROUP BY y " +
                 "ORDER BY y");
         assertThat(printedTable(response.rows()),
-                   Matchers.is("a| [1, 4]| [3]\n" +
-                               "b| [4]| [3, 5]\n"));
+                   is("a| [1, 4]| [3]\n" +
+                      "b| [4]| [3, 5]\n"));
     }
 }

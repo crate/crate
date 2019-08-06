@@ -27,29 +27,32 @@ import io.crate.execution.engine.aggregation.impl.AggregationImplModule;
 import io.crate.execution.engine.aggregation.impl.SumAggregation;
 import io.crate.expression.operator.OperatorModule;
 import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.WindowFunction;
+import io.crate.expression.symbol.WindowFunctionContext;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.types.DataTypes;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 import static java.util.Collections.singletonList;
-import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
 public class WindowAggProjectionSerialisationTest {
+
+    private Functions functions = new ModulesBuilder()
+        .add(new AggregationImplModule())
+        .add(new OperatorModule())
+        .createInjector().getInstance(Functions.class);
 
     @Test
     public void testWindowAggProjectionSerialisation() throws IOException {
@@ -61,36 +64,75 @@ public class WindowAggProjectionSerialisationTest {
             new WindowDefinition(singletonList(Literal.of(2L)), null, null);
 
         WindowFunction firstWindowFunction = new WindowFunction(
-            sumFunctionImpl.info(), singletonList(Literal.of(1L)), partitionByOneWindowDef);
+            sumFunctionImpl.info(), singletonList(Literal.of(1L)), null, partitionByOneWindowDef);
         WindowFunction secondWindowFunction = new WindowFunction(
-            sumFunctionImpl.info(), singletonList(Literal.of(2L)), partitionByTwoWindowDef);
+            sumFunctionImpl.info(), singletonList(Literal.of(2L)), null, partitionByTwoWindowDef);
 
-        LinkedHashMap<WindowFunction, List<Symbol>> functionsWithInputs = new LinkedHashMap<>(2, 1f);
-        functionsWithInputs.put(firstWindowFunction, singletonList(Literal.of(1L)));
-        functionsWithInputs.put(secondWindowFunction, singletonList(Literal.of(2L)));
+        ArrayList<WindowFunctionContext> windowFunctionContexts = new ArrayList<>(2);
+        windowFunctionContexts.add(new WindowFunctionContext(
+            firstWindowFunction,
+            singletonList(Literal.of(1L)),
+            Literal.BOOLEAN_TRUE));
+        windowFunctionContexts.add(new WindowFunctionContext(
+            secondWindowFunction,
+            singletonList(Literal.of(2L)),
+            Literal.BOOLEAN_TRUE));
 
-        WindowAggProjection windowAggProjection =
-            new WindowAggProjection(
-                partitionByOneWindowDef,
-                functionsWithInputs,
-                Collections.singletonList(Literal.of(42L)));
-        BytesStreamOutput output = new BytesStreamOutput();
+        var expectedWindowAggProjection = new WindowAggProjection(
+            partitionByOneWindowDef,
+            windowFunctionContexts,
+            Collections.singletonList(Literal.of(42L)));
+
+        var output = new BytesStreamOutput();
+        expectedWindowAggProjection.writeTo(output);
+
+        var in = output.bytes().streamInput();
+        var actualWindowAggProjection = new WindowAggProjection(in);
+
+        assertThat(actualWindowAggProjection, is(expectedWindowAggProjection));
+    }
+
+    @Test
+    public void test_window_agg_projection_serialization_with_filter_before_4_1_0()
+        throws IOException {
+        FunctionImplementation sumFunctionImpl = getSumFunction();
+
+        WindowDefinition partitionByOneWindowDef =
+            new WindowDefinition(singletonList(Literal.of(1L)), null, null);
+
+        WindowFunction windowFunction = new WindowFunction(
+            sumFunctionImpl.info(),
+            singletonList(Literal.of(2L)),
+            null,
+            partitionByOneWindowDef);
+
+        ArrayList<WindowFunctionContext> windowFunctionContexts = new ArrayList<>(1);
+        windowFunctionContexts.add(new WindowFunctionContext(
+            windowFunction,
+            singletonList(Literal.of(2L)),
+            Literal.BOOLEAN_FALSE));
+
+        var windowAggProjection = new WindowAggProjection(
+            partitionByOneWindowDef,
+            windowFunctionContexts,
+            Collections.singletonList(Literal.of(42L)));
+
+        var output = new BytesStreamOutput();
+        output.setVersion(Version.V_4_0_0);
         windowAggProjection.writeTo(output);
 
-        StreamInput input = output.bytes().streamInput();
-        WindowAggProjection fromInput = new WindowAggProjection(input);
+        var input = output.bytes().streamInput();
+        input.setVersion(Version.V_4_0_0);
+        var actualWindowAggProjection = new WindowAggProjection(input);
 
-        Map<WindowFunction, List<Symbol>> deserialisedFunctionsByWindow = fromInput.functionsWithInputs();
-
-        assertThat(deserialisedFunctionsByWindow, equalTo(functionsWithInputs));
+        assertThat(actualWindowAggProjection.windowFunctionContexts().size(), is(1));
+        assertThat(
+            actualWindowAggProjection.windowFunctionContexts().get(0).filter(),
+            is(Literal.BOOLEAN_TRUE));
     }
 
     private FunctionImplementation getSumFunction() {
-        Functions functions = new ModulesBuilder()
-            .add(new AggregationImplModule())
-            .add(new OperatorModule()).createInjector().getInstance(Functions.class);
-
-        return functions.getQualified(new FunctionIdent(SumAggregation.NAME, Arrays.asList(DataTypes.FLOAT)));
+        return functions.getQualified(
+            new FunctionIdent(SumAggregation.NAME, List.of(DataTypes.FLOAT)));
     }
-
 }

@@ -166,6 +166,7 @@ public class EvaluatingNormalizer {
             return new WindowFunction(
                 normalizedFunction.info(),
                 normalizedFunction.arguments(),
+                normalizedFunction.filter(),
                 function.windowDefinition().map(s -> process(s, context))
             );
         }
