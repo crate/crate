@@ -394,4 +394,53 @@ public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
         execute("select (d - 10) from t order by (d - 10) nulls first limit 2");
         assertThat(response.rows()[0][0], is(nullValue()));
     }
+
+    @Test
+    public void test_add_interval_to_timestamp() {
+        execute("select '86400000'::timestamp without time zone + interval '1 second'");
+        assertThat(response.rowCount(), Matchers.is(1L));
+        assertThat(response.rows()[0][0], Matchers.is(86401000L));
+    }
+
+    @Test
+    public void test_add_timestamp_to_interval() {
+        execute("select interval '1 second' + '86400000'::timestamp without time zone");
+        assertThat(response.rowCount(), Matchers.is(1L));
+        assertThat(response.rows()[0][0], Matchers.is(86401000L));
+    }
+
+    @Test
+    public void test_add_null_to_interval() {
+        execute("select interval '1 second' + null");
+        assertThat(response.rowCount(), Matchers.is(1L));
+        assertThat(response.rows()[0][0], Matchers.is(86401000L));
+    }
+
+    @Test
+    public void test_add_interval_to_null() {
+        execute("select null + interval '1 second'");
+        assertThat(response.rowCount(), Matchers.is(1L));
+        assertThat(response.rows()[0][0], Matchers.is(86401000L));
+    }
+
+    @Test
+    public void test_subtract_interval_from_timestamp() {
+        execute("select '86401000'::timestamp without time zone - interval '1 second'");
+        assertThat(response.rows()[0][0], Matchers.is(86400000L));
+    }
+
+    @Test
+    public void test_subtract_timestamp_to_interval() {
+        execute("select interval '1 second' - '86401000'::timestamp without time zone");
+        assertThat(response.rowCount(), Matchers.is(1L));
+        assertThat(response.rows()[0][0], Matchers.is(86400000L));
+    }
+
+
+    @Test
+    public void test_null() {
+        execute("select null");
+        assertThat(response.rowCount(), Matchers.is(1L));
+        assertThat(response.rows()[0][0], Matchers.is(86400000L));
+    }
 }
