@@ -44,7 +44,7 @@ public abstract class FunctionCopyVisitor<C> extends SymbolVisitor<C, Symbol> {
         switch (args.size()) {
             // specialized functions to avoid allocations for common cases
             case 0:
-                return func;
+                return zeroArg(func, context);
 
             case 1:
                 return oneArg(func, context);
@@ -96,6 +96,21 @@ public abstract class FunctionCopyVisitor<C> extends SymbolVisitor<C, Symbol> {
             return func;
         }
         return new Function(func.info(), List.of(newArg1, newArg2), newFilter);
+    }
+
+    private Function zeroArg(Function func, C context) {
+        assert func.arguments().size() == 0 : "size of arguments must be zero";
+
+        Symbol filter = func.filter();
+        if (filter == null) {
+            return func;
+        }
+
+        Symbol newFilter = process(filter, context);
+        if (filter == newFilter) {
+            return func;
+        }
+        return new Function(func.info(), List.of(), newFilter);
     }
 
     private Function oneArg(Function func, C context) {

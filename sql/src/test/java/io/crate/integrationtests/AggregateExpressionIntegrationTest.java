@@ -123,4 +123,12 @@ public class AggregateExpressionIntegrationTest extends SQLTransportIntegrationT
                    is("a| [1, 4]| [3]\n" +
                       "b| [4]| [3, 5]\n"));
     }
+
+    @Test
+    public void test_filter_in_count_star_aggregate_function() {
+        execute("SELECT" +
+                "   COUNT(*) FILTER (WHERE x > 2) " +
+                "FROM UNNEST([1, 3, 4, 2, 5, 4]) as t(x)");
+        assertThat(printedTable(response.rows()), is("4\n"));
+    }
 }
