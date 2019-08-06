@@ -706,6 +706,7 @@ If no ``format_string`` is given the default format will be used::
     +-----------------------------+
     SELECT 1 row in set (... sec)
 
+.. _date-format-timezone:
 
 Timezone
 ........

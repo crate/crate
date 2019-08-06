@@ -53,6 +53,8 @@ Breaking Changes
 Changes
 =======
 
+- Added :ref:`AT TIME ZONE <timestamp-at-time-zone>` syntax.
+
 - Added the :ref:`cluster.routing.allocation.total_shards_per_node
   <cluster.routing.allocation.total_shards_per_node>` setting.
 

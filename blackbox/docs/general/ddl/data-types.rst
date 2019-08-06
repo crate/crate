@@ -316,6 +316,28 @@ converted to UTC without considering the time zone indication.
     date time types. That means date type columns must always be declared
     beforehand.
 
+.. _timestamp-at-time-zone:
+
+``timestamp with/without time zone AT TIME ZONE zone``
+......................................................
+
+AT TIME ZONE converts a timestamp without time zone to/from a timestamp with
+time zone. It has the following variants:
+
+.. csv-table::
+   :header: "Expression", "Return Type", "Description"
+
+   "timestamp without time zone AT TIME ZONE zone", "timestamp with time zone", "Treat \
+   given time stamp without time zone as located in the specified time zone"
+   "timestamp with time zone AT TIME ZONE zone", "timestamp without time zone", "Convert \
+   given time stamp with time zone to the new time zone, with no time zone designation"
+
+In these expressions, the desired time zone is specified as a string
+(e.g., 'Europe/Madrid', '+02:00'). See :ref:`Timezone <date-format-timezone>`.
+
+The scalar function :ref:`TIMEZONE <scalar-timezone>` (zone, timestamp) is
+equivalent to the SQL-conforming construct timestamp AT TIME ZONE zone.
+
 .. _geo_point_data_type:
 
 ``geo_point``
