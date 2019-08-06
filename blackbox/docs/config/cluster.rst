@@ -804,6 +804,20 @@ nodes every 30 seconds. This can also be changed by setting the
    false will disable the allocation decider, but the node checks will still be
    active and warn users about running low on disk space.
 
+
+.. _cluster.routing.allocation.total_shards_per_node:
+
+**cluster.routing.allocation.total_shards_per_node**
+   | *Default*: ``-1``
+   | *Runtime*: ``yes``
+
+   Limits the number of shards that can be allocated per node. ``-1`` means
+   unlimited.
+   Setting this to for example ``1000`` will prevent CrateDB from assigning
+   more than 1000 shards per node. A node with 1000 shards would be excluded
+   from allocation decisions and CrateDB would attempt to allocate shards to
+   other nodes, or leave shards unassigned if no suitable node can be found.
+
 Recovery
 --------
 

@@ -46,6 +46,7 @@ import org.elasticsearch.cluster.routing.allocation.decider.ClusterRebalanceAllo
 import org.elasticsearch.cluster.routing.allocation.decider.ConcurrentRebalanceAllocationDecider;
 import org.elasticsearch.cluster.routing.allocation.decider.EnableAllocationDecider;
 import org.elasticsearch.cluster.routing.allocation.decider.FilterAllocationDecider;
+import org.elasticsearch.cluster.routing.allocation.decider.ShardsLimitAllocationDecider;
 import org.elasticsearch.cluster.routing.allocation.decider.ThrottlingAllocationDecider;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -57,7 +58,6 @@ import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import org.elasticsearch.indices.recovery.RecoverySettings;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -68,44 +68,42 @@ import java.util.stream.Stream;
 
 public final class CrateSettings implements ClusterStateListener {
 
-    public static final List<CrateSetting> CRATE_CLUSTER_SETTINGS = Collections.unmodifiableList(
-        Arrays.asList(
-            // STATS
-            JobsLogService.STATS_ENABLED_SETTING,
-            JobsLogService.STATS_JOBS_LOG_SIZE_SETTING,
-            JobsLogService.STATS_JOBS_LOG_EXPIRATION_SETTING,
-            JobsLogService.STATS_JOBS_LOG_FILTER,
-            JobsLogService.STATS_JOBS_LOG_PERSIST_FILTER,
-            JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING,
-            JobsLogService.STATS_OPERATIONS_LOG_EXPIRATION_SETTING,
-            TableStatsService.STATS_SERVICE_REFRESH_INTERVAL_SETTING,
-            CrateCircuitBreakerService.JOBS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING,
-            CrateCircuitBreakerService.JOBS_LOG_CIRCUIT_BREAKER_OVERHEAD_SETTING,
-            CrateCircuitBreakerService.OPERATIONS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING,
-            CrateCircuitBreakerService.OPERATIONS_LOG_CIRCUIT_BREAKER_OVERHEAD_SETTING,
+    public static final List<CrateSetting> CRATE_CLUSTER_SETTINGS = List.of(
+        // STATS
+        JobsLogService.STATS_ENABLED_SETTING,
+        JobsLogService.STATS_JOBS_LOG_SIZE_SETTING,
+        JobsLogService.STATS_JOBS_LOG_EXPIRATION_SETTING,
+        JobsLogService.STATS_JOBS_LOG_FILTER,
+        JobsLogService.STATS_JOBS_LOG_PERSIST_FILTER,
+        JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING,
+        JobsLogService.STATS_OPERATIONS_LOG_EXPIRATION_SETTING,
+        TableStatsService.STATS_SERVICE_REFRESH_INTERVAL_SETTING,
+        CrateCircuitBreakerService.JOBS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING,
+        CrateCircuitBreakerService.JOBS_LOG_CIRCUIT_BREAKER_OVERHEAD_SETTING,
+        CrateCircuitBreakerService.OPERATIONS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING,
+        CrateCircuitBreakerService.OPERATIONS_LOG_CIRCUIT_BREAKER_OVERHEAD_SETTING,
 
-            // INDICES
-            CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_LIMIT_SETTING,
-            CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_OVERHEAD_SETTING,
+        // INDICES
+        CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_LIMIT_SETTING,
+        CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_OVERHEAD_SETTING,
 
-            // BULK
-            ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING,
+        // BULK
+        ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING,
 
-            // GRACEFUL STOP
-            DecommissioningService.DECOMMISSION_INTERNAL_SETTING_GROUP,
-            DecommissioningService.GRACEFUL_STOP_MIN_AVAILABILITY_SETTING,
-            DecommissioningService.GRACEFUL_STOP_TIMEOUT_SETTING,
-            DecommissioningService.GRACEFUL_STOP_FORCE_SETTING,
+        // GRACEFUL STOP
+        DecommissioningService.DECOMMISSION_INTERNAL_SETTING_GROUP,
+        DecommissioningService.GRACEFUL_STOP_MIN_AVAILABILITY_SETTING,
+        DecommissioningService.GRACEFUL_STOP_TIMEOUT_SETTING,
+        DecommissioningService.GRACEFUL_STOP_FORCE_SETTING,
 
-            // UDC
-            UDCService.UDC_ENABLED_SETTING,
-            UDCService.UDC_URL_SETTING,
-            UDCService.UDC_INITIAL_DELAY_SETTING,
-            UDCService.UDC_INTERVAL_SETTING
-        ));
+        // UDC
+        UDCService.UDC_ENABLED_SETTING,
+        UDCService.UDC_URL_SETTING,
+        UDCService.UDC_INITIAL_DELAY_SETTING,
+        UDCService.UDC_INTERVAL_SETTING
+    );
 
-    private static final List<CrateSetting> EXPOSED_ES_SETTINGS = Collections.unmodifiableList(
-        Arrays.asList(
+    private static final List<CrateSetting> EXPOSED_ES_SETTINGS = List.of(
             // CLUSTER
             CrateSetting.of(InternalClusterInfoService.INTERNAL_CLUSTER_INFO_UPDATE_INTERVAL_SETTING, DataTypes.STRING),
             // CLUSTER ROUTING
@@ -113,6 +111,7 @@ public final class CrateSettings implements ClusterStateListener {
             CrateSetting.of(EnableAllocationDecider.CLUSTER_ROUTING_REBALANCE_ENABLE_SETTING, DataTypes.STRING),
             CrateSetting.of(ClusterRebalanceAllocationDecider.CLUSTER_ROUTING_ALLOCATION_ALLOW_REBALANCE_SETTING, DataTypes.STRING),
             CrateSetting.of(ConcurrentRebalanceAllocationDecider.CLUSTER_ROUTING_ALLOCATION_CLUSTER_CONCURRENT_REBALANCE_SETTING, DataTypes.INTEGER),
+            CrateSetting.of(ShardsLimitAllocationDecider.CLUSTER_TOTAL_SHARDS_PER_NODE_SETTING, DataTypes.INTEGER),
             CrateSetting.of(ThrottlingAllocationDecider.CLUSTER_ROUTING_ALLOCATION_NODE_INITIAL_PRIMARIES_RECOVERIES_SETTING, DataTypes.INTEGER),
             CrateSetting.of(ThrottlingAllocationDecider.CLUSTER_ROUTING_ALLOCATION_NODE_CONCURRENT_RECOVERIES_SETTING, DataTypes.INTEGER),
             CrateSetting.of(Setting.simpleString(
@@ -175,7 +174,7 @@ public final class CrateSettings implements ClusterStateListener {
             CrateSetting.of(HierarchyCircuitBreakerService.FIELDDATA_CIRCUIT_BREAKER_OVERHEAD_SETTING, DataTypes.DOUBLE),
             CrateSetting.of(HierarchyCircuitBreakerService.REQUEST_CIRCUIT_BREAKER_LIMIT_SETTING, DataTypes.STRING),
             CrateSetting.of(HierarchyCircuitBreakerService.REQUEST_CIRCUIT_BREAKER_OVERHEAD_SETTING, DataTypes.DOUBLE)
-        ));
+        );
 
 
     public static final List<CrateSetting> BUILT_IN_SETTINGS = Stream.concat(CRATE_CLUSTER_SETTINGS.stream(), EXPOSED_ES_SETTINGS.stream())
@@ -189,8 +188,7 @@ public final class CrateSettings implements ClusterStateListener {
     public static boolean isValidSetting(String name) {
         return isLoggingSetting(name) ||
                BUILT_IN_SETTING_NAMES.contains(name) ||
-               BUILT_IN_SETTING_NAMES.stream().filter(s -> s.startsWith(name + "."))
-                   .collect(Collectors.toList()).isEmpty() == false;
+               BUILT_IN_SETTING_NAMES.stream().noneMatch(s -> s.startsWith(name + ".")) == false;
     }
 
     public static List<String> settingNamesByPrefix(String prefix) {
