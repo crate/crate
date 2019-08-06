@@ -157,7 +157,11 @@ public final class IntervalParser {
     }
 
     static int parseInteger(String value) {
-        return new BigDecimal(value).intValue();
+        try {
+            return new BigDecimal(value).intValueExact();
+        } catch (ArithmeticException e) {
+            throw new RuntimeException("Interval field value out of range " + value);
+        }
     }
 
     static int nullSafeIntGet(String value) {
