@@ -67,7 +67,7 @@ public class CreateUserDefinedFunctionRequest extends MasterNodeRequest<CreateUs
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        userDefinedFunctionMetaData = UserDefinedFunctionMetaData.fromStream(in);
+        userDefinedFunctionMetaData = new UserDefinedFunctionMetaData(in);
         replace = in.readBoolean();
     }
 
