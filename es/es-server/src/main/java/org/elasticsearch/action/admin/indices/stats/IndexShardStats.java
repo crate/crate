@@ -19,22 +19,18 @@
 
 package org.elasticsearch.action.admin.indices.stats;
 
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Streamable;
 import org.elasticsearch.index.shard.ShardId;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.Iterator;
 
-public class IndexShardStats implements Iterable<ShardStats>, Streamable {
+public class IndexShardStats implements Iterable<ShardStats> {
 
-    private ShardId shardId;
+    private final ShardId shardId;
+    private final ShardStats[] shards;
 
-    private ShardStats[] shards;
-
-    private IndexShardStats() {}
+    private CommonStats total = null;
+    private CommonStats primary = null;
 
     public IndexShardStats(ShardId shardId, ShardStats[] shards) {
         this.shardId = shardId;
@@ -49,16 +45,10 @@ public class IndexShardStats implements Iterable<ShardStats>, Streamable {
         return shards;
     }
 
-    public ShardStats getAt(int position) {
-        return shards[position];
-    }
-
     @Override
     public Iterator<ShardStats> iterator() {
         return Arrays.stream(shards).iterator();
     }
-
-    private CommonStats total = null;
 
     public CommonStats getTotal() {
         if (total != null) {
@@ -71,8 +61,6 @@ public class IndexShardStats implements Iterable<ShardStats>, Streamable {
         total = stats;
         return stats;
     }
-
-    private CommonStats primary = null;
 
     public CommonStats getPrimary() {
         if (primary != null) {
@@ -87,30 +75,4 @@ public class IndexShardStats implements Iterable<ShardStats>, Streamable {
         primary = stats;
         return stats;
     }
-
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        shardId = new ShardId(in);
-        int shardSize = in.readVInt();
-        shards = new ShardStats[shardSize];
-        for (int i = 0; i < shardSize; i++) {
-            shards[i] = ShardStats.readShardStats(in);
-        }
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        shardId.writeTo(out);
-        out.writeVInt(shards.length);
-        for (ShardStats stats : shards) {
-            stats.writeTo(out);
-        }
-    }
-
-    public static IndexShardStats readIndexShardStats(StreamInput in) throws IOException {
-        IndexShardStats indexShardStats = new IndexShardStats();
-        indexShardStats.readFrom(in);
-        return indexShardStats;
-    }
-
 }
