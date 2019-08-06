@@ -68,7 +68,7 @@ public class UserDefinedFunctionsMetaDataTest extends CrateUnitTest {
         FUNCTION_META_DATA.writeTo(out);
 
         StreamInput in = out.bytes().streamInput();
-        UserDefinedFunctionMetaData udfMeta2 = UserDefinedFunctionMetaData.fromStream(in);
+        UserDefinedFunctionMetaData udfMeta2 = new UserDefinedFunctionMetaData(in);
         assertThat(FUNCTION_META_DATA, is(udfMeta2));
 
         assertThat(udfMeta2.schema(), is("my_schema"));
@@ -121,7 +121,7 @@ public class UserDefinedFunctionsMetaDataTest extends CrateUnitTest {
     public void testDataTypeStreaming() throws Exception {
         XContentBuilder builder = XContentFactory.jsonBuilder();
 
-        ArrayType type = new ArrayType(new ArrayType(DataTypes.STRING));
+        var type = new ArrayType<>(new ArrayType<>(DataTypes.STRING));
         UserDefinedFunctionMetaData.DataTypeXContent.toXContent(type, builder, ToXContent.EMPTY_PARAMS);
         XContentParser parser = JsonXContent.jsonXContent.createParser(
             xContentRegistry(), DeprecationHandler.THROW_UNSUPPORTED_OPERATION, BytesReference.toBytes(BytesReference.bytes(builder)));
