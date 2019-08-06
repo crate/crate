@@ -67,7 +67,7 @@ public final class PKLookupPhase extends AbstractProjectionsPhase implements Col
 
     public PKLookupPhase(StreamInput in) throws IOException {
         super(in);
-        distInfo = DistributionInfo.fromStream(in);
+        distInfo = new DistributionInfo(in);
         toCollect = Symbols.listFromStream(in);
 
         int numNodes = in.readVInt();

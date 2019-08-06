@@ -123,8 +123,7 @@ public abstract class JoinPhase extends AbstractProjectionsPhase implements Upst
 
     JoinPhase(StreamInput in) throws IOException {
         super(in);
-
-        distributionInfo = DistributionInfo.fromStream(in);
+        distributionInfo = new DistributionInfo(in);
 
         int numExecutionNodes = in.readVInt();
         if (numExecutionNodes > 0) {

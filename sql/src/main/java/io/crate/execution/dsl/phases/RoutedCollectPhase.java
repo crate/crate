@@ -204,7 +204,7 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
 
     public RoutedCollectPhase(StreamInput in) throws IOException {
         super(in);
-        distributionInfo = DistributionInfo.fromStream(in);
+        distributionInfo = new DistributionInfo(in);
 
         toCollect = Symbols.listFromStream(in);
         maxRowGranularity = RowGranularity.fromStream(in);

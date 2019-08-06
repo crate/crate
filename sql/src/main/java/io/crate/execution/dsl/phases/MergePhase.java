@@ -25,10 +25,10 @@ package io.crate.execution.dsl.phases;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import io.crate.execution.dsl.projection.Projection;
 import io.crate.expression.symbol.Symbols;
 import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.distribution.DistributionInfo;
-import io.crate.execution.dsl.projection.Projection;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -149,7 +149,7 @@ public class MergePhase extends AbstractProjectionsPhase implements UpstreamPhas
 
     public MergePhase(StreamInput in) throws IOException {
         super(in);
-        distributionInfo = DistributionInfo.fromStream(in);
+        distributionInfo = new DistributionInfo(in);
         numUpstreams = in.readVInt();
         numInputs = in.readVInt();
 
