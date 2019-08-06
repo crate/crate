@@ -85,7 +85,7 @@ public class ShardStats implements Streamable, Writeable {
     public void readFrom(StreamInput in) throws IOException {
         shardRouting = new ShardRouting(in);
         commonStats = new CommonStats(in);
-        commitStats = CommitStats.readOptionalCommitStatsFrom(in);
+        commitStats = in.readOptionalWriteable(CommitStats::new);
         statePath = in.readString();
         dataPath = in.readString();
         isCustomDataPath = in.readBoolean();
@@ -96,7 +96,7 @@ public class ShardStats implements Streamable, Writeable {
     public void writeTo(StreamOutput out) throws IOException {
         shardRouting.writeTo(out);
         commonStats.writeTo(out);
-        out.writeOptionalStreamable(commitStats);
+        out.writeOptionalWriteable(commitStats);
         out.writeString(statePath);
         out.writeString(dataPath);
         out.writeBoolean(isCustomDataPath);
