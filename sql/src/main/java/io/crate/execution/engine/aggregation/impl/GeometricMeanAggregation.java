@@ -22,7 +22,6 @@
 package io.crate.execution.engine.aggregation.impl;
 
 import com.google.common.collect.ComparisonChain;
-import com.google.common.collect.ImmutableList;
 import io.crate.Streamer;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.Input;
@@ -37,7 +36,7 @@ import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Streamable;
+import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.util.BigArrays;
 
 import javax.annotation.Nullable;
@@ -55,7 +54,7 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
     public static void register(AggregationImplModule mod) {
         for (DataType<?> t : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
             mod.register(new GeometricMeanAggregation(new FunctionInfo(
-                new FunctionIdent(NAME, ImmutableList.<DataType>of(t)), DataTypes.DOUBLE,
+                new FunctionIdent(NAME, List.of(t)), DataTypes.DOUBLE,
                 FunctionInfo.Type.AGGREGATE)));
         }
         mod.register(new GeometricMeanAggregation(new FunctionInfo(
@@ -63,7 +62,7 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
             FunctionInfo.Type.AGGREGATE)));
     }
 
-    public static class GeometricMeanState implements Comparable<GeometricMeanState>, Streamable {
+    public static class GeometricMeanState implements Comparable<GeometricMeanState>, Writeable {
         /**
          * Number of values that have been added
          */
@@ -77,6 +76,17 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
         public GeometricMeanState() {
             value = 0d;
             n = 0;
+        }
+
+        public GeometricMeanState(StreamInput in) throws IOException {
+            n = in.readVLong();
+            value = in.readDouble();
+        }
+
+        @Override
+        public void writeTo(StreamOutput out) throws IOException {
+            out.writeVLong(n);
+            out.writeDouble(value);
         }
 
         private void addValue(double val) {
@@ -108,18 +118,6 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
                 .compare(value, o.value)
                 .compare(n, o.n)
                 .result();
-        }
-
-        @Override
-        public void readFrom(StreamInput in) throws IOException {
-            n = in.readVLong();
-            value = in.readDouble();
-        }
-
-        @Override
-        public void writeTo(StreamOutput out) throws IOException {
-            out.writeVLong(n);
-            out.writeDouble(value);
         }
     }
 
@@ -166,9 +164,7 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
 
         @Override
         public GeometricMeanState readValueFrom(StreamInput in) throws IOException {
-            GeometricMeanState state = new GeometricMeanState();
-            state.readFrom(in);
-            return state;
+            return new GeometricMeanState(in);
         }
 
         @Override
