@@ -21,24 +21,37 @@ package org.elasticsearch.index.shard;
 
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Streamable;
+import org.elasticsearch.common.io.stream.Writeable;
 
 import java.io.IOException;
 
-public class DocsStats implements Streamable {
+public final class DocsStats implements Writeable {
 
-    long count = 0;
-    long deleted = 0;
-    long totalSizeInBytes = 0;
+    private long count;
+    private long deleted;
+    private long totalSizeInBytes;
 
     public DocsStats() {
-
+        this(0, 0, 0);
     }
 
     public DocsStats(long count, long deleted, long totalSizeInBytes) {
         this.count = count;
         this.deleted = deleted;
         this.totalSizeInBytes = totalSizeInBytes;
+    }
+
+    public DocsStats(StreamInput in) throws IOException {
+        count = in.readVLong();
+        deleted = in.readVLong();
+        totalSizeInBytes = in.readVLong();
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        out.writeVLong(count);
+        out.writeVLong(deleted);
+        out.writeVLong(totalSizeInBytes);
     }
 
     public void add(DocsStats other) {
@@ -56,19 +69,5 @@ public class DocsStats implements Streamable {
 
     public long getCount() {
         return this.count;
-    }
-
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        count = in.readVLong();
-        deleted = in.readVLong();
-        totalSizeInBytes = in.readVLong();
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        out.writeVLong(count);
-        out.writeVLong(deleted);
-        out.writeVLong(totalSizeInBytes);
     }
 }

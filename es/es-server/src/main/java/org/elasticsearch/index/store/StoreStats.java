@@ -19,28 +19,35 @@
 
 package org.elasticsearch.index.store;
 
-import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Streamable;
+import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.unit.ByteSizeValue;
-import org.elasticsearch.common.xcontent.ToXContent.Params;
 import org.elasticsearch.common.xcontent.ToXContentFragment;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 
 import java.io.IOException;
 
-public class StoreStats implements Streamable, ToXContentFragment {
+public final class StoreStats implements Writeable, ToXContentFragment {
 
     private long sizeInBytes;
 
     public StoreStats() {
-
     }
 
     public StoreStats(long sizeInBytes) {
         this.sizeInBytes = sizeInBytes;
     }
+
+    public StoreStats(StreamInput in) throws IOException {
+        sizeInBytes = in.readVLong();
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        out.writeVLong(sizeInBytes);
+    }
+
 
     public void add(StoreStats stats) {
         if (stats == null) {
@@ -64,16 +71,6 @@ public class StoreStats implements Streamable, ToXContentFragment {
 
     public ByteSizeValue getSize() {
         return size();
-    }
-
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        sizeInBytes = in.readVLong();
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        out.writeVLong(sizeInBytes);
     }
 
     @Override
