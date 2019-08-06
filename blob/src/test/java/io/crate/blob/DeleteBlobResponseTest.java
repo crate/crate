@@ -35,7 +35,7 @@ public class DeleteBlobResponseTest extends CrateUnitTest {
     public void testDeleteBlobResponseStreaming() throws Exception {
         DeleteBlobResponse response = new DeleteBlobResponse();
         response.deleted = true;
-        response.setShardInfo(new ReplicationResponse.ShardInfo());
+        response.setShardInfo(new ReplicationResponse.ShardInfo(10, 10));
         BytesStreamOutput out = new BytesStreamOutput();
         response.writeTo(out);
 

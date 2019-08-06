@@ -22,21 +22,17 @@ package org.elasticsearch.index.cache.query;
 import org.apache.lucene.search.DocIdSet;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Streamable;
-import org.elasticsearch.common.unit.ByteSizeValue;
-import org.elasticsearch.common.xcontent.ToXContent;
-import org.elasticsearch.common.xcontent.ToXContentFragment;
-import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.io.stream.Writeable;
 
 import java.io.IOException;
 
-public class QueryCacheStats implements Streamable, ToXContentFragment {
+public class QueryCacheStats implements Writeable {
 
-    long ramBytesUsed;
-    long hitCount;
-    long missCount;
-    long cacheCount;
-    long cacheSize;
+    private long ramBytesUsed;
+    private long hitCount;
+    private long missCount;
+    private long cacheCount;
+    private long cacheSize;
 
     public QueryCacheStats() {
     }
@@ -49,66 +45,7 @@ public class QueryCacheStats implements Streamable, ToXContentFragment {
         this.cacheSize = cacheSize;
     }
 
-    public void add(QueryCacheStats stats) {
-        ramBytesUsed += stats.ramBytesUsed;
-        hitCount += stats.hitCount;
-        missCount += stats.missCount;
-        cacheCount += stats.cacheCount;
-        cacheSize += stats.cacheSize;
-    }
-
-    public long getMemorySizeInBytes() {
-        return ramBytesUsed;
-    }
-
-    public ByteSizeValue getMemorySize() {
-        return new ByteSizeValue(ramBytesUsed);
-    }
-
-    /**
-     * The total number of lookups in the cache.
-     */
-    public long getTotalCount() {
-        return hitCount + missCount;
-    }
-
-    /**
-     * The number of successful lookups in the cache.
-     */
-    public long getHitCount() {
-        return hitCount;
-    }
-
-    /**
-     * The number of lookups in the cache that failed to retrieve a {@link DocIdSet}.
-     */
-    public long getMissCount() {
-        return missCount;
-    }
-
-    /**
-     * The number of {@link DocIdSet}s that have been cached.
-     */
-    public long getCacheCount() {
-        return cacheCount;
-    }
-
-    /**
-     * The number of {@link DocIdSet}s that are in the cache.
-     */
-    public long getCacheSize() {
-        return cacheSize;
-    }
-
-    /**
-     * The number of {@link DocIdSet}s that have been evicted from the cache.
-     */
-    public long getEvictions() {
-        return cacheCount - cacheSize;
-    }
-
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
+    public QueryCacheStats(StreamInput in) throws IOException {
         ramBytesUsed = in.readLong();
         hitCount = in.readLong();
         missCount = in.readLong();
@@ -125,30 +62,18 @@ public class QueryCacheStats implements Streamable, ToXContentFragment {
         out.writeLong(cacheSize);
     }
 
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, ToXContent.Params params) throws IOException {
-        builder.startObject(Fields.QUERY_CACHE);
-        builder.humanReadableField(Fields.MEMORY_SIZE_IN_BYTES, Fields.MEMORY_SIZE, getMemorySize());
-        builder.field(Fields.TOTAL_COUNT, getTotalCount());
-        builder.field(Fields.HIT_COUNT, getHitCount());
-        builder.field(Fields.MISS_COUNT, getMissCount());
-        builder.field(Fields.CACHE_SIZE, getCacheSize());
-        builder.field(Fields.CACHE_COUNT, getCacheCount());
-        builder.field(Fields.EVICTIONS, getEvictions());
-        builder.endObject();
-        return builder;
+    public void add(QueryCacheStats stats) {
+        ramBytesUsed += stats.ramBytesUsed;
+        hitCount += stats.hitCount;
+        missCount += stats.missCount;
+        cacheCount += stats.cacheCount;
+        cacheSize += stats.cacheSize;
     }
 
-    static final class Fields {
-        static final String QUERY_CACHE = "query_cache";
-        static final String MEMORY_SIZE = "memory_size";
-        static final String MEMORY_SIZE_IN_BYTES = "memory_size_in_bytes";
-        static final String TOTAL_COUNT = "total_count";
-        static final String HIT_COUNT = "hit_count";
-        static final String MISS_COUNT = "miss_count";
-        static final String CACHE_SIZE = "cache_size";
-        static final String CACHE_COUNT = "cache_count";
-        static final String EVICTIONS = "evictions";
+    /**
+     * The number of {@link DocIdSet}s that are in the cache.
+     */
+    public long getCacheSize() {
+        return cacheSize;
     }
-
 }
