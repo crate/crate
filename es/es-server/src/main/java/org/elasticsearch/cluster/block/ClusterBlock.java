@@ -22,7 +22,6 @@ package org.elasticsearch.cluster.block;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Streamable;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.xcontent.ToXContentFragment;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -34,16 +33,16 @@ import java.util.EnumSet;
 import java.util.Locale;
 import java.util.Objects;
 
-public class ClusterBlock implements Streamable, Writeable, ToXContentFragment {
+public class ClusterBlock implements Writeable, ToXContentFragment {
 
-    private int id;
-    private @Nullable String uuid;
-    private String description;
-    private EnumSet<ClusterBlockLevel> levels;
-    private boolean retryable;
-    private boolean disableStatePersistence = false;
-    private boolean allowReleaseResources;
-    private RestStatus status;
+    private final int id;
+    private final @Nullable String uuid;
+    private final String description;
+    private final EnumSet<ClusterBlockLevel> levels;
+    private final boolean retryable;
+    private final boolean disableStatePersistence;
+    private final boolean allowReleaseResources;
+    private final RestStatus status;
 
     public ClusterBlock(StreamInput in) throws IOException {
         id = in.readVInt();
@@ -140,11 +139,6 @@ public class ClusterBlock implements Streamable, Writeable, ToXContentFragment {
         builder.endArray();
         builder.endObject();
         return builder;
-    }
-
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        throw new UnsupportedOperationException("usage of Streamable is to be replaced by Writeable");
     }
 
     @Override
