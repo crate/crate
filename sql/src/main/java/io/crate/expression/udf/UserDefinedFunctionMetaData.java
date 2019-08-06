@@ -75,7 +75,7 @@ public class UserDefinedFunctionMetaData implements Writeable, ToXContent {
         int numArguments = in.readVInt();
         arguments = new ArrayList<>(numArguments);
         for (int i = 0; i < numArguments; i++) {
-            arguments.add(FunctionArgumentDefinition.fromStream(in));
+            arguments.add(new FunctionArgumentDefinition(in));
         }
         argumentTypes = argumentTypesFrom(arguments());
         returnType = DataTypes.fromStream(in);
