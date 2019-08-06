@@ -135,6 +135,14 @@ public class GenerateSeriesTest extends AbstractTableFunctionsTest {
     }
 
     @Test
+    public void test_generate_series_with_start_after_end_and_positive_step_returns_empty_result() {
+        assertExecute(
+            "generate_series('2020-01-01'::timestamp, '2019-03-04'::timestamp, '1 days -4 hours'::interval)",
+            ""
+        );
+    }
+
+    @Test
     public void test_step_is_mandatory_for_timestamps() {
         expectedException.expectMessage(
             "generate_series(start, stop) has type `timestamp with time zone` for start, but requires long/int values for start and stop, or if used with timestamps, it requires a third argument for the step (interval)");

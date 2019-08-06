@@ -26,6 +26,8 @@ import org.joda.time.Period;
 
 import javax.annotation.Nullable;
 
+import java.util.regex.Pattern;
+
 import static io.crate.interval.IntervalParser.nullSafeIntGet;
 import static io.crate.interval.IntervalParser.roundToPrecision;
 
@@ -34,7 +36,8 @@ final class SQLStandardIntervalParser {
     private enum ParserState {
         NOTHING_PARSED,
         HMS_PARSED,
-        DAY_PARSED,
+        SECOND_PARSED,
+        DAYS_PARSED,
         YEAR_MONTH_PARSED
     }
 
@@ -63,8 +66,11 @@ final class SQLStandardIntervalParser {
         try {
             String part;
             // Parse from backwards
-            for (int i = values.length; i > 0; i--) {
-                part = values[i - 1];
+            for (int i = values.length - 1; i >= 0; i--) {
+                part = values[i];
+                if (part.isBlank()) {
+                    continue;
+                }
                 if (part.startsWith("-")) {
                     negative = true;
                     part = part.substring(1);
@@ -85,6 +91,8 @@ final class SQLStandardIntervalParser {
                         minutes = nullSafeIntGet(hms[1]);
                     } else if (hms.length == 1) {
                         seconds = nullSafeIntGet(hms[0]);
+                    } else {
+                        throw new IllegalArgumentException("Invalid interval format " + value);
                     }
                     if (negative) {
                         hours = -hours;
@@ -94,9 +102,6 @@ final class SQLStandardIntervalParser {
                     }
                     state = ParserState.HMS_PARSED;
                 } else if (part.contains("-")) {
-                    if (state == ParserState.YEAR_MONTH_PARSED) {
-                        throw new IllegalArgumentException("Invalid interval format " + value);
-                    }
                     //YEAR-MONTH
                     String[] ym = part.split("-");
                     if (ym.length == 2) {
@@ -111,29 +116,53 @@ final class SQLStandardIntervalParser {
                         negative = false;
                     }
                     state = ParserState.YEAR_MONTH_PARSED;
-                } else {
-                    // Try to parse as day or second
-                    if (state == ParserState.HMS_PARSED) {
-                        days = nullSafeIntGet(part);
-                        if (negative) {
-                            days = -days;
-                            negative = false;
+                } else if (state == ParserState.NOTHING_PARSED) {
+                    // Trying to parse days or second by looking ahead
+                    // and trying to guess what the next value is
+                    int number = nullSafeIntGet(part);
+                    if (i - 1 >= 0) {
+                        String next = values[i - 1];
+                        if (YEAR_MONTH_PATTERN.matcher(next).matches()) {
+                            days = number;
+                            if (negative) {
+                                days = -days;
+                                negative = false;
+                            }
+                            state = ParserState.DAYS_PARSED;
+                        } else {
+                            //Invalid day/second only combination
+                            throw new IllegalArgumentException("Invalid interval format " + value);
                         }
-                        state = ParserState.DAY_PARSED;
-                    } else if (state == ParserState.NOTHING_PARSED) {
-                        seconds = nullSafeIntGet(part);
+                    } else {
+                        seconds = number;
                         if (negative) {
                             seconds = -seconds;
                             negative = false;
                         }
-                        state = ParserState.HMS_PARSED;
+                        state = ParserState.SECOND_PARSED;
                     }
-
+                } else if (state == ParserState.HMS_PARSED) {
+                    days = nullSafeIntGet(part);
+                    if (negative) {
+                        days = -days;
+                        negative = false;
+                    }
+                    state = ParserState.DAYS_PARSED;
+                } else if (state == ParserState.SECOND_PARSED) {
+                    //Invalid day second combination
+                    throw new IllegalArgumentException("Invalid interval format " + value);
                 }
             }
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("Invalid interval fornat " + value);
+            throw new IllegalArgumentException("Invalid interval format " + value);
         }
+
+        if (ParserState.NOTHING_PARSED == state) {
+            throw new IllegalArgumentException("Invalid interval format " + value);
+        }
+
         return new Period(years, months, 0, days, hours, minutes, seconds, 0);
     }
+
+    private static final Pattern YEAR_MONTH_PATTERN = Pattern.compile("-?\\d{1,9}-\\d{1,9}");
 }

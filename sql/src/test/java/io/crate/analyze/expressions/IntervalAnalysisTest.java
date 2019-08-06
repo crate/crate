@@ -22,6 +22,7 @@
 
 package io.crate.analyze.expressions;
 
+import io.crate.exceptions.ConversionException;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.joda.time.Period;
@@ -101,11 +102,23 @@ public class IntervalAnalysisTest extends CrateDummyClusterServiceUnitTest {
         assertThat(symbol, isLiteral(new Period().withMinutes(1).withMillis(100)));
     }
 
-
     @Test
     public void testIntervalInvalidStartEnd() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Startfield must be less significant than Endfield");
         e.asSymbol("INTERVAL '1' MONTH TO YEAR");
     }
+
+    @Test
+    public void test_odd() throws Exception {
+        var symbol =  e.asSymbol("INTERVAL '100.123' SECOND");
+        assertThat(symbol, isLiteral(new Period().withMinutes(1).withSeconds(40).withMillis(123)));
+    }
+
+    @Test
+    public void test_more_odds() throws Exception {
+        expectedException.expect(ConversionException.class);
+        e.asSymbol("INTERVAL '1-2 3 4-5-6'");
+    }
+
 }
