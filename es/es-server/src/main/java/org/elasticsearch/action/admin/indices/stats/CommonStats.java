@@ -80,14 +80,14 @@ public class CommonStats implements Writeable {
     }
 
     public CommonStats(StreamInput in) throws IOException {
-        docs = in.readOptionalStreamable(DocsStats::new);
-        store = in.readOptionalStreamable(StoreStats::new);
+        docs = in.readOptionalWriteable(DocsStats::new);
+        store = in.readOptionalWriteable(StoreStats::new);
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeOptionalStreamable(docs);
-        out.writeOptionalStreamable(store);
+        out.writeOptionalWriteable(docs);
+        out.writeOptionalWriteable(store);
     }
 
     public void add(CommonStats stats) {
