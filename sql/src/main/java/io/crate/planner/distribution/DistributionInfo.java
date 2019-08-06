@@ -23,11 +23,11 @@ package io.crate.planner.distribution;
 
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Streamable;
+import org.elasticsearch.common.io.stream.Writeable;
 
 import java.io.IOException;
 
-public class DistributionInfo implements Streamable {
+public class DistributionInfo implements Writeable {
 
     public static final DistributionInfo DEFAULT_BROADCAST = new DistributionInfo(DistributionType.BROADCAST);
     public static final DistributionInfo DEFAULT_SAME_NODE = new DistributionInfo(DistributionType.SAME_NODE);
@@ -36,12 +36,20 @@ public class DistributionInfo implements Streamable {
     private DistributionType distributionType;
     private int distributeByColumn;
 
-    protected DistributionInfo() {
-    }
-
     public DistributionInfo(DistributionType distributionType, int distributeByColumn) {
         this.distributionType = distributionType;
         this.distributeByColumn = distributeByColumn;
+    }
+
+    public DistributionInfo(StreamInput in) throws IOException {
+        distributionType = DistributionType.values()[in.readVInt()];
+        distributeByColumn = in.readVInt();
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        out.writeVInt(distributionType.ordinal());
+        out.writeVInt(distributeByColumn);
     }
 
     public DistributionInfo(DistributionType distributionType) {
@@ -79,23 +87,5 @@ public class DistributionInfo implements Streamable {
                "distributionType=" + distributionType +
                ", distributeByColumn=" + distributeByColumn +
                '}';
-    }
-
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        distributionType = DistributionType.values()[in.readVInt()];
-        distributeByColumn = in.readVInt();
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        out.writeVInt(distributionType.ordinal());
-        out.writeVInt(distributeByColumn);
-    }
-
-    public static DistributionInfo fromStream(StreamInput in) throws IOException {
-        DistributionInfo distributionInfo = new DistributionInfo();
-        distributionInfo.readFrom(in);
-        return distributionInfo;
     }
 }

@@ -38,7 +38,7 @@ public class DistributionInfoTest extends CrateUnitTest {
         distributionInfo.writeTo(out);
 
         StreamInput in = out.bytes().streamInput();
-        DistributionInfo streamed = DistributionInfo.fromStream(in);
+        DistributionInfo streamed = new DistributionInfo(in);
 
         assertThat(streamed, equalTo(distributionInfo));
     }
@@ -51,7 +51,7 @@ public class DistributionInfoTest extends CrateUnitTest {
         distributionInfo.writeTo(out);
 
         StreamInput in = out.bytes().streamInput();
-        DistributionInfo streamed = DistributionInfo.fromStream(in);
+        DistributionInfo streamed = new DistributionInfo(in);
 
         assertThat(streamed, equalTo(distributionInfo));
     }

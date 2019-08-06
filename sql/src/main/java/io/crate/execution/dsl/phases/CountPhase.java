@@ -97,7 +97,7 @@ public class CountPhase implements UpstreamPhase {
         executionPhaseId = in.readVInt();
         routing = new Routing(in);
         where = Symbols.fromStream(in);
-        distributionInfo = DistributionInfo.fromStream(in);
+        distributionInfo = new DistributionInfo(in);
     }
 
     @Override
