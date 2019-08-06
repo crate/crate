@@ -32,6 +32,7 @@ import org.elasticsearch.index.shard.ShardPath;
 import java.io.IOException;
 
 public class ShardStats implements Streamable, Writeable {
+
     private ShardRouting shardRouting;
     private CommonStats commonStats;
     @Nullable

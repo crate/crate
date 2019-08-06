@@ -22,25 +22,18 @@ package org.elasticsearch.action.admin.indices.upgrade.post;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Streamable;
+import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.index.shard.ShardId;
 
 import java.io.IOException;
 import java.text.ParseException;
 
-class ShardUpgradeResult implements Streamable {
+class ShardUpgradeResult implements Writeable {
 
-    private ShardId shardId;
-
-    private org.apache.lucene.util.Version oldestLuceneSegment;
-
-    private Version upgradeVersion;
-
-    private boolean primary;
-
-
-    ShardUpgradeResult() {
-    }
+    private final ShardId shardId;
+    private final org.apache.lucene.util.Version oldestLuceneSegment;
+    private final Version upgradeVersion;
+    private final boolean primary;
 
     ShardUpgradeResult(ShardId shardId, boolean primary, Version upgradeVersion, org.apache.lucene.util.Version oldestLuceneSegment) {
         this.shardId = shardId;
@@ -65,18 +58,16 @@ class ShardUpgradeResult implements Streamable {
         return primary;
     }
 
-
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
+    public ShardUpgradeResult(StreamInput in) throws IOException {
         shardId = new ShardId(in);
         primary = in.readBoolean();
         upgradeVersion = Version.readVersion(in);
+        String luceneVersion = in.readString();
         try {
-            oldestLuceneSegment = org.apache.lucene.util.Version.parse(in.readString());
+            oldestLuceneSegment = org.apache.lucene.util.Version.parse(luceneVersion);
         } catch (ParseException ex) {
-            throw new IOException("failed to parse lucene version [" + oldestLuceneSegment + "]", ex);
+            throw new IOException("failed to parse lucene version [" + luceneVersion + "]", ex);
         }
-
     }
 
     @Override

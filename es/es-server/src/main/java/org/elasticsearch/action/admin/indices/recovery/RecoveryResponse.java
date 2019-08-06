@@ -86,7 +86,7 @@ public class RecoveryResponse extends BroadcastResponse {
             int listSize = in.readVInt();
             List<RecoveryState> list = new ArrayList<>(listSize);
             for (int j = 0; j < listSize; j++) {
-                list.add(RecoveryState.readRecoveryState(in));
+                list.add(new RecoveryState(in));
             }
             shardRecoveryStates.put(s, list);
         }

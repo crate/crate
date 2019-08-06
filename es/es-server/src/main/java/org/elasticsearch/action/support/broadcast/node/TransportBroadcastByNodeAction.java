@@ -41,7 +41,7 @@ import org.elasticsearch.cluster.routing.ShardsIterator;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Streamable;
+import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.NodeShouldNotConnectException;
@@ -75,7 +75,7 @@ import java.util.function.Supplier;
  */
 public abstract class TransportBroadcastByNodeAction<Request extends BroadcastRequest<Request>,
         Response extends BroadcastResponse,
-        ShardOperationResult extends Streamable> extends HandledTransportAction<Request, Response> {
+        ShardOperationResult extends Writeable> extends HandledTransportAction<Request, Response> {
 
     private final ClusterService clusterService;
     private final TransportService transportService;
@@ -550,7 +550,7 @@ public abstract class TransportBroadcastByNodeAction<Request extends BroadcastRe
             out.writeVInt(totalShards);
             out.writeVInt(results.size());
             for (ShardOperationResult result : results) {
-                out.writeOptionalStreamable(result);
+                out.writeOptionalWriteable(result);
             }
             out.writeBoolean(exceptions != null);
             if (exceptions != null) {
@@ -563,22 +563,15 @@ public abstract class TransportBroadcastByNodeAction<Request extends BroadcastRe
      * Can be used for implementations of {@link #shardOperation(BroadcastRequest, ShardRouting) shardOperation} for
      * which there is no shard-level return value.
      */
-    public static final class EmptyResult implements Streamable {
-        public static EmptyResult INSTANCE = new EmptyResult();
+    public static final class EmptyResult implements Writeable {
+
+        public static final EmptyResult INSTANCE = new EmptyResult();
 
         private EmptyResult() {
         }
 
         @Override
-        public void readFrom(StreamInput in) throws IOException {
-        }
-
-        @Override
         public void writeTo(StreamOutput out) throws IOException {
-        }
-
-        public static EmptyResult readEmptyResultFrom(StreamInput in) {
-            return INSTANCE;
         }
     }
 }
