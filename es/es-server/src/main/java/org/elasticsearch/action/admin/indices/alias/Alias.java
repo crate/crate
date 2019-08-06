@@ -20,29 +20,24 @@
 package org.elasticsearch.action.admin.indices.alias;
 
 import org.elasticsearch.ElasticsearchGenerationException;
-import org.elasticsearch.Version;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.ParseField;
 import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Streamable;
-import org.elasticsearch.common.xcontent.ToXContent;
-import org.elasticsearch.common.xcontent.ToXContentFragment;
+import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.Map;
 
 /**
  * Represents an alias, to be associated with an index
  */
-public class Alias implements Streamable, ToXContentFragment {
+public class Alias implements Writeable {
 
     private static final ParseField FILTER = new ParseField("filter");
     private static final ParseField ROUTING = new ParseField("routing");
@@ -166,17 +161,7 @@ public class Alias implements Streamable, ToXContentFragment {
         return this;
     }
 
-    /**
-     * Allows to read an alias from the provided input stream
-     */
-    public static Alias read(StreamInput in) throws IOException {
-        Alias alias = new Alias();
-        alias.readFrom(in);
-        return alias;
-    }
-
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
+    public Alias(StreamInput in) throws IOException {
         name = in.readString();
         filter = in.readOptionalString();
         indexRouting = in.readOptionalString();
@@ -230,35 +215,14 @@ public class Alias implements Streamable, ToXContentFragment {
     }
 
     @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject(name);
-
-        if (filter != null) {
-            try (InputStream stream = new BytesArray(filter).streamInput()) {
-                builder.rawField(FILTER.getPreferredName(), stream, XContentType.JSON);
-            }
-        }
-
-        if (indexRouting != null && indexRouting.equals(searchRouting)) {
-            builder.field(ROUTING.getPreferredName(), indexRouting);
-        } else {
-            if (indexRouting != null) {
-                builder.field(INDEX_ROUTING.getPreferredName(), indexRouting);
-            }
-            if (searchRouting != null) {
-                builder.field(SEARCH_ROUTING.getPreferredName(), searchRouting);
-            }
-        }
-
-        builder.field(IS_WRITE_INDEX.getPreferredName(), writeIndex);
-
-        builder.endObject();
-        return builder;
-    }
-
-    @Override
     public String toString() {
-        return Strings.toString(this);
+        return "Alias{" +
+               "name='" + name + '\'' +
+               ", filter='" + filter + '\'' +
+               ", indexRouting='" + indexRouting + '\'' +
+               ", searchRouting='" + searchRouting + '\'' +
+               ", writeIndex=" + writeIndex +
+               '}';
     }
 
     @Override

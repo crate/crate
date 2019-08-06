@@ -20,7 +20,6 @@ package org.elasticsearch.action.admin.indices.shrink;
 
 import org.elasticsearch.action.ActionRequestValidationException;
 import org.elasticsearch.action.IndicesRequest;
-import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.action.support.IndicesOptions;
@@ -30,8 +29,6 @@ import org.elasticsearch.common.ParseField;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.ObjectParser;
-import org.elasticsearch.common.xcontent.ToXContentObject;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 
 import java.io.IOException;
@@ -42,7 +39,7 @@ import static org.elasticsearch.action.ValidateActions.addValidationError;
 /**
  * Request class to shrink an index into a single shard
  */
-public class ResizeRequest extends AcknowledgedRequest<ResizeRequest> implements IndicesRequest, ToXContentObject {
+public class ResizeRequest extends AcknowledgedRequest<ResizeRequest> implements IndicesRequest {
 
     public static final ObjectParser<ResizeRequest, Void> PARSER = new ObjectParser<>("resize_request", null);
     static {
@@ -184,27 +181,6 @@ public class ResizeRequest extends AcknowledgedRequest<ResizeRequest> implements
 
     public Boolean getCopySettings() {
         return copySettings;
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject();
-        {
-            builder.startObject(CreateIndexRequest.SETTINGS.getPreferredName());
-            {
-                targetIndexRequest.settings().toXContent(builder, params);
-            }
-            builder.endObject();
-            builder.startObject(CreateIndexRequest.ALIASES.getPreferredName());
-            {
-                for (Alias alias : targetIndexRequest.aliases()) {
-                    alias.toXContent(builder, params);
-                }
-            }
-            builder.endObject();
-        }
-        builder.endObject();
-        return builder;
     }
 
     public void fromXContent(XContentParser parser) throws IOException {

@@ -33,16 +33,13 @@ import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.LoggingDeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.common.xcontent.support.XContentMapValues;
 
 import java.io.IOException;
@@ -64,7 +61,7 @@ import static org.elasticsearch.common.settings.Settings.writeSettingsToStream;
 /**
  * A request to create an index template.
  */
-public class PutIndexTemplateRequest extends MasterNodeRequest<PutIndexTemplateRequest> implements IndicesRequest, ToXContent {
+public class PutIndexTemplateRequest extends MasterNodeRequest<PutIndexTemplateRequest> implements IndicesRequest {
 
     private String name;
 
@@ -462,7 +459,7 @@ public class PutIndexTemplateRequest extends MasterNodeRequest<PutIndexTemplateR
         }
         int aliasesSize = in.readVInt();
         for (int i = 0; i < aliasesSize; i++) {
-            aliases.add(Alias.read(in));
+            aliases.add(new Alias(in));
         }
         version = in.readOptionalVInt();
     }
@@ -486,35 +483,5 @@ public class PutIndexTemplateRequest extends MasterNodeRequest<PutIndexTemplateR
             alias.writeTo(out);
         }
         out.writeOptionalVInt(version);
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.field("index_patterns", indexPatterns);
-        builder.field("order", order);
-        if (version != null) {
-            builder.field("version", version);
-        }
-
-        builder.startObject("settings");
-        settings.toXContent(builder, params);
-        builder.endObject();
-
-        builder.startObject("mappings");
-        for (Map.Entry<String, String> entry : mappings.entrySet()) {
-            builder.field(entry.getKey());
-            XContentParser parser = JsonXContent.jsonXContent.createParser(NamedXContentRegistry.EMPTY,
-                DeprecationHandler.THROW_UNSUPPORTED_OPERATION, entry.getValue());
-            builder.copyCurrentStructure(parser);
-        }
-        builder.endObject();
-
-        builder.startObject("aliases");
-        for (Alias alias : aliases) {
-            alias.toXContent(builder, params);
-        }
-        builder.endObject();
-
-        return builder;
     }
 }
