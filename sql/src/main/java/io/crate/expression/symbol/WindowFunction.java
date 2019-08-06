@@ -27,6 +27,7 @@ import io.crate.metadata.FunctionInfo;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
@@ -43,9 +44,13 @@ public class WindowFunction extends Function {
         windowDefinition = new WindowDefinition(in);
     }
 
-    public WindowFunction(FunctionInfo info, List<Symbol> arguments, WindowDefinition windowDefinition) {
-        super(info, arguments);
-        assert info.type() == WINDOW || info.type() == AGGREGATE : "only window and aggregate functions are allowed to be modelled over a window";
+    public WindowFunction(FunctionInfo info,
+                          List<Symbol> arguments,
+                          @Nullable Symbol filter,
+                          WindowDefinition windowDefinition) {
+        super(info, arguments, filter);
+        assert info.type() == WINDOW || info.type() == AGGREGATE :
+            "only window and aggregate functions are allowed to be modelled over a window";
         this.windowDefinition = windowDefinition;
     }
 

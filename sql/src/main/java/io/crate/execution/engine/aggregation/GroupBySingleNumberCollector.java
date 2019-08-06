@@ -60,7 +60,7 @@ public final class GroupBySingleNumberCollector implements Collector<Row, GroupB
     private final AggregateMode mode;
     private final AggregationFunction[] aggregations;
     private final Input[][] inputs;
-    private final Input[] filters;
+    private final Input<Boolean>[] filters;
     private final RamAccountingContext ramAccounting;
     private final Input<Number> keyInput;
     private final Version indexVersionCreated;
@@ -81,7 +81,7 @@ public final class GroupBySingleNumberCollector implements Collector<Row, GroupB
                                  AggregateMode mode,
                                  AggregationFunction[] aggregations,
                                  Input[][] inputs,
-                                 Input[] filters,
+                                 Input<Boolean>[] filters,
                                  RamAccountingContext ramAccounting,
                                  Input keyInput,
                                  Version indexVersionCreated,
@@ -249,7 +249,6 @@ public final class GroupBySingleNumberCollector implements Collector<Row, GroupB
                 groups.statesByNullValue = createNewStates();
             } else {
                 for (int i = 0; i < aggregations.length; i++) {
-                    //noinspection unchecked
                     if (InputCondition.matches(filters[i])) {
                         groups.statesByNullValue[i] = aggregations[i].iterate(
                             ramAccounting,
@@ -265,7 +264,6 @@ public final class GroupBySingleNumberCollector implements Collector<Row, GroupB
                 addWithAccounting(groups, key, createNewStates());
             } else {
                 for (int i = 0; i < aggregations.length; i++) {
-                    //noinspection unchecked
                     if (InputCondition.matches(filters[i])) {
                         states[i] = aggregations[i].iterate(ramAccounting, states[i], inputs[i]);
                     }
@@ -291,7 +289,6 @@ public final class GroupBySingleNumberCollector implements Collector<Row, GroupB
             AggregationFunction aggregation = aggregations[i];
 
             var newState = aggregation.newState(ramAccounting, indexVersionCreated, bigArrays);
-            //noinspection unchecked
             if (InputCondition.matches(filters[i])) {
                 //noinspection unchecked
                 states[i] = aggregation.iterate(ramAccounting, newState, inputs[i]);

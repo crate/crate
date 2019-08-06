@@ -32,8 +32,10 @@ import io.crate.execution.dsl.projection.WindowAggProjection;
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.pipeline.TopN;
+import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.WindowFunction;
+import io.crate.expression.symbol.WindowFunctionContext;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.ExplainLeaf;
 import io.crate.planner.Merge;
@@ -85,7 +87,7 @@ public class WindowAgg extends ForwardingLogicalPlan {
 
             LogicalPlan lastWindowAgg = sourcePlan;
             for (Map.Entry<WindowDefinition, ArrayList<WindowFunction>> entry : groupedFunctions.entrySet()) {
-                /**
+                /*
                  * Pass along the source outputs as standalone symbols as they might be required in cases like:
                  *      select x, avg(x) OVER() from t;
                  */
@@ -117,16 +119,28 @@ public class WindowAgg extends ForwardingLogicalPlan {
                                Row params,
                                SubQueryResults subQueryResults) {
         InputColumns.SourceSymbols sourceSymbols = new InputColumns.SourceSymbols(source.outputs());
-        LinkedHashMap<WindowFunction, List<Symbol>> functionsWithInputs = new LinkedHashMap<>(windowFunctions.size(), 1f);
+        ArrayList<WindowFunctionContext> windowFunctionContexts =
+            new ArrayList<>(windowFunctions.size());
+
         for (WindowFunction windowFunction : windowFunctions) {
             List<Symbol> inputs = InputColumns.create(windowFunction.arguments(), sourceSymbols);
-            functionsWithInputs.put(windowFunction, inputs);
+            Symbol filter = windowFunction.filter();
+            Symbol filterInput;
+            if (filter != null) {
+                filterInput = InputColumns.create(filter, sourceSymbols);
+            } else {
+                filterInput = Literal.BOOLEAN_TRUE;
+            }
+            windowFunctionContexts.add(new WindowFunctionContext(
+                windowFunction,
+                inputs,
+                filterInput));
         }
         List<Projection> projections = new ArrayList<>();
         SubQueryAndParamBinder binder = new SubQueryAndParamBinder(params, subQueryResults);
         WindowAggProjection windowAggProjection = new WindowAggProjection(
             windowDefinition.map(binder.andThen(s -> InputColumns.create(s, sourceSymbols))),
-            functionsWithInputs,
+            windowFunctionContexts,
             InputColumns.create(this.standalone, sourceSymbols)
         );
         projections.add(windowAggProjection);

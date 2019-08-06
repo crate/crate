@@ -235,4 +235,32 @@ public class WindowFunctionsIntegrationTest extends SQLTransportIntegrationTest 
                "12.0| 55.5\n")
         );
     }
+
+    @Test
+    public void test_filter_in_aggregate_of_window_function_call() {
+        execute("SELECT" +
+                "   SUM(x) FILTER (WHERE x != 3) OVER(ORDER BY x)," +
+                "   SUM(x) FILTER (WHERE x != 2) OVER(ORDER BY x)," +
+                "   SUM(x) FILTER (WHERE x > 3) OVER()" +
+                "FROM UNNEST([1, 2, 4, 3]) as t(x)");
+        assertThat(printedTable(response.rows()),
+                   is("1| 1| 4\n" +
+                      "3| 1| 4\n" +
+                      "3| 4| 4\n" +
+                      "7| 8| 4\n"));
+    }
+
+    @Test
+    public void test_filter_in_aggregate_of_window_function_call_removable_cumulative_impl() {
+        execute("SELECT" +
+                "   SUM(x) FILTER (WHERE x != 3) OVER(" +
+                "       ORDER BY x" +
+                "       RANGE BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING)" +
+                "FROM UNNEST([1, 2, 4, 3]) as t(x)");
+        assertThat(printedTable(response.rows()),
+                   is("7\n" +
+                      "6\n" +
+                      "4\n" +
+                      "4\n"));
+    }
 }
