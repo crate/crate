@@ -52,25 +52,16 @@ public class RestoreSnapshotResponse extends ActionResponse implements ToXConten
     RestoreSnapshotResponse() {
     }
 
-    /**
-     * Returns restore information if snapshot was completed before this method returned, null otherwise
-     *
-     * @return restore information or null
-     */
-    public RestoreInfo getRestoreInfo() {
-        return restoreInfo;
-    }
-
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        restoreInfo = RestoreInfo.readOptionalRestoreInfo(in);
+        restoreInfo = in.readOptionalWriteable(RestoreInfo::new);
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeOptionalStreamable(restoreInfo);
+        out.writeOptionalWriteable(restoreInfo);
     }
 
     public RestStatus status() {

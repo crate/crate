@@ -22,7 +22,7 @@ import org.elasticsearch.common.ParseField;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Streamable;
+import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.xcontent.ObjectParser;
 import org.elasticsearch.common.xcontent.ToXContentObject;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -40,18 +40,14 @@ import java.util.Objects;
  * <p>
  * Returned as part of {@link org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotResponse}
  */
-public class RestoreInfo implements ToXContentObject, Streamable {
+public class RestoreInfo implements ToXContentObject, Writeable {
 
     private String name;
-
     private List<String> indices;
-
     private int totalShards;
-
     private int successfulShards;
 
-    RestoreInfo() {
-
+    private RestoreInfo() {
     }
 
     public RestoreInfo(String name, List<String> indices, int totalShards, int successfulShards) {
@@ -159,8 +155,7 @@ public class RestoreInfo implements ToXContentObject, Streamable {
         return PARSER.parse(parser, null);
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
+    public RestoreInfo(StreamInput in) throws IOException {
         name = in.readString();
         int size = in.readVInt();
         List<String> indicesListBuilder = new ArrayList<>();
@@ -181,28 +176,6 @@ public class RestoreInfo implements ToXContentObject, Streamable {
         }
         out.writeVInt(totalShards);
         out.writeVInt(successfulShards);
-    }
-
-    /**
-     * Reads restore info from {@link StreamInput}
-     *
-     * @param in stream input
-     * @return restore info
-     */
-    public static RestoreInfo readRestoreInfo(StreamInput in) throws IOException {
-        RestoreInfo snapshotInfo = new RestoreInfo();
-        snapshotInfo.readFrom(in);
-        return snapshotInfo;
-    }
-
-    /**
-     * Reads optional restore info from {@link StreamInput}
-     *
-     * @param in stream input
-     * @return restore info
-     */
-    public static RestoreInfo readOptionalRestoreInfo(StreamInput in) throws IOException {
-        return in.readOptionalStreamable(RestoreInfo::new);
     }
 
     @Override

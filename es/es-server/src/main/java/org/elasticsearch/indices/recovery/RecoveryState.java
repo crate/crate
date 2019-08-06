@@ -26,7 +26,6 @@ import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Streamable;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.unit.TimeValue;
@@ -542,14 +541,13 @@ public class RecoveryState implements ToXContentFragment, Writeable {
         }
     }
 
-    public static class File implements ToXContentObject, Streamable {
-        private String name;
-        private long length;
-        private long recovered;
-        private boolean reused;
+    public static class File implements ToXContentObject, Writeable {
 
-        public File() {
-        }
+        private final String name;
+        private final long length;
+        private final boolean reused;
+
+        private long recovered;
 
         public File(String name, long length, boolean reused) {
             assert name != null;
@@ -596,14 +594,7 @@ public class RecoveryState implements ToXContentFragment, Writeable {
             return reused == false && length == recovered;
         }
 
-        public static File readFile(StreamInput in) throws IOException {
-            File file = new File();
-            file.readFrom(in);
-            return file;
-        }
-
-        @Override
-        public void readFrom(StreamInput in) throws IOException {
+        public File(StreamInput in) throws IOException {
             name = in.readString();
             length = in.readVLong();
             recovered = in.readVLong();
@@ -834,7 +825,7 @@ public class RecoveryState implements ToXContentFragment, Writeable {
             super(in);
             int size = in.readVInt();
             for (int i = 0; i < size; i++) {
-                File file = File.readFile(in);
+                File file = new File(in);
                 fileDetails.put(file.name, file);
             }
             sourceThrottlingInNanos = in.readLong();
