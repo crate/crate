@@ -25,10 +25,10 @@ package io.crate.interval;
 import org.joda.time.Period;
 
 import javax.annotation.Nullable;
+import java.math.BigDecimal;
 import java.util.StringTokenizer;
 
 import static io.crate.interval.IntervalParser.nullSafeIntGet;
-import static io.crate.interval.IntervalParser.parseInteger;
 import static io.crate.interval.IntervalParser.parseMilliSeconds;
 import static io.crate.interval.IntervalParser.roundToPrecision;
 
@@ -124,5 +124,7 @@ final class PGIntervalParser {
         return period;
     }
 
-
+    private static int parseInteger(String value) {
+        return new BigDecimal(value).intValue();
+    }
 }

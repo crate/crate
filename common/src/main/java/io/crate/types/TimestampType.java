@@ -24,7 +24,6 @@ package io.crate.types;
 import io.crate.Streamer;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
