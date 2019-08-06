@@ -21,7 +21,6 @@ package org.elasticsearch.action.admin.indices.stats;
 
 import org.elasticsearch.action.support.DefaultShardOperationFailedException;
 import org.elasticsearch.action.support.broadcast.BroadcastResponse;
-import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.index.Index;
@@ -34,13 +33,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static java.util.Collections.unmodifiableMap;
-
 public class IndicesStatsResponse extends BroadcastResponse {
 
     private ShardStats[] shards;
-
-    private Map<ShardRouting, ShardStats> shardStatsMap;
 
     IndicesStatsResponse() {
     }
@@ -51,23 +46,8 @@ public class IndicesStatsResponse extends BroadcastResponse {
         this.shards = shards;
     }
 
-    public Map<ShardRouting, ShardStats> asMap() {
-        if (this.shardStatsMap == null) {
-            Map<ShardRouting, ShardStats> shardStatsMap = new HashMap<>();
-            for (ShardStats ss : shards) {
-                shardStatsMap.put(ss.getShardRouting(), ss);
-            }
-            this.shardStatsMap = unmodifiableMap(shardStatsMap);
-        }
-        return this.shardStatsMap;
-    }
-
     public ShardStats[] getShards() {
         return this.shards;
-    }
-
-    public ShardStats getAt(int position) {
-        return shards[position];
     }
 
     public IndexStats getIndex(String index) {
@@ -96,7 +76,7 @@ public class IndicesStatsResponse extends BroadcastResponse {
                 }
             }
             indicesStats.put(
-                indexName, new IndexStats(indexName, index.getUUID(), shards.toArray(new ShardStats[shards.size()]))
+                indexName, new IndexStats(indexName, index.getUUID(), shards.toArray(new ShardStats[0]))
             );
         }
         this.indicesStats = indicesStats;
@@ -106,7 +86,7 @@ public class IndicesStatsResponse extends BroadcastResponse {
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        shards = in.readArray(ShardStats::readShardStats, (size) -> new ShardStats[size]);
+        shards = in.readArray(ShardStats::new, ShardStats[]::new);
     }
 
     @Override

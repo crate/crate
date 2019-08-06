@@ -83,7 +83,7 @@ public class TransportIndicesStatsAction extends TransportBroadcastByNodeAction<
 
     @Override
     protected ShardStats readShardResult(StreamInput in) throws IOException {
-        return ShardStats.readShardStats(in);
+        return new ShardStats(in);
     }
 
     @Override

@@ -23,7 +23,6 @@ import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Streamable;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.index.engine.CommitStats;
 import org.elasticsearch.index.seqno.SeqNoStats;
@@ -31,20 +30,17 @@ import org.elasticsearch.index.shard.ShardPath;
 
 import java.io.IOException;
 
-public class ShardStats implements Streamable, Writeable {
+public class ShardStats implements Writeable {
 
-    private ShardRouting shardRouting;
-    private CommonStats commonStats;
+    private final ShardRouting shardRouting;
+    private final CommonStats commonStats;
     @Nullable
-    private CommitStats commitStats;
+    private final CommitStats commitStats;
     @Nullable
-    private SeqNoStats seqNoStats;
-    private String dataPath;
-    private String statePath;
-    private boolean isCustomDataPath;
-
-    ShardStats() {
-    }
+    private final SeqNoStats seqNoStats;
+    private final String dataPath;
+    private final String statePath;
+    private final boolean isCustomDataPath;
 
     public ShardStats(ShardRouting routing, ShardPath shardPath, CommonStats commonStats, CommitStats commitStats, SeqNoStats seqNoStats) {
         this.shardRouting = routing;
@@ -76,14 +72,7 @@ public class ShardStats implements Streamable, Writeable {
         return dataPath;
     }
 
-    public static ShardStats readShardStats(StreamInput in) throws IOException {
-        ShardStats stats = new ShardStats();
-        stats.readFrom(in);
-        return stats;
-    }
-
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
+    public ShardStats(StreamInput in) throws IOException {
         shardRouting = new ShardRouting(in);
         commonStats = new CommonStats(in);
         commitStats = in.readOptionalWriteable(CommitStats::new);
