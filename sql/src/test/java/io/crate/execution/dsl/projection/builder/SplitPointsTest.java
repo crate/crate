@@ -34,6 +34,8 @@ import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.SymbolMatchers.isReference;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.is;
 
 public class SplitPointsTest extends CrateDummyClusterServiceUnitTest {
 
@@ -109,5 +111,20 @@ public class SplitPointsTest extends CrateDummyClusterServiceUnitTest {
             isFunction("op_>", isReference("x"), isLiteral(1)))
         );
         assertThat(splitPoints.aggregates(), contains(isFunction("sum")));
+    }
+
+    @Test
+    public void test_split_points_creation_with_filter_in_aggregate_fo_window_function_call() {
+        AnalyzedRelation relation = e.normalize(
+            "select sum(i) filter (where x > 1) over(order by i) from t1");
+
+        SplitPoints splitPoints = SplitPointsBuilder.create(relation);
+
+        assertThat(splitPoints.toCollect(), contains(
+            isReference("i"),
+            isFunction("op_>", isReference("x"), isLiteral(1)))
+        );
+        assertThat(splitPoints.windowFunctions(), contains(isFunction("sum")));
+        assertThat(splitPoints.aggregates(), is(empty()));
     }
 }

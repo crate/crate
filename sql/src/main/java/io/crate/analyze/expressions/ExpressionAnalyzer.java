@@ -1090,17 +1090,17 @@ public class ExpressionAnalyzer {
             }
             newFunction = new Function(functionInfo, castArguments, filter);
         } else {
-            if (filter != null) {
-                throw new UnsupportedOperationException(
-                    "Window function calls do not support a FILTER clause");
-            }
             if (functionInfo.type() != FunctionInfo.Type.WINDOW && functionInfo.type() != FunctionInfo.Type.AGGREGATE) {
                 throw new IllegalArgumentException(String.format(
                     Locale.ENGLISH,
                     "OVER clause was specified, but %s is neither a window nor an aggregate function.",
                     functionName));
             }
-            newFunction = new WindowFunction(functionInfo, castArguments, windowDefinition);
+            newFunction = new WindowFunction(
+                functionInfo,
+                castArguments,
+                filter,
+                windowDefinition);
         }
         if (context.isEagerNormalizationAllowed() && functionInfo.isDeterministic() && Symbols.allLiterals(newFunction)) {
             return funcImpl.normalizeSymbol(newFunction, coordinatorTxnCtx);

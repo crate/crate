@@ -61,7 +61,7 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
     private final AggregationFunction[] aggregations;
     private final AggregateMode mode;
     private final Input[][] inputs;
-    private final Input[] filters;
+    private final Input<Boolean>[] filters;
     private final RamAccountingContext ramAccountingContext;
     private final BiConsumer<K, Object[]> applyKeyToCells;
     private final int numKeyColumns;
@@ -227,7 +227,6 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
             addNewEntry(statesByKey, key);
         } else {
             for (int i = 0; i < aggregations.length; i++) {
-                //noinspection unchecked
                 if (InputCondition.matches(filters[i])) {
                     //noinspection unchecked
                     states[i] = aggregations[i].iterate(ramAccountingContext, states[i], inputs[i]);
@@ -243,7 +242,6 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
             AggregationFunction aggregation = aggregations[i];
 
             var newState = aggregation.newState(ramAccountingContext, indexVersionCreated, bigArrays);
-            //noinspection unchecked
             if (InputCondition.matches(filters[i])) {
                 //noinspection unchecked
                 states[i] = aggregation.iterate(ramAccountingContext, newState, inputs[i]);

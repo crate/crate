@@ -51,7 +51,7 @@ public class AggregateCollector implements Collector<Row, Object[], Iterable<Row
     private final AggregationFunction[] aggregations;
     private final Version indexVersionCreated;
     private final BigArrays bigArrays;
-    private final Input[] filters;
+    private final Input<Boolean>[] filters;
     private final Input[][] inputs;
     private final BiConsumer<Object[], Row> accumulator;
     private final Function<Object[], Iterable<Row>> finisher;
@@ -63,7 +63,7 @@ public class AggregateCollector implements Collector<Row, Object[], Iterable<Row
                        Version indexVersionCreated,
                        BigArrays bigArrays,
                        Input[][] inputs,
-                       Input[] filters) {
+                       Input<Boolean>[] filters) {
         this.expressions = expressions;
         this.ramAccounting = ramAccounting;
         this.aggregations = aggregations;

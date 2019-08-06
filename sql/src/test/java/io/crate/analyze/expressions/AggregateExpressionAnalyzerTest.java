@@ -99,11 +99,4 @@ public class AggregateExpressionAnalyzerTest extends CrateDummyClusterServiceUni
         expectedException.expectMessage("Only aggregate functions allow a FILTER clause");
         e.asSymbol("generate_series(1, 2) filter (where true)");
     }
-
-    @Test
-    public void test_filter_expression_cannot_be_used_with_window_function_call() {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Window function calls do not support a FILTER clause");
-        e.asSymbol("avg(t.x) filter (where true) over()");
-    }
 }

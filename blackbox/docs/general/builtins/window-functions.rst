@@ -18,6 +18,39 @@ which are related to the current row. This is comparable to aggregation
 functions, but window functions do not cause multiple rows to be grouped
 into a single row.
 
+.. _window-function-call:
+
+Window Function Call
+====================
+
+Synopsis
+--------
+
+The synopsis of a window function call is one of the following
+
+::
+
+   function_name ([expression [, expression ... ]])
+                 [ FILTER ( WHERE condition ) ]
+                 over_clause
+   function_name ( * ) [ FILTER ( WHERE condition ) ] over_clause
+
+where ``function_name`` is a name of
+a :ref:`general-purpose window <general-purpose-window-functions>` or
+:ref:`aggregate <aggregate-functions>` function.
+
+and ``expression`` is a column reference, scalar function or literal.
+
+If ``FILTER`` is specified, then only the rows that met the
+:ref:`sql_dql_where_clause` condition are supplied to the window
+function. Only window functions that are :ref:`aggregates <aggregation>`
+accept the ``FILTER`` clause.
+
+The :ref:`over` clause is what declares a function to be a window function.
+
+The window function call that uses a ``wildcard`` instead of an ``expression`` as
+a function argument is supported only by the ``count(*)`` aggregate function.
+
 .. _window-definition:
 
 Window Definition
@@ -191,7 +224,7 @@ Example::
 .. note::
 
    :ref:`Aggregation functions <aggregation>` will be treated as
-   ``window functions`` when used in conjuction with the ``OVER`` clause.
+   ``window functions`` when used in conjunction with the ``OVER`` clause.
 
 .. note::
 
@@ -339,6 +372,7 @@ in the ``WINDOW`` clause permits only backward references.
    +---+---+
    SELECT 3 rows in set (... sec)
 
+.. _general-purpose-window-functions:
 
 General-Purpose Window Functions
 ================================

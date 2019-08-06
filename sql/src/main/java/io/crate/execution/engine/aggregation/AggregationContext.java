@@ -31,9 +31,9 @@ public class AggregationContext {
 
     private final AggregationFunction impl;
     private final List<Input<?>> inputs = new ArrayList<>();
-    private final Input<?> filter;
+    private final Input<Boolean> filter;
 
-    public AggregationContext(AggregationFunction aggregationFunction, Input<?> filter) {
+    public AggregationContext(AggregationFunction aggregationFunction, Input<Boolean> filter) {
         this.impl = aggregationFunction;
         this.filter = filter;
     }
@@ -50,7 +50,7 @@ public class AggregationContext {
         return inputs.toArray(new Input[0]);
     }
 
-    public Input<?> filter() {
+    public Input<Boolean> filter() {
         return filter;
     }
 }
