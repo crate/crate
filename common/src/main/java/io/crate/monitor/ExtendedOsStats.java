@@ -22,31 +22,23 @@
 
 package io.crate.monitor;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Streamable;
+import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.monitor.os.OsStats;
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
-public class ExtendedOsStats implements Streamable {
+public class ExtendedOsStats implements Writeable {
 
-    private Cpu cpu;
-    private OsStats osStats;
-    private long timestamp;
-    private long uptime = -1;
-    private double[] loadAverage = new double[0];
-
-    public static ExtendedOsStats readExtendedOsStat(StreamInput in) throws IOException {
-        ExtendedOsStats stat = new ExtendedOsStats();
-        stat.readFrom(in);
-        return stat;
-    }
-
-    public ExtendedOsStats() {
-    }
+    private final Cpu cpu;
+    private final OsStats osStats;
+    private final long timestamp;
+    private final long uptime;
+    private final double[] loadAverage;
 
     public ExtendedOsStats(long timestamp, Cpu cpu, double[] load, long uptime, OsStats osStats) {
         this.timestamp = timestamp;
@@ -76,12 +68,11 @@ public class ExtendedOsStats implements Streamable {
         return osStats;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
+    public ExtendedOsStats(StreamInput in) throws IOException {
         timestamp = in.readLong();
         uptime = in.readLong();
         loadAverage = in.readDoubleArray();
-        cpu = in.readOptionalStreamable(Cpu::new);
+        cpu = in.readOptionalWriteable(Cpu::new);
         osStats = in.readOptionalWriteable(OsStats::new);
     }
 
@@ -90,70 +81,45 @@ public class ExtendedOsStats implements Streamable {
         out.writeLong(timestamp);
         out.writeLong(uptime);
         out.writeDoubleArray(loadAverage);
-        out.writeOptionalStreamable(cpu);
+        out.writeOptionalWriteable(cpu);
         out.writeOptionalWriteable(osStats);
     }
 
-    public static class Cpu implements Streamable {
+    public static class Cpu implements Writeable {
 
-        private short sys;
-        private short user;
-        private short idle;
-        private short stolen;
-        private short percent;
-
-        Cpu() {
-            this((short) -1);
-        }
+        private final short percent;
 
         Cpu(short percent) {
-            this((short) -1, (short) -1, (short) -1, (short) -1, percent);
-        }
-
-        Cpu(short sys, short user, short idle, short stolen, short percent) {
-            this.sys = sys;
-            this.user = user;
-            this.idle = idle;
-            this.stolen = stolen;
             this.percent = percent;
-        }
-
-        public short sys() {
-            return sys;
-        }
-
-        public short user() {
-            return user;
-        }
-
-        public short idle() {
-            return idle;
-        }
-
-        public short stolen() {
-            return stolen;
         }
 
         public short percent() {
             return percent;
         }
 
-        @Override
-        public void readFrom(StreamInput in) throws IOException {
-            sys = in.readShort();
-            user = in.readShort();
-            idle = in.readShort();
-            stolen = in.readShort();
-            percent = in.readShort();
+        public Cpu(StreamInput in) throws IOException {
+            if (in.getVersion().onOrAfter(Version.V_4_1_0)) {
+                percent = in.readShort();
+            } else {
+                in.readShort(); // sys
+                in.readShort(); // user
+                in.readShort(); // idle
+                in.readShort(); // stolen
+                percent = in.readShort();
+            }
         }
 
         @Override
         public void writeTo(StreamOutput out) throws IOException {
-            out.writeShort(sys);
-            out.writeShort(user);
-            out.writeShort(idle);
-            out.writeShort(stolen);
-            out.writeShort(percent);
+            if (out.getVersion().onOrAfter(Version.V_4_1_0)) {
+                out.writeShort(percent);
+            } else {
+                out.writeShort((short) -1); // sys
+                out.writeShort((short) -1); // user
+                out.writeShort((short) -1); // idle
+                out.writeShort((short) -1); // stolen
+                out.writeShort(percent);
+            }
         }
     }
 }

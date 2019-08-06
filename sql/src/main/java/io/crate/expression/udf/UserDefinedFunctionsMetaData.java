@@ -108,7 +108,7 @@ public class UserDefinedFunctionsMetaData extends AbstractNamedDiffable<MetaData
         int size = in.readVInt();
         List<UserDefinedFunctionMetaData> functions = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
-            functions.add(UserDefinedFunctionMetaData.fromStream(in));
+            functions.add(new UserDefinedFunctionMetaData(in));
         }
         this.functionsMetaData = functions;
     }

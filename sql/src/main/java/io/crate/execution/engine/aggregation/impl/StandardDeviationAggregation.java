@@ -42,7 +42,7 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.List;
 
-public class StandardDeviationAggregation extends AggregationFunction<StandardDeviationAggregation.StdDevState, Double> {
+public class StandardDeviationAggregation extends AggregationFunction<StandardDeviation, Double> {
 
     public static final String NAME = "stddev";
 
@@ -61,35 +61,7 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
             FunctionInfo.Type.AGGREGATE)));
     }
 
-    public static class StdDevState implements Comparable<StdDevState> {
-
-        private final StandardDeviation stdDev;
-
-        public StdDevState() {
-            this.stdDev = new StandardDeviation();
-        }
-
-        private void addValue(double val) {
-            this.stdDev.increment(val);
-        }
-
-        public void removeValue(double val) {
-            this.stdDev.decrement(val);
-        }
-
-        private Double value() {
-            double result = stdDev.result();
-            return (Double.isNaN(result) ? null : result);
-        }
-
-        @Override
-        public int compareTo(StdDevState o) {
-            return Double.compare(stdDev.result(), o.stdDev.result());
-        }
-    }
-
-    public static class StdDevStateType extends DataType<StdDevState>
-        implements Streamer<StdDevState>, FixedWidthType {
+    public static class StdDevStateType extends DataType<StandardDeviation> implements Streamer<StandardDeviation>, FixedWidthType {
 
         public static final StdDevStateType INSTANCE = new StdDevStateType();
         public static final int ID = 8192;
@@ -110,17 +82,17 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
         }
 
         @Override
-        public Streamer<StdDevState> streamer() {
+        public Streamer<StandardDeviation> streamer() {
             return this;
         }
 
         @Override
-        public StdDevState value(Object value) throws IllegalArgumentException, ClassCastException {
-            return (StdDevState) value;
+        public StandardDeviation value(Object value) throws IllegalArgumentException, ClassCastException {
+            return (StandardDeviation) value;
         }
 
         @Override
-        public int compareValueTo(StdDevState val1, StdDevState val2) {
+        public int compareValueTo(StandardDeviation val1, StandardDeviation val2) {
             return val1.compareTo(val2);
         }
 
@@ -130,15 +102,13 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
         }
 
         @Override
-        public StdDevState readValueFrom(StreamInput in) throws IOException {
-            StdDevState state = new StdDevState();
-            state.stdDev.readFrom(in);
-            return state;
+        public StandardDeviation readValueFrom(StreamInput in) throws IOException {
+            return new StandardDeviation(in);
         }
 
         @Override
-        public void writeValueTo(StreamOutput out, StdDevState v) throws IOException {
-            v.stdDev.writeTo(out);
+        public void writeValueTo(StreamOutput out, StandardDeviation v) throws IOException {
+            v.writeTo(out);
         }
     }
 
@@ -150,33 +120,33 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
 
     @Nullable
     @Override
-    public StdDevState newState(RamAccountingContext ramAccountingContext,
+    public StandardDeviation newState(RamAccountingContext ramAccountingContext,
                                 Version indexVersionCreated,
                                 BigArrays bigArrays) {
         ramAccountingContext.addBytes(StdDevStateType.INSTANCE.fixedSize());
-        return new StdDevState();
+        return new StandardDeviation();
     }
 
     @Override
-    public StdDevState iterate(RamAccountingContext ramAccountingContext, StdDevState state, Input... args) throws CircuitBreakingException {
+    public StandardDeviation iterate(RamAccountingContext ramAccountingContext, StandardDeviation state, Input... args) throws CircuitBreakingException {
         if (state != null) {
             Number value = (Number) args[0].value();
             if (value != null) {
-                state.addValue(value.doubleValue());
+                state.increment(value.doubleValue());
             }
         }
         return state;
     }
 
     @Override
-    public StdDevState reduce(RamAccountingContext ramAccountingContext, StdDevState state1, StdDevState state2) {
+    public StandardDeviation reduce(RamAccountingContext ramAccountingContext, StandardDeviation state1, StandardDeviation state2) {
         if (state1 == null) {
             return state2;
         }
         if (state2 == null) {
             return state1;
         }
-        state1.stdDev.merge(state2.stdDev);
+        state1.merge(state2);
         return state1;
     }
 
@@ -186,21 +156,22 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
     }
 
     @Override
-    public StdDevState removeFromAggregatedState(RamAccountingContext ramAccountingContext,
-                                                 StdDevState previousAggState,
-                                                 Input[] stateToRemove) {
+    public StandardDeviation removeFromAggregatedState(RamAccountingContext ramAccountingContext,
+                                                       StandardDeviation previousAggState,
+                                                       Input[] stateToRemove) {
         if (previousAggState != null) {
             Number value = (Number) stateToRemove[0].value();
             if (value != null) {
-                previousAggState.removeValue(value.doubleValue());
+                previousAggState.decrement(value.doubleValue());
             }
         }
         return previousAggState;
     }
 
     @Override
-    public Double terminatePartial(RamAccountingContext ramAccountingContext, StdDevState state) {
-        return state.value();
+    public Double terminatePartial(RamAccountingContext ramAccountingContext, StandardDeviation state) {
+        double result = state.result();
+        return Double.isNaN(result) ? null : result;
     }
 
     @Override

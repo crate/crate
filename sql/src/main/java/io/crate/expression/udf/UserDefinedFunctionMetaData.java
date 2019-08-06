@@ -28,7 +28,7 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Streamable;
+import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
@@ -42,16 +42,16 @@ import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.toList;
 
-public class UserDefinedFunctionMetaData implements Streamable, ToXContent {
+public class UserDefinedFunctionMetaData implements Writeable, ToXContent {
 
-    private String name;
-    private String schema;
-    private List<FunctionArgumentDefinition> arguments;
-    private DataType returnType;
-    private List<DataType> argumentTypes;
-    private String language;
-    private String definition;
-    private String specificName;
+    private final String name;
+    private final String schema;
+    private final List<FunctionArgumentDefinition> arguments;
+    private final DataType returnType;
+    private final List<DataType> argumentTypes;
+    private final String language;
+    private final String definition;
+    private final String specificName;
 
     public UserDefinedFunctionMetaData(String schema,
                                        String name,
@@ -69,13 +69,32 @@ public class UserDefinedFunctionMetaData implements Streamable, ToXContent {
         this.specificName = specificName(name, argumentTypes);
     }
 
-    private UserDefinedFunctionMetaData() {
+    public UserDefinedFunctionMetaData(StreamInput in) throws IOException {
+        schema = in.readString();
+        name = in.readString();
+        int numArguments = in.readVInt();
+        arguments = new ArrayList<>(numArguments);
+        for (int i = 0; i < numArguments; i++) {
+            arguments.add(FunctionArgumentDefinition.fromStream(in));
+        }
+        argumentTypes = argumentTypesFrom(arguments());
+        returnType = DataTypes.fromStream(in);
+        language = in.readString();
+        definition = in.readString();
+        specificName = specificName(name, argumentTypes);
     }
 
-    public static UserDefinedFunctionMetaData fromStream(StreamInput in) throws IOException {
-        UserDefinedFunctionMetaData udfMetaData = new UserDefinedFunctionMetaData();
-        udfMetaData.readFrom(in);
-        return udfMetaData;
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        out.writeString(schema);
+        out.writeString(name);
+        out.writeVInt(arguments.size());
+        for (FunctionArgumentDefinition argument : arguments) {
+            argument.writeTo(out);
+        }
+        DataTypes.toStream(returnType, out);
+        out.writeString(language);
+        out.writeString(definition);
     }
 
     public String schema() {
@@ -112,35 +131,6 @@ public class UserDefinedFunctionMetaData implements Streamable, ToXContent {
 
     boolean sameSignature(String schema, String name, List<DataType> types) {
         return this.schema().equals(schema) && this.name().equals(name) && this.argumentTypes().equals(types);
-    }
-
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        schema = in.readString();
-        name = in.readString();
-        int numArguments = in.readVInt();
-        arguments = new ArrayList<>(numArguments);
-        for (int i = 0; i < numArguments; i++) {
-            arguments.add(FunctionArgumentDefinition.fromStream(in));
-        }
-        argumentTypes = argumentTypesFrom(arguments());
-        returnType = DataTypes.fromStream(in);
-        language = in.readString();
-        definition = in.readString();
-        specificName = specificName(name, argumentTypes);
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        out.writeString(schema);
-        out.writeString(name);
-        out.writeVInt(arguments.size());
-        for (FunctionArgumentDefinition argument : arguments) {
-            argument.writeTo(out);
-        }
-        DataTypes.toStream(returnType, out);
-        out.writeString(language);
-        out.writeString(definition);
     }
 
     @Override
@@ -249,7 +239,7 @@ public class UserDefinedFunctionMetaData implements Streamable, ToXContent {
                 throw new IllegalArgumentException("Expected a START_OBJECT but got " + parser.currentToken());
             }
             int id = DataTypes.NOT_SUPPORTED.id();
-            DataType innerType = null;
+            DataType<?> innerType = DataTypes.UNDEFINED;
             while ((token = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
                 if (token == XContentParser.Token.FIELD_NAME) {
                     String fieldName = parser.currentName();
@@ -267,7 +257,7 @@ public class UserDefinedFunctionMetaData implements Streamable, ToXContent {
                 }
             }
             if (id == ArrayType.ID) {
-                return new ArrayType(innerType);
+                return new ArrayType<>(innerType);
             }
             return DataTypes.fromId(id);
         }

@@ -43,7 +43,7 @@ import java.io.IOException;
 import java.util.List;
 
 
-public class VarianceAggregation extends AggregationFunction<VarianceAggregation.VarianceState, Double> {
+public class VarianceAggregation extends AggregationFunction<Variance, Double> {
 
     public static final String NAME = "variance";
 
@@ -62,35 +62,7 @@ public class VarianceAggregation extends AggregationFunction<VarianceAggregation
             FunctionInfo.Type.AGGREGATE)));
     }
 
-    public static class VarianceState implements Comparable<VarianceState> {
-
-        private final Variance variance;
-
-        public VarianceState() {
-            this.variance = new Variance();
-        }
-
-        private void addValue(double val) {
-            variance.increment(val);
-        }
-
-        private void removeValue(double val) {
-            variance.decrement(val);
-        }
-
-        private Double value() {
-            double result = variance.result();
-            return (Double.isNaN(result) ? null : result);
-        }
-
-        @Override
-        public int compareTo(VarianceState o) {
-            return Double.compare(variance.result(), o.variance.result());
-        }
-    }
-
-    public static class VarianceStateType extends DataType<VarianceState>
-        implements Streamer<VarianceState>, FixedWidthType {
+    public static class VarianceStateType extends DataType<Variance> implements Streamer<Variance>, FixedWidthType {
 
         public static final VarianceStateType INSTANCE = new VarianceStateType();
         public static final int ID = 2048;
@@ -111,30 +83,28 @@ public class VarianceAggregation extends AggregationFunction<VarianceAggregation
         }
 
         @Override
-        public Streamer<VarianceState> streamer() {
+        public Streamer<Variance> streamer() {
             return this;
         }
 
         @Override
-        public VarianceState value(Object value) throws IllegalArgumentException, ClassCastException {
-            return (VarianceState) value;
+        public Variance value(Object value) throws IllegalArgumentException, ClassCastException {
+            return (Variance) value;
         }
 
         @Override
-        public int compareValueTo(VarianceState val1, VarianceState val2) {
+        public int compareValueTo(Variance val1, Variance val2) {
             return val1.compareTo(val2);
         }
 
         @Override
-        public VarianceState readValueFrom(StreamInput in) throws IOException {
-            VarianceState state = new VarianceState();
-            state.variance.readFrom(in);
-            return state;
+        public Variance readValueFrom(StreamInput in) throws IOException {
+            return new Variance(in);
         }
 
         @Override
-        public void writeValueTo(StreamOutput out, VarianceState v) throws IOException {
-            v.variance.writeTo(out);
+        public void writeValueTo(StreamOutput out, Variance v) throws IOException {
+            v.writeTo(out);
         }
 
         @Override
@@ -152,33 +122,33 @@ public class VarianceAggregation extends AggregationFunction<VarianceAggregation
 
     @Nullable
     @Override
-    public VarianceState newState(RamAccountingContext ramAccountingContext,
+    public Variance newState(RamAccountingContext ramAccountingContext,
                                   Version indexVersionCreated,
                                   BigArrays bigArrays) {
         ramAccountingContext.addBytes(VarianceStateType.INSTANCE.fixedSize());
-        return new VarianceState();
+        return new Variance();
     }
 
     @Override
-    public VarianceAggregation.VarianceState iterate(RamAccountingContext ramAccountingContext, VarianceAggregation.VarianceState state, Input... args) throws CircuitBreakingException {
+    public Variance iterate(RamAccountingContext ramAccountingContext, Variance state, Input... args) throws CircuitBreakingException {
         if (state != null) {
             Number value = (Number) args[0].value();
             if (value != null) {
-                state.addValue(value.doubleValue());
+                state.increment(value.doubleValue());
             }
         }
         return state;
     }
 
     @Override
-    public VarianceAggregation.VarianceState reduce(RamAccountingContext ramAccountingContext, VarianceAggregation.VarianceState state1, VarianceAggregation.VarianceState state2) {
+    public Variance reduce(RamAccountingContext ramAccountingContext, Variance state1, Variance state2) {
         if (state1 == null) {
             return state2;
         }
         if (state2 == null) {
             return state1;
         }
-        state1.variance.merge(state2.variance);
+        state1.merge(state2);
         return state1;
     }
 
@@ -188,21 +158,22 @@ public class VarianceAggregation extends AggregationFunction<VarianceAggregation
     }
 
     @Override
-    public VarianceState removeFromAggregatedState(RamAccountingContext ramAccountingContext,
-                                                   VarianceState previousAggState,
-                                                   Input[] stateToRemove) {
+    public Variance removeFromAggregatedState(RamAccountingContext ramAccountingContext,
+                                              Variance previousAggState,
+                                              Input[] stateToRemove) {
         if (previousAggState != null) {
             Number value = (Number) stateToRemove[0].value();
             if (value != null) {
-                previousAggState.removeValue(value.doubleValue());
+                previousAggState.decrement(value.doubleValue());
             }
         }
         return previousAggState;
     }
 
     @Override
-    public Double terminatePartial(RamAccountingContext ramAccountingContext, VarianceAggregation.VarianceState state) {
-        return state.value();
+    public Double terminatePartial(RamAccountingContext ramAccountingContext, Variance state) {
+        double result = state.result();
+        return Double.isNaN(result) ? null : result;
     }
 
     @Override

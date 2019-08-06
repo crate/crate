@@ -22,8 +22,6 @@
 
 package io.crate.expression.reference.sys.node;
 
-import io.crate.monitor.ExtendedOsStats;
-
 class NodeOsCpuStatsExpression extends NestedNodeStatsExpression {
 
     private static final String SYS = "system";
@@ -34,34 +32,19 @@ class NodeOsCpuStatsExpression extends NestedNodeStatsExpression {
         childImplementations.put(SYS, new SimpleNodeStatsExpression<Short>() {
             @Override
             public Short innerValue(NodeStatsContext nodeStatsContext) {
-                ExtendedOsStats.Cpu cpu = nodeStatsContext.extendedOsStats().cpu();
-                if (cpu != null) {
-                    return cpu.sys();
-                } else {
-                    return -1;
-                }
+                return -1;
             }
         });
         childImplementations.put(USER, new SimpleNodeStatsExpression<Short>() {
             @Override
             public Short innerValue(NodeStatsContext nodeStatsContext) {
-                ExtendedOsStats.Cpu cpu = nodeStatsContext.extendedOsStats().cpu();
-                if (cpu != null) {
-                    return cpu.user();
-                } else {
-                    return -1;
-                }
+                return -1;
             }
         });
         childImplementations.put(USAGE, new SimpleNodeStatsExpression<Short>() {
             @Override
             public Short innerValue(NodeStatsContext nodeStatsContext) {
-                ExtendedOsStats.Cpu cpu = nodeStatsContext.extendedOsStats().cpu();
-                if (cpu != null) {
-                    return cpu.percent();
-                } else {
-                    return -1;
-                }
+                return -1;
             }
         });
     }

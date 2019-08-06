@@ -23,20 +23,33 @@ package io.crate.execution.engine.aggregation.statistics;
 
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Streamable;
+import org.elasticsearch.common.io.stream.Writeable;
 
 import java.io.IOException;
 
-public class Variance implements Streamable {
+public class Variance implements Writeable, Comparable<Variance> {
 
-    double sumOfSqrs;
-    double sum;
-    long count;
+    private double sumOfSqrs;
+    private double sum;
+    private long count;
 
     public Variance() {
         sumOfSqrs = 0.0;
         sum = 0.0;
         count = 0;
+    }
+
+    public Variance(StreamInput in) throws IOException {
+        sumOfSqrs = in.readDouble();
+        sum = in.readDouble();
+        count = in.readVLong();
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        out.writeDouble(sumOfSqrs);
+        out.writeDouble(sum);
+        out.writeVLong(count);
     }
 
     public void increment(double value) {
@@ -65,16 +78,7 @@ public class Variance implements Streamable {
     }
 
     @Override
-    public void readFrom(StreamInput in) throws IOException {
-        sumOfSqrs = in.readDouble();
-        sum = in.readDouble();
-        count = in.readVLong();
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        out.writeDouble(sumOfSqrs);
-        out.writeDouble(sum);
-        out.writeVLong(count);
+    public int compareTo(Variance o) {
+        return Double.compare(result(), o.result());
     }
 }

@@ -29,7 +29,7 @@ import org.elasticsearch.action.support.WriteResponse;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Streamable;
+import org.elasticsearch.common.io.stream.Writeable;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -42,19 +42,29 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
     /**
      * Represents a failure.
      */
-    public static class Failure implements Streamable {
+    public static class Failure implements Writeable {
 
-        private String id;
-        private String message;
-        private boolean versionConflict;
-
-        Failure() {
-        }
+        private final String id;
+        private final String message;
+        private final boolean versionConflict;
 
         public Failure(String id, String message, boolean versionConflict) {
             this.id = id;
             this.message = message;
             this.versionConflict = versionConflict;
+        }
+
+        public Failure(StreamInput in) throws IOException {
+            id = in.readString();
+            message = in.readString();
+            versionConflict = in.readBoolean();
+        }
+
+        @Override
+        public void writeTo(StreamOutput out) throws IOException {
+            out.writeString(id);
+            out.writeString(message);
+            out.writeBoolean(versionConflict);
         }
 
         public String id() {
@@ -67,26 +77,6 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
 
         public boolean versionConflict() {
             return versionConflict;
-        }
-
-        static Failure readFailure(StreamInput in) throws IOException {
-            Failure failure = new Failure();
-            failure.readFrom(in);
-            return failure;
-        }
-
-        @Override
-        public void readFrom(StreamInput in) throws IOException {
-            id = in.readString();
-            message = in.readString();
-            versionConflict = in.readBoolean();
-        }
-
-        @Override
-        public void writeTo(StreamOutput out) throws IOException {
-            out.writeString(id);
-            out.writeString(message);
-            out.writeBoolean(versionConflict);
         }
 
         @Override
@@ -142,7 +132,7 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
         for (int i = 0; i < size; i++) {
             locations.add(in.readVInt());
             if (in.readBoolean()) {
-                failures.add(Failure.readFailure(in));
+                failures.add(new Failure(in));
             } else {
                 failures.add(null);
             }

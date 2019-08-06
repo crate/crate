@@ -66,7 +66,8 @@ public class ExtendedNodeInfo {
         OsStats osStats = OsProbe.getInstance().osStats();
         OsStats.Cpu cpuProbe = osStats.getCpu();
         ExtendedOsStats.Cpu cpu = new ExtendedOsStats.Cpu(cpuProbe.getPercent());
-        return new ExtendedOsStats(System.currentTimeMillis(),
+        return new ExtendedOsStats(
+            System.currentTimeMillis(),
             cpu,
             cpuProbe.getLoadAverage() == null ? NA_LOAD : cpuProbe.getLoadAverage(),
             SysInfo.getSystemUptime(),
