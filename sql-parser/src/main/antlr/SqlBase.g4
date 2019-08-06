@@ -237,6 +237,7 @@ primaryExpression
     | value=primaryExpression '[' index=valueExpression ']'                          #subscript
     | ident ('.' ident)*                                                             #dereference
     | primaryExpression CAST_OPERATOR dataType                                       #doubleColonCast
+    | timestamp=primaryExpression AT TIME ZONE zone=primaryExpression                #atTimezone
     ;
 
 explicitFunction
@@ -637,7 +638,7 @@ isolationLevel
     ;
 
 nonReserved
-    : ALIAS | ANALYZE | ANALYZER | BERNOULLI | BLOB | CATALOGS | CHAR_FILTERS | CLUSTERED
+    : ALIAS | ANALYZE | ANALYZER | AT | BERNOULLI | BLOB | CATALOGS | CHAR_FILTERS | CLUSTERED
     | COLUMNS | COPY | CURRENT |  DAY | DEALLOCATE | DISTRIBUTED | DUPLICATE | DYNAMIC | EXPLAIN
     | EXTENDS | FOLLOWING | FORMAT | FULLTEXT | FUNCTIONS | GEO_POINT | GEO_SHAPE | GLOBAL
     | GRAPHVIZ | HOUR | IGNORED | KEY | KILL | LICENSE | LOGICAL | LOCAL | MATERIALIZED | MINUTE
@@ -660,6 +661,7 @@ SELECT: 'SELECT';
 FROM: 'FROM';
 TO: 'TO';
 AS: 'AS';
+AT: 'AT';
 ALL: 'ALL';
 ANY: 'ANY';
 SOME: 'SOME';

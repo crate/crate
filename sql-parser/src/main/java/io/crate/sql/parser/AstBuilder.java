@@ -1432,6 +1432,13 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     }
 
     @Override
+    public Node visitAtTimezone(SqlBaseParser.AtTimezoneContext context) {
+        Expression zone = (Expression) visit(context.zone);
+        Expression timestamp = (Expression) visit(context.timestamp);
+        return new FunctionCall(QualifiedName.of("timezone"), List.of(zone, timestamp));
+    }
+
+    @Override
     public Node visitLeft(SqlBaseParser.LeftContext context) {
         Expression strOrColName = (Expression) visit(context.strOrColName);
         Expression len = (Expression) visit(context.len);
@@ -1547,6 +1554,11 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     }
 
     @Override
+    public Node visitFilter(SqlBaseParser.FilterContext context) {
+        return visit(context.where());
+    }
+
+    @Override
     public Node visitFunctionCall(SqlBaseParser.FunctionCallContext context) {
         return new FunctionCall(
             getQualifiedName(context.qname()),
@@ -1555,11 +1567,6 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
             visitIfPresent(context.over(), Window.class),
             visitIfPresent(context.filter(), Expression.class)
         );
-    }
-
-    @Override
-    public Node visitFilter(SqlBaseParser.FilterContext context) {
-        return visit(context.where());
     }
 
     // Literals
