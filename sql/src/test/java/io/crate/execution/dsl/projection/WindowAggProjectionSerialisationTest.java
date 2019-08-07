@@ -35,18 +35,14 @@ import io.crate.metadata.Functions;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
-import static java.util.Collections.singletonList;
-import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.Matchers.contains;
 import static org.junit.Assert.assertThat;
 
 public class WindowAggProjectionSerialisationTest {
@@ -56,30 +52,35 @@ public class WindowAggProjectionSerialisationTest {
         FunctionImplementation sumFunctionImpl = getSumFunction();
 
         WindowDefinition partitionByOneWindowDef =
-            new WindowDefinition(singletonList(Literal.of(1L)), null, null);
+            new WindowDefinition(List.of(Literal.of(1L)), null, null);
         WindowDefinition partitionByTwoWindowDef =
-            new WindowDefinition(singletonList(Literal.of(2L)), null, null);
+            new WindowDefinition(List.of(Literal.of(2L)), null, null);
 
-        WindowFunction firstWindowFunction = new WindowFunction(sumFunctionImpl.info(), Arrays.asList(Literal.of(1L)), partitionByOneWindowDef);
-        WindowFunction secondWindowFunction = new WindowFunction(sumFunctionImpl.info(), Arrays.asList(Literal.of(2L)), partitionByTwoWindowDef);
+        WindowFunction firstWindowFunction = new WindowFunction(
+            sumFunctionImpl.info(), List.of(Literal.of(1L)), partitionByOneWindowDef);
+        WindowFunction secondWindowFunction = new WindowFunction(
+            sumFunctionImpl.info(), List.of(Literal.of(2L)), partitionByTwoWindowDef);
 
         LinkedHashMap<WindowFunction, List<Symbol>> functionsWithInputs = new LinkedHashMap<>(2, 1f);
-        functionsWithInputs.put(firstWindowFunction, Arrays.asList(Literal.of(1L)));
-        functionsWithInputs.put(secondWindowFunction, Arrays.asList(Literal.of(2L)));
+        functionsWithInputs.put(firstWindowFunction, List.of(Literal.of(1L)));
+        functionsWithInputs.put(secondWindowFunction, List.of(Literal.of(2L)));
 
-        WindowAggProjection windowAggProjection =
-            new WindowAggProjection(partitionByOneWindowDef,
-                functionsWithInputs,
-                Collections.singletonList(Literal.of(42L)));
-        BytesStreamOutput output = new BytesStreamOutput();
-        windowAggProjection.writeTo(output);
+        Symbol standaloneInput = Literal.of(42L);
+        var expectedWindowAggProjection = new WindowAggProjection(
+            partitionByOneWindowDef,
+            functionsWithInputs,
+            List.of(standaloneInput));
 
-        StreamInput input = output.bytes().streamInput();
-        WindowAggProjection fromInput = new WindowAggProjection(input);
+        var output = new BytesStreamOutput();
+        expectedWindowAggProjection.writeTo(output);
 
-        Map<WindowFunction, List<Symbol>> deserialisedFunctionsByWindow = fromInput.functionsWithInputs();
+        var in = output.bytes().streamInput();
+        var actualWindowAggProjection = new WindowAggProjection(in);
 
-        assertThat(deserialisedFunctionsByWindow, equalTo(functionsWithInputs));
+        assertThat(
+            actualWindowAggProjection.outputs(),
+            contains(standaloneInput, firstWindowFunction, secondWindowFunction));
+        assertThat(actualWindowAggProjection, is(expectedWindowAggProjection));
     }
 
     private FunctionImplementation getSumFunction() {
@@ -87,7 +88,7 @@ public class WindowAggProjectionSerialisationTest {
             .add(new AggregationImplModule())
             .add(new OperatorModule()).createInjector().getInstance(Functions.class);
 
-        return functions.getQualified(new FunctionIdent(SumAggregation.NAME, Arrays.asList(DataTypes.FLOAT)));
+        return functions.getQualified(new FunctionIdent(SumAggregation.NAME, List.of(DataTypes.FLOAT)));
     }
 
 }
