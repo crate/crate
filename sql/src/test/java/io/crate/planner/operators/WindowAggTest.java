@@ -67,6 +67,24 @@ public class WindowAggTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void test_window_agg_output_for_select_with_standalone_ref_and_window_func_with_filter() {
+        var plan = plan("SELECT y, AVG(x) FILTER (WHERE x > 1) OVER() FROM t1");
+        var expectedPlan = "FetchOrEval[y, avg(x) : (x > 1)]\n" +
+                           "WindowAgg[avg(x) : (x > 1)]\n" +
+                           "Collect[doc.t1 | [_fetchid, x] | All]\n";
+        assertThat(plan, isPlan(e.functions(), expectedPlan));
+    }
+
+    @Test
+    public void test_window_agg_with_filter_that_contains_column_that_is_not_in_outputs() {
+        var plan = plan("SELECT x, COUNT(*) FILTER (WHERE y > 1) OVER() FROM t1");
+        var expectedPlan = "FetchOrEval[x, count(*) : (y > 1)]\n" +
+                           "WindowAgg[count(*) : (y > 1)]\n" +
+                           "Collect[doc.t1 | [_fetchid, y] | All]\n";
+        assertThat(plan, isPlan(e.functions(), expectedPlan));
+    }
+
+    @Test
     public void testNoOrderByIfNoPartitionsAndNoOrderBy() {
         OrderBy orderBy = WindowAgg.createOrderByInclPartitionBy(wd("avg(x) OVER ()"));
         assertThat(orderBy, Matchers.nullValue());
