@@ -94,9 +94,7 @@ public class ReplicationResponse extends ActionResponse {
             int size = in.readVInt();
             failures = new Failure[size];
             for (int i = 0; i < size; i++) {
-                Failure failure = new Failure();
-                failure.readFrom(in);
-                failures[i] = failure;
+                failures[i] = new Failure(in);
             }
         }
 
@@ -220,18 +218,15 @@ public class ReplicationResponse extends ActionResponse {
             private static final String STATUS = "status";
             private static final String PRIMARY = "primary";
 
-            private ShardId shardId;
-            private String nodeId;
-            private boolean primary;
+            private final ShardId shardId;
+            private final String nodeId;
+            private final boolean primary;
 
             public Failure(ShardId  shardId, @Nullable String nodeId, Exception cause, RestStatus status, boolean primary) {
                 super(shardId.getIndexName(), shardId.getId(), ExceptionsHelper.detailedMessage(cause), status, cause);
                 this.shardId = shardId;
                 this.nodeId = nodeId;
                 this.primary = primary;
-            }
-
-            Failure() {
             }
 
             public ShardId fullShardId() {
@@ -254,8 +249,7 @@ public class ReplicationResponse extends ActionResponse {
                 return primary;
             }
 
-            @Override
-            public void readFrom(StreamInput in) throws IOException {
+            public Failure(StreamInput in) throws IOException {
                 shardId = new ShardId(in);
                 super.shardId = shardId.getId();
                 index = shardId.getIndexName();

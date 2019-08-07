@@ -43,10 +43,6 @@ public class FlushResponse extends BroadcastResponse {
         declareBroadcastFields(PARSER);
     }
 
-    FlushResponse() {
-
-    }
-
     FlushResponse(int totalShards, int successfulShards, int failedShards, List<DefaultShardOperationFailedException> shardFailures) {
         super(totalShards, successfulShards, failedShards, shardFailures);
     }
