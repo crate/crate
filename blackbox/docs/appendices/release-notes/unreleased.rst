@@ -53,6 +53,8 @@ Breaking Changes
 Changes
 =======
 
+- Added the :ref:`PG_TYPEOF <pg_typeof>` system function.
+
 - Support implicit object creation in update statements. E.g. ``UPDATE t SET
   obj['x'] = 10`` will now implicitly set ``obj`` to ``{obj: {x: 10}}`` on rows
   where ``obj`` was previously ``null``.

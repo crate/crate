@@ -1,0 +1,132 @@
+/*
+ * Licensed to Crate under one or more contributor license agreements.
+ * See the NOTICE file distributed with this work for additional
+ * information regarding copyright ownership.  Crate licenses this file
+ * to you under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.  You may
+ * obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied.  See the License for the specific language governing
+ * permissions and limitations under the License.
+ *
+ * However, if you have executed another commercial license agreement
+ * with Crate these terms will supersede the license and you may use the
+ * software solely pursuant to the terms of the relevant commercial
+ * agreement.
+ */
+
+package io.crate.expression.scalar.systeminformation;
+
+import io.crate.expression.scalar.AbstractScalarFunctionsTest;
+import io.crate.expression.symbol.Literal;
+import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
+import org.junit.Test;
+
+import java.util.List;
+
+public class PgTypeofFunctionTest extends AbstractScalarFunctionsTest {
+
+    @Test
+    public void test_sample_case_with_qualified_function_name() {
+        assertEvaluate("pg_catalog.pg_typeof(null)", DataTypes.UNDEFINED.getName());
+    }
+
+    @Test
+    public void test_expressions() {
+        assertEvaluate("pg_typeof(1 + 1::short)", DataTypes.LONG.getName());
+    }
+
+    @Test
+    public void test_primitive_types() {
+        assertEvaluate("pg_typeof(null)", DataTypes.UNDEFINED.getName());
+        assertEvaluate("pg_typeof(null::bigint)", DataTypes.LONG.getName());
+        assertEvaluate("pg_typeof(name)", DataTypes.STRING.getName(), Literal.of((String) null));
+
+        assertEvaluate("pg_typeof(true)", DataTypes.BOOLEAN.getName());
+        assertEvaluate("pg_typeof(is_awesome)", DataTypes.BOOLEAN.getName(), Literal.of(true));
+
+        assertEvaluate("pg_typeof(58::char)", DataTypes.BYTE.getName());
+        assertEvaluate("pg_typeof(c)", DataTypes.BYTE.getName(), Literal.of(58));
+
+        assertEvaluate("pg_typeof(10::smallint)", DataTypes.SHORT.getName());
+        assertEvaluate("pg_typeof(short_val)", DataTypes.SHORT.getName(), Literal.of(10));
+
+        assertEvaluate("pg_typeof(10::integer)", DataTypes.INTEGER.getName());
+        assertEvaluate("pg_typeof(a)", DataTypes.INTEGER.getName(), Literal.of(10));
+
+        assertEvaluate("pg_typeof(8765134432441)", "bigint");
+        assertEvaluate("pg_typeof(x)", DataTypes.LONG.getName(), Literal.of(8765134432441L));
+
+        assertEvaluate("pg_typeof(42.0::real)", DataTypes.FLOAT.getName());
+        assertEvaluate("pg_typeof(float_val)", DataTypes.FLOAT.getName(), Literal.of(42.0));
+
+        assertEvaluate("pg_typeof(42.0)", DataTypes.DOUBLE.getName());
+        assertEvaluate("pg_typeof(double_val)", DataTypes.DOUBLE.getName(), Literal.of(42.0));
+
+        assertEvaluate("pg_typeof('name')", DataTypes.STRING.getName());
+        assertEvaluate("pg_typeof(name)", DataTypes.STRING.getName(), Literal.of("name"));
+
+        assertEvaluate("pg_typeof('120.0.0.1'::ip)", DataTypes.IP.getName());
+        assertEvaluate("pg_typeof(ip)", DataTypes.IP.getName(), Literal.of("127.0.0.1"));
+
+        assertEvaluate("pg_typeof('1978-02-28T10:00:00+01'::timestamp with time zone)",
+                       DataTypes.TIMESTAMPZ.getName());
+        assertEvaluate("pg_typeof('1978-02-28T10:00:00+01'::timestamp without time zone)",
+                       DataTypes.TIMESTAMP.getName());
+        assertEvaluate("pg_typeof(timestamp)", "timestamp without time zone",
+                       Literal.of(DataTypes.TIMESTAMP, DataTypes.TIMESTAMP.value("1978-02-28T14:30+05:30")));
+        assertEvaluate("pg_typeof(timestamp_tz)", "timestamp with time zone",
+                       Literal.of(DataTypes.TIMESTAMPZ, DataTypes.TIMESTAMPZ.value("1978-02-28T14:30+05:30")));
+    }
+
+    @Test
+    public void test_geographic_types() {
+        assertEvaluate("pg_typeof([1.0, 2.0]::geo_point)", DataTypes.GEO_POINT.getName());
+        assertEvaluate("pg_typeof(geopoint)", DataTypes.GEO_POINT.getName(), Literal.of("[1.0, 2.0]"));
+
+        assertEvaluate("pg_typeof(" +
+                       "{type = 'Polygon', " +
+                       "coordinates = [[[0.0, 0.0], [0.0, 0.0], [0.0, 0.0]]]}::geo_shape)",
+                       DataTypes.GEO_SHAPE.getName());
+        assertEvaluate("pg_typeof(geoshape)",
+                       DataTypes.GEO_SHAPE.getName(),
+                       Literal.of("{type = 'Polygon', coordinates = [[[0.0, 0.0], [0.0, 0.0], [0.0, 0.0]]]}"));
+    }
+
+    @Test
+    public void test_compound_types() {
+        assertEvaluate("pg_typeof({})", ObjectType.NAME);
+        assertEvaluate("pg_typeof(obj)", ObjectType.NAME, Literal.of("{}"));
+        assertEvaluate("pg_typeof(obj_ignored)", ObjectType.NAME, Literal.of("{}"));
+
+        assertEvaluate("pg_typeof(['Hello', 'World'])", DataTypes.STRING_ARRAY.getName());
+        assertEvaluate("pg_typeof([1::smallint, 2::smallint])", DataTypes.SHORT_ARRAY.getName());
+        assertEvaluate("pg_typeof([1::integer, 2::integer])", DataTypes.INTEGER_ARRAY.getName());
+        assertEvaluate("pg_typeof([1, 2])", DataTypes.BIGINT_ARRAY.getName());
+        assertEvaluate("pg_typeof([1.0::double precision, 2.0::double precision])",
+                       DataTypes.DOUBLE_ARRAY.getName());
+
+        assertEvaluate("pg_typeof(tags)",
+                       DataTypes.STRING_ARRAY.getName(),
+                       Literal.of(List.of("Hello", "World"), DataTypes.STRING_ARRAY));
+        assertEvaluate("pg_typeof(short_array)",
+                       DataTypes.SHORT_ARRAY.getName(),
+                       Literal.of(List.of((short) 1, (short) 2), DataTypes.SHORT_ARRAY));
+        assertEvaluate("pg_typeof(int_array)",
+                       DataTypes.INTEGER_ARRAY.getName(),
+                       Literal.of(List.of(1, 2), DataTypes.INTEGER_ARRAY));
+        assertEvaluate("pg_typeof(long_array)",
+                       DataTypes.BIGINT_ARRAY.getName(),
+                       Literal.of(List.of(1L, 2L), DataTypes.BIGINT_ARRAY));
+        assertEvaluate("pg_typeof(double_array)",
+                       DataTypes.DOUBLE_ARRAY.getName(),
+                       Literal.of(List.of((double) 1.0, (double) 2.0), DataTypes.DOUBLE_ARRAY));
+    }
+}
+

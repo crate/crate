@@ -62,6 +62,7 @@ import io.crate.expression.scalar.string.TrimFunctions;
 import io.crate.expression.scalar.systeminformation.CurrentSchemaFunction;
 import io.crate.expression.scalar.systeminformation.CurrentSchemasFunction;
 import io.crate.expression.scalar.systeminformation.PgGetExpr;
+import io.crate.expression.scalar.systeminformation.PgTypeofFunction;
 import io.crate.expression.scalar.timestamp.CurrentTimestampFunction;
 import io.crate.expression.scalar.timestamp.TimezoneFunction;
 import io.crate.metadata.FunctionIdent;
@@ -168,6 +169,7 @@ public class ScalarFunctionModule extends AbstractModule {
 
         PgBackendPidFunction.register(this);
         PgGetUserByIdFunction.register(this);
+        PgTypeofFunction.register(this);
         register(new CurrentDatabaseFunction());
 
         // bind all registered functions and resolver

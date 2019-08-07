@@ -992,6 +992,11 @@ See the table below for a full list of aliases:
 | timestamptz | timestamp with time zone |
 +-------------+--------------------------+
 
+.. NOTE::
+
+   The :ref:`PG_TYPEOF <pg_typeof>` system function can be used to resolve the
+   data type of any expression.
+
 .. _pattern letters and symbols:
     https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/time/format/DateTimeFormatter.html
 .. _WKT: http://en.wikipedia.org/wiki/Well-known_text

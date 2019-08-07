@@ -79,6 +79,7 @@ public final class DataTypes {
     public static final ArrayType<String> STRING_ARRAY = new ArrayType<>(STRING);
     public static final ArrayType<Integer> INTEGER_ARRAY = new ArrayType<>(INTEGER);
     public static final ArrayType<Short> SHORT_ARRAY = new ArrayType<>(SHORT);
+    public static final ArrayType<Long> BIGINT_ARRAY = new ArrayType<>(LONG);
 
     public static final List<DataType> PRIMITIVE_TYPES = List.of(
         BYTE,
