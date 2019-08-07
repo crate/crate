@@ -69,8 +69,7 @@ The synopsis of an aggregate expression is one of the following
    aggregate_function ( [ DISTINCT ] expression [ , ... ] ) [ FILTER ( WHERE condition ) ]
 
 where ``aggregate_function`` is a name of an
-:ref:`aggregate function <aggregate-functions>`.
-
+:ref:`aggregate function <aggregate-functions>` 
 and ``expression`` is a column reference, scalar function or literal.
 
 If ``FILTER`` is specified, then only the rows that met the
