@@ -57,21 +57,26 @@ public class WindowAggProjection extends Projection {
         this.windowDefinition = windowDefinition;
         this.functionsWithInputs = functionsWithInputs;
         this.standaloneWithInputs = standaloneWithInputs;
-        outputs = new ArrayList<>(windowFunctions);
-        outputs.addAll(standaloneWithInputs);
+
+        outputs = new ArrayList<>(standaloneWithInputs);
+        outputs.addAll(windowFunctions);
     }
 
     public WindowAggProjection(StreamInput in) throws IOException {
         windowDefinition = new WindowDefinition(in);
         standaloneWithInputs = Symbols.listFromStream(in);
         int functionsCount = in.readVInt();
+
+        outputs = new ArrayList<>(functionsCount + standaloneWithInputs.size());
+        outputs.addAll(standaloneWithInputs);
+
         functionsWithInputs = new LinkedHashMap<>(functionsCount, 1f);
         for (int i = 0; i < functionsCount; i++) {
             WindowFunction function = (WindowFunction) Symbols.fromStream(in);
             List<Symbol> inputs = Symbols.listFromStream(in);
             functionsWithInputs.put(function, inputs);
+            outputs.add(function);
         }
-        outputs = new ArrayList<>(functionsWithInputs.keySet());
     }
 
     public WindowDefinition windowDefinition() {
