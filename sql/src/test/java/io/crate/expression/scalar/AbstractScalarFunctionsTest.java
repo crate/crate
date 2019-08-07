@@ -86,6 +86,8 @@ public abstract class AbstractScalarFunctionsTest extends CrateDummyClusterServi
             "  tags array(text)," +
             "  age int," +
             "  a int," +
+            "  ip ip," +
+            "  c char," +
             "  x bigint," +
             "  shape geo_shape," +
             "  timestamp_tz timestamp with time zone," +
@@ -95,6 +97,8 @@ public abstract class AbstractScalarFunctionsTest extends CrateDummyClusterServi
             "  time_format text," +
             "  long_array array(bigint)," +
             "  int_array array(int)," +
+            "  short_array array(short)," +
+            "  double_array array(double precision)," +
             "  regex_pattern text," +
             "  geoshape geo_shape," +
             "  geopoint geo_point," +

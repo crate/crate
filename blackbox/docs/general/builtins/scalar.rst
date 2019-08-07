@@ -2338,6 +2338,32 @@ Example::
     +--------------------+
     SELECT 1 row in set (... sec)
 
+.. _pg_typeof:
+
+``pg_typeof``
+=============
+
+The function ``pg_typeof`` returns the text representation of the value's data
+type passed to it.
+
+Returns: ``text``
+
+Synopsis::
+
+   pg_typeof(expression)
+
+Example:
+
+::
+
+    cr> select pg_typeof([1, 2, 3]) as typeof;
+    +--------------+
+    | typeof       |
+    +--------------+
+    | bigint_array |
+    +--------------+
+    SELECT 1 row in set (... sec)
+
 Special functions
 =================
 
