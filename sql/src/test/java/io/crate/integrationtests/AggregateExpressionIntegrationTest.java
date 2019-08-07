@@ -126,9 +126,11 @@ public class AggregateExpressionIntegrationTest extends SQLTransportIntegrationT
 
     @Test
     public void test_filter_in_count_star_aggregate_function() {
-        execute("SELECT" +
-                "   COUNT(*) FILTER (WHERE x > 2) " +
-                "FROM UNNEST([1, 3, 4, 2, 5, 4]) as t(x)");
-        assertThat(printedTable(response.rows()), is("4\n"));
+        execute("CREATE TABLE t (x int)");
+        execute("INSERT INTO t VALUES (1), (3), (2), (4)");
+        execute("REFRESH TABLE t");
+
+        execute("SELECT COUNT(*) FILTER (WHERE x > 2) FROM t");
+        assertThat(printedTable(response.rows()), is("2\n"));
     }
 }
