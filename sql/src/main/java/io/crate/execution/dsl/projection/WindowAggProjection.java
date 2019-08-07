@@ -35,11 +35,9 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 public class WindowAggProjection extends Projection {
@@ -48,14 +46,14 @@ public class WindowAggProjection extends Projection {
     private final List<Symbol> standaloneWithInputs;
     private final ArrayList<Symbol> outputs;
     private final ArrayList<WindowFunctionContext> windowFunctionContexts;
-    private final Set<WindowFunction> windowFunctions;
+    private final ArrayList<WindowFunction> windowFunctions;
 
     public WindowAggProjection(WindowDefinition windowDefinition,
                                ArrayList<WindowFunctionContext> windowFunctionContexts,
                                List<Symbol> standaloneWithInputs) {
         this.windowFunctions = windowFunctionContexts.stream()
             .map(WindowFunctionContext::function)
-            .collect(Collectors.toSet());
+            .collect(Collectors.toCollection(ArrayList::new));
         assert windowFunctions.stream().noneMatch(Symbols.IS_COLUMN)
             : "Cannot operate on Reference or Field: " + windowFunctions;
         assert standaloneWithInputs.stream().noneMatch(Symbols.IS_COLUMN)
@@ -63,8 +61,8 @@ public class WindowAggProjection extends Projection {
         this.windowDefinition = windowDefinition;
         this.windowFunctionContexts = windowFunctionContexts;
         this.standaloneWithInputs = standaloneWithInputs;
-        outputs = new ArrayList<>(windowFunctions);
-        outputs.addAll(standaloneWithInputs);
+        outputs = new ArrayList<>(standaloneWithInputs);
+        outputs.addAll(windowFunctions);
     }
 
     WindowAggProjection(StreamInput in) throws IOException {
@@ -72,7 +70,7 @@ public class WindowAggProjection extends Projection {
         standaloneWithInputs = Symbols.listFromStream(in);
         int functionsCount = in.readVInt();
         windowFunctionContexts = new ArrayList<>(functionsCount);
-        windowFunctions = new HashSet<>(functionsCount);
+        windowFunctions = new ArrayList<>(functionsCount);
         boolean onOrAfter4_1_0 = in.getVersion().onOrAfter(Version.V_4_1_0);
         for (int i = 0; i < functionsCount; i++) {
             WindowFunction function = (WindowFunction) Symbols.fromStream(in);
@@ -87,7 +85,8 @@ public class WindowAggProjection extends Projection {
                 new WindowFunctionContext(function, inputs, filter));
             windowFunctions.add(function);
         }
-        outputs = new ArrayList<>(windowFunctions);
+        outputs = new ArrayList<>(standaloneWithInputs);
+        outputs.addAll(windowFunctions);
     }
 
     public WindowDefinition windowDefinition() {
@@ -130,6 +129,12 @@ public class WindowAggProjection extends Projection {
         return visitor.visitWindowAgg(this, context);
     }
 
+    /**
+     * Returns the output symbols list in a defined order.
+     *
+     * The standalone input symbols placed first followed by the
+     * window function symbols.
+     */
     @Override
     public List<? extends Symbol> outputs() {
         return outputs;

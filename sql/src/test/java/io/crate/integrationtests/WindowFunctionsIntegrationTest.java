@@ -263,4 +263,16 @@ public class WindowFunctionsIntegrationTest extends SQLTransportIntegrationTest 
                       "4\n" +
                       "4\n"));
     }
+
+    // the query execution plan (distributed, non-distributed)
+    // depends on the test cluster setup.
+    @Test
+    public void test_select_with_standalone_ref_and_partitioned_window_on_table_relation() {
+        execute("create table t (x int, y string)");
+        execute("insert into t values (1, '1')");
+        execute("refresh table t");
+
+        execute("SELECT x, COLLECT_SET(y) OVER(PARTITION BY y) FROM t");
+        assertThat(printedTable(response.rows()), is("1| [1]\n"));
+    }
 }

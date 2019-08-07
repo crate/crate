@@ -27,6 +27,7 @@ import io.crate.execution.engine.aggregation.impl.AggregationImplModule;
 import io.crate.execution.engine.aggregation.impl.SumAggregation;
 import io.crate.expression.operator.OperatorModule;
 import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.WindowFunction;
 import io.crate.expression.symbol.WindowFunctionContext;
 import io.crate.metadata.FunctionIdent;
@@ -40,11 +41,11 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import static java.util.Collections.singletonList;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
 import static org.junit.Assert.assertThat;
 
 public class WindowAggProjectionSerialisationTest {
@@ -78,10 +79,11 @@ public class WindowAggProjectionSerialisationTest {
             singletonList(Literal.of(2L)),
             Literal.BOOLEAN_TRUE));
 
+        Symbol standaloneInput = Literal.of(42L);
         var expectedWindowAggProjection = new WindowAggProjection(
             partitionByOneWindowDef,
             windowFunctionContexts,
-            Collections.singletonList(Literal.of(42L)));
+            List.of(standaloneInput));
 
         var output = new BytesStreamOutput();
         expectedWindowAggProjection.writeTo(output);
@@ -89,6 +91,9 @@ public class WindowAggProjectionSerialisationTest {
         var in = output.bytes().streamInput();
         var actualWindowAggProjection = new WindowAggProjection(in);
 
+        assertThat(
+            actualWindowAggProjection.outputs(),
+            contains(standaloneInput, firstWindowFunction, secondWindowFunction));
         assertThat(actualWindowAggProjection, is(expectedWindowAggProjection));
     }
 
@@ -112,10 +117,11 @@ public class WindowAggProjectionSerialisationTest {
             singletonList(Literal.of(2L)),
             Literal.BOOLEAN_FALSE));
 
+        Symbol standaloneInput = Literal.of(42L);
         var windowAggProjection = new WindowAggProjection(
             partitionByOneWindowDef,
             windowFunctionContexts,
-            Collections.singletonList(Literal.of(42L)));
+            List.of(standaloneInput));
 
         var output = new BytesStreamOutput();
         output.setVersion(Version.V_4_0_0);
@@ -125,7 +131,9 @@ public class WindowAggProjectionSerialisationTest {
         input.setVersion(Version.V_4_0_0);
         var actualWindowAggProjection = new WindowAggProjection(input);
 
-        assertThat(actualWindowAggProjection.windowFunctionContexts().size(), is(1));
+        assertThat(
+            actualWindowAggProjection.outputs(),
+            contains(standaloneInput, windowFunction));
         assertThat(
             actualWindowAggProjection.windowFunctionContexts().get(0).filter(),
             is(Literal.BOOLEAN_TRUE));
