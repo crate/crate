@@ -361,7 +361,7 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testShardSizeExpressionWhenIndexShardHasBeenClosed() {
         IndexShard mock = mockIndexShard();
-        when(mock.storeStats()).thenReturn(null);
+        when(mock.storeStats()).thenThrow(new AlreadyClosedException("shard already closed"));
 
         ShardReferenceResolver resolver = new ShardReferenceResolver(schemas, new ShardRowContext(mock, clusterService));
         Reference refInfo = refInfo("sys.shards.size", DataTypes.LONG, RowGranularity.SHARD);
