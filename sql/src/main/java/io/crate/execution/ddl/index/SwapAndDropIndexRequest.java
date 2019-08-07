@@ -34,11 +34,8 @@ import java.io.IOException;
  */
 public final class SwapAndDropIndexRequest extends AcknowledgedRequest<SwapAndDropIndexRequest> {
 
-    private String source;
-    private String target;
-
-    SwapAndDropIndexRequest() {
-    }
+    private final String source;
+    private final String target;
 
     public SwapAndDropIndexRequest(String source, String target) {
         this.source = source;
@@ -50,9 +47,8 @@ public final class SwapAndDropIndexRequest extends AcknowledgedRequest<SwapAndDr
         return null;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public SwapAndDropIndexRequest(StreamInput in) throws IOException {
+        super(in);
         this.source = in.readString();
         this.target = in.readString();
     }

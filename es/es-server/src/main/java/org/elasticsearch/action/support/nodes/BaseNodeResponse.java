@@ -48,15 +48,12 @@ public abstract class BaseNodeResponse extends TransportResponse {
         return node;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public BaseNodeResponse(StreamInput in) throws IOException {
         node = new DiscoveryNode(in);
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
         node.writeTo(out);
     }
 }

@@ -19,10 +19,8 @@
 
 package org.elasticsearch.indices.recovery;
 
-import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.transport.FutureTransportResponseHandler;
 import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportResponseHandler;
@@ -31,11 +29,7 @@ import java.io.IOException;
 
 public class RecoveryTranslogOperationsResponse extends TransportResponse {
 
-    long localCheckpoint;
-
-    RecoveryTranslogOperationsResponse() {
-
-    }
+    final long localCheckpoint;
 
     RecoveryTranslogOperationsResponse(final long localCheckpoint) {
         this.localCheckpoint = localCheckpoint;
@@ -46,17 +40,16 @@ public class RecoveryTranslogOperationsResponse extends TransportResponse {
         out.writeZLong(localCheckpoint);
     }
 
-    @Override
-    public void readFrom(final StreamInput in) throws IOException {
+    public RecoveryTranslogOperationsResponse(final StreamInput in) throws IOException {
         localCheckpoint = in.readZLong();
     }
 
-    static TransportResponseHandler<RecoveryTranslogOperationsResponse> HANDLER =
-            new FutureTransportResponseHandler<RecoveryTranslogOperationsResponse>() {
-                @Override
-                public RecoveryTranslogOperationsResponse newInstance() {
-                    return new RecoveryTranslogOperationsResponse();
-                }
-            };
+    static final TransportResponseHandler<RecoveryTranslogOperationsResponse> HANDLER =
+        new FutureTransportResponseHandler<>() {
+            @Override
+            public RecoveryTranslogOperationsResponse read(StreamInput in) throws IOException {
+                return new RecoveryTranslogOperationsResponse(in);
+            }
+        };
 
 }

@@ -35,6 +35,7 @@ import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.unit.TimeValue;
@@ -42,12 +43,13 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.threadpool.ThreadPool.Names;
 import org.elasticsearch.transport.TransportService;
 
+import java.io.IOException;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-public class TransportAddVotingConfigExclusionsAction extends TransportMasterNodeAction<AddVotingConfigExclusionsRequest,
-    AddVotingConfigExclusionsResponse> {
+public class TransportAddVotingConfigExclusionsAction
+    extends TransportMasterNodeAction<AddVotingConfigExclusionsRequest, AddVotingConfigExclusionsResponse> {
 
     public static final Setting<Integer> MAXIMUM_VOTING_CONFIG_EXCLUSIONS_SETTING
         = Setting.intSetting("cluster.max_voting_config_exclusions", 10, 1, Property.Dynamic, Property.NodeScope);
@@ -67,8 +69,8 @@ public class TransportAddVotingConfigExclusionsAction extends TransportMasterNod
     }
 
     @Override
-    protected AddVotingConfigExclusionsResponse newResponse() {
-        return new AddVotingConfigExclusionsResponse();
+    protected AddVotingConfigExclusionsResponse read(StreamInput in) throws IOException {
+        return new AddVotingConfigExclusionsResponse(in);
     }
 
     @Override

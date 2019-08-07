@@ -33,7 +33,6 @@ public class BlobTransferInfoResponse extends TransportResponse {
     public final String index;
 
     public BlobTransferInfoResponse(StreamInput in) throws IOException {
-        super.readFrom(in);
         digest = in.readString();
         index = in.readString();
     }
@@ -45,7 +44,6 @@ public class BlobTransferInfoResponse extends TransportResponse {
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
         out.writeString(digest);
         out.writeString(index);
     }

@@ -45,8 +45,7 @@ public class NodeCollectProfileResponseTest {
 
         StreamInput in = out.bytes().streamInput();
 
-        NodeCollectProfileResponse streamed = new NodeCollectProfileResponse();
-        streamed.readFrom(in);
+        NodeCollectProfileResponse streamed = new NodeCollectProfileResponse(in);
 
         assertThat(originalResponse.durationByContextIdent(), is(streamed.durationByContextIdent()));
     }

@@ -45,18 +45,17 @@ import static org.elasticsearch.action.support.master.AcknowledgedRequest.DEFAUL
  */
 public class CreateTableRequest extends MasterNodeRequest<CreateTableRequest> implements AckedRequest {
 
-    private CreateIndexRequest createIndexRequest;
-    private PutIndexTemplateRequest putIndexTemplateRequest;
+    private final CreateIndexRequest createIndexRequest;
+    private final PutIndexTemplateRequest putIndexTemplateRequest;
 
     public CreateTableRequest(CreateIndexRequest createIndexRequest) {
         this.createIndexRequest = createIndexRequest;
+        this.putIndexTemplateRequest = null;
     }
 
     public CreateTableRequest(PutIndexTemplateRequest putIndexTemplateRequest) {
+        this.createIndexRequest = null;
         this.putIndexTemplateRequest = putIndexTemplateRequest;
-    }
-
-    CreateTableRequest() {
     }
 
     @Nullable
@@ -89,15 +88,14 @@ public class CreateTableRequest extends MasterNodeRequest<CreateTableRequest> im
         return DEFAULT_ACK_TIMEOUT;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public CreateTableRequest(StreamInput in) throws IOException {
+        super(in);
         if (in.readBoolean()) {
-            createIndexRequest = new CreateIndexRequest();
-            createIndexRequest.readFrom(in);
+            createIndexRequest = new CreateIndexRequest(in);
+            putIndexTemplateRequest = null;
         } else {
-            putIndexTemplateRequest = new PutIndexTemplateRequest();
-            putIndexTemplateRequest.readFrom(in);
+            putIndexTemplateRequest = new PutIndexTemplateRequest(in);
+            createIndexRequest = null;
         }
     }
 

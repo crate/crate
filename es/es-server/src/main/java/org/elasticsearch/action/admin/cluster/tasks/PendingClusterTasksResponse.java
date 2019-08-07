@@ -33,10 +33,7 @@ import java.util.List;
 
 public class PendingClusterTasksResponse extends ActionResponse implements Iterable<PendingClusterTask>, ToXContentObject {
 
-    private List<PendingClusterTask> pendingTasks;
-
-    PendingClusterTasksResponse() {
-    }
+    private final List<PendingClusterTask> pendingTasks;
 
     PendingClusterTasksResponse(List<PendingClusterTask> pendingTasks) {
         this.pendingTasks = pendingTasks;
@@ -44,13 +41,6 @@ public class PendingClusterTasksResponse extends ActionResponse implements Itera
 
     public List<PendingClusterTask> pendingTasks() {
         return pendingTasks;
-    }
-
-    /**
-     * The pending cluster tasks
-     */
-    public List<PendingClusterTask> getPendingTasks() {
-        return pendingTasks();
     }
 
     @Override
@@ -100,9 +90,7 @@ public class PendingClusterTasksResponse extends ActionResponse implements Itera
 
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public PendingClusterTasksResponse(StreamInput in) throws IOException {
         int size = in.readVInt();
         pendingTasks = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
@@ -112,7 +100,6 @@ public class PendingClusterTasksResponse extends ActionResponse implements Itera
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
         out.writeVInt(pendingTasks.size());
         for (PendingClusterTask task : pendingTasks) {
             task.writeTo(out);

@@ -31,10 +31,13 @@ import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.MetaDataMappingService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
+
+import java.io.IOException;
 
 /**
  * Put mapping action.
@@ -49,7 +52,7 @@ public class TransportPutMappingAction extends TransportMasterNodeAction<PutMapp
                                      ThreadPool threadPool,
                                      MetaDataMappingService metaDataMappingService,
                                      IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(PutMappingAction.NAME, transportService, clusterService, threadPool, indexNameExpressionResolver, PutMappingRequest::new);
+        super(PutMappingAction.NAME, transportService, clusterService, threadPool, PutMappingRequest::new, indexNameExpressionResolver);
         this.metaDataMappingService = metaDataMappingService;
     }
 
@@ -60,8 +63,8 @@ public class TransportPutMappingAction extends TransportMasterNodeAction<PutMapp
     }
 
     @Override
-    protected AcknowledgedResponse newResponse() {
-        return new AcknowledgedResponse();
+    protected AcknowledgedResponse read(StreamInput in) throws IOException {
+        return new AcknowledgedResponse(in);
     }
 
     @Override

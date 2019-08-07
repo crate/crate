@@ -35,17 +35,12 @@ import static org.elasticsearch.action.ValidateActions.addValidationError;
 
 public class OpenCloseTableOrPartitionRequest extends AcknowledgedRequest<OpenCloseTableOrPartitionRequest> {
 
-    private RelationName relationName;
+    private final RelationName relationName;
     @Nullable
-    private String partitionIndexName;
-    private boolean openTable = false;
+    private final String partitionIndexName;
+    private final boolean openTable;
 
-    OpenCloseTableOrPartitionRequest() {
-    }
-
-    public OpenCloseTableOrPartitionRequest(RelationName relationName,
-                                            @Nullable String partitionIndexName,
-                                            boolean openTable) {
+    public OpenCloseTableOrPartitionRequest(RelationName relationName, @Nullable String partitionIndexName, boolean openTable) {
         this.relationName = relationName;
         this.partitionIndexName = partitionIndexName;
         this.openTable = openTable;
@@ -73,9 +68,8 @@ public class OpenCloseTableOrPartitionRequest extends AcknowledgedRequest<OpenCl
         return validationException;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public OpenCloseTableOrPartitionRequest(StreamInput in) throws IOException {
+        super(in);
         relationName = new RelationName(in);
         partitionIndexName = in.readOptionalString();
         openTable = in.readBoolean();

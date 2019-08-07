@@ -83,7 +83,6 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
@@ -174,7 +173,7 @@ public abstract class TransportReplicationAction<
         return new ReplicasProxy(primaryTerm);
     }
 
-    protected abstract Response newResponseInstance();
+    protected abstract Response read(StreamInput in) throws IOException;
 
     /**
      * Resolves derived values in the request. For example, the target shard id of the incoming request, if not set at request construction.
@@ -323,8 +322,8 @@ public abstract class TransportReplicationAction<
                     transportService.sendRequest(relocatingNode, transportPrimaryAction,
                         new ConcreteShardRequest<>(request, primary.allocationId().getRelocationId(), primaryTerm),
                         transportOptions,
-                        new TransportChannelResponseHandler<Response>(logger, channel, "rerouting indexing to target primary " + primary,
-                            TransportReplicationAction.this::newResponseInstance) {
+                        new TransportChannelResponseHandler<>(logger, channel, "rerouting indexing to target primary " + primary,
+                            TransportReplicationAction.this::read) {
 
                             @Override
                             public void handleResponse(Response response) {
@@ -578,8 +577,7 @@ public abstract class TransportReplicationAction<
                         // opportunity to execute custom logic before the replica operation begins
                         String extraMessage = "action [" + transportReplicaAction + "], request[" + request + "]";
                         TransportChannelResponseHandler<TransportResponse.Empty> handler =
-                            new TransportChannelResponseHandler<>(logger, channel, extraMessage,
-                                () -> TransportResponse.Empty.INSTANCE);
+                            new TransportChannelResponseHandler<>(logger, channel, extraMessage, in -> TransportResponse.Empty.INSTANCE);
                         transportService.sendRequest(clusterService.localNode(), transportReplicaAction,
                             new ConcreteReplicaRequest<>(request, targetAllocationID, primaryTerm,
                                 globalCheckpoint, maxSeqNoOfUpdatesOrDeletes),
@@ -815,8 +813,8 @@ public abstract class TransportReplicationAction<
             transportService.sendRequest(node, action, requestToPerform, transportOptions, new TransportResponseHandler<Response>() {
 
                 @Override
-                public Response newInstance() {
-                    return newResponseInstance();
+                public Response read(StreamInput in) throws IOException {
+                    return TransportReplicationAction.this.read(in);
                 }
 
                 @Override
@@ -1043,12 +1041,8 @@ public abstract class TransportReplicationAction<
 
 
     public static class ReplicaResponse extends ActionResponse implements ReplicationOperation.ReplicaResponse {
-        private long localCheckpoint;
-        private long globalCheckpoint;
-
-        ReplicaResponse() {
-
-        }
+        private final long localCheckpoint;
+        private final long globalCheckpoint;
 
         public ReplicaResponse(long localCheckpoint, long globalCheckpoint) {
             /*
@@ -1061,16 +1055,13 @@ public abstract class TransportReplicationAction<
             this.globalCheckpoint = globalCheckpoint;
         }
 
-        @Override
-        public void readFrom(StreamInput in) throws IOException {
-            super.readFrom(in);
+        public ReplicaResponse(StreamInput in) throws IOException {
             localCheckpoint = in.readZLong();
             globalCheckpoint = in.readZLong();
         }
 
         @Override
         public void writeTo(StreamOutput out) throws IOException {
-            super.writeTo(out);
             out.writeZLong(localCheckpoint);
             out.writeZLong(globalCheckpoint);
         }

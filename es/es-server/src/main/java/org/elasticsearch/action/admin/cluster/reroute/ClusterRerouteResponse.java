@@ -32,12 +32,8 @@ import java.io.IOException;
  */
 public class ClusterRerouteResponse extends AcknowledgedResponse {
 
-    private ClusterState state;
-    private RoutingExplanations explanations;
-
-    ClusterRerouteResponse() {
-
-    }
+    private final ClusterState state;
+    private final RoutingExplanations explanations;
 
     ClusterRerouteResponse(boolean acknowledged, ClusterState state, RoutingExplanations explanations) {
         super(acknowledged);
@@ -56,9 +52,8 @@ public class ClusterRerouteResponse extends AcknowledgedResponse {
         return this.explanations;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public ClusterRerouteResponse(StreamInput in) throws IOException {
+        super(in);
         state = ClusterState.readFrom(in, null);
         explanations = RoutingExplanations.readFrom(in);
     }

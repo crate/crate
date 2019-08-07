@@ -151,7 +151,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         refresh();
         execute("select * from test order by name limit 0");
         assertEquals(0L, response.rowCount());
-
     }
 
     @Test

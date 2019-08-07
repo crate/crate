@@ -84,11 +84,9 @@ public class ResizeRequest extends AcknowledgedRequest<ResizeRequest> implements
         this.sourceIndex = index;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
-        targetIndexRequest = new CreateIndexRequest();
-        targetIndexRequest.readFrom(in);
+    public ResizeRequest(StreamInput in) throws IOException {
+        super(in);
+        targetIndexRequest = new CreateIndexRequest(in);
         sourceIndex = in.readString();
         type = in.readEnum(ResizeType.class);
         copySettings = in.readOptionalBoolean();

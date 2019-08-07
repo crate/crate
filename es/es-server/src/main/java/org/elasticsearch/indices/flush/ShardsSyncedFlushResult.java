@@ -138,7 +138,7 @@ public class ShardsSyncedFlushResult implements Writeable {
         shardResponses = new HashMap<>();
         for (int i = 0; i < numResponses; i++) {
             ShardRouting shardRouting = new ShardRouting(in);
-            SyncedFlushService.ShardSyncedFlushResponse response = SyncedFlushService.ShardSyncedFlushResponse.readSyncedFlushResponse(in);
+            SyncedFlushService.ShardSyncedFlushResponse response = new SyncedFlushService.ShardSyncedFlushResponse(in);
             shardResponses.put(shardRouting, response);
         }
         syncId = in.readOptionalString();

@@ -33,9 +33,11 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -51,7 +53,14 @@ public class TransportPrivilegesAction extends TransportMasterNodeAction<Privile
                                      ClusterService clusterService,
                                      ThreadPool threadPool,
                                      IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(ACTION_NAME, transportService, clusterService, threadPool, indexNameExpressionResolver, PrivilegesRequest::new);
+        super(
+            ACTION_NAME,
+            transportService,
+            clusterService,
+            threadPool,
+            PrivilegesRequest::new,
+            indexNameExpressionResolver
+        );
     }
 
     @Override
@@ -61,8 +70,8 @@ public class TransportPrivilegesAction extends TransportMasterNodeAction<Privile
     }
 
     @Override
-    protected PrivilegesResponse newResponse() {
-        return new PrivilegesResponse();
+    protected PrivilegesResponse read(StreamInput in) throws IOException {
+        return new PrivilegesResponse(in);
     }
 
     @Override

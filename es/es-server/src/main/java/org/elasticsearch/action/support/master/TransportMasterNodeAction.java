@@ -35,6 +35,7 @@ import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.discovery.MasterNotDiscoveredException;
@@ -45,6 +46,7 @@ import org.elasticsearch.transport.ConnectTransportException;
 import org.elasticsearch.transport.TransportException;
 import org.elasticsearch.transport.TransportService;
 
+import java.io.IOException;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
@@ -58,15 +60,6 @@ public abstract class TransportMasterNodeAction<Request extends MasterNodeReques
     protected final ClusterService clusterService;
 
     private final String executor;
-
-    protected TransportMasterNodeAction(String actionName,
-                                        TransportService transportService,
-                                        ClusterService clusterService,
-                                        ThreadPool threadPool,
-                                        IndexNameExpressionResolver indexNameExpressionResolver,
-                                        Supplier<Request> request) {
-        this(actionName, true, transportService, clusterService, threadPool, indexNameExpressionResolver, request);
-    }
 
     protected TransportMasterNodeAction(String actionName,
                                         TransportService transportService,
@@ -102,7 +95,7 @@ public abstract class TransportMasterNodeAction<Request extends MasterNodeReques
 
     protected abstract String executor();
 
-    protected abstract Response newResponse();
+    protected abstract Response read(StreamInput in) throws IOException;
 
     protected abstract void masterOperation(Request request, ClusterState state, ActionListener<Response> listener) throws Exception;
 
@@ -209,7 +202,7 @@ public abstract class TransportMasterNodeAction<Request extends MasterNodeReques
                         DiscoveryNode masterNode = nodes.getMasterNode();
                         final String actionName = getMasterActionName(masterNode);
                         transportService.sendRequest(masterNode, actionName, request, new ActionListenerResponseHandler<Response>(listener,
-                            TransportMasterNodeAction.this::newResponse) {
+                            TransportMasterNodeAction.this::read) {
                             @Override
                             public void handleException(final TransportException exp) {
                                 Throwable cause = exp.unwrapCause();

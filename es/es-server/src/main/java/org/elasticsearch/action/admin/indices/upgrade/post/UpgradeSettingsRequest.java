@@ -74,10 +74,8 @@ public class UpgradeSettingsRequest extends AcknowledgedRequest<UpgradeSettingsR
         return this;
     }
 
-
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public UpgradeSettingsRequest(StreamInput in) throws IOException {
+        super(in);
         int size = in.readVInt();
         versions = new HashMap<>();
         for (int i=0; i<size; i++) {

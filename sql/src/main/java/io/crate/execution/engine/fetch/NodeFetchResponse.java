@@ -38,27 +38,11 @@ import java.io.IOException;
 
 public class NodeFetchResponse extends TransportResponse {
 
-    private final IntObjectMap<Streamer[]> streamers;
-    private final RamAccountingContext ramAccountingContext;
-
     @Nullable
-    private IntObjectMap<StreamBucket> fetched;
+    private final IntObjectMap<StreamBucket> fetched;
 
-    public static NodeFetchResponse forSending(IntObjectMap<StreamBucket> fetched) {
-        return new NodeFetchResponse(null, fetched, null);
-    }
-
-    public static NodeFetchResponse forReceiveing(@Nullable IntObjectMap<Streamer[]> streamers,
-                                                  RamAccountingContext ramAccountingContext) {
-        return new NodeFetchResponse(streamers, null, ramAccountingContext);
-    }
-
-    private NodeFetchResponse(@Nullable IntObjectMap<Streamer[]> streamers,
-                              @Nullable IntObjectMap<StreamBucket> fetched,
-                              @Nullable RamAccountingContext ramAccountingContext) {
-        this.streamers = streamers;
+    public NodeFetchResponse(@Nullable IntObjectMap<StreamBucket> fetched) {
         this.fetched = fetched;
-        this.ramAccountingContext = ramAccountingContext;
     }
 
     @Nullable
@@ -66,12 +50,8 @@ public class NodeFetchResponse extends TransportResponse {
         return fetched;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        assert ramAccountingContext != null : "RamAccountingContext must be present to receive a NodeFetchResponse";
-        ramAccountingContext.addBytes(in.available());
-
-        super.readFrom(in);
+    public NodeFetchResponse(StreamInput in, IntObjectMap<Streamer[]> streamers, RamAccountingContext ramAccounting) throws IOException {
+        ramAccounting.addBytes(in.available());
         int numReaders = in.readVInt();
         if (numReaders > 0) {
             assert streamers != null : "streamers must not be null";
@@ -81,12 +61,13 @@ public class NodeFetchResponse extends TransportResponse {
                 StreamBucket bucket = new StreamBucket(in, streamers.get(readerId));
                 fetched.put(readerId, bucket);
             }
+        } else {
+            fetched = null;
         }
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
         if (fetched == null) {
             out.writeVInt(0);
         } else {

@@ -53,6 +53,7 @@ import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
@@ -65,6 +66,7 @@ import org.elasticsearch.index.Index;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -90,8 +92,9 @@ public class TransportSchemaUpdateAction extends TransportMasterNodeAction<Schem
             transportService,
             clusterService,
             threadPool,
-            indexNameExpressionResolver,
-            SchemaUpdateRequest::new);
+            SchemaUpdateRequest::new,
+            indexNameExpressionResolver
+        );
         this.nodeClient = nodeClient;
         this.xContentRegistry = xContentRegistry;
     }
@@ -103,8 +106,8 @@ public class TransportSchemaUpdateAction extends TransportMasterNodeAction<Schem
     }
 
     @Override
-    protected SchemaUpdateResponse newResponse() {
-        return new SchemaUpdateResponse(true);
+    protected SchemaUpdateResponse read(StreamInput in) throws IOException {
+        return new SchemaUpdateResponse(in);
     }
 
     @Override

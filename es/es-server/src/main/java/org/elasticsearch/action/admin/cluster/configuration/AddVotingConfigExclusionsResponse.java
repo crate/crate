@@ -35,14 +35,11 @@ public class AddVotingConfigExclusionsResponse extends ActionResponse implements
     public AddVotingConfigExclusionsResponse() {
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public AddVotingConfigExclusionsResponse(StreamInput in) {
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
     }
 
     @Override

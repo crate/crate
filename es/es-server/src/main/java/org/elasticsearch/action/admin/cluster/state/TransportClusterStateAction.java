@@ -31,6 +31,7 @@ import org.elasticsearch.cluster.metadata.MetaData.Custom;
 import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
@@ -62,8 +63,8 @@ public class TransportClusterStateAction extends TransportMasterNodeReadAction<C
     }
 
     @Override
-    protected ClusterStateResponse newResponse() {
-        return new ClusterStateResponse();
+    protected ClusterStateResponse read(StreamInput in) throws IOException {
+        return new ClusterStateResponse(in);
     }
 
     @Override

@@ -78,7 +78,7 @@ public class NodeFetchResponseTest extends CrateUnitTest {
 
     @Test
     public void testStreaming() throws Exception {
-        NodeFetchResponse orig = NodeFetchResponse.forSending(fetched);
+        NodeFetchResponse orig = new NodeFetchResponse(fetched);
 
         BytesStreamOutput out = new BytesStreamOutput();
         orig.writeTo(out);
@@ -86,7 +86,7 @@ public class NodeFetchResponseTest extends CrateUnitTest {
         StreamInput in = out.bytes().streamInput();
 
         // receiving side is required to set the streamers
-        NodeFetchResponse streamed = NodeFetchResponse.forReceiveing(streamers, ramAccountingContext);
+        NodeFetchResponse streamed = new NodeFetchResponse(in, streamers, ramAccountingContext);
         streamed.readFrom(in);
 
         assertThat((Row) Iterables.getOnlyElement(streamed.fetched().get(1)), isRow(true));
@@ -94,18 +94,18 @@ public class NodeFetchResponseTest extends CrateUnitTest {
 
     @Test
     public void testResponseCircuitBreaker() throws Exception {
-        NodeFetchResponse orig = NodeFetchResponse.forSending(fetched);
+        NodeFetchResponse orig = new NodeFetchResponse(fetched);
         BytesStreamOutput out = new BytesStreamOutput();
         orig.writeTo(out);
         StreamInput in = out.bytes().streamInput();
 
-        NodeFetchResponse nodeFetchResponse = NodeFetchResponse.forReceiveing(
+        expectedException.expect(CircuitBreakingException.class);
+        new NodeFetchResponse(
+            in,
             streamers,
             new RamAccountingContext("test",
                 new MemoryCircuitBreaker(
                     new ByteSizeValue(2, ByteSizeUnit.BYTES), 1.0, LogManager.getLogger(NodeFetchResponseTest.class))));
 
-        expectedException.expect(CircuitBreakingException.class);
-        nodeFetchResponse.readFrom(in);
     }
 }

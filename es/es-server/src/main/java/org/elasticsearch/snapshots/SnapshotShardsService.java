@@ -422,13 +422,10 @@ public class SnapshotShardsService extends AbstractLifecycleComponent implements
      * Internal request that is used to send changes in snapshot status to master
      */
     public static class UpdateIndexShardSnapshotStatusRequest extends MasterNodeRequest<UpdateIndexShardSnapshotStatusRequest> {
-        private Snapshot snapshot;
-        private ShardId shardId;
-        private ShardSnapshotStatus status;
 
-        public UpdateIndexShardSnapshotStatusRequest() {
-
-        }
+        private final Snapshot snapshot;
+        private final ShardId shardId;
+        private final ShardSnapshotStatus status;
 
         public UpdateIndexShardSnapshotStatusRequest(Snapshot snapshot, ShardId shardId, ShardSnapshotStatus status) {
             this.snapshot = snapshot;
@@ -443,9 +440,8 @@ public class SnapshotShardsService extends AbstractLifecycleComponent implements
             return null;
         }
 
-        @Override
-        public void readFrom(StreamInput in) throws IOException {
-            super.readFrom(in);
+        public UpdateIndexShardSnapshotStatusRequest(StreamInput in) throws IOException {
+            super(in);
             snapshot = new Snapshot(in);
             shardId = new ShardId(in);
             status = new ShardSnapshotStatus(in);
@@ -608,6 +604,9 @@ public class SnapshotShardsService extends AbstractLifecycleComponent implements
 
     static class UpdateIndexShardSnapshotStatusResponse extends ActionResponse {
 
+        @Override
+        public void writeTo(StreamOutput out) throws IOException {
+        }
     }
 
     private class UpdateSnapshotStatusAction
@@ -615,8 +614,12 @@ public class SnapshotShardsService extends AbstractLifecycleComponent implements
         UpdateSnapshotStatusAction(TransportService transportService, ClusterService clusterService,
                                    ThreadPool threadPool, IndexNameExpressionResolver indexNameExpressionResolver) {
             super(
-                SnapshotShardsService.UPDATE_SNAPSHOT_STATUS_ACTION_NAME, transportService, clusterService, threadPool,
-                indexNameExpressionResolver, UpdateIndexShardSnapshotStatusRequest::new
+                SnapshotShardsService.UPDATE_SNAPSHOT_STATUS_ACTION_NAME,
+                transportService,
+                clusterService,
+                threadPool,
+                UpdateIndexShardSnapshotStatusRequest::new,
+                indexNameExpressionResolver
             );
         }
 
@@ -626,7 +629,7 @@ public class SnapshotShardsService extends AbstractLifecycleComponent implements
         }
 
         @Override
-        protected UpdateIndexShardSnapshotStatusResponse newResponse() {
+        protected UpdateIndexShardSnapshotStatusResponse read(StreamInput in) throws IOException {
             return new UpdateIndexShardSnapshotStatusResponse();
         }
 

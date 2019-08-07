@@ -30,12 +30,9 @@ import java.io.IOException;
 
 public class CreateUserRequest extends AcknowledgedRequest<CreateUserRequest> {
 
-    private String userName;
+    private final String userName;
     @Nullable
-    private SecureHash secureHash;
-
-    public CreateUserRequest() {
-    }
+    private final SecureHash secureHash;
 
     public CreateUserRequest(String userName, @Nullable SecureHash attributes) {
         this.userName = userName;
@@ -59,9 +56,8 @@ public class CreateUserRequest extends AcknowledgedRequest<CreateUserRequest> {
         return null;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public CreateUserRequest(StreamInput in) throws IOException {
+        super(in);
         userName = in.readString();
         secureHash = in.readOptionalWriteable(SecureHash::readFrom);
     }

@@ -21,7 +21,6 @@
 
 package org.elasticsearch.action.admin.indices.create;
 
-import com.google.common.collect.ImmutableList;
 import org.elasticsearch.action.ActionRequestValidationException;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -35,8 +34,8 @@ import java.util.UUID;
 
 public class CreatePartitionsRequest extends AcknowledgedRequest<CreatePartitionsRequest> {
 
-    private Collection<String> indices = ImmutableList.of();
-    private UUID jobId;
+    private final Collection<String> indices;
+    private final UUID jobId;
 
     /**
      * Constructs a new request to create indices with the specified names.
@@ -44,9 +43,6 @@ public class CreatePartitionsRequest extends AcknowledgedRequest<CreatePartition
     public CreatePartitionsRequest(Collection<String> indices, UUID jobId) {
         this.indices = indices;
         this.jobId = jobId;
-    }
-
-    public CreatePartitionsRequest() {
     }
 
     public Collection<String> indices() {
@@ -62,8 +58,7 @@ public class CreatePartitionsRequest extends AcknowledgedRequest<CreatePartition
         return null;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
+    public CreatePartitionsRequest(StreamInput in) throws IOException {
         super.readFrom(in);
         jobId = new UUID(in.readLong(), in.readLong());
         int numIndices = in.readVInt();

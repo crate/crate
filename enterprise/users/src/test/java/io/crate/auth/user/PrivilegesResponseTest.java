@@ -38,8 +38,7 @@ public class PrivilegesResponseTest extends CrateUnitTest {
         BytesStreamOutput out = new BytesStreamOutput();
         r1.writeTo(out);
 
-        PrivilegesResponse r2 = new PrivilegesResponse();
-        r2.readFrom(out.bytes().streamInput());
+        PrivilegesResponse r2 = new PrivilegesResponse(out.bytes().streamInput());
 
         assertThat(r2.isAcknowledged(), is(true));
         assertThat(r2.affectedRows(), is(1L));

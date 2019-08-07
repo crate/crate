@@ -27,33 +27,26 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.transport.TransportResponse;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.Map;
 
 public class NodeCollectProfileResponse extends TransportResponse {
 
-    private Map<String, Object> durationByContextIdent = Collections.emptyMap();
+    private final Map<String, Object> durationByContextIdent;
 
     NodeCollectProfileResponse(Map<String, Object> durationByContextIdent) {
         this.durationByContextIdent = durationByContextIdent;
-    }
-
-    NodeCollectProfileResponse() {
     }
 
     Map<String, Object> durationByContextIdent() {
         return durationByContextIdent;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public NodeCollectProfileResponse(StreamInput in) throws IOException {
         durationByContextIdent = in.readMap();
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
         out.writeMap(durationByContextIdent);
     }
 }

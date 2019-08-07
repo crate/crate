@@ -58,6 +58,7 @@ import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
@@ -101,8 +102,7 @@ import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_WAIT_FOR_
  * - and alias / mappings / etc. are not taken from the request
  */
 @Singleton
-public class TransportCreatePartitionsAction
-    extends TransportMasterNodeAction<CreatePartitionsRequest, CreatePartitionsResponse> {
+public class TransportCreatePartitionsAction extends TransportMasterNodeAction<CreatePartitionsRequest, CreatePartitionsResponse> {
 
     public static final String NAME = "indices:admin/bulk_create";
 
@@ -131,7 +131,7 @@ public class TransportCreatePartitionsAction
                                            AllocationService allocationService,
                                            NamedXContentRegistry xContentRegistry,
                                            IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(NAME, transportService, clusterService, threadPool, indexNameExpressionResolver, CreatePartitionsRequest::new);
+        super(NAME, transportService, clusterService, threadPool, CreatePartitionsRequest::new, indexNameExpressionResolver);
         this.indicesService = indicesService;
         this.allocationService = allocationService;
         this.xContentRegistry = xContentRegistry;
@@ -144,8 +144,8 @@ public class TransportCreatePartitionsAction
     }
 
     @Override
-    protected CreatePartitionsResponse newResponse() {
-        return new CreatePartitionsResponse();
+    protected CreatePartitionsResponse read(StreamInput in) throws IOException {
+        return new CreatePartitionsResponse(in);
     }
 
     @Override

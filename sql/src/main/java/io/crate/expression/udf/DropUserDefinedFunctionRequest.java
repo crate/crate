@@ -26,7 +26,6 @@
 
 package io.crate.expression.udf;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.action.ActionRequestValidationException;
@@ -41,13 +40,10 @@ import java.util.List;
 
 public class DropUserDefinedFunctionRequest extends MasterNodeRequest<DropUserDefinedFunctionRequest> {
 
-    private String name;
-    private String schema;
-    private List<DataType> argumentTypes = ImmutableList.of();
-    private boolean ifExists;
-
-    public DropUserDefinedFunctionRequest() {
-    }
+    private final String name;
+    private final String schema;
+    private final List<DataType> argumentTypes;
+    private final boolean ifExists;
 
     public DropUserDefinedFunctionRequest(String schema, String name, List<DataType> argumentTypes, boolean ifExists) {
         this.schema = schema;
@@ -80,20 +76,19 @@ public class DropUserDefinedFunctionRequest extends MasterNodeRequest<DropUserDe
         return null;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public DropUserDefinedFunctionRequest(StreamInput in) throws IOException {
+        super(in);
         schema = in.readString();
         name = in.readString();
-
         int n = in.readVInt();
         if (n > 0) {
             argumentTypes = new ArrayList<>(n);
             for (int i = 0; i < n; i++) {
                 argumentTypes.add(DataTypes.fromStream(in));
             }
+        } else {
+            argumentTypes = List.of();
         }
-
         ifExists = in.readBoolean();
     }
 
@@ -102,13 +97,11 @@ public class DropUserDefinedFunctionRequest extends MasterNodeRequest<DropUserDe
         super.writeTo(out);
         out.writeString(schema);
         out.writeString(name);
-
         int n = argumentTypes.size();
         out.writeVInt(n);
         for (int i = 0; i < n; i++) {
             DataTypes.toStream(argumentTypes.get(i), out);
         }
-
         out.writeBoolean(ifExists);
     }
 }

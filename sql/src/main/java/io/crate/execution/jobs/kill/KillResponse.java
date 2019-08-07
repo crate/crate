@@ -34,7 +34,7 @@ public class KillResponse extends TransportResponse {
 
     static final MergeKillResponseFunction MERGE_FUNCTION = new MergeKillResponseFunction();
 
-    private long numKilled;
+    private final long numKilled;
 
     KillResponse(long numKilled) {
         this.numKilled = numKilled;
@@ -42,13 +42,10 @@ public class KillResponse extends TransportResponse {
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
         out.writeVLong(numKilled);
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public KillResponse(StreamInput in) throws IOException {
         numKilled = in.readVLong();
     }
 

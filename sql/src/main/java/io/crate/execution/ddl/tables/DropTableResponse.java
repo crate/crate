@@ -30,16 +30,12 @@ import java.io.IOException;
 
 public class DropTableResponse extends AcknowledgedResponse {
 
-    DropTableResponse() {
-    }
-
     DropTableResponse(boolean acknowledged) {
         super(acknowledged);
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public DropTableResponse(StreamInput in) throws IOException {
+        super(in);
     }
 
     @Override

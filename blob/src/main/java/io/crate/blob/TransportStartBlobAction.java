@@ -28,14 +28,16 @@ import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-public class TransportStartBlobAction
-    extends TransportReplicationAction<StartBlobRequest, StartBlobRequest, StartBlobResponse> {
+import java.io.IOException;
+
+public class TransportStartBlobAction extends TransportReplicationAction<StartBlobRequest, StartBlobRequest, StartBlobResponse> {
 
     private final BlobTransferTarget transferTarget;
 
@@ -57,15 +59,15 @@ public class TransportStartBlobAction
     }
 
     @Override
-    protected StartBlobResponse newResponseInstance() {
+    protected StartBlobResponse read(StreamInput in) throws IOException {
         logger.trace("newResponseInstance");
-        return new StartBlobResponse();
+        return new StartBlobResponse(in);
     }
 
     @Override
     protected PrimaryResult shardOperationOnPrimary(StartBlobRequest request, IndexShard primary) throws Exception {
         logger.trace("shardOperationOnPrimary {}", request);
-        final StartBlobResponse response = newResponseInstance();
+        final StartBlobResponse response = new StartBlobResponse();
         transferTarget.startTransfer(request, response);
         return new PrimaryResult<>(request, response);
     }
@@ -73,7 +75,7 @@ public class TransportStartBlobAction
     @Override
     protected ReplicaResult shardOperationOnReplica(StartBlobRequest request, IndexShard replica) {
         logger.trace("shardOperationOnReplica operating on replica {}", request);
-        final StartBlobResponse response = newResponseInstance();
+        final StartBlobResponse response = new StartBlobResponse();
         transferTarget.startTransfer(request, response);
         return new ReplicaResult();
     }

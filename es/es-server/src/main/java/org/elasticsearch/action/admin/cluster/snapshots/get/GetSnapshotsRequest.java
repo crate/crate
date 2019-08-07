@@ -155,9 +155,8 @@ public class GetSnapshotsRequest extends MasterNodeRequest<GetSnapshotsRequest> 
         return verbose;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public GetSnapshotsRequest(StreamInput in) throws IOException {
+        super(in);
         repository = in.readString();
         snapshots = in.readStringArray();
         ignoreUnavailable = in.readBoolean();

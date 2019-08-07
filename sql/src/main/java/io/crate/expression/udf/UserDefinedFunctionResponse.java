@@ -34,16 +34,12 @@ import java.io.IOException;
 
 class UserDefinedFunctionResponse extends AcknowledgedResponse {
 
-    UserDefinedFunctionResponse() {
-    }
-
     UserDefinedFunctionResponse(boolean acknowledged) {
         super(acknowledged);
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public UserDefinedFunctionResponse(StreamInput in) throws IOException {
+        super(in);
     }
 
     @Override

@@ -30,9 +30,12 @@ import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
+
+import java.io.IOException;
 
 import static io.crate.license.LicenseKey.decode;
 
@@ -44,8 +47,14 @@ public class TransportSetLicenseAction extends TransportMasterNodeAction<SetLice
                                      ClusterService clusterService,
                                      ThreadPool threadPool,
                                      IndexNameExpressionResolver indexNameExpressionResolver) {
-        super("internal:crate:sql/set_license", transportService, clusterService, threadPool,
-            indexNameExpressionResolver, SetLicenseRequest::new);
+        super(
+            "internal:crate:sql/set_license",
+            transportService,
+            clusterService,
+            threadPool,
+            SetLicenseRequest::new,
+            indexNameExpressionResolver
+        );
     }
 
     @Override
@@ -54,8 +63,8 @@ public class TransportSetLicenseAction extends TransportMasterNodeAction<SetLice
     }
 
     @Override
-    protected AcknowledgedResponse newResponse() {
-        return new AcknowledgedResponse();
+    protected AcknowledgedResponse read(StreamInput in) throws IOException {
+        return new AcknowledgedResponse(in);
     }
 
     @Override

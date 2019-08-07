@@ -102,7 +102,7 @@ public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
         }
 
         if (directResponseFutures.size() == 0) {
-            return CompletableFuture.completedFuture(new JobResponse());
+            return CompletableFuture.completedFuture(new JobResponse(List.of()));
         } else {
             return CompletableFutures.allAsList(directResponseFutures).thenApply(JobResponse::new);
         }

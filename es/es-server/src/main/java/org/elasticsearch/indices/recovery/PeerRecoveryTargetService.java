@@ -35,6 +35,7 @@ import org.elasticsearch.cluster.ClusterStateObserver;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Nullable;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.unit.TimeValue;
@@ -197,8 +198,8 @@ public class PeerRecoveryTargetService implements IndexEventListener {
                     transportService.submitRequest(request.sourceNode(), PeerRecoverySourceService.Actions.START_RECOVERY, request,
                             new FutureTransportResponseHandler<RecoveryResponse>() {
                                 @Override
-                                public RecoveryResponse newInstance() {
-                                    return new RecoveryResponse();
+                                public RecoveryResponse read(StreamInput in) throws IOException {
+                                    return new RecoveryResponse(in);
                                 }
                             }).txGet()));
             final RecoveryResponse recoveryResponse = responseHolder.get();

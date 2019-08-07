@@ -30,7 +30,7 @@ import java.io.IOException;
 
 public final class CreateViewResponse extends ActionResponse {
 
-    private boolean alreadyExistsFailure;
+    private final boolean alreadyExistsFailure;
 
     public CreateViewResponse(boolean alreadyExistsFailure) {
         this.alreadyExistsFailure = alreadyExistsFailure;
@@ -40,15 +40,12 @@ public final class CreateViewResponse extends ActionResponse {
         return alreadyExistsFailure;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public CreateViewResponse(StreamInput in) throws IOException {
         alreadyExistsFailure = in.readBoolean();
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
         out.writeBoolean(alreadyExistsFailure);
     }
 }

@@ -32,7 +32,6 @@ public class BlobStartPrefixResponse extends TransportResponse {
     public final byte[][] existingDigests;
 
     public BlobStartPrefixResponse(StreamInput in) throws IOException {
-        super.readFrom(in);
         int size = in.readInt();
         existingDigests = new byte[size][20];
         for (int i = 0; i < size; i++) {
@@ -47,7 +46,6 @@ public class BlobStartPrefixResponse extends TransportResponse {
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
         out.writeInt(existingDigests.length);
         for (byte[] digest : existingDigests) {
             out.write(digest);

@@ -59,15 +59,12 @@ public class AcknowledgedResponse extends ActionResponse {
         return acknowledged;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public AcknowledgedResponse(StreamInput in) throws IOException {
         acknowledged = in.readBoolean();
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
         out.writeBoolean(acknowledged);
     }
 

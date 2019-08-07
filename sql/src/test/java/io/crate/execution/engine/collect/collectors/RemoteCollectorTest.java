@@ -53,6 +53,7 @@ import org.mockito.Captor;
 import org.mockito.MockitoAnnotations;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -152,7 +153,7 @@ public class RemoteCollectorTest extends CrateDummyClusterServiceUnitTest {
         remoteCollector.kill(new InterruptedException());
 
         ActionListener<JobResponse> listener = listenerCaptor.getValue();
-        listener.onResponse(new JobResponse());
+        listener.onResponse(new JobResponse(List.of()));
 
         assertThat(numBroadcastCalls.get(), is(1));
     }

@@ -31,11 +31,8 @@ import java.util.Collection;
 
 public class PrivilegesRequest extends AcknowledgedRequest<PrivilegesRequest> {
 
-    private Collection<String> userNames;
-    private Collection<Privilege> privileges;
-
-    PrivilegesRequest() {
-    }
+    private final Collection<String> userNames;
+    private final Collection<Privilege> privileges;
 
     PrivilegesRequest(Collection<String> userNames, Collection<Privilege> privileges) {
         this.userNames = userNames;
@@ -62,9 +59,8 @@ public class PrivilegesRequest extends AcknowledgedRequest<PrivilegesRequest> {
         return validationException;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public PrivilegesRequest(StreamInput in) throws IOException {
+        super(in);
         int userNamesSize = in.readVInt();
         userNames = new ArrayList<>(userNamesSize);
         for (int i = 0; i < userNamesSize; i++) {

@@ -29,9 +29,12 @@ import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
+
+import java.io.IOException;
 
 /**
  * Transport action for unregister repository operation
@@ -46,7 +49,7 @@ public class TransportDeleteRepositoryAction extends TransportMasterNodeAction<D
                                            RepositoriesService repositoriesService,
                                            ThreadPool threadPool,
                                            IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(DeleteRepositoryAction.NAME, transportService, clusterService, threadPool, indexNameExpressionResolver, DeleteRepositoryRequest::new);
+        super(DeleteRepositoryAction.NAME, transportService, clusterService, threadPool, DeleteRepositoryRequest::new, indexNameExpressionResolver);
         this.repositoriesService = repositoriesService;
     }
 
@@ -56,8 +59,8 @@ public class TransportDeleteRepositoryAction extends TransportMasterNodeAction<D
     }
 
     @Override
-    protected AcknowledgedResponse newResponse() {
-        return new AcknowledgedResponse();
+    protected AcknowledgedResponse read(StreamInput in) throws IOException {
+        return new AcknowledgedResponse(in);
     }
 
     @Override

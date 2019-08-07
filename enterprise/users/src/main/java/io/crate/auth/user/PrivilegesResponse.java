@@ -27,11 +27,8 @@ import java.util.List;
 
 public class PrivilegesResponse extends AcknowledgedResponse {
 
-    private List<String> unknownUserNames;
-    private long affectedRows;
-
-    PrivilegesResponse() {
-    }
+    private final List<String> unknownUserNames;
+    private final long affectedRows;
 
     PrivilegesResponse(boolean acknowledged, long affectedRows, List<String> unknownUserNames) {
         super(acknowledged);
@@ -47,9 +44,8 @@ public class PrivilegesResponse extends AcknowledgedResponse {
         return affectedRows;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public PrivilegesResponse(StreamInput in) throws IOException {
+        super(in);
         affectedRows = in.readLong();
         unknownUserNames = in.readList(StreamInput::readString);
     }

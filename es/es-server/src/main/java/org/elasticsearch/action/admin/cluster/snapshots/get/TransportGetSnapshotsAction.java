@@ -28,6 +28,7 @@ import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.repositories.IndexId;
 import org.elasticsearch.repositories.RepositoryData;
@@ -38,6 +39,7 @@ import org.elasticsearch.snapshots.SnapshotsService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -59,8 +61,14 @@ public class TransportGetSnapshotsAction extends TransportMasterNodeAction<GetSn
                                        ThreadPool threadPool,
                                        SnapshotsService snapshotsService,
                                        IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(GetSnapshotsAction.NAME, transportService, clusterService, threadPool, indexNameExpressionResolver,
-              GetSnapshotsRequest::new);
+        super(
+            GetSnapshotsAction.NAME,
+            transportService,
+            clusterService,
+            threadPool,
+            GetSnapshotsRequest::new,
+            indexNameExpressionResolver
+        );
         this.snapshotsService = snapshotsService;
     }
 
@@ -70,8 +78,8 @@ public class TransportGetSnapshotsAction extends TransportMasterNodeAction<GetSn
     }
 
     @Override
-    protected GetSnapshotsResponse newResponse() {
-        return new GetSnapshotsResponse();
+    protected GetSnapshotsResponse read(StreamInput in) throws IOException {
+        return new GetSnapshotsResponse(in);
     }
 
     @Override

@@ -33,11 +33,8 @@ import java.util.List;
 
 public final class SwapRelationsRequest extends AcknowledgedRequest<SwapRelationsRequest> {
 
-    private List<RelationNameSwap> swapRelations;
-    private List<RelationName> dropRelations;
-
-    SwapRelationsRequest() {
-    }
+    private final List<RelationNameSwap> swapRelations;
+    private final List<RelationName> dropRelations;
 
     public SwapRelationsRequest(List<RelationNameSwap> swapRelations, List<RelationName> dropRelations) {
         this.swapRelations = swapRelations;
@@ -64,9 +61,8 @@ public final class SwapRelationsRequest extends AcknowledgedRequest<SwapRelation
         return null;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public SwapRelationsRequest(StreamInput in) throws IOException {
+        super(in);
         swapRelations = in.readList(RelationNameSwap::new);
         dropRelations = in.readList(RelationName::new);
     }

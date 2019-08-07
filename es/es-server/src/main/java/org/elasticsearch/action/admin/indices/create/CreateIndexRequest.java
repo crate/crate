@@ -452,10 +452,8 @@ public class CreateIndexRequest extends AcknowledgedRequest<CreateIndexRequest> 
         return waitForActiveShards(ActiveShardCount.from(waitForActiveShards));
     }
 
-
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public CreateIndexRequest(StreamInput in) throws IOException {
+        super(in);
         cause = in.readString();
         index = in.readString();
         settings = readSettingsFromStream(in);

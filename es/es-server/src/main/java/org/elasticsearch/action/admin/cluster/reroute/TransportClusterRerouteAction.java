@@ -33,8 +33,11 @@ import org.elasticsearch.cluster.routing.allocation.RoutingExplanations;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
+
+import java.io.IOException;
 
 public class TransportClusterRerouteAction extends TransportMasterNodeAction<ClusterRerouteRequest, ClusterRerouteResponse> {
 
@@ -46,7 +49,7 @@ public class TransportClusterRerouteAction extends TransportMasterNodeAction<Clu
                                          ThreadPool threadPool,
                                          AllocationService allocationService,
                                          IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(ClusterRerouteAction.NAME, transportService, clusterService, threadPool, indexNameExpressionResolver, ClusterRerouteRequest::new);
+        super(ClusterRerouteAction.NAME, transportService, clusterService, threadPool, ClusterRerouteRequest::new, indexNameExpressionResolver);
         this.allocationService = allocationService;
     }
 
@@ -62,8 +65,8 @@ public class TransportClusterRerouteAction extends TransportMasterNodeAction<Clu
     }
 
     @Override
-    protected ClusterRerouteResponse newResponse() {
-        return new ClusterRerouteResponse();
+    protected ClusterRerouteResponse read(StreamInput in) throws IOException {
+        return new ClusterRerouteResponse(in);
     }
 
     @Override

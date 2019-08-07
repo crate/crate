@@ -39,10 +39,12 @@ import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
@@ -66,8 +68,9 @@ public final class TransportSwapRelationsAction extends TransportMasterNodeActio
             transportService,
             clusterService,
             threadPool,
-            indexNameExpressionResolver,
-            SwapRelationsRequest::new);
+            SwapRelationsRequest::new,
+            indexNameExpressionResolver
+        );
         this.activeShardsObserver = new ActiveShardsObserver(clusterService, threadPool);
         this.swapRelationsOperation = new SwapRelationsOperation(
             allocationService, ddlClusterStateService, indexNameExpressionResolver);
@@ -79,8 +82,8 @@ public final class TransportSwapRelationsAction extends TransportMasterNodeActio
     }
 
     @Override
-    protected AcknowledgedResponse newResponse() {
-        return new AcknowledgedResponse();
+    protected AcknowledgedResponse read(StreamInput in) throws IOException {
+        return new AcknowledgedResponse(in);
     }
 
     @Override

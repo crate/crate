@@ -26,7 +26,7 @@ import java.io.IOException;
 
 public class WriteUserResponse extends AcknowledgedResponse {
 
-    private boolean userDoesExist;
+    private final boolean userDoesExist;
 
     WriteUserResponse(boolean userDoesExist) {
         this.userDoesExist = userDoesExist;
@@ -37,14 +37,12 @@ public class WriteUserResponse extends AcknowledgedResponse {
         this.userDoesExist = userDoesExist;
     }
 
-
     boolean doesUserExist() {
         return userDoesExist;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public WriteUserResponse(StreamInput in) throws IOException {
+        super(in);
         userDoesExist = in.readBoolean();
     }
 

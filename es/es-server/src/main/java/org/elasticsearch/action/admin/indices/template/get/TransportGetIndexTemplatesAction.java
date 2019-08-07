@@ -28,11 +28,13 @@ import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -56,8 +58,8 @@ public class TransportGetIndexTemplatesAction extends TransportMasterNodeReadAct
     }
 
     @Override
-    protected GetIndexTemplatesResponse newResponse() {
-        return new GetIndexTemplatesResponse();
+    protected GetIndexTemplatesResponse read(StreamInput in) throws IOException {
+        return new GetIndexTemplatesResponse(in);
     }
 
     @Override

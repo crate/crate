@@ -30,10 +30,7 @@ import java.io.IOException;
 
 public class DistributedResultResponse extends TransportResponse {
 
-    private boolean needMore = false;
-
-    public DistributedResultResponse() {
-    }
+    private final boolean needMore;
 
     public DistributedResultResponse(boolean needMore) {
         this.needMore = needMore;
@@ -43,15 +40,12 @@ public class DistributedResultResponse extends TransportResponse {
         return needMore;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public DistributedResultResponse(StreamInput in) throws IOException {
         needMore = in.readBoolean();
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
         out.writeBoolean(needMore);
     }
 }

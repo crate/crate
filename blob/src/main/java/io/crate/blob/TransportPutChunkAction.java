@@ -28,11 +28,14 @@ import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
+
+import java.io.IOException;
 
 public class TransportPutChunkAction extends TransportReplicationAction<PutChunkRequest, PutChunkReplicaRequest, PutChunkResponse> {
 
@@ -55,8 +58,8 @@ public class TransportPutChunkAction extends TransportReplicationAction<PutChunk
     }
 
     @Override
-    protected PutChunkResponse newResponseInstance() {
-        return new PutChunkResponse();
+    protected PutChunkResponse read(StreamInput in) throws IOException {
+        return new PutChunkResponse(in);
     }
 
     @Override
@@ -69,7 +72,7 @@ public class TransportPutChunkAction extends TransportReplicationAction<PutChunk
 
     @Override
     protected PrimaryResult<PutChunkReplicaRequest, PutChunkResponse> shardOperationOnPrimary(PutChunkRequest request, IndexShard primary) {
-        PutChunkResponse response = newResponseInstance();
+        PutChunkResponse response = new PutChunkResponse();
         transferTarget.continueTransfer(request, response);
 
         final PutChunkReplicaRequest replicaRequest = new PutChunkReplicaRequest();
@@ -85,7 +88,7 @@ public class TransportPutChunkAction extends TransportReplicationAction<PutChunk
 
     @Override
     protected ReplicaResult shardOperationOnReplica(PutChunkReplicaRequest shardRequest, IndexShard replica) {
-        PutChunkResponse response = newResponseInstance();
+        PutChunkResponse response = new PutChunkResponse();
         transferTarget.continueTransfer(shardRequest, response);
         return new ReplicaResult();
     }

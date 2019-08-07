@@ -123,9 +123,8 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
         return failure;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public ShardResponse(StreamInput in) throws IOException {
+        super(in);
         int size = in.readVInt();
         locations = new IntArrayList(size);
         failures = new ArrayList<>(size);

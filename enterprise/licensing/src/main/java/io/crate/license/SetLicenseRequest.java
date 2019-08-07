@@ -28,10 +28,7 @@ import java.io.IOException;
 
 public class SetLicenseRequest extends MasterNodeRequest<SetLicenseRequest> {
 
-    private LicenseKey licenseKey;
-
-    SetLicenseRequest() {
-    }
+    private final LicenseKey licenseKey;
 
     SetLicenseRequest(LicenseKey licenseKey) {
         this.licenseKey = licenseKey;
@@ -49,9 +46,8 @@ public class SetLicenseRequest extends MasterNodeRequest<SetLicenseRequest> {
         return null;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public SetLicenseRequest(StreamInput in) throws IOException {
+        super(in);
         licenseKey = new LicenseKey(in);
     }
 

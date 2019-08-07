@@ -20,14 +20,11 @@
 package org.elasticsearch.action.admin.cluster.snapshots.get;
 
 import org.elasticsearch.action.ActionResponse;
-import org.elasticsearch.common.ParseField;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.xcontent.ConstructingObjectParser;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.ToXContentObject;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.snapshots.SnapshotInfo;
 
 import java.io.IOException;
@@ -41,20 +38,7 @@ import java.util.Objects;
  */
 public class GetSnapshotsResponse extends ActionResponse implements ToXContentObject {
 
-    @SuppressWarnings("unchecked")
-    private static final ConstructingObjectParser<GetSnapshotsResponse, Void> GET_SNAPSHOT_PARSER =
-        new ConstructingObjectParser<>(GetSnapshotsResponse.class.getName(), true,
-            (args) -> new GetSnapshotsResponse((List<SnapshotInfo>) args[0]));
-
-    static {
-        GET_SNAPSHOT_PARSER.declareObjectArray(ConstructingObjectParser.constructorArg(),
-            (p, c) -> SnapshotInfo.SNAPSHOT_INFO_PARSER.apply(p, c).build(), new ParseField("snapshots"));
-    }
-
-    private List<SnapshotInfo> snapshots = Collections.emptyList();
-
-    GetSnapshotsResponse() {
-    }
+    private final List<SnapshotInfo> snapshots;
 
     GetSnapshotsResponse(List<SnapshotInfo> snapshots) {
         this.snapshots = Collections.unmodifiableList(snapshots);
@@ -69,8 +53,7 @@ public class GetSnapshotsResponse extends ActionResponse implements ToXContentOb
         return snapshots;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
+    public GetSnapshotsResponse(StreamInput in) throws IOException {
         super.readFrom(in);
         int size = in.readVInt();
         List<SnapshotInfo> builder = new ArrayList<>(size);
@@ -82,7 +65,6 @@ public class GetSnapshotsResponse extends ActionResponse implements ToXContentOb
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
         out.writeVInt(snapshots.size());
         for (SnapshotInfo snapshotInfo : snapshots) {
             snapshotInfo.writeTo(out);
@@ -99,10 +81,6 @@ public class GetSnapshotsResponse extends ActionResponse implements ToXContentOb
         builder.endArray();
         builder.endObject();
         return builder;
-    }
-
-    public static GetSnapshotsResponse fromXContent(XContentParser parser) throws IOException {
-        return GET_SNAPSHOT_PARSER.parse(parser, null);
     }
 
     @Override

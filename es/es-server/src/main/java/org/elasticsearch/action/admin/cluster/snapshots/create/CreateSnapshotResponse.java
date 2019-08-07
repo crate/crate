@@ -21,16 +21,12 @@ package org.elasticsearch.action.admin.cluster.snapshots.create;
 
 import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.common.Nullable;
-import org.elasticsearch.common.ParseField;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.xcontent.ObjectParser;
 import org.elasticsearch.common.xcontent.ToXContentObject;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.snapshots.SnapshotInfo;
-import org.elasticsearch.snapshots.SnapshotInfo.SnapshotInfoBuilder;
 
 import java.io.IOException;
 import java.util.Objects;
@@ -39,14 +35,6 @@ import java.util.Objects;
  * Create snapshot response
  */
 public class CreateSnapshotResponse extends ActionResponse implements ToXContentObject {
-
-    private static final ObjectParser<CreateSnapshotResponse, Void> PARSER =
-        new ObjectParser<>(CreateSnapshotResponse.class.getName(), true, CreateSnapshotResponse::new);
-
-    static {
-        PARSER.declareObject(CreateSnapshotResponse::setSnapshotInfoFromBuilder,
-            SnapshotInfo.SNAPSHOT_INFO_PARSER, new ParseField("snapshot"));
-    }
 
     @Nullable
     private SnapshotInfo snapshotInfo;
@@ -58,10 +46,6 @@ public class CreateSnapshotResponse extends ActionResponse implements ToXContent
     CreateSnapshotResponse() {
     }
 
-    private void setSnapshotInfoFromBuilder(SnapshotInfoBuilder snapshotInfoBuilder) {
-        this.snapshotInfo = snapshotInfoBuilder.build();
-    }
-
     /**
      * Returns snapshot information if snapshot was completed by the time this method returned or null otherwise.
      *
@@ -71,15 +55,12 @@ public class CreateSnapshotResponse extends ActionResponse implements ToXContent
         return snapshotInfo;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public CreateSnapshotResponse(StreamInput in) throws IOException {
         snapshotInfo = in.readOptionalWriteable(SnapshotInfo::new);
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
         out.writeOptionalWriteable(snapshotInfo);
     }
 
@@ -109,10 +90,6 @@ public class CreateSnapshotResponse extends ActionResponse implements ToXContent
         }
         builder.endObject();
         return builder;
-    }
-
-    public static CreateSnapshotResponse fromXContent(XContentParser parser) {
-        return PARSER.apply(parser, null);
     }
 
     @Override
