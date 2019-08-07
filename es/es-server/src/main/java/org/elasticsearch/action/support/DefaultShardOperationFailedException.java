@@ -50,9 +50,6 @@ public class DefaultShardOperationFailedException extends ShardOperationFailedEx
         PARSER.declareObject(constructorArg(), (p, c) -> ElasticsearchException.fromXContent(p), new ParseField(REASON));
     }
 
-    protected DefaultShardOperationFailedException() {
-    }
-
     public DefaultShardOperationFailedException(ElasticsearchException e) {
         super(e.getIndex() == null ? null : e.getIndex().getName(), e.getShardId() == null ? -1 : e.getShardId().getId(),
             detailedMessage(e), e.status(), e);
@@ -62,14 +59,7 @@ public class DefaultShardOperationFailedException extends ShardOperationFailedEx
         super(index, shardId, detailedMessage(cause), ExceptionsHelper.status(cause), cause);
     }
 
-    public static DefaultShardOperationFailedException readShardOperationFailed(StreamInput in) throws IOException {
-        DefaultShardOperationFailedException exp = new DefaultShardOperationFailedException();
-        exp.readFrom(in);
-        return exp;
-    }
-
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
+    public DefaultShardOperationFailedException(StreamInput in) throws IOException {
         index = in.readOptionalString();
         shardId = in.readVInt();
         cause = in.readException();

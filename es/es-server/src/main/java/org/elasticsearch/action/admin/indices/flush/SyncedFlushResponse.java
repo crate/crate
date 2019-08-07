@@ -128,7 +128,7 @@ public class SyncedFlushResponse extends ActionResponse {
             List<ShardsSyncedFlushResult> shardsSyncedFlushResults = new ArrayList<>();
             int numShards = in.readInt();
             for (int j =0; j< numShards; j++) {
-                shardsSyncedFlushResults.add(ShardsSyncedFlushResult.readShardsSyncedFlushResult(in));
+                shardsSyncedFlushResults.add(new ShardsSyncedFlushResult(in));
             }
             tmpShardsResultPerIndex.put(index, shardsSyncedFlushResults);
         }

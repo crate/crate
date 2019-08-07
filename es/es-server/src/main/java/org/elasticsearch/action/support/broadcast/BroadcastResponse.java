@@ -30,7 +30,6 @@ import org.elasticsearch.rest.RestStatus;
 import java.io.IOException;
 import java.util.List;
 
-import static org.elasticsearch.action.support.DefaultShardOperationFailedException.readShardOperationFailed;
 import static org.elasticsearch.common.xcontent.ConstructingObjectParser.constructorArg;
 import static org.elasticsearch.common.xcontent.ConstructingObjectParser.optionalConstructorArg;
 
@@ -127,7 +126,7 @@ public class BroadcastResponse extends ActionResponse {
         if (size > 0) {
             shardFailures = new DefaultShardOperationFailedException[size];
             for (int i = 0; i < size; i++) {
-                shardFailures[i] = readShardOperationFailed(in);
+                shardFailures[i] = new DefaultShardOperationFailedException(in);
             }
         }
     }
