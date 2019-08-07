@@ -22,6 +22,7 @@
 package io.crate.execution.dsl.projection.builder;
 
 import com.google.common.base.MoreObjects;
+import io.crate.expression.scalar.SubscriptObjectFunction;
 import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.expression.symbol.FetchReference;
@@ -49,7 +50,6 @@ import java.util.IdentityHashMap;
 import java.util.List;
 
 import static io.crate.common.collections.Lists2.mapTail;
-import static io.crate.expression.scalar.SubscriptObjectFunction.getNameForReturnType;
 import static io.crate.expression.symbol.Symbols.lookupValueByColumn;
 
 /**
@@ -243,9 +243,7 @@ public final class InputColumns extends DefaultTraversalSymbolVisitor<InputColum
         List<DataType> argumentTypes = Symbols.typeView(arguments);
 
         return new Function(
-            new FunctionInfo(
-                new FunctionIdent(getNameForReturnType(returnType), argumentTypes),
-                returnType),
+            new FunctionInfo(new FunctionIdent(SubscriptObjectFunction.NAME, argumentTypes), returnType),
             arguments
         );
     }

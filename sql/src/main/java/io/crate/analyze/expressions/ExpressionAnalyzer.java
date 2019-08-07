@@ -699,35 +699,14 @@ public class ExpressionAnalyzer {
         private Symbol createSubscript(Symbol name, Symbol index, ExpressionAnalysisContext context) {
             String function = name.valueType().id() == ObjectType.ID
                 // we don't know the the concrete object element (return) type
-                ? SubscriptObjectFunction.getNameForReturnType(UndefinedType.INSTANCE)
+                ? SubscriptObjectFunction.NAME
                 : SubscriptFunction.NAME;
             return allocateFunction(function, ImmutableList.of(name, index), context);
         }
 
         private Symbol createSubscript(Symbol symbol, List<String> parts, ExpressionAnalysisContext context) {
-            DataType symbolType = symbol.valueType();
             List<Symbol> arguments = mapTail(symbol, parts, Literal::of);
-            List<DataType> argumentTypes = Symbols.typeView(arguments);
-
-            if (symbolType.id() != ObjectType.ID) {
-                return allocateFunction(
-                    SubscriptObjectFunction.getNameForReturnType(UndefinedType.INSTANCE),
-                    arguments,
-                    context);
-            }
-
-            DataType innerType = ((ObjectType) symbolType).resolveInnerType(parts);
-            if (innerType == null) {
-                innerType = UndefinedType.INSTANCE;
-            }
-            // If the innerType is a object type, we must allocate the function with that concrete type to keep the
-            // allocated inner types as this return type is used on nested calls to resolve further inner types.
-            SubscriptObjectFunction funcImpl = SubscriptObjectFunction.ofReturnType(innerType, argumentTypes);
-            Function func = new Function(funcImpl.info(), arguments);
-            if (Symbols.allLiterals(func)) {
-                return funcImpl.normalizeSymbol(func, coordinatorTxnCtx);
-            }
-            return func;
+            return allocateFunction(SubscriptObjectFunction.NAME, arguments, context);
         }
 
         @Override
