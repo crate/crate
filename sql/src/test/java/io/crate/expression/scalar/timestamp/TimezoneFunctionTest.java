@@ -31,18 +31,14 @@ import org.junit.rules.ExpectedException;
 
 import java.time.format.DateTimeParseException;
 
-import static java.lang.String.format;
-
 public class TimezoneFunctionTest extends AbstractScalarFunctionsTest {
-
-    private static final Long TIMESTAMP = 257504400000L;
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
     @Test
     public void testEvaluateInvalidZoneIsNull() {
-        assertEvaluate(format("timezone(null, %d)", TIMESTAMP), null);
+        assertEvaluate("timezone(null, 257504400000)", null);
     }
 
     @Test
@@ -54,21 +50,21 @@ public class TimezoneFunctionTest extends AbstractScalarFunctionsTest {
     public void testEvaluateInvalidZoneIsBlanc() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("time zone \" \" not recognized");
-        assertEvaluate(format("timezone(' ', %d)", TIMESTAMP), null);
+        assertEvaluate("timezone(' ', 257504400000)", null);
     }
 
     @Test
     public void testEvaluateInvalidZoneIsRandom() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("time zone \"Random/Location\" not recognized");
-        assertEvaluate(format("timezone('Random/Location', %d)", TIMESTAMP), null);
+        assertEvaluate("timezone('Random/Location', 257504400000)", null);
     }
 
     @Test
     public void testEvaluateInvalidZoneIsRandomNumeric() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("time zone \"+31:97\" not recognized");
-        assertEvaluate(format("timezone('+31:97', %d)", TIMESTAMP), null);
+        assertEvaluate("timezone('+31:97', 257504400000)", null);
     }
 
     @Test
@@ -81,36 +77,36 @@ public class TimezoneFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testEvaluateInvalidZoneIsNullFromColumn() {
-        assertEvaluate(format("timezone(name, %d)", TIMESTAMP), null, Literal.of((Long) null));
+        assertEvaluate("timezone(name, 257504400000)", null, Literal.of((Long) null));
     }
 
     @Test
     public void testEvaluateInvalidZoneIsBlancFromColumn() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("time zone \" \" not recognized");
-        assertEvaluate(format("timezone(name, %d)", TIMESTAMP), null, Literal.of(" "));
+        assertEvaluate("timezone(name, 257504400000)", null, Literal.of(" "));
     }
 
     @Test
     public void testEvaluateInvalidZoneIsRandomFromColumn() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("time zone \"Random/Location\" not recognized");
-        assertEvaluate(format("timezone(name, %d)", TIMESTAMP), null, Literal.of("Random/Location"));
+        assertEvaluate("timezone(name, 257504400000)", null, Literal.of("Random/Location"));
     }
 
     @Test
     public void testEvaluateInvalidZoneIsRandomNumericFromColumn() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("time zone \"+31:97\" not recognized");
-        assertEvaluate(format("timezone(name, %d)", TIMESTAMP), null, Literal.of("+31:97"));
+        assertEvaluate("timezone(name, 257504400000)", null, Literal.of("+31:97"));
     }
 
     @Test
     public void testEvaluateValidTimestamp() {
-        assertEvaluate(format("timezone('UTC', %d)", TIMESTAMP), TIMESTAMP);
-        assertEvaluate("timezone('UTC', x)", TIMESTAMP, Literal.of(TIMESTAMP));
-        assertEvaluate(format("timezone(name, %d)", TIMESTAMP), TIMESTAMP, Literal.of("UTC"));
-        assertEvaluate(format("timezone('Europe/Madrid', %d)", 257491800000L), 257488200000L);
+        assertEvaluate("timezone('UTC', 257504400000)", 257504400000L);
+        assertEvaluate("timezone('UTC', x)", 257504400000L, Literal.of(257504400000L));
+        assertEvaluate("timezone(name, 257504400000)", 257504400000L, Literal.of("UTC"));
+        assertEvaluate("timezone('Europe/Madrid', 257491800000)", 257488200000L);
         assertEvaluate("timezone('Europe/Madrid', '1978-02-28T14:30+05:30'::timestamp with time zone)",
                        257508000000L);
         assertEvaluate("timezone('Europe/Madrid', '1978-02-28T14:30+05:30'::timestamp without time zone)",
