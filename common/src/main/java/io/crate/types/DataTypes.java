@@ -29,6 +29,7 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Writeable;
 import org.locationtech.spatial4j.shape.impl.PointImpl;
 import org.locationtech.spatial4j.shape.jts.JtsPoint;
 
@@ -40,7 +41,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import static java.util.Map.entry;
@@ -109,25 +109,25 @@ public final class DataTypes {
     /**
      * Type registry mapping type ids to the according data type instance.
      */
-    private static final Map<Integer, Supplier<DataType>> TYPE_REGISTRY = new HashMap<>(
+    private static final Map<Integer, Writeable.Reader<DataType<?>>> TYPE_REGISTRY = new HashMap<>(
         Map.ofEntries(
-            entry(UndefinedType.ID, () -> UNDEFINED),
-            entry(NotSupportedType.ID, () -> NOT_SUPPORTED),
-            entry(ByteType.ID, () -> BYTE),
-            entry(BooleanType.ID, () -> BOOLEAN),
-            entry(StringType.ID, () -> STRING),
-            entry(IpType.ID, () -> IP),
-            entry(DoubleType.ID, () -> DOUBLE),
-            entry(FloatType.ID, () -> FLOAT),
-            entry(ShortType.ID, () -> SHORT),
-            entry(IntegerType.ID, () -> INTEGER),
-            entry(LongType.ID, () -> LONG),
-            entry(TimestampType.ID_WITH_TZ, () -> TIMESTAMPZ),
-            entry(TimestampType.ID_WITHOUT_TZ, () -> TIMESTAMP),
-            entry(ObjectType.ID, ObjectType::untyped),
-            entry(UncheckedObjectType.ID, UncheckedObjectType::new),
-            entry(GeoPointType.ID, () -> GEO_POINT),
-            entry(GeoShapeType.ID, () -> GEO_SHAPE),
+            entry(UndefinedType.ID, in -> UNDEFINED),
+            entry(NotSupportedType.ID, in -> NOT_SUPPORTED),
+            entry(ByteType.ID, in -> BYTE),
+            entry(BooleanType.ID, in -> BOOLEAN),
+            entry(StringType.ID, in -> STRING),
+            entry(IpType.ID, in -> IP),
+            entry(DoubleType.ID, in -> DOUBLE),
+            entry(FloatType.ID, in -> FLOAT),
+            entry(ShortType.ID, in -> SHORT),
+            entry(IntegerType.ID, in -> INTEGER),
+            entry(LongType.ID, in -> LONG),
+            entry(TimestampType.ID_WITH_TZ, in -> TIMESTAMPZ),
+            entry(TimestampType.ID_WITHOUT_TZ, in -> TIMESTAMP),
+            entry(ObjectType.ID, ObjectType::new),
+            entry(UncheckedObjectType.ID, in -> UncheckedObjectType.INSTANCE),
+            entry(GeoPointType.ID, in -> GEO_POINT),
+            entry(GeoShapeType.ID, in -> GEO_SHAPE),
             entry(ArrayType.ID, ArrayType::new))
     );
 
@@ -181,9 +181,7 @@ public final class DataTypes {
     public static DataType fromStream(StreamInput in) throws IOException {
         int i = in.readVInt();
         try {
-            DataType type = TYPE_REGISTRY.get(i).get();
-            type.readFrom(in);
-            return type;
+            return TYPE_REGISTRY.get(i).read(in);
         } catch (NullPointerException e) {
             LOGGER.error(String.format(Locale.ENGLISH, "%d is missing in TYPE_REGISTRY", i), e);
             throw e;
@@ -390,7 +388,7 @@ public final class DataTypes {
      * Otherwise it might not be registered on all nodes.
      * </p>
      */
-    public static void register(int id, Supplier<DataType> dataType) {
+    public static void register(int id, Writeable.Reader<DataType<?>> dataType) {
         if (TYPE_REGISTRY.put(id, dataType) != null) {
             throw new IllegalArgumentException("Already got a dataType with id " + id);
         }
@@ -415,7 +413,10 @@ public final class DataTypes {
             .findFirst().orElse(UNDEFINED);
     }
 
-    public static DataType fromId(Integer id) {
-        return TYPE_REGISTRY.get(id).get();
+    public static DataType<?> fromId(Integer id) {
+        return TYPES_BY_NAME_OR_ALIAS.values().stream()
+            .filter(x -> x.id() == id)
+            .findFirst()
+            .orElse(DataTypes.UNDEFINED);
     }
 }

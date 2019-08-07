@@ -48,7 +48,7 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
     public static final String NAME = "variance";
 
     static {
-        DataTypes.register(VarianceStateType.ID, () -> VarianceStateType.INSTANCE);
+        DataTypes.register(VarianceStateType.ID, in -> VarianceStateType.INSTANCE);
     }
 
     public static void register(AggregationImplModule mod) {

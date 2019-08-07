@@ -38,8 +38,9 @@ public class ArrayType<T> extends DataType<List<T>> {
 
     public static final String NAME = "array";
     public static final int ID = 100;
-    protected DataType<T> innerType;
-    protected Streamer<List<T>> streamer;
+
+    private final DataType<T> innerType;
+    private Streamer<List<T>> streamer;
 
     /**
      * Construct a new Collection type
@@ -51,24 +52,17 @@ public class ArrayType<T> extends DataType<List<T>> {
     }
 
     /**
-     * Constructor used for the {@link org.elasticsearch.common.io.stream.Streamable}
-     * interface which initializes the fields after object creation.
-     */
-    public ArrayType() {}
-
-    /**
      * Defaults to the {@link ArrayStreamer} but subclasses may override this method.
      */
     @Override
     public Streamer<List<T>> streamer() {
         if (streamer == null) {
-            streamer = new ArrayStreamer(innerType);
+            streamer = new ArrayStreamer<>(innerType);
         }
         return streamer;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
+    public ArrayType(StreamInput in) throws IOException {
         innerType = DataTypes.fromStream(in);
     }
 

@@ -56,7 +56,7 @@ public class CountAggregation extends AggregationFunction<CountAggregation.LongS
     private final boolean hasArgs;
 
     static {
-        DataTypes.register(CountAggregation.LongStateType.ID, () -> CountAggregation.LongStateType.INSTANCE);
+        DataTypes.register(CountAggregation.LongStateType.ID, in -> CountAggregation.LongStateType.INSTANCE);
     }
 
     public static final FunctionInfo COUNT_STAR_FUNCTION = new FunctionInfo(new FunctionIdent(NAME,

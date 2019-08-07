@@ -22,16 +22,15 @@
 package io.crate.types;
 
 import io.crate.Streamer;
-import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Streamable;
+import org.elasticsearch.common.io.stream.Writeable;
 
 import java.io.IOException;
 import java.util.Comparator;
 import java.util.Objects;
 import java.util.Set;
 
-public abstract class DataType<T> implements Comparable, Streamable {
+public abstract class DataType<T> implements Comparable, Writeable {
 
     /**
      * Type precedence ids which help to decide when a type can be cast
@@ -139,10 +138,6 @@ public abstract class DataType<T> implements Comparable, Streamable {
     public int compareTo(Object o) {
         if (!(o instanceof DataType)) return -1;
         return Integer.compare(id(), ((DataType) o).id());
-    }
-
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
     }
 
     @Override

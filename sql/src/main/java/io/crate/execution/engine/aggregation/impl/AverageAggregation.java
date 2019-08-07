@@ -47,7 +47,7 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
     private final FunctionInfo info;
 
     static {
-        DataTypes.register(AverageStateType.ID, () -> AverageStateType.INSTANCE);
+        DataTypes.register(AverageStateType.ID, in -> AverageStateType.INSTANCE);
     }
 
     /**
