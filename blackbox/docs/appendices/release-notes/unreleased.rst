@@ -104,4 +104,5 @@ Changes
 Fixes
 =====
 
-None
+- Fixed a race condition which could result in a ``AlreadyClosedException``
+  when querying the ``sys.shards`` table.
