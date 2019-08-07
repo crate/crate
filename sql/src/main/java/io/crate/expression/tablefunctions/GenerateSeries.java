@@ -270,9 +270,10 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
             }
             ZonedDateTime start = Instant.ofEpochMilli(startInclusive).atZone(ZoneOffset.UTC);
             ZonedDateTime stop = Instant.ofEpochMilli(stopInclusive).atZone(ZoneOffset.UTC);
-
             boolean reverse = start.compareTo(stop) > 0;
-
+            if (reverse && add(start, step).compareTo(start) >= 0) {
+                return Bucket.EMPTY;
+            }
             return () -> new Iterator<>() {
 
                 final Object[] cells = new Object[1];
@@ -284,15 +285,7 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
                 @Override
                 public boolean hasNext() {
                     if (doStep) {
-                        value = value
-                            .plusYears(step.getYears())
-                            .plusMonths(step.getMonths())
-                            .plusWeeks(step.getWeeks())
-                            .plusDays(step.getDays())
-                            .plusHours(step.getHours())
-                            .plusMinutes(step.getMinutes())
-                            .plusSeconds(step.getSeconds())
-                            .plusNanos(step.getMillis() * 1000_0000);
+                        value = add(value, step);
                         doStep = false;
                     }
                     int compare = value.compareTo(stop);
@@ -312,5 +305,18 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
                 }
             };
         }
+
+        private static ZonedDateTime add(ZonedDateTime dateTime, Period step) {
+            return dateTime
+                .plusYears(step.getYears())
+                .plusMonths(step.getMonths())
+                .plusWeeks(step.getWeeks())
+                .plusDays(step.getDays())
+                .plusHours(step.getHours())
+                .plusMinutes(step.getMinutes())
+                .plusSeconds(step.getSeconds())
+                .plusNanos(step.getMillis() * 1000_0000);
+        }
+
     }
 }
