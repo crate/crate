@@ -104,5 +104,9 @@ Changes
 Fixes
 =====
 
+- Fix serialization issue that might occur in distributed queries that
+  contain window function calls with the partition by clause in the select
+  list.
+
 - Fixed a race condition which could result in a ``AlreadyClosedException``
   when querying the ``sys.shards`` table.
