@@ -27,6 +27,7 @@ import io.crate.blob.v2.BlobShard;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
+import org.apache.lucene.store.AlreadyClosedException;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
@@ -56,12 +57,12 @@ public class ShardRowContext {
 
     public ShardRowContext(IndexShard indexShard, ClusterService clusterService) {
         this(indexShard, null, clusterService, Suppliers.memoizeWithExpiration(() -> {
-            StoreStats storeStats = indexShard.storeStats();
-            if (storeStats == null) {
-                // will return null if already closed due to shard deletion
+            try {
+                StoreStats storeStats = indexShard.storeStats();
+                return storeStats.getSizeInBytes();
+            } catch (AlreadyClosedException e) {
                 return 0L;
             }
-            return storeStats.getSizeInBytes();
         }, 10, TimeUnit.SECONDS));
     }
 
