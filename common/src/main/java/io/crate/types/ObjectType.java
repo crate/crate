@@ -196,8 +196,7 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
         }
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
+    public ObjectType(StreamInput in) throws IOException {
         int typesSize = in.readVInt();
         ImmutableMap.Builder<String, DataType> builder = ImmutableMap.builderWithExpectedSize(typesSize);
         for (int i = 0; i < typesSize; i++) {

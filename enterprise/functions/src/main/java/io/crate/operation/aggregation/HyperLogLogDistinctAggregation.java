@@ -59,7 +59,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
     static final String NAME = "hyperloglog_distinct";
 
     static {
-        DataTypes.register(HllStateType.ID, () -> HllStateType.INSTANCE);
+        DataTypes.register(HllStateType.ID, in -> HllStateType.INSTANCE);
     }
 
     public static void register(EnterpriseFunctionsModule mod) {

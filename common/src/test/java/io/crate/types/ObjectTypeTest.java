@@ -49,8 +49,7 @@ public class ObjectTypeTest extends CrateUnitTest {
         type.writeTo(out);
 
         StreamInput in = out.bytes().streamInput();
-        ObjectType otherType = ObjectType.untyped();
-        otherType.readFrom(in);
+        ObjectType otherType = new ObjectType(in);
 
         assertThat(otherType.innerTypes().size(), is(0));
     }
@@ -62,8 +61,7 @@ public class ObjectTypeTest extends CrateUnitTest {
         type.writeTo(out);
 
         StreamInput in = out.bytes().streamInput();
-        ObjectType otherType = ObjectType.untyped();
-        otherType.readFrom(in);
+        ObjectType otherType = new ObjectType(in);
 
         assertThat(otherType.innerTypes(), is(type.innerTypes()));
     }
@@ -80,8 +78,7 @@ public class ObjectTypeTest extends CrateUnitTest {
         type.writeTo(out);
 
         StreamInput in = out.bytes().streamInput();
-        ObjectType otherType = ObjectType.untyped();
-        otherType.readFrom(in);
+        ObjectType otherType = new ObjectType(in);
 
         assertThat(otherType.innerTypes(), is(type.innerTypes()));
     }
@@ -115,8 +112,7 @@ public class ObjectTypeTest extends CrateUnitTest {
         type.writeValueTo(out, null);
 
         StreamInput in = out.bytes().streamInput();
-        ObjectType otherType = ObjectType.untyped();
-        otherType.readFrom(in);
+        ObjectType otherType = new ObjectType(in);
 
         Object v = otherType.readValueFrom(in);
 
@@ -140,8 +136,7 @@ public class ObjectTypeTest extends CrateUnitTest {
         type.writeValueTo(out,  map);
 
         StreamInput in = out.bytes().streamInput();
-        ObjectType otherType = ObjectType.untyped();
-        otherType.readFrom(in);
+        ObjectType otherType = new ObjectType(in);
 
         Map<String, Object> v = otherType.readValueFrom(in);
 
@@ -164,8 +159,7 @@ public class ObjectTypeTest extends CrateUnitTest {
         type.writeValueTo(out,  map);
 
         StreamInput in = out.bytes().streamInput();
-        ObjectType otherType = ObjectType.untyped();
-        otherType.readFrom(in);
+        ObjectType otherType = new ObjectType(in);
 
         Map<String, Object> v = otherType.readValueFrom(in);
 

@@ -47,7 +47,7 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
     public static final String NAME = "stddev";
 
     static {
-        DataTypes.register(StdDevStateType.ID, () -> StdDevStateType.INSTANCE);
+        DataTypes.register(StdDevStateType.ID, in -> StdDevStateType.INSTANCE);
     }
 
     public static void register(AggregationImplModule mod) {
