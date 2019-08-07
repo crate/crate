@@ -31,11 +31,6 @@ public class GetIndexTemplatesAction extends Action<GetIndexTemplatesRequest, Ge
     }
 
     @Override
-    public GetIndexTemplatesResponse newResponse() {
-        return new GetIndexTemplatesResponse();
-    }
-
-    @Override
     public GetIndexTemplatesRequestBuilder newRequestBuilder(ElasticsearchClient client) {
         return new GetIndexTemplatesRequestBuilder(client, this);
     }

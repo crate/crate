@@ -35,11 +35,6 @@ public class RestoreSnapshotAction extends Action<RestoreSnapshotRequest, Restor
     }
 
     @Override
-    public RestoreSnapshotResponse newResponse() {
-        return new RestoreSnapshotResponse();
-    }
-
-    @Override
     public RestoreSnapshotRequestBuilder newRequestBuilder(ElasticsearchClient client) {
         return new RestoreSnapshotRequestBuilder(client, this);
     }

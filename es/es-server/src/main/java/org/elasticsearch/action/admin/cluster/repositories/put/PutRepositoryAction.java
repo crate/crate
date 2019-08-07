@@ -36,11 +36,6 @@ public class PutRepositoryAction extends Action<PutRepositoryRequest, Acknowledg
     }
 
     @Override
-    public AcknowledgedResponse newResponse() {
-        return new AcknowledgedResponse();
-    }
-
-    @Override
     public PutRepositoryRequestBuilder newRequestBuilder(ElasticsearchClient client) {
         return new PutRepositoryRequestBuilder(client, this);
     }

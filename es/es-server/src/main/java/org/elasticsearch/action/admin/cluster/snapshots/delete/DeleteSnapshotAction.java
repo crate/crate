@@ -36,11 +36,6 @@ public class DeleteSnapshotAction extends Action<DeleteSnapshotRequest, Acknowle
     }
 
     @Override
-    public AcknowledgedResponse newResponse() {
-        return new AcknowledgedResponse();
-    }
-
-    @Override
     public DeleteSnapshotRequestBuilder newRequestBuilder(ElasticsearchClient client) {
         return new DeleteSnapshotRequestBuilder(client, this);
     }

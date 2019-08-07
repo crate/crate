@@ -40,11 +40,6 @@ public abstract class GenericAction<Request extends ActionRequest, Response exte
         return this.name;
     }
 
-    /**
-     * Creates a new response instance.
-     */
-    public abstract Response newResponse();
-
     @Override
     public boolean equals(Object o) {
         return o instanceof GenericAction && name.equals(((GenericAction) o).name());

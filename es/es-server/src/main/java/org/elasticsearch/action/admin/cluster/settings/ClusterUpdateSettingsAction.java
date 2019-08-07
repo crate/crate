@@ -32,11 +32,6 @@ public class ClusterUpdateSettingsAction extends Action<ClusterUpdateSettingsReq
     }
 
     @Override
-    public ClusterUpdateSettingsResponse newResponse() {
-        return new ClusterUpdateSettingsResponse();
-    }
-
-    @Override
     public ClusterUpdateSettingsRequestBuilder newRequestBuilder(ElasticsearchClient client) {
         return new ClusterUpdateSettingsRequestBuilder(client, this);
     }

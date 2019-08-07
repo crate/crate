@@ -33,11 +33,6 @@ public class UpgradeSettingsAction extends Action<UpgradeSettingsRequest, Acknow
     }
 
     @Override
-    public AcknowledgedResponse newResponse() {
-        return new AcknowledgedResponse();
-    }
-
-    @Override
     public UpgradeSettingsRequestBuilder newRequestBuilder(ElasticsearchClient client) {
         return new UpgradeSettingsRequestBuilder(client, this);
     }

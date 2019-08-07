@@ -32,11 +32,6 @@ public class ClusterRerouteAction extends Action<ClusterRerouteRequest, ClusterR
     }
 
     @Override
-    public ClusterRerouteResponse newResponse() {
-        return new ClusterRerouteResponse();
-    }
-
-    @Override
     public ClusterRerouteRequestBuilder newRequestBuilder(ElasticsearchClient client) {
         return new ClusterRerouteRequestBuilder(client, this);
     }

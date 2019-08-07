@@ -35,11 +35,6 @@ public class UpgradeAction extends Action<UpgradeRequest, UpgradeResponse, Upgra
     }
 
     @Override
-    public UpgradeResponse newResponse() {
-        return new UpgradeResponse();
-    }
-
-    @Override
     public UpgradeRequestBuilder newRequestBuilder(ElasticsearchClient client) {
         return new UpgradeRequestBuilder(client, this);
     }

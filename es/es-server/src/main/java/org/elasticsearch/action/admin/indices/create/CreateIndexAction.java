@@ -32,11 +32,6 @@ public class CreateIndexAction extends Action<CreateIndexRequest, CreateIndexRes
     }
 
     @Override
-    public CreateIndexResponse newResponse() {
-        return new CreateIndexResponse();
-    }
-
-    @Override
     public CreateIndexRequestBuilder newRequestBuilder(ElasticsearchClient client) {
         return new CreateIndexRequestBuilder(client, this);
     }

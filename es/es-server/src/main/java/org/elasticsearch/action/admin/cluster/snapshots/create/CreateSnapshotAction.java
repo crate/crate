@@ -35,11 +35,6 @@ public class CreateSnapshotAction extends Action<CreateSnapshotRequest, CreateSn
     }
 
     @Override
-    public CreateSnapshotResponse newResponse() {
-        return new CreateSnapshotResponse();
-    }
-
-    @Override
     public CreateSnapshotRequestBuilder newRequestBuilder(ElasticsearchClient client) {
         return new CreateSnapshotRequestBuilder(client, this);
     }

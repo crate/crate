@@ -38,8 +38,4 @@ public class PutChunkAction extends Action<PutChunkRequest, PutChunkResponse, Pu
         return new PutChunkRequestBuilder(client, this);
     }
 
-    @Override
-    public PutChunkResponse newResponse() {
-        return new PutChunkResponse();
-    }
 }

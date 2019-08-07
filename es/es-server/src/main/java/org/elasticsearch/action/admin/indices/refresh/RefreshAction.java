@@ -32,11 +32,6 @@ public class RefreshAction extends Action<RefreshRequest, RefreshResponse, Refre
     }
 
     @Override
-    public RefreshResponse newResponse() {
-        return new RefreshResponse();
-    }
-
-    @Override
     public RefreshRequestBuilder newRequestBuilder(ElasticsearchClient client) {
         return new RefreshRequestBuilder(client, this);
     }

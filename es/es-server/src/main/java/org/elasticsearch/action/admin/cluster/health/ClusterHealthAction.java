@@ -32,11 +32,6 @@ public class ClusterHealthAction extends Action<ClusterHealthRequest, ClusterHea
     }
 
     @Override
-    public ClusterHealthResponse newResponse() {
-        return new ClusterHealthResponse();
-    }
-
-    @Override
     public ClusterHealthRequestBuilder newRequestBuilder(ElasticsearchClient client) {
         return new ClusterHealthRequestBuilder(client, this);
     }

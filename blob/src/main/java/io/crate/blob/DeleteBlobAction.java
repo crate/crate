@@ -38,9 +38,4 @@ public class DeleteBlobAction extends Action<DeleteBlobRequest, DeleteBlobRespon
         return new DeleteBlobRequestBuilder(client, this);
     }
 
-    @Override
-    public DeleteBlobResponse newResponse() {
-        return new DeleteBlobResponse();
-    }
-
 }
