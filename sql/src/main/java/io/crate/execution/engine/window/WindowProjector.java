@@ -33,11 +33,10 @@ import io.crate.data.Input;
 import io.crate.data.Projector;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.WindowAggProjection;
-import io.crate.execution.engine.aggregation.AggregationContext;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.collect.CollectExpression;
+import io.crate.expression.ExpressionsInput;
 import io.crate.expression.InputFactory;
-import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
@@ -98,19 +97,20 @@ public class WindowProjector implements Projector {
             FunctionImplementation impl = functions.getQualified(
                 windowFunctionContext.function().info().ident());
             if (impl instanceof AggregationFunction) {
-                Input<Boolean> filter;
 
-                if (windowFunctionContext.filter().symbolType() == SymbolType.LITERAL) {
-                    //noinspection unchecked
-                    filter = (Input<Boolean>) windowFunctionContext.filter();
-                } else {
-                    ctx.add(windowFunctionContext.filter());
-                    //noinspection unchecked
-                    filter = (Input<Boolean>) ctx.expressions().get(ctx.expressions().size() - 1);
-                }
+                var filterInputFactoryCtx = inputFactory.ctxForInputColumns(txnCtx);
+                //noinspection unchecked
+                Input<Boolean> filterInput =
+                    (Input<Boolean>) filterInputFactoryCtx.add(windowFunctionContext.filter());
+
+                ExpressionsInput<Row, Boolean> filter = new ExpressionsInput<>(
+                    filterInput,
+                    filterInputFactoryCtx.expressions());
+
                 windowFunctions.add(
                     new AggregateToWindowFunctionAdapter(
-                        new AggregationContext((AggregationFunction) impl, filter),
+                        (AggregationFunction) impl,
+                        filter,
                         indexVersionCreated,
                         bigArrays,
                         ramAccountingContext)

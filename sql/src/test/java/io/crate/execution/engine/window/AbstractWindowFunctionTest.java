@@ -39,9 +39,9 @@ import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.execution.dsl.projection.builder.InputColumns;
-import io.crate.execution.engine.aggregation.AggregationContext;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.collect.InputCollectExpression;
+import io.crate.expression.ExpressionsInput;
 import io.crate.expression.InputFactory;
 import io.crate.expression.reference.ReferenceResolver;
 import io.crate.expression.symbol.Literal;
@@ -157,7 +157,8 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
         WindowFunction windowFunctionImpl;
         if (impl instanceof AggregationFunction) {
             windowFunctionImpl = new AggregateToWindowFunctionAdapter(
-                new AggregationContext((AggregationFunction) impl,  Literal.BOOLEAN_TRUE),
+                (AggregationFunction) impl,
+                new ExpressionsInput<>(Literal.BOOLEAN_TRUE, List.of()),
                 Version.CURRENT,
                 NON_RECYCLING_INSTANCE,
                 RAM_ACCOUNTING_CONTEXT

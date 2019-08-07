@@ -74,6 +74,9 @@ public class WindowAgg extends ForwardingLogicalPlan {
             LinkedHashMap<WindowDefinition, ArrayList<WindowFunction>> groupedFunctions = new LinkedHashMap<>();
             for (WindowFunction windowFunction : windowFunctions) {
                 WindowDefinition windowDefinition = windowFunction.windowDefinition();
+                if (windowFunction.filter() != null) {
+                    columnsUsedInFunctions.addAll(extractColumns(windowFunction.filter()));
+                }
                 OrderBy orderBy = windowDefinition.orderBy();
                 if (orderBy != null) {
                     columnsUsedInFunctions.addAll(extractColumns(orderBy.orderBySymbols()));

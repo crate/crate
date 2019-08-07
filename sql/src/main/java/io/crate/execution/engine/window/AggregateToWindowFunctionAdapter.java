@@ -26,10 +26,9 @@ import io.crate.breaker.RamAccountingContext;
 import io.crate.data.ArrayRow;
 import io.crate.data.Input;
 import io.crate.data.Row;
-import io.crate.execution.engine.aggregation.AggregationContext;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.collect.CollectExpression;
-import io.crate.expression.InputCondition;
+import io.crate.expression.ExpressionsInput;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.FunctionInfo;
@@ -45,7 +44,7 @@ import static io.crate.execution.engine.window.WindowFrameState.isLowerBoundIncr
 public class AggregateToWindowFunctionAdapter implements WindowFunction {
 
     private final AggregationFunction aggregationFunction;
-    private final Input<Boolean> filter;
+    private final ExpressionsInput<Row, Boolean> filter;
     private final RamAccountingContext ramAccountingContext;
     private final Version indexVersionCreated;
     private final BigArrays bigArrays;
@@ -55,13 +54,13 @@ public class AggregateToWindowFunctionAdapter implements WindowFunction {
     private int seenFrameUpperBound = -1;
     private Object resultForCurrentFrame;
 
-    AggregateToWindowFunctionAdapter(AggregationContext aggregationContext,
+    AggregateToWindowFunctionAdapter(AggregationFunction aggregationFunction,
+                                     ExpressionsInput<Row, Boolean> filter,
                                      Version indexVersionCreated,
                                      BigArrays bigArrays,
                                      RamAccountingContext ramAccountingContext) {
-        this.aggregationFunction = aggregationContext.function()
-            .optimizeForExecutionAsWindowFunction();
-        this.filter = aggregationContext.filter();
+        this.aggregationFunction = aggregationFunction.optimizeForExecutionAsWindowFunction();
+        this.filter = filter;
         this.ramAccountingContext = ramAccountingContext;
         this.indexVersionCreated = indexVersionCreated;
         this.bigArrays = bigArrays;
@@ -115,7 +114,7 @@ public class AggregateToWindowFunctionAdapter implements WindowFunction {
             for (int j = 0, expressionsSize = expressions.size(); j < expressionsSize; j++) {
                 expressions.get(j).setNextRow(row);
             }
-            if (InputCondition.matches(filter)) {
+            if (filter.value(row)) {
                 //noinspection unchecked
                 accumulatedState = aggregationFunction.removeFromAggregatedState(
                     ramAccountingContext,
@@ -161,7 +160,7 @@ public class AggregateToWindowFunctionAdapter implements WindowFunction {
             for (int j = 0, expressionsSize = expressions.size(); j < expressionsSize; j++) {
                 expressions.get(j).setNextRow(row);
             }
-            if (InputCondition.matches(filter)) {
+            if (filter.value(row)) {
                 //noinspection unchecked
                 accumulatedState = aggregationFunction.iterate(
                     ramAccountingContext,
