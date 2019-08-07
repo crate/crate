@@ -23,6 +23,9 @@
 package io.crate.expression.scalar;
 
 import io.crate.data.Input;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.BaseFunctionResolver;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
@@ -31,26 +34,23 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.functions.params.Param;
-import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 import io.crate.types.StringType;
-import io.crate.types.UndefinedType;
 
+import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
 /**
  * Scalar function to resolve elements inside a map.
- * Because the function registration does not take the function return type into account, it is not possible
- * to register the same function with different return types under the same name.
- * As a workaround, the return type is encoded into the function name by using {@link #getNameForReturnType(DataType)}.
  */
 public class SubscriptObjectFunction extends Scalar<Object, Map> {
 
-    private static final String NAME = "subscript_obj";
+    public static final String NAME = "subscript_obj";
     private static final FuncParams FUNCTION_PARAMS = FuncParams
         .builder(Param.of(ObjectType.untyped()), Param.of(StringType.INSTANCE))
         .withVarArgs(Param.of(StringType.INSTANCE))
@@ -59,36 +59,16 @@ public class SubscriptObjectFunction extends Scalar<Object, Map> {
     private FunctionInfo info;
 
     public static void register(ScalarFunctionModule module) {
-        for (DataType returnType : DataTypes.allRegisteredTypes()) {
-            module.register(getNameForReturnType(returnType),
-                new BaseFunctionResolver(FUNCTION_PARAMS) {
-                    @Override
-                    public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-                        return ofReturnType(returnType, dataTypes);
-                    }
-                });
-        }
-    }
+        module.register(NAME, new BaseFunctionResolver(FUNCTION_PARAMS) {
 
-    public static SubscriptObjectFunction ofReturnType(DataType returnType, List<DataType> dataTypes) {
-        return new SubscriptObjectFunction(
-            new FunctionInfo(
-                new FunctionIdent(getNameForReturnType(returnType), dataTypes),
-                returnType));
-    }
-
-    public static String getNameForReturnType(DataType dataType) {
-        String name = NAME;
-        if (dataType.id() != UndefinedType.ID) {
-            String returnTypeName;
-            if (DataTypes.isArray(dataType)) {
-                returnTypeName = ArrayType.NAME;
-            } else {
-                returnTypeName = dataType.getName();
+            @Override
+            public FunctionImplementation getForTypes(List<DataType> types) throws IllegalArgumentException {
+                return new SubscriptObjectFunction(new FunctionInfo(
+                    new FunctionIdent(NAME, types),
+                    DataTypes.UNDEFINED
+                ));
             }
-            name += "_" + returnTypeName;
-        }
-        return name;
+        });
     }
 
     private SubscriptObjectFunction(FunctionInfo info) {
@@ -98,6 +78,46 @@ public class SubscriptObjectFunction extends Scalar<Object, Map> {
     @Override
     public FunctionInfo info() {
         return info;
+    }
+
+    @Override
+    public Symbol normalizeSymbol(Function func, TransactionContext txnCtx) {
+        Symbol result = evaluateIfLiterals(this, txnCtx, func);
+        if (result instanceof Literal) {
+            return result;
+        }
+        return tryToInferReturnTypeFromObjectTypeAndArguments(func);
+    }
+
+    private static Symbol tryToInferReturnTypeFromObjectTypeAndArguments(Function func) {
+        var arguments = func.arguments();
+        ObjectType objectType = (ObjectType) arguments.get(0).valueType();
+        List<String> path = maybeCreatePath(arguments);
+        if (path == null) {
+            return func;
+        } else {
+            DataType<?> returnType = objectType.resolveInnerType(path);
+            return returnType.equals(DataTypes.UNDEFINED)
+                ? func
+                : new Function(new FunctionInfo(func.info().ident(), returnType), func.arguments());
+        }
+    }
+
+    @Nullable
+    private static List<String> maybeCreatePath(List<Symbol> arguments) {
+        List<String> path = null;
+        for (int i = 1; i < arguments.size(); i++) {
+            Symbol arg = arguments.get(i);
+            if (arg instanceof Literal) {
+                if (path == null) {
+                    path = new ArrayList<>();
+                }
+                path.add(DataTypes.STRING.value(((Literal) arg).value()));
+            } else {
+                return null;
+            }
+        }
+        return path;
     }
 
     @Override

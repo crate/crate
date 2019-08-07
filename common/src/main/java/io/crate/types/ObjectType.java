@@ -31,7 +31,6 @@ import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
@@ -87,18 +86,16 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
         return innerTypes.getOrDefault(key, UndefinedType.INSTANCE);
     }
 
-    @Nullable
-    public DataType resolveInnerType(List<String> path) {
+    public DataType<?> resolveInnerType(List<String> path) {
         if (path.isEmpty()) {
-            return null;
+            return DataTypes.UNDEFINED;
         }
-
-        DataType innerType = null;
+        DataType innerType = DataTypes.UNDEFINED;
         ObjectType currentObject = this;
         for (int i = 0; i < path.size(); i++) {
             innerType = currentObject.innerTypes().get(path.get(i));
             if (innerType == null) {
-                return null;
+                return DataTypes.UNDEFINED;
             }
             if (innerType.id() == ID) {
                 currentObject = (ObjectType) innerType;

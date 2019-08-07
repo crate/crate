@@ -41,7 +41,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.util.Map.entry;
@@ -418,9 +417,5 @@ public final class DataTypes {
 
     public static DataType fromId(Integer id) {
         return TYPE_REGISTRY.get(id).get();
-    }
-
-    public static List<DataType> allRegisteredTypes() {
-        return TYPE_REGISTRY.values().stream().map(Supplier::get).collect(Collectors.toList());
     }
 }
