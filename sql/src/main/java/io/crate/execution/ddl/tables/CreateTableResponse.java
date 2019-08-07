@@ -30,28 +30,22 @@ import java.io.IOException;
 
 public final class CreateTableResponse extends ActionResponse {
 
-    private boolean allShardsAcked;
+    private final boolean allShardsAcked;
 
     public CreateTableResponse(boolean allShardsAcked) {
         this.allShardsAcked = allShardsAcked;
-    }
-
-    CreateTableResponse() {
     }
 
     public boolean isAllShardsAcked() {
         return allShardsAcked;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public CreateTableResponse(StreamInput in) throws IOException {
         allShardsAcked = in.readBoolean();
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
         out.writeBoolean(allShardsAcked);
     }
 }

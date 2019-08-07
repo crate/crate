@@ -94,9 +94,8 @@ public class DeleteIndexRequest extends AcknowledgedRequest<DeleteIndexRequest> 
         return indices;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public DeleteIndexRequest(StreamInput in) throws IOException {
+        super(in);
         indices = in.readStringArray();
         indicesOptions = IndicesOptions.readIndicesOptions(in);
     }

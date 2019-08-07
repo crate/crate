@@ -23,10 +23,17 @@
 package io.crate.execution.ddl;
 
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
+import org.elasticsearch.common.io.stream.StreamInput;
+
+import java.io.IOException;
 
 public class SchemaUpdateResponse extends AcknowledgedResponse {
 
     public SchemaUpdateResponse(boolean isAcknowledged) {
         super(isAcknowledged);
+    }
+
+    public SchemaUpdateResponse(StreamInput in) throws IOException {
+        super(in);
     }
 }

@@ -29,19 +29,14 @@ import java.io.IOException;
 
 public class DeleteBlobResponse extends ReplicationResponse {
 
-    public boolean deleted;
-
-    public DeleteBlobResponse() {
-        this.deleted = false;
-    }
+    public final boolean deleted;
 
     public DeleteBlobResponse(boolean deleted) {
         this.deleted = deleted;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public DeleteBlobResponse(StreamInput in) throws IOException {
+        super(in);
         deleted = in.readBoolean();
     }
 

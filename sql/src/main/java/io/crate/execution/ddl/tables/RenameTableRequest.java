@@ -34,12 +34,9 @@ import static org.elasticsearch.action.ValidateActions.addValidationError;
 
 public class RenameTableRequest extends AcknowledgedRequest<RenameTableRequest> {
 
-    private RelationName sourceRelationName;
-    private RelationName targetRelationName;
-    private boolean isPartitioned;
-
-    RenameTableRequest() {
-    }
+    private final RelationName sourceRelationName;
+    private final RelationName targetRelationName;
+    private final boolean isPartitioned;
 
     public RenameTableRequest(RelationName sourceRelationName, RelationName targetRelationName, boolean isPartitioned) {
         this.sourceRelationName = sourceRelationName;
@@ -68,9 +65,8 @@ public class RenameTableRequest extends AcknowledgedRequest<RenameTableRequest> 
         return validationException;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public RenameTableRequest(StreamInput in) throws IOException {
+        super(in);
         sourceRelationName = new RelationName(in);
         targetRelationName = new RelationName(in);
         isPartitioned = in.readBoolean();

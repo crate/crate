@@ -24,7 +24,6 @@ package io.crate.blob;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;
@@ -33,15 +32,12 @@ public class DeleteBlobResponseTest extends CrateUnitTest {
 
     @Test
     public void testDeleteBlobResponseStreaming() throws Exception {
-        DeleteBlobResponse response = new DeleteBlobResponse();
-        response.deleted = true;
+        DeleteBlobResponse response = new DeleteBlobResponse(true);
         response.setShardInfo(new ReplicationResponse.ShardInfo(10, 10));
         BytesStreamOutput out = new BytesStreamOutput();
         response.writeTo(out);
 
-        DeleteBlobResponse fromStream = new DeleteBlobResponse();
-        StreamInput in = out.bytes().streamInput();
-        fromStream.readFrom(in);
+        DeleteBlobResponse fromStream = new DeleteBlobResponse(out.bytes().streamInput());
 
         assertThat(fromStream.deleted, is(true));
     }

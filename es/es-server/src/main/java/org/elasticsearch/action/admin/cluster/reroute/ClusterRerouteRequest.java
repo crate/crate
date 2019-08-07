@@ -121,9 +121,8 @@ public class ClusterRerouteRequest extends AcknowledgedRequest<ClusterRerouteReq
         return null;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public ClusterRerouteRequest(StreamInput in) throws IOException {
+        super(in);
         commands = AllocationCommands.readFrom(in);
         dryRun = in.readBoolean();
         explain = in.readBoolean();

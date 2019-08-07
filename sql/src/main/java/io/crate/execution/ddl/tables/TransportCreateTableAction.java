@@ -38,8 +38,11 @@ import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
+
+import java.io.IOException;
 
 /**
  * Action to perform creation of tables on the master but avoid race conditions with creating views.
@@ -70,8 +73,9 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
             NAME,
             transportService,
             clusterService, threadPool,
-            indexNameExpressionResolver,
-            CreateTableRequest::new);
+            CreateTableRequest::new,
+            indexNameExpressionResolver
+        );
         this.transportCreateIndexAction = transportCreateIndexAction;
         this.transportPutIndexTemplateAction = transportPutIndexTemplateAction;
     }
@@ -82,8 +86,8 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
     }
 
     @Override
-    protected CreateTableResponse newResponse() {
-        return new CreateTableResponse();
+    protected CreateTableResponse read(StreamInput in) throws IOException {
+        return new CreateTableResponse(in);
     }
 
     @Override

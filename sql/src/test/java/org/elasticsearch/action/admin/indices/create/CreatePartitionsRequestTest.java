@@ -22,7 +22,6 @@
 package org.elasticsearch.action.admin.indices.create;
 
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -41,9 +40,7 @@ public class CreatePartitionsRequestTest {
         CreatePartitionsRequest request = new CreatePartitionsRequest(Arrays.asList("a", "b", "c"), jobId);
         BytesStreamOutput out = new BytesStreamOutput();
         request.writeTo(out);
-        StreamInput in = out.bytes().streamInput();
-        CreatePartitionsRequest requestDeserialized = new CreatePartitionsRequest();
-        requestDeserialized.readFrom(in);
+        CreatePartitionsRequest requestDeserialized = new CreatePartitionsRequest(out.bytes().streamInput());
 
         assertThat(requestDeserialized.indices(), contains("a", "b", "c"));
         assertThat(requestDeserialized.jobId(), is(jobId));
@@ -52,9 +49,7 @@ public class CreatePartitionsRequestTest {
         request = new CreatePartitionsRequest(Arrays.asList("a", "b", "c"), jobId);
         out = new BytesStreamOutput();
         request.writeTo(out);
-        in = out.bytes().streamInput();
-        requestDeserialized = new CreatePartitionsRequest();
-        requestDeserialized.readFrom(in);
+        requestDeserialized = new CreatePartitionsRequest(out.bytes().streamInput());
 
         assertThat(requestDeserialized.indices(), contains("a", "b", "c"));
         assertThat(requestDeserialized.jobId(), is(jobId));

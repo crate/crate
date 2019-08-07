@@ -28,8 +28,11 @@ import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.MetaDataCreateIndexService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
+
+import java.io.IOException;
 
 /**
  * Create index action.
@@ -44,7 +47,7 @@ public class TransportCreateIndexAction extends TransportMasterNodeAction<Create
                                       ThreadPool threadPool,
                                       MetaDataCreateIndexService createIndexService,
                                       IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(CreateIndexAction.NAME, transportService, clusterService, threadPool, indexNameExpressionResolver, CreateIndexRequest::new);
+        super(CreateIndexAction.NAME, transportService, clusterService, threadPool, CreateIndexRequest::new, indexNameExpressionResolver);
         this.createIndexService = createIndexService;
     }
 
@@ -55,8 +58,8 @@ public class TransportCreateIndexAction extends TransportMasterNodeAction<Create
     }
 
     @Override
-    protected CreateIndexResponse newResponse() {
-        return new CreateIndexResponse();
+    protected CreateIndexResponse read(StreamInput in) throws IOException {
+        return new CreateIndexResponse(in);
     }
 
     @Override

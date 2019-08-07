@@ -35,16 +35,18 @@ import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.Priority;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
+import java.io.IOException;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 public abstract class AbstractDDLTransportAction<Request extends AcknowledgedRequest<Request>, Response extends AcknowledgedResponse> extends TransportMasterNodeAction<Request, Response> {
 
-    private final Supplier<Response> responseSupplier;
+    private final Writeable.Reader<Response> reader;
     private final Function<Boolean, Response> ackedResponseFunction;
     private final String source;
 
@@ -53,12 +55,12 @@ public abstract class AbstractDDLTransportAction<Request extends AcknowledgedReq
                                       ClusterService clusterService,
                                       ThreadPool threadPool,
                                       IndexNameExpressionResolver indexNameExpressionResolver,
-                                      Supplier<Request> requestSupplier,
-                                      Supplier<Response> responseSupplier,
+                                      Writeable.Reader<Request> requestReader,
+                                      Writeable.Reader<Response> responseReader,
                                       Function<Boolean, Response> ackedResponseFunction,
                                       String source) {
-        super(actionName, transportService, clusterService, threadPool, indexNameExpressionResolver, requestSupplier);
-        this.responseSupplier = responseSupplier;
+        super(actionName, transportService, clusterService, threadPool, requestReader, indexNameExpressionResolver);
+        this.reader = responseReader;
         this.ackedResponseFunction = ackedResponseFunction;
         this.source = source;
     }
@@ -70,8 +72,8 @@ public abstract class AbstractDDLTransportAction<Request extends AcknowledgedReq
     }
 
     @Override
-    protected Response newResponse() {
-        return responseSupplier.get();
+    protected Response read(StreamInput in) throws IOException {
+        return reader.read(in);
     }
 
     @Override

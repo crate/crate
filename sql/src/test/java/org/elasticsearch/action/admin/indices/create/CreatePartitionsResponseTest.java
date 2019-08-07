@@ -48,8 +48,7 @@ public class CreatePartitionsResponseTest {
         response.writeTo(out);
         StreamInput in = out.bytes().streamInput();
 
-        CreatePartitionsResponse responseDeserialized = new CreatePartitionsResponse();
-        responseDeserialized.readFrom(in);
+        CreatePartitionsResponse responseDeserialized = new CreatePartitionsResponse(in);
 
         assertThat(responseDeserialized.isAcknowledged(), is(acknowledged));
     }

@@ -32,11 +32,8 @@ import java.io.IOException;
 
 public class SchemaUpdateRequest extends MasterNodeRequest<SchemaUpdateRequest> {
 
-    private Index index;
-    private String mappingSource;
-
-    public SchemaUpdateRequest() {
-    }
+    private final Index index;
+    private final String mappingSource;
 
     public SchemaUpdateRequest(Index index, String mappingSource) {
         this.index = index;
@@ -63,9 +60,8 @@ public class SchemaUpdateRequest extends MasterNodeRequest<SchemaUpdateRequest> 
         out.writeString(mappingSource);
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public SchemaUpdateRequest(StreamInput in) throws IOException {
+        super(in);
         index = new Index(in);
         mappingSource = in.readString();
     }

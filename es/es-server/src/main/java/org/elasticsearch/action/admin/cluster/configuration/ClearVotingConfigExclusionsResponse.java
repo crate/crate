@@ -34,14 +34,11 @@ public class ClearVotingConfigExclusionsResponse extends ActionResponse implemen
     public ClearVotingConfigExclusionsResponse() {
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public ClearVotingConfigExclusionsResponse(StreamInput in) throws IOException {
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
     }
 
     @Override

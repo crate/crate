@@ -31,10 +31,7 @@ import java.io.IOException;
 
 public class NodeStatsResponse extends TransportResponse {
 
-    private NodeStatsContext context;
-
-    public NodeStatsResponse() {
-    }
+    private final NodeStatsContext context;
 
     public NodeStatsResponse(NodeStatsContext context) {
         this.context = context;
@@ -44,15 +41,12 @@ public class NodeStatsResponse extends TransportResponse {
         return context;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public NodeStatsResponse(StreamInput in) throws IOException {
         context = in.readOptionalWriteable(streamInput -> new NodeStatsContext(streamInput, true));
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
         out.writeOptionalWriteable(context);
     }
 }

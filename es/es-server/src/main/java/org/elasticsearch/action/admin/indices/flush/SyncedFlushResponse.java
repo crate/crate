@@ -137,7 +137,6 @@ public class SyncedFlushResponse extends ActionResponse {
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
         shardCounts.writeTo(out);
         out.writeInt(shardsResultPerIndex.size());
         for (Map.Entry<String, List<ShardsSyncedFlushResult>> entry : shardsResultPerIndex.entrySet()) {

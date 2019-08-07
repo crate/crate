@@ -441,9 +441,8 @@ public class PutIndexTemplateRequest extends MasterNodeRequest<PutIndexTemplateR
         return IndicesOptions.strictExpand();
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public PutIndexTemplateRequest(StreamInput in) throws IOException {
+        super(in);
         cause = in.readString();
         name = in.readString();
 

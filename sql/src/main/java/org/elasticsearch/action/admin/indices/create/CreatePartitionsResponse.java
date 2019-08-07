@@ -33,12 +33,8 @@ public class CreatePartitionsResponse extends AcknowledgedResponse {
         super(acknowledged);
     }
 
-    CreatePartitionsResponse() {
-    }
-
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public CreatePartitionsResponse(StreamInput in) throws IOException {
+        super(in);
     }
 
     @Override

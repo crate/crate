@@ -36,8 +36,11 @@ import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
+
+import java.io.IOException;
 
 public final class TransportCreateViewAction extends TransportMasterNodeAction<CreateViewRequest, CreateViewResponse> {
 
@@ -51,8 +54,9 @@ public final class TransportCreateViewAction extends TransportMasterNodeAction<C
             transportService,
             clusterService,
             threadPool,
-            indexNameExpressionResolver,
-            CreateViewRequest::new);
+            CreateViewRequest::new,
+            indexNameExpressionResolver
+        );
     }
 
     @Override
@@ -61,8 +65,8 @@ public final class TransportCreateViewAction extends TransportMasterNodeAction<C
     }
 
     @Override
-    protected CreateViewResponse newResponse() {
-        return new CreateViewResponse(false);
+    protected CreateViewResponse read(StreamInput in) throws IOException {
+        return new CreateViewResponse(in);
     }
 
     @Override

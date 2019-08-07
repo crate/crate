@@ -28,11 +28,8 @@ import java.io.IOException;
 
 public class DropUserRequest extends AcknowledgedRequest<DropUserRequest> {
 
-    private String userName;
-    private boolean ifExists;
-
-    DropUserRequest() {
-    }
+    private final String userName;
+    private final boolean ifExists;
 
     DropUserRequest(String userName, boolean ifExists) {
         this.userName = userName;
@@ -55,9 +52,8 @@ public class DropUserRequest extends AcknowledgedRequest<DropUserRequest> {
         return null;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public DropUserRequest(StreamInput in) throws IOException {
+        super(in);
         userName = in.readString();
         ifExists = in.readBoolean();
     }

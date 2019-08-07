@@ -36,8 +36,11 @@ import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
+
+import java.io.IOException;
 
 @Singleton
 public class TransportCreateUserDefinedFunctionAction
@@ -51,8 +54,14 @@ public class TransportCreateUserDefinedFunctionAction
                                                     ThreadPool threadPool,
                                                     UserDefinedFunctionService udfService,
                                                     IndexNameExpressionResolver indexNameExpressionResolver) {
-        super("internal:crate:sql/udf/create", transportService, clusterService, threadPool,
-            indexNameExpressionResolver, CreateUserDefinedFunctionRequest::new);
+        super(
+            "internal:crate:sql/udf/create",
+            transportService,
+            clusterService,
+            threadPool,
+            CreateUserDefinedFunctionRequest::new,
+            indexNameExpressionResolver
+        );
         this.udfService = udfService;
     }
 
@@ -62,8 +71,8 @@ public class TransportCreateUserDefinedFunctionAction
     }
 
     @Override
-    protected UserDefinedFunctionResponse newResponse() {
-        return new UserDefinedFunctionResponse();
+    protected UserDefinedFunctionResponse read(StreamInput in) throws IOException {
+        return new UserDefinedFunctionResponse(in);
     }
 
     @Override

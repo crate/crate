@@ -34,9 +34,11 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
+import java.io.IOException;
 import java.util.Collections;
 
 public class TransportCreateUserAction extends TransportMasterNodeAction<CreateUserRequest, WriteUserResponse> {
@@ -46,8 +48,14 @@ public class TransportCreateUserAction extends TransportMasterNodeAction<CreateU
                                      ClusterService clusterService,
                                      ThreadPool threadPool,
                                      IndexNameExpressionResolver indexNameExpressionResolver) {
-        super("internal:crate:sql/user/create", transportService, clusterService, threadPool,
-            indexNameExpressionResolver, CreateUserRequest::new);
+        super(
+            "internal:crate:sql/user/create",
+            transportService,
+            clusterService,
+            threadPool,
+            CreateUserRequest::new,
+            indexNameExpressionResolver
+        );
     }
 
     @Override
@@ -56,8 +64,8 @@ public class TransportCreateUserAction extends TransportMasterNodeAction<CreateU
     }
 
     @Override
-    protected WriteUserResponse newResponse() {
-        return new WriteUserResponse(false);
+    protected WriteUserResponse read(StreamInput in) throws IOException {
+        return new WriteUserResponse(in);
     }
 
     @Override

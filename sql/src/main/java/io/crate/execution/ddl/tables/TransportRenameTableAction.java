@@ -40,10 +40,12 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
+import java.io.IOException;
 import java.util.concurrent.atomic.AtomicReference;
 
 @Singleton
@@ -62,8 +64,13 @@ public class TransportRenameTableAction extends TransportMasterNodeAction<Rename
                                       IndexNameExpressionResolver indexNameExpressionResolver,
                                       AllocationService allocationService,
                                       DDLClusterStateService ddlClusterStateService) {
-        super(ACTION_NAME, transportService, clusterService, threadPool,
-            indexNameExpressionResolver, RenameTableRequest::new);
+        super(ACTION_NAME,
+              transportService,
+              clusterService,
+              threadPool,
+              RenameTableRequest::new,
+              indexNameExpressionResolver
+        );
         activeShardsObserver = new ActiveShardsObserver(clusterService, threadPool);
         executor = new RenameTableClusterStateExecutor(
             indexNameExpressionResolver,
@@ -78,8 +85,8 @@ public class TransportRenameTableAction extends TransportMasterNodeAction<Rename
     }
 
     @Override
-    protected AcknowledgedResponse newResponse() {
-        return new AcknowledgedResponse();
+    protected AcknowledgedResponse read(StreamInput in) throws IOException {
+        return new AcknowledgedResponse(in);
     }
 
     @Override

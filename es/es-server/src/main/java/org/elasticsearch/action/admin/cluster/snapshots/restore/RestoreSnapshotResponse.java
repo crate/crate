@@ -21,21 +21,17 @@ package org.elasticsearch.action.admin.cluster.snapshots.restore;
 
 import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.common.Nullable;
-import org.elasticsearch.common.ParseField;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.ConstructingObjectParser;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.ToXContentObject;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.snapshots.RestoreInfo;
 
 import java.io.IOException;
 import java.util.Objects;
-
-import static org.elasticsearch.common.xcontent.ConstructingObjectParser.optionalConstructorArg;
 
 /**
  * Contains information about restores snapshot
@@ -43,24 +39,18 @@ import static org.elasticsearch.common.xcontent.ConstructingObjectParser.optiona
 public class RestoreSnapshotResponse extends ActionResponse implements ToXContentObject {
 
     @Nullable
-    private RestoreInfo restoreInfo;
+    private final RestoreInfo restoreInfo;
 
     RestoreSnapshotResponse(@Nullable RestoreInfo restoreInfo) {
         this.restoreInfo = restoreInfo;
     }
 
-    RestoreSnapshotResponse() {
-    }
-
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public RestoreSnapshotResponse(StreamInput in) throws IOException {
         restoreInfo = in.readOptionalWriteable(RestoreInfo::new);
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
         out.writeOptionalWriteable(restoreInfo);
     }
 
@@ -93,16 +83,6 @@ public class RestoreSnapshotResponse extends ActionResponse implements ToXConten
                 "accepted: [" + accepted + "], restoreInfo: [" + restoreInfo + "]";
             return new RestoreSnapshotResponse(restoreInfo);
     });
-
-    static {
-        PARSER.declareObject(optionalConstructorArg(), (parser, context) -> RestoreInfo.fromXContent(parser), new ParseField("snapshot"));
-        PARSER.declareBoolean(optionalConstructorArg(), new ParseField("accepted"));
-    }
-
-
-    public static RestoreSnapshotResponse fromXContent(XContentParser parser) throws IOException {
-        return PARSER.parse(parser, null);
-    }
 
     @Override
     public boolean equals(Object o) {

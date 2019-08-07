@@ -89,7 +89,7 @@ abstract class TransportKillNodeAction<Request extends TransportRequest> impleme
             new MultiActionListener<>(filteredNodes.size(), Collectors.summingLong(KillResponse::numKilled), listener);
 
         TransportResponseHandler<KillResponse> responseHandler =
-            new ActionListenerResponseHandler<>(multiListener, () -> new KillResponse(0));
+            new ActionListenerResponseHandler<>(multiListener, KillResponse::new);
         for (DiscoveryNode node : filteredNodes) {
             transportService.sendRequest(node, name, request, responseHandler);
         }

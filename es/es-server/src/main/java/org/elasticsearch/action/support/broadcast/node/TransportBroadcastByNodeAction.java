@@ -311,9 +311,10 @@ public abstract class TransportBroadcastByNodeAction<Request extends BroadcastRe
                     nodeRequest.setParentTask(clusterService.localNode().getId(), task.getId());
                 }
                 transportService.sendRequest(node, transportNodeBroadcastAction, nodeRequest, new TransportResponseHandler<NodeResponse>() {
+
                     @Override
-                    public NodeResponse newInstance() {
-                        return new NodeResponse();
+                    public NodeResponse read(StreamInput in) throws IOException {
+                        return new NodeResponse(in);
                     }
 
                     @Override
@@ -496,13 +497,11 @@ public abstract class TransportBroadcastByNodeAction<Request extends BroadcastRe
     }
 
     class NodeResponse extends TransportResponse {
-        protected String nodeId;
-        protected int totalShards;
-        protected List<BroadcastShardOperationFailedException> exceptions;
-        protected List<ShardOperationResult> results;
 
-        NodeResponse() {
-        }
+        private final String nodeId;
+        private final int totalShards;
+        private final List<BroadcastShardOperationFailedException> exceptions;
+        private final List<ShardOperationResult> results;
 
         NodeResponse(String nodeId,
                             int totalShards,
@@ -530,9 +529,7 @@ public abstract class TransportBroadcastByNodeAction<Request extends BroadcastRe
             return exceptions;
         }
 
-        @Override
-        public void readFrom(StreamInput in) throws IOException {
-            super.readFrom(in);
+        public NodeResponse(StreamInput in) throws IOException {
             nodeId = in.readString();
             totalShards = in.readVInt();
             results = in.readList((stream) -> stream.readBoolean() ? readShardResult(stream) : null);
@@ -545,7 +542,6 @@ public abstract class TransportBroadcastByNodeAction<Request extends BroadcastRe
 
         @Override
         public void writeTo(StreamOutput out) throws IOException {
-            super.writeTo(out);
             out.writeString(nodeId);
             out.writeVInt(totalShards);
             out.writeVInt(results.size());

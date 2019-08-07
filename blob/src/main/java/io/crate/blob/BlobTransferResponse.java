@@ -51,9 +51,11 @@ public class BlobTransferResponse extends ReplicationResponse {
         return this;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    protected BlobTransferResponse() {
+    }
+
+    public BlobTransferResponse(StreamInput in) throws IOException {
+        super(in);
         status = RemoteDigestBlob.Status.fromId(in.readByte());
         size = in.readVLong();
     }

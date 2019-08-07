@@ -29,11 +29,9 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import java.io.IOException;
 
 public class AlterUserRequest extends AcknowledgedRequest<AlterUserRequest> {
-    private String userName;
-    private SecureHash secureHash;
 
-    public AlterUserRequest() {
-    }
+    private final String userName;
+    private final SecureHash secureHash;
 
     public AlterUserRequest(String userName, @Nullable SecureHash secureHash) {
         this.userName = userName;
@@ -57,9 +55,8 @@ public class AlterUserRequest extends AcknowledgedRequest<AlterUserRequest> {
         return null;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public AlterUserRequest(StreamInput in) throws IOException {
+        super(in);
         userName = in.readString();
         secureHash = in.readOptionalWriteable(SecureHash::readFrom);
     }

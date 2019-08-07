@@ -30,16 +30,12 @@ import java.io.IOException;
 
 public class OpenCloseTableOrPartitionResponse extends AcknowledgedResponse {
 
-    OpenCloseTableOrPartitionResponse() {
-    }
-
     OpenCloseTableOrPartitionResponse(boolean acknowledged) {
         super(acknowledged);
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public OpenCloseTableOrPartitionResponse(StreamInput in) throws IOException {
+        super(in);
     }
 
     @Override

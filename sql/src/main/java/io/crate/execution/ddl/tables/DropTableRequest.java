@@ -34,11 +34,8 @@ import static org.elasticsearch.action.ValidateActions.addValidationError;
 
 public class DropTableRequest extends AcknowledgedRequest<DropTableRequest> {
 
-    private RelationName relationName;
-    private boolean isPartitioned;
-
-    public DropTableRequest() {
-    }
+    private final RelationName relationName;
+    private final boolean isPartitioned;
 
     public DropTableRequest(RelationName relationName, boolean isPartitioned) {
         this.relationName = relationName;
@@ -62,9 +59,8 @@ public class DropTableRequest extends AcknowledgedRequest<DropTableRequest> {
         return validationException;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public DropTableRequest(StreamInput in) throws IOException {
+        super(in);
         relationName = new RelationName(in);
         isPartitioned = in.readBoolean();
     }

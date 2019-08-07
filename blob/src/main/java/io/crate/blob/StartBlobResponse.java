@@ -21,8 +21,17 @@
 
 package io.crate.blob;
 
+import org.elasticsearch.common.io.stream.StreamInput;
+
+import java.io.IOException;
+
 public class StartBlobResponse extends BlobTransferResponse {
 
+    public StartBlobResponse(StreamInput in) throws IOException {
+        super(in);
+    }
+
     public StartBlobResponse() {
+        super();
     }
 }

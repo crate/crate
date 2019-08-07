@@ -32,10 +32,7 @@ import java.util.List;
 
 public final class DropViewResponse extends ActionResponse {
 
-    private List<RelationName> missing;
-
-    DropViewResponse() {
-    }
+    private final List<RelationName> missing;
 
     DropViewResponse(List<RelationName> missing) {
         this.missing = missing;
@@ -45,15 +42,12 @@ public final class DropViewResponse extends ActionResponse {
         return missing;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public DropViewResponse(StreamInput in) throws IOException {
         missing = in.readList(RelationName::new);
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
         out.writeList(missing);
     }
 }

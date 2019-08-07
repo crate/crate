@@ -239,8 +239,8 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
         }
 
         @Override
-        public VersionHandshakeResponse newInstance() {
-            return new VersionHandshakeResponse();
+        public VersionHandshakeResponse read(StreamInput in) throws IOException {
+            return new VersionHandshakeResponse(in);
         }
 
         @Override
@@ -1335,24 +1335,18 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
     }
 
     private static final class VersionHandshakeResponse extends TransportResponse {
-        private Version version;
+        private final Version version;
 
         private VersionHandshakeResponse(Version version) {
             this.version = version;
         }
 
-        private VersionHandshakeResponse() {
-        }
-
-        @Override
-        public void readFrom(StreamInput in) throws IOException {
-            super.readFrom(in);
+        public VersionHandshakeResponse(StreamInput in) throws IOException {
             version = Version.readVersion(in);
         }
 
         @Override
         public void writeTo(StreamOutput out) throws IOException {
-            super.writeTo(out);
             assert version != null;
             Version.writeVersion(version, out);
         }

@@ -100,8 +100,8 @@ public class TransportNodesListShardStoreMetaData extends TransportNodesAction<T
     }
 
     @Override
-    protected NodeStoreFilesMetaData newNodeResponse() {
-        return new NodeStoreFilesMetaData();
+    protected NodeStoreFilesMetaData read(StreamInput in) throws IOException {
+        return new NodeStoreFilesMetaData(in);
     }
 
     @Override
@@ -266,7 +266,7 @@ public class TransportNodesListShardStoreMetaData extends TransportNodesAction<T
 
         @Override
         protected List<NodeStoreFilesMetaData> readNodesFrom(StreamInput in) throws IOException {
-            return in.readList(NodeStoreFilesMetaData::readListShardStoreNodeOperationResponse);
+            return in.readList(NodeStoreFilesMetaData::new);
         }
 
         @Override
@@ -303,29 +303,15 @@ public class TransportNodesListShardStoreMetaData extends TransportNodesAction<T
 
     public static class NodeStoreFilesMetaData extends BaseNodeResponse {
 
-        private StoreFilesMetaData storeFilesMetaData;
-
-        NodeStoreFilesMetaData() {
-        }
+        private final StoreFilesMetaData storeFilesMetaData;
 
         public NodeStoreFilesMetaData(DiscoveryNode node, StoreFilesMetaData storeFilesMetaData) {
             super(node);
             this.storeFilesMetaData = storeFilesMetaData;
         }
 
-        public StoreFilesMetaData storeFilesMetaData() {
-            return storeFilesMetaData;
-        }
-
-        public static NodeStoreFilesMetaData readListShardStoreNodeOperationResponse(StreamInput in) throws IOException {
-            NodeStoreFilesMetaData resp = new NodeStoreFilesMetaData();
-            resp.readFrom(in);
-            return resp;
-        }
-
-        @Override
-        public void readFrom(StreamInput in) throws IOException {
-            super.readFrom(in);
+        public NodeStoreFilesMetaData(StreamInput in) throws IOException {
+            super(in);
             storeFilesMetaData = new StoreFilesMetaData(in);
         }
 
@@ -333,6 +319,10 @@ public class TransportNodesListShardStoreMetaData extends TransportNodesAction<T
         public void writeTo(StreamOutput out) throws IOException {
             super.writeTo(out);
             storeFilesMetaData.writeTo(out);
+        }
+
+        public StoreFilesMetaData storeFilesMetaData() {
+            return storeFilesMetaData;
         }
 
         @Override

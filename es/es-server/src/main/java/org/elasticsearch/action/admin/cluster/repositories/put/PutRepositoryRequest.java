@@ -35,9 +35,9 @@ import java.io.IOException;
 import java.util.Map;
 
 import static org.elasticsearch.action.ValidateActions.addValidationError;
+import static org.elasticsearch.common.settings.Settings.Builder.EMPTY_SETTINGS;
 import static org.elasticsearch.common.settings.Settings.readSettingsFromStream;
 import static org.elasticsearch.common.settings.Settings.writeSettingsToStream;
-import static org.elasticsearch.common.settings.Settings.Builder.EMPTY_SETTINGS;
 
 /**
  * Register repository request.
@@ -216,9 +216,8 @@ public class PutRepositoryRequest extends AcknowledgedRequest<PutRepositoryReque
         return this;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public PutRepositoryRequest(StreamInput in) throws IOException {
+        super(in);
         name = in.readString();
         type = in.readString();
         settings = readSettingsFromStream(in);

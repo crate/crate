@@ -36,9 +36,11 @@ import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
+import java.io.IOException;
 import java.util.List;
 
 public final class TransportDropViewAction extends TransportMasterNodeAction<DropViewRequest, DropViewResponse> {
@@ -56,8 +58,9 @@ public final class TransportDropViewAction extends TransportMasterNodeAction<Dro
             transportService,
             clusterService,
             threadPool,
-            indexNameExpressionResolver,
-            DropViewRequest::new);
+            DropViewRequest::new,
+            indexNameExpressionResolver
+        );
         this.ddlClusterStateService = ddlClusterStateService;
     }
 
@@ -67,8 +70,8 @@ public final class TransportDropViewAction extends TransportMasterNodeAction<Dro
     }
 
     @Override
-    protected DropViewResponse newResponse() {
-        return new DropViewResponse();
+    protected DropViewResponse read(StreamInput in) throws IOException {
+        return new DropViewResponse(in);
     }
 
     @Override

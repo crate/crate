@@ -37,15 +37,12 @@ import static org.elasticsearch.action.support.master.AcknowledgedRequest.DEFAUL
 
 public class DropViewRequest extends MasterNodeRequest<DropViewRequest> implements AckedRequest {
 
-    private List<RelationName> names;
-    private boolean ifExists;
+    private final List<RelationName> names;
+    private final boolean ifExists;
 
     public DropViewRequest(List<RelationName> names, boolean ifExists) {
         this.names = names;
         this.ifExists = ifExists;
-    }
-
-    DropViewRequest() {
     }
 
     @Override
@@ -66,9 +63,8 @@ public class DropViewRequest extends MasterNodeRequest<DropViewRequest> implemen
         return ifExists;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public DropViewRequest(StreamInput in) throws IOException {
+        super(in);
         names = in.readList(RelationName::new);
         ifExists = in.readBoolean();
     }

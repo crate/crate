@@ -90,7 +90,7 @@ public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, No
                         RamAccountingContext ramAccountingContext,
                         ActionListener<NodeFetchResponse> listener) {
         transports.sendRequest(TRANSPORT_ACTION, targetNode, request, listener,
-            new ActionListenerResponseHandler<>(listener, () -> NodeFetchResponse.forReceiveing(streamers, ramAccountingContext)));
+            new ActionListenerResponseHandler<>(listener, in -> new NodeFetchResponse(in, streamers, ramAccountingContext)));
     }
 
     @Override
@@ -101,6 +101,6 @@ public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, No
             request.toFetch(),
             request.isCloseContext()
         );
-        return resultFuture.thenApply(NodeFetchResponse::forSending);
+        return resultFuture.thenApply(NodeFetchResponse::new);
     }
 }

@@ -31,6 +31,7 @@ import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.snapshots.RestoreInfo;
 import org.elasticsearch.snapshots.RestoreService;
@@ -38,6 +39,8 @@ import org.elasticsearch.snapshots.RestoreService.RestoreCompletionResponse;
 import org.elasticsearch.snapshots.Snapshot;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
+
+import java.io.IOException;
 
 import static org.elasticsearch.snapshots.RestoreService.restoreInProgress;
 
@@ -53,7 +56,7 @@ public class TransportRestoreSnapshotAction extends TransportMasterNodeAction<Re
                                           ThreadPool threadPool,
                                           RestoreService restoreService,
                                           IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(RestoreSnapshotAction.NAME, transportService, clusterService, threadPool, indexNameExpressionResolver, RestoreSnapshotRequest::new);
+        super(RestoreSnapshotAction.NAME, transportService, clusterService, threadPool, RestoreSnapshotRequest::new, indexNameExpressionResolver);
         this.restoreService = restoreService;
     }
 
@@ -63,8 +66,8 @@ public class TransportRestoreSnapshotAction extends TransportMasterNodeAction<Re
     }
 
     @Override
-    protected RestoreSnapshotResponse newResponse() {
-        return new RestoreSnapshotResponse();
+    protected RestoreSnapshotResponse read(StreamInput in) throws IOException {
+        return new RestoreSnapshotResponse(in);
     }
 
     @Override
@@ -102,7 +105,7 @@ public class TransportRestoreSnapshotAction extends TransportMasterNodeAction<Re
                                 // on the current master and as such it might miss some intermediary cluster states due to batching.
                                 // Clean up listener in that case and acknowledge completion of restore operation to client.
                                 clusterService.removeListener(this);
-                                listener.onResponse(new RestoreSnapshotResponse(null));
+                                listener.onResponse(new RestoreSnapshotResponse((RestoreInfo) null));
                             } else if (newEntry == null) {
                                 clusterService.removeListener(this);
                                 ImmutableOpenMap<ShardId, RestoreInProgress.ShardRestoreStatus> shards = prevEntry.shards();

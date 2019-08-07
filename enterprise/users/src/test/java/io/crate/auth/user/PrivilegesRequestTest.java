@@ -45,8 +45,7 @@ public class PrivilegesRequestTest extends CrateUnitTest {
         BytesStreamOutput out = new BytesStreamOutput();
         r1.writeTo(out);
 
-        PrivilegesRequest r2 = new PrivilegesRequest();
-        r2.readFrom(out.bytes().streamInput());
+        PrivilegesRequest r2 = new PrivilegesRequest(out.bytes().streamInput());
 
         assertThat(r2.userNames(), is(users));
         assertThat(r2.privileges(), is(privileges));

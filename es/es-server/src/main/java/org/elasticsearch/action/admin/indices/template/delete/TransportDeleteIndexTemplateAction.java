@@ -29,8 +29,11 @@ import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.MetaDataIndexTemplateService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
+
+import java.io.IOException;
 
 /**
  * Delete index action.
@@ -45,7 +48,7 @@ public class TransportDeleteIndexTemplateAction extends TransportMasterNodeActio
                                               ThreadPool threadPool,
                                               MetaDataIndexTemplateService indexTemplateService,
                                               IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(DeleteIndexTemplateAction.NAME, transportService, clusterService, threadPool, indexNameExpressionResolver, DeleteIndexTemplateRequest::new);
+        super(DeleteIndexTemplateAction.NAME, transportService, clusterService, threadPool, DeleteIndexTemplateRequest::new, indexNameExpressionResolver);
         this.indexTemplateService = indexTemplateService;
     }
 
@@ -56,8 +59,8 @@ public class TransportDeleteIndexTemplateAction extends TransportMasterNodeActio
     }
 
     @Override
-    protected AcknowledgedResponse newResponse() {
-        return new AcknowledgedResponse();
+    protected AcknowledgedResponse read(StreamInput in) throws IOException {
+        return new AcknowledgedResponse(in);
     }
 
     @Override

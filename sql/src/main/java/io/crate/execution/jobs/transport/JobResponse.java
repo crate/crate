@@ -31,18 +31,14 @@ import org.elasticsearch.transport.TransportResponse;
 import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 public class JobResponse extends TransportResponse {
 
-    private List<StreamBucket> directResponse = Collections.emptyList();
+    private final List<StreamBucket> directResponse;
 
-    public JobResponse() {
-    }
-
-    public JobResponse(@Nonnull List<StreamBucket> buckets) {
-        this.directResponse = buckets;
+    public JobResponse(@Nonnull List<StreamBucket> directResponse) {
+        this.directResponse = directResponse;
     }
 
     public List<StreamBucket> getDirectResponses(Streamer<?>[] streamers) {
@@ -56,9 +52,7 @@ public class JobResponse extends TransportResponse {
         return !directResponse.isEmpty();
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public JobResponse(StreamInput in) throws IOException {
         int size = in.readVInt();
         directResponse = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
@@ -69,7 +63,6 @@ public class JobResponse extends TransportResponse {
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
         out.writeVInt(directResponse.size());
         for (StreamBucket bucket : directResponse) {
             bucket.writeTo(out);

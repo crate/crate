@@ -19,9 +19,17 @@
 
 package org.elasticsearch.transport;
 
+import org.elasticsearch.common.io.stream.StreamOutput;
+
+import java.io.IOException;
+
 public abstract class TransportResponse extends TransportMessage {
 
     public static class Empty extends TransportResponse {
         public static final Empty INSTANCE = new Empty();
+
+        @Override
+        public void writeTo(StreamOutput out) throws IOException {
+        }
     }
 }

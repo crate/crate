@@ -24,7 +24,6 @@ import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.unit.ByteSizeValue;
 
 import java.io.IOException;
 
@@ -33,11 +32,8 @@ import java.io.IOException;
  */
 public class ClusterStateResponse extends ActionResponse {
 
-    private ClusterName clusterName;
-    private ClusterState clusterState;
-
-    public ClusterStateResponse() {
-    }
+    private final ClusterName clusterName;
+    private final ClusterState clusterState;
 
     public ClusterStateResponse(ClusterName clusterName, ClusterState clusterState) {
         this.clusterName = clusterName;
@@ -59,16 +55,13 @@ public class ClusterStateResponse extends ActionResponse {
         return this.clusterName;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public ClusterStateResponse(StreamInput in) throws IOException {
         clusterName = new ClusterName(in);
         clusterState = ClusterState.readFrom(in, null);
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
         clusterName.writeTo(out);
         clusterState.writeTo(out);
     }

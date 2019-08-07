@@ -379,12 +379,12 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
         final DiscoveryNode node = connection.getNode();
         try {
             PlainTransportFuture<HandshakeResponse> futureHandler = new PlainTransportFuture<>(
-                new FutureTransportResponseHandler<HandshakeResponse>() {
-                @Override
-                public HandshakeResponse newInstance() {
-                    return new HandshakeResponse();
-                }
-            });
+                new FutureTransportResponseHandler<>() {
+                    @Override
+                    public HandshakeResponse read(StreamInput in) throws IOException {
+                        return new HandshakeResponse(in);
+                    }
+                });
             sendRequest(connection, HANDSHAKE_ACTION_NAME, HandshakeRequest.INSTANCE,
                 TransportRequestOptions.builder().withTimeout(handshakeTimeout).build(), futureHandler);
             response = futureHandler.txGet();
@@ -428,18 +428,13 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
         private ClusterName clusterName;
         private Version version;
 
-        HandshakeResponse() {
-        }
-
         public HandshakeResponse(DiscoveryNode discoveryNode, ClusterName clusterName, Version version) {
             this.discoveryNode = discoveryNode;
             this.version = version;
             this.clusterName = clusterName;
         }
 
-        @Override
-        public void readFrom(StreamInput in) throws IOException {
-            super.readFrom(in);
+        public HandshakeResponse(StreamInput in) throws IOException {
             discoveryNode = in.readOptionalWriteable(DiscoveryNode::new);
             clusterName = new ClusterName(in);
             version = Version.readVersion(in);
@@ -447,7 +442,6 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
 
         @Override
         public void writeTo(StreamOutput out) throws IOException {
-            super.writeTo(out);
             out.writeOptionalWriteable(discoveryNode);
             clusterName.writeTo(out);
             Version.writeVersion(version, out);

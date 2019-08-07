@@ -35,11 +35,13 @@ import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.threadpool.ThreadPool.Names;
 import org.elasticsearch.transport.TransportService;
 
+import java.io.IOException;
 import java.util.function.Predicate;
 
 public class TransportClearVotingConfigExclusionsAction
@@ -60,8 +62,8 @@ public class TransportClearVotingConfigExclusionsAction
     }
 
     @Override
-    protected ClearVotingConfigExclusionsResponse newResponse() {
-        return new ClearVotingConfigExclusionsResponse();
+    protected ClearVotingConfigExclusionsResponse read(StreamInput in) throws IOException {
+        return new ClearVotingConfigExclusionsResponse(in);
     }
 
     @Override

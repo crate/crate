@@ -35,12 +35,14 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-public class TransportClusterUpdateSettingsAction extends
-    TransportMasterNodeAction<ClusterUpdateSettingsRequest, ClusterUpdateSettingsResponse> {
+import java.io.IOException;
+
+public class TransportClusterUpdateSettingsAction extends TransportMasterNodeAction<ClusterUpdateSettingsRequest, ClusterUpdateSettingsResponse> {
 
     private final AllocationService allocationService;
 
@@ -87,8 +89,8 @@ public class TransportClusterUpdateSettingsAction extends
 
 
     @Override
-    protected ClusterUpdateSettingsResponse newResponse() {
-        return new ClusterUpdateSettingsResponse();
+    protected ClusterUpdateSettingsResponse read(StreamInput in) throws IOException {
+        return new ClusterUpdateSettingsResponse(in);
     }
 
     @Override
@@ -96,7 +98,7 @@ public class TransportClusterUpdateSettingsAction extends
                                    final ActionListener<ClusterUpdateSettingsResponse> listener) {
         final SettingsUpdater updater = new SettingsUpdater(clusterSettings);
         clusterService.submitStateUpdateTask("cluster_update_settings",
-                new AckedClusterStateUpdateTask<ClusterUpdateSettingsResponse>(Priority.IMMEDIATE, request, listener) {
+                new AckedClusterStateUpdateTask<>(Priority.IMMEDIATE, request, listener) {
 
             private volatile boolean changed = false;
 

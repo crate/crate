@@ -100,8 +100,8 @@ public class TransportNodesListGatewayStartedShards extends
     }
 
     @Override
-    protected NodeGatewayStartedShards newNodeResponse() {
-        return new NodeGatewayStartedShards();
+    protected NodeGatewayStartedShards read(StreamInput in) throws IOException {
+        return new NodeGatewayStartedShards(in);
     }
 
     @Override
@@ -208,7 +208,7 @@ public class TransportNodesListGatewayStartedShards extends
 
         @Override
         protected List<NodeGatewayStartedShards> readNodesFrom(StreamInput in) throws IOException {
-            return in.readStreamableList(NodeGatewayStartedShards::new);
+            return in.readList(NodeGatewayStartedShards::new);
         }
 
         @Override
@@ -249,12 +249,9 @@ public class TransportNodesListGatewayStartedShards extends
 
     public static class NodeGatewayStartedShards extends BaseNodeResponse {
 
-        private String allocationId = null;
-        private boolean primary = false;
-        private Exception storeException = null;
-
-        public NodeGatewayStartedShards() {
-        }
+        private final String allocationId;
+        private final boolean primary;
+        private final Exception storeException;
 
         public NodeGatewayStartedShards(DiscoveryNode node, String allocationId, boolean primary) {
             this(node, allocationId, primary, null);
@@ -279,13 +276,14 @@ public class TransportNodesListGatewayStartedShards extends
             return this.storeException;
         }
 
-        @Override
-        public void readFrom(StreamInput in) throws IOException {
-            super.readFrom(in);
+        public NodeGatewayStartedShards(StreamInput in) throws IOException {
+            super(in);
             allocationId = in.readOptionalString();
             primary = in.readBoolean();
             if (in.readBoolean()) {
                 storeException = in.readException();
+            } else {
+                storeException = null;
             }
         }
 
