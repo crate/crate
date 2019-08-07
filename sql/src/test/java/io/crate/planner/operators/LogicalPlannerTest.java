@@ -170,6 +170,13 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void test_select_count_star_is_optimized_if_there_is_a_single_agg_in_select_list() {
+        LogicalPlan plan = plan("SELECT COUNT(*), COUNT(x) FROM t1 WHERE x > 10");
+        assertThat(plan, isPlan("Aggregate[count(*), count(x)]\n" +
+                                "Collect[doc.t1 | [x] | (x > 10)]\n"));
+    }
+
+    @Test
     public void testSelectCountStarIsOptimizedOnNestedSubqueries() throws Exception {
         LogicalPlan plan = plan("select * from t1 where x > (select 1 from t1 where x > (select count(*) from t2 limit 1)::integer)");
         // instead of a Collect plan, this must result in a CountPlan through optimization

@@ -59,6 +59,14 @@ public final class MergeAggregateAndCollectToCount implements Rule<HashAggregate
     @Override
     public Count apply(HashAggregate aggregate, Captures captures) {
         Collect collect = captures.get(collectCapture);
-        return new Count(Lists2.getOnlyElement(aggregate.aggregates()), collect.relation(), collect.where());
+        var countAggregate = Lists2.getOnlyElement(aggregate.aggregates());
+        if (countAggregate.filter() != null) {
+            return new Count(
+                countAggregate,
+                collect.relation(),
+                collect.where().add(countAggregate.filter()));
+        } else {
+            return new Count(countAggregate, collect.relation(), collect.where());
+        }
     }
 }

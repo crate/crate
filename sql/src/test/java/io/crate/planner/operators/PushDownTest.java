@@ -438,4 +438,21 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
             "Collect[doc.t1 | [x] | (x = 10)]\n";
         assertThat(plan, isPlan(sqlExecutor.functions(), expectedPlan));
     }
+
+    @Test
+    public void test_count_start_aggregate_filter_is_pushed_down() {
+        var plan = plan("SELECT COUNT(*) FILTER (WHERE x > 1) FROM t1");
+        var expectedPlan = "Count[doc.t1 | (x > 1)]\n";
+        assertThat(plan, isPlan(sqlExecutor.functions(), expectedPlan));
+    }
+
+    @Test
+    public void test_count_start_aggregate_filter_is_merged_with_where_clause_query() {
+        var plan = plan(
+            "SELECT COUNT(*) FILTER (WHERE x > 1) " +
+            "FROM t1 " +
+            "WHERE x > 10");
+        var expectedPlan = "Count[doc.t1 | ((x > 10) AND (x > 1))]\n";
+        assertThat(plan, isPlan(sqlExecutor.functions(), expectedPlan));
+    }
 }
