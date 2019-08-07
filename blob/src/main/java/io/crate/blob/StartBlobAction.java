@@ -38,8 +38,4 @@ public class StartBlobAction extends Action<StartBlobRequest, StartBlobResponse,
         return new StartBlobRequestBuilder(client, this);
     }
 
-    @Override
-    public StartBlobResponse newResponse() {
-        return new StartBlobResponse();
-    }
 }

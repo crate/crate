@@ -35,11 +35,6 @@ public class GetSnapshotsAction extends Action<GetSnapshotsRequest, GetSnapshots
     }
 
     @Override
-    public GetSnapshotsResponse newResponse() {
-        return new GetSnapshotsResponse();
-    }
-
-    @Override
     public GetSnapshotsRequestBuilder newRequestBuilder(ElasticsearchClient client) {
         return new GetSnapshotsRequestBuilder(client, this);
     }

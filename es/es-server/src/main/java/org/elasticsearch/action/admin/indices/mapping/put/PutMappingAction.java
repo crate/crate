@@ -33,11 +33,6 @@ public class PutMappingAction extends Action<PutMappingRequest, AcknowledgedResp
     }
 
     @Override
-    public AcknowledgedResponse newResponse() {
-        return new AcknowledgedResponse();
-    }
-
-    @Override
     public PutMappingRequestBuilder newRequestBuilder(ElasticsearchClient client) {
         return new PutMappingRequestBuilder(client, this);
     }

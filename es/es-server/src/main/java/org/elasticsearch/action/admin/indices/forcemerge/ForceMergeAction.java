@@ -32,11 +32,6 @@ public class ForceMergeAction extends Action<ForceMergeRequest, ForceMergeRespon
     }
 
     @Override
-    public ForceMergeResponse newResponse() {
-        return new ForceMergeResponse();
-    }
-
-    @Override
     public ForceMergeRequestBuilder newRequestBuilder(ElasticsearchClient client) {
         return new ForceMergeRequestBuilder(client, this);
     }

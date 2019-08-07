@@ -33,11 +33,6 @@ public class SyncedFlushAction extends Action<SyncedFlushRequest, SyncedFlushRes
     }
 
     @Override
-    public SyncedFlushResponse newResponse() {
-        return new SyncedFlushResponse();
-    }
-
-    @Override
     public SyncedFlushRequestBuilder newRequestBuilder(ElasticsearchClient client) {
         return new SyncedFlushRequestBuilder(client, this);
     }

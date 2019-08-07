@@ -31,11 +31,6 @@ public class AddVotingConfigExclusionsAction extends Action<AddVotingConfigExclu
     }
 
     @Override
-    public AddVotingConfigExclusionsResponse newResponse() {
-        return new AddVotingConfigExclusionsResponse();
-    }
-
-    @Override
     public AddVotingConfigExclusionsRequestBuilder newRequestBuilder(ElasticsearchClient client) {
         return new AddVotingConfigExclusionsRequestBuilder(client, this, new AddVotingConfigExclusionsRequest(new String[0]));
     }

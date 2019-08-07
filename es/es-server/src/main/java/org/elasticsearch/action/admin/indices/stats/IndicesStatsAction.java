@@ -32,11 +32,6 @@ public class IndicesStatsAction extends Action<IndicesStatsRequest, IndicesStats
     }
 
     @Override
-    public IndicesStatsResponse newResponse() {
-        return new IndicesStatsResponse();
-    }
-
-    @Override
     public IndicesStatsRequestBuilder newRequestBuilder(ElasticsearchClient client) {
         return new IndicesStatsRequestBuilder(client, this);
     }

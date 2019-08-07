@@ -32,11 +32,6 @@ public class ClusterStateAction extends Action<ClusterStateRequest, ClusterState
     }
 
     @Override
-    public ClusterStateResponse newResponse() {
-        return new ClusterStateResponse();
-    }
-
-    @Override
     public ClusterStateRequestBuilder newRequestBuilder(ElasticsearchClient client) {
         return new ClusterStateRequestBuilder(client, this);
     }

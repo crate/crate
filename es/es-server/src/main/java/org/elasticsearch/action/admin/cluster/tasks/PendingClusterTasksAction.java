@@ -32,11 +32,6 @@ public class PendingClusterTasksAction extends Action<PendingClusterTasksRequest
     }
 
     @Override
-    public PendingClusterTasksResponse newResponse() {
-        return new PendingClusterTasksResponse();
-    }
-
-    @Override
     public PendingClusterTasksRequestBuilder newRequestBuilder(ElasticsearchClient client) {
         return new PendingClusterTasksRequestBuilder(client, this);
     }

@@ -39,8 +39,4 @@ public class RecoveryAction extends Action<RecoveryRequest, RecoveryResponse, Re
         return new RecoveryRequestBuilder(client, this);
     }
 
-    @Override
-    public RecoveryResponse newResponse() {
-        return new RecoveryResponse();
-    }
 }

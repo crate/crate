@@ -36,11 +36,6 @@ public class DeleteRepositoryAction extends Action<DeleteRepositoryRequest, Ackn
     }
 
     @Override
-    public AcknowledgedResponse newResponse() {
-        return new AcknowledgedResponse();
-    }
-
-    @Override
     public DeleteRepositoryRequestBuilder newRequestBuilder(ElasticsearchClient client) {
         return new DeleteRepositoryRequestBuilder(client, this);
     }

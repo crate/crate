@@ -33,11 +33,6 @@ public class DeleteIndexAction extends Action<DeleteIndexRequest, AcknowledgedRe
     }
 
     @Override
-    public AcknowledgedResponse newResponse() {
-        return new AcknowledgedResponse();
-    }
-
-    @Override
     public DeleteIndexRequestBuilder newRequestBuilder(ElasticsearchClient client) {
         return new DeleteIndexRequestBuilder(client, this);
     }

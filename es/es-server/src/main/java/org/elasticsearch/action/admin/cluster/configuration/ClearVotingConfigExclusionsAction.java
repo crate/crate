@@ -31,11 +31,6 @@ public class ClearVotingConfigExclusionsAction extends Action<ClearVotingConfigE
     }
 
     @Override
-    public ClearVotingConfigExclusionsResponse newResponse() {
-        return new ClearVotingConfigExclusionsResponse();
-    }
-
-    @Override
     public ClearVotingConfigExclusionsRequestBuilder newRequestBuilder(ElasticsearchClient client) {
         return new ClearVotingConfigExclusionsRequestBuilder(client, this, new ClearVotingConfigExclusionsRequest());
     }

@@ -33,11 +33,6 @@ public class PutIndexTemplateAction extends Action<PutIndexTemplateRequest, Ackn
     }
 
     @Override
-    public AcknowledgedResponse newResponse() {
-        return new AcknowledgedResponse();
-    }
-
-    @Override
     public PutIndexTemplateRequestBuilder newRequestBuilder(ElasticsearchClient client) {
         return new PutIndexTemplateRequestBuilder(client, this);
     }

@@ -32,11 +32,6 @@ public class ResizeAction extends Action<ResizeRequest, ResizeResponse, ResizeRe
     }
 
     @Override
-    public ResizeResponse newResponse() {
-        return new ResizeResponse();
-    }
-
-    @Override
     public ResizeRequestBuilder newRequestBuilder(ElasticsearchClient client) {
         return new ResizeRequestBuilder(client, this);
     }
