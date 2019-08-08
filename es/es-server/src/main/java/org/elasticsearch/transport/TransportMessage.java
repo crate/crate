@@ -20,17 +20,6 @@
 package org.elasticsearch.transport;
 
 import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.transport.TransportAddress;
 
 public abstract class TransportMessage implements Writeable {
-
-    private TransportAddress remoteAddress;
-
-    public void remoteAddress(TransportAddress remoteAddress) {
-        this.remoteAddress = remoteAddress;
-    }
-
-    public TransportAddress remoteAddress() {
-        return remoteAddress;
-    }
 }
