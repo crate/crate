@@ -28,8 +28,6 @@ package io.crate.expression.udf;
 
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.action.ActionRequestValidationException;
-import org.elasticsearch.action.ValidateActions;
 import org.elasticsearch.action.support.master.MasterNodeRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -66,14 +64,6 @@ public class DropUserDefinedFunctionRequest extends MasterNodeRequest<DropUserDe
 
     boolean ifExists() {
         return ifExists;
-    }
-
-    @Override
-    public ActionRequestValidationException validate() {
-        if (name == null) {
-            return ValidateActions.addValidationError("name is missing", null);
-        }
-        return null;
     }
 
     public DropUserDefinedFunctionRequest(StreamInput in) throws IOException {

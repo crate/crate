@@ -21,7 +21,6 @@ package org.elasticsearch.action.admin.indices.mapping.put;
 
 import com.carrotsearch.hppc.ObjectHashSet;
 import org.elasticsearch.ElasticsearchGenerationException;
-import org.elasticsearch.action.ActionRequestValidationException;
 import org.elasticsearch.action.IndicesRequest;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
@@ -41,11 +40,9 @@ import org.elasticsearch.index.Index;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
-import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
 
-import static org.elasticsearch.action.ValidateActions.addValidationError;
 
 /**
  * Puts mapping definition registered under a specific type into one or more indices. Best created with
@@ -85,26 +82,6 @@ public class PutMappingRequest extends AcknowledgedRequest<PutMappingRequest> im
      */
     public PutMappingRequest(String... indices) {
         this.indices = indices;
-    }
-
-    @Override
-    public ActionRequestValidationException validate() {
-        ActionRequestValidationException validationException = null;
-        if (type == null) {
-            validationException = addValidationError("mapping type is missing", validationException);
-        }else if (type.isEmpty()) {
-            validationException = addValidationError("mapping type is empty", validationException);
-        }
-        if (source == null) {
-            validationException = addValidationError("mapping source is missing", validationException);
-        } else if (source.isEmpty()) {
-            validationException = addValidationError("mapping source is empty", validationException);
-        }
-        if (concreteIndex != null && (indices != null && indices.length > 0)) {
-            validationException = addValidationError("either concrete index or unresolved indices can be set, concrete index: ["
-                + concreteIndex + "] and indices: " + Arrays.asList(indices) , validationException);
-        }
-        return validationException;
     }
 
     /**

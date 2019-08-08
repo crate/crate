@@ -22,7 +22,6 @@ package org.elasticsearch.action.support;
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
-import org.elasticsearch.action.ActionRequestValidationException;
 import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.tasks.Task;
@@ -92,11 +91,6 @@ public abstract class TransportAction<Request extends ActionRequest, Response ex
      * Use this method when the transport action should continue to run in the context of the current task
      */
     public final void execute(Task task, Request request, ActionListener<Response> listener) {
-        ActionRequestValidationException validationException = request.validate();
-        if (validationException != null) {
-            listener.onFailure(validationException);
-            return;
-        }
         try {
             doExecute(task, request, listener);
         } catch (Exception e) {

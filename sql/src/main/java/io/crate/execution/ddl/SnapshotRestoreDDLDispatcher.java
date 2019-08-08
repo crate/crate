@@ -33,6 +33,7 @@ import io.crate.execution.TransportActionProvider;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotRequest;
@@ -47,7 +48,6 @@ import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.snapshots.SnapshotInfo;
 import org.elasticsearch.snapshots.SnapshotState;
@@ -117,9 +117,7 @@ public class SnapshotRestoreDDLDispatcher {
             .indicesOptions(indicesOptions)
             .settings(statement.snapshotSettings());
 
-        //noinspection ThrowableResultOfMethodCallIgnored
-        assert request.validate() == null : "invalid CREATE SNAPSHOT statement";
-        transportActionProvider.transportCreateSnapshotAction().execute(request, new ActionListener<CreateSnapshotResponse>() {
+        transportActionProvider.transportCreateSnapshotAction().execute(request, new ActionListener<>() {
             @Override
             public void onResponse(CreateSnapshotResponse createSnapshotResponse) {
                 SnapshotInfo snapshotInfo = createSnapshotResponse.getSnapshotInfo();

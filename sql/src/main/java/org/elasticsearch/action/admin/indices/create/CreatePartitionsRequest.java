@@ -21,7 +21,6 @@
 
 package org.elasticsearch.action.admin.indices.create;
 
-import org.elasticsearch.action.ActionRequestValidationException;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -51,11 +50,6 @@ public class CreatePartitionsRequest extends AcknowledgedRequest<CreatePartition
 
     public UUID jobId() {
         return jobId;
-    }
-
-    @Override
-    public ActionRequestValidationException validate() {
-        return null;
     }
 
     public CreatePartitionsRequest(StreamInput in) throws IOException {

@@ -18,7 +18,6 @@
  */
 package org.elasticsearch.action.admin.cluster.configuration;
 
-import org.elasticsearch.action.ActionRequestValidationException;
 import org.elasticsearch.action.support.master.MasterNodeRequest;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.coordination.CoordinationMetaData.VotingConfigExclusion;
@@ -111,11 +110,6 @@ public class AddVotingConfigExclusionsRequest extends MasterNodeRequest<AddVotin
      */
     public TimeValue getTimeout() {
         return timeout;
-    }
-
-    @Override
-    public ActionRequestValidationException validate() {
-        return null;
     }
 
     @Override

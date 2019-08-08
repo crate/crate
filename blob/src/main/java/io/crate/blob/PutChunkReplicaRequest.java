@@ -21,7 +21,6 @@
 
 package io.crate.blob;
 
-import org.elasticsearch.action.ActionRequestValidationException;
 import org.elasticsearch.action.support.replication.ReplicationRequest;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -51,11 +50,6 @@ public class PutChunkReplicaRequest extends ReplicationRequest<PutChunkReplicaRe
         this.currentPos = currentPos;
         this.content = content;
         this.isLast = isLast;
-    }
-
-    @Override
-    public ActionRequestValidationException validate() {
-        return null;
     }
 
     public PutChunkReplicaRequest(StreamInput in) throws IOException {

@@ -22,7 +22,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
-import org.elasticsearch.action.ActionRequestValidationException;
 import org.elasticsearch.action.resync.ResyncReplicationRequest;
 import org.elasticsearch.action.resync.TransportResyncReplicationAction;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
@@ -293,11 +292,6 @@ public class PrimaryReplicaSyncer {
         @Override
         public String toString() {
             return "ResyncRequest{ " + shardId + ", " + allocationId + " }";
-        }
-
-        @Override
-        public ActionRequestValidationException validate() {
-            return null;
         }
     }
 

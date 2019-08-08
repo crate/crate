@@ -20,7 +20,6 @@
 package org.elasticsearch.action.admin.cluster.snapshots.create;
 
 import org.elasticsearch.ElasticsearchGenerationException;
-import org.elasticsearch.action.ActionRequestValidationException;
 import org.elasticsearch.action.IndicesRequest;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.MasterNodeRequest;
@@ -40,7 +39,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-import static org.elasticsearch.action.ValidateActions.addValidationError;
 import static org.elasticsearch.common.Strings.EMPTY_ARRAY;
 import static org.elasticsearch.common.settings.Settings.Builder.EMPTY_SETTINGS;
 import static org.elasticsearch.common.settings.Settings.readSettingsFromStream;
@@ -117,34 +115,6 @@ public class CreateSnapshotRequest extends MasterNodeRequest<CreateSnapshotReque
         out.writeBoolean(includeGlobalState);
         out.writeBoolean(waitForCompletion);
         out.writeBoolean(partial);
-    }
-
-    @Override
-    public ActionRequestValidationException validate() {
-        ActionRequestValidationException validationException = null;
-        if (snapshot == null) {
-            validationException = addValidationError("snapshot is missing", validationException);
-        }
-        if (repository == null) {
-            validationException = addValidationError("repository is missing", validationException);
-        }
-        if (indices == null) {
-            validationException = addValidationError("indices is null", validationException);
-        } else {
-            for (String index : indices) {
-                if (index == null) {
-                    validationException = addValidationError("index is null", validationException);
-                    break;
-                }
-            }
-        }
-        if (indicesOptions == null) {
-            validationException = addValidationError("indicesOptions is null", validationException);
-        }
-        if (settings == null) {
-            validationException = addValidationError("settings is null", validationException);
-        }
-        return validationException;
     }
 
     /**

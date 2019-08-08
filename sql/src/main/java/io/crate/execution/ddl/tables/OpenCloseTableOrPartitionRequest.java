@@ -23,7 +23,6 @@
 package io.crate.execution.ddl.tables;
 
 import io.crate.metadata.RelationName;
-import org.elasticsearch.action.ActionRequestValidationException;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -31,7 +30,6 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import javax.annotation.Nullable;
 import java.io.IOException;
 
-import static org.elasticsearch.action.ValidateActions.addValidationError;
 
 public class OpenCloseTableOrPartitionRequest extends AcknowledgedRequest<OpenCloseTableOrPartitionRequest> {
 
@@ -57,15 +55,6 @@ public class OpenCloseTableOrPartitionRequest extends AcknowledgedRequest<OpenCl
 
     boolean isOpenTable() {
         return openTable;
-    }
-
-    @Override
-    public ActionRequestValidationException validate() {
-        ActionRequestValidationException validationException = null;
-        if (relationName == null) {
-            validationException = addValidationError("table ident must not be null", null);
-        }
-        return validationException;
     }
 
     public OpenCloseTableOrPartitionRequest(StreamInput in) throws IOException {

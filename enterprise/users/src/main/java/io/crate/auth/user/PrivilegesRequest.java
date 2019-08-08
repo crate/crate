@@ -19,8 +19,6 @@
 package io.crate.auth.user;
 
 import io.crate.analyze.user.Privilege;
-import org.elasticsearch.action.ActionRequestValidationException;
-import org.elasticsearch.action.ValidateActions;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -45,18 +43,6 @@ public class PrivilegesRequest extends AcknowledgedRequest<PrivilegesRequest> {
 
     public Collection<Privilege> privileges() {
         return privileges;
-    }
-
-    @Override
-    public ActionRequestValidationException validate() {
-        ActionRequestValidationException validationException = null;
-        if (userNames == null || userNames.isEmpty()) {
-            validationException = ValidateActions.addValidationError("userNames are missing", null);
-        }
-        if (privileges == null || privileges.isEmpty()) {
-            validationException = ValidateActions.addValidationError("privileges are missing", validationException);
-        }
-        return validationException;
     }
 
     public PrivilegesRequest(StreamInput in) throws IOException {

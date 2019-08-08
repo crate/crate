@@ -19,8 +19,6 @@
 package io.crate.auth.user;
 
 import io.crate.user.SecureHash;
-import org.elasticsearch.action.ActionRequestValidationException;
-import org.elasticsearch.action.ValidateActions;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -45,14 +43,6 @@ public class AlterUserRequest extends AcknowledgedRequest<AlterUserRequest> {
     @Nullable
     public SecureHash secureHash() {
         return secureHash;
-    }
-
-    @Override
-    public ActionRequestValidationException validate() {
-        if (userName == null) {
-            return ValidateActions.addValidationError("userName is missing", null);
-        }
-        return null;
     }
 
     public AlterUserRequest(StreamInput in) throws IOException {

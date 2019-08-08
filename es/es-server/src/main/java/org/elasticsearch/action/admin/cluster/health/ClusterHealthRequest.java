@@ -19,7 +19,6 @@
 
 package org.elasticsearch.action.admin.cluster.health;
 
-import org.elasticsearch.action.ActionRequestValidationException;
 import org.elasticsearch.action.IndicesRequest;
 import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.action.support.IndicesOptions;
@@ -205,11 +204,6 @@ public class ClusterHealthRequest extends MasterNodeReadRequest<ClusterHealthReq
      */
     public Level level() {
         return level;
-    }
-
-    @Override
-    public ActionRequestValidationException validate() {
-        return null;
     }
 
     public ClusterHealthRequest(StreamInput in) throws IOException {

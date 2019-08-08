@@ -23,7 +23,6 @@
 package io.crate.execution.ddl.tables;
 
 import io.crate.metadata.RelationName;
-import org.elasticsearch.action.ActionRequestValidationException;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
 import org.elasticsearch.action.support.master.MasterNodeRequest;
@@ -76,11 +75,6 @@ public class CreateTableRequest extends MasterNodeRequest<CreateTableRequest> im
         } else {
             throw new IllegalStateException("Unknown request type");
         }
-    }
-
-    @Override
-    public ActionRequestValidationException validate() {
-        return null;
     }
 
     @Override

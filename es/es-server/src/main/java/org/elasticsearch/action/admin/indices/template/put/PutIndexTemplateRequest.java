@@ -20,7 +20,6 @@ package org.elasticsearch.action.admin.indices.template.put;
 
 import org.elasticsearch.ElasticsearchGenerationException;
 import org.elasticsearch.ElasticsearchParseException;
-import org.elasticsearch.action.ActionRequestValidationException;
 import org.elasticsearch.action.IndicesRequest;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
@@ -53,7 +52,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static org.elasticsearch.action.ValidateActions.addValidationError;
 import static org.elasticsearch.common.settings.Settings.Builder.EMPTY_SETTINGS;
 import static org.elasticsearch.common.settings.Settings.readSettingsFromStream;
 import static org.elasticsearch.common.settings.Settings.writeSettingsToStream;
@@ -89,18 +87,6 @@ public class PutIndexTemplateRequest extends MasterNodeRequest<PutIndexTemplateR
      */
     public PutIndexTemplateRequest(String name) {
         this.name = name;
-    }
-
-    @Override
-    public ActionRequestValidationException validate() {
-        ActionRequestValidationException validationException = null;
-        if (name == null) {
-            validationException = addValidationError("name is missing", validationException);
-        }
-        if (indexPatterns == null || indexPatterns.size() == 0) {
-            validationException = addValidationError("index patterns are missing", validationException);
-        }
-        return validationException;
     }
 
     /**

@@ -20,7 +20,6 @@
 package org.elasticsearch.action.admin.indices.settings.put;
 
 import org.elasticsearch.ElasticsearchGenerationException;
-import org.elasticsearch.action.ActionRequestValidationException;
 import org.elasticsearch.action.IndicesRequest;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
@@ -40,7 +39,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
-import static org.elasticsearch.action.ValidateActions.addValidationError;
 import static org.elasticsearch.common.settings.Settings.Builder.EMPTY_SETTINGS;
 import static org.elasticsearch.common.settings.Settings.readSettingsFromStream;
 import static org.elasticsearch.common.settings.Settings.writeSettingsToStream;
@@ -69,15 +67,6 @@ public class UpdateSettingsRequest extends AcknowledgedRequest<UpdateSettingsReq
     public UpdateSettingsRequest(Settings settings, String... indices) {
         this.indices = indices;
         this.settings = settings;
-    }
-
-    @Override
-    public ActionRequestValidationException validate() {
-        ActionRequestValidationException validationException = null;
-        if (settings.isEmpty()) {
-            validationException = addValidationError("no settings to update", validationException);
-        }
-        return validationException;
     }
 
     @Override
