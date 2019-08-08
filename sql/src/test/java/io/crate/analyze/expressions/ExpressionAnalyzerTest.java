@@ -434,12 +434,6 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testNull() throws Exception {
-        Literal literal = (Literal) expressions.asSymbol("null");
-        assertThat(literal.valueType(), is(DataTypes.INTERVAL));
-    }
-
-    @Test
     public void testIntervalInvalidStartEnd() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Startfield must be less significant than Endfield");

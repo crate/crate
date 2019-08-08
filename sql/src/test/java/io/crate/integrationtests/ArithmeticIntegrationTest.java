@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 import io.crate.action.sql.SQLActionException;
 import io.crate.testing.TestingHelpers;
 import org.hamcrest.Matchers;
+import org.joda.time.Period;
 import org.junit.Test;
 
 import java.util.List;
@@ -396,50 +397,70 @@ public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void test_add_interval_to_interval() {
+        execute("select interval '1 second' + interval '1 second'");
+        assertThat(response.rowCount(), Matchers.is(1L));
+        assertThat(response.rows()[0][0], Matchers.is(Period.seconds(2)));
+    }
+
+    @Test
+    public void test_subtract_interval_to_interval() {
+        execute("select interval '2 second' - interval '1 second'");
+        assertThat(response.rowCount(), Matchers.is(1L));
+        assertThat(response.rows()[0][0], Matchers.is(Period.seconds(1)));
+    }
+
+    @Test
     public void test_add_interval_to_timestamp() {
-        execute("select '86400000'::timestamp without time zone + interval '1 second'");
-        assertThat(response.rowCount(), Matchers.is(1L));
-        assertThat(response.rows()[0][0], Matchers.is(86401000L));
-    }
-
-    @Test
-    public void test_add_timestamp_to_interval() {
-        execute("select interval '1 second' + '86400000'::timestamp without time zone");
-        assertThat(response.rowCount(), Matchers.is(1L));
-        assertThat(response.rows()[0][0], Matchers.is(86401000L));
-    }
-
-    @Test
-    public void test_add_null_to_interval() {
-        execute("select interval '1 second' + null");
+        execute("select '86400000'::timestamp + interval '1 second'");
         assertThat(response.rowCount(), Matchers.is(1L));
         assertThat(response.rows()[0][0], Matchers.is(86401000L));
     }
 
     @Test
     public void test_add_interval_to_null() {
-        execute("select null + interval '1 second'");
+        execute("select interval '1 second' + null");
+        assertThat(response.rowCount(), Matchers.is(1L));
+        assertThat(response.rows()[0][0], Matchers.nullValue());
+    }
+
+    @Test
+    public void test_add_null_to_interval() {
+        execute("select  null + interval '1 second'");
+        assertThat(response.rowCount(), Matchers.is(1L));
+        assertThat(response.rows()[0][0], Matchers.nullValue());
+    }
+
+    @Test
+    public void test_subtract_interval_to_null() {
+        execute("select interval '1 second' - null");
+        assertThat(response.rowCount(), Matchers.is(1L));
+        assertThat(response.rows()[0][0], Matchers.nullValue());
+    }
+
+    @Test
+    public void test_subtract_null_to_interval() {
+        execute("select  null - interval '1 second'");
+        assertThat(response.rowCount(), Matchers.is(1L));
+        assertThat(response.rows()[0][0], Matchers.nullValue());
+    }
+
+    @Test
+    public void test_add_timestamp_to_interval() {
+        execute("select interval '1 second' + '86400000'::timestamp");
         assertThat(response.rowCount(), Matchers.is(1L));
         assertThat(response.rows()[0][0], Matchers.is(86401000L));
     }
 
     @Test
     public void test_subtract_interval_from_timestamp() {
-        execute("select '86401000'::timestamp without time zone - interval '1 second'");
+        execute("select '86401000'::timestamp - interval '1 second'");
         assertThat(response.rows()[0][0], Matchers.is(86400000L));
     }
 
     @Test
     public void test_subtract_timestamp_to_interval() {
-        execute("select interval '1 second' - '86401000'::timestamp without time zone");
-        assertThat(response.rowCount(), Matchers.is(1L));
-        assertThat(response.rows()[0][0], Matchers.is(86400000L));
-    }
-
-
-    @Test
-    public void test_null() {
-        execute("select null");
+        execute("select interval '1 second' - '86401000'::timestamp");
         assertThat(response.rowCount(), Matchers.is(1L));
         assertThat(response.rows()[0][0], Matchers.is(86400000L));
     }

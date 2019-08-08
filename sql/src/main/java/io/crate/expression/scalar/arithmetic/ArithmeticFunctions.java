@@ -244,14 +244,15 @@ public class ArithmeticFunctions {
                 return new IntervalTimestampScalar(operator, fst, snd, snd);
             }
             if (isTimestamp(fst) && isInterval(snd)) {
+                return new IntervalTimestampScalar(operator, fst, snd, snd);
+            }
+            if (snd.id() == IntervalType.ID && (TIMESTAMP_IDS.contains(fst.id()))) {
                 return new IntervalTimestampScalar(operator, fst, snd, fst);
             }
 
             throw new UnsupportedOperationException(
                 String.format(Locale.ENGLISH, "Arithmetic operation are not supported for type %s %s", fst, snd));
         }
-
-
 
         private static boolean isInterval(DataType d) {
             return d.id() == IntervalType.ID;
@@ -314,7 +315,6 @@ public class ArithmeticFunctions {
             public FunctionInfo info() {
                 return this.info;
             }
-
         }
 
 
