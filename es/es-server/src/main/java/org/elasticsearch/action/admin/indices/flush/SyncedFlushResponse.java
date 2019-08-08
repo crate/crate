@@ -18,12 +18,12 @@
  */
 package org.elasticsearch.action.admin.indices.flush;
 
-import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.util.iterable.Iterables;
 import org.elasticsearch.indices.flush.ShardsSyncedFlushResult;
+import org.elasticsearch.transport.TransportResponse;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -37,13 +37,10 @@ import static java.util.Collections.unmodifiableMap;
 /**
  * The result of performing a sync flush operation on all shards of multiple indices
  */
-public class SyncedFlushResponse extends ActionResponse {
+public class SyncedFlushResponse extends TransportResponse {
 
-    private Map<String, List<ShardsSyncedFlushResult>> shardsResultPerIndex;
-    private ShardCounts shardCounts;
-
-    SyncedFlushResponse() {
-    }
+    private final Map<String, List<ShardsSyncedFlushResult>> shardsResultPerIndex;
+    private final ShardCounts shardCounts;
 
     public SyncedFlushResponse(Map<String, List<ShardsSyncedFlushResult>> shardsResultPerIndex) {
         // shardsResultPerIndex is never modified after it is passed to this

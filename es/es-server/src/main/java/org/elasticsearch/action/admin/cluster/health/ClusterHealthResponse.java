@@ -19,7 +19,6 @@
 
 package org.elasticsearch.action.admin.cluster.health;
 
-import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.cluster.health.ClusterIndexHealth;
@@ -31,13 +30,14 @@ import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.StatusToXContentObject;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.rest.RestStatus;
+import org.elasticsearch.transport.TransportResponse;
 
 import java.io.IOException;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
-public class ClusterHealthResponse extends ActionResponse implements StatusToXContentObject {
+public class ClusterHealthResponse extends TransportResponse implements StatusToXContentObject {
 
     private static final String CLUSTER_NAME = "cluster_name";
     private static final String STATUS = "status";

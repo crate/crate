@@ -21,12 +21,12 @@ package org.elasticsearch.action.support.replication;
 
 import org.elasticsearch.action.Action;
 import org.elasticsearch.action.ActionRequestBuilder;
-import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.client.ElasticsearchClient;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.transport.TransportResponse;
 
-public abstract class ReplicationRequestBuilder<Request extends ReplicationRequest<Request>, Response extends ActionResponse, RequestBuilder extends ReplicationRequestBuilder<Request, Response, RequestBuilder>>
+public abstract class ReplicationRequestBuilder<Request extends ReplicationRequest<Request>, Response extends TransportResponse, RequestBuilder extends ReplicationRequestBuilder<Request, Response, RequestBuilder>>
         extends ActionRequestBuilder<Request, Response, RequestBuilder> {
 
     protected ReplicationRequestBuilder(ElasticsearchClient client, Action<Request, Response, RequestBuilder> action, Request request) {

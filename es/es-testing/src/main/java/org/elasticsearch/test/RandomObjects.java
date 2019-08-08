@@ -21,7 +21,6 @@ package org.elasticsearch.test;
 
 import com.carrotsearch.randomizedtesting.generators.RandomPicks;
 import com.carrotsearch.randomizedtesting.generators.RandomStrings;
-
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.support.replication.ReplicationResponse.ShardInfo;
 import org.elasticsearch.action.support.replication.ReplicationResponse.ShardInfo.Failure;
@@ -234,46 +233,6 @@ public final class RandomObjects {
             default:
                 throw new UnsupportedOperationException();
         }
-    }
-
-    /**
-     * Returns a tuple that contains a randomized {@link ShardInfo} value (left side) and its corresponding
-     * value (right side) after it has been printed out as a {@link ToXContent} and parsed back using a parsing
-     * method like {@link ShardInfo#fromXContent(XContentParser)}. The ShardInfo randomly contains shard failures.
-     *
-     * @param random Random generator
-     */
-    public static Tuple<ShardInfo, ShardInfo> randomShardInfo(Random random) {
-        return randomShardInfo(random, random.nextBoolean());
-    }
-
-    /**
-     * Returns a tuple that contains a randomized {@link ShardInfo} value (left side) and its corresponding
-     * value (right side) after it has been printed out as a {@link ToXContent} and parsed back using a parsing
-     * method like {@link ShardInfo#fromXContent(XContentParser)}. A `withShardFailures` parameter indicates if
-     * the randomized ShardInfo must or must not contain shard failures.
-     *
-     * @param random            Random generator
-     * @param withShardFailures indicates if the generated ShardInfo must contain shard failures
-     */
-    public static Tuple<ShardInfo, ShardInfo> randomShardInfo(Random random, boolean withShardFailures) {
-        int total = randomIntBetween(random, 1, 10);
-        if (withShardFailures == false) {
-            return Tuple.tuple(new ShardInfo(total, total), new ShardInfo(total, total));
-        }
-
-        int successful = randomIntBetween(random, 1, Math.max(1, (total - 1)));
-        int failures = Math.max(1, (total - successful));
-
-        Failure[] actualFailures = new Failure[failures];
-        Failure[] expectedFailures = new Failure[failures];
-
-        for (int i = 0; i < failures; i++) {
-            Tuple<Failure, Failure> failure = randomShardInfoFailure(random);
-            actualFailures[i] = failure.v1();
-            expectedFailures[i] = failure.v2();
-        }
-        return Tuple.tuple(new ShardInfo(total, successful, actualFailures), new ShardInfo(total, successful, expectedFailures));
     }
 
     /**

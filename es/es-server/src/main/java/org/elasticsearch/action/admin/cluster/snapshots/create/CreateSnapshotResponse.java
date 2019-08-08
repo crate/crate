@@ -19,7 +19,6 @@
 
 package org.elasticsearch.action.admin.cluster.snapshots.create;
 
-import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -27,6 +26,7 @@ import org.elasticsearch.common.xcontent.ToXContentObject;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.snapshots.SnapshotInfo;
+import org.elasticsearch.transport.TransportResponse;
 
 import java.io.IOException;
 import java.util.Objects;
@@ -34,7 +34,7 @@ import java.util.Objects;
 /**
  * Create snapshot response
  */
-public class CreateSnapshotResponse extends ActionResponse implements ToXContentObject {
+public class CreateSnapshotResponse extends TransportResponse implements ToXContentObject {
 
     @Nullable
     private SnapshotInfo snapshotInfo;

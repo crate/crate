@@ -211,11 +211,6 @@ public class TransportNodesListGatewayStartedShards extends
         }
 
         @Override
-        protected List<NodeGatewayStartedShards> readNodesFrom(StreamInput in) throws IOException {
-            return in.readList(NodeGatewayStartedShards::new);
-        }
-
-        @Override
         protected void writeNodesTo(StreamOutput out, List<NodeGatewayStartedShards> nodes) throws IOException {
             out.writeList(nodes);
         }

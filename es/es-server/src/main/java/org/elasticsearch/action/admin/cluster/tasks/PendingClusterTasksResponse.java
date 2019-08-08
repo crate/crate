@@ -19,19 +19,19 @@
 
 package org.elasticsearch.action.admin.cluster.tasks;
 
-import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.cluster.service.PendingClusterTask;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.ToXContentObject;
 import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.transport.TransportResponse;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-public class PendingClusterTasksResponse extends ActionResponse implements Iterable<PendingClusterTask>, ToXContentObject {
+public class PendingClusterTasksResponse extends TransportResponse implements Iterable<PendingClusterTask>, ToXContentObject {
 
     private final List<PendingClusterTask> pendingTasks;
 

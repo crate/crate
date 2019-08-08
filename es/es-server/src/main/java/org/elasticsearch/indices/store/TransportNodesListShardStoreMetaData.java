@@ -261,11 +261,6 @@ public class TransportNodesListShardStoreMetaData extends TransportNodesAction<T
         }
 
         @Override
-        protected List<NodeStoreFilesMetaData> readNodesFrom(StreamInput in) throws IOException {
-            return in.readList(NodeStoreFilesMetaData::new);
-        }
-
-        @Override
         protected void writeNodesTo(StreamOutput out, List<NodeStoreFilesMetaData> nodes) throws IOException {
             out.writeList(nodes);
         }

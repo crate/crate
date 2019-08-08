@@ -18,11 +18,11 @@
  */
 package org.elasticsearch.action.admin.cluster.configuration;
 
-import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.ToXContentObject;
 import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.transport.TransportResponse;
 
 import java.io.IOException;
 
@@ -30,7 +30,7 @@ import java.io.IOException;
  * A response to {@link ClearVotingConfigExclusionsRequest} indicating that voting config exclusions have been cleared from the
  * cluster state.
  */
-public class ClearVotingConfigExclusionsResponse extends ActionResponse implements ToXContentObject {
+public class ClearVotingConfigExclusionsResponse extends TransportResponse implements ToXContentObject {
     public ClearVotingConfigExclusionsResponse() {
     }
 

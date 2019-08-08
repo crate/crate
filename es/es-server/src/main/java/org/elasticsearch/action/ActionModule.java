@@ -85,6 +85,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.ActionPlugin;
 import org.elasticsearch.plugins.ActionPlugin.ActionHandler;
 import org.elasticsearch.transport.TransportRequest;
+import org.elasticsearch.transport.TransportResponse;
 
 import java.util.List;
 import java.util.Map;
@@ -119,7 +120,7 @@ public class ActionModule extends AbstractModule {
                 register(handler.getAction().name(), handler);
             }
 
-            public <Request extends TransportRequest, Response extends ActionResponse> void register(
+            public <Request extends TransportRequest, Response extends TransportResponse> void register(
                     GenericAction<Request, Response> action, Class<? extends TransportAction<Request, Response>> transportAction,
                     Class<?>... supportTransportActions) {
                 register(new ActionHandler<>(action, transportAction, supportTransportActions));

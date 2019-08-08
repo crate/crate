@@ -19,13 +19,13 @@
 
 package org.elasticsearch.action.admin.cluster.snapshots.get;
 
-import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.ToXContentObject;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.snapshots.SnapshotInfo;
+import org.elasticsearch.transport.TransportResponse;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -36,7 +36,7 @@ import java.util.Objects;
 /**
  * Get snapshots response
  */
-public class GetSnapshotsResponse extends ActionResponse implements ToXContentObject {
+public class GetSnapshotsResponse extends TransportResponse implements ToXContentObject {
 
     private final List<SnapshotInfo> snapshots;
 

@@ -19,18 +19,18 @@
 
 package org.elasticsearch.action.admin.cluster.state;
 
-import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.transport.TransportResponse;
 
 import java.io.IOException;
 
 /**
  * The response for getting the cluster state.
  */
-public class ClusterStateResponse extends ActionResponse {
+public class ClusterStateResponse extends TransportResponse {
 
     private final ClusterName clusterName;
     private final ClusterState clusterState;

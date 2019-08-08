@@ -26,7 +26,6 @@ import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.util.SetOnce;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.action.support.master.MasterNodeRequest;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.ClusterChangedEvent;
@@ -67,6 +66,7 @@ import org.elasticsearch.repositories.Repository;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportException;
 import org.elasticsearch.transport.TransportRequestDeduplicator;
+import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportResponseHandler;
 import org.elasticsearch.transport.TransportService;
 
@@ -594,7 +594,7 @@ public class SnapshotShardsService extends AbstractLifecycleComponent implements
         }
     }
 
-    static class UpdateIndexShardSnapshotStatusResponse extends ActionResponse {
+    static class UpdateIndexShardSnapshotStatusResponse extends TransportResponse {
 
         @Override
         public void writeTo(StreamOutput out) throws IOException {

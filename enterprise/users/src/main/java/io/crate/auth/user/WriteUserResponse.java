@@ -28,10 +28,6 @@ public class WriteUserResponse extends AcknowledgedResponse {
 
     private final boolean userDoesExist;
 
-    WriteUserResponse(boolean userDoesExist) {
-        this.userDoesExist = userDoesExist;
-    }
-
     WriteUserResponse(boolean acknowledged, boolean userDoesExist) {
         super(acknowledged);
         this.userDoesExist = userDoesExist;
