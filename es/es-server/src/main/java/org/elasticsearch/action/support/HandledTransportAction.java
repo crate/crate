@@ -22,7 +22,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.io.stream.Writeable;
@@ -37,7 +36,7 @@ import org.elasticsearch.transport.TransportService;
 /**
  * A TransportAction that self registers a handler into the transport service
  */
-public abstract class HandledTransportAction<Request extends ActionRequest, Response extends ActionResponse>
+public abstract class HandledTransportAction<Request extends TransportRequest, Response extends ActionResponse>
         extends TransportAction<Request, Response> {
 
     protected final Logger logger = LogManager.getLogger(getClass());

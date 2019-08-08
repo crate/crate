@@ -24,7 +24,6 @@ package io.crate.execution.support;
 
 import io.crate.action.FutureActionListener;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
@@ -69,7 +68,7 @@ public class Transports {
      *
      *      `execute(action, request, convertResp) -> resultFuture`
      */
-    public static <Req extends ActionRequest, Resp extends ActionResponse, Result> CompletableFuture<Result> execute(
+    public static <Req extends TransportRequest, Resp extends ActionResponse, Result> CompletableFuture<Result> execute(
         TransportAction<Req, Resp> transportAction,
         Req request,
         Function<? super Resp, Result> convertResponse) {
