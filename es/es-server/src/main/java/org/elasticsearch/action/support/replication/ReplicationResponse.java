@@ -21,7 +21,6 @@ package org.elasticsearch.action.support.replication;
 
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ExceptionsHelper;
-import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.action.ShardOperationFailedException;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.Nullable;
@@ -33,18 +32,17 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.rest.RestStatus;
+import org.elasticsearch.transport.TransportResponse;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 
 import static org.elasticsearch.common.xcontent.XContentParserUtils.ensureExpectedToken;
 
 /**
  * Base class for write action responses.
  */
-public class ReplicationResponse extends ActionResponse {
+public class ReplicationResponse extends TransportResponse {
 
     public static final ReplicationResponse.ShardInfo.Failure[] EMPTY = new ReplicationResponse.ShardInfo.Failure[0];
 
@@ -163,41 +161,6 @@ public class ReplicationResponse extends ActionResponse {
             }
             builder.endObject();
             return builder;
-        }
-
-        public static ShardInfo fromXContent(XContentParser parser) throws IOException {
-            XContentParser.Token token = parser.currentToken();
-            ensureExpectedToken(XContentParser.Token.START_OBJECT, token, parser::getTokenLocation);
-
-            int total = 0, successful = 0;
-            List<Failure> failuresList = null;
-            String currentFieldName = null;
-            while ((token = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
-                if (token == XContentParser.Token.FIELD_NAME) {
-                    currentFieldName = parser.currentName();
-                } else if (token.isValue()) {
-                    if (TOTAL.equals(currentFieldName)) {
-                        total = parser.intValue();
-                    } else if (SUCCESSFUL.equals(currentFieldName)) {
-                        successful = parser.intValue();
-                    } else {
-                        parser.skipChildren();
-                    }
-                } else if (token == XContentParser.Token.START_ARRAY) {
-                    if (FAILURES.equals(currentFieldName)) {
-                        failuresList = new ArrayList<>();
-                        while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
-                            failuresList.add(Failure.fromXContent(parser));
-                        }
-                    } else {
-                        parser.skipChildren(); // skip potential inner arrays for forward compatibility
-                    }
-                } else if (token == XContentParser.Token.START_OBJECT) {
-                    parser.skipChildren(); // skip potential inner arrays for forward compatibility
-                }
-            }
-            Failure[] failures = failuresList == null ? EMPTY : failuresList.toArray(new Failure[0]);
-            return new ShardInfo(total, successful, failures);
         }
 
         @Override

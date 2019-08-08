@@ -23,14 +23,14 @@
 package io.crate.execution.ddl.views;
 
 import io.crate.metadata.RelationName;
-import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.transport.TransportResponse;
 
 import java.io.IOException;
 import java.util.List;
 
-public final class DropViewResponse extends ActionResponse {
+public final class DropViewResponse extends TransportResponse {
 
     private final List<RelationName> missing;
 

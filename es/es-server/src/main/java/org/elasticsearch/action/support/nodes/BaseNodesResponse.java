@@ -19,24 +19,20 @@
 
 package org.elasticsearch.action.support.nodes;
 
-import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.action.FailedNodeException;
 import org.elasticsearch.cluster.ClusterName;
-import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.transport.TransportResponse;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
 
-public abstract class BaseNodesResponse<TNodeResponse extends BaseNodeResponse> extends ActionResponse {
+public abstract class BaseNodesResponse<TNodeResponse extends BaseNodeResponse> extends TransportResponse {
 
-    private ClusterName clusterName;
-    private List<FailedNodeException> failures;
-    private List<TNodeResponse> nodes;
-
-    protected BaseNodesResponse() {
-    }
+    private final ClusterName clusterName;
+    private final List<FailedNodeException> failures;
+    private final List<TNodeResponse> nodes;
 
     protected BaseNodesResponse(ClusterName clusterName, List<TNodeResponse> nodes, List<FailedNodeException> failures) {
         this.clusterName = Objects.requireNonNull(clusterName);
@@ -72,25 +68,12 @@ public abstract class BaseNodesResponse<TNodeResponse extends BaseNodeResponse> 
         return nodes;
     }
 
-    public BaseNodesResponse(StreamInput in) throws IOException {
-        clusterName = new ClusterName(in);
-        nodes = readNodesFrom(in);
-        failures = in.readList(FailedNodeException::new);
-    }
-
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         clusterName.writeTo(out);
         writeNodesTo(out, nodes);
         out.writeList(failures);
     }
-
-    /**
-     * Read the {@link #nodes} from the stream.
-     *
-     * @return Never {@code null}.
-     */
-    protected abstract List<TNodeResponse> readNodesFrom(StreamInput in) throws IOException;
 
     /**
      * Write the {@link #nodes} to the stream.

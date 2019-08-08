@@ -21,16 +21,16 @@ package org.elasticsearch.action.support;
 
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.tasks.Task;
 import org.elasticsearch.tasks.TaskManager;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportRequest;
+import org.elasticsearch.transport.TransportResponse;
 
 import static org.elasticsearch.action.support.PlainActionFuture.newFuture;
 
-public abstract class TransportAction<Request extends TransportRequest, Response extends ActionResponse> {
+public abstract class TransportAction<Request extends TransportRequest, Response extends TransportResponse> {
 
     protected final ThreadPool threadPool;
     protected final String actionName;

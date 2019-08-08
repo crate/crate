@@ -22,13 +22,13 @@
 
 package io.crate.execution.ddl.views;
 
-import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.transport.TransportResponse;
 
 import java.io.IOException;
 
-public final class CreateViewResponse extends ActionResponse {
+public final class CreateViewResponse extends TransportResponse {
 
     private final boolean alreadyExistsFailure;
 

@@ -21,10 +21,11 @@ package org.elasticsearch.action;
 
 import org.elasticsearch.client.ElasticsearchClient;
 import org.elasticsearch.transport.TransportRequest;
+import org.elasticsearch.transport.TransportResponse;
 
 import java.util.Objects;
 
-public abstract class ActionRequestBuilder<Request extends TransportRequest, Response extends ActionResponse,
+public abstract class ActionRequestBuilder<Request extends TransportRequest, Response extends TransportResponse,
         RequestBuilder extends ActionRequestBuilder<Request, Response, RequestBuilder>> {
 
     protected final Action<Request, Response, RequestBuilder> action;

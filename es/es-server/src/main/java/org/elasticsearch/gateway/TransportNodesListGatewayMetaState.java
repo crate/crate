@@ -112,11 +112,6 @@ public class TransportNodesListGatewayMetaState extends TransportNodesAction<Tra
         }
 
         @Override
-        protected List<NodeGatewayMetaState> readNodesFrom(StreamInput in) throws IOException {
-            return in.readList(NodeGatewayMetaState::new);
-        }
-
-        @Override
         protected void writeNodesTo(StreamOutput out, List<NodeGatewayMetaState> nodes) throws IOException {
             out.writeList(nodes);
         }
