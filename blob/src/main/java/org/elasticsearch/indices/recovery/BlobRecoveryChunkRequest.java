@@ -30,13 +30,9 @@ import java.io.IOException;
 
 public class BlobRecoveryChunkRequest extends BlobRecoveryRequest {
 
-    private long transferId;
-    private BytesReference content;
-    private boolean isLast;
-
-    public BlobRecoveryChunkRequest() {
-
-    }
+    private final long transferId;
+    private final BytesReference content;
+    private final boolean isLast;
 
     public BlobRecoveryChunkRequest(long requestId, long transferId, BytesArray content, boolean isLast) {
         super(requestId);
@@ -57,9 +53,8 @@ public class BlobRecoveryChunkRequest extends BlobRecoveryRequest {
         return isLast;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public BlobRecoveryChunkRequest(StreamInput in) throws IOException {
+        super(in);
         transferId = in.readVLong();
         content = in.readBytesReference();
         isLast = in.readBoolean();

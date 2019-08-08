@@ -34,9 +34,6 @@ public class ShardDeleteRequest extends ShardRequest<ShardDeleteRequest, ShardDe
 
     private int skipFromLocation = -1;
 
-    public ShardDeleteRequest() {
-    }
-
     public ShardDeleteRequest(ShardId shardId, UUID jobId) {
         super(shardId, jobId);
     }
@@ -64,9 +61,8 @@ public class ShardDeleteRequest extends ShardRequest<ShardDeleteRequest, ShardDe
         }
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public ShardDeleteRequest(StreamInput in) throws IOException {
+        super(in);
         int numItems = in.readVInt();
         readItems(in, numItems);
         if (in.readBoolean()) {

@@ -48,7 +48,6 @@ import org.elasticsearch.transport.TransportService;
 
 import java.io.IOException;
 import java.util.function.Predicate;
-import java.util.function.Supplier;
 
 /**
  * A base class for operations that needs to be performed on the master node.
@@ -75,16 +74,6 @@ public abstract class TransportMasterNodeAction<Request extends MasterNodeReques
                                         TransportService transportService,
                                         ClusterService clusterService,
                                         ThreadPool threadPool,
-                                        IndexNameExpressionResolver indexNameExpressionResolver,
-                                        Supplier<Request> request) {
-        super(actionName, canTripCircuitBreaker, threadPool, transportService, indexNameExpressionResolver, request);
-        this.transportService = transportService;
-        this.clusterService = clusterService;
-        this.executor = executor();
-    }
-
-    protected TransportMasterNodeAction(String actionName, boolean canTripCircuitBreaker,
-                                        TransportService transportService, ClusterService clusterService, ThreadPool threadPool,
                                         Writeable.Reader<Request> request,
                                         IndexNameExpressionResolver indexNameExpressionResolver) {
         super(actionName, canTripCircuitBreaker, threadPool, transportService, request, indexNameExpressionResolver);

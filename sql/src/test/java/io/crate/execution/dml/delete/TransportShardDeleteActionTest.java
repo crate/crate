@@ -36,7 +36,6 @@ import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
-import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
@@ -50,7 +49,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -77,7 +75,6 @@ public class TransportShardDeleteActionTest extends CrateDummyClusterServiceUnit
 
 
         transportShardDeleteAction = new TransportShardDeleteAction(
-            Settings.EMPTY,
             MockTransportService.createNewService(
                 Settings.EMPTY, Version.CURRENT, THREAD_POOL, clusterService.getClusterSettings()),
             mock(IndexNameExpressionResolver.class),

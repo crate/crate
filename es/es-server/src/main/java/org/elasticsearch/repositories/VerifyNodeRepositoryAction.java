@@ -121,20 +121,16 @@ public class VerifyNodeRepositoryAction  {
 
     public static class VerifyNodeRepositoryRequest extends TransportRequest {
 
-        private String repository;
-        private String verificationToken;
-
-        public VerifyNodeRepositoryRequest() {
-        }
+        private final String repository;
+        private final String verificationToken;
 
         VerifyNodeRepositoryRequest(String repository, String verificationToken) {
             this.repository = repository;
             this.verificationToken = verificationToken;
         }
 
-        @Override
-        public void readFrom(StreamInput in) throws IOException {
-            super.readFrom(in);
+        public VerifyNodeRepositoryRequest(StreamInput in) throws IOException {
+            super(in);
             repository = in.readString();
             verificationToken = in.readString();
         }

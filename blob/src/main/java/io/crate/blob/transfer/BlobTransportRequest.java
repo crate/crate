@@ -30,20 +30,16 @@ import java.util.UUID;
 
 public abstract class BlobTransportRequest extends TransportRequest {
 
-    public UUID transferId;
-    public String senderNodeId;
-
-    public BlobTransportRequest() {
-    }
+    public final UUID transferId;
+    public final String senderNodeId;
 
     public BlobTransportRequest(String senderNodeId, UUID transferId) {
         this.senderNodeId = senderNodeId;
         this.transferId = transferId;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public BlobTransportRequest(StreamInput in) throws IOException {
+        super(in);
         senderNodeId = in.readString();
         transferId = new UUID(in.readLong(), in.readLong());
     }

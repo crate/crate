@@ -95,9 +95,8 @@ public class RecoveryRequest extends BroadcastRequest<RecoveryRequest> {
         out.writeBoolean(activeOnly);
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public RecoveryRequest(StreamInput in) throws IOException {
+        super(in);
         detailed = in.readBoolean();
         activeOnly = in.readBoolean();
     }

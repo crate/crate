@@ -103,8 +103,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
     static class TestingTransportShardUpsertAction extends TransportShardUpsertAction {
 
 
-        public TestingTransportShardUpsertAction(Settings settings,
-                                                 ThreadPool threadPool,
+        public TestingTransportShardUpsertAction(ThreadPool threadPool,
                                                  ClusterService clusterService,
                                                  TransportService transportService,
                                                  SchemaUpdateClient schemaUpdateClient,
@@ -114,7 +113,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
                                                  Functions functions,
                                                  Schemas schemas,
                                                  IndexNameExpressionResolver indexNameExpressionResolver) {
-            super(settings, threadPool, clusterService, transportService, schemaUpdateClient,
+            super(threadPool, clusterService, transportService, schemaUpdateClient,
                 tasksService, indicesService, shardStateAction, functions, schemas, indexNameExpressionResolver);
         }
 
@@ -161,7 +160,6 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         when(schemas.getTableInfo(any(RelationName.class), eq(Operation.INSERT))).thenReturn(tableInfo);
 
         transportShardUpsertAction = new TestingTransportShardUpsertAction(
-            Settings.EMPTY,
             mock(ThreadPool.class),
             clusterService,
             MockTransportService.createNewService(Settings.EMPTY, Version.ES_V_6_5_1, THREAD_POOL, clusterService.getClusterSettings()),

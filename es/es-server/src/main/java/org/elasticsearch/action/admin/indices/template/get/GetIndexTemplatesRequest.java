@@ -72,9 +72,8 @@ public class GetIndexTemplatesRequest extends MasterNodeReadRequest<GetIndexTemp
         return this.names;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public GetIndexTemplatesRequest(StreamInput in) throws IOException {
+        super(in);
         names = in.readStringArray();
     }
 

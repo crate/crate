@@ -40,9 +40,6 @@ public abstract class BlobTransferRequest<T extends ReplicationRequest<T>>
     private UUID transferId;
     private BytesReference content;
 
-    public BlobTransferRequest() {
-    }
-
     public BytesReference content() {
         return content;
     }
@@ -58,9 +55,11 @@ public abstract class BlobTransferRequest<T extends ReplicationRequest<T>>
         this.last = last;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public BlobTransferRequest() {
+    }
+
+    public BlobTransferRequest(StreamInput in) throws IOException {
+        super(in);
         transferId = new UUID(in.readLong(), in.readLong());
         content = in.readBytesReference();
         last = in.readBoolean();

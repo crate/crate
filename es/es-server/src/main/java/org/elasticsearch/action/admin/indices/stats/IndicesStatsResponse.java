@@ -35,10 +35,7 @@ import java.util.Set;
 
 public class IndicesStatsResponse extends BroadcastResponse {
 
-    private ShardStats[] shards;
-
-    IndicesStatsResponse() {
-    }
+    private final ShardStats[] shards;
 
     IndicesStatsResponse(ShardStats[] shards, int totalShards, int successfulShards, int failedShards,
                          List<DefaultShardOperationFailedException> shardFailures) {
@@ -83,9 +80,8 @@ public class IndicesStatsResponse extends BroadcastResponse {
         return indicesStats;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public IndicesStatsResponse(StreamInput in) throws IOException {
+        super(in);
         shards = in.readArray(ShardStats::new, ShardStats[]::new);
     }
 

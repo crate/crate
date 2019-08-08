@@ -27,7 +27,6 @@ import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -42,10 +41,13 @@ public class TransportShardRefreshAction
     public static final String NAME = RefreshAction.NAME + "[s]";
 
     @Inject
-    public TransportShardRefreshAction(Settings settings, TransportService transportService, ClusterService clusterService,
-                                       IndicesService indicesService, ThreadPool threadPool, ShardStateAction shardStateAction,
+    public TransportShardRefreshAction(TransportService transportService,
+                                       ClusterService clusterService,
+                                       IndicesService indicesService,
+                                       ThreadPool threadPool,
+                                       ShardStateAction shardStateAction,
                                        IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(settings, NAME, transportService, clusterService, indicesService, threadPool, shardStateAction,
+        super(NAME, transportService, clusterService, indicesService, threadPool, shardStateAction,
                 indexNameExpressionResolver, BasicReplicationRequest::new, BasicReplicationRequest::new, ThreadPool.Names.REFRESH);
     }
 

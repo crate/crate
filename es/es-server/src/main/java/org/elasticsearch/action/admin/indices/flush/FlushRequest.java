@@ -89,9 +89,8 @@ public class FlushRequest extends BroadcastRequest<FlushRequest> {
         out.writeBoolean(waitIfOngoing);
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public FlushRequest(StreamInput in) throws IOException {
+        super(in);
         force = in.readBoolean();
         waitIfOngoing = in.readBoolean();
     }

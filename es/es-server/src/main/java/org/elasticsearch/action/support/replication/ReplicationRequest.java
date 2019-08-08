@@ -66,7 +66,6 @@ public abstract class ReplicationRequest<Request extends ReplicationRequest<Requ
     private long routedBasedOnClusterVersion = 0;
 
     public ReplicationRequest() {
-
     }
 
     /**
@@ -177,9 +176,8 @@ public abstract class ReplicationRequest<Request extends ReplicationRequest<Requ
         return validationException;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public ReplicationRequest(StreamInput in) throws IOException {
+        super(in);
         if (in.readBoolean()) {
             shardId = new ShardId(in);
         } else {

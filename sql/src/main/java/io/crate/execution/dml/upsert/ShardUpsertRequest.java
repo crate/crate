@@ -135,9 +135,8 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
         return this;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public ShardUpsertRequest(StreamInput in) throws IOException {
+        super(in);
         int assignmentsColumnsSize = in.readVInt();
         if (assignmentsColumnsSize > 0) {
             updateColumns = new String[assignmentsColumnsSize];

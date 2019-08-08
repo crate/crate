@@ -21,10 +21,14 @@
 
 package org.elasticsearch.indices.recovery;
 
+import org.elasticsearch.common.io.stream.StreamInput;
+
+import java.io.IOException;
+
 public class BlobFinalizeRecoveryRequest extends BlobRecoveryRequest {
 
-    public BlobFinalizeRecoveryRequest() {
-
+    public BlobFinalizeRecoveryRequest(StreamInput in) throws IOException {
+        super(in);
     }
 
     public BlobFinalizeRecoveryRequest(long recoveryId) {

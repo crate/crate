@@ -32,20 +32,16 @@ import java.util.UUID;
 
 public class PutBlobHeadChunkRequest extends TransportRequest {
 
-    public UUID transferId;
-    public BytesReference content;
-
-    public PutBlobHeadChunkRequest() {
-    }
+    public final UUID transferId;
+    public final BytesReference content;
 
     public PutBlobHeadChunkRequest(UUID transferId, BytesArray bytesArray) {
         this.transferId = transferId;
         this.content = bytesArray;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public PutBlobHeadChunkRequest(StreamInput in) throws IOException {
+        super(in);
         transferId = new UUID(in.readLong(), in.readLong());
         content = in.readBytesReference();
     }

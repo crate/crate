@@ -47,8 +47,7 @@ public class JobRequestTest {
         BytesStreamOutput out = new BytesStreamOutput();
         r1.writeTo(out);
 
-        JobRequest r2 = new JobRequest();
-        r2.readFrom(out.bytes().streamInput());
+        JobRequest r2 = new JobRequest(out.bytes().streamInput());
 
         assertThat(r1.coordinatorNodeId(), is(r2.coordinatorNodeId()));
         assertThat(r1.jobId(), is(r2.jobId()));

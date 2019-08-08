@@ -510,10 +510,8 @@ public class SyncedFlushService implements IndexEventListener {
     }
 
     public static final class PreShardSyncedFlushRequest extends TransportRequest {
-        private ShardId shardId;
 
-        public PreShardSyncedFlushRequest() {
-        }
+        private final ShardId shardId;
 
         public PreShardSyncedFlushRequest(ShardId shardId) {
             this.shardId = shardId;
@@ -532,9 +530,8 @@ public class SyncedFlushService implements IndexEventListener {
             shardId.writeTo(out);
         }
 
-        @Override
-        public void readFrom(StreamInput in) throws IOException {
-            super.readFrom(in);
+        public PreShardSyncedFlushRequest(StreamInput in) throws IOException {
+            super(in);
             this.shardId = new ShardId(in);
         }
 
@@ -575,12 +572,9 @@ public class SyncedFlushService implements IndexEventListener {
 
     public static final class ShardSyncedFlushRequest extends TransportRequest {
 
-        private String syncId;
-        private Engine.CommitId expectedCommitId;
-        private ShardId shardId;
-
-        public ShardSyncedFlushRequest() {
-        }
+        private final String syncId;
+        private final Engine.CommitId expectedCommitId;
+        private final ShardId shardId;
 
         public ShardSyncedFlushRequest(ShardId shardId, String syncId, Engine.CommitId expectedCommitId) {
             this.expectedCommitId = expectedCommitId;
@@ -588,9 +582,8 @@ public class SyncedFlushService implements IndexEventListener {
             this.syncId = syncId;
         }
 
-        @Override
-        public void readFrom(StreamInput in) throws IOException {
-            super.readFrom(in);
+        public ShardSyncedFlushRequest(StreamInput in) throws IOException {
+            super(in);
             shardId = new ShardId(in);
             expectedCommitId = new Engine.CommitId(in);
             syncId = in.readString();
@@ -672,18 +665,14 @@ public class SyncedFlushService implements IndexEventListener {
 
     public static final class InFlightOpsRequest extends TransportRequest {
 
-        private ShardId shardId;
-
-        public InFlightOpsRequest() {
-        }
+        private final ShardId shardId;
 
         public InFlightOpsRequest(ShardId shardId) {
             this.shardId = shardId;
         }
 
-        @Override
-        public void readFrom(StreamInput in) throws IOException {
-            super.readFrom(in);
+        public InFlightOpsRequest(StreamInput in) throws IOException {
+            super(in);
             shardId = new ShardId(in);
         }
 

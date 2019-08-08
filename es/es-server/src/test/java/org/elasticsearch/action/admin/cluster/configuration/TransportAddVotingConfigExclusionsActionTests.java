@@ -393,9 +393,7 @@ public class TransportAddVotingConfigExclusionsActionTests extends ESTestCase {
 
             @Override
             public AddVotingConfigExclusionsResponse read(StreamInput in) throws IOException {
-                AddVotingConfigExclusionsResponse response = new AddVotingConfigExclusionsResponse();
-                response.readFrom(in);
-                return response;
+                return new AddVotingConfigExclusionsResponse(in);
             }
         };
     }

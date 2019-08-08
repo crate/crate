@@ -22,12 +22,15 @@
 package io.crate.blob.transfer;
 
 
+import org.elasticsearch.common.io.stream.StreamInput;
+
+import java.io.IOException;
 import java.util.UUID;
 
 public class BlobInfoRequest extends BlobTransportRequest {
 
-    public BlobInfoRequest() {
-
+    public BlobInfoRequest(StreamInput in) throws IOException {
+        super(in);
     }
 
     public BlobInfoRequest(String senderNodeId, UUID transferId) {

@@ -60,12 +60,6 @@ public abstract class TransportRequest extends TransportMessage implements TaskA
     }
 
     @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
-        parentTaskId = TaskId.readFromStream(in);
-    }
-
-    @Override
     public void writeTo(StreamOutput out) throws IOException {
         parentTaskId.writeTo(out);
     }

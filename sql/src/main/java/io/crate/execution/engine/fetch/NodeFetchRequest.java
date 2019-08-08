@@ -38,15 +38,12 @@ import java.util.UUID;
 
 public class NodeFetchRequest extends TransportRequest {
 
-    private UUID jobId;
-    private int fetchPhaseId;
-    private boolean closeContext;
+    private final UUID jobId;
+    private final int fetchPhaseId;
+    private final boolean closeContext;
 
     @Nullable
-    private IntObjectMap<? extends IntContainer> toFetch;
-
-    public NodeFetchRequest() {
-    }
+    private final IntObjectMap<? extends IntContainer> toFetch;
 
     public NodeFetchRequest(UUID jobId,
                             int fetchPhaseId,
@@ -55,7 +52,9 @@ public class NodeFetchRequest extends TransportRequest {
         this.jobId = jobId;
         this.fetchPhaseId = fetchPhaseId;
         this.closeContext = closeContext;
-        if (!toFetch.isEmpty()) {
+        if (toFetch.isEmpty()) {
+            this.toFetch = null;
+        } else {
             this.toFetch = toFetch;
         }
     }
@@ -77,9 +76,8 @@ public class NodeFetchRequest extends TransportRequest {
         return toFetch;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public NodeFetchRequest(StreamInput in) throws IOException {
+        super(in);
         jobId = new UUID(in.readLong(), in.readLong());
         fetchPhaseId = in.readVInt();
         closeContext = in.readBoolean();
@@ -94,8 +92,10 @@ public class NodeFetchRequest extends TransportRequest {
                 for (int j = 0; j < numDocs; j++) {
                     docs.add(in.readInt());
                 }
-                this.toFetch = toFetch;
             }
+            this.toFetch = toFetch;
+        } else {
+            this.toFetch = null;
         }
     }
 

@@ -24,7 +24,6 @@ package io.crate.blob;
 import io.crate.common.Hex;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;
@@ -38,9 +37,7 @@ public class DeleteBlobRequestTest extends CrateUnitTest {
         BytesStreamOutput out = new BytesStreamOutput();
         request.writeTo(out);
 
-        DeleteBlobRequest fromStream = new DeleteBlobRequest();
-        StreamInput in = out.bytes().streamInput();
-        fromStream.readFrom(in);
+        DeleteBlobRequest fromStream = new DeleteBlobRequest(out.bytes().streamInput());
 
         assertThat(fromStream.index(), is("foo"));
         assertThat(fromStream.id(), is(Hex.encodeHexString(digest)));

@@ -133,9 +133,8 @@ public class ClusterStateRequest extends MasterNodeReadRequest<ClusterStateReque
         return customs;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public ClusterStateRequest(StreamInput in) throws IOException {
+        super(in);
         routingTable = in.readBoolean();
         nodes = in.readBoolean();
         metaData = in.readBoolean();

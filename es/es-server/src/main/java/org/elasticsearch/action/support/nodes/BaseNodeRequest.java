@@ -27,19 +27,14 @@ import java.io.IOException;
 
 public abstract class BaseNodeRequest extends TransportRequest {
 
-    private String nodeId;
-
-    public BaseNodeRequest() {
-
-    }
+    private final String nodeId;
 
     protected BaseNodeRequest(String nodeId) {
         this.nodeId = nodeId;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public BaseNodeRequest(StreamInput in) throws IOException {
+        super(in);
         nodeId = in.readString();
     }
 

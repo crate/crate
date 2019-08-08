@@ -29,11 +29,8 @@ import java.io.IOException;
 
 public class BlobStartPrefixSyncRequest extends BlobRecoveryRequest {
 
-    private byte prefix;
-    private ShardId shardId;
-
-    public BlobStartPrefixSyncRequest() {
-    }
+    private final byte prefix;
+    private final ShardId shardId;
 
     public BlobStartPrefixSyncRequest(long recoveryId, ShardId shardId, byte prefix) {
         super(recoveryId);
@@ -45,9 +42,8 @@ public class BlobStartPrefixSyncRequest extends BlobRecoveryRequest {
         return prefix;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public BlobStartPrefixSyncRequest(StreamInput in) throws IOException {
+        super(in);
         prefix = in.readByte();
         shardId = new ShardId(in);
     }
@@ -58,7 +54,6 @@ public class BlobStartPrefixSyncRequest extends BlobRecoveryRequest {
         out.writeByte(prefix);
         shardId.writeTo(out);
     }
-
 }
 
 

@@ -30,39 +30,42 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionListenerResponseHandler;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportResponseHandler;
 import org.elasticsearch.transport.TransportService;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-abstract class TransportKillNodeAction<Request extends TransportRequest> implements NodeAction<Request, KillResponse>, Callable<Request> {
+abstract class TransportKillNodeAction<Request extends TransportRequest> implements NodeAction<Request, KillResponse>, Writeable.Reader<Request> {
 
     protected final TasksService tasksService;
     protected final ClusterService clusterService;
     protected final TransportService transportService;
     protected final String name;
+    private final Writeable.Reader<Request> reader;
 
     TransportKillNodeAction(String name,
                             TasksService tasksService,
                             ClusterService clusterService,
                             TransportService transportService,
-                            Supplier<Request> requestSupplier) {
+                            Writeable.Reader<Request> reader) {
         this.tasksService = tasksService;
         this.clusterService = clusterService;
         this.transportService = transportService;
+        this.reader = reader;
         this.name = name;
         transportService.registerRequestHandler(
             name,
-            requestSupplier,
+            reader,
             ThreadPool.Names.GENERIC,
             new NodeActionRequestHandler<>(this));
     }
@@ -72,6 +75,11 @@ abstract class TransportKillNodeAction<Request extends TransportRequest> impleme
     @Override
     public CompletableFuture<KillResponse> nodeOperation(Request request) {
         return doKill(request).thenApply(KillResponse::new);
+    }
+
+    @Override
+    public Request read(StreamInput in) throws IOException {
+        return reader.read(in);
     }
 
     /**

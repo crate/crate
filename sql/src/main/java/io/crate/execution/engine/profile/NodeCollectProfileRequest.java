@@ -31,10 +31,7 @@ import java.util.UUID;
 
 public class NodeCollectProfileRequest extends TransportRequest {
 
-    private UUID jobId;
-
-    NodeCollectProfileRequest() {
-    }
+    private final UUID jobId;
 
     NodeCollectProfileRequest(UUID jobId) {
         this.jobId = jobId;
@@ -44,9 +41,8 @@ public class NodeCollectProfileRequest extends TransportRequest {
         return jobId;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public NodeCollectProfileRequest(StreamInput in) throws IOException {
+        super(in);
         jobId = new UUID(in.readLong(), in.readLong());
     }
 

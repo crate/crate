@@ -208,9 +208,7 @@ public class TransportClearVotingConfigExclusionsActionTests extends ESTestCase 
 
             @Override
             public ClearVotingConfigExclusionsResponse read(StreamInput in) throws IOException {
-                ClearVotingConfigExclusionsResponse response = new ClearVotingConfigExclusionsResponse();
-                response.readFrom(in);
-                return response;
+                return new ClearVotingConfigExclusionsResponse(in);
             }
         };
     }

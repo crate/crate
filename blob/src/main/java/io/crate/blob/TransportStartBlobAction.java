@@ -50,10 +50,18 @@ public class TransportStartBlobAction extends TransportReplicationAction<StartBl
                                     ShardStateAction shardStateAction,
                                     BlobTransferTarget transferTarget,
                                     IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(settings, StartBlobAction.NAME, transportService, clusterService,
-            indicesService, threadPool, shardStateAction,
-            indexNameExpressionResolver, StartBlobRequest::new, StartBlobRequest::new, ThreadPool.Names.WRITE);
-
+        super(
+            StartBlobAction.NAME,
+            transportService,
+            clusterService,
+            indicesService,
+            threadPool,
+            shardStateAction,
+            indexNameExpressionResolver,
+            StartBlobRequest::new,
+            StartBlobRequest::new,
+            ThreadPool.Names.WRITE
+        );
         this.transferTarget = transferTarget;
         logger.trace("Constructor");
     }

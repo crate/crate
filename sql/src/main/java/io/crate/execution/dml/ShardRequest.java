@@ -72,9 +72,8 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
         return jobId;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public ShardRequest(StreamInput in) throws IOException {
+        super(in);
         jobId = new UUID(in.readLong(), in.readLong());
     }
 

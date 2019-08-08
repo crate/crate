@@ -32,14 +32,14 @@ import org.elasticsearch.transport.TransportService;
  */
 public class TransportSyncedFlushAction extends HandledTransportAction<SyncedFlushRequest, SyncedFlushResponse> {
 
-    SyncedFlushService syncedFlushService;
+    private final SyncedFlushService syncedFlushService;
 
     @Inject
     public TransportSyncedFlushAction(ThreadPool threadPool,
                                       TransportService transportService,
                                       IndexNameExpressionResolver indexNameExpressionResolver,
                                       SyncedFlushService syncedFlushService) {
-        super(SyncedFlushAction.NAME, threadPool, transportService, indexNameExpressionResolver, SyncedFlushRequest::new);
+        super(SyncedFlushAction.NAME, threadPool, transportService, SyncedFlushRequest::new, indexNameExpressionResolver);
         this.syncedFlushService = syncedFlushService;
     }
 

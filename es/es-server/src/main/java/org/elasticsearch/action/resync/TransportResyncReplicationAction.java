@@ -31,7 +31,7 @@ import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.IndexShard;
@@ -45,34 +45,54 @@ import org.elasticsearch.transport.TransportResponseHandler;
 import org.elasticsearch.transport.TransportService;
 
 import java.io.IOException;
-import java.util.function.Supplier;
 
 public class TransportResyncReplicationAction extends TransportWriteAction<ResyncReplicationRequest,
     ResyncReplicationRequest, ReplicationResponse> implements PrimaryReplicaSyncer.SyncAction {
 
-    private static String ACTION_NAME = "internal:index/seq_no/resync";
+    private static final String ACTION_NAME = "internal:index/seq_no/resync";
 
     @Inject
-    public TransportResyncReplicationAction(Settings settings, TransportService transportService,
-                                            ClusterService clusterService, IndicesService indicesService, ThreadPool threadPool,
+    public TransportResyncReplicationAction(TransportService transportService,
+                                            ClusterService clusterService,
+                                            IndicesService indicesService,
+                                            ThreadPool threadPool,
                                             ShardStateAction shardStateAction,
                                             IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(settings, ACTION_NAME, transportService, clusterService, indicesService, threadPool, shardStateAction,
-            indexNameExpressionResolver, ResyncReplicationRequest::new, ResyncReplicationRequest::new, ThreadPool.Names.WRITE);
+        super(
+            ACTION_NAME,
+            transportService,
+            clusterService,
+            indicesService,
+            threadPool,
+            shardStateAction,
+            indexNameExpressionResolver,
+            ResyncReplicationRequest::new,
+            ResyncReplicationRequest::new,
+            ThreadPool.Names.WRITE
+        );
     }
 
     @Override
-    protected void registerRequestHandlers(String actionName, TransportService transportService, Supplier<ResyncReplicationRequest> request,
-                                           Supplier<ResyncReplicationRequest> replicaRequest, String executor) {
-        transportService.registerRequestHandler(actionName, request, ThreadPool.Names.SAME, new OperationTransportHandler());
+    protected void registerRequestHandlers(String actionName,
+                                           TransportService transportService,
+                                           Writeable.Reader<ResyncReplicationRequest> reader,
+                                           Writeable.Reader<ResyncReplicationRequest> replicaReader,
+                                           String executor) {
+        transportService.registerRequestHandler(actionName, reader, ThreadPool.Names.SAME, new OperationTransportHandler());
         // we should never reject resync because of thread pool capacity on primary
-        transportService.registerRequestHandler(transportPrimaryAction,
-            () -> new ConcreteShardRequest<>(request),
-            executor, true, true,
+        transportService.registerRequestHandler(
+            transportPrimaryAction,
+            in -> new ConcreteShardRequest<>(in, reader),
+            executor,
+            true,
+            true,
             new PrimaryOperationTransportHandler());
-        transportService.registerRequestHandler(transportReplicaAction,
-            () -> new ConcreteReplicaRequest<>(replicaRequest),
-            executor, true, true,
+        transportService.registerRequestHandler(
+            transportReplicaAction,
+            in -> new ConcreteReplicaRequest<>(in, replicaReader),
+            executor,
+            true,
+            true,
             new ReplicaOperationTransportHandler());
     }
 

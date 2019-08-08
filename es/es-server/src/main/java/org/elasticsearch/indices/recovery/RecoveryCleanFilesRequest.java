@@ -29,14 +29,11 @@ import java.io.IOException;
 
 public class RecoveryCleanFilesRequest extends TransportRequest {
 
-    private long recoveryId;
-    private ShardId shardId;
+    private final long recoveryId;
+    private final ShardId shardId;
 
-    private Store.MetadataSnapshot snapshotFiles;
-    private int totalTranslogOps = RecoveryState.Translog.UNKNOWN;
-
-    public RecoveryCleanFilesRequest() {
-    }
+    private final Store.MetadataSnapshot snapshotFiles;
+    private final int totalTranslogOps;
 
     RecoveryCleanFilesRequest(long recoveryId, ShardId shardId, Store.MetadataSnapshot snapshotFiles, int totalTranslogOps) {
         this.recoveryId = recoveryId;
@@ -53,9 +50,8 @@ public class RecoveryCleanFilesRequest extends TransportRequest {
         return shardId;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public RecoveryCleanFilesRequest(StreamInput in) throws IOException {
+        super(in);
         recoveryId = in.readLong();
         shardId = new ShardId(in);
         snapshotFiles = new Store.MetadataSnapshot(in);

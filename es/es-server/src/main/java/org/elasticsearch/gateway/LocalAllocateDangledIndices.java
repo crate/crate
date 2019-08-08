@@ -72,7 +72,10 @@ public class LocalAllocateDangledIndices {
         this.clusterService = clusterService;
         this.allocationService = allocationService;
         this.metaDataIndexUpgradeService = metaDataIndexUpgradeService;
-        transportService.registerRequestHandler(ACTION_NAME, AllocateDangledRequest::new, ThreadPool.Names.SAME,
+        transportService.registerRequestHandler(
+            ACTION_NAME,
+            AllocateDangledRequest::new,
+            ThreadPool.Names.SAME,
             new AllocateDangledRequestHandler());
     }
 
@@ -88,9 +91,7 @@ public class LocalAllocateDangledIndices {
         transportService.sendRequest(masterNode, ACTION_NAME, request, new TransportResponseHandler<AllocateDangledResponse>() {
             @Override
             public AllocateDangledResponse read(StreamInput in) throws IOException {
-                final AllocateDangledResponse response = new AllocateDangledResponse();
-                response.readFrom(in);
-                return response;
+                return new AllocateDangledResponse(in);
             }
 
             @Override
@@ -214,20 +215,16 @@ public class LocalAllocateDangledIndices {
 
     public static class AllocateDangledRequest extends TransportRequest {
 
-        DiscoveryNode fromNode;
-        IndexMetaData[] indices;
-
-        public AllocateDangledRequest() {
-        }
+        final DiscoveryNode fromNode;
+        final IndexMetaData[] indices;
 
         AllocateDangledRequest(DiscoveryNode fromNode, IndexMetaData[] indices) {
             this.fromNode = fromNode;
             this.indices = indices;
         }
 
-        @Override
-        public void readFrom(StreamInput in) throws IOException {
-            super.readFrom(in);
+        public AllocateDangledRequest(StreamInput in) throws IOException {
+            super(in);
             fromNode = new DiscoveryNode(in);
             indices = new IndexMetaData[in.readVInt()];
             for (int i = 0; i < indices.length; i++) {
@@ -248,10 +245,7 @@ public class LocalAllocateDangledIndices {
 
     public static class AllocateDangledResponse extends TransportResponse {
 
-        private boolean ack;
-
-        AllocateDangledResponse() {
-        }
+        private final boolean ack;
 
         AllocateDangledResponse(boolean ack) {
             this.ack = ack;
@@ -261,9 +255,7 @@ public class LocalAllocateDangledIndices {
             return ack;
         }
 
-        @Override
-        public void readFrom(StreamInput in) throws IOException {
-            super.readFrom(in);
+        public AllocateDangledResponse(StreamInput in) throws IOException {
             ack = in.readBoolean();
         }
 

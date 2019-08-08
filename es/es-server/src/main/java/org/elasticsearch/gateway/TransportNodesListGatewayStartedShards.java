@@ -80,8 +80,17 @@ public class TransportNodesListGatewayStartedShards extends
                                                   NodeEnvironment env,
                                                   IndicesService indicesService,
                                                   NamedXContentRegistry namedXContentRegistry) {
-        super(ACTION_NAME, threadPool, clusterService, transportService, indexNameExpressionResolver,
-            Request::new, NodeRequest::new, ThreadPool.Names.FETCH_SHARD_STARTED, NodeGatewayStartedShards.class);
+        super(
+            ACTION_NAME,
+            threadPool,
+            clusterService,
+            transportService,
+            indexNameExpressionResolver,
+            Request::new,
+            NodeRequest::new,
+            ThreadPool.Names.FETCH_SHARD_STARTED,
+            NodeGatewayStartedShards.class
+        );
         this.settings = settings;
         this.nodeEnv = env;
         this.indicesService = indicesService;
@@ -171,24 +180,19 @@ public class TransportNodesListGatewayStartedShards extends
 
     public static class Request extends BaseNodesRequest<Request> {
 
-        private ShardId shardId;
-
-        public Request() {
-        }
+        private final ShardId shardId;
 
         public Request(ShardId shardId, DiscoveryNode[] nodes) {
             super(nodes);
             this.shardId = shardId;
         }
 
-
         public ShardId shardId() {
             return this.shardId;
         }
 
-        @Override
-        public void readFrom(StreamInput in) throws IOException {
-            super.readFrom(in);
+        public Request(StreamInput in) throws IOException {
+            super(in);
             shardId = new ShardId(in);
         }
 
@@ -213,26 +217,22 @@ public class TransportNodesListGatewayStartedShards extends
 
         @Override
         protected void writeNodesTo(StreamOutput out, List<NodeGatewayStartedShards> nodes) throws IOException {
-            out.writeStreamableList(nodes);
+            out.writeList(nodes);
         }
     }
 
 
     public static class NodeRequest extends BaseNodeRequest {
 
-        private ShardId shardId;
-
-        public NodeRequest() {
-        }
+        private final ShardId shardId;
 
         public NodeRequest(String nodeId, Request request) {
             super(nodeId);
             this.shardId = request.shardId();
         }
 
-        @Override
-        public void readFrom(StreamInput in) throws IOException {
-            super.readFrom(in);
+        public NodeRequest(StreamInput in) throws IOException {
+            super(in);
             shardId = new ShardId(in);
         }
 

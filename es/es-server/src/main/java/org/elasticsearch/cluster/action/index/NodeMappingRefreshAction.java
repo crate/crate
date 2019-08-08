@@ -23,7 +23,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.IndicesRequest;
 import org.elasticsearch.action.support.IndicesOptions;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MetaDataMappingService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.inject.Inject;
@@ -75,12 +74,9 @@ public class NodeMappingRefreshAction {
 
     public static class NodeMappingRefreshRequest extends TransportRequest implements IndicesRequest {
 
-        private String index;
-        private String indexUUID = IndexMetaData.INDEX_UUID_NA_VALUE;
-        private String nodeId;
-
-        public NodeMappingRefreshRequest() {
-        }
+        private final String index;
+        private final String indexUUID;
+        private final String nodeId;
 
         public NodeMappingRefreshRequest(String index, String indexUUID, String nodeId) {
             this.index = index;
@@ -118,9 +114,8 @@ public class NodeMappingRefreshAction {
             out.writeString(indexUUID);
         }
 
-        @Override
-        public void readFrom(StreamInput in) throws IOException {
-            super.readFrom(in);
+        public NodeMappingRefreshRequest(StreamInput in) throws IOException {
+            super(in);
             index = in.readString();
             nodeId = in.readString();
             indexUUID = in.readString();

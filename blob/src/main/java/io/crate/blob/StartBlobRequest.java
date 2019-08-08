@@ -33,9 +33,6 @@ public class StartBlobRequest extends BlobTransferRequest<StartBlobRequest> {
 
     private byte[] digest;
 
-    public StartBlobRequest() {
-    }
-
     public StartBlobRequest(String index, byte[] digest, BytesReference content, boolean last) {
         super(index, UUID.randomUUID(), content, last);
         this.digest = digest;
@@ -45,9 +42,11 @@ public class StartBlobRequest extends BlobTransferRequest<StartBlobRequest> {
         return Hex.encodeHexString(digest);
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public StartBlobRequest() {
+    }
+
+    public StartBlobRequest(StreamInput in) throws IOException {
+        super(in);
         digest = new byte[20];
         in.read(digest);
     }

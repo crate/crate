@@ -33,6 +33,7 @@ import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.util.concurrent.CountDown;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.tasks.Task;
@@ -43,7 +44,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.function.Supplier;
 
 /**
  * Base class for requests that should be executed on all shards of an index or several indices.
@@ -56,17 +56,16 @@ public abstract class TransportBroadcastReplicationAction<Request extends Broadc
     private final ClusterService clusterService;
 
     public TransportBroadcastReplicationAction(String name,
-                                               Supplier<Request> request,
+                                               Writeable.Reader<Request> reader,
                                                ThreadPool threadPool,
                                                ClusterService clusterService,
                                                TransportService transportService,
                                                IndexNameExpressionResolver indexNameExpressionResolver,
                                                TransportReplicationAction replicatedBroadcastShardAction) {
-        super(name, threadPool, transportService, indexNameExpressionResolver, request);
+        super(name, threadPool, transportService, reader, indexNameExpressionResolver);
         this.replicatedBroadcastShardAction = replicatedBroadcastShardAction;
         this.clusterService = clusterService;
     }
-
 
     @Override
     protected final void doExecute(final Request request, final ActionListener<Response> listener) {

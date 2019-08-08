@@ -43,8 +43,7 @@ public class KillJobsRequestTest extends CrateUnitTest {
         r.writeTo(out);
 
         StreamInput in = out.bytes().streamInput();
-        KillJobsRequest r2 = new KillJobsRequest();
-        r2.readFrom(in);
+        KillJobsRequest r2 = new KillJobsRequest(in);
 
         assertThat(r.toKill(), equalTo(r2.toKill()));
     }

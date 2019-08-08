@@ -42,8 +42,7 @@ public class NodeCollectProfileRequestTest {
 
         StreamInput in = out.bytes().streamInput();
 
-        NodeCollectProfileRequest streamed = new NodeCollectProfileRequest();
-        streamed.readFrom(in);
+        NodeCollectProfileRequest streamed = new NodeCollectProfileRequest(in);
 
         assertThat(originalRequest.jobId(), is(streamed.jobId()));
     }

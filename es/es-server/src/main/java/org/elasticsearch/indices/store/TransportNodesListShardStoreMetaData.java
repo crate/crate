@@ -235,19 +235,15 @@ public class TransportNodesListShardStoreMetaData extends TransportNodesAction<T
 
     public static class Request extends BaseNodesRequest<Request> {
 
-        private ShardId shardId;
-
-        public Request() {
-        }
+        private final ShardId shardId;
 
         public Request(ShardId shardId, DiscoveryNode[] nodes) {
             super(nodes);
             this.shardId = shardId;
         }
 
-        @Override
-        public void readFrom(StreamInput in) throws IOException {
-            super.readFrom(in);
+        public Request(StreamInput in) throws IOException {
+            super(in);
             shardId = new ShardId(in);
         }
 
@@ -271,26 +267,22 @@ public class TransportNodesListShardStoreMetaData extends TransportNodesAction<T
 
         @Override
         protected void writeNodesTo(StreamOutput out, List<NodeStoreFilesMetaData> nodes) throws IOException {
-            out.writeStreamableList(nodes);
+            out.writeList(nodes);
         }
     }
 
 
     public static class NodeRequest extends BaseNodeRequest {
 
-        private ShardId shardId;
-
-        public NodeRequest() {
-        }
+        private final ShardId shardId;
 
         NodeRequest(String nodeId, TransportNodesListShardStoreMetaData.Request request) {
             super(nodeId);
             this.shardId = request.shardId;
         }
 
-        @Override
-        public void readFrom(StreamInput in) throws IOException {
-            super.readFrom(in);
+        public NodeRequest(StreamInput in) throws IOException {
+            super(in);
             shardId = new ShardId(in);
         }
 

@@ -33,10 +33,7 @@ import java.util.Set;
 
 public class NodeStatsRequest extends TransportRequest {
 
-    private Set<ColumnIdent> columns;
-
-    public NodeStatsRequest() {
-    }
+    private final Set<ColumnIdent> columns;
 
     public NodeStatsRequest(Set<ColumnIdent> columns) {
         this.columns = columns;
@@ -46,9 +43,8 @@ public class NodeStatsRequest extends TransportRequest {
         return columns;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public NodeStatsRequest(StreamInput in) throws IOException {
+        super(in);
         columns = new HashSet<>();
         int columnIdentsSize = in.readVInt();
         for (int i = 0; i < columnIdentsSize; i++) {

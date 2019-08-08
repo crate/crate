@@ -137,9 +137,11 @@ public class IndicesStatsRequest extends BroadcastRequest<IndicesStatsRequest> {
         flags.writeTo(out);
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public IndicesStatsRequest(StreamInput in) throws IOException {
+        super(in);
         flags = new CommonStatsFlags(in);
+    }
+
+    public IndicesStatsRequest() {
     }
 }

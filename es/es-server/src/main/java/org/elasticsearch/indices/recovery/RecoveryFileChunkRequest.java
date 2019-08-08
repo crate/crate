@@ -31,21 +31,25 @@ import org.elasticsearch.transport.TransportRequest;
 import java.io.IOException;
 
 public final class RecoveryFileChunkRequest extends TransportRequest {
-    private boolean lastChunk;
-    private long recoveryId;
-    private ShardId shardId;
-    private long position;
-    private BytesReference content;
-    private StoreFileMetaData metaData;
-    private long sourceThrottleTimeInNanos;
 
-    private int totalTranslogOps;
+    private final boolean lastChunk;
+    private final long recoveryId;
+    private final ShardId shardId;
+    private final long position;
+    private final BytesReference content;
+    private final StoreFileMetaData metaData;
+    private final long sourceThrottleTimeInNanos;
 
-    public RecoveryFileChunkRequest() {
-    }
+    private final int totalTranslogOps;
 
-    public RecoveryFileChunkRequest(long recoveryId, ShardId shardId, StoreFileMetaData metaData, long position, BytesReference content,
-                                    boolean lastChunk, int totalTranslogOps, long sourceThrottleTimeInNanos) {
+    public RecoveryFileChunkRequest(long recoveryId,
+                                    ShardId shardId,
+                                    StoreFileMetaData metaData,
+                                    long position,
+                                    BytesReference content,
+                                    boolean lastChunk,
+                                    int totalTranslogOps,
+                                    long sourceThrottleTimeInNanos) {
         this.recoveryId = recoveryId;
         this.shardId = shardId;
         this.metaData = metaData;
@@ -92,9 +96,8 @@ public final class RecoveryFileChunkRequest extends TransportRequest {
         return sourceThrottleTimeInNanos;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public RecoveryFileChunkRequest(StreamInput in) throws IOException {
+        super(in);
         recoveryId = in.readLong();
         shardId = new ShardId(in);
         String name = in.readString();

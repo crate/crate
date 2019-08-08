@@ -29,22 +29,18 @@ import java.io.IOException;
 
 public abstract class BlobRecoveryRequest extends TransportRequest {
 
-    protected long recoveryId;
+    protected final long recoveryId;
 
     public BlobRecoveryRequest(long recoveryId) {
         this.recoveryId = recoveryId;
-    }
-
-    protected BlobRecoveryRequest() {
     }
 
     public long recoveryId() {
         return this.recoveryId;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public BlobRecoveryRequest(StreamInput in) throws IOException {
+        super(in);
         recoveryId = in.readLong();
     }
 
