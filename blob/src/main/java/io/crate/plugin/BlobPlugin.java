@@ -32,7 +32,6 @@ import io.crate.blob.TransportPutChunkAction;
 import io.crate.blob.TransportStartBlobAction;
 import io.crate.blob.v2.BlobIndicesModule;
 import io.crate.blob.v2.BlobIndicesService;
-import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
@@ -41,6 +40,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.plugins.ActionPlugin;
 import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.transport.TransportRequest;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -90,7 +90,7 @@ public class BlobPlugin extends Plugin implements ActionPlugin {
     }
 
     @Override
-    public List<ActionHandler<? extends ActionRequest, ? extends ActionResponse>> getActions() {
+    public List<ActionHandler<? extends TransportRequest, ? extends ActionResponse>> getActions() {
         return Arrays.asList(
             new ActionHandler<>(PutChunkAction.INSTANCE, TransportPutChunkAction.class),
             new ActionHandler<>(StartBlobAction.INSTANCE, TransportStartBlobAction.class),

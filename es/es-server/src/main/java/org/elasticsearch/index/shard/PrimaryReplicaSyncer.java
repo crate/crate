@@ -21,7 +21,6 @@ package org.elasticsearch.index.shard;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.resync.ResyncReplicationRequest;
 import org.elasticsearch.action.resync.TransportResyncReplicationAction;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
@@ -35,6 +34,7 @@ import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.tasks.Task;
 import org.elasticsearch.tasks.TaskId;
 import org.elasticsearch.tasks.TaskManager;
+import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportService;
 
 import java.io.IOException;
@@ -269,7 +269,7 @@ public class PrimaryReplicaSyncer {
         }
     }
 
-    public static class ResyncRequest extends ActionRequest {
+    public static class ResyncRequest extends TransportRequest {
 
         private final ShardId shardId;
         private final String allocationId;
