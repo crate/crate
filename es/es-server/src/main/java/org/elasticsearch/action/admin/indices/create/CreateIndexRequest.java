@@ -21,7 +21,6 @@ package org.elasticsearch.action.admin.indices.create;
 
 import org.elasticsearch.ElasticsearchGenerationException;
 import org.elasticsearch.ElasticsearchParseException;
-import org.elasticsearch.action.ActionRequestValidationException;
 import org.elasticsearch.action.IndicesRequest;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
@@ -53,7 +52,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-import static org.elasticsearch.action.ValidateActions.addValidationError;
 import static org.elasticsearch.common.settings.Settings.Builder.EMPTY_SETTINGS;
 import static org.elasticsearch.common.settings.Settings.readSettingsFromStream;
 import static org.elasticsearch.common.settings.Settings.writeSettingsToStream;
@@ -103,15 +101,6 @@ public class CreateIndexRequest extends AcknowledgedRequest<CreateIndexRequest> 
     public CreateIndexRequest(String index, Settings settings) {
         this.index = index;
         this.settings = settings;
-    }
-
-    @Override
-    public ActionRequestValidationException validate() {
-        ActionRequestValidationException validationException = null;
-        if (index == null) {
-            validationException = addValidationError("index is missing", validationException);
-        }
-        return validationException;
     }
 
     @Override

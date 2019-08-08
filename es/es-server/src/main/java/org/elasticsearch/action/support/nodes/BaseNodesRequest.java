@@ -20,7 +20,6 @@
 package org.elasticsearch.action.support.nodes;
 
 import org.elasticsearch.action.ActionRequest;
-import org.elasticsearch.action.ActionRequestValidationException;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -84,11 +83,6 @@ public abstract class BaseNodesRequest<Request extends BaseNodesRequest<Request>
 
     public void setConcreteNodes(DiscoveryNode[] concreteNodes) {
         this.concreteNodes = concreteNodes;
-    }
-
-    @Override
-    public ActionRequestValidationException validate() {
-        return null;
     }
 
     public BaseNodesRequest(StreamInput in) throws IOException {

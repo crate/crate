@@ -36,6 +36,4 @@ public abstract class ActionRequest extends TransportRequest {
     public ActionRequest(StreamInput in) throws IOException {
         super(in);
     }
-
-    public abstract ActionRequestValidationException validate();
 }

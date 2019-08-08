@@ -20,7 +20,6 @@
 package org.elasticsearch.action.support.broadcast;
 
 import org.elasticsearch.action.ActionRequest;
-import org.elasticsearch.action.ActionRequestValidationException;
 import org.elasticsearch.action.IndicesRequest;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -50,11 +49,6 @@ public class BroadcastRequest<Request extends BroadcastRequest<Request>> extends
     public final Request indices(String... indices) {
         this.indices = indices;
         return (Request) this;
-    }
-
-    @Override
-    public ActionRequestValidationException validate() {
-        return null;
     }
 
     @Override

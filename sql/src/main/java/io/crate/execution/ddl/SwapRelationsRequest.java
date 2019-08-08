@@ -23,7 +23,6 @@
 package io.crate.execution.ddl;
 
 import io.crate.metadata.RelationName;
-import org.elasticsearch.action.ActionRequestValidationException;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -54,11 +53,6 @@ public final class SwapRelationsRequest extends AcknowledgedRequest<SwapRelation
      */
     public List<RelationName> dropRelations() {
         return dropRelations;
-    }
-
-    @Override
-    public ActionRequestValidationException validate() {
-        return null;
     }
 
     public SwapRelationsRequest(StreamInput in) throws IOException {

@@ -26,8 +26,6 @@
 
 package io.crate.expression.udf;
 
-import org.elasticsearch.action.ActionRequestValidationException;
-import org.elasticsearch.action.ValidateActions;
 import org.elasticsearch.action.support.master.MasterNodeRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -50,14 +48,6 @@ public class CreateUserDefinedFunctionRequest extends MasterNodeRequest<CreateUs
 
     boolean replace() {
         return replace;
-    }
-
-    @Override
-    public ActionRequestValidationException validate() {
-        if (userDefinedFunctionMetaData == null) {
-            return ValidateActions.addValidationError("userDefinedFunctionMetaData is missing", null);
-        }
-        return null;
     }
 
     public CreateUserDefinedFunctionRequest(StreamInput in) throws IOException {

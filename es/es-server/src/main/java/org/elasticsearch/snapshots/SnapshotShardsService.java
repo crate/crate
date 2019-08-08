@@ -26,7 +26,6 @@ import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.util.SetOnce;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.ActionRequestValidationException;
 import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.action.support.master.MasterNodeRequest;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
@@ -433,11 +432,6 @@ public class SnapshotShardsService extends AbstractLifecycleComponent implements
             this.status = status;
             // By default, we keep trying to post snapshot status messages to avoid snapshot processes getting stuck.
             this.masterNodeTimeout = TimeValue.timeValueNanos(Long.MAX_VALUE);
-        }
-
-        @Override
-        public ActionRequestValidationException validate() {
-            return null;
         }
 
         public UpdateIndexShardSnapshotStatusRequest(StreamInput in) throws IOException {

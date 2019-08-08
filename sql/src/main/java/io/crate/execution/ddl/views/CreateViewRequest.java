@@ -23,7 +23,6 @@
 package io.crate.execution.ddl.views;
 
 import io.crate.metadata.RelationName;
-import org.elasticsearch.action.ActionRequestValidationException;
 import org.elasticsearch.action.support.master.MasterNodeRequest;
 import org.elasticsearch.cluster.ack.AckedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -48,11 +47,6 @@ public final class CreateViewRequest extends MasterNodeRequest<CreateViewRequest
         this.query = query;
         this.replaceExisting = replaceExisting;
         this.owner = owner;
-    }
-
-    @Override
-    public ActionRequestValidationException validate() {
-        return null;
     }
 
     public RelationName name() {

@@ -23,7 +23,6 @@
 package io.crate.execution.ddl.views;
 
 import io.crate.metadata.RelationName;
-import org.elasticsearch.action.ActionRequestValidationException;
 import org.elasticsearch.action.support.master.MasterNodeRequest;
 import org.elasticsearch.cluster.ack.AckedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -43,11 +42,6 @@ public class DropViewRequest extends MasterNodeRequest<DropViewRequest> implemen
     public DropViewRequest(List<RelationName> names, boolean ifExists) {
         this.names = names;
         this.ifExists = ifExists;
-    }
-
-    @Override
-    public ActionRequestValidationException validate() {
-        return null;
     }
 
     @Override

@@ -18,7 +18,6 @@
  */
 package org.elasticsearch.action.admin.cluster.configuration;
 
-import org.elasticsearch.action.ActionRequestValidationException;
 import org.elasticsearch.action.support.master.MasterNodeRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -76,11 +75,6 @@ public class ClearVotingConfigExclusionsRequest extends MasterNodeRequest<ClearV
      */
     public TimeValue getTimeout() {
         return timeout;
-    }
-
-    @Override
-    public ActionRequestValidationException validate() {
-        return null;
     }
 
     @Override

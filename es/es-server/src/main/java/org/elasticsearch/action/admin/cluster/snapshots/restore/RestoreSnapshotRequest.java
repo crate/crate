@@ -20,7 +20,6 @@
 package org.elasticsearch.action.admin.cluster.snapshots.restore;
 
 import org.elasticsearch.ElasticsearchGenerationException;
-import org.elasticsearch.action.ActionRequestValidationException;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.MasterNodeRequest;
 import org.elasticsearch.common.Strings;
@@ -39,7 +38,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-import static org.elasticsearch.action.ValidateActions.addValidationError;
 import static org.elasticsearch.common.settings.Settings.Builder.EMPTY_SETTINGS;
 import static org.elasticsearch.common.settings.Settings.readSettingsFromStream;
 import static org.elasticsearch.common.settings.Settings.writeSettingsToStream;
@@ -77,33 +75,6 @@ public class RestoreSnapshotRequest extends MasterNodeRequest<RestoreSnapshotReq
     public RestoreSnapshotRequest(String repository, String snapshot) {
         this.snapshot = snapshot;
         this.repository = repository;
-    }
-
-    @Override
-    public ActionRequestValidationException validate() {
-        ActionRequestValidationException validationException = null;
-        if (snapshot == null) {
-            validationException = addValidationError("name is missing", validationException);
-        }
-        if (repository == null) {
-            validationException = addValidationError("repository is missing", validationException);
-        }
-        if (indices == null) {
-            validationException = addValidationError("indices are missing", validationException);
-        }
-        if (indicesOptions == null) {
-            validationException = addValidationError("indicesOptions is missing", validationException);
-        }
-        if (settings == null) {
-            validationException = addValidationError("settings are missing", validationException);
-        }
-        if (indexSettings == null) {
-            validationException = addValidationError("indexSettings are missing", validationException);
-        }
-        if (ignoreIndexSettings == null) {
-            validationException = addValidationError("ignoreIndexSettings are missing", validationException);
-        }
-        return validationException;
     }
 
     /**

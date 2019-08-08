@@ -22,7 +22,6 @@
 
 package io.crate.execution.ddl.index;
 
-import org.elasticsearch.action.ActionRequestValidationException;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -40,11 +39,6 @@ public final class SwapAndDropIndexRequest extends AcknowledgedRequest<SwapAndDr
     public SwapAndDropIndexRequest(String source, String target) {
         this.source = source;
         this.target = target;
-    }
-
-    @Override
-    public ActionRequestValidationException validate() {
-        return null;
     }
 
     public SwapAndDropIndexRequest(StreamInput in) throws IOException {

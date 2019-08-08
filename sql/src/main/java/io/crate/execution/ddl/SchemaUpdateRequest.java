@@ -22,7 +22,6 @@
 
 package io.crate.execution.ddl;
 
-import org.elasticsearch.action.ActionRequestValidationException;
 import org.elasticsearch.action.support.master.MasterNodeRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -38,11 +37,6 @@ public class SchemaUpdateRequest extends MasterNodeRequest<SchemaUpdateRequest> 
     public SchemaUpdateRequest(Index index, String mappingSource) {
         this.index = index;
         this.mappingSource = mappingSource;
-    }
-
-    @Override
-    public ActionRequestValidationException validate() {
-        return null;
     }
 
     public Index index() {
