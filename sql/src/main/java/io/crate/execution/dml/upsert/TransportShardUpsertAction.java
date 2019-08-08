@@ -50,7 +50,6 @@ import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.lucene.uid.Versions;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.engine.DocumentMissingException;
@@ -89,8 +88,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
     private final Functions functions;
 
     @Inject
-    public TransportShardUpsertAction(Settings settings,
-                                      ThreadPool threadPool,
+    public TransportShardUpsertAction(ThreadPool threadPool,
                                       ClusterService clusterService,
                                       TransportService transportService,
                                       SchemaUpdateClient schemaUpdateClient,
@@ -100,8 +98,17 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                       Functions functions,
                                       Schemas schemas,
                                       IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(settings, ACTION_NAME, transportService, indexNameExpressionResolver, clusterService,
-            indicesService, threadPool, shardStateAction, ShardUpsertRequest::new, schemaUpdateClient);
+        super(
+            ACTION_NAME,
+            transportService,
+            indexNameExpressionResolver,
+            clusterService,
+            indicesService,
+            threadPool,
+            shardStateAction,
+            ShardUpsertRequest::new,
+            schemaUpdateClient
+        );
         this.schemas = schemas;
         this.functions = functions;
         tasksService.addListener(this);

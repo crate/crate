@@ -57,8 +57,7 @@ public class DistributedResultRequestTest extends CrateUnitTest {
         BytesStreamOutput out = new BytesStreamOutput();
         r1.writeTo(out);
         StreamInput in = out.bytes().streamInput();
-        DistributedResultRequest r2 = new DistributedResultRequest();
-        r2.readFrom(in);
+        DistributedResultRequest r2 = new DistributedResultRequest(in);
 
         assertEquals(r1.readRows(streamers).size(), r2.readRows(streamers).size());
         assertThat(r1.isLast(), is(r2.isLast()));
@@ -77,8 +76,7 @@ public class DistributedResultRequestTest extends CrateUnitTest {
         BytesStreamOutput out = new BytesStreamOutput();
         r1.writeTo(out);
         StreamInput in = StreamInput.wrap(BytesReference.toBytes(out.bytes()));
-        DistributedResultRequest r2 = new DistributedResultRequest();
-        r2.readFrom(in);
+        DistributedResultRequest r2 = new DistributedResultRequest(in);
 
         assertThat(r2.throwable(), instanceOf(throwable.getClass()));
         assertThat(r2.isKilled(), is(r1.isKilled()));

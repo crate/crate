@@ -503,9 +503,7 @@ public class SnapshotShardsService extends AbstractLifecycleComponent implements
                 new TransportResponseHandler<UpdateIndexShardSnapshotStatusResponse>() {
                     @Override
                     public UpdateIndexShardSnapshotStatusResponse read(StreamInput in) throws IOException {
-                        final UpdateIndexShardSnapshotStatusResponse response = new UpdateIndexShardSnapshotStatusResponse();
-                        response.readFrom(in);
-                        return response;
+                        return new UpdateIndexShardSnapshotStatusResponse();
                     }
 
                     @Override
@@ -606,6 +604,9 @@ public class SnapshotShardsService extends AbstractLifecycleComponent implements
 
         @Override
         public void writeTo(StreamOutput out) throws IOException {
+        }
+
+        public UpdateIndexShardSnapshotStatusResponse() {
         }
     }
 

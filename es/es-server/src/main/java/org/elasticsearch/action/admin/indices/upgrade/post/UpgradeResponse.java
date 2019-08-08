@@ -38,11 +38,7 @@ import java.util.Map;
  */
 public class UpgradeResponse extends BroadcastResponse {
 
-    private Map<String, Tuple<Version, String>> versions;
-
-    UpgradeResponse() {
-
-    }
+    private final Map<String, Tuple<Version, String>> versions;
 
     UpgradeResponse(Map<String, Tuple<Version, String>> versions, int totalShards, int successfulShards, int failedShards,
                     List<DefaultShardOperationFailedException> shardFailures) {
@@ -50,9 +46,8 @@ public class UpgradeResponse extends BroadcastResponse {
         this.versions = versions;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public UpgradeResponse(StreamInput in) throws IOException {
+        super(in);
         int size = in.readVInt();
         versions = new HashMap<>();
         for (int i=0; i<size; i++) {

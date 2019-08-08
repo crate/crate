@@ -385,13 +385,10 @@ public class IndicesStore implements ClusterStateListener, Closeable {
     }
 
     private static class ShardActiveRequest extends TransportRequest {
-        protected TimeValue timeout = null;
-        private ClusterName clusterName;
-        private String indexUUID;
-        private ShardId shardId;
-
-        ShardActiveRequest() {
-        }
+        protected final TimeValue timeout;
+        private final ClusterName clusterName;
+        private final String indexUUID;
+        private final ShardId shardId;
 
         ShardActiveRequest(ClusterName clusterName, String indexUUID, ShardId shardId, TimeValue timeout) {
             this.shardId = shardId;
@@ -400,9 +397,8 @@ public class IndicesStore implements ClusterStateListener, Closeable {
             this.timeout = timeout;
         }
 
-        @Override
-        public void readFrom(StreamInput in) throws IOException {
-            super.readFrom(in);
+        public ShardActiveRequest(StreamInput in) throws IOException {
+            super(in);
             clusterName = new ClusterName(in);
             indexUUID = in.readString();
             shardId = new ShardId(in);

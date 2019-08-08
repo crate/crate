@@ -59,7 +59,7 @@ public class CreatePartitionsRequest extends AcknowledgedRequest<CreatePartition
     }
 
     public CreatePartitionsRequest(StreamInput in) throws IOException {
-        super.readFrom(in);
+        super(in);
         jobId = new UUID(in.readLong(), in.readLong());
         int numIndices = in.readVInt();
         List<String> indicesList = new ArrayList<>(numIndices);

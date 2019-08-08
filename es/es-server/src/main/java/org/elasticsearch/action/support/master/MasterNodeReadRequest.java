@@ -34,11 +34,6 @@ public abstract class MasterNodeReadRequest<Request extends MasterNodeReadReques
     protected MasterNodeReadRequest() {
     }
 
-    protected MasterNodeReadRequest(StreamInput in) throws IOException {
-        super(in);
-        local = in.readBoolean();
-    }
-
     @SuppressWarnings("unchecked")
     public final Request local(boolean local) {
         this.local = local;
@@ -60,9 +55,8 @@ public abstract class MasterNodeReadRequest<Request extends MasterNodeReadReques
         out.writeBoolean(local);
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public MasterNodeReadRequest(StreamInput in) throws IOException {
+        super(in);
         local = in.readBoolean();
     }
 }

@@ -117,9 +117,7 @@ public class SyncedFlushResponse extends ActionResponse {
         }
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public SyncedFlushResponse(StreamInput in) throws IOException {
         shardCounts = new ShardCounts(in);
         Map<String, List<ShardsSyncedFlushResult>> tmpShardsResultPerIndex = new HashMap<>();
         int numShardsResults = in.readInt();

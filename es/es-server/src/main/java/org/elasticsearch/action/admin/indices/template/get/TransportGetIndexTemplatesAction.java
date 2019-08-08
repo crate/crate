@@ -42,9 +42,21 @@ import java.util.List;
 public class TransportGetIndexTemplatesAction extends TransportMasterNodeReadAction<GetIndexTemplatesRequest, GetIndexTemplatesResponse> {
 
     @Inject
-    public TransportGetIndexTemplatesAction(Settings settings, TransportService transportService, ClusterService clusterService,
-                                            ThreadPool threadPool, IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(settings, GetIndexTemplatesAction.NAME, transportService, clusterService, threadPool, indexNameExpressionResolver, GetIndexTemplatesRequest::new);
+    public TransportGetIndexTemplatesAction(Settings settings,
+                                            TransportService transportService,
+                                            ClusterService clusterService,
+                                            ThreadPool threadPool,
+                                            IndexNameExpressionResolver indexNameExpressionResolver) {
+        super(
+            settings,
+            GetIndexTemplatesAction.NAME,
+            true,
+            transportService,
+            clusterService,
+            threadPool,
+            indexNameExpressionResolver,
+            GetIndexTemplatesRequest::new
+        );
     }
 
     @Override

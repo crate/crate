@@ -86,12 +86,23 @@ public class PublicationTransportHandler {
         this.namedWriteableRegistry = namedWriteableRegistry;
         this.handlePublishRequest = handlePublishRequest;
 
-        transportService.registerRequestHandler(PUBLISH_STATE_ACTION_NAME, BytesTransportRequest::new, ThreadPool.Names.GENERIC,
-            false, false, (request, channel, task) -> channel.sendResponse(handleIncomingPublishRequest(request)));
+        transportService.registerRequestHandler(
+            PUBLISH_STATE_ACTION_NAME,
+            BytesTransportRequest::new,
+            ThreadPool.Names.GENERIC,
+            false,
+            false,
+            (request, channel, task) -> channel.sendResponse(handleIncomingPublishRequest(request))
+        );
 
-        transportService.registerRequestHandler(COMMIT_STATE_ACTION_NAME, ThreadPool.Names.GENERIC, false, false,
+        transportService.registerRequestHandler(
+            COMMIT_STATE_ACTION_NAME,
+            ThreadPool.Names.GENERIC,
+            false,
+            false,
             ApplyCommitRequest::new,
-            (request, channel, task) -> handleApplyCommit.accept(request, transportCommitCallback(channel)));
+            (request, channel, task) -> handleApplyCommit.accept(request, transportCommitCallback(channel))
+        );
     }
 
     private ActionListener<Void> transportCommitCallback(TransportChannel channel) {

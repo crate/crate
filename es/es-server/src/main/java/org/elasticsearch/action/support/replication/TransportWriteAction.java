@@ -29,7 +29,7 @@ import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Nullable;
-import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.mapper.MapperParsingException;
 import org.elasticsearch.index.shard.IndexShard;
@@ -44,7 +44,6 @@ import org.elasticsearch.transport.TransportService;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Supplier;
 
 /**
  * Base class for transport actions that modify data in some shard like index, delete, and shardBulk.
@@ -56,12 +55,28 @@ public abstract class TransportWriteAction<
             Response extends ReplicationResponse
         > extends TransportReplicationAction<Request, ReplicaRequest, Response> {
 
-    protected TransportWriteAction(Settings settings, String actionName, TransportService transportService,
-            ClusterService clusterService, IndicesService indicesService, ThreadPool threadPool, ShardStateAction shardStateAction,
-            IndexNameExpressionResolver indexNameExpressionResolver, Supplier<Request> request,
-                                   Supplier<ReplicaRequest> replicaRequest, String executor) {
-        super(settings, actionName, transportService, clusterService, indicesService, threadPool, shardStateAction,
-                indexNameExpressionResolver, request, replicaRequest, executor, true);
+    protected TransportWriteAction(String actionName,
+                                   TransportService transportService,
+                                   ClusterService clusterService,
+                                   IndicesService indicesService,
+                                   ThreadPool threadPool,
+                                   ShardStateAction shardStateAction,
+                                   IndexNameExpressionResolver indexNameExpressionResolver,
+                                   Writeable.Reader<Request> reader,
+                                   Writeable.Reader<ReplicaRequest> replicaReader,
+                                   String executor) {
+        super(
+            actionName,
+            transportService,
+            clusterService,
+            indicesService,
+            threadPool,
+            shardStateAction,
+            indexNameExpressionResolver,
+            reader,
+            replicaReader,
+            executor,
+            true);
     }
 
     /** Syncs operation result to the translog or throws a shard not available failure */

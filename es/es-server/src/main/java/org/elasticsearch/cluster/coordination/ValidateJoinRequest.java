@@ -26,17 +26,15 @@ import org.elasticsearch.transport.TransportRequest;
 import java.io.IOException;
 
 public class ValidateJoinRequest extends TransportRequest {
-    private ClusterState state;
 
-    public ValidateJoinRequest() {}
+    private final ClusterState state;
 
     public ValidateJoinRequest(ClusterState state) {
         this.state = state;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public ValidateJoinRequest(StreamInput in) throws IOException {
+        super(in);
         this.state = ClusterState.readFrom(in, null);
     }
 

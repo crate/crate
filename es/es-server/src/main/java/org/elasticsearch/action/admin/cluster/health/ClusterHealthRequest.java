@@ -19,7 +19,6 @@
 
 package org.elasticsearch.action.admin.cluster.health;
 
-import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionRequestValidationException;
 import org.elasticsearch.action.IndicesRequest;
 import org.elasticsearch.action.support.ActiveShardCount;
@@ -213,9 +212,8 @@ public class ClusterHealthRequest extends MasterNodeReadRequest<ClusterHealthReq
         return null;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public ClusterHealthRequest(StreamInput in) throws IOException {
+        super(in);
         int size = in.readVInt();
         if (size == 0) {
             indices = Strings.EMPTY_ARRAY;

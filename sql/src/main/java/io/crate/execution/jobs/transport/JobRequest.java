@@ -22,8 +22,8 @@
 
 package io.crate.execution.jobs.transport;
 
-import io.crate.metadata.settings.SessionSettings;
 import io.crate.execution.dsl.phases.NodeOperation;
+import io.crate.metadata.settings.SessionSettings;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.transport.TransportRequest;
@@ -35,14 +35,11 @@ import java.util.UUID;
 
 public class JobRequest extends TransportRequest {
 
-    private UUID jobId;
-    private SessionSettings sessionSettings;
-    private String coordinatorNodeId;
-    private Collection<? extends NodeOperation> nodeOperations;
-    private boolean enableProfiling;
-
-    public JobRequest() {
-    }
+    private final UUID jobId;
+    private final SessionSettings sessionSettings;
+    private final String coordinatorNodeId;
+    private final Collection<? extends NodeOperation> nodeOperations;
+    private final boolean enableProfiling;
 
     public JobRequest(UUID jobId,
                       SessionSettings sessionSettings,
@@ -76,9 +73,8 @@ public class JobRequest extends TransportRequest {
         return sessionSettings;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public JobRequest(StreamInput in) throws IOException {
+        super(in);
 
         jobId = new UUID(in.readLong(), in.readLong());
         coordinatorNodeId = in.readString();

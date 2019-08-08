@@ -32,12 +32,8 @@ import java.io.IOException;
  */
 public class BytesTransportRequest extends TransportRequest {
 
-    BytesReference bytes;
-    Version version;
-
-    public BytesTransportRequest() {
-
-    }
+    final BytesReference bytes;
+    private final Version version;
 
     public BytesTransportRequest(BytesReference bytes, Version version) {
         this.bytes = bytes;
@@ -52,9 +48,8 @@ public class BytesTransportRequest extends TransportRequest {
         return this.bytes;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public BytesTransportRequest(StreamInput in) throws IOException {
+        super(in);
         bytes = in.readBytesReference();
         version = in.getVersion();
     }

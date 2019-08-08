@@ -32,7 +32,6 @@ import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Streamable;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.network.NetworkService;
@@ -96,7 +95,7 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
 
     // An LRU (don't really care about concurrency here) that holds the latest timed out requests so if they
     // do show up, we can print more descriptive information about them
-    final Map<Long, TimeoutInfoHolder> timeoutInfoHandlers =
+    private final Map<Long, TimeoutInfoHolder> timeoutInfoHandlers =
         Collections.synchronizedMap(new LinkedHashMap<Long, TimeoutInfoHolder>(100, .75F, true) {
             @Override
             protected boolean removeEldestEntry(Map.Entry eldest) {
@@ -173,7 +172,7 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
         }
         registerRequestHandler(
             HANDSHAKE_ACTION_NAME,
-            () -> HandshakeRequest.INSTANCE,
+            HandshakeRequest::new,
             ThreadPool.Names.SAME,
             false, false,
             (request, channel, task) -> channel.sendResponse(
@@ -412,21 +411,16 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
         private HandshakeRequest() {
         }
 
-        @Override
-        public void readFrom(StreamInput in) throws IOException {
-            super.readFrom(in);
-        }
-
-        @Override
-        public void writeTo(StreamOutput out) throws IOException {
-            super.writeTo(out);
+        public HandshakeRequest(StreamInput in) throws IOException {
+            super(in);
         }
     }
 
     public static class HandshakeResponse extends TransportResponse {
-        private DiscoveryNode discoveryNode;
-        private ClusterName clusterName;
-        private Version version;
+
+        private final DiscoveryNode discoveryNode;
+        private final ClusterName clusterName;
+        private final Version version;
 
         public HandshakeResponse(DiscoveryNode discoveryNode, ClusterName clusterName, Version version) {
             this.discoveryNode = discoveryNode;
@@ -761,16 +755,18 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
      * Registers a new request handler
      *
      * @param action         The action the request handler is associated with
-     * @param requestFactory a callable to be used construct new instances for streaming
+     * @param reader a callable to be used construct new instances for streaming
      * @param executor       The executor the request handling will be executed on
      * @param handler        The handler itself that implements the request handling
      */
-    public <Request extends TransportRequest> void registerRequestHandler(String action, Supplier<Request> requestFactory,
-                                                    String executor, TransportRequestHandler<Request> handler) {
+    public <Request extends TransportRequest> void registerRequestHandler(String action,
+                                                                          Writeable.Reader<Request> reader,
+                                                                          String executor,
+                                                                          TransportRequestHandler<Request> handler) {
         validateActionName(action);
         handler = interceptor.interceptHandler(action, executor, false, handler);
         RequestHandlerRegistry<Request> reg = new RequestHandlerRegistry<>(
-            action, Streamable.newWriteableReader(requestFactory), taskManager, handler, executor, false, true);
+            action, reader, taskManager, handler, executor, false, true);
         transport.registerRequestHandler(reg);
     }
 
@@ -796,20 +792,22 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
      * Registers a new request handler
      *
      * @param action                The action the request handler is associated with
-     * @param request               The request class that will be used to construct new instances for streaming
+     * @param reader               The request class that will be used to construct new instances for streaming
      * @param executor              The executor the request handling will be executed on
      * @param forceExecution        Force execution on the executor queue and never reject it
      * @param canTripCircuitBreaker Check the request size and raise an exception in case the limit is breached.
      * @param handler               The handler itself that implements the request handling
      */
-    public <Request extends TransportRequest> void registerRequestHandler(String action, Supplier<Request> request,
-                                                                          String executor, boolean forceExecution,
+    public <Request extends TransportRequest> void registerRequestHandler(String action,
+                                                                          Writeable.Reader<Request> reader,
+                                                                          String executor,
+                                                                          boolean forceExecution,
                                                                           boolean canTripCircuitBreaker,
                                                                           TransportRequestHandler<Request> handler) {
         validateActionName(action);
         handler = interceptor.interceptHandler(action, executor, forceExecution, handler);
         RequestHandlerRegistry<Request> reg = new RequestHandlerRegistry<>(
-            action, Streamable.newWriteableReader(request), taskManager, handler, executor, forceExecution, canTripCircuitBreaker);
+            action, reader, taskManager, handler, executor, forceExecution, canTripCircuitBreaker);
         transport.registerRequestHandler(reg);
     }
 

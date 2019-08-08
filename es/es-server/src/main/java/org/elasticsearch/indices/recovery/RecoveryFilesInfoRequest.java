@@ -30,21 +30,23 @@ import java.util.List;
 
 public class RecoveryFilesInfoRequest extends TransportRequest {
 
-    private long recoveryId;
-    private ShardId shardId;
+    private final long recoveryId;
+    private final ShardId shardId;
 
-    List<String> phase1FileNames;
-    List<Long> phase1FileSizes;
-    List<String> phase1ExistingFileNames;
-    List<Long> phase1ExistingFileSizes;
+    final List<String> phase1FileNames;
+    final List<Long> phase1FileSizes;
+    final List<String> phase1ExistingFileNames;
+    final List<Long> phase1ExistingFileSizes;
 
     int totalTranslogOps;
 
-    public RecoveryFilesInfoRequest() {
-    }
-
-    RecoveryFilesInfoRequest(long recoveryId, ShardId shardId, List<String> phase1FileNames, List<Long> phase1FileSizes,
-                             List<String> phase1ExistingFileNames, List<Long> phase1ExistingFileSizes, int totalTranslogOps) {
+    RecoveryFilesInfoRequest(long recoveryId,
+                             ShardId shardId,
+                             List<String> phase1FileNames,
+                             List<Long> phase1FileSizes,
+                             List<String> phase1ExistingFileNames,
+                             List<Long> phase1ExistingFileSizes,
+                             int totalTranslogOps) {
         this.recoveryId = recoveryId;
         this.shardId = shardId;
         this.phase1FileNames = phase1FileNames;
@@ -62,9 +64,8 @@ public class RecoveryFilesInfoRequest extends TransportRequest {
         return shardId;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public RecoveryFilesInfoRequest(StreamInput in) throws IOException {
+        super(in);
         recoveryId = in.readLong();
         shardId = new ShardId(in);
         int size = in.readVInt();

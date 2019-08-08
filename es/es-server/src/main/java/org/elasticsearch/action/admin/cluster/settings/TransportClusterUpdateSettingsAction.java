@@ -55,13 +55,15 @@ public class TransportClusterUpdateSettingsAction extends TransportMasterNodeAct
                                                 AllocationService allocationService,
                                                 IndexNameExpressionResolver indexNameExpressionResolver,
                                                 ClusterSettings clusterSettings) {
-        super(ClusterUpdateSettingsAction.NAME,
+        super(
+            ClusterUpdateSettingsAction.NAME,
             false,
             transportService,
             clusterService,
             threadPool,
-            indexNameExpressionResolver,
-            ClusterUpdateSettingsRequest::new);
+            ClusterUpdateSettingsRequest::new,
+            indexNameExpressionResolver
+        );
         this.allocationService = allocationService;
         this.clusterSettings = clusterSettings;
     }

@@ -36,9 +36,7 @@ import java.util.Map;
  */
 public class RecoveryResponse extends BroadcastResponse {
 
-    private Map<String, List<RecoveryState>> shardRecoveryStates = new HashMap<>();
-
-    public RecoveryResponse() { }
+    private final Map<String, List<RecoveryState>> shardRecoveryStates;
 
     /**
      * Constructs recovery information for a collection of indices and associated shards. Keeps track of how many total shards
@@ -77,10 +75,10 @@ public class RecoveryResponse extends BroadcastResponse {
         }
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public RecoveryResponse(StreamInput in) throws IOException {
+        super(in);
         int size = in.readVInt();
+        shardRecoveryStates = new HashMap<>();
         for (int i = 0; i < size; i++) {
             String s = in.readString();
             int listSize = in.readVInt();

@@ -32,10 +32,7 @@ import java.util.UUID;
 
 public class KillJobsRequest extends TransportRequest {
 
-    private Collection<UUID> toKill;
-
-    KillJobsRequest() {
-    }
+    private final Collection<UUID> toKill;
 
     public KillJobsRequest(Collection<UUID> jobsToKill) {
         toKill = jobsToKill;
@@ -45,9 +42,8 @@ public class KillJobsRequest extends TransportRequest {
         return toKill;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public KillJobsRequest(StreamInput in) throws IOException {
+        super(in);
         int numJobs = in.readVInt();
         toKill = new ArrayList<>(numJobs);
         for (int i = 0; i < numJobs; i++) {

@@ -19,18 +19,10 @@
 
 package org.elasticsearch.action;
 
-import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.transport.TransportResponse;
-
-import java.io.IOException;
 
 /**
  * Base class for responses to action requests.
  */
 public abstract class ActionResponse extends TransportResponse {
-
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
-    }
 }

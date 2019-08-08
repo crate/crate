@@ -31,7 +31,6 @@ import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -39,23 +38,30 @@ import org.elasticsearch.transport.TransportService;
 
 import java.io.IOException;
 
-public class TransportDeleteBlobAction extends TransportReplicationAction<DeleteBlobRequest, DeleteBlobRequest,
-    DeleteBlobResponse> {
+public class TransportDeleteBlobAction extends TransportReplicationAction<DeleteBlobRequest, DeleteBlobRequest, DeleteBlobResponse> {
 
     private final BlobIndicesService blobIndicesService;
 
     @Inject
-    public TransportDeleteBlobAction(Settings settings,
-                                     TransportService transportService,
+    public TransportDeleteBlobAction(TransportService transportService,
                                      ClusterService clusterService,
                                      IndicesService indicesService,
                                      ThreadPool threadPool,
                                      ShardStateAction shardStateAction,
                                      BlobIndicesService blobIndicesService,
                                      IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(settings, DeleteBlobAction.NAME, transportService, clusterService, indicesService,
-            threadPool, shardStateAction, indexNameExpressionResolver, DeleteBlobRequest::new,
-            DeleteBlobRequest::new, ThreadPool.Names.WRITE);
+        super(
+            DeleteBlobAction.NAME,
+            transportService,
+            clusterService,
+            indicesService,
+            threadPool,
+            shardStateAction,
+            indexNameExpressionResolver,
+            DeleteBlobRequest::new,
+            DeleteBlobRequest::new,
+            ThreadPool.Names.WRITE
+        );
         this.blobIndicesService = blobIndicesService;
         logger.trace("Constructor");
     }

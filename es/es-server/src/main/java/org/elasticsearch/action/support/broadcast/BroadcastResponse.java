@@ -116,9 +116,7 @@ public class BroadcastResponse extends ActionResponse {
         return shardFailures;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public BroadcastResponse(StreamInput in) throws IOException {
         totalShards = in.readVInt();
         successfulShards = in.readVInt();
         failedShards = in.readVInt();

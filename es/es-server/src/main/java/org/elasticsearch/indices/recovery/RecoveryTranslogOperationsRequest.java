@@ -30,18 +30,19 @@ import java.util.List;
 
 public class RecoveryTranslogOperationsRequest extends TransportRequest {
 
-    private long recoveryId;
-    private ShardId shardId;
-    private List<Translog.Operation> operations;
-    private int totalTranslogOps = RecoveryState.Translog.UNKNOWN;
-    private long maxSeenAutoIdTimestampOnPrimary;
-    private long maxSeqNoOfUpdatesOrDeletesOnPrimary;
+    private final long recoveryId;
+    private final ShardId shardId;
+    private final List<Translog.Operation> operations;
+    private final int totalTranslogOps;
+    private final long maxSeenAutoIdTimestampOnPrimary;
+    private final long maxSeqNoOfUpdatesOrDeletesOnPrimary;
 
-    public RecoveryTranslogOperationsRequest() {
-    }
-
-    RecoveryTranslogOperationsRequest(long recoveryId, ShardId shardId, List<Translog.Operation> operations, int totalTranslogOps,
-                                      long maxSeenAutoIdTimestampOnPrimary, long maxSeqNoOfUpdatesOrDeletesOnPrimary) {
+    RecoveryTranslogOperationsRequest(long recoveryId,
+                                      ShardId shardId,
+                                      List<Translog.Operation> operations,
+                                      int totalTranslogOps,
+                                      long maxSeenAutoIdTimestampOnPrimary,
+                                      long maxSeqNoOfUpdatesOrDeletesOnPrimary) {
         this.recoveryId = recoveryId;
         this.shardId = shardId;
         this.operations = operations;
@@ -74,9 +75,8 @@ public class RecoveryTranslogOperationsRequest extends TransportRequest {
         return maxSeqNoOfUpdatesOrDeletesOnPrimary;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public RecoveryTranslogOperationsRequest(StreamInput in) throws IOException {
+        super(in);
         recoveryId = in.readLong();
         shardId = new ShardId(in);
         operations = Translog.readOperations(in, "recovery");

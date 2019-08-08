@@ -21,7 +21,17 @@
 
 package io.crate.execution.jobs.kill;
 
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.transport.TransportRequest;
 
+import java.io.IOException;
+
 public class KillAllRequest extends TransportRequest {
+
+    public KillAllRequest() {
+    }
+
+    public KillAllRequest(StreamInput in) throws IOException {
+        super(in);
+    }
 }

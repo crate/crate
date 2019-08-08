@@ -29,19 +29,15 @@ import java.util.UUID;
 
 public class GetBlobHeadRequest extends BlobTransportRequest {
 
-    public long endPos;
-
-    public GetBlobHeadRequest() {
-    }
+    public final long endPos;
 
     public GetBlobHeadRequest(String targetNodeId, UUID transferId, long endPos) {
         super(targetNodeId, transferId);
         this.endPos = endPos;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public GetBlobHeadRequest(StreamInput in) throws IOException {
+        super(in);
         endPos = in.readVLong();
     }
 

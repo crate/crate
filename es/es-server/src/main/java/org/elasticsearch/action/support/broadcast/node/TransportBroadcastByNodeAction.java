@@ -60,7 +60,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReferenceArray;
-import java.util.function.Supplier;
 
 /**
  * Abstraction for transporting aggregated shard-level operations in a single request (NodeRequest) per-node
@@ -83,26 +82,15 @@ public abstract class TransportBroadcastByNodeAction<Request extends BroadcastRe
     private final String transportNodeBroadcastAction;
 
     public TransportBroadcastByNodeAction(
-        String actionName,
-        ThreadPool threadPool,
-        ClusterService clusterService,
-        TransportService transportService,
-        IndexNameExpressionResolver indexNameExpressionResolver,
-        Supplier<Request> request,
-        String executor) {
-        this(actionName, threadPool, clusterService, transportService, indexNameExpressionResolver, request, executor, true);
-    }
-
-    public TransportBroadcastByNodeAction(
             String actionName,
             ThreadPool threadPool,
             ClusterService clusterService,
             TransportService transportService,
             IndexNameExpressionResolver indexNameExpressionResolver,
-            Supplier<Request> request,
+            Writeable.Reader<Request> reader,
             String executor,
             boolean canTripCircuitBreaker) {
-        super(actionName, canTripCircuitBreaker, threadPool, transportService, indexNameExpressionResolver, request);
+        super(actionName, canTripCircuitBreaker, threadPool, transportService, reader, indexNameExpressionResolver);
 
         this.clusterService = clusterService;
         this.transportService = transportService;
@@ -452,9 +440,6 @@ public abstract class TransportBroadcastByNodeAction<Request extends BroadcastRe
 
         protected Request indicesLevelRequest;
 
-        public NodeRequest() {
-        }
-
         public NodeRequest(String nodeId, Request request, List<ShardRouting> shards) {
             this.indicesLevelRequest = request;
             this.shards = shards;
@@ -479,9 +464,8 @@ public abstract class TransportBroadcastByNodeAction<Request extends BroadcastRe
             return indicesLevelRequest.indicesOptions();
         }
 
-        @Override
-        public void readFrom(StreamInput in) throws IOException {
-            super.readFrom(in);
+        public NodeRequest(StreamInput in) throws IOException {
+            super(in);
             indicesLevelRequest = readRequestFrom(in);
             shards = in.readList(ShardRouting::new);
             nodeId = in.readString();

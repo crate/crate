@@ -47,7 +47,6 @@ class RecoveryResponse extends TransportResponse {
     }
 
     public RecoveryResponse(StreamInput in) throws IOException {
-        super.readFrom(in);
         int size = in.readVInt();
         phase1FileNames = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {

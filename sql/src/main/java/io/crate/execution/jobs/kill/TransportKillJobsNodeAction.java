@@ -25,8 +25,10 @@ import io.crate.execution.jobs.TasksService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.transport.TransportService;
 
+import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 
 @Singleton
@@ -45,7 +47,7 @@ public class TransportKillJobsNodeAction extends TransportKillNodeAction<KillJob
     }
 
     @Override
-    public KillJobsRequest call() throws Exception {
-        return new KillJobsRequest();
+    public KillJobsRequest read(StreamInput in) throws IOException {
+        return new KillJobsRequest(in);
     }
 }

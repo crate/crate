@@ -30,19 +30,15 @@ import java.io.IOException;
 
 public class BlobRecoveryDeleteRequest extends BlobRecoveryRequest {
 
-    public BytesReference[] digests;
-
-    public BlobRecoveryDeleteRequest() {
-    }
+    public final BytesReference[] digests;
 
     public BlobRecoveryDeleteRequest(long recoveryId, BytesArray[] digests) {
         super(recoveryId);
         this.digests = digests;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public BlobRecoveryDeleteRequest(StreamInput in) throws IOException {
+        super(in);
         digests = new BytesReference[in.readVInt()];
         for (int i = 0; i < digests.length; i++) {
             digests[i] = in.readBytesReference();

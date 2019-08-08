@@ -75,9 +75,8 @@ public class BroadcastRequest<Request extends BroadcastRequest<Request>> extends
         indicesOptions.writeIndicesOptions(out);
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public BroadcastRequest(StreamInput in) throws IOException {
+        super(in);
         indices = in.readStringArray();
         indicesOptions = IndicesOptions.readIndicesOptions(in);
     }

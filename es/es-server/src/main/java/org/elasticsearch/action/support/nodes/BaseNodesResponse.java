@@ -72,9 +72,7 @@ public abstract class BaseNodesResponse<TNodeResponse extends BaseNodeResponse> 
         return nodes;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public BaseNodesResponse(StreamInput in) throws IOException {
         clusterName = new ClusterName(in);
         nodes = readNodesFrom(in);
         failures = in.readList(FailedNodeException::new);

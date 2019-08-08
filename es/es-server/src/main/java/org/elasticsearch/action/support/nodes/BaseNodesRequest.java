@@ -91,9 +91,8 @@ public abstract class BaseNodesRequest<Request extends BaseNodesRequest<Request>
         return null;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public BaseNodesRequest(StreamInput in) throws IOException {
+        super(in);
         nodesIds = in.readStringArray();
         concreteNodes = in.readOptionalArray(DiscoveryNode::new, DiscoveryNode[]::new);
         timeout = in.readOptionalTimeValue();

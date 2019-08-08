@@ -33,13 +33,9 @@ import java.util.Objects;
  */
 public final class ResyncReplicationRequest extends ReplicationRequest<ResyncReplicationRequest> {
 
-    private long trimAboveSeqNo;
-    private Translog.Operation[] operations;
-    private long maxSeenAutoIdTimestampOnPrimary;
-
-    ResyncReplicationRequest() {
-        super();
-    }
+    private final long trimAboveSeqNo;
+    private final Translog.Operation[] operations;
+    private final long maxSeenAutoIdTimestampOnPrimary;
 
     public ResyncReplicationRequest(final ShardId shardId, final long trimAboveSeqNo, final long maxSeenAutoIdTimestampOnPrimary,
                                     final Translog.Operation[]operations) {
@@ -61,9 +57,8 @@ public final class ResyncReplicationRequest extends ReplicationRequest<ResyncRep
         return operations;
     }
 
-    @Override
-    public void readFrom(final StreamInput in) throws IOException {
-        super.readFrom(in);
+    public ResyncReplicationRequest(final StreamInput in) throws IOException {
+        super(in);
         trimAboveSeqNo = in.readZLong();
         maxSeenAutoIdTimestampOnPrimary = in.readZLong();
         operations = in.readArray(Translog.Operation::readOperation, Translog.Operation[]::new);

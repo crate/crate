@@ -29,8 +29,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import java.util.function.Supplier;
-
 /**
  * A base class for read operations that needs to be performed on the master node.
  * Can also be executed on the local node if needed.
@@ -43,19 +41,6 @@ public abstract class TransportMasterNodeReadAction<Request extends MasterNodeRe
 
     private final boolean forceLocal;
 
-    protected TransportMasterNodeReadAction(Settings settings, String actionName, TransportService transportService,
-                                            ClusterService clusterService, ThreadPool threadPool,
-                                            IndexNameExpressionResolver indexNameExpressionResolver, Supplier<Request> request) {
-        this(settings, actionName, true, transportService, clusterService, threadPool, indexNameExpressionResolver,request);
-    }
-
-    protected TransportMasterNodeReadAction(Settings settings, String actionName, TransportService transportService,
-                                            ClusterService clusterService, ThreadPool threadPool,
-                                            Writeable.Reader<Request> request, IndexNameExpressionResolver indexNameExpressionResolver) {
-        this(settings, actionName, true, transportService, clusterService, threadPool, request,
-            indexNameExpressionResolver);
-    }
-
     protected TransportMasterNodeReadAction(Settings settings,
                                             String actionName,
                                             boolean checkSizeLimit,
@@ -63,18 +48,7 @@ public abstract class TransportMasterNodeReadAction<Request extends MasterNodeRe
                                             ClusterService clusterService,
                                             ThreadPool threadPool,
                                             IndexNameExpressionResolver indexNameExpressionResolver,
-                                            Supplier<Request> request) {
-        super(actionName, checkSizeLimit, transportService, clusterService, threadPool, indexNameExpressionResolver,request);
-        this.forceLocal = FORCE_LOCAL_SETTING.get(settings);
-    }
-
-    protected TransportMasterNodeReadAction(Settings settings,
-                                            String actionName,
-                                            boolean checkSizeLimit,
-                                            TransportService transportService,
-                                            ClusterService clusterService,
-                                            ThreadPool threadPool,
-                                            Writeable.Reader<Request> request, IndexNameExpressionResolver indexNameExpressionResolver) {
+                                            Writeable.Reader<Request> request) {
         super(actionName, checkSizeLimit, transportService, clusterService, threadPool, request, indexNameExpressionResolver);
         this.forceLocal = FORCE_LOCAL_SETTING.get(settings);
     }

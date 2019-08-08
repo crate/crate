@@ -34,19 +34,16 @@ import java.util.UUID;
 
 public class DistributedResultRequest extends TransportRequest {
 
-    private byte inputId;
-    private int executionPhaseId;
-    private int bucketIdx;
+    private final byte inputId;
+    private final int executionPhaseId;
+    private final int bucketIdx;
 
     private StreamBucket rows;
-    private UUID jobId;
+    private final UUID jobId;
     private boolean isLast = true;
 
     private Throwable throwable = null;
     private boolean isKilled = false;
-
-    public DistributedResultRequest() {
-    }
 
     private DistributedResultRequest(UUID jobId, byte inputId, int executionPhaseId, int bucketIdx) {
         this.jobId = jobId;
@@ -111,9 +108,8 @@ public class DistributedResultRequest extends TransportRequest {
         return isKilled;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public DistributedResultRequest(StreamInput in) throws IOException {
+        super(in);
         jobId = new UUID(in.readLong(), in.readLong());
         executionPhaseId = in.readVInt();
         bucketIdx = in.readVInt();

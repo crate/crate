@@ -43,9 +43,4 @@ public class TransportKillAllNodeAction extends TransportKillNodeAction<KillAllR
     protected CompletableFuture<Integer> doKill(KillAllRequest request) {
         return tasksService.killAll();
     }
-
-    @Override
-    public KillAllRequest call() throws Exception {
-        return new KillAllRequest();
-    }
 }

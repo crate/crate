@@ -87,7 +87,6 @@ public class NodeFetchResponseTest extends CrateUnitTest {
 
         // receiving side is required to set the streamers
         NodeFetchResponse streamed = new NodeFetchResponse(in, streamers, ramAccountingContext);
-        streamed.readFrom(in);
 
         assertThat((Row) Iterables.getOnlyElement(streamed.fetched().get(1)), isRow(true));
     }

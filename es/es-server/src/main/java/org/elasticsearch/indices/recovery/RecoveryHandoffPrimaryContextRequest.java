@@ -32,15 +32,9 @@ import java.io.IOException;
  */
 class RecoveryHandoffPrimaryContextRequest extends TransportRequest {
 
-    private long recoveryId;
-    private ShardId shardId;
-    private ReplicationTracker.PrimaryContext primaryContext;
-
-    /**
-     * Initialize an empty request (used to serialize into when reading from a stream).
-     */
-    RecoveryHandoffPrimaryContextRequest() {
-    }
+    private final long recoveryId;
+    private final ShardId shardId;
+    private final ReplicationTracker.PrimaryContext primaryContext;
 
     /**
      * Initialize a request for the specified relocation.
@@ -68,9 +62,8 @@ class RecoveryHandoffPrimaryContextRequest extends TransportRequest {
         return primaryContext;
     }
 
-    @Override
-    public void readFrom(final StreamInput in) throws IOException {
-        super.readFrom(in);
+    public RecoveryHandoffPrimaryContextRequest(final StreamInput in) throws IOException {
+        super(in);
         recoveryId = in.readLong();
         shardId = new ShardId(in);
         primaryContext = new ReplicationTracker.PrimaryContext(in);
