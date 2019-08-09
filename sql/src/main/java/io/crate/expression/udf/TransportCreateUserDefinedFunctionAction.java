@@ -28,6 +28,7 @@ package io.crate.expression.udf;
 
 import io.crate.exceptions.ScriptException;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
@@ -44,7 +45,7 @@ import java.io.IOException;
 
 @Singleton
 public class TransportCreateUserDefinedFunctionAction
-    extends TransportMasterNodeAction<CreateUserDefinedFunctionRequest, UserDefinedFunctionResponse> {
+    extends TransportMasterNodeAction<CreateUserDefinedFunctionRequest, AcknowledgedResponse> {
 
     private final UserDefinedFunctionService udfService;
 
@@ -71,21 +72,19 @@ public class TransportCreateUserDefinedFunctionAction
     }
 
     @Override
-    protected UserDefinedFunctionResponse read(StreamInput in) throws IOException {
-        return new UserDefinedFunctionResponse(in);
+    protected AcknowledgedResponse read(StreamInput in) throws IOException {
+        return new AcknowledgedResponse(in);
     }
 
     @Override
     protected void masterOperation(final CreateUserDefinedFunctionRequest request,
                                    ClusterState state,
-                                   ActionListener<UserDefinedFunctionResponse> listener) throws Exception {
-
+                                   ActionListener<AcknowledgedResponse> listener) throws Exception {
         UserDefinedFunctionMetaData metaData = request.userDefinedFunctionMetaData();
         String errorMessage = udfService.getLanguage(metaData.language()).validate(metaData);
         if (errorMessage != null) {
             throw new ScriptException(errorMessage, metaData.language());
         }
-
         udfService.registerFunction(metaData, request.replace(), listener, request.masterNodeTimeout());
     }
 

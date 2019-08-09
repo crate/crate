@@ -40,10 +40,10 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.CreatePartitionsRequest;
-import org.elasticsearch.action.admin.indices.create.CreatePartitionsResponse;
 import org.elasticsearch.action.admin.indices.create.TransportCreatePartitionsAction;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.action.bulk.BulkRequestExecutor;
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -331,8 +331,8 @@ public class LegacyUpsertByIdTask {
         return requestsByShard;
     }
 
-    private CompletableFuture<CreatePartitionsResponse> createPendingIndices(Collection<String> indices) {
-        FutureActionListener<CreatePartitionsResponse, CreatePartitionsResponse> listener = new FutureActionListener<>(r -> r);
+    private CompletableFuture<AcknowledgedResponse> createPendingIndices(Collection<String> indices) {
+        FutureActionListener<AcknowledgedResponse, AcknowledgedResponse> listener = new FutureActionListener<>(r -> r);
         createIndicesAction.execute(new CreatePartitionsRequest(indices, jobId), listener);
         return listener;
     }

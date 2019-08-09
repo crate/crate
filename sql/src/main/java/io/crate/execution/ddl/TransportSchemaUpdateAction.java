@@ -75,7 +75,7 @@ import java.util.concurrent.CompletableFuture;
 import static org.elasticsearch.index.mapper.MapperService.parseMapping;
 
 @Singleton
-public class TransportSchemaUpdateAction extends TransportMasterNodeAction<SchemaUpdateRequest, SchemaUpdateResponse> {
+public class TransportSchemaUpdateAction extends TransportMasterNodeAction<SchemaUpdateRequest, AcknowledgedResponse> {
 
     private final NodeClient nodeClient;
     private final NamedXContentRegistry xContentRegistry;
@@ -106,12 +106,12 @@ public class TransportSchemaUpdateAction extends TransportMasterNodeAction<Schem
     }
 
     @Override
-    protected SchemaUpdateResponse read(StreamInput in) throws IOException {
-        return new SchemaUpdateResponse(in);
+    protected AcknowledgedResponse read(StreamInput in) throws IOException {
+        return new AcknowledgedResponse(in);
     }
 
     @Override
-    protected void masterOperation(SchemaUpdateRequest request, ClusterState state, ActionListener<SchemaUpdateResponse> listener) throws Exception {
+    protected void masterOperation(SchemaUpdateRequest request, ClusterState state, ActionListener<AcknowledgedResponse> listener) throws Exception {
         // ideally we'd handle the index mapping update together with the template update in a single clusterStateUpdateTask
         // but the index mapping-update logic is difficult to re-use
         if (IndexParts.isPartitioned(request.index().getName())) {
@@ -121,11 +121,11 @@ public class TransportSchemaUpdateAction extends TransportMasterNodeAction<Schem
                 request.mappingSource(),
                 request.masterNodeTimeout()
             ).thenCompose(r -> updateMapping(request.index(), request.masterNodeTimeout(), request.mappingSource()))
-                .thenApply(r -> new SchemaUpdateResponse(r.isAcknowledged()))
+                .thenApply(r -> new AcknowledgedResponse(r.isAcknowledged()))
                 .whenComplete(ActionListeners.asBiConsumer(listener));
         } else {
             updateMapping(request.index(), request.masterNodeTimeout(), request.mappingSource())
-                .thenApply(r -> new SchemaUpdateResponse(r.isAcknowledged()))
+                .thenApply(r -> new AcknowledgedResponse(r.isAcknowledged()))
                 .whenComplete(ActionListeners.asBiConsumer(listener));
         }
     }
@@ -145,11 +145,11 @@ public class TransportSchemaUpdateAction extends TransportMasterNodeAction<Schem
         return putMappingListener;
     }
 
-    private CompletableFuture<SchemaUpdateResponse> updateTemplate(ImmutableOpenMap<String, IndexTemplateMetaData> templates,
+    private CompletableFuture<AcknowledgedResponse> updateTemplate(ImmutableOpenMap<String, IndexTemplateMetaData> templates,
                                                                    String indexName,
                                                                    String mappingSource,
                                                                    TimeValue timeout) {
-        CompletableFuture<SchemaUpdateResponse> future = new CompletableFuture<>();
+        CompletableFuture<AcknowledgedResponse> future = new CompletableFuture<>();
         String templateName = PartitionName.templateName(indexName);
         Map<String, Object> newMapping;
         try {
@@ -157,7 +157,7 @@ public class TransportSchemaUpdateAction extends TransportMasterNodeAction<Schem
                 NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, mappingSource);
             newMapping = parser.map();
             if (newMappingAlreadyApplied(templates.get(templateName), newMapping)) {
-                return CompletableFuture.completedFuture(new SchemaUpdateResponse(true));
+                return CompletableFuture.completedFuture(new AcknowledgedResponse(true));
             }
         } catch (Exception e) {
             return CompletableFuture.failedFuture(e);
@@ -180,7 +180,7 @@ public class TransportSchemaUpdateAction extends TransportMasterNodeAction<Schem
 
             @Override
             public void clusterStateProcessed(String source, ClusterState oldState, ClusterState newState) {
-                future.complete(new SchemaUpdateResponse(true));
+                future.complete(new AcknowledgedResponse(true));
             }
         });
         return future;

@@ -235,7 +235,6 @@ public class ShardCollectSource implements CollectSource {
                 shardCollectorProviderFactory.create(indexShard)
             );
             shards.put(indexShard.shardId(), providerSupplier);
-
         }
 
         @Override

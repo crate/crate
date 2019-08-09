@@ -27,7 +27,6 @@ import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
 import io.crate.execution.ddl.tables.DropTableRequest;
-import io.crate.execution.ddl.tables.DropTableResponse;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.DependencyCarrier;
@@ -37,6 +36,7 @@ import io.crate.planner.operators.SubQueryResults;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.index.IndexNotFoundException;
 
 import static io.crate.data.SentinelRow.SENTINEL;
@@ -75,7 +75,7 @@ public class DropTablePlan implements Plan {
         DropTableRequest request = new DropTableRequest(table.ident(), isPartitioned);
         dependencies.transportDropTableAction().execute(request, new ActionListener<>() {
             @Override
-            public void onResponse(DropTableResponse response) {
+            public void onResponse(AcknowledgedResponse response) {
                 if (!response.isAcknowledged()) {
                     warnNotAcknowledged();
                 }

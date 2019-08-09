@@ -29,8 +29,10 @@ import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 import io.crate.types.DataType;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateUpdateTask;
 import org.elasticsearch.cluster.metadata.MetaData;
@@ -38,7 +40,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.common.unit.TimeValue;
 
 import javax.script.ScriptException;
@@ -79,7 +80,7 @@ public class UserDefinedFunctionService {
 
     void registerFunction(final UserDefinedFunctionMetaData metaData,
                           final boolean replace,
-                          final ActionListener<UserDefinedFunctionResponse> listener,
+                          final ActionListener<AcknowledgedResponse> listener,
                           final TimeValue timeout) {
         clusterService.submitStateUpdateTask("put_udf [" + metaData.name() + "]",
             new ClusterStateUpdateTask() {
@@ -103,7 +104,7 @@ public class UserDefinedFunctionService {
 
                 @Override
                 public void clusterStateProcessed(String source, ClusterState oldState, ClusterState newState) {
-                    listener.onResponse(new UserDefinedFunctionResponse(true));
+                    listener.onResponse(new AcknowledgedResponse(true));
                 }
 
                 @Override
@@ -117,7 +118,7 @@ public class UserDefinedFunctionService {
                       final String name,
                       final List<DataType> argumentTypes,
                       final boolean ifExists,
-                      final ActionListener<UserDefinedFunctionResponse> listener,
+                      final ActionListener<AcknowledgedResponse> listener,
                       final TimeValue timeout) {
         clusterService.submitStateUpdateTask("drop_udf [" + schema + "." + name + " - " + argumentTypes + "]",
             new ClusterStateUpdateTask() {
@@ -143,7 +144,7 @@ public class UserDefinedFunctionService {
 
                 @Override
                 public void clusterStateProcessed(String source, ClusterState oldState, ClusterState newState) {
-                    listener.onResponse(new UserDefinedFunctionResponse(true));
+                    listener.onResponse(new AcknowledgedResponse(true));
                 }
 
                 @Override

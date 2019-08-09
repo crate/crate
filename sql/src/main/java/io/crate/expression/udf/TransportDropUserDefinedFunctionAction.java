@@ -27,6 +27,7 @@
 package io.crate.expression.udf;
 
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
@@ -43,7 +44,7 @@ import java.io.IOException;
 
 @Singleton
 public class TransportDropUserDefinedFunctionAction
-    extends TransportMasterNodeAction<DropUserDefinedFunctionRequest, UserDefinedFunctionResponse> {
+    extends TransportMasterNodeAction<DropUserDefinedFunctionRequest, AcknowledgedResponse> {
 
     private final UserDefinedFunctionService udfService;
 
@@ -69,14 +70,14 @@ public class TransportDropUserDefinedFunctionAction
     }
 
     @Override
-    protected UserDefinedFunctionResponse read(StreamInput in) throws IOException {
-        return new UserDefinedFunctionResponse(in);
+    protected AcknowledgedResponse read(StreamInput in) throws IOException {
+        return new AcknowledgedResponse(in);
     }
 
     @Override
     protected void masterOperation(final DropUserDefinedFunctionRequest request,
                                    ClusterState state,
-                                   ActionListener<UserDefinedFunctionResponse> listener) throws Exception {
+                                   ActionListener<AcknowledgedResponse> listener) throws Exception {
         udfService.dropFunction(
             request.schema(),
             request.name(),
