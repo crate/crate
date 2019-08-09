@@ -34,98 +34,134 @@ public class StringPaddingFunctionTest extends AbstractScalarFunctionsTest {
     public ExpectedException expectedException = ExpectedException.none();
 
     @Test
-    public void test_evaluate_lpad_function() throws Exception {
+    public void test_lpad_parameter_len_too_big() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("len argument exceeds predefined limit of 1000");
         assertEvaluate("lpad('yes', 2000000, 'yes')", null);
         assertEvaluate("lpad('yes', a, 'yes')", null, Literal.of(2000000));
-
-        assertEvaluate("lpad(null, 5, '')", null);
-        assertEvaluate("lpad('', null, '')", null);
-        assertEvaluate("lpad('', 5, null)", null);
-        assertEvaluate("lpad(name, 5, '')", null, Literal.of((String) null));
-        assertEvaluate("lpad('', a, '')", null, Literal.of((Integer) null));
-        assertEvaluate("lpad('', 5, name)", null, Literal.of((String) null));
-
-        assertEvaluate("lpad('', 5, '')", "");
-        assertEvaluate("lpad('yes', 0, 'yes')", "");
-        assertEvaluate("lpad('yes', -1, 'yes')", "");
-        assertEvaluate("lpad(name, 5, name)", "", Literal.of(""));
-        assertEvaluate("lpad('yes', a, 'yes')", "", Literal.of(0));
-        assertEvaluate("lpad('yes', a, 'yes')", "", Literal.of(1));
-
-        assertEvaluate("lpad('yes', 5, '')", "yes");
-        assertEvaluate("lpad('yes', 5, name)", "yes", Literal.of(""));
-
-        assertEvaluate("lpad('', 5, 'yes')", "yesye");
-        assertEvaluate("lpad('', 5, name)", "yesye", Literal.of("yes"));
-        assertEvaluate("lpad('yes', 3, 'yes')", "yes");
-        assertEvaluate("lpad('yes', 3, name)", "yes", Literal.of("yes"));
-        assertEvaluate("lpad('yes', 1, 'yes')", "y");
-        assertEvaluate("lpad('yes', 1, name)", "y", Literal.of("yes"));
-
-        assertEvaluate("lpad('yes', 1)", "y");
-        assertEvaluate("lpad('yes', 3)", "yes");
-        assertEvaluate("lpad('yes', 1)", "y");
-        assertEvaluate("lpad('yes', 5)", "yes  ");
-
-        assertEvaluate("lpad(' I like CrateDB!!', 41, 'yes! ')", " yes! yes! yes! yes! yes! I like CrateDB!!");
-        assertEvaluate("lpad(' I like CrateDB!!', 41, name)",
-                       " yes! yes! yes! yes! yes! I like CrateDB!!",
-                       Literal.of("yes! "));
-        assertEvaluate("lpad(name, 41, 'yes! ')",
-                       " yes! yes! yes! yes! yes! I like CrateDB!!",
-                       Literal.of(" I like CrateDB!!"));
-        assertEvaluate("lpad(' I like CrateDB!!', a, 'yes! ')",
-                       " yes! yes! yes! yes! yes! I like CrateDB!!",
-                       Literal.of(41));
     }
 
     @Test
-    public void test_evaluate_rpad_function() throws Exception {
+    public void test_lpad_parameters_are_null() throws Exception {
+        assertEvaluate("lpad(null, 5, '')", null);
+        assertEvaluate("lpad(name, 5, '')", null, Literal.of((String) null));
+        assertEvaluate("lpad('', null, '')", null);
+        assertEvaluate("lpad('', a, '')", null, Literal.of((Integer) null));
+        assertEvaluate("lpad('', 5, null)", null);
+        assertEvaluate("lpad('', 5, name)", null, Literal.of((String) null));
+    }
+
+    @Test
+    public void test_lpad_both_string_parameters_are_empty() throws Exception {
+        assertEvaluate("lpad('', 5, '')", "");
+        assertEvaluate("lpad(name, 5, name)", "", Literal.of(""), Literal.of(""));
+    }
+
+    @Test
+    public void test_lpad_len_parameter_is_zero_or_less() throws Exception {
+        assertEvaluate("lpad('yes', 0, 'yes')", "");
+        assertEvaluate("lpad('yes', -1, 'yes')", "");
+        assertEvaluate("lpad('yes', a, 'yes')", "", Literal.of(0));
+        assertEvaluate("lpad('yes', a, 'yes')", "", Literal.of(-1));
+    }
+
+    @Test
+    public void test_lpad_fill_parameter_is_empty() throws Exception {
+        assertEvaluate("lpad('yes', 5, '')", "yes");
+        assertEvaluate("lpad('yes', 5, name)", "yes", Literal.of(""));
+        assertEvaluate("lpad('yes', 2, '')", "ye");
+        assertEvaluate("lpad('yes', 2, name)", "ye", Literal.of(""));
+    }
+
+    @Test
+    public void test_lpad_default_fill() throws Exception {
+        assertEvaluate("lpad('yes', 1)", "y");
+        assertEvaluate("lpad('yes', 3)", "yes");
+        assertEvaluate("lpad('yes', 1)", "y");
+        assertEvaluate("lpad('yes', 5)", "  yes");
+    }
+
+    @Test
+    public void test_lpad_function() throws Exception {
+        assertEvaluate("lpad('', 5, 'yes')", "yesye");
+        assertEvaluate("lpad('', 5, name)", "yesye", Literal.of("yes"));
+        assertEvaluate("lpad(name, 5, 'yes')", "yesye", Literal.of(""));
+        assertEvaluate("lpad('', 5, 'yes')", "yesye", Literal.of(5));
+
+        assertEvaluate("lpad('yes', 3, 'yes')", "yes");
+        assertEvaluate("lpad('yes', 3, name)", "yes", Literal.of("yes"));
+        assertEvaluate("lpad(name, 3, 'yes')", "yes", Literal.of("yes"));
+        assertEvaluate("lpad('yes', a, 'yes')", "yes", Literal.of(3));
+
+        assertEvaluate("lpad('yes', 1, 'yes')", "y");
+        assertEvaluate("lpad('yes', 1, name)", "y", Literal.of("yes"));
+        assertEvaluate("lpad(name, 1, 'yes')", "y", Literal.of("yes"));
+        assertEvaluate("lpad('yes', a, 'yes')", "y", Literal.of(1));
+    }
+
+    @Test
+    public void test_rpad_parameter_len_too_big() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("len argument exceeds predefined limit of 1000");
         assertEvaluate("rpad('yes', 2000000, 'yes')", null);
         assertEvaluate("rpad('yes', a, 'yes')", null, Literal.of(2000000));
+    }
 
+    @Test
+    public void test_rpad_parameters_are_null() throws Exception {
         assertEvaluate("rpad(null, 5, '')", null);
         assertEvaluate("rpad('', null, '')", null);
         assertEvaluate("rpad('', 5, null)", null);
         assertEvaluate("rpad(name, 5, '')", null, Literal.of((String) null));
         assertEvaluate("rpad('', a, '')", null, Literal.of((Integer) null));
         assertEvaluate("rpad('', 5, name)", null, Literal.of((String) null));
+    }
 
+    @Test
+    public void test_rpad_both_string_parameters_are_empty() throws Exception {
         assertEvaluate("rpad('', 5, '')", "");
+        assertEvaluate("rpad(name, 5, name)", "", Literal.of(""), Literal.of(""));
+    }
+
+    @Test
+    public void test_rpad_len_parameter_is_zero_or_less() throws Exception {
         assertEvaluate("rpad('yes', 0, 'yes')", "");
         assertEvaluate("rpad('yes', -1, 'yes')", "");
-        assertEvaluate("rpad(name, 5, name)", "", Literal.of(""));
         assertEvaluate("rpad('yes', a, 'yes')", "", Literal.of(0));
-        assertEvaluate("rpad('yes', a, 'yes')", "", Literal.of(1));
+        assertEvaluate("rpad('yes', a, 'yes')", "", Literal.of(-1));
+    }
 
+    @Test
+    public void test_rpad_fill_parameter_is_empty() throws Exception {
         assertEvaluate("rpad('yes', 5, '')", "yes");
         assertEvaluate("rpad('yes', 5, name)", "yes", Literal.of(""));
+        assertEvaluate("rpad('yes', 2, '')", "ye");
+        assertEvaluate("rpad('yes', 2, name)", "ye", Literal.of(""));
+    }
 
-        assertEvaluate("rpad('', 5, 'yes')", "yesye");
-        assertEvaluate("rpad('', 5, name)", "yesye", Literal.of("yes"));
-        assertEvaluate("rpad('yes', 3, 'yes')", "yes");
-        assertEvaluate("rpad('yes', 3, name)", "yes", Literal.of("yes"));
-        assertEvaluate("rpad('yes', 1, 'yes')", "y");
-        assertEvaluate("rpad('yes', 1, name)", "y", Literal.of("yes"));
-
+    @Test
+    public void test_rpad_default_fill() throws Exception {
         assertEvaluate("rpad('yes', 1)", "y");
         assertEvaluate("rpad('yes', 3)", "yes");
         assertEvaluate("rpad('yes', 1)", "y");
-        assertEvaluate("rpad('yes', 5)", "  yes");
+        assertEvaluate("rpad('yes', 5)", "yes  ");
+    }
 
-        assertEvaluate("rpad('Do you like Crate?', 38, ' yes!')", "Do you like Crate? yes! yes! yes! yes!");
-        assertEvaluate("rpad('Do you like Crate?', 38, name)",
-                       "Do you like Crate? yes! yes! yes! yes!",
-                       Literal.of(" yes!"));
-        assertEvaluate("rpad(name, 38, ' yes!')",
-                       "Do you like Crate? yes! yes! yes! yes!",
-                       Literal.of("Do you like Crate?"));
-        assertEvaluate("rpad('Do you like Crate?', a, ' yes!')",
-                       "Do you like Crate? yes! yes! yes! yes!",
-                       Literal.of(38));
+    @Test
+    public void test_rpad_function () {
+        assertEvaluate("rpad('', 5, 'yes')", "yesye");
+        assertEvaluate("rpad('', 5, name)", "yesye", Literal.of("yes"));
+        assertEvaluate("rpad(name, 5, 'yes')", "yesye", Literal.of(""));
+        assertEvaluate("rpad('', a, 'yes')", "yesye", Literal.of(5));
+
+        assertEvaluate("rpad('yes', 3, 'yes')", "yes");
+        assertEvaluate("rpad('yes', 3, name)", "yes", Literal.of("yes"));
+        assertEvaluate("rpad(name, 3, 'yes')", "yes", Literal.of("yes"));
+        assertEvaluate("rpad('yes', a, 'yes')", "yes", Literal.of(3));
+
+        assertEvaluate("rpad('yes', 1, 'yes')", "y");
+        assertEvaluate("rpad('yes', 1, name)", "y", Literal.of("yes"));
+        assertEvaluate("rpad(name, 1, 'yes')", "y", Literal.of("yes"));
+        assertEvaluate("rpad('yes', a, 'yes')", "y", Literal.of(1));
     }
 }
