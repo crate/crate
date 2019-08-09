@@ -44,7 +44,7 @@ public class StringPaddingFunction extends Scalar<String, Object> {
     public static final String LNAME = "lpad";
     public static final String RNAME = "rpad";
     public static final String DEFAULT_FILL = " ";
-    public static final int LEN_LIMIT = 1000;
+    public static final int LEN_LIMIT = 50000;
 
     public static void register(ScalarFunctionModule module) {
         module.register(LNAME, new Resolver(LNAME, StringPaddingFunction::lpad));
