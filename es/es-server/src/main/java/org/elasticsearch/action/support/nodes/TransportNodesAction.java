@@ -22,9 +22,7 @@ package org.elasticsearch.action.support.nodes;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.FailedNodeException;
-import org.elasticsearch.action.NoSuchNodeException;
 import org.elasticsearch.action.support.HandledTransportAction;
-import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -43,7 +41,6 @@ import org.elasticsearch.transport.TransportService;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -143,16 +140,6 @@ public abstract class TransportNodesAction<NodesRequest extends BaseNodesRequest
         return nodeOperation(request);
     }
 
-    /**
-     * resolve node ids to concrete nodes of the incoming request
-     **/
-    protected void resolveRequest(NodesRequest request, ClusterState clusterState) {
-        assert request.concreteNodes() == null : "request concreteNodes shouldn't be set";
-        String[] nodesIds = clusterState.nodes().resolveNodes(request.nodesIds());
-        request.setConcreteNodes(Arrays.stream(nodesIds).map(clusterState.nodes()::get).toArray(DiscoveryNode[]::new));
-    }
-
-
     class AsyncAction {
 
         private final NodesRequest request;
@@ -165,10 +152,7 @@ public abstract class TransportNodesAction<NodesRequest extends BaseNodesRequest
             this.task = task;
             this.request = request;
             this.listener = listener;
-            if (request.concreteNodes() == null) {
-                resolveRequest(request, clusterService.state());
-                assert request.concreteNodes() != null;
-            }
+            assert request.concreteNodes() != null : "concreteNodes on NodesRequest must not be null";
             this.responses = new AtomicReferenceArray<>(request.concreteNodes().length);
         }
 
@@ -189,41 +173,37 @@ public abstract class TransportNodesAction<NodesRequest extends BaseNodesRequest
                 final DiscoveryNode node = nodes[i];
                 final String nodeId = node.getId();
                 try {
-                    if (node == null) {
-                        onFailure(idx, nodeId, new NoSuchNodeException(nodeId));
-                    } else {
-                        TransportRequest nodeRequest = newNodeRequest(nodeId, request);
-                        if (task != null) {
-                            nodeRequest.setParentTask(clusterService.localNode().getId(), task.getId());
-                        }
-                        transportService.sendRequest(
-                            node,
-                            transportNodeAction,
-                            nodeRequest,
-                            builder.build(),
-                            new TransportResponseHandler<NodeResponse>() {
-
-                                @Override
-                                public NodeResponse read(StreamInput in) throws IOException {
-                                    return TransportNodesAction.this.read(in);
-                                }
-
-                                @Override
-                                public void handleResponse(NodeResponse response) {
-                                    onOperation(idx, response);
-                                }
-
-                                @Override
-                                public void handleException(TransportException exp) {
-                                    onFailure(idx, node.getId(), exp);
-                                }
-
-                                @Override
-                                public String executor() {
-                                    return ThreadPool.Names.SAME;
-                                }
-                        });
+                    TransportRequest nodeRequest = newNodeRequest(nodeId, request);
+                    if (task != null) {
+                        nodeRequest.setParentTask(clusterService.localNode().getId(), task.getId());
                     }
+                    transportService.sendRequest(
+                        node,
+                        transportNodeAction,
+                        nodeRequest,
+                        builder.build(),
+                        new TransportResponseHandler<NodeResponse>() {
+
+                            @Override
+                            public NodeResponse read(StreamInput in) throws IOException {
+                                return TransportNodesAction.this.read(in);
+                            }
+
+                            @Override
+                            public void handleResponse(NodeResponse response) {
+                                onOperation(idx, response);
+                            }
+
+                            @Override
+                            public void handleException(TransportException exp) {
+                                onFailure(idx, node.getId(), exp);
+                            }
+
+                            @Override
+                            public String executor() {
+                                return ThreadPool.Names.SAME;
+                            }
+                    });
                 } catch (Exception e) {
                     onFailure(idx, nodeId, e);
                 }
