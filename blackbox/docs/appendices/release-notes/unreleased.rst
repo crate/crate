@@ -104,7 +104,10 @@ Changes
 Fixes
 =====
 
-- Fix serialization issue that might occur in distributed queries that
+- Fixed an ``OUTER JOIN`` issue resulting in an ``ArrayOutOfBoundException``
+  if the gap between matching rows of the tables was growing to big numbers.
+
+- Fixed serialization issue that might occur in distributed queries that
   contain window function calls with the partition by clause in the select
   list.
 
