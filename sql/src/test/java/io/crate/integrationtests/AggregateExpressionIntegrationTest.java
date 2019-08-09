@@ -95,8 +95,8 @@ public class AggregateExpressionIntegrationTest extends SQLTransportIntegrationT
                 "   [1, 1, null, null]) AS t(x, y) " +
                 "GROUP BY y");
         assertThat(printedTable(response.rows()),
-                   is("[2]\n" +
-                      "[3]\n"));
+                   is("[3]\n" +
+                      "[2]\n"));
     }
 
     @Test

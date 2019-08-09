@@ -32,9 +32,6 @@ import io.crate.execution.engine.aggregation.impl.AggregationImplModule;
 import io.crate.execution.engine.aggregation.impl.SumAggregation;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.InputCollectExpression;
-import io.crate.execution.engine.collect.collectors.LuceneBatchIterator;
-import io.crate.expression.reference.doc.lucene.CollectorContext;
-import io.crate.expression.reference.doc.lucene.LongColumnReference;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.FunctionIdent;
@@ -96,7 +93,6 @@ public class GroupingLongCollectorBenchmark {
     private GroupingCollector groupBySumCollector;
     private List<Row> rows;
     private long[] numbers;
-    private GroupBySingleNumberCollector groupBySumSingleLongCollector;
     private IndexSearcher searcher;
 
     @Setup
@@ -107,7 +103,6 @@ public class GroupingLongCollectorBenchmark {
         AggregationFunction sumAgg = (AggregationFunction) functions.getQualified(
             new FunctionIdent(SumAggregation.NAME, Arrays.asList(DataTypes.INTEGER)));
         groupBySumCollector = createGroupBySumCollector(sumAgg);
-        groupBySumSingleLongCollector = createOptimizedCollector(sumAgg);
 
         int size = 20_000_000;
         rows = new ArrayList<>(size);
@@ -124,22 +119,6 @@ public class GroupingLongCollectorBenchmark {
         iw.commit();
         iw.forceMerge(1, true);
         searcher = new IndexSearcher(DirectoryReader.open(iw));
-    }
-
-    private GroupBySingleNumberCollector createOptimizedCollector(AggregationFunction sumAgg) {
-        InputCollectExpression keyInput = new InputCollectExpression(0);
-        return new GroupBySingleNumberCollector(
-            DataTypes.LONG,
-            new CollectExpression[] { keyInput },
-            AggregateMode.ITER_FINAL,
-            new AggregationFunction[] { sumAgg },
-            new Input[][] { new Input[] { keyInput }},
-            new Input[] { Literal.BOOLEAN_TRUE },
-            RAM_ACCOUNTING_CONTEXT,
-            keyInput,
-            Version.CURRENT,
-            BigArrays.NON_RECYCLING_INSTANCE
-        );
     }
 
     private static GroupingCollector createGroupBySumCollector(AggregationFunction sumAgg) {
@@ -165,45 +144,6 @@ public class GroupingLongCollectorBenchmark {
     public void measureGroupBySumLong(Blackhole blackhole) throws Exception {
         var rowsIterator = InMemoryBatchIterator.of(rows, SENTINEL);
         blackhole.consume(BatchIterators.collect(rowsIterator, groupBySumCollector).get());
-    }
-
-    @Benchmark
-    public void measureGroupBySumLongOptimized(Blackhole blackhole) throws Exception {
-        var rowsIterator = InMemoryBatchIterator.of(rows, SENTINEL);
-        blackhole.consume(BatchIterators.collect(rowsIterator, groupBySumSingleLongCollector).get());
-    }
-
-
-    @Benchmark
-    public void measureGroupBySumLongOptimizedOnLuceneBatchIteratorWithSortedNumericDocValues(Blackhole blackhole) throws Exception {
-        LongColumnReference columnRef = new LongColumnReference("y");
-        var rowsIterator = new LuceneBatchIterator(
-            searcher,
-            new MatchAllDocsQuery(),
-            null,
-            false,
-            new CollectorContext(mappedFieldType -> null),
-            new RamAccountingContext("dummy", new NoopCircuitBreaker("dummy")),
-            List.of(columnRef),
-            List.of(columnRef)
-        );
-        blackhole.consume(BatchIterators.collect(rowsIterator, groupBySumSingleLongCollector).get());
-    }
-
-    @Benchmark
-    public void measureGroupBySumLongOptimizedOnLuceneBatchIteratorWithNumericDocValues(Blackhole blackhole) throws Exception {
-        var columnRef = new NumericDocValuesReference("x");
-        var rowsIterator = new LuceneBatchIterator(
-            searcher,
-            new MatchAllDocsQuery(),
-            null,
-            false,
-            new CollectorContext(mappedFieldType -> null),
-            new RamAccountingContext("dummy", new NoopCircuitBreaker("dummy")),
-            List.of(columnRef),
-            List.of(columnRef)
-        );
-        blackhole.consume(BatchIterators.collect(rowsIterator, groupBySumSingleLongCollector).get());
     }
 
     @Benchmark

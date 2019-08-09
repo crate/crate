@@ -1259,7 +1259,8 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
                 "col1,\n" +
                 "collect_set(col1)\n" +
                 "FROM unnest(ARRAY[1, 2, 2, 3, 4, 5, null]) col1 " +
-                "GROUP BY col1");
+                "GROUP BY col1 " +
+                "ORDER BY col1 NULLS LAST");
         assertThat(
             printedTable(response.rows()),
             Matchers.is("1| [1]\n" +

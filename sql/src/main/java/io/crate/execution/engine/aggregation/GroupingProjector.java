@@ -69,33 +69,18 @@ public class GroupingProjector implements Projector {
         }
         if (keys.size() == 1) {
             Symbol key = keys.get(0);
-            if (GroupBySingleNumberCollector.SUPPORTED_TYPES.contains(key.valueType())) {
-                collector = new GroupBySingleNumberCollector(
-                    key.valueType(),
-                    collectExpressions,
-                    mode,
-                    functions,
-                    inputs,
-                    filters,
-                    ramAccountingContext,
-                    keyInputs.get(0),
-                    indexVersionCreated,
-                    bigArrays
-                );
-            } else {
-                collector = GroupingCollector.singleKey(
-                    collectExpressions,
-                    mode,
-                    functions,
-                    inputs,
-                    filters,
-                    ramAccountingContext,
-                    keyInputs.get(0),
-                    key.valueType(),
-                    indexVersionCreated,
-                    bigArrays
-                );
-            }
+            collector = GroupingCollector.singleKey(
+                collectExpressions,
+                mode,
+                functions,
+                inputs,
+                filters,
+                ramAccountingContext,
+                keyInputs.get(0),
+                key.valueType(),
+                indexVersionCreated,
+                bigArrays
+            );
         } else {
             //noinspection unchecked
             collector = (GroupingCollector<Object>) (GroupingCollector) GroupingCollector.manyKeys(
