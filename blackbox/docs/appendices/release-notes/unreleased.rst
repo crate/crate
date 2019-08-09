@@ -53,6 +53,8 @@ Breaking Changes
 Changes
 =======
 
+- Added :ref:`LPAD <scalar-lpad>` and :ref:`RPAD <scalar-rpad>` scalar functions.
+
 - Added the :ref:`table_parameter.codec` parameter to :ref:`ref-create-table`
   to control the compression algorithm used to store data.
 
