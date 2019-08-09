@@ -468,7 +468,7 @@ Example::
 .. NOTE::
 
    In both cases, the scalar functions lpad and rpad, do now accept a len
-   greater than 1000.
+   greater than 50000.
 
 Date and time functions
 =======================

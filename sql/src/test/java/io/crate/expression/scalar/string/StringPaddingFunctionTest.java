@@ -36,7 +36,7 @@ public class StringPaddingFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void test_lpad_parameter_len_too_big() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("len argument exceeds predefined limit of 1000");
+        expectedException.expectMessage("len argument exceeds predefined limit of 50000");
         assertEvaluate("lpad('yes', 2000000, 'yes')", null);
         assertEvaluate("lpad('yes', a, 'yes')", null, Literal.of(2000000));
     }
@@ -102,7 +102,7 @@ public class StringPaddingFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void test_rpad_parameter_len_too_big() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("len argument exceeds predefined limit of 1000");
+        expectedException.expectMessage("len argument exceeds predefined limit of 50000");
         assertEvaluate("rpad('yes', 2000000, 'yes')", null);
         assertEvaluate("rpad('yes', a, 'yes')", null, Literal.of(2000000));
     }
