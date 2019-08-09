@@ -39,6 +39,7 @@ already existing user-created doc tables in the cluster::
     |    "blocks.read_only" = false,                      |
     |    "blocks.read_only_allow_delete" = false,         |
     |    "blocks.write" = false,                          |
+    |    codec = 'default',                               |
     |    column_policy = 'strict',                        |
     |    "mapping.total_fields.limit" = 1000,             |
     |    max_ngram_diff = 1,                              |

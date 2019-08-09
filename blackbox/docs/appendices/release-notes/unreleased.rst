@@ -53,6 +53,9 @@ Breaking Changes
 Changes
 =======
 
+- Added the :ref:`table_parameter.codec` parameter to :ref:`ref-create-table`
+  to control the compression algorithm used to store data.
+
 - Added :ref:`AT TIME ZONE <timestamp-at-time-zone>` syntax.
 
 - Added the :ref:`cluster.routing.allocation.total_shards_per_node

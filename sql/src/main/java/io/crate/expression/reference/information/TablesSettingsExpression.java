@@ -28,12 +28,15 @@ import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.routing.UnassignedInfo;
 import org.elasticsearch.cluster.routing.allocation.decider.EnableAllocationDecider;
 import org.elasticsearch.cluster.routing.allocation.decider.ShardsLimitAllocationDecider;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexSettings;
 
 import java.util.HashMap;
 import java.util.Map;
 
+import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
 import static org.elasticsearch.index.IndexSettings.INDEX_REFRESH_INTERVAL_SETTING;
+import static org.elasticsearch.index.engine.EngineConfig.INDEX_CODEC_SETTING;
 import static org.elasticsearch.index.mapper.MapperService.INDEX_MAPPING_TOTAL_FIELDS_LIMIT_SETTING;
 
 public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
@@ -48,6 +51,11 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
 
         childImplementations.put(REFRESH_INTERVAL, new TableParameterExpression(INDEX_REFRESH_INTERVAL_SETTING.getKey()));
         childImplementations.put(TablesSettingsBlocksExpression.NAME, new TablesSettingsBlocksExpression());
+        childImplementations.put(
+            "codec", forFunction(
+                (RelationInfo row) -> row.parameters().getOrDefault(INDEX_CODEC_SETTING.getKey(), INDEX_CODEC_SETTING.getDefault(Settings.EMPTY))
+            )
+        );
         childImplementations.put(TablesSettingsMappingExpression.NAME, new TablesSettingsMappingExpression());
         childImplementations.put(TablesSettingsRoutingExpression.NAME, new TablesSettingsRoutingExpression());
         childImplementations.put(TablesSettingsWarmerExpression.NAME, new TablesSettingsWarmerExpression());

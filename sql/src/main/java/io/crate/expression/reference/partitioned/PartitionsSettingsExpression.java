@@ -28,18 +28,25 @@ import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.routing.UnassignedInfo;
 import org.elasticsearch.cluster.routing.allocation.decider.EnableAllocationDecider;
 import org.elasticsearch.cluster.routing.allocation.decider.ShardsLimitAllocationDecider;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.mapper.MapperService;
 
 import java.util.Map;
 
 import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
+import static org.elasticsearch.index.engine.EngineConfig.INDEX_CODEC_SETTING;
 
 public class PartitionsSettingsExpression extends ObjectCollectExpression<PartitionInfo> {
 
     public PartitionsSettingsExpression() {
         super(Map.ofEntries(
             Map.entry(PartitionsSettingsBlocksExpression.NAME, new PartitionsSettingsBlocksExpression()),
+            Map.entry(
+                "codec",
+                forFunction((PartitionInfo row) -> row.tableParameters()
+                    .getOrDefault(INDEX_CODEC_SETTING.getKey(), INDEX_CODEC_SETTING.getDefault(Settings.EMPTY)))
+            ),
             Map.entry(PartitionSettingsMappingExpression.NAME, new PartitionSettingsMappingExpression()),
             Map.entry(PartitionsSettingsRoutingExpression.NAME, new PartitionsSettingsRoutingExpression()),
             Map.entry(PartitionsSettingsWarmerExpression.NAME, new PartitionsSettingsWarmerExpression()),
