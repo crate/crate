@@ -417,6 +417,20 @@ Allows to have a read only table that additionally can be deleted.
   Disables the table settings modifications if set to ``true``, if set
   to ``false`` — table settings modifications are enabled.
 
+.. _table_parameter.codec:
+
+``codec``
+---------
+
+By default data is stored using ``LZ4`` compression. This can be changed to
+``best_compression`` which uses ``DEFLATE`` for a higher compression ratio, at
+the expense of slower column value lookups.
+
+
+:values:
+  ``default`` or ``best_compression``
+  
+
 ``mapping.total_fields.limit``
 ------------------------------
 

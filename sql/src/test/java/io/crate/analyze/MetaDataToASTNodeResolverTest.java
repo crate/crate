@@ -91,6 +91,7 @@ public class MetaDataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
                      "   \"blocks.read_only\" = false,\n" +
                      "   \"blocks.read_only_allow_delete\" = false,\n" +
                      "   \"blocks.write\" = false,\n" +
+                     "   codec = 'default',\n" +
                      "   column_policy = 'strict',\n" +
                      "   \"mapping.total_fields.limit\" = 1000,\n" +
                      "   max_ngram_diff = 1,\n" +
@@ -136,6 +137,7 @@ public class MetaDataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
                      "   \"blocks.read_only\" = false,\n" +
                      "   \"blocks.read_only_allow_delete\" = false,\n" +
                      "   \"blocks.write\" = false,\n" +
+                     "   codec = 'default',\n" +
                      "   column_policy = 'strict',\n" +
                      "   \"mapping.total_fields.limit\" = 1000,\n" +
                      "   max_ngram_diff = 1,\n" +
@@ -183,6 +185,7 @@ public class MetaDataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
                      "   \"blocks.read_only\" = false,\n" +
                      "   \"blocks.read_only_allow_delete\" = false,\n" +
                      "   \"blocks.write\" = false,\n" +
+                     "   codec = 'default',\n" +
                      "   column_policy = 'strict',\n" +
                      "   \"mapping.total_fields.limit\" = 1000,\n" +
                      "   max_ngram_diff = 1,\n" +
@@ -230,6 +233,7 @@ public class MetaDataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
                      "   \"blocks.read_only\" = false,\n" +
                      "   \"blocks.read_only_allow_delete\" = false,\n" +
                      "   \"blocks.write\" = false,\n" +
+                     "   codec = 'default',\n" +
                      "   column_policy = 'strict',\n" +
                      "   \"mapping.total_fields.limit\" = 1000,\n" +
                      "   max_ngram_diff = 1,\n" +
@@ -302,6 +306,7 @@ public class MetaDataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
                      "   \"blocks.read_only\" = false,\n" +
                      "   \"blocks.read_only_allow_delete\" = false,\n" +
                      "   \"blocks.write\" = false,\n" +
+                     "   codec = 'default',\n" +
                      "   column_policy = 'strict',\n" +
                      "   \"mapping.total_fields.limit\" = 1000,\n" +
                      "   max_ngram_diff = 1,\n" +
@@ -345,6 +350,7 @@ public class MetaDataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
                      "   \"blocks.read_only\" = false,\n" +
                      "   \"blocks.read_only_allow_delete\" = false,\n" +
                      "   \"blocks.write\" = false,\n" +
+                     "   codec = 'default',\n" +
                      "   column_policy = 'strict',\n" +
                      "   \"mapping.total_fields.limit\" = 1000,\n" +
                      "   max_ngram_diff = 1,\n" +
@@ -387,6 +393,7 @@ public class MetaDataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
                      "   \"blocks.read_only\" = false,\n" +
                      "   \"blocks.read_only_allow_delete\" = false,\n" +
                      "   \"blocks.write\" = false,\n" +
+                     "   codec = 'default',\n" +
                      "   column_policy = 'strict',\n" +
                      "   \"mapping.total_fields.limit\" = 1000,\n" +
                      "   max_ngram_diff = 1,\n" +

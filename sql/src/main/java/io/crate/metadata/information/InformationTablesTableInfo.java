@@ -143,6 +143,7 @@ public class InformationTablesTableInfo extends InformationTableInfo<RelationInf
                     .setInnerType("write", BOOLEAN)
                     .setInnerType("metadata", BOOLEAN)
                     .build())
+                .setInnerType("codec", STRING)
                 .setInnerType("translog", ObjectType.builder()
                     .setInnerType("flush_threshold_size", LONG)
                     .setInnerType("sync_interval", LONG)
