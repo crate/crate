@@ -57,6 +57,7 @@ import io.crate.expression.scalar.string.QuoteIdentFunction;
 import io.crate.expression.scalar.string.ReplaceFunction;
 import io.crate.expression.scalar.string.StringCaseFunction;
 import io.crate.expression.scalar.string.StringLeftRightFunction;
+import io.crate.expression.scalar.string.StringPaddingFunction;
 import io.crate.expression.scalar.string.TrimFunctions;
 import io.crate.expression.scalar.systeminformation.CurrentSchemaFunction;
 import io.crate.expression.scalar.systeminformation.CurrentSchemasFunction;
@@ -132,6 +133,7 @@ public class ScalarFunctionModule extends AbstractModule {
 
         StringCaseFunction.register(this);
         StringLeftRightFunction.register(this);
+        StringPaddingFunction.register(this);
         InitCapFunction.register(this);
         TrimFunctions.register(this);
 

@@ -420,6 +420,56 @@ Examples::
       +------------------------+
       SELECT 1 row in set (... sec)
 
+.. _scalar-lpad:
+
+``lpad('string1', len[, 'string2'])``
+-------------------------------------
+
+Fill up ``string1`` to length ``len`` by prepending the characters ``string2``
+(a space by default). If string1 is already longer than len then it is truncated
+(on the right).
+
+Synopsis::
+
+    lpad(string1, len[, string2])
+
+Example::
+
+   cr> select lpad(' I like CrateDB!!', 41, 'yes! ');
+   +-------------------------------------------+
+   | lpad(' I like CrateDB!!', 41, 'yes! ')    |
+   +-------------------------------------------+
+   | yes! yes! yes! yes! yes! I like CrateDB!! |
+   +-------------------------------------------+
+   SELECT 1 row in set (... sec)
+
+.. _scalar-rpad:
+
+``rpad('string1', len[, 'string2'])``
+-------------------------------------
+
+Fill up ``string1`` to length ``len`` by appending the characters ``string2``
+(a space by default). If string1 is already longer than len then it is truncated.
+
+Synopsis::
+
+    rpad(string1, len[, string2])
+
+Example::
+
+   cr> select rpad('Do you like Crate?', 38, ' yes!');
+   +-----------------------------------------+
+   | rpad('Do you like Crate?', 38, ' yes!') |
+   +-----------------------------------------+
+   | Do you like Crate? yes! yes! yes! yes!  |
+   +-----------------------------------------+
+   SELECT 1 row in set (... sec)
+
+.. NOTE::
+
+   In both cases, the scalar functions lpad and rpad, do now accept a len
+   greater than 1000.
+
 Date and time functions
 =======================
 
