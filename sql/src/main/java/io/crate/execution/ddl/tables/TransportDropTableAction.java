@@ -26,6 +26,7 @@ import io.crate.execution.ddl.AbstractDDLTransportAction;
 import io.crate.metadata.cluster.DDLClusterStateService;
 import io.crate.metadata.cluster.DropTableClusterStateTaskExecutor;
 import org.elasticsearch.action.support.IndicesOptions;
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateTaskExecutor;
 import org.elasticsearch.cluster.block.ClusterBlockException;
@@ -39,7 +40,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 @Singleton
-public class TransportDropTableAction extends AbstractDDLTransportAction<DropTableRequest, DropTableResponse> {
+public class TransportDropTableAction extends AbstractDDLTransportAction<DropTableRequest, AcknowledgedResponse> {
 
     private static final String ACTION_NAME = "internal:crate:sql/table/drop";
     // Delete index should work by default on both open and closed indices.
@@ -55,7 +56,7 @@ public class TransportDropTableAction extends AbstractDDLTransportAction<DropTab
                                     MetaDataDeleteIndexService deleteIndexService,
                                     DDLClusterStateService ddlClusterStateService) {
         super(ACTION_NAME, transportService, clusterService, threadPool,
-            indexNameExpressionResolver, DropTableRequest::new, DropTableResponse::new, DropTableResponse::new, "drop-table");
+            indexNameExpressionResolver, DropTableRequest::new, AcknowledgedResponse::new, AcknowledgedResponse::new, "drop-table");
         executor = new DropTableClusterStateTaskExecutor(indexNameExpressionResolver, deleteIndexService,
             ddlClusterStateService);
     }

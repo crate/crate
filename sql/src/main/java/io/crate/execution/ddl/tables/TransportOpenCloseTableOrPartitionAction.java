@@ -27,6 +27,7 @@ import io.crate.metadata.cluster.CloseTableClusterStateTaskExecutor;
 import io.crate.metadata.cluster.DDLClusterStateService;
 import io.crate.metadata.cluster.OpenTableClusterStateTaskExecutor;
 import org.elasticsearch.action.support.IndicesOptions;
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateTaskExecutor;
 import org.elasticsearch.cluster.block.ClusterBlockException;
@@ -42,7 +43,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 @Singleton
-public class TransportOpenCloseTableOrPartitionAction extends AbstractDDLTransportAction<OpenCloseTableOrPartitionRequest, OpenCloseTableOrPartitionResponse> {
+public class TransportOpenCloseTableOrPartitionAction extends AbstractDDLTransportAction<OpenCloseTableOrPartitionRequest, AcknowledgedResponse> {
 
     private static final IndicesOptions STRICT_INDICES_OPTIONS = IndicesOptions.fromOptions(false, false, false, false);
     private static final String ACTION_NAME = "internal:crate:sql/table_or_partition/open_close";
@@ -65,8 +66,8 @@ public class TransportOpenCloseTableOrPartitionAction extends AbstractDDLTranspo
             threadPool,
             indexNameExpressionResolver,
             OpenCloseTableOrPartitionRequest::new,
-            OpenCloseTableOrPartitionResponse::new,
-            OpenCloseTableOrPartitionResponse::new,
+            AcknowledgedResponse::new,
+            AcknowledgedResponse::new,
             "open-table-or-partition");
         openExecutor = new OpenTableClusterStateTaskExecutor(indexNameExpressionResolver, allocationService,
             ddlClusterStateService, metaDataIndexUpgradeService, indexServices);

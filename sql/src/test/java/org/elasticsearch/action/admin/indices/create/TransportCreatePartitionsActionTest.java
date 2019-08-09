@@ -24,6 +24,7 @@ package org.elasticsearch.action.admin.indices.create;
 import com.google.common.collect.ImmutableList;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ack.ClusterStateUpdateResponse;
 import org.elasticsearch.cluster.metadata.MetaData;
@@ -56,7 +57,7 @@ public class TransportCreatePartitionsActionTest extends SQLTransportIntegration
     @Test
     public void testCreateBulkIndicesSimple() throws Exception {
         List<String> indices = Arrays.asList("index1", "index2", "index3", "index4");
-        CreatePartitionsResponse response = action.execute(
+        AcknowledgedResponse response = action.execute(
             new CreatePartitionsRequest(indices, UUID.randomUUID())
         ).actionGet();
         assertThat(response.isAcknowledged(), is(true));
@@ -104,7 +105,7 @@ public class TransportCreatePartitionsActionTest extends SQLTransportIntegration
     @Test
     public void testCreateBulkIndicesIgnoreExistingSame() throws Exception {
         List<String> indices = Arrays.asList("index1", "index2", "index3", "index1");
-        CreatePartitionsResponse response = action.execute(
+        AcknowledgedResponse response = action.execute(
             new CreatePartitionsRequest(indices, UUID.randomUUID())
         ).actionGet();
         assertThat(response.isAcknowledged(), is(true));
@@ -112,7 +113,7 @@ public class TransportCreatePartitionsActionTest extends SQLTransportIntegration
         for (String index : indices) {
             assertThat(indexMetaData.hasIndex(index), is(true));
         }
-        CreatePartitionsResponse response2 = action.execute(
+        AcknowledgedResponse response2 = action.execute(
             new CreatePartitionsRequest(indices, UUID.randomUUID())
         ).actionGet();
         assertThat(response2.isAcknowledged(), is(true));
@@ -120,7 +121,7 @@ public class TransportCreatePartitionsActionTest extends SQLTransportIntegration
 
     @Test
     public void testEmpty() throws Exception {
-        CreatePartitionsResponse response = action.execute(
+        AcknowledgedResponse response = action.execute(
             new CreatePartitionsRequest(ImmutableList.<String>of(), UUID.randomUUID())).actionGet();
         assertThat(response.isAcknowledged(), is(true));
     }

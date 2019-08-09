@@ -34,6 +34,7 @@ import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.action.support.ActiveShardsObserver;
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
 import org.elasticsearch.cluster.ClusterState;
@@ -102,7 +103,7 @@ import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_WAIT_FOR_
  * - and alias / mappings / etc. are not taken from the request
  */
 @Singleton
-public class TransportCreatePartitionsAction extends TransportMasterNodeAction<CreatePartitionsRequest, CreatePartitionsResponse> {
+public class TransportCreatePartitionsAction extends TransportMasterNodeAction<CreatePartitionsRequest, AcknowledgedResponse> {
 
     public static final String NAME = "indices:admin/bulk_create";
 
@@ -144,17 +145,17 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
     }
 
     @Override
-    protected CreatePartitionsResponse read(StreamInput in) throws IOException {
-        return new CreatePartitionsResponse(in);
+    protected AcknowledgedResponse read(StreamInput in) throws IOException {
+        return new AcknowledgedResponse(in);
     }
 
     @Override
     protected void masterOperation(final CreatePartitionsRequest request,
                                    final ClusterState state,
-                                   final ActionListener<CreatePartitionsResponse> listener) throws ElasticsearchException {
+                                   final ActionListener<AcknowledgedResponse> listener) throws ElasticsearchException {
 
         if (request.indices().isEmpty()) {
-            listener.onResponse(new CreatePartitionsResponse(true));
+            listener.onResponse(new AcknowledgedResponse(true));
             return;
         }
 
@@ -173,12 +174,12 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
                                 SETTING_WAIT_FOR_ACTIVE_SHARDS.get(templateMetaData.getSettings()),
                                 INDEX_NUMBER_OF_SHARDS_SETTING.get(templateMetaData.getSettings()));
                         }
-                        listener.onResponse(new CreatePartitionsResponse(response.isAcknowledged()));
+                        listener.onResponse(new AcknowledgedResponse(response.isAcknowledged()));
                     }, listener::onFailure);
             } else {
                 logger.warn("[{}] Table partitions created, but publishing new cluster state timed out. Timeout={}",
                     request.indices(), request.timeout());
-                listener.onResponse(new CreatePartitionsResponse(false));
+                listener.onResponse(new AcknowledgedResponse(false));
             }
         }, listener::onFailure));
     }

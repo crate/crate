@@ -170,7 +170,7 @@ public class AlterTableOperation {
     }
 
     public CompletableFuture<Long> executeAlterTableOpenClose(final AlterTableOpenCloseAnalyzedStatement analysis) {
-        FutureActionListener<OpenCloseTableOrPartitionResponse, Long> listener = new FutureActionListener<>(r -> -1L);
+        FutureActionListener<AcknowledgedResponse, Long> listener = new FutureActionListener<>(r -> -1L);
         String partitionIndexName = null;
         Optional<PartitionName> partitionName = analysis.partitionName();
         if (partitionName.isPresent()) {
@@ -341,7 +341,7 @@ public class AlterTableOperation {
                                                " Use 'ALTER table ... set (\"blocks.write\"=true)' and retry");
         }
     }
-    
+
     private CompletableFuture<Long> resizeIndex(IndexMetaData sourceIndex,
                                                 @Nullable String sourceIndexAlias,
                                                 String targetIndexName,
