@@ -63,9 +63,9 @@ public class TransportNodesListGatewayMetaState extends TransportNodesAction<Tra
         this.metaState = metaState;
     }
 
-    public ActionFuture<NodesGatewayMetaState> list(String[] nodesIds, @Nullable TimeValue timeout) {
+    public ActionFuture<NodesGatewayMetaState> list(DiscoveryNode[] discoveryNodes, @Nullable TimeValue timeout) {
         PlainActionFuture<NodesGatewayMetaState> future = PlainActionFuture.newFuture();
-        execute(new Request(nodesIds).timeout(timeout), future);
+        execute(new Request(discoveryNodes).timeout(timeout), future);
         return future;
     }
 
@@ -91,8 +91,8 @@ public class TransportNodesListGatewayMetaState extends TransportNodesAction<Tra
 
     public static class Request extends BaseNodesRequest<Request> {
 
-        public Request(String... nodesIds) {
-            super(nodesIds);
+        public Request(DiscoveryNode... nodes) {
+            super(nodes);
         }
 
         public Request(StreamInput in) throws IOException {

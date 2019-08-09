@@ -31,10 +31,7 @@ import java.io.IOException;
  */
 public abstract class BaseNodeResponse extends TransportResponse {
 
-    private DiscoveryNode node;
-
-    protected BaseNodeResponse() {
-    }
+    private final DiscoveryNode node;
 
     protected BaseNodeResponse(DiscoveryNode node) {
         assert node != null;

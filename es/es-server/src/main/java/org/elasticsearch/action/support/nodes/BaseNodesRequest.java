@@ -19,8 +19,8 @@
 
 package org.elasticsearch.action.support.nodes;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.unit.TimeValue;
@@ -30,37 +30,12 @@ import java.io.IOException;
 
 public abstract class BaseNodesRequest<Request extends BaseNodesRequest<Request>> extends TransportRequest {
 
-    /**
-     * the list of nodesIds that will be used to resolve this request and {@link #concreteNodes}
-     * will be populated. Note that if {@link #concreteNodes} is not null, it will be used and nodeIds
-     * will be ignored.
-     *
-     * See {@link DiscoveryNodes#resolveNodes} for a full description of the options.
-     *
-     * TODO: once we stop using the transport client as a gateway to the cluster, we can get rid of this and resolve it to concrete nodes
-     * in the rest layer
-     **/
-    private String[] nodesIds;
-
-    /**
-     * once {@link #nodesIds} are resolved this will contain the concrete nodes that are part of this request. If set, {@link #nodesIds}
-     * will be ignored and this will be used.
-     * */
-    private DiscoveryNode[] concreteNodes;
+    private final DiscoveryNode[] concreteNodes;
 
     private TimeValue timeout;
 
-    protected BaseNodesRequest(String... nodesIds) {
-        this.nodesIds = nodesIds;
-    }
-
     protected BaseNodesRequest(DiscoveryNode... concreteNodes) {
-        this.nodesIds = null;
         this.concreteNodes = concreteNodes;
-    }
-
-    public final String[] nodesIds() {
-        return nodesIds;
     }
 
     public TimeValue timeout() {
@@ -77,13 +52,11 @@ public abstract class BaseNodesRequest<Request extends BaseNodesRequest<Request>
         return concreteNodes;
     }
 
-    public void setConcreteNodes(DiscoveryNode[] concreteNodes) {
-        this.concreteNodes = concreteNodes;
-    }
-
     public BaseNodesRequest(StreamInput in) throws IOException {
         super(in);
-        nodesIds = in.readStringArray();
+        if (in.getVersion().before(Version.V_4_1_0)) {
+            in.readStringArray(); // node-ids
+        }
         concreteNodes = in.readOptionalArray(DiscoveryNode::new, DiscoveryNode[]::new);
         timeout = in.readOptionalTimeValue();
     }
@@ -91,7 +64,9 @@ public abstract class BaseNodesRequest<Request extends BaseNodesRequest<Request>
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeStringArrayNullable(nodesIds);
+        if (out.getVersion().before(Version.V_4_1_0)) {
+            out.writeStringArrayNullable(null);
+        }
         out.writeOptionalArray(concreteNodes);
         out.writeOptionalTimeValue(timeout);
     }
