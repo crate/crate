@@ -30,18 +30,22 @@ import org.apache.lucene.util.LongBitSet;
  * Each bit true if the rows in the respective position are matched and therefore we need
  * a structure capable of holding <pre>long</pre> size of bits so java.util.BitSet cannot be used.
  * <p>
- * We chose to use {@link LongBitSet} from Lucence and add another layer on top in
+ * We chose to use {@link LongBitSet} from Lucene and add another layer on top in
  * order to further optimize performance by growing the capacity of the backing array
  * by double each time size is reached.
  */
 class LuceneLongBitSetWrapper {
-    private long size = 1024;
-    private LongBitSet bitSet = new LongBitSet(size);
+    static final long INCREASE_BY_STEP = 1024;
+
+    private long numBits = INCREASE_BY_STEP;
+    private LongBitSet bitSet = new LongBitSet(numBits);
 
     void set(long idx) {
-        if (idx >= size) {
-            size *= 2;
-            bitSet = LongBitSet.ensureCapacity(bitSet, size);
+        if (idx > numBits) {
+            // the bit set uses an array of 64bit words.
+            // we want to increase it to 1 word more than needed to avoid that it must be increased too often
+            numBits = (idx >> 6) + (INCREASE_BY_STEP >> 6) << 6;
+            bitSet = LongBitSet.ensureCapacity(bitSet, numBits);
         }
         bitSet.set(idx);
     }
