@@ -246,7 +246,7 @@ public class ArithmeticFunctions {
             if (isTimestamp(fst) && isInterval(snd)) {
                 return new IntervalTimestampScalar(operator, fst, snd, snd);
             }
-            if (snd.id() == IntervalType.ID && (TIMESTAMP_IDS.contains(fst.id()))) {
+            if (isTimestamp(fst) && isInterval(snd)) {
                 return new IntervalTimestampScalar(operator, fst, snd, fst);
             }
 
@@ -265,57 +265,6 @@ public class ArithmeticFunctions {
         private static final Set<Integer> TIMESTAMP_IDS = Sets.newHashSet(DataTypes.TIMESTAMP.id(),
                                                                   DataTypes.TIMESTAMPZ.id());
 
-
-        private static final class IntervalToTimestampScalar extends Scalar<Long, Object> {
-
-            private final BiFunction<DateTime, Period, DateTime> operation;
-            private final FunctionInfo info;
-
-            IntervalToTimestampScalar(String operator, DataType firstType, DataType secondType, DataType returnType) {
-                this.info = new FunctionInfo(new FunctionIdent("add", Arrays.asList(firstType, secondType)),
-                                             returnType);
-                switch (operator) {
-                    case "+":
-                        operation = DateTime::plus;
-                        break;
-                    case "-":
-                        operation = DateTime::minus;
-                        break;
-                    default:
-                        throw new IllegalArgumentException("Unsupported operator for interval " + operator);
-                }
-            }
-
-            @Override
-            public Long evaluate(TransactionContext txnCtx, Input<Object>... args) {
-                if (args.length != 2) {
-                    throw new IllegalArgumentException("Invalid arguments " + Arrays.toString(args));
-                }
-                Object fst = args[0].value();
-                Object snd = args[1].value();
-
-                if (fst == null || snd == null) {
-                    return null;
-                }
-
-                final Long timestamp;
-                final Period period;
-
-                if (fst instanceof Long && snd instanceof Period) {
-                    timestamp = (Long) args[0].value();
-                    period = (Period) args[1].value();
-                } else {
-                    timestamp = (Long) args[1].value();
-                    period = (Period) args[0].value();
-                }
-                return operation.apply(new DateTime(timestamp, DateTimeZone.UTC), period).toInstant().getMillis();
-            }
-
-            @Override
-            public FunctionInfo info() {
-                return this.info;
-            }
-        }
 
 
         private static final class IntervalArithmeticScalar extends Scalar<Period, Object> {

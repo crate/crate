@@ -62,9 +62,55 @@ public class IntervalFunctionTest extends AbstractScalarFunctionsTest {
         assertEvaluate("'86401000'::timestamp - interval '1 second'", Matchers.is(86400000L));
         assertEvaluate("'86400000'::timestamp - interval '-1 second'", Matchers.is(86401000L));
         assertEvaluate("'86400000'::timestamp + interval '1 second'", Matchers.is(86401000L));
+    }
+
+    public void test_add_interval_to_interval() {
+        assertEvaluate("interval '1 second' + interval '1 second'", Period.seconds(2));
+    }
+
+    @Test
+    public void test_subtract_interval_to_interval() {
+        assertEvaluate("interval '2 second' - interval '1 second'", Matchers.is(Period.seconds(1)));
+    }
+    @Test
+    public void test_add_interval_to_timestamp() {
+        assertEvaluate("'86400000'::timestamp + interval '1 second'", Matchers.is(86401000L));
+    }
+
+    @Test
+    public void test_add_interval_to_null() {
+        assertEvaluate("'86400000'::timestamp + interval '1 second'", Matchers.is(86401000L));
+    }
+
+    @Test
+    public void test_add_null_to_interval() {
+        assertEvaluate("null + interval '1 second'", Matchers.nullValue());
+    }
+
+    @Test
+    public void test_subtract_interval_to_null() {
+        assertEvaluate("interval '1 second' - null", Matchers.nullValue());
+    }
+
+    @Test
+    public void test_subtract_null_to_interval() {
+        assertEvaluate("null - interval '1 second'", Matchers.nullValue());
+    }
+
+    @Test
+    public void test_add_timestamp_to_interval() {
+        assertEvaluate("interval '1 second' + '86400000'::timestamp", Matchers.is(86401000L));
+    }
+
+    @Test
+    public void test_subtract_interval_from_timestamp() {
+        assertEvaluate("'86401000'::timestamp - interval '1 second'", Matchers.is(86400000L));
+    }
+
+    @Test
+    public void test_subtract_timestamp_to_interval() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Operation not allowed");
         assertEvaluate("interval '1 second' - '86401000'::timestamp", Matchers.is(86400000L));
     }
-
 }
