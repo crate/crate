@@ -114,4 +114,34 @@ public class IntervalFunctionTest extends AbstractScalarFunctionsTest {
         assertEvaluate("interval '1 second' - '86401000'::timestamp", Matchers.is(86400000L));
     }
 
+    @Test
+    public void test_multiply_interval() {
+        assertEvaluate("interval '1 second' * 2", Matchers.is(Period.seconds(2)));
+    }
+
+    @Test
+    public void test_divide_interval() {
+        assertEvaluate("interval '2 second' / 2", Matchers.is(Period.seconds(1)));
+    }
+
+    @Test
+    public void test_divide_interval_uneven() {
+        assertEvaluate("interval '2 second' / 2", Matchers.is(Period.seconds(1)));
+    }
+
+    @Test
+    public void test_divide_interval_more() {
+        assertEvaluate("interval '1 second' / 3", Matchers.is(Period.millis(333)));
+    }
+
+    @Test
+    public void test_divide_interval_double() {
+        assertEvaluate("interval '1 second' / 0.5", Matchers.is(Period.seconds(2)));
+    }
+
+    @Test
+    public void test_divide_interval_long() {
+        assertEvaluate("interval '2147483647 second' / 2147483647", Matchers.is(Period.seconds(1)));
+    }
+
 }

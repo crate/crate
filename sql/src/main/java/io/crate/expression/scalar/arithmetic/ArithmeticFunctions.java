@@ -381,8 +381,8 @@ public class ArithmeticFunctions {
         private final FunctionInfo info;
 
         IntervalTimestampScalar(String operator, DataType firstType, DataType secondType, DataType returnType) {
-            this.info = new FunctionInfo(new FunctionIdent("intervaltimestamp",
-                                                           Arrays.asList(firstType, secondType)), returnType);
+            this.info = new FunctionInfo(new FunctionIdent("add", Arrays.asList(firstType, secondType)),
+                                         returnType);
             switch (operator) {
                 case "+":
                     operation = DateTime::plus;
@@ -394,9 +394,7 @@ public class ArithmeticFunctions {
                     operation = DateTime::minus;
                     break;
                 default:
-                    operation = (a, b) -> {
-                        throw new IllegalArgumentException("Unsupported operator for interval " + operator);
-                    };
+                    throw new IllegalArgumentException("Unsupported operator for interval " + operator);
             }
         }
 
@@ -409,15 +407,15 @@ public class ArithmeticFunctions {
                 return null;
             }
 
-            final Long timestamp;
             final Period period;
+            final Long timestamp;
 
-            if (fst instanceof Long && snd instanceof Period) {
+            if (fst instanceof Period && snd instanceof Long) {
+                period = (Period) args[0].value();
+                timestamp = (Long) args[1].value();
+            } else {
                 timestamp = (Long) args[0].value();
                 period = (Period) args[1].value();
-            } else {
-                timestamp = (Long) args[1].value();
-                period = (Period) args[0].value();
             }
             return operation.apply(new DateTime(timestamp, DateTimeZone.UTC), period).toInstant().getMillis();
         }
