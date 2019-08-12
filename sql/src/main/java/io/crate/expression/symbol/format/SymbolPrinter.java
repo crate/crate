@@ -307,6 +307,14 @@ public final class SymbolPrinter {
                 printArgs(function.arguments(), context);
             }
             context.builder.append(formatter.afterArgs(function));
+            printFunctionFilterIfPresent(function.filter(), context);
+        }
+
+        private void printFunctionFilterIfPresent(@Nullable Symbol filter, SymbolPrinterContext context) {
+            if (filter != null) {
+                context.builder.append(" : ");
+                process(filter, context);
+            }
         }
 
         private void printArgs(List<Symbol> args, SymbolPrinterContext context) {
