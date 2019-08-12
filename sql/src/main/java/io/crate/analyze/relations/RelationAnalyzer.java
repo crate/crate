@@ -427,7 +427,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             Symbol output = outputSymbols.get(i);
             if (groupBy == null || !groupBy.contains(output)) {
                 SymbolType symbolType = output.symbolType();
-                if (symbolType.isValueSymbol() || symbolType.equals(SymbolType.WINDOW_FUNCTION)) {
+                if (symbolType.isValueSymbol()) {
                     // values and window functions are allowed even if not present in group by
                     continue;
                 }
@@ -437,8 +437,9 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                     String offendingSymbolName = symbolPrinter.printUnqualified(output);
                     if (output instanceof Function) {
                         Function function = (Function) output;
-                        if (function.info().type() == FunctionInfo.Type.TABLE) {
-                            // table function can occur in the outputs without being present in the GROUP BY
+                        if (function.info().type() == FunctionInfo.Type.TABLE
+                            || function.symbolType() == SymbolType.WINDOW_FUNCTION) {
+                            // table or window function can occur in the outputs without being present in the GROUP BY
                             // if the arguments to it are within GROUP BY
                             ensureNonAggregatesInGroupBy(symbolPrinter, function.arguments(), groupBy);
                             return;
