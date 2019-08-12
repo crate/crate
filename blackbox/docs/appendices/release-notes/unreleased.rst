@@ -46,6 +46,9 @@ None
 Fixes
 =====
 
+- Improved error handling if an argument of a window function is not used as a
+  grouping symbol.
+
 - Fixed an ``OUTER JOIN`` issue resulting in an ``ArrayOutOfBoundException``
   if the gap between matching rows of the tables was growing to big numbers.
 
