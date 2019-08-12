@@ -113,4 +113,5 @@ public class IntervalFunctionTest extends AbstractScalarFunctionsTest {
         expectedException.expectMessage("Operation not allowed");
         assertEvaluate("interval '1 second' - '86401000'::timestamp", Matchers.is(86400000L));
     }
+
 }

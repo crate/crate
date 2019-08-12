@@ -394,4 +394,5 @@ public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
         execute("select (d - 10) from t order by (d - 10) nulls first limit 2");
         assertThat(response.rows()[0][0], is(nullValue()));
     }
+
 }
