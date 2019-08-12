@@ -1305,17 +1305,6 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testInsertIntoUpdateOnNullObjectColumnWithSubscript() throws Exception {
-        execute("create table t (id integer primary key, i integer, o object)");
-        ensureYellow();
-        execute("insert into t (id, i, o) values(1, 1, null)");
-        execute("refresh table t");
-
-        expectedException.expectMessage("Object o is null, cannot write x = 5 into it");
-        execute("insert into t (id, i, o) values (1, 1, null) ON CONFLICT (id) DO UPDATE set o['x'] = 5");
-    }
-
-    @Test
     public void testInsertFromQueryWithGeneratedPrimaryKey() throws Exception {
         execute("create table t (x int, y int, z as x + y primary key)");
         ensureYellow();
@@ -1427,7 +1416,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
                 " id int," +
                 " owner text default 'crate'" +
                 ") with (number_of_replicas=0)");
-        
+
         execute("insert into t (id) values (?)",
                 new Object[]{1});
         execute("insert into t (id) select 2");

@@ -53,6 +53,10 @@ Breaking Changes
 Changes
 =======
 
+- Support implicit object creation in update statements. E.g. ``UPDATE t SET
+  obj['x'] = 10`` will now implicitly set ``obj`` to ``{obj: {x: 10}}`` on rows
+  where ``obj`` was previously ``null``.
+
 - Added :ref:`LPAD <scalar-lpad>` and :ref:`RPAD <scalar-rpad>` scalar functions.
 
 - Added the :ref:`table_parameter.codec` parameter to :ref:`ref-create-table`

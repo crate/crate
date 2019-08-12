@@ -27,7 +27,6 @@ import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.RandomAccess;
@@ -100,9 +99,8 @@ public final class Maps {
             if (source.containsKey(key)) {
                 Map<String, Object> contents = (Map<String, Object>) source.get(key);
                 if (contents == null) {
-                    throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                        "Object %s is null, cannot write %s = %s into it", key, String.join(".", path), value));
-
+                    contents = new HashMap<>();
+                    source.put(key, contents);
                 }
                 String nextKey = path.get(0);
                 mergeInto(contents, nextKey, path.subList(1, path.size()), value);
