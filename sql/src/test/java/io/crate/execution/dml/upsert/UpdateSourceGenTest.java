@@ -251,4 +251,35 @@ public class UpdateSourceGenTest extends CrateDummyClusterServiceUnitTest {
         );
         assertThat(updatedSource.utf8ToString(), is("{\"obj\":{\"y\":\"foo\"},\"x\":4}"));
     }
+
+    @Test
+    public void test_update_child_of_object_column_that_is_null_implicitly_creates_the_object() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("create table t (obj object as (x int))")
+            .build();
+        AnalyzedUpdateStatement update = e.analyze("update t set obj['x'] = 10");
+        Assignments assignments = Assignments.convert(update.assignmentByTargetCol());
+        DocTableInfo table = (DocTableInfo) update.table().tableInfo();
+        UpdateSourceGen updateSourceGen = new UpdateSourceGen(
+            e.functions(),
+            txnCtx,
+            table,
+            assignments.targetNames()
+        );
+        BytesReference updatedSource = updateSourceGen.generateSource(
+            new Doc(
+                1,
+                table.concreteIndices()[0],
+                "1",
+                1,
+                1,
+                1,
+                Collections.singletonMap("obj", null),
+                () -> "{\"obj\": null}"
+            ),
+            assignments.sources(),
+            new Object[0]
+        );
+        assertThat(updatedSource.utf8ToString(), is("{\"obj\":{\"x\":10}}"));
+    }
 }

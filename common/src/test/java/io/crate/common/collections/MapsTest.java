@@ -60,8 +60,8 @@ public class MapsTest extends CrateUnitTest {
         HashMap<String, Object> m = new HashMap<>();
         m.put("o", null);
 
-        expectedException.expectMessage("Object o is null, cannot write x = 10 into it");
         Maps.mergeInto(m, "o", Collections.singletonList("x"), 10);
+        assertThat(m, is(Map.of("o", Map.of("x", 10))));
     }
 
     @Test
@@ -69,7 +69,7 @@ public class MapsTest extends CrateUnitTest {
         HashMap<String, Object> m = new HashMap<>();
         m.put("o", null);
 
-        expectedException.expectMessage("Object o is null, cannot write x.y = 10 into it");
         Maps.mergeInto(m, "o", Arrays.asList("x", "y"), 10);
+        assertThat(m, is(Map.of("o", Map.of("x", Map.of("y", 10)))));
     }
 }
