@@ -61,7 +61,9 @@ public class DistResultRXTask implements Task, DownstreamRXTask {
             } else if (ex instanceof RuntimeException) {
                 throw (RuntimeException) ex;
             } else {
-                throw new RuntimeException(ex);
+                RuntimeException runtimeException = new RuntimeException(ex);
+                runtimeException.setStackTrace(ex.getStackTrace());
+                throw runtimeException;
             }
         });
     }

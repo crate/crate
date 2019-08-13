@@ -70,7 +70,6 @@ public class CountTaskTest extends CrateUnitTest {
         CountTask countTask = new CountTask(countPhaseWithId(1), txnCtx, countOperation, new TestingRowConsumer(), null);
         countTask.start();
         future.complete(1L);
-        assertTrue(countTask.isClosed());
         // assure that there was no exception
         countTask.completionFuture().get();
 
@@ -81,7 +80,6 @@ public class CountTaskTest extends CrateUnitTest {
         countTask = new CountTask(countPhaseWithId(2), txnCtx, countOperation, new TestingRowConsumer(), null);
         countTask.start();
         future.completeExceptionally(new UnhandledServerException("dummy"));
-        assertTrue(countTask.isClosed());
 
         expectedException.expectCause(CauseMatcher.cause(UnhandledServerException.class));
         countTask.completionFuture().get();
@@ -98,7 +96,6 @@ public class CountTaskTest extends CrateUnitTest {
         countTask.kill(new JobKilledException());
 
         verify(future, times(1)).cancel(true);
-        assertTrue(countTask.isClosed());
     }
 
     private static class FakeCountOperation implements CountOperation {

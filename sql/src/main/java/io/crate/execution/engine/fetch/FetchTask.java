@@ -26,9 +26,10 @@ import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.cursors.IntCursor;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import io.crate.execution.dsl.phases.FetchPhase;
-import io.crate.execution.jobs.AbstractTask;
+import io.crate.execution.jobs.CompletionState;
 import io.crate.execution.jobs.SharedShardContext;
 import io.crate.execution.jobs.SharedShardContexts;
+import io.crate.execution.jobs.Task;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
@@ -50,9 +51,10 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class FetchTask extends AbstractTask {
+public class FetchTask implements Task {
 
     private final IntObjectHashMap<Engine.Searcher> searchers = new IntObjectHashMap<>();
     private final IntObjectHashMap<SharedShardContext> shardContexts = new IntObjectHashMap<>();
@@ -64,13 +66,13 @@ public class FetchTask extends AbstractTask {
     private final Iterable<? extends Routing> routingIterable;
     private final Map<RelationName, Collection<Reference>> toFetch;
     private final AtomicBoolean isKilled = new AtomicBoolean(false);
+    private final CompletableFuture<CompletionState> finished = new CompletableFuture<>();
 
     public FetchTask(FetchPhase phase,
                      String localNodeId,
                      SharedShardContexts sharedShardContexts,
                      MetaData metaData,
                      Iterable<? extends Routing> routingIterable) {
-        super(phase.phaseId());
         this.phase = phase;
         this.localNodeId = localNodeId;
         this.sharedShardContexts = sharedShardContexts;
@@ -148,36 +150,42 @@ public class FetchTask extends AbstractTask {
     }
 
     @Override
-    protected void innerStart() {
+    public void start() {
         allocateSearchers();
         if (searchers.isEmpty() || phase.fetchRefs().isEmpty()) {
             // no fetch references means there will be no fetch requests
             // this context is only here to allow the collectors to generate docids with the right bases
             // the bases are fetched in the prepare phase therefore this context can be closed
-            close();
+            finished.complete(new CompletionState(0));
         }
     }
 
     @Override
-    protected void innerKill(@Nonnull Throwable t) {
+    public void kill(@Nonnull Throwable throwable) {
         isKilled.set(true);
-        innerClose();
+        closeSearchers();
+        finished.completeExceptionally(throwable);
     }
 
-    protected void innerClose() {
+    public void close() {
+        closeSearchers();
+        finished.complete(new CompletionState(0));
+    }
+
+    private void closeSearchers() {
         for (IntObjectCursor<Engine.Searcher> cursor : searchers) {
             cursor.value.close();
         }
     }
 
     @Override
-    public void close() {
-        super.close();
+    public String name() {
+        return phase.name();
     }
 
     @Override
-    public String name() {
-        return phase.name();
+    public int id() {
+        return phase.phaseId();
     }
 
     @Nonnull
@@ -209,5 +217,10 @@ public class FetchTask extends AbstractTask {
                "phase=" + phase.phaseId() +
                ", searchers=" + searchers.keys() +
                '}';
+    }
+
+    @Override
+    public CompletableFuture<CompletionState> completionFuture() {
+        return finished;
     }
 }

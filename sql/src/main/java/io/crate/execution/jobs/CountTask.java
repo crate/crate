@@ -36,13 +36,13 @@ import java.util.concurrent.CompletableFuture;
 
 import static io.crate.data.SentinelRow.SENTINEL;
 
-public class CountTask extends AbstractTask {
+public class CountTask implements Task {
 
     private final CountPhase countPhase;
     private final TransactionContext txnCtx;
     private final CountOperation countOperation;
-    private final RowConsumer consumer;
     private final Map<String, IntIndexedContainer> indexShardMap;
+    private final CompletableFuture<Long> resultFuture = new CompletableFuture<>();
     private CompletableFuture<Long> countFuture;
 
     CountTask(CountPhase countPhase,
@@ -50,36 +50,40 @@ public class CountTask extends AbstractTask {
               CountOperation countOperation,
               RowConsumer consumer,
               Map<String, IntIndexedContainer> indexShardMap) {
-        super(countPhase.phaseId());
         this.countPhase = countPhase;
         this.txnCtx = txnCtx;
         this.countOperation = countOperation;
-        this.consumer = consumer;
         this.indexShardMap = indexShardMap;
-    }
-
-    @Override
-    public synchronized void innerStart() {
-        try {
-            countFuture = countOperation.count(txnCtx, indexShardMap, countPhase.where());
-        } catch (IOException | InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-        countFuture.whenComplete((rowCount, failure) -> {
+        this.resultFuture.whenComplete((rowCount, failure) -> {
             if (rowCount == null) {
                 consumer.accept(null, failure);
-                kill(failure);
             } else {
                 consumer.accept(InMemoryBatchIterator.of(new Row1(rowCount), SENTINEL), null);
-                close();
             }
         });
     }
 
     @Override
-    public synchronized void innerKill(@Nonnull Throwable throwable) {
+    public synchronized void start() {
+        try {
+            countFuture = countOperation.count(txnCtx, indexShardMap, countPhase.where());
+        } catch (IOException | InterruptedException e) {
+            resultFuture.completeExceptionally(e);
+            return;
+        }
+        countFuture.whenComplete((rowCount, err) -> {
+            if (err == null) {
+                resultFuture.complete(rowCount);
+            } else {
+                resultFuture.completeExceptionally(err);
+            }
+        });
+    }
+
+    @Override
+    public synchronized void kill(@Nonnull Throwable throwable) {
         if (countFuture == null) {
-            consumer.accept(null, throwable);
+            resultFuture.completeExceptionally(throwable);
         } else {
             countFuture.cancel(true);
         }
@@ -88,5 +92,15 @@ public class CountTask extends AbstractTask {
     @Override
     public String name() {
         return countPhase.name();
+    }
+
+    @Override
+    public int id() {
+        return countPhase.phaseId();
+    }
+
+    @Override
+    public CompletableFuture<CompletionState> completionFuture() {
+        return resultFuture.thenApply(ignored -> new CompletionState(0));
     }
 }

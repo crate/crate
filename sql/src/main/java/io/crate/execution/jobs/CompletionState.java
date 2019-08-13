@@ -22,9 +22,16 @@
 
 package io.crate.execution.jobs;
 
-class CompletionState {
+public class CompletionState {
 
     private long bytesUsed = -1;
+
+    public CompletionState(long bytesUsed) {
+        this.bytesUsed = bytesUsed;
+    }
+
+    public CompletionState() {
+    }
 
     void bytesUsed(long bytesUsed) {
         this.bytesUsed = bytesUsed;
