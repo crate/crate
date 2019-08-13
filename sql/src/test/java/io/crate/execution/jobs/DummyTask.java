@@ -22,18 +22,48 @@
 
 package io.crate.execution.jobs;
 
-public class DummyTask extends AbstractTask {
+import javax.annotation.Nonnull;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicInteger;
+
+public class DummyTask implements Task {
+
+    private final int id;
+    private final CompletableFuture<CompletionState> future = new CompletableFuture<>();
+
+    final AtomicInteger numKill = new AtomicInteger(0);
 
     public DummyTask() {
         this(1);
     }
 
     public DummyTask(int id) {
-        super(id);
+        this.id = id;
+    }
+
+    @Override
+    public void start() {
+        future.complete(new CompletionState(0));
     }
 
     @Override
     public String name() {
         return "dummy " + id();
+    }
+
+    @Override
+    public int id() {
+        return id;
+    }
+
+    @Override
+    public CompletableFuture<CompletionState> completionFuture() {
+        return future;
+    }
+
+    @Override
+    public void kill(@Nonnull Throwable throwable) {
+        numKill.incrementAndGet();
+        future.completeExceptionally(throwable);
     }
 }

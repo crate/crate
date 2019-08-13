@@ -31,8 +31,9 @@ import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.dsl.phases.CollectPhase;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
-import io.crate.execution.jobs.AbstractTask;
+import io.crate.execution.jobs.CompletionState;
 import io.crate.execution.jobs.SharedShardContexts;
+import io.crate.execution.jobs.Task;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 import org.elasticsearch.index.engine.Engine;
@@ -40,8 +41,10 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nonnull;
 import java.util.Locale;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-public class CollectTask extends AbstractTask {
+public class CollectTask implements Task {
 
     private final CollectPhase collectPhase;
     private final TransactionContext txnCtx;
@@ -53,8 +56,10 @@ public class CollectTask extends AbstractTask {
     private final IntObjectHashMap<Engine.Searcher> searchers = new IntObjectHashMap<>();
     private final Object subContextLock = new Object();
     private final String threadPoolName;
+    private final AtomicBoolean started = new AtomicBoolean(false);
 
-    private BatchIterator<Row> batchIterator;
+    private volatile BatchIterator<Row> batchIterator;
+    private long bytesUsed = -1;
 
     public CollectTask(final CollectPhase collectPhase,
                        TransactionContext txnCtx,
@@ -62,24 +67,26 @@ public class CollectTask extends AbstractTask {
                        RamAccountingContext queryPhaseRamAccountingContext,
                        RowConsumer consumer,
                        SharedShardContexts sharedShardContexts) {
-        super(collectPhase.phaseId());
         this.collectPhase = collectPhase;
         this.txnCtx = txnCtx;
         this.collectOperation = collectOperation;
         this.queryPhaseRamAccountingContext = queryPhaseRamAccountingContext;
         this.sharedShardContexts = sharedShardContexts;
         this.consumer = new ListenableRowConsumer(consumer);
-        this.consumer.completionFuture().whenComplete(closeOrKill(this));
+        this.consumer.completionFuture().whenComplete((result, err) -> {
+            CollectTask.this.bytesUsed = queryPhaseRamAccountingContext.totalBytes();
+            closeSearchContexts();
+            queryPhaseRamAccountingContext.close();
+        });
         this.threadPoolName = threadPoolName(collectPhase);
     }
 
     public void addSearcher(int searcherId, Engine.Searcher searcher) {
-        if (isClosed()) {
+        if (consumer.completionFuture().isDone()) {
             // if this is closed and addContext is called this means the context got killed.
             searcher.close();
             return;
         }
-
         synchronized (subContextLock) {
             Engine.Searcher replacedSearcher = searchers.put(searcherId, searcher);
             if (replacedSearcher != null) {
@@ -91,12 +98,6 @@ public class CollectTask extends AbstractTask {
         }
     }
 
-    @Override
-    protected void innerClose() {
-        setBytesUsed(queryPhaseRamAccountingContext.totalBytes());
-        closeSearchContexts();
-        queryPhaseRamAccountingContext.close();
-    }
 
     private void closeSearchContexts() {
         synchronized (subContextLock) {
@@ -107,35 +108,48 @@ public class CollectTask extends AbstractTask {
         }
     }
 
-    @Override
-    public void innerKill(@Nonnull Throwable throwable) {
-        if (batchIterator != null) {
-            batchIterator.kill(throwable);
-        }
-        innerClose();
-    }
 
     @Override
     public String name() {
         return collectPhase.name();
     }
 
+    @Override
+    public int id() {
+        return collectPhase.phaseId();
+    }
+
 
     @Override
     public String toString() {
         return "CollectTask{" +
-               "id=" + id +
+               "id=" + collectPhase.phaseId() +
                ", sharedContexts=" + sharedShardContexts +
                ", consumer=" + consumer +
                ", searchContexts=" + searchers.keys() +
-               ", closed=" + isClosed() +
                '}';
     }
 
     @Override
-    protected void innerStart() {
-        batchIterator = collectOperation.createIterator(txnCtx, collectPhase, consumer.requiresScroll(), this);
-        collectOperation.launch(() -> consumer.accept(batchIterator, null), threadPoolName);
+    public void start() {
+        if (started.compareAndSet(false, true)) {
+            BatchIterator<Row> iterator = collectOperation.createIterator(
+                txnCtx, collectPhase, consumer.requiresScroll(), this);
+            collectOperation.launch(() -> consumer.accept(iterator, null), threadPoolName);
+            this.batchIterator = iterator;
+        }
+    }
+
+    @Override
+    public void kill(@Nonnull Throwable throwable) {
+        if (started.getAndSet(true)) {
+            while (batchIterator == null) {
+                Thread.onSpinWait();
+            }
+            batchIterator.kill(throwable);
+        } else {
+            consumer.accept(null, throwable);
+        }
     }
 
     public TransactionContext txnCtx() {
@@ -163,5 +177,10 @@ public class CollectTask extends AbstractTask {
 
         // Anything else like doc tables, INFORMATION_SCHEMA tables or sys.cluster table collector, partition collector
         return ThreadPool.Names.SEARCH;
+    }
+
+    @Override
+    public CompletableFuture<CompletionState> completionFuture() {
+        return consumer.completionFuture().thenApply(ignored -> new CompletionState(bytesUsed));
     }
 }

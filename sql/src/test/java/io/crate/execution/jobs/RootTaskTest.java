@@ -69,10 +69,10 @@ public class RootTaskTest extends CrateUnitTest {
     public void testAddTheSameContextTwiceThrowsAnError() throws Exception {
         RootTask.Builder builder =
             new RootTask.Builder(logger, UUID.randomUUID(), coordinatorNode, Collections.emptySet(), mock(JobsLogs.class));
-        builder.addTask(new AbstractTaskTest.TestingTask());
+        builder.addTask(new DummyTask());
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Task for 0 already added");
-        builder.addTask(new AbstractTaskTest.TestingTask());
+        builder.addTask(new DummyTask());
         builder.build();
     }
 
@@ -82,9 +82,8 @@ public class RootTaskTest extends CrateUnitTest {
             new RootTask.Builder(logger, UUID.randomUUID(), coordinatorNode, Collections.emptySet(), mock(JobsLogs.class));
 
 
-        AbstractTaskTest.TestingTask ctx1 = new AbstractTaskTest.TestingTask(1);
-        AbstractTaskTest.TestingTask ctx2 = new AbstractTaskTest.TestingTask(2);
-
+        var ctx1 = new DummyTask(1);
+        var ctx2 = new DummyTask(2);
         builder.addTask(ctx1);
         builder.addTask(ctx2);
         RootTask rootTask = builder.build();
@@ -102,12 +101,7 @@ public class RootTaskTest extends CrateUnitTest {
         RootTask.Builder builder =
             new RootTask.Builder(logger, UUID.randomUUID(), coordinatorNode, Collections.emptySet(), jobsLogs);
 
-        Task task = new AbstractTask(0) {
-            @Override
-            public String name() {
-                return "dummy";
-            }
-        };
+        Task task = new DummyTask(0);
         builder.addTask(task);
         builder.build();
 
@@ -174,9 +168,9 @@ public class RootTaskTest extends CrateUnitTest {
         ProfilingContext profilingContext = new ProfilingContext(Collections::emptyList);
         builder.profilingContext(profilingContext);
 
-        AbstractTaskTest.TestingTask ctx1 = new AbstractTaskTest.TestingTask(1);
+        var ctx1 = new DummyTask(1);
         builder.addTask(ctx1);
-        AbstractTaskTest.TestingTask ctx2 = new AbstractTaskTest.TestingTask(2);
+        var ctx2 = new DummyTask(2);
         builder.addTask(ctx2);
         RootTask rootTask = builder.build();
 

@@ -28,13 +28,11 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import javax.annotation.Nonnull;
 import java.lang.reflect.Field;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import static org.hamcrest.Matchers.contains;
@@ -111,14 +109,7 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testKillAllCallsKillOnSubContext() throws Exception {
-        final AtomicBoolean killCalled = new AtomicBoolean(false);
-        Task dummyContext = new DummyTask() {
-
-            @Override
-            public void innerKill(@Nonnull Throwable throwable) {
-                killCalled.set(true);
-            }
-        };
+        var dummyContext = new DummyTask();
 
         RootTask.Builder builder = tasksService.newBuilder(UUID.randomUUID());
         builder.addTask(dummyContext);
@@ -131,34 +122,22 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
         assertThat(activeTasks.size(), is(1));
         assertThat(tasksService.killAll().get(5L, TimeUnit.SECONDS), is(1));
 
-        assertThat(killCalled.get(), is(true));
+        assertThat(dummyContext.numKill.get(), is(1));
         assertThat(activeTasks.size(), is(0));
     }
 
     @Test
     public void testKillJobsCallsKillOnSubContext() throws Exception {
-        final AtomicBoolean killCalled = new AtomicBoolean(false);
-        final AtomicBoolean kill2Called = new AtomicBoolean(false);
-        Task dummyContext = new DummyTask() {
-
-            @Override
-            public void innerKill(@Nonnull Throwable throwable) {
-                killCalled.set(true);
-            }
-        };
+        var task1 = new DummyTask();
 
         UUID jobId = UUID.randomUUID();
         RootTask.Builder builder = tasksService.newBuilder(jobId);
-        builder.addTask(dummyContext);
+        builder.addTask(task1);
         tasksService.createTask(builder);
 
         builder = tasksService.newBuilder(UUID.randomUUID());
-        builder.addTask(new DummyTask() {
-            @Override
-            public void innerKill(@Nonnull Throwable throwable) {
-                kill2Called.set(true);
-            }
-        });
+        DummyTask task2 = new DummyTask();
+        builder.addTask(task2);
         tasksService.createTask(builder);
 
         Field activeTasksField = TasksService.class.getDeclaredField("activeTasks");
@@ -168,8 +147,8 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
         assertThat(activeTasks.size(), is(2));
         assertThat(tasksService.killJobs(ImmutableList.of(jobId)).get(5L, TimeUnit.SECONDS), is(1));
 
-        assertThat(killCalled.get(), is(true));
-        assertThat(kill2Called.get(), is(false));
+        assertThat(task1.numKill.get(), is(1));
+        assertThat(task2.numKill.get(), is(0));
         assertThat(activeTasks.size(), is(1)); //only one job is killed
 
     }
@@ -190,7 +169,7 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
         RootTask ctx1 = tasksService.createTask(builder1);
 
         assertThat(numContexts(ctx1), is(1));
-        subContext.close();
+        subContext.start();
         assertThat(numContexts(ctx1), is(0));
     }
 
