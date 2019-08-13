@@ -275,4 +275,18 @@ public class WindowFunctionsIntegrationTest extends SQLTransportIntegrationTest 
         execute("SELECT x, COLLECT_SET(y) OVER(PARTITION BY y) FROM t");
         assertThat(printedTable(response.rows()), is("1| [1]\n"));
     }
+
+    @Test
+    public void test_select_with_standalone_ref_and_subquery_filter_in_window_function() {
+        execute("create table t (x int, y string)");
+        execute("insert into t values (1, '1'), (2, '2')");
+        execute("refresh table t");
+
+        execute("SELECT" +
+                "   y, " +
+                "   COLLECT_SET(x) FILTER (WHERE x IN (SELECT UNNEST([1]))) OVER(ORDER BY x) " +
+                "FROM t");
+        assertThat(printedTable(response.rows()), is("1| [1]\n" +
+                                                     "2| [1]\n"));
+    }
 }

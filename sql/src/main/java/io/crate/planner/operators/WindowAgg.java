@@ -125,9 +125,15 @@ public class WindowAgg extends ForwardingLogicalPlan {
         ArrayList<WindowFunctionContext> windowFunctionContexts =
             new ArrayList<>(windowFunctions.size());
 
-        for (WindowFunction windowFunction : windowFunctions) {
-            List<Symbol> inputs = InputColumns.create(windowFunction.arguments(), sourceSymbols);
-            Symbol filter = windowFunction.filter();
+        SubQueryAndParamBinder binder = new SubQueryAndParamBinder(params, subQueryResults);
+        for (var windowFunction : windowFunctions) {
+            var boundWindowFunction = (WindowFunction) binder.apply(windowFunction);
+
+            List<Symbol> inputs = InputColumns.create(
+                boundWindowFunction.arguments(),
+                sourceSymbols);
+
+            Symbol filter = boundWindowFunction.filter();
             Symbol filterInput;
             if (filter != null) {
                 filterInput = InputColumns.create(filter, sourceSymbols);
@@ -135,12 +141,11 @@ public class WindowAgg extends ForwardingLogicalPlan {
                 filterInput = Literal.BOOLEAN_TRUE;
             }
             windowFunctionContexts.add(new WindowFunctionContext(
-                windowFunction,
+                boundWindowFunction,
                 inputs,
                 filterInput));
         }
         List<Projection> projections = new ArrayList<>();
-        SubQueryAndParamBinder binder = new SubQueryAndParamBinder(params, subQueryResults);
         WindowAggProjection windowAggProjection = new WindowAggProjection(
             windowDefinition.map(binder.andThen(s -> InputColumns.create(s, sourceSymbols))),
             windowFunctionContexts,
