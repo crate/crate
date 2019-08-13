@@ -23,6 +23,7 @@ package io.crate.execution.engine.collect;
 
 import io.crate.data.BatchIterator;
 import io.crate.data.CompositeBatchIterator;
+import io.crate.data.FailingBatchIterator;
 import io.crate.data.Row;
 import io.crate.execution.TransportActionProvider;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
@@ -172,11 +173,13 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
             //noinspection unchecked
             return CompositeBatchIterator.seqComposite(segmentBatchIterator.toArray(new BatchIterator[0]));
         } catch (IOException e) {
-            searcher.close();
-            throw new UncheckedIOException(e);
+            return new FailingBatchIterator<>(new UncheckedIOException(e));
         } catch (Throwable t) {
-            searcher.close();
-            throw t;
+            if (t instanceof RuntimeException) {
+                return new FailingBatchIterator<>((RuntimeException) t);
+            } else {
+                return new FailingBatchIterator<>(new RuntimeException(t));
+            }
         }
     }
 

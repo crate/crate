@@ -41,8 +41,6 @@ import org.apache.lucene.search.Weight;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collection;
 import java.util.Set;
 import java.util.function.IntPredicate;
 
