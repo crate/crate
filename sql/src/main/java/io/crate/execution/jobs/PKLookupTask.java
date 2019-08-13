@@ -25,6 +25,7 @@ package io.crate.execution.jobs;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.BatchIterator;
 import io.crate.data.BatchIterators;
+import io.crate.data.ListenableRowConsumer;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.dsl.projection.Projection;
@@ -40,12 +41,15 @@ import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.PKAndVersion;
 import org.elasticsearch.index.shard.ShardId;
 
+import javax.annotation.Nonnull;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-public final class PKLookupTask extends AbstractTask {
+public final class PKLookupTask implements Task {
 
     private final UUID jobId;
     private final RamAccountingContext ramAccountingContext;
@@ -54,10 +58,12 @@ public final class PKLookupTask extends AbstractTask {
     private final boolean ignoreMissing;
     private final Map<ShardId, List<PKAndVersion>> idsByShard;
     private final Collection<? extends Projection> shardProjections;
-    private final RowConsumer consumer;
+    private final ListenableRowConsumer consumer;
     private final InputRow inputRow;
     private final List<CollectExpression<Doc, ?>> expressions;
     private final String name;
+    private final int phaseId;
+    private final AtomicBoolean started = new AtomicBoolean(false);
 
     PKLookupTask(UUID jobId,
                  int phaseId,
@@ -71,7 +77,7 @@ public final class PKLookupTask extends AbstractTask {
                  Map<ShardId, List<PKAndVersion>> idsByShard,
                  Collection<? extends Projection> shardProjections,
                  RowConsumer consumer) {
-        super(phaseId);
+        this.phaseId = phaseId;
         this.jobId = jobId;
         this.name = name;
         this.ramAccountingContext = ramAccountingContext;
@@ -79,7 +85,7 @@ public final class PKLookupTask extends AbstractTask {
         this.pkLookupOperation = pkLookupOperation;
         this.idsByShard = idsByShard;
         this.shardProjections = shardProjections;
-        this.consumer = consumer;
+        this.consumer = new ListenableRowConsumer(consumer);
 
         this.ignoreMissing = !partitionedByColumns.isEmpty();
         DocRefResolver docRefResolver = new DocRefResolver(partitionedByColumns);
@@ -91,23 +97,26 @@ public final class PKLookupTask extends AbstractTask {
     }
 
     @Override
-    protected void innerStart() {
-        if (shardProjections.isEmpty()) {
-            BatchIterator<Doc> batchIterator = pkLookupOperation.lookup(ignoreMissing, idsByShard, consumer.requiresScroll());
-            consumer.accept(BatchIterators.map(batchIterator, this::resultToRow), null);
-        } else {
-            pkLookupOperation.runWithShardProjections(
-                jobId,
-                txnCtx,
-                ramAccountingContext,
-                ignoreMissing,
-                idsByShard,
-                shardProjections,
-                consumer,
-                this::resultToRow
-            );
+    public void start() {
+        if (started.compareAndSet(false, true)) {
+            if (shardProjections.isEmpty()) {
+                BatchIterator<Doc> batchIterator = pkLookupOperation.lookup(ignoreMissing,
+                                                                            idsByShard,
+                                                                            consumer.requiresScroll());
+                consumer.accept(BatchIterators.map(batchIterator, this::resultToRow), null);
+            } else {
+                pkLookupOperation.runWithShardProjections(
+                    jobId,
+                    txnCtx,
+                    ramAccountingContext,
+                    ignoreMissing,
+                    idsByShard,
+                    shardProjections,
+                    consumer,
+                    this::resultToRow
+                );
+            }
         }
-        close();
     }
 
     private Row resultToRow(Doc getResult) {
@@ -120,5 +129,23 @@ public final class PKLookupTask extends AbstractTask {
     @Override
     public String name() {
         return name;
+    }
+
+    @Override
+    public int id() {
+        return phaseId;
+    }
+
+    @Override
+    public CompletableFuture<CompletionState> completionFuture() {
+        return consumer.completionFuture().thenApply(ignored -> new CompletionState(0));
+    }
+
+    @Override
+    public void kill(@Nonnull Throwable throwable) {
+        if (!started.getAndSet(true)) {
+            consumer.accept(null, throwable);
+        }
+        // else let it finish, PK lookups should be fairly fast
     }
 }
