@@ -24,9 +24,11 @@ package io.crate.execution.jobs;
 import io.crate.concurrent.CompletionListenable;
 import io.crate.execution.dsl.phases.JoinPhase;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.concurrent.CompletableFuture;
 
-class JoinTask extends AbstractTask implements DownstreamRXTask {
+class JoinTask implements Task, DownstreamRXTask {
 
     private final JoinPhase joinPhase;
 
@@ -35,18 +37,20 @@ class JoinTask extends AbstractTask implements DownstreamRXTask {
 
     @Nullable
     private final PageBucketReceiver rightPageBucketReceiver;
+    private final CompletableFuture<?> resultFuture;
 
     JoinTask(JoinPhase joinPhase,
              CompletionListenable<?> completionListenable,
              @Nullable PageBucketReceiver leftPageBucketReceiver,
              @Nullable PageBucketReceiver rightPageBucketReceiver) {
-        super(joinPhase.phaseId());
-
         this.joinPhase = joinPhase;
         this.leftPageBucketReceiver = leftPageBucketReceiver;
         this.rightPageBucketReceiver = rightPageBucketReceiver;
+        this.resultFuture = completionListenable.completionFuture();
+    }
 
-        completionListenable.completionFuture().whenComplete(closeOrKill(this));
+    @Override
+    public void start() {
     }
 
     @Override
@@ -55,9 +59,8 @@ class JoinTask extends AbstractTask implements DownstreamRXTask {
     }
 
     @Override
-    protected void innerKill(@Nullable Throwable t) {
-        // killed via PageDownstreamContexts or if they're not available the nestedLoop integrates
-        // into the previous executionPhase
+    public int id() {
+        return joinPhase.phaseId();
     }
 
     @Override
@@ -75,8 +78,16 @@ class JoinTask extends AbstractTask implements DownstreamRXTask {
                "id=" + id() +
                ", leftCtx=" + leftPageBucketReceiver +
                ", rightCtx=" + rightPageBucketReceiver +
-               ", closed=" + isClosed() +
                '}';
     }
 
+    @Override
+    public CompletableFuture<CompletionState> completionFuture() {
+        return resultFuture.thenApply(ignored -> new CompletionState(0));
+    }
+
+    @Override
+    public void kill(@Nonnull Throwable throwable) {
+        resultFuture.completeExceptionally(throwable);
+    }
 }
