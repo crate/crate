@@ -108,8 +108,7 @@ public class FetchTaskTest extends CrateDummyClusterServiceUnitTest {
             new SharedShardContexts(mock(IndicesService.class, RETURNS_MOCKS), UnaryOperator.identity()),
             metaData,
             ImmutableList.of(routing));
-
-        context.prepare();
+        context.start();
 
         assertThat(context.searcher(1), Matchers.notNullValue());
         assertThat(context.searcher(2), Matchers.notNullValue());

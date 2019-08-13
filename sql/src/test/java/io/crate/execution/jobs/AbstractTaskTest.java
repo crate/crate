@@ -79,7 +79,6 @@ public class AbstractTaskTest extends CrateUnitTest {
 
     public static class TestingTask extends AbstractTask {
 
-        final AtomicInteger numPrepare = new AtomicInteger();
         final AtomicInteger numStart = new AtomicInteger();
         final AtomicInteger numClose = new AtomicInteger();
         final AtomicInteger numKill = new AtomicInteger();
@@ -106,12 +105,6 @@ public class AbstractTaskTest extends CrateUnitTest {
         protected void innerKill(@Nonnull Throwable t) {
             numKill.incrementAndGet();
         }
-
-        @Override
-        public void innerPrepare() {
-            numPrepare.incrementAndGet();
-        }
-
         @Override
         protected void innerStart() {
             numStart.incrementAndGet();
@@ -119,7 +112,6 @@ public class AbstractTaskTest extends CrateUnitTest {
 
         public List<Integer> stats() {
             return ImmutableList.of(
-                numPrepare.get(),
                 numStart.get(),
                 numClose.get(),
                 numKill.get()
@@ -131,36 +123,32 @@ public class AbstractTaskTest extends CrateUnitTest {
     @Test
     public void testNormalSequence() throws Exception {
         TestingTask task = new TestingTask();
-        task.prepare();
         task.start();
         task.close();
-        assertThat(task.stats(), contains(1, 1, 1, 0));
+        assertThat(task.stats(), contains(1, 1, 0));
     }
 
     @Test
-    public void testCloseAfterPrepare() throws Exception {
+    public void testCloseBeforeStart() throws Exception {
         TestingTask task = new TestingTask();
-        task.prepare();
         task.close();
         task.start();
         task.close();
-        assertThat(task.stats(), contains(1, 0, 1, 0));
+        assertThat(task.stats(), contains(0, 1, 0));
     }
 
     @Test
     public void testParallelClose() throws Exception {
-        testingTask.prepare();
         testingTask.start();
         runAsync(closeRunnable, 3);
-        assertThat(testingTask.stats(), contains(1, 1, 1, 0));
+        assertThat(testingTask.stats(), contains(1, 1, 0));
     }
 
     @Test
     public void testParallelKill() throws Exception {
-        testingTask.prepare();
         testingTask.start();
         runAsync(killRunnable, 3);
-        assertThat(testingTask.stats(), contains(1, 1, 0, 1));
+        assertThat(testingTask.stats(), contains(1, 0, 1));
         assertThat(testingTask.numKill.get(), greaterThan(0));
     }
 

@@ -33,8 +33,8 @@ import io.crate.execution.dsl.phases.CollectPhase;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.jobs.AbstractTask;
 import io.crate.execution.jobs.SharedShardContexts;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.TransactionContext;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.threadpool.ThreadPool;
 
@@ -54,7 +54,7 @@ public class CollectTask extends AbstractTask {
     private final Object subContextLock = new Object();
     private final String threadPoolName;
 
-    private BatchIterator<Row> batchIterator = null;
+    private BatchIterator<Row> batchIterator;
 
     public CollectTask(final CollectPhase collectPhase,
                        TransactionContext txnCtx,
@@ -133,12 +133,8 @@ public class CollectTask extends AbstractTask {
     }
 
     @Override
-    public void innerPrepare() throws Exception {
-        batchIterator = collectOperation.createIterator(txnCtx, collectPhase, consumer.requiresScroll(), this);
-    }
-
-    @Override
     protected void innerStart() {
+        batchIterator = collectOperation.createIterator(txnCtx, collectPhase, consumer.requiresScroll(), this);
         collectOperation.launch(() -> consumer.accept(batchIterator, null), threadPoolName);
     }
 

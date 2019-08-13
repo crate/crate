@@ -158,8 +158,6 @@ public class RootTask implements CompletionListenable<Void> {
                 throw new IllegalArgumentException("Task for " + phaseId + " already added");
             }
             task.completionFuture().whenComplete(new RemoveTaskListener(phaseId));
-            jobsLogs.operationStarted(phaseId, jobId, task.name());
-            task.prepare();
             if (profiler != null) {
                 String subContextName = ProfilingContext.generateProfilingKey(task.id(), task.name());
                 if (taskTimersByPhaseId.put(phaseId, profiler.createTimer(subContextName)) != null) {
@@ -190,6 +188,7 @@ public class RootTask implements CompletionListenable<Void> {
             if (task == null || closed.get()) {
                 break; // got killed before start was called
             }
+            jobsLogs.operationStarted(task.id(), jobId, task.name());
             if (profiler != null) {
                 assert taskTimersByPhaseId != null : "taskTimersByPhaseId must not be null";
                 taskTimersByPhaseId.get(id.value).start();

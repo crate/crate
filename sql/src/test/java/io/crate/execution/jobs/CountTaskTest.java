@@ -29,8 +29,8 @@ import io.crate.execution.engine.collect.count.CountOperation;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Routing;
+import io.crate.metadata.TransactionContext;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.test.CauseMatcher;
 import io.crate.test.integration.CrateUnitTest;
@@ -43,7 +43,6 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -69,7 +68,6 @@ public class CountTaskTest extends CrateUnitTest {
         when(countOperation.count(eq(txnCtx), any(), any(Symbol.class))).thenReturn(future);
 
         CountTask countTask = new CountTask(countPhaseWithId(1), txnCtx, countOperation, new TestingRowConsumer(), null);
-        countTask.prepare();
         countTask.start();
         future.complete(1L);
         assertTrue(countTask.isClosed());
@@ -81,7 +79,6 @@ public class CountTaskTest extends CrateUnitTest {
         when(countOperation.count(eq(txnCtx), any(), any(Symbol.class))).thenReturn(future);
 
         countTask = new CountTask(countPhaseWithId(2), txnCtx, countOperation, new TestingRowConsumer(), null);
-        countTask.prepare();
         countTask.start();
         future.completeExceptionally(new UnhandledServerException("dummy"));
         assertTrue(countTask.isClosed());
@@ -97,7 +94,6 @@ public class CountTaskTest extends CrateUnitTest {
 
         CountTask countTask = new CountTask(countPhaseWithId(1), txnCtx, countOperation, new TestingRowConsumer(), null);
 
-        countTask.prepare();
         countTask.start();
         countTask.kill(new JobKilledException());
 
