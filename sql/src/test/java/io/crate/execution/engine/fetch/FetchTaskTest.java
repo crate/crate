@@ -46,6 +46,7 @@ import org.junit.Test;
 import java.util.Collections;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.UUID;
 import java.util.function.UnaryOperator;
 
 import static io.crate.testing.TestingHelpers.createReference;
@@ -60,6 +61,7 @@ public class FetchTaskTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testGetIndexServiceForInvalidReaderId() throws Exception {
         final FetchTask context = new FetchTask(
+            UUID.randomUUID(),
             new FetchPhase(
                 1,
                 null,
@@ -98,6 +100,7 @@ public class FetchTaskTest extends CrateDummyClusterServiceUnitTest {
                 .build(), true)
             .build();
         final FetchTask context = new FetchTask(
+            UUID.randomUUID(),
             new FetchPhase(
                 1,
                 null,

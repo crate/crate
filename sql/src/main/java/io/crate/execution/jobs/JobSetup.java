@@ -752,6 +752,7 @@ public class JobSetup {
                   "It doesn't make sense to have a FetchPhase on a node without at least one CollectPhase on the same node";
             String localNodeId = clusterService.localNode().getId();
             context.registerSubContext(new FetchTask(
+                context.jobId(),
                 phase,
                 localNodeId,
                 context.sharedShardContexts,
