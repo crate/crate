@@ -66,7 +66,7 @@ public class AggregateExpressionIntegrationTest extends SQLTransportIntegrationT
     public void test_filter_in_aggregate_expr_for_global_aggregate() {
         execute("SELECT" +
                 "   COLLECT_SET(x) FILTER (WHERE x > 3), " +
-                "   collect_set(x) FILTER (WHERE x > 2) " +
+                "   COLLECT_SET(x) FILTER (WHERE x > 2) " +
                 "FROM UNNEST([1, 3, 4, 2, 5, 4]) AS t(x, y)");
         assertThat(printedTable(response.rows()), is("[4, 5]| [3, 4, 5]\n"));
     }
@@ -90,7 +90,7 @@ public class AggregateExpressionIntegrationTest extends SQLTransportIntegrationT
     public void test_filter_in_aggregate_expr_with_group_by_single_numeric_column_with_nulls() {
         execute("SELECT" +
                 "   COLLECT_SET(x) FILTER (WHERE x > 1) " +
-                "FROM unnest(" +
+                "FROM UNNEST(" +
                 "   [1, 2, 1, 3]," +
                 "   [1, 1, null, null]) AS t(x, y) " +
                 "GROUP BY y");
@@ -132,5 +132,22 @@ public class AggregateExpressionIntegrationTest extends SQLTransportIntegrationT
 
         execute("SELECT COUNT(*) FILTER (WHERE x > 2) FROM t");
         assertThat(printedTable(response.rows()), is("2\n"));
+    }
+
+    @Test
+    public void test_filter_with_group_by_low_cardinality_text_field() {
+        execute("CREATE TABLE t (x TEXT) CLUSTERED INTO 1 SHARDS");
+        // has low cardinality ration: CARDINALITY_RATIO_THRESHOLD (0.5) > 2 terms / 5 docs
+        // that would result in a code path that uses the optimized group by iterator
+        execute("INSERT INTO t VALUES ('a'), ('b'), ('a'), ('b'), ('a')");
+        execute("REFRESH TABLE t");
+
+        execute("SELECT x, COUNT(*) FILTER (WHERE x = ANY(['a'])) " +
+                "FROM t " +
+                "GROUP BY x " +
+                "ORDER BY x");
+        assertThat(printedTable(response.rows()),
+                   is("a| 3\n" +
+                      "b| 0\n"));
     }
 }

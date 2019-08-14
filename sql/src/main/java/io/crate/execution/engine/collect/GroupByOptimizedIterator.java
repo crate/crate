@@ -35,6 +35,7 @@ import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.engine.aggregation.AggregationContext;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.jobs.SharedShardContext;
+import io.crate.expression.InputCondition;
 import io.crate.expression.InputFactory;
 import io.crate.expression.InputRow;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
@@ -345,12 +346,15 @@ final class GroupByOptimizedIterator {
                                         Object[] states) {
         for (int i = 0; i < aggregations.size(); i++) {
             AggregationContext aggregation = aggregations.get(i);
-            //noinspection unchecked
-            states[i] = aggregation.function().iterate(
-                ramAccounting,
-                states[i],
-                aggregation.inputs()
-            );
+
+            if (InputCondition.matches(aggregation.filter())) {
+                //noinspection unchecked
+                states[i] = aggregation.function().iterate(
+                    ramAccounting,
+                    states[i],
+                    aggregation.inputs()
+                );
+            }
         }
     }
 
@@ -361,12 +365,18 @@ final class GroupByOptimizedIterator {
         for (int i = 0; i < aggregations.size(); i++) {
             AggregationContext aggregation = aggregations.get(i);
             AggregationFunction function = aggregation.function();
-            //noinspection unchecked
-            states[i] = function.iterate(
-                ramAccounting,
-                function.newState(ramAccounting, Version.CURRENT, bigArrays),
-                aggregation.inputs()
-            );
+
+            var newState = function.newState(ramAccounting, Version.CURRENT, bigArrays);
+            if (InputCondition.matches(aggregation.filter())) {
+                //noinspection unchecked
+                states[i] = function.iterate(
+                    ramAccounting,
+                    newState,
+                    aggregation.inputs()
+                );
+            } else {
+                states[i] = newState;
+            }
         }
         return states;
     }
