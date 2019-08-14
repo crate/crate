@@ -104,7 +104,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
                                                       CollectTask collectTask) {
         ShardId shardId = indexShard.shardId();
         SharedShardContext sharedShardContext = collectTask.sharedShardContexts().getOrCreateContext(shardId);
-        Engine.Searcher searcher = sharedShardContext.acquireSearcher();
+        Engine.Searcher searcher = sharedShardContext.acquireSearcher(formatSource(collectPhase));
         IndexShard indexShard = sharedShardContext.indexShard();
         try {
             QueryShardContext queryShardContext = sharedShardContext.indexService().newQueryShardContext();
@@ -162,7 +162,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
         Engine.Searcher searcher = null;
         LuceneQueryBuilder.Context queryContext;
         try {
-            searcher = sharedShardContext.acquireSearcher();
+            searcher = sharedShardContext.acquireSearcher(formatSource(phase));
             IndexService indexService = sharedShardContext.indexService();
             QueryShardContext queryShardContext = indexService.newQueryShardContext();
             queryContext = luceneQueryBuilder.convert(
@@ -206,6 +206,10 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
             ctx.topLevelInputs(),
             ctx.expressions()
         );
+    }
+
+    static String formatSource(RoutedCollectPhase phase) {
+        return phase.jobId().toString() + '-' + phase.phaseId() + '-' + phase.name();
     }
 
     static CollectorContext getCollectorContext(int readerId,
