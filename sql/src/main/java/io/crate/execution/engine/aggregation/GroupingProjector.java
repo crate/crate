@@ -60,7 +60,7 @@ public class GroupingProjector implements Projector {
 
         AggregationFunction[] functions = new AggregationFunction[aggregations.length];
         Input[][] inputs = new Input[aggregations.length][];
-        Input[] filters = new Input[aggregations.length];
+        Input<Boolean>[] filters = new Input[aggregations.length];
         for (int i = 0; i < aggregations.length; i++) {
             AggregationContext aggregation = aggregations[i];
             functions[i] = aggregation.function();
