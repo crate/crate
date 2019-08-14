@@ -55,13 +55,13 @@ class SubscriptQuery implements InnerFunctionToQuery {
         ImmutableMap.<String, PreFilterQueryBuilder>builder()
             .put(EqOperator.NAME, MappedFieldType::termQuery)
             .put(GteOperator.NAME, (fieldType, value, context)
-                -> fieldType.rangeQuery(value, null, true, false, null, null, null, context))
+                -> fieldType.rangeQuery(value, null, true, false, null, null, context))
             .put(GtOperator.NAME, (fieldType, value, context)
-                -> fieldType.rangeQuery(value, null, false, false, null, null, null, context))
+                -> fieldType.rangeQuery(value, null, false, false, null, null, context))
             .put(LteOperator.NAME, (fieldType, value, context)
-                -> fieldType.rangeQuery(null, value, false, true, null, null, null, context))
+                -> fieldType.rangeQuery(null, value, false, true, null, null, context))
             .put(LtOperator.NAME, (fieldType, value, context)
-                -> fieldType.rangeQuery(null, value, false, false, null, null, null, context))
+                -> fieldType.rangeQuery(null, value, false, false, null, null, context))
             .build();
 
     @Nullable
