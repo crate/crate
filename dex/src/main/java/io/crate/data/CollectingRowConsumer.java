@@ -35,10 +35,6 @@ public class CollectingRowConsumer<S, R> implements RowConsumer {
         this.collector = collector;
     }
 
-    public CompletableFuture<R> resultFuture() {
-        return resultFuture;
-    }
-
     @Override
     public void accept(BatchIterator<Row> iterator, @Nullable Throwable failure) {
         if (failure == null) {
@@ -51,5 +47,10 @@ public class CollectingRowConsumer<S, R> implements RowConsumer {
             }
             resultFuture.completeExceptionally(failure);
         }
+    }
+
+    @Override
+    public CompletableFuture<R> completionFuture() {
+        return resultFuture;
     }
 }

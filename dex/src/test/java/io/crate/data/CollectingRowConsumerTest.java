@@ -44,18 +44,18 @@ public class CollectingRowConsumerTest {
             .mapToObj(i -> new Object[]{i})
             .collect(Collectors.toList());
 
-        BatchSimulatingIterator batchSimulatingIterator =
-            new BatchSimulatingIterator(TestingBatchIterators.range(0, 10),
+        BatchSimulatingIterator<Row> batchSimulatingIterator =
+            new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 10),
                 2,
                 5,
                 null);
 
         CollectingRowConsumer<?, List<Object[]>> batchConsumer =
-            new CollectingRowConsumer(Collectors.mapping(Row::materialize, Collectors.toList()));
+            new CollectingRowConsumer<>(Collectors.mapping(Row::materialize, Collectors.toList()));
 
         batchConsumer.accept(batchSimulatingIterator, null);
 
-        CompletableFuture<List<Object[]>> result = batchConsumer.resultFuture();
+        CompletableFuture<List<Object[]>> result = batchConsumer.completionFuture();
         List<Object[]> consumedRows = result.get(10, TimeUnit.SECONDS);
 
         assertThat(consumedRows.size(), is(10));

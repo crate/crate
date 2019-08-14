@@ -36,6 +36,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -61,6 +62,7 @@ public class DistributingConsumer implements RowConsumer {
     private final StreamBucket[] buckets;
     private final List<Downstream> downstreams;
     private final boolean traceEnabled;
+    private final CompletableFuture<Void> completionFuture;
 
     @VisibleForTesting
     final MultiBucketBuilder multiBucketBuilder;
@@ -88,6 +90,7 @@ public class DistributingConsumer implements RowConsumer {
         this.distributedResultAction = distributedResultAction;
         this.pageSize = pageSize;
         this.buckets = new StreamBucket[downstreamNodeIds.size()];
+        this.completionFuture = new CompletableFuture<>();
         downstreams = new ArrayList<>(downstreamNodeIds.size());
         for (String downstreamNodeId : downstreamNodeIds) {
             downstreams.add(new Downstream(downstreamNodeId));
@@ -101,6 +104,11 @@ public class DistributingConsumer implements RowConsumer {
         } else {
             forwardFailure(null, failure);
         }
+    }
+
+    @Override
+    public CompletableFuture<?> completionFuture() {
+        return completionFuture;
     }
 
     private void consumeIt(BatchIterator<Row> it) {
@@ -169,6 +177,7 @@ public class DistributingConsumer implements RowConsumer {
         if (numActiveRequests.decrementAndGet() == 0) {
             if (it != null) {
                 it.close();
+                completionFuture.complete(null);
             }
         }
     }
@@ -235,6 +244,7 @@ public class DistributingConsumer implements RowConsumer {
                 // The NodeDisconnectJobMonitorService takes care of node disconnects, so we don't have to manage
                 // that scenario.
                 it.close();
+                completionFuture.complete(null);
             }
         }
     }
