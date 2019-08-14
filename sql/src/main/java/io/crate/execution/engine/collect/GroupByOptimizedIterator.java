@@ -82,6 +82,7 @@ import java.util.function.Supplier;
 
 import static io.crate.breaker.RamAccountingContext.roundUp;
 import static io.crate.execution.dsl.projection.Projections.shardProjections;
+import static io.crate.execution.engine.collect.LuceneShardCollectorProvider.formatSource;
 import static io.crate.execution.engine.collect.LuceneShardCollectorProvider.getCollectorContext;
 
 final class GroupByOptimizedIterator {
@@ -137,7 +138,7 @@ final class GroupByOptimizedIterator {
 
         ShardId shardId = indexShard.shardId();
         SharedShardContext sharedShardContext = collectTask.sharedShardContexts().getOrCreateContext(shardId);
-        Engine.Searcher searcher = sharedShardContext.acquireSearcher();
+        Engine.Searcher searcher = sharedShardContext.acquireSearcher(formatSource(collectPhase));
         try {
             QueryShardContext queryShardContext =
                 sharedShardContext.indexService().newQueryShardContext(System::currentTimeMillis);

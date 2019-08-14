@@ -22,11 +22,11 @@
 
 package io.crate.execution.jobs;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.search.IndexSearcher;
 import org.elasticsearch.ElasticsearchException;
-import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.engine.Engine;
@@ -62,9 +62,9 @@ public class SharedShardContext {
         this.wrapSearcher = wrapSearcher;
     }
 
-    public Engine.Searcher acquireSearcher() throws IndexNotFoundException {
+    public Engine.Searcher acquireSearcher(String source) throws IndexNotFoundException {
         if (searcher == null) {
-            Engine.Searcher searcher = indexShard().acquireSearcher("shared-shard-context");
+            Engine.Searcher searcher = indexShard().acquireSearcher(source);
             this.searcher = RefCountSearcher.create(searcher, wrapSearcher);
         }
         searcher.inc();

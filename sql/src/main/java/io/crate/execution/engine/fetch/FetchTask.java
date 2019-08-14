@@ -50,6 +50,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class FetchTask extends AbstractTask {
@@ -64,13 +65,16 @@ public class FetchTask extends AbstractTask {
     private final Iterable<? extends Routing> routingIterable;
     private final Map<RelationName, Collection<Reference>> toFetch;
     private final AtomicBoolean isKilled = new AtomicBoolean(false);
+    private final UUID jobId;
 
-    public FetchTask(FetchPhase phase,
+    public FetchTask(UUID jobId,
+                     FetchPhase phase,
                      String localNodeId,
                      SharedShardContexts sharedShardContexts,
                      MetaData metaData,
                      Iterable<? extends Routing> routingIterable) {
         super(phase.phaseId());
+        this.jobId = jobId;
         this.phase = phase;
         this.localNodeId = localNodeId;
         this.sharedShardContexts = sharedShardContexts;
@@ -100,7 +104,7 @@ public class FetchTask extends AbstractTask {
             tablesWithFetchRefs.add(reference.ident().tableIdent());
         }
 
-
+        String source = jobId.toString() + '-' + phase.phaseId() + '-' + phase.name();
         for (Routing routing : routingIterable) {
             Map<String, Map<String, IntIndexedContainer>> locations = routing.locations();
             Map<String, IntIndexedContainer> indexShards = locations.get(localNodeId);
@@ -131,7 +135,7 @@ public class FetchTask extends AbstractTask {
                         shardContexts.put(readerId, shardContext);
                         if (tablesWithFetchRefs.contains(ident)) {
                             try {
-                                searchers.put(readerId, shardContext.acquireSearcher());
+                                searchers.put(readerId, shardContext.acquireSearcher(source));
                             } catch (IndexNotFoundException e) {
                                 if (!IndexParts.isPartitioned(indexName)) {
                                     throw e;
