@@ -20,7 +20,6 @@
 package org.elasticsearch.index.query;
 
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.util.SetOnce;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.analysis.IndexAnalyzers;
@@ -30,41 +29,30 @@ import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.mapper.ObjectMapper;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.function.BiFunction;
-import java.util.function.LongSupplier;
 
 /**
  * Context object used to create lucene queries on the shard level.
  */
-public class QueryShardContext extends QueryRewriteContext {
+public class QueryShardContext {
 
-    private final IndexSettings indexSettings;
     private final MapperService mapperService;
     private final BiFunction<MappedFieldType, String, IndexFieldData<?>> indexFieldDataService;
-    private final SetOnce<Boolean> frozen = new SetOnce<>();
     private final Index fullyQualifiedIndex;
 
     private boolean allowUnmappedFields;
 
     public QueryShardContext(IndexSettings indexSettings,
                              BiFunction<MappedFieldType, String, IndexFieldData<?>> indexFieldDataLookup,
-                             MapperService mapperService,
-                             LongSupplier nowInMillis) {
-        super(nowInMillis);
+                             MapperService mapperService) {
         this.mapperService = mapperService;
         this.indexFieldDataService = indexFieldDataLookup;
         this.allowUnmappedFields = indexSettings.isDefaultAllowUnmappedFields();
-        this.indexSettings = indexSettings;
         this.fullyQualifiedIndex = indexSettings.getIndex();
     }
 
     public IndexAnalyzers getIndexAnalyzers() {
         return mapperService.getIndexAnalyzers();
-    }
-
-    public List<String> defaultFields() {
-        return indexSettings.getDefaultFields();
     }
 
     public <IFD extends IndexFieldData<?>> IFD getForField(MappedFieldType fieldType) {
@@ -116,27 +104,6 @@ public class QueryShardContext extends QueryRewriteContext {
             throw new QueryShardException(this, "No field mapping can be found for the field with name [{}]", name);
         }
     }
-
-    /**
-     * This methods and all methods that call it should be final to ensure that
-     * setting the request as not cacheable and the freezing behaviour of this
-     * class cannot be bypassed. This is important so we can trust when this
-     * class says a request can be cached.
-     */
-    protected final void failIfFrozen() {
-        if (frozen.get() == Boolean.TRUE) {
-            throw new IllegalArgumentException("features that prevent cachability are disabled on this context");
-        } else {
-            assert frozen.get() == null : frozen.get();
-        }
-    }
-
-    @Override
-    public final long nowInMillis() {
-        failIfFrozen();
-        return super.nowInMillis();
-    }
-
 
     /**
      * Return the MapperService.

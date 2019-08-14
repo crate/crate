@@ -82,7 +82,6 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
-import java.util.function.LongSupplier;
 
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.unmodifiableMap;
@@ -143,10 +142,14 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
         this.xContentRegistry = xContentRegistry;
         this.namedWriteableRegistry = namedWriteableRegistry;
         this.circuitBreakerService = circuitBreakerService;
-        this.mapperService = new MapperService(indexSettings, registry.build(indexSettings), xContentRegistry,
+        this.mapperService = new MapperService(
+            indexSettings,
+            registry.build(indexSettings),
+            xContentRegistry,
             mapperRegistry,
             // we parse all percolator queries as they would be parsed on shard 0
-            () -> newQueryShardContext(System::currentTimeMillis));
+            this::newQueryShardContext
+        );
         this.indexFieldData = new IndexFieldDataService(indexSettings, indicesFieldDataCache, circuitBreakerService, mapperService);
         this.shardStoreDeleter = shardStoreDeleter;
         this.bigArrays = bigArrays;
@@ -442,13 +445,8 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
     /**
      * Creates a new QueryShardContext
      */
-    public QueryShardContext newQueryShardContext(LongSupplier nowInMillis) {
-        return new QueryShardContext(
-            indexSettings,
-            indexFieldData::getForField,
-            mapperService(),
-            nowInMillis
-        );
+    public QueryShardContext newQueryShardContext() {
+        return new QueryShardContext(indexSettings, indexFieldData::getForField, mapperService());
     }
 
     /**

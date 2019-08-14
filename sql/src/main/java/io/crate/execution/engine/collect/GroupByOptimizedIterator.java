@@ -140,8 +140,7 @@ final class GroupByOptimizedIterator {
         SharedShardContext sharedShardContext = collectTask.sharedShardContexts().getOrCreateContext(shardId);
         Engine.Searcher searcher = sharedShardContext.acquireSearcher(formatSource(collectPhase));
         try {
-            QueryShardContext queryShardContext =
-                sharedShardContext.indexService().newQueryShardContext(System::currentTimeMillis);
+            QueryShardContext queryShardContext = sharedShardContext.indexService().newQueryShardContext();
             collectTask.addSearcher(sharedShardContext.readerId(), searcher);
 
             InputFactory.Context<? extends LuceneCollectorExpression<?>> docCtx = docInputFactory.getCtx(collectTask.txnCtx());
