@@ -26,15 +26,14 @@ import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.BatchIterator;
-import io.crate.data.ListenableRowConsumer;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.dsl.phases.CollectPhase;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.jobs.AbstractTask;
 import io.crate.execution.jobs.SharedShardContexts;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.TransactionContext;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.threadpool.ThreadPool;
 
@@ -47,12 +46,12 @@ public class CollectTask extends AbstractTask {
     private final TransactionContext txnCtx;
     private final MapSideDataCollectOperation collectOperation;
     private final RamAccountingContext queryPhaseRamAccountingContext;
-    private final ListenableRowConsumer consumer;
     private final SharedShardContexts sharedShardContexts;
 
     private final IntObjectHashMap<Engine.Searcher> searchers = new IntObjectHashMap<>();
     private final Object subContextLock = new Object();
     private final String threadPoolName;
+    private final RowConsumer consumer;
 
     private BatchIterator<Row> batchIterator = null;
 
@@ -68,7 +67,7 @@ public class CollectTask extends AbstractTask {
         this.collectOperation = collectOperation;
         this.queryPhaseRamAccountingContext = queryPhaseRamAccountingContext;
         this.sharedShardContexts = sharedShardContexts;
-        this.consumer = new ListenableRowConsumer(consumer);
+        this.consumer = consumer;
         this.consumer.completionFuture().whenComplete(closeOrKill(this));
         this.threadPoolName = threadPoolName(collectPhase);
     }

@@ -56,7 +56,7 @@ public final class MultiPhaseExecutor {
             depPlan.execute(
                 executor, PlannerContext.forSubPlan(plannerContext), rowConsumer, params, SubQueryResults.EMPTY);
 
-            dependencyFutures.add(rowConsumer.resultFuture().thenAccept(val -> {
+            dependencyFutures.add(rowConsumer.completionFuture().thenAccept(val -> {
                 synchronized (valueBySubQuery) {
                     valueBySubQuery.put(selectSymbol, val);
                 }

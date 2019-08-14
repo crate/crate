@@ -25,6 +25,7 @@ package io.crate.planner;
 import com.google.common.collect.ImmutableList;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
+import io.crate.data.RowConsumer;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.planner.node.management.ExplainPlan;
 import io.crate.planner.operators.ExplainLogicalPlan;
@@ -38,9 +39,11 @@ import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.junit.Before;
 import org.junit.Test;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -139,17 +142,25 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
         PlannerContext plannerContext = e.getPlannerContext(clusterService.state());
         CountDownLatch counter = new CountDownLatch(1);
 
-        AtomicReference<BatchIterator<Row>> iterator = new AtomicReference<>();
-        AtomicReference<Throwable> failure = new AtomicReference<>();
+        AtomicReference<BatchIterator<Row>> itRef = new AtomicReference<>();
+        AtomicReference<Throwable> failureRef = new AtomicReference<>();
 
-        plan.execute(null, plannerContext, (i, f) -> {
-            iterator.set(i);
-            failure.set(f);
-            counter.countDown();
+        plan.execute(null, plannerContext, new RowConsumer() {
+            @Override
+            public void accept(BatchIterator<Row> iterator, @Nullable Throwable failure) {
+                itRef.set(iterator);
+                failureRef.set(failure);
+                counter.countDown();
+            }
+
+            @Override
+            public CompletableFuture<?> completionFuture() {
+                return null;
+            }
         }, Row.EMPTY, SubQueryResults.EMPTY);
 
-        assertNull(iterator.get());
-        assertNotNull(failure.get());
-        assertThat(failure.get().getMessage(), containsString("EXPLAIN ANALYZE does not support profiling multi-phase plans, such as queries with scalar subselects."));
+        assertNull(itRef.get());
+        assertNotNull(failureRef.get());
+        assertThat(failureRef.get().getMessage(), containsString("EXPLAIN ANALYZE does not support profiling multi-phase plans, such as queries with scalar subselects."));
     }
 }
