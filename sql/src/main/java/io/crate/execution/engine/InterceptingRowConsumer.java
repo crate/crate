@@ -29,13 +29,14 @@ import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.jobs.kill.KillJobsRequest;
 import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
 import io.crate.execution.support.ThreadPools;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
-import org.apache.logging.log4j.LogManager;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -72,6 +73,11 @@ class InterceptingRowConsumer implements RowConsumer {
             this.iterator = iterator;
             tryForwardResult(failure);
         }
+    }
+
+    @Override
+    public CompletableFuture<?> completionFuture() {
+        return consumer.completionFuture();
     }
 
     private void tryForwardResult(Throwable throwable) {

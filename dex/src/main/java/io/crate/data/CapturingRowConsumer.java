@@ -28,11 +28,13 @@ import java.util.concurrent.CompletableFuture;
 public final class CapturingRowConsumer implements RowConsumer {
 
     private final CompletableFuture<BatchIterator<Row>> batchIterator;
+    private CompletableFuture<?> completionFuture;
     private final boolean requiresScroll;
 
-    public CapturingRowConsumer(boolean requiresScroll) {
-        this.requiresScroll = requiresScroll;
+    public CapturingRowConsumer(boolean requiresScroll, @Nullable CompletableFuture<?> completionFuture) {
         this.batchIterator = new CompletableFuture<>();
+        this.completionFuture = completionFuture == null ? batchIterator : completionFuture;
+        this.requiresScroll = requiresScroll;
     }
 
     @Override
@@ -44,12 +46,17 @@ public final class CapturingRowConsumer implements RowConsumer {
         }
     }
 
+    public CompletableFuture<BatchIterator<Row>> capturedBatchIterator() {
+        return batchIterator;
+    }
+
+    @Override
+    public CompletableFuture<?> completionFuture() {
+        return completionFuture;
+    }
+
     @Override
     public boolean requiresScroll() {
         return requiresScroll;
-    }
-
-    public CompletableFuture<BatchIterator<Row>> capturedBatchIterator() {
-        return batchIterator;
     }
 }
