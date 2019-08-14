@@ -78,7 +78,8 @@ public class LuceneBatchIteratorTest extends CrateUnitTest {
                 new CollectorContext(mappedFieldType -> null),
                 new RamAccountingContext("dummy", new NoopCircuitBreaker("dummy")),
                 columnRefs,
-                columnRefs
+                columnRefs,
+                () -> {}
             )
         );
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);

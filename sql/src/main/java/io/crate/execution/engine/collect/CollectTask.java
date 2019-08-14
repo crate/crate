@@ -21,8 +21,6 @@
 
 package io.crate.execution.engine.collect;
 
-import com.carrotsearch.hppc.IntObjectHashMap;
-import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.BatchIterator;
@@ -36,12 +34,11 @@ import io.crate.execution.jobs.SharedShardContexts;
 import io.crate.execution.jobs.Task;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
-import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nonnull;
-import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class CollectTask implements Task {
@@ -53,8 +50,6 @@ public class CollectTask implements Task {
     private final ListenableRowConsumer consumer;
     private final SharedShardContexts sharedShardContexts;
 
-    private final IntObjectHashMap<Engine.Searcher> searchers = new IntObjectHashMap<>();
-    private final Object subContextLock = new Object();
     private final String threadPoolName;
     private final AtomicBoolean started = new AtomicBoolean(false);
 
@@ -75,39 +70,10 @@ public class CollectTask implements Task {
         this.consumer = new ListenableRowConsumer(consumer);
         this.consumer.completionFuture().whenComplete((result, err) -> {
             CollectTask.this.bytesUsed = queryPhaseRamAccountingContext.totalBytes();
-            closeSearchContexts();
             queryPhaseRamAccountingContext.close();
         });
         this.threadPoolName = threadPoolName(collectPhase);
     }
-
-    public void addSearcher(int searcherId, Engine.Searcher searcher) {
-        if (consumer.completionFuture().isDone()) {
-            // if this is closed and addContext is called this means the context got killed.
-            searcher.close();
-            return;
-        }
-        synchronized (subContextLock) {
-            Engine.Searcher replacedSearcher = searchers.put(searcherId, searcher);
-            if (replacedSearcher != null) {
-                replacedSearcher.close();
-                searcher.close();
-                throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "ShardCollectContext for %d already added", searcherId));
-            }
-        }
-    }
-
-
-    private void closeSearchContexts() {
-        synchronized (subContextLock) {
-            for (ObjectCursor<Engine.Searcher> cursor : searchers.values()) {
-                cursor.value.close();
-            }
-            searchers.clear();
-        }
-    }
-
 
     @Override
     public String name() {
@@ -126,26 +92,27 @@ public class CollectTask implements Task {
                "id=" + collectPhase.phaseId() +
                ", sharedContexts=" + sharedShardContexts +
                ", consumer=" + consumer +
-               ", searchContexts=" + searchers.keys() +
                '}';
     }
 
     @Override
     public void start() {
+        var iterator = collectOperation.createIterator(txnCtx, collectPhase, consumer.requiresScroll(), this);
+        this.batchIterator = iterator;
         if (started.compareAndSet(false, true)) {
-            BatchIterator<Row> iterator = collectOperation.createIterator(
-                txnCtx, collectPhase, consumer.requiresScroll(), this);
-            collectOperation.launch(() -> consumer.accept(iterator, null), threadPoolName);
-            this.batchIterator = iterator;
+            try {
+                collectOperation.launch(() -> consumer.accept(iterator, null), threadPoolName);
+            } catch (RejectedExecutionException e) {
+                consumer.accept(null, e);
+            }
+        } else {
+            iterator.close();
         }
     }
 
     @Override
     public void kill(@Nonnull Throwable throwable) {
         if (started.getAndSet(true)) {
-            while (batchIterator == null) {
-                Thread.onSpinWait();
-            }
             batchIterator.kill(throwable);
         } else {
             consumer.accept(null, throwable);

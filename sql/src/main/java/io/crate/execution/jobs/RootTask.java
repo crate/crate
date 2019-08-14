@@ -188,7 +188,6 @@ public class RootTask implements CompletionListenable<Void> {
             if (task == null || closed.get()) {
                 break; // got killed before start was called
             }
-            jobsLogs.operationStarted(task.id(), jobId, task.name());
             if (profiler != null) {
                 assert taskTimersByPhaseId != null : "taskTimersByPhaseId must not be null";
                 taskTimersByPhaseId.get(id.value).start();
@@ -196,7 +195,16 @@ public class RootTask implements CompletionListenable<Void> {
             if (traceEnabled) {
                 logger.trace("Task start id={} ctx={}", id.value, task);
             }
-            task.start();
+            jobsLogs.operationStarted(task.id(), jobId, task.name());
+            try {
+                task.start();
+            } catch (Throwable t) {
+                if (failure == null) {
+                    failure = t;
+                }
+                task.kill(t);
+                break;
+            }
         }
         if (failure != null) {
             throw failure;

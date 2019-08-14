@@ -116,10 +116,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
                 queryShardContext,
                 sharedShardContext.indexService().cache()
             );
-            collectTask.addSearcher(sharedShardContext.readerId(), searcher);
-            InputFactory.Context<? extends LuceneCollectorExpression<?>> docCtx =
-                docInputFactory.extractImplementations(collectTask.txnCtx(), collectPhase);
-
+            var docCtx = docInputFactory.extractImplementations(collectTask.txnCtx(), collectPhase);
             return new LuceneBatchIterator(
                 searcher.searcher(),
                 queryContext.query(),
@@ -128,7 +125,8 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
                 getCollectorContext(sharedShardContext.readerId(), queryShardContext::getForField),
                 collectTask.queryPhaseRamAccountingContext(),
                 docCtx.topLevelInputs(),
-                docCtx.expressions()
+                docCtx.expressions(),
+                searcher::close
             );
         } catch (Throwable t) {
             searcher.close();
@@ -173,7 +171,6 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
                 queryShardContext,
                 indexService.cache()
             );
-            collectTask.addSearcher(sharedShardContext.readerId(), searcher);
             ctx = docInputFactory.extractImplementations(collectTask.txnCtx(), collectPhase);
             collectorContext = getCollectorContext(sharedShardContext.readerId(), queryShardContext::getForField);
         } catch (Throwable t) {
@@ -205,7 +202,8 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
             optimizeQueryForSearchAfter,
             LuceneSortGenerator.generateLuceneSort(collectTask.txnCtx(), collectorContext, collectPhase.orderBy(), docInputFactory, fieldTypeLookup),
             ctx.topLevelInputs(),
-            ctx.expressions()
+            ctx.expressions(),
+            searcher::close
         );
     }
 

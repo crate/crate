@@ -61,6 +61,7 @@ public class LuceneBatchIterator implements BatchIterator<Row> {
 
     private final IndexSearcher indexSearcher;
     private final Query query;
+    private Runnable onClose;
     private final CollectorContext collectorContext;
     private final RamAccountingContext ramAccountingContext;
     private final boolean doScores;
@@ -84,9 +85,11 @@ public class LuceneBatchIterator implements BatchIterator<Row> {
                                CollectorContext collectorContext,
                                RamAccountingContext ramAccountingContext,
                                List<? extends Input<?>> inputs,
-                               Collection<? extends LuceneCollectorExpression<?>> expressions) {
+                               Collection<? extends LuceneCollectorExpression<?>> expressions,
+                               Runnable onClose) {
         this.indexSearcher = indexSearcher;
         this.query = query;
+        this.onClose = onClose;
         this.doScores = doScores || minScore != null;
         this.minScore = minScore;
         this.collectorContext = collectorContext;
@@ -178,8 +181,11 @@ public class LuceneBatchIterator implements BatchIterator<Row> {
 
     @Override
     public void close() {
-        closed = true;
-        clearState();
+        if (!closed) {
+            closed = true;
+            onClose.run();
+            clearState();
+        }
     }
 
     @Override
@@ -243,5 +249,6 @@ public class LuceneBatchIterator implements BatchIterator<Row> {
     @Override
     public void kill(@Nonnull Throwable throwable) {
         killed = throwable;
+        close();
     }
 }

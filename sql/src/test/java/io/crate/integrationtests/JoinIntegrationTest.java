@@ -22,6 +22,7 @@
 package io.crate.integrationtests;
 
 import com.carrotsearch.hppc.ObjectObjectHashMap;
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.data.CollectionBucket;
 import io.crate.exceptions.SQLExceptions;
@@ -49,6 +50,7 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(minNumDataNodes = 2)
+@Repeat(iterations = 10)
 public class JoinIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test

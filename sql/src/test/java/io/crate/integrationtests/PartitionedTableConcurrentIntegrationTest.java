@@ -22,6 +22,7 @@
 
 package io.crate.integrationtests;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import io.crate.data.Bucket;
 import io.crate.data.CollectionBucket;
 import io.crate.data.Row;
@@ -59,6 +60,7 @@ import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiLette
 import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2)
+@Repeat(iterations = 20)
 public class PartitionedTableConcurrentIntegrationTest extends SQLTransportIntegrationTest {
 
     private final TimeValue ACCEPTABLE_RELOCATION_TIME = new TimeValue(10, TimeUnit.SECONDS);

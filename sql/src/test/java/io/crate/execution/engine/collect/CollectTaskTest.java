@@ -39,7 +39,6 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -75,21 +74,6 @@ public class CollectTaskTest extends RandomizedTest {
     }
 
     @Test
-    public void testAddingSameContextTwice() throws Exception {
-        Engine.Searcher mock1 = mock(Engine.Searcher.class);
-        Engine.Searcher mock2 = mock(Engine.Searcher.class);
-        try {
-            collectTask.addSearcher(1, mock1);
-            collectTask.addSearcher(1, mock2);
-
-            assertFalse(true); // second addContext call should have raised an exception
-        } catch (IllegalArgumentException e) {
-            verify(mock1, times(1)).close();
-            verify(mock2, times(1)).close();
-        }
-    }
-
-    @Test
     public void testKillOnJobCollectContextPropagatesToCrateCollectors() throws Exception {
         Engine.Searcher mock1 = mock(Engine.Searcher.class);
         MapSideDataCollectOperation collectOperationMock = mock(MapSideDataCollectOperation.class);
@@ -102,8 +86,6 @@ public class CollectTaskTest extends RandomizedTest {
             ramAccountingContext,
             new TestingRowConsumer(),
             mock(SharedShardContexts.class));
-
-        jobCtx.addSearcher(1, mock1);
 
         BatchIterator<Row> batchIterator = mock(BatchIterator.class);
         when(collectOperationMock.createIterator(eq(txnCtx), eq(collectPhase), anyBoolean(), eq(jobCtx)))

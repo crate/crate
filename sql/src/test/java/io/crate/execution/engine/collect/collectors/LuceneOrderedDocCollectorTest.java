@@ -394,7 +394,8 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
             f -> null,
             new Sort(SortField.FIELD_SCORE),
             columnReferences,
-            columnReferences
+            columnReferences,
+            () -> {}
         );
     }
 }
