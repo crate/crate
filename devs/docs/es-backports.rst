@@ -628,6 +628,7 @@ should be crossed out as well.
 - [x] 38f02217f00 Omit writing index metadata for non-replicated closed indices on data-only node (#47285)
 - [x] 4f52ebd32eb Better logging for TLS message on non-secure transport channel (#45835)
 - [x] 5ba4f5fb3c9 Use dynamic port ranges for ExternalTestCluster (#45601)
+- [x] 722ab70cc96 Make BlobStoreRepository Validation Read master.dat (#45546)
 - [x] 29235a637f7 Wait for events in waitForRelocation (#45074)
 - [x] 42a331c59ba Remove Unused Features Field on StreamOutput (#44667)
 - [x] f20414dd7d9 Optimize some StreamOutput Operations (#44660)
