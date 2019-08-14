@@ -42,10 +42,10 @@ import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SearchPath;
+import io.crate.metadata.TransactionContext;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
@@ -69,6 +69,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 import static io.crate.data.SentinelRow.SENTINEL;
@@ -127,6 +128,11 @@ public class ProjectingRowConsumerTest extends CrateUnitTest {
 
         @Override
         public void accept(BatchIterator<Row> iterator, @Nullable Throwable failure) {
+        }
+
+        @Override
+        public CompletableFuture<?> completionFuture() {
+            return CompletableFuture.completedFuture(null);
         }
 
         @Override
