@@ -77,7 +77,12 @@ public final class Projectors {
             if (projection.requiredGranularity().ordinal() > projectorFactory.supportedGranularity().ordinal()) {
                 continue;
             }
-            result = projectorFactory.create(projection, txnCtx, ramAccountingContext, jobId).apply(result);
+            try {
+                result = projectorFactory.create(projection, txnCtx, ramAccountingContext, jobId).apply(result);
+            } catch (Throwable t) {
+                result.close();
+                throw t;
+            }
         }
         return result;
     }
@@ -85,7 +90,12 @@ public final class Projectors {
     public BatchIterator<Row> wrap(BatchIterator<Row> source) {
         BatchIterator<Row> result = source;
         for (Projector projector : projectors) {
-            result = projector.apply(result);
+            try {
+                result = projector.apply(result);
+            } catch (Throwable t) {
+                result.close();
+                throw t;
+            }
         }
         return result;
     }

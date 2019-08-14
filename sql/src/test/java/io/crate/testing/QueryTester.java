@@ -170,7 +170,8 @@ public final class QueryTester implements AutoCloseable {
                 new CollectorContext(indexEnv.queryShardContext()::getForField),
                 new RamAccountingContext("dummy", new NoopCircuitBreaker("dummy")),
                 Collections.singletonList(input),
-                ctx.expressions()
+                ctx.expressions(),
+                () -> {}
             );
         }
 

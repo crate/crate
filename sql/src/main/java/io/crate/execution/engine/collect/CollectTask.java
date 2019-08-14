@@ -21,8 +21,6 @@
 
 package io.crate.execution.engine.collect;
 
-import com.carrotsearch.hppc.IntObjectHashMap;
-import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.BatchIterator;
@@ -34,11 +32,9 @@ import io.crate.execution.jobs.AbstractTask;
 import io.crate.execution.jobs.SharedShardContexts;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
-import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nonnull;
-import java.util.Locale;
 
 public class CollectTask extends AbstractTask {
 
@@ -48,8 +44,6 @@ public class CollectTask extends AbstractTask {
     private final RamAccountingContext queryPhaseRamAccountingContext;
     private final SharedShardContexts sharedShardContexts;
 
-    private final IntObjectHashMap<Engine.Searcher> searchers = new IntObjectHashMap<>();
-    private final Object subContextLock = new Object();
     private final String threadPoolName;
     private final RowConsumer consumer;
 
@@ -72,38 +66,11 @@ public class CollectTask extends AbstractTask {
         this.threadPoolName = threadPoolName(collectPhase);
     }
 
-    public void addSearcher(int searcherId, Engine.Searcher searcher) {
-        if (isClosed()) {
-            // if this is closed and addContext is called this means the context got killed.
-            searcher.close();
-            return;
-        }
-
-        synchronized (subContextLock) {
-            Engine.Searcher replacedSearcher = searchers.put(searcherId, searcher);
-            if (replacedSearcher != null) {
-                replacedSearcher.close();
-                searcher.close();
-                throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "ShardCollectContext for %d already added", searcherId));
-            }
-        }
-    }
 
     @Override
     protected void innerClose() {
         setBytesUsed(queryPhaseRamAccountingContext.totalBytes());
-        closeSearchContexts();
         queryPhaseRamAccountingContext.close();
-    }
-
-    private void closeSearchContexts() {
-        synchronized (subContextLock) {
-            for (ObjectCursor<Engine.Searcher> cursor : searchers.values()) {
-                cursor.value.close();
-            }
-            searchers.clear();
-        }
     }
 
     @Override
@@ -126,7 +93,6 @@ public class CollectTask extends AbstractTask {
                "id=" + id +
                ", sharedContexts=" + sharedShardContexts +
                ", consumer=" + consumer +
-               ", searchContexts=" + searchers.keys() +
                ", closed=" + isClosed() +
                '}';
     }

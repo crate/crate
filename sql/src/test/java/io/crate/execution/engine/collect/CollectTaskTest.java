@@ -39,7 +39,6 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -51,7 +50,6 @@ import static org.mockito.Mockito.when;
 
 public class CollectTaskTest extends RandomizedTest {
 
-    private CollectTask collectTask;
     private RoutedCollectPhase collectPhase;
     private String localNodeId;
 
@@ -65,43 +63,6 @@ public class CollectTaskTest extends RandomizedTest {
         when(routing.containsShards(localNodeId)).thenReturn(true);
         when(collectPhase.routing()).thenReturn(routing);
         when(collectPhase.maxRowGranularity()).thenReturn(RowGranularity.DOC);
-        collectTask = new CollectTask(
-            collectPhase,
-            CoordinatorTxnCtx.systemTransactionContext(),
-            mock(MapSideDataCollectOperation.class),
-            ramAccountingContext,
-            new TestingRowConsumer(),
-            mock(SharedShardContexts.class));
-    }
-
-    @Test
-    public void testAddingSameContextTwice() throws Exception {
-        Engine.Searcher mock1 = mock(Engine.Searcher.class);
-        Engine.Searcher mock2 = mock(Engine.Searcher.class);
-        try {
-            collectTask.addSearcher(1, mock1);
-            collectTask.addSearcher(1, mock2);
-
-            assertFalse(true); // second addContext call should have raised an exception
-        } catch (IllegalArgumentException e) {
-            verify(mock1, times(1)).close();
-            verify(mock2, times(1)).close();
-        }
-    }
-
-    @Test
-    public void testInnerCloseClosesSearchContexts() throws Exception {
-        Engine.Searcher mock1 = mock(Engine.Searcher.class);
-        Engine.Searcher mock2 = mock(Engine.Searcher.class);
-
-        collectTask.addSearcher(1, mock1);
-        collectTask.addSearcher(2, mock2);
-
-        collectTask.innerClose();
-
-        verify(mock1, times(1)).close();
-        verify(mock2, times(1)).close();
-        verify(ramAccountingContext, times(1)).close();
     }
 
     @Test
@@ -118,8 +79,6 @@ public class CollectTaskTest extends RandomizedTest {
             new TestingRowConsumer(),
             mock(SharedShardContexts.class));
 
-        jobCtx.addSearcher(1, mock1);
-
         BatchIterator<Row> batchIterator = mock(BatchIterator.class);
         when(collectOperationMock.createIterator(eq(txnCtx), eq(collectPhase), anyBoolean(), eq(jobCtx)))
             .thenReturn(batchIterator);
@@ -128,7 +87,6 @@ public class CollectTaskTest extends RandomizedTest {
         jobCtx.kill(new JobKilledException());
 
         verify(batchIterator, times(1)).kill(any(JobKilledException.class));
-        verify(mock1, times(1)).close();
         verify(ramAccountingContext, times(1)).close();
     }
 

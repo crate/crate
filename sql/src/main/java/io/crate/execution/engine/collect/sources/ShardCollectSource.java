@@ -75,7 +75,6 @@ import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
@@ -92,6 +91,7 @@ import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -240,7 +240,6 @@ public class ShardCollectSource implements CollectSource {
         @Override
         public void beforeIndexShardClosed(ShardId shardId, @Nullable IndexShard indexShard, Settings indexSettings) {
             LOGGER.debug("removing shard upon close in {} shard={} numShards={}", ShardCollectSource.this, shardId, shards.size());
-            assert shards.containsKey(shardId) : "shard entry missing upon close";
             shards.remove(shardId);
         }
 
@@ -348,13 +347,16 @@ public class ShardCollectSource implements CollectSource {
                         supportMoveToStart)
                     );
                 } catch (ShardNotFoundException | IllegalIndexShardStateException e) {
+                    orderedDocCollectors.forEach(OrderedDocCollector::close);
                     throw e;
                 } catch (IndexNotFoundException e) {
                     if (IndexParts.isPartitioned(indexName)) {
                         break;
                     }
+                    orderedDocCollectors.forEach(OrderedDocCollector::close);
                     throw e;
                 } catch (Throwable t) {
+                    orderedDocCollectors.forEach(OrderedDocCollector::close);
                     UnhandledServerException unhandledServerException = new UnhandledServerException(t);
                     unhandledServerException.setStackTrace(t.getStackTrace());
                     throw unhandledServerException;
@@ -365,18 +367,23 @@ public class ShardCollectSource implements CollectSource {
 
         OrderBy orderBy = collectPhase.orderBy();
         assert orderBy != null : "orderBy must not be null";
-        return OrderedLuceneBatchIteratorFactory.newInstance(
-            orderedDocCollectors,
-            OrderingByPosition.rowOrdering(
-                OrderByPositionVisitor.orderByPositions(orderBy.orderBySymbols(), collectPhase.toCollect()),
-                orderBy.reverseFlags(),
-                orderBy.nullsFirst()
-            ),
-            new RowAccountingWithEstimators(columnTypes, collectTask.queryPhaseRamAccountingContext()),
-            executor,
-            availableThreads,
-            supportMoveToStart
-        );
+        try {
+            return OrderedLuceneBatchIteratorFactory.newInstance(
+                orderedDocCollectors,
+                OrderingByPosition.rowOrdering(
+                    OrderByPositionVisitor.orderByPositions(orderBy.orderBySymbols(), collectPhase.toCollect()),
+                    orderBy.reverseFlags(),
+                    orderBy.nullsFirst()
+                ),
+                new RowAccountingWithEstimators(columnTypes, collectTask.queryPhaseRamAccountingContext()),
+                executor,
+                availableThreads,
+                supportMoveToStart
+            );
+        } catch (Throwable t) {
+            orderedDocCollectors.forEach(OrderedDocCollector::close);
+            throw t;
+        }
     }
 
     private ShardCollectorProvider getCollectorProviderSafe(ShardId shardId) {
@@ -405,6 +412,7 @@ public class ShardCollectSource implements CollectSource {
                 if (IndexParts.isPartitioned(indexName)) {
                     continue;
                 }
+                iterators.forEach(BatchIterator::close);
                 throw new IndexNotFoundException(indexName);
             }
             Index index = indexMD.getIndex();
@@ -414,6 +422,7 @@ public class ShardCollectSource implements CollectSource {
                 if (IndexParts.isPartitioned(indexName)) {
                     continue;
                 }
+                iterators.forEach(BatchIterator::close);
                 throw e;
             }
             for (IntCursor shardCursor: entry.getValue()) {
@@ -431,15 +440,19 @@ public class ShardCollectSource implements CollectSource {
                     // In such a case RemoteCollect cannot be used because on that node the FetchTask is missing
                     // and the reader required in the fetchPhase would be missing.
                     if (Symbols.containsColumn(collectPhase.toCollect(), DocSysColumns.FETCHID)) {
+                        iterators.forEach(BatchIterator::close);
                         throw e;
                     }
                     iterators.add(remoteCollectorFactory.createCollector(shardId, collectPhase, collectTask, shardCollectorProviderFactory));
                 } catch (InterruptedException e) {
+                    iterators.forEach(BatchIterator::close);
                     throw new RuntimeException(e);
                 } catch (IndexNotFoundException e) {
+                    iterators.forEach(BatchIterator::close);
                     // Prevent wrapping this to not break retry-detection
                     throw e;
                 } catch (Exception e) {
+                    iterators.forEach(BatchIterator::close);
                     UnhandledServerException unhandledServerException = new UnhandledServerException(e);
                     unhandledServerException.setStackTrace(e.getStackTrace());
                     throw unhandledServerException;

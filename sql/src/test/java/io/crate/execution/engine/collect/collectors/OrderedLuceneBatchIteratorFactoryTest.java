@@ -202,7 +202,8 @@ public class OrderedLuceneBatchIteratorFactoryTest extends CrateUnitTest {
             f -> null,
             new Sort(new SortedNumericSortField(columnName, SortField.Type.LONG, reverseFlags[0])),
             expressions,
-            expressions
+            expressions,
+            () -> {}
         );
     }
 }

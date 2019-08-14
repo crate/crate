@@ -148,7 +148,8 @@ public class OrderedLuceneBatchIteratorBenchmark {
             f -> null,
             new Sort(new SortedNumericSortField(sortByColumnName, SortField.Type.INT, reverseFlags[0])),
             expressions,
-            expressions
+            expressions,
+            () -> {}
         );
     }
 

@@ -85,7 +85,8 @@ public class LuceneBatchIteratorBenchmark {
             collectorContext,
             RAM_ACCOUNTING_CONTEXT,
             columnRefs,
-            columnRefs
+            columnRefs,
+            () -> {}
         );
 
         while (it.moveNext()) {

@@ -28,6 +28,7 @@ import io.crate.data.Row;
 import io.crate.execution.engine.distribution.merge.KeyIterable;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
@@ -38,7 +39,6 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.Sort;
 import org.apache.lucene.search.TopFieldCollector;
-import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.common.lucene.MinimumScoreCollector;
 import org.elasticsearch.index.shard.ShardId;
 
@@ -60,6 +60,7 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
     private final CollectorContext collectorContext;
     private final Function<FieldDoc, Query> searchAfterQueryOptimize;
     private final Sort sort;
+    private final Runnable releaseResources;
     private final Collection<? extends LuceneCollectorExpression<?>> expressions;
     private final ScoreDocRowFunction rowFunction;
     private final DummyScorer scorer;
@@ -79,7 +80,8 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
                                      Function<FieldDoc, Query> searchAfterQueryOptimize,
                                      Sort sort,
                                      List<? extends Input<?>> inputs,
-                                     Collection<? extends LuceneCollectorExpression<?>> expressions) {
+                                     Collection<? extends LuceneCollectorExpression<?>> expressions,
+                                     Runnable releaseResources) {
         super(shardId);
         this.searcher = searcher;
         this.query = query;
@@ -89,6 +91,7 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
         this.collectorContext = collectorContext;
         this.searchAfterQueryOptimize = searchAfterQueryOptimize;
         this.sort = sort;
+        this.releaseResources = releaseResources;
         this.scorer = new DummyScorer();
         this.expressions = expressions;
         this.rowFunction = new ScoreDocRowFunction(
@@ -122,6 +125,7 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
 
     @Override
     public void close() {
+        releaseResources.run();
     }
 
     private KeyIterable<ShardId, Row> initialSearch() throws IOException {
