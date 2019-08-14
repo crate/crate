@@ -26,7 +26,6 @@ import org.apache.lucene.index.Term;
 import org.apache.lucene.search.Query;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.geo.ShapeRelation;
-import org.elasticsearch.common.time.DateMathParser;
 import org.elasticsearch.common.unit.Fuzziness;
 import org.elasticsearch.index.analysis.NamedAnalyzer;
 import org.elasticsearch.index.query.QueryShardContext;
@@ -136,8 +135,8 @@ class ArrayFieldType extends MappedFieldType implements Cloneable {
     }
 
     @Override
-    public Query rangeQuery(Object lowerTerm, Object upperTerm, boolean includeLower, boolean includeUpper, ShapeRelation relation, DateTimeZone timeZone, DateMathParser parser, QueryShardContext context) {
-        return innerFieldType.rangeQuery(lowerTerm, upperTerm, includeLower, includeUpper, relation, timeZone, parser, context);
+    public Query rangeQuery(Object lowerTerm, Object upperTerm, boolean includeLower, boolean includeUpper, ShapeRelation relation, DateTimeZone timeZone, QueryShardContext context) {
+        return innerFieldType.rangeQuery(lowerTerm, upperTerm, includeLower, includeUpper, relation, timeZone, context);
     }
 
     @Override

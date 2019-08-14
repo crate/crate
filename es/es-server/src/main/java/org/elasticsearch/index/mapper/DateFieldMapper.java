@@ -30,21 +30,17 @@ import org.apache.lucene.search.DocValuesFieldExistsQuery;
 import org.apache.lucene.search.IndexOrDocValuesQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.Explicit;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.geo.ShapeRelation;
 import org.elasticsearch.common.joda.FormatDateTimeFormatter;
 import org.elasticsearch.common.joda.Joda;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.time.DateMathParser;
-import org.elasticsearch.common.time.DateUtils;
 import org.elasticsearch.common.util.LocaleUtils;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.fielddata.IndexNumericFieldData.NumericType;
 import org.elasticsearch.index.fielddata.plain.DocValuesIndexFieldData;
-import org.elasticsearch.index.query.QueryRewriteContext;
 import org.elasticsearch.index.query.QueryShardContext;
 import org.joda.time.DateTimeZone;
 
@@ -191,7 +187,6 @@ public class DateFieldMapper extends FieldMapper {
 
     public static final class DateFieldType extends MappedFieldType {
         protected FormatDateTimeFormatter dateTimeFormatter;
-        protected DateMathParser dateMathParser;
 
         DateFieldType() {
             super();
@@ -248,11 +243,6 @@ public class DateFieldMapper extends FieldMapper {
         public void setDateTimeFormatter(FormatDateTimeFormatter dateTimeFormatter) {
             checkIfFrozen();
             this.dateTimeFormatter = dateTimeFormatter;
-            this.dateMathParser = dateTimeFormatter.toDateMathParser();
-        }
-
-        protected DateMathParser dateMathParser() {
-            return dateMathParser;
         }
 
         long parse(String value) {
@@ -270,7 +260,7 @@ public class DateFieldMapper extends FieldMapper {
 
         @Override
         public Query termQuery(Object value, @Nullable QueryShardContext context) {
-            Query query = rangeQuery(value, value, true, true, ShapeRelation.INTERSECTS, null, null, context);
+            Query query = rangeQuery(value, value, true, true, ShapeRelation.INTERSECTS, null, context);
             if (boost() != 1f) {
                 query = new BoostQuery(query, boost());
             }
@@ -278,21 +268,23 @@ public class DateFieldMapper extends FieldMapper {
         }
 
         @Override
-        public Query rangeQuery(Object lowerTerm, Object upperTerm, boolean includeLower, boolean includeUpper, ShapeRelation relation,
-                                @Nullable DateTimeZone timeZone, @Nullable DateMathParser forcedDateParser, QueryShardContext context) {
+        public Query rangeQuery(Object lowerTerm,
+                                Object upperTerm,
+                                boolean includeLower,
+                                boolean includeUpper,
+                                ShapeRelation relation,
+                                @Nullable DateTimeZone timeZone,
+                                QueryShardContext context) {
             failIfNotIndexed();
             if (relation == ShapeRelation.DISJOINT) {
                 throw new IllegalArgumentException("Field [" + name() + "] of type [" + typeName() +
                         "] does not support DISJOINT ranges");
             }
-            DateMathParser parser = forcedDateParser == null
-                    ? dateMathParser
-                    : forcedDateParser;
             long l, u;
             if (lowerTerm == null) {
                 l = Long.MIN_VALUE;
             } else {
-                l = parseToMilliseconds(lowerTerm, !includeLower, timeZone, parser, context);
+                l = (Long) lowerTerm;
                 if (includeLower == false) {
                     ++l;
                 }
@@ -300,7 +292,7 @@ public class DateFieldMapper extends FieldMapper {
             if (upperTerm == null) {
                 u = Long.MAX_VALUE;
             } else {
-                u = parseToMilliseconds(upperTerm, includeUpper, timeZone, parser, context);
+                u = (Long) upperTerm;
                 if (includeUpper == false) {
                     --u;
                 }
@@ -311,22 +303,6 @@ public class DateFieldMapper extends FieldMapper {
                 query = new IndexOrDocValuesQuery(query, dvQuery);
             }
             return query;
-        }
-
-        public long parseToMilliseconds(Object value, boolean roundUp, @Nullable DateTimeZone zone,
-                                        @Nullable DateMathParser forcedDateParser, QueryRewriteContext context) {
-            DateMathParser dateParser = dateMathParser();
-            if (forcedDateParser != null) {
-                dateParser = forcedDateParser;
-            }
-
-            String strValue;
-            if (value instanceof BytesRef) {
-                strValue = ((BytesRef) value).utf8ToString();
-            } else {
-                strValue = value.toString();
-            }
-            return dateParser.parse(strValue, context::nowInMillis, roundUp, DateUtils.dateTimeZoneToZoneId(zone));
         }
 
         @Override
