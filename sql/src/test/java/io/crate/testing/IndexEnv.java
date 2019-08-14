@@ -164,12 +164,7 @@ public final class IndexEnv implements AutoCloseable {
         indexFieldDataService = indexService.fieldData();
         IndexWriterConfig conf = new IndexWriterConfig(new StandardAnalyzer());
         writer = new IndexWriter(new ByteBuffersDirectory(), conf);
-        queryShardContext.set(new QueryShardContext(
-            idxSettings,
-            indexFieldDataService::getForField,
-            mapperService,
-            System::currentTimeMillis
-        ));
+        queryShardContext.set(new QueryShardContext(idxSettings, indexFieldDataService::getForField, mapperService));
     }
 
     @Override
