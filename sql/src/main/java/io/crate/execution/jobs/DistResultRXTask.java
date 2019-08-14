@@ -37,7 +37,10 @@ public class DistResultRXTask implements Task, DownstreamRXTask {
     private final String name;
     private final int numBuckets;
     private final PageBucketReceiver pageBucketReceiver;
-    private final CompletableFuture<CompletionState> completionFuture;
+    private final CompletableFuture<Void> completionFuture;
+    private final RamAccountingContext ramAccounting;
+
+    private long totalBytesUsed = -1;
 
     public DistResultRXTask(int id,
                             String name,
@@ -48,16 +51,15 @@ public class DistResultRXTask implements Task, DownstreamRXTask {
         this.name = name;
         this.numBuckets = numBuckets;
         this.pageBucketReceiver = pageBucketReceiver;
+        this.ramAccounting = ramAccountingContext;
         this.completionFuture = pageBucketReceiver.completionFuture().handle((result, ex) -> {
-            long bytesUsed = ramAccountingContext.totalBytes();
+            totalBytesUsed = ramAccountingContext.totalBytes();
             ramAccountingContext.close();
             if (ex instanceof IllegalStateException) {
                 kill(ex);
             }
             if (ex == null) {
-                CompletionState completionState = new CompletionState();
-                completionState.bytesUsed(bytesUsed);
-                return completionState;
+                return null;
             } else if (ex instanceof RuntimeException) {
                 throw (RuntimeException) ex;
             } else {
@@ -116,7 +118,16 @@ public class DistResultRXTask implements Task, DownstreamRXTask {
     }
 
     @Override
-    public CompletableFuture<CompletionState> completionFuture() {
+    public CompletableFuture<Void> completionFuture() {
         return completionFuture;
+    }
+
+    @Override
+    public long bytesUsed() {
+        if (totalBytesUsed == -1) {
+            return ramAccounting.totalBytes();
+        } else {
+            return totalBytesUsed;
+        }
     }
 }

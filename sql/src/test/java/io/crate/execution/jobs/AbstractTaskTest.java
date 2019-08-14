@@ -98,6 +98,11 @@ public class AbstractTaskTest extends CrateUnitTest {
         }
 
         @Override
+        public long bytesUsed() {
+            return -1;
+        }
+
+        @Override
         protected void innerClose() {
             numClose.incrementAndGet();
         }

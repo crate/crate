@@ -89,4 +89,9 @@ public class CountTask extends AbstractTask {
     public String name() {
         return countPhase.name();
     }
+
+    @Override
+    public long bytesUsed() {
+        return -1;
+    }
 }

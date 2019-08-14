@@ -158,7 +158,7 @@ public class RootTask implements CompletionListenable<Void> {
                 throw new IllegalArgumentException("Task for " + phaseId + " already added");
             }
             task.completionFuture().whenComplete(new RemoveTaskListener(phaseId));
-            jobsLogs.operationStarted(phaseId, jobId, task.name());
+            jobsLogs.operationStarted(phaseId, jobId, task.name(), task::bytesUsed);
             task.prepare();
             if (profiler != null) {
                 String subContextName = ProfilingContext.generateProfilingKey(task.id(), task.name());
@@ -304,7 +304,7 @@ public class RootTask implements CompletionListenable<Void> {
                '}';
     }
 
-    private final class RemoveTaskListener implements BiConsumer<CompletionState, Throwable> {
+    private final class RemoveTaskListener implements BiConsumer<Void, Throwable> {
 
         private final int id;
 
@@ -329,15 +329,14 @@ public class RootTask implements CompletionListenable<Void> {
             return false;
         }
 
-        private void onSuccess(@Nullable CompletionState state) {
-            assert state != null : "state must not be null";
-            jobsLogs.operationFinished(id, jobId, null, state.bytesUsed());
+        private void onSuccess() {
+            jobsLogs.operationFinished(id, jobId, null);
             removeAndFinishIfNeeded();
         }
 
         private void onFailure(@Nonnull Throwable t) {
             failure = t;
-            jobsLogs.operationFinished(id, jobId, SQLExceptions.messageOf(t), -1);
+            jobsLogs.operationFinished(id, jobId, SQLExceptions.messageOf(t));
             if (removeAndFinishIfNeeded()) {
                 return;
             }
@@ -352,12 +351,12 @@ public class RootTask implements CompletionListenable<Void> {
         }
 
         @Override
-        public void accept(CompletionState completionState, Throwable throwable) {
+        public void accept(Void result, Throwable throwable) {
             if (profiler != null) {
                 stopTaskTimer();
             }
             if (throwable == null) {
-                onSuccess(completionState);
+                onSuccess();
             } else {
                 onFailure(throwable);
             }

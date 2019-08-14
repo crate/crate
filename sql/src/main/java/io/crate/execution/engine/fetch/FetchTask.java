@@ -186,6 +186,11 @@ public class FetchTask extends AbstractTask {
         return phase.name();
     }
 
+    @Override
+    public long bytesUsed() {
+        return -1;
+    }
+
     @Nonnull
     public RelationName tableIdent(int readerId) {
         return tableIdents.floorEntry(readerId).getValue();
