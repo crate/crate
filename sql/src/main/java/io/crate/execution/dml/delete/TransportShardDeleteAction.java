@@ -108,8 +108,8 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
                     }
                 } else {
                     if (debugEnabled) {
-                        logger.debug("shardId={} failed to execute delete for id={}",
-                            failure, request.shardId(), item.id());
+                        logger.debug("shardId={} failed to execute delete for id={}: {}",
+                            request.shardId(), item.id(), failure);
                     }
                     shardResponse.add(location,
                         new ShardResponse.Failure(
@@ -122,7 +122,8 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
                     throw e;
                 } else {
                     if (debugEnabled) {
-                        logger.debug("shardId={} failed to execute delete for id={}", e, request.shardId(), item.id());
+                        logger.debug("shardId={} failed to execute delete for id={}: {}",
+                                     request.shardId(), item.id(), e);
                     }
                     shardResponse.add(location,
                         new ShardResponse.Failure(
