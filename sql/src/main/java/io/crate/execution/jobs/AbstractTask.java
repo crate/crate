@@ -32,8 +32,7 @@ public abstract class AbstractTask implements Task {
     protected final int id;
 
     private final AtomicBoolean firstClose = new AtomicBoolean(false);
-    private final CompletionState completionState = new CompletionState();
-    private final CompletableFuture<CompletionState> future = new CompletableFuture<>();
+    private final CompletableFuture<Void> future = new CompletableFuture<>();
 
     protected AbstractTask(int id) {
         this.id = id;
@@ -87,7 +86,7 @@ public abstract class AbstractTask implements Task {
         if (firstClose.compareAndSet(false, true)) {
             try {
                 innerClose();
-                future.complete(completionState);
+                future.complete(null);
             } catch (Throwable t) {
                 future.completeExceptionally(t);
             }
@@ -109,12 +108,8 @@ public abstract class AbstractTask implements Task {
     }
 
     @Override
-    public CompletableFuture<CompletionState> completionFuture() {
+    public CompletableFuture<Void> completionFuture() {
         return future;
-    }
-
-    protected void setBytesUsed(long bytesUsed) {
-        completionState.bytesUsed(bytesUsed);
     }
 
     protected synchronized boolean isClosed() {

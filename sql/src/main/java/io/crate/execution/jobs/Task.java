@@ -24,7 +24,7 @@ package io.crate.execution.jobs;
 import io.crate.concurrent.CompletionListenable;
 import io.crate.data.Killable;
 
-public interface Task extends CompletionListenable<CompletionState>, Killable {
+public interface Task extends CompletionListenable<Void>, Killable {
 
     /**
      * In the prepare phase implementations of this interface can allocate any resources.
@@ -44,4 +44,6 @@ public interface Task extends CompletionListenable<CompletionState>, Killable {
     String name();
 
     int id();
+
+    long bytesUsed();
 }

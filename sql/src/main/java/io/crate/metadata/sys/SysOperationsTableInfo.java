@@ -41,9 +41,9 @@ import java.util.Map;
 import java.util.function.Supplier;
 
 import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
+import static io.crate.types.DataTypes.LONG;
 import static io.crate.types.DataTypes.STRING;
 import static io.crate.types.DataTypes.TIMESTAMPZ;
-import static io.crate.types.DataTypes.LONG;
 
 public class SysOperationsTableInfo extends StaticTableInfo<OperationContext> {
 
@@ -59,12 +59,7 @@ public class SysOperationsTableInfo extends StaticTableInfo<OperationContext> {
             .register("job_id", STRING, () -> forFunction(c -> c.jobId().toString()))
             .register("name", STRING, () -> forFunction(OperationContext::name))
             .register("started", TIMESTAMPZ, () -> forFunction(OperationContext::started))
-            .register("used_bytes", LONG, () -> forFunction(r -> {
-                if (r.usedBytes == 0) {
-                    return null;
-                }
-                return r.usedBytes;
-            }))
+            .register("used_bytes", LONG, () -> forFunction(OperationContext::usedBytes))
             .register("node", ObjectType.builder()
                 .setInnerType("id", STRING)
                 .setInnerType("name", STRING).build(), () -> forFunction(ignored -> ImmutableMap.of(

@@ -24,36 +24,44 @@ package io.crate.expression.reference.sys.operation;
 import io.crate.expression.reference.sys.job.ContextLog;
 
 import javax.annotation.Nullable;
-import java.util.Objects;
 import java.util.UUID;
 
 public class OperationContextLog implements ContextLog {
 
-    private final OperationContext operationContext;
     @Nullable
     private final String errorMessage;
     private final long ended;
+    private final int id;
+    private final UUID jobId;
+    private final String name;
+    private final long started;
+    private final long usedBytes;
 
     public OperationContextLog(OperationContext operationContext, @Nullable String errorMessage) {
-        this.operationContext = operationContext;
+        // We don't want to have a reference to operationContext so that it can be GC'd
+        this.id = operationContext.id();
+        this.jobId = operationContext.jobId();
+        this.name = operationContext.name();
+        this.started = operationContext.started();
+        this.usedBytes = operationContext.usedBytes();
         this.errorMessage = errorMessage;
         this.ended = System.currentTimeMillis();
     }
 
     public int id() {
-        return operationContext.id;
+        return id;
     }
 
     public UUID jobId() {
-        return operationContext.jobId;
+        return jobId;
     }
 
     public String name() {
-        return operationContext.name;
+        return name;
     }
 
     public long started() {
-        return operationContext.started;
+        return started;
     }
 
     @Override
@@ -62,20 +70,7 @@ public class OperationContextLog implements ContextLog {
     }
 
     public long usedBytes() {
-        return operationContext.usedBytes;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        OperationContextLog that = (OperationContextLog) o;
-        return operationContext.equals(that.operationContext);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(operationContext);
+        return usedBytes;
     }
 
     @Nullable
@@ -83,4 +78,38 @@ public class OperationContextLog implements ContextLog {
         return errorMessage;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+
+        OperationContextLog that = (OperationContextLog) o;
+
+        if (id != that.id) {
+            return false;
+        }
+        return jobId.equals(that.jobId);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = id;
+        result = 31 * result + jobId.hashCode();
+        return result;
+    }
+
+    @Override
+    public String toString() {
+        return "OperationContextLog{" +
+               "errorMessage='" + errorMessage + '\'' +
+               ", id=" + id +
+               ", jobId=" + jobId +
+               ", name='" + name + '\'' +
+               ", usedBytes=" + usedBytes +
+               '}';
+    }
 }

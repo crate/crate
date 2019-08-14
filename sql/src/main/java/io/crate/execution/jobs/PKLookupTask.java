@@ -121,4 +121,9 @@ public final class PKLookupTask extends AbstractTask {
     public String name() {
         return name;
     }
+
+    @Override
+    public long bytesUsed() {
+        return ramAccountingContext.totalBytes();
+    }
 }

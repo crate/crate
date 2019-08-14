@@ -67,6 +67,7 @@ import java.util.function.Supplier;
 import static io.crate.planner.Plan.StatementType.SELECT;
 import static io.crate.planner.Plan.StatementType.UNDEFINED;
 import static io.crate.testing.TestingHelpers.getFunctions;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 
 public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
@@ -269,9 +270,9 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
         assertThat(ImmutableList.copyOf(stats.get().jobsLog().iterator()).size(), is(1));
 
         operationsLogSink.add(new OperationContextLog(
-            new OperationContext(1, UUID.randomUUID(), "foo", 2L), null));
+            new OperationContext(1, UUID.randomUUID(), "foo", 2L, () -> -1), null));
         operationsLogSink.add(new OperationContextLog(
-            new OperationContext(1, UUID.randomUUID(), "foo", 3L), null));
+            new OperationContext(1, UUID.randomUUID(), "foo", 3L, () -> 1), null));
 
         clusterSettings.applySettings(Settings.builder()
             .put(JobsLogService.STATS_ENABLED_SETTING.getKey(), true)
@@ -343,8 +344,8 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
             executor.submit(() -> {
                 while (doInsertJobs.get() && numJobs.get() < maxQueueSize) {
                     UUID uuid = UUID.randomUUID();
-                    jobsLogs.operationStarted(1, uuid, "dummy");
-                    jobsLogs.operationFinished(1, uuid, null, 1);
+                    jobsLogs.operationStarted(1, uuid, "dummy", () -> -1);
+                    jobsLogs.operationFinished(1, uuid, null);
                     numJobs.incrementAndGet();
                 }
                 latch.countDown();
@@ -420,19 +421,19 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
         Queue<OperationContextLog> q = new BlockingEvictingQueue<>(10);
         jobsLogs.updateOperationsLog(new QueueSink<>(q, ramAccountingContext::close));
 
-        OperationContext ctxA = new OperationContext(0, UUID.randomUUID(), "dummyOperation", 1L);
-        jobsLogs.operationStarted(ctxA.id, ctxA.jobId, ctxA.name);
+        OperationContext ctxA = new OperationContext(0, UUID.randomUUID(), "dummyOperation", 1L, () -> -1);
+        jobsLogs.operationStarted(ctxA.id, ctxA.jobId, ctxA.name, () -> -1);
 
-        OperationContext ctxB = new OperationContext(0, UUID.randomUUID(), "dummyOperation", 1L);
-        jobsLogs.operationStarted(ctxB.id, ctxB.jobId, ctxB.name);
+        OperationContext ctxB = new OperationContext(0, UUID.randomUUID(), "dummyOperation", 1L, ()-> -1);
+        jobsLogs.operationStarted(ctxB.id, ctxB.jobId, ctxB.name, () -> 1);
 
-        jobsLogs.operationFinished(ctxB.id, ctxB.jobId, null, -1);
+        jobsLogs.operationFinished(ctxB.id, ctxB.jobId, null);
         List<OperationContextLog> entries = ImmutableList.copyOf(jobsLogs.operationsLog().iterator());
 
-        assertTrue(entries.contains(new OperationContextLog(ctxB, null)));
+        assertThat(entries, contains(new OperationContextLog(ctxB, null)));
         assertFalse(entries.contains(new OperationContextLog(ctxA, null)));
 
-        jobsLogs.operationFinished(ctxA.id, ctxA.jobId, null, -1);
+        jobsLogs.operationFinished(ctxA.id, ctxA.jobId, null);
         entries = ImmutableList.copyOf(jobsLogs.operationsLog());
         assertTrue(entries.contains(new OperationContextLog(ctxA, null)));
     }

@@ -36,4 +36,9 @@ public class DummyTask extends AbstractTask {
     public String name() {
         return "dummy " + id();
     }
+
+    @Override
+    public long bytesUsed() {
+        return -1;
+    }
 }

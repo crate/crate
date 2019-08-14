@@ -36,10 +36,10 @@ import org.elasticsearch.cluster.ClusterState;
 
 import java.util.Map;
 
+import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
+import static io.crate.types.DataTypes.LONG;
 import static io.crate.types.DataTypes.STRING;
 import static io.crate.types.DataTypes.TIMESTAMPZ;
-import static io.crate.types.DataTypes.LONG;
-import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
 
 public class SysOperationsLogTableInfo extends StaticTableInfo<OperationContextLog> {
 
@@ -56,13 +56,7 @@ public class SysOperationsLogTableInfo extends StaticTableInfo<OperationContextL
             .register("name", STRING, () -> forFunction(OperationContextLog::name))
             .register("started", TIMESTAMPZ, () -> forFunction(OperationContextLog::started))
             .register("ended", TIMESTAMPZ, () -> forFunction(OperationContextLog::ended))
-            .register("used_bytes", LONG, () -> forFunction(r -> {
-                long usedBytes = r.usedBytes();
-                if (usedBytes == 0) {
-                    return null;
-                }
-                return usedBytes;
-            }))
+            .register("used_bytes", LONG, () -> forFunction(OperationContextLog::usedBytes))
             .register("error", STRING, () -> forFunction(OperationContextLog::errorMessage));
     }
 

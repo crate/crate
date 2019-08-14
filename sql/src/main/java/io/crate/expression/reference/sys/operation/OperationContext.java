@@ -23,6 +23,7 @@ package io.crate.expression.reference.sys.operation;
 
 import java.util.Objects;
 import java.util.UUID;
+import java.util.function.LongSupplier;
 
 public class OperationContext {
 
@@ -31,13 +32,14 @@ public class OperationContext {
     public final String name;
 
     public final long started;
-    public long usedBytes;
+    private final LongSupplier bytesUsed;
 
-    public OperationContext(int id, UUID jobId, String name, long started) {
+    public OperationContext(int id, UUID jobId, String name, long started, LongSupplier bytesUsed) {
         this.id = id;
         this.jobId = jobId;
         this.name = name;
         this.started = started;
+        this.bytesUsed = bytesUsed;
     }
 
     public int id() {
@@ -57,7 +59,7 @@ public class OperationContext {
     }
 
     public long usedBytes() {
-        return usedBytes;
+        return bytesUsed.getAsLong();
     }
 
     @Override

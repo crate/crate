@@ -51,7 +51,6 @@ import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyInt;
-import static org.mockito.Mockito.anyLong;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -107,12 +106,17 @@ public class RootTaskTest extends CrateUnitTest {
             public String name() {
                 return "dummy";
             }
+
+            @Override
+            public long bytesUsed() {
+                return -1;
+            }
         };
         builder.addTask(task);
         builder.build();
 
         task.kill(new IllegalStateException("dummy"));
-        verify(jobsLogs).operationFinished(anyInt(), any(UUID.class), eq("dummy"), anyLong());
+        verify(jobsLogs).operationFinished(anyInt(), any(UUID.class), eq("dummy"));
     }
 
     @Test

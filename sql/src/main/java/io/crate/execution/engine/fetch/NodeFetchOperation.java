@@ -133,12 +133,12 @@ public class NodeFetchOperation {
     }
 
     private void logStartAndSetupLogFinished(final UUID jobId, final int phaseId, CompletableFuture<?> resultFuture) {
-        jobsLogs.operationStarted(phaseId, jobId, "fetch");
+        jobsLogs.operationStarted(phaseId, jobId, "fetch", () -> -1);
         resultFuture.whenComplete((r, t) -> {
             if (t == null) {
-                jobsLogs.operationFinished(phaseId, jobId, null, 0);
+                jobsLogs.operationFinished(phaseId, jobId, null);
             } else {
-                jobsLogs.operationFinished(phaseId, jobId, SQLExceptions.messageOf(t), 0);
+                jobsLogs.operationFinished(phaseId, jobId, SQLExceptions.messageOf(t));
             }
         });
     }

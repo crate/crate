@@ -41,6 +41,7 @@ import java.util.concurrent.atomic.LongAdder;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.BooleanSupplier;
+import java.util.function.LongSupplier;
 
 import static io.crate.planner.Plan.StatementType.UNDEFINED;
 
@@ -161,11 +162,11 @@ public class JobsLogs {
         recordMetrics(jobContextLog);
     }
 
-    public void operationStarted(int operationId, UUID jobId, String name) {
+    public void operationStarted(int operationId, UUID jobId, String name, LongSupplier bytesUsed) {
         if (isEnabled()) {
             operationsTable.put(
                 uniqueOperationId(operationId, jobId),
-                new OperationContext(operationId, jobId, name, System.currentTimeMillis()));
+                new OperationContext(operationId, jobId, name, System.currentTimeMillis(), bytesUsed));
         }
     }
 
@@ -173,7 +174,7 @@ public class JobsLogs {
         return classifiedMetrics;
     }
 
-    public void operationFinished(int operationId, UUID jobId, @Nullable String errorMessage, long usedBytes) {
+    public void operationFinished(int operationId, UUID jobId, @Nullable String errorMessage) {
         if (!isEnabled()) {
             return;
         }
@@ -183,7 +184,6 @@ public class JobsLogs {
             // been enabled before the finish
             return;
         }
-        operationContext.usedBytes = usedBytes;
         OperationContextLog operationContextLog = new OperationContextLog(operationContext, errorMessage);
         operationsLogRWLock.readLock().lock();
         try {

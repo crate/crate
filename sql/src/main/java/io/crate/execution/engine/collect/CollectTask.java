@@ -54,6 +54,7 @@ public class CollectTask extends AbstractTask {
     private final RowConsumer consumer;
 
     private BatchIterator<Row> batchIterator = null;
+    private long totalBytes = -1;
 
     public CollectTask(final CollectPhase collectPhase,
                        TransactionContext txnCtx,
@@ -92,9 +93,18 @@ public class CollectTask extends AbstractTask {
 
     @Override
     protected void innerClose() {
-        setBytesUsed(queryPhaseRamAccountingContext.totalBytes());
+        totalBytes = queryPhaseRamAccountingContext.totalBytes();
         closeSearchContexts();
         queryPhaseRamAccountingContext.close();
+    }
+
+    @Override
+    public long bytesUsed() {
+        if (totalBytes == -1) {
+            return queryPhaseRamAccountingContext.totalBytes();
+        } else {
+            return totalBytes;
+        }
     }
 
     private void closeSearchContexts() {
