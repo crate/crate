@@ -110,8 +110,8 @@ public class TransportAddVotingConfigExclusionsActionTests extends ESTestCase {
         transportService = transport.createTransportService(Settings.EMPTY, threadPool,
             TransportService.NOOP_TRANSPORT_INTERCEPTOR, boundTransportAddress -> localNode, null, emptySet());
 
-        new TransportAddVotingConfigExclusionsAction(transportService, clusterService, threadPool,
-            new IndexNameExpressionResolver(Settings.EMPTY)); // registers action
+        new TransportAddVotingConfigExclusionsAction(
+            transportService, clusterService, threadPool, new IndexNameExpressionResolver()); // registers action
 
         transportService.start();
         transportService.acceptIncomingRequests();

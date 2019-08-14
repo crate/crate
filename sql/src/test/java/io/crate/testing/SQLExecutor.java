@@ -245,16 +245,18 @@ public class SQLExecutor {
             schemaInfoByName.put("sys", new SysSchemaInfo(clusterService));
             schemaInfoByName.put("information_schema", new InformationSchemaInfo());
             schemaInfoByName.put(PgCatalogSchemaInfo.NAME, new PgCatalogSchemaInfo(udfService));
+            IndexNameExpressionResolver indexNameExpressionResolver = new IndexNameExpressionResolver();
             schemaInfoByName.put(
                 BlobSchemaInfo.NAME,
                 new BlobSchemaInfo(
                     clusterService,
-                    new TestingBlobTableInfoFactory(Collections.emptyMap(), new IndexNameExpressionResolver(Settings.EMPTY), createTempDir())));
+                    new TestingBlobTableInfoFactory(
+                        Collections.emptyMap(), indexNameExpressionResolver, createTempDir())));
 
 
             Map<RelationName, DocTableInfo> docTables = new HashMap<>();
             DocTableInfoFactory tableInfoFactory = new TestingDocTableInfoFactory(
-                docTables, functions, new IndexNameExpressionResolver(Settings.EMPTY));
+                docTables, functions, indexNameExpressionResolver);
             ViewInfoFactory testingViewInfoFactory = (ident, state) -> null;
 
             schemas = new Schemas(
