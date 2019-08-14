@@ -19,26 +19,16 @@
 
 package org.elasticsearch.cluster.metadata;
 
-import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.action.IndicesRequest;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.collect.Tuple;
-import org.elasticsearch.common.joda.FormatDateTimeFormatter;
 import org.elasticsearch.common.regex.Regex;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.time.DateMathParser;
-import org.elasticsearch.common.time.DateUtils;
-import org.elasticsearch.common.util.set.Sets;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.indices.IndexClosedException;
 import org.elasticsearch.indices.InvalidIndexNameException;
-import org.joda.time.DateTimeZone;
-import org.joda.time.format.DateTimeFormat;
-import org.joda.time.format.DateTimeFormatter;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -46,23 +36,17 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class IndexNameExpressionResolver {
 
-    private final List<ExpressionResolver> expressionResolvers;
-    private final DateMathExpressionResolver dateMathExpressionResolver;
+    private final WildcardExpressionResolver expressionResolver;
 
-    public IndexNameExpressionResolver(Settings settings) {
-        expressionResolvers = Arrays.asList(
-                dateMathExpressionResolver = new DateMathExpressionResolver(settings),
-                new WildcardExpressionResolver()
-        );
+    public IndexNameExpressionResolver() {
+        this.expressionResolver = new WildcardExpressionResolver();
     }
 
     /**
@@ -157,11 +141,7 @@ public class IndexNameExpressionResolver {
         // option. At some point we should change this, because there shouldn't be a reason why whether a single index
         // or multiple indices are specified yield different behaviour.
         final boolean failNoIndices = indexExpressions.length == 1 ? !options.allowNoIndices() : !options.ignoreUnavailable();
-        List<String> expressions = Arrays.asList(indexExpressions);
-        for (ExpressionResolver expressionResolver : expressionResolvers) {
-            expressions = expressionResolver.resolve(context, expressions);
-        }
-
+        List<String> expressions = expressionResolver.resolve(context, Arrays.asList(indexExpressions));
         if (expressions.isEmpty()) {
             if (!options.allowNoIndices()) {
                 IndexNotFoundException infe = new IndexNotFoundException((String)null);
@@ -285,117 +265,12 @@ public class IndexNameExpressionResolver {
         return indices[0];
     }
 
-    /**
-     * @return whether the specified alias or index exists. If the alias or index contains datemath then that is resolved too.
-     */
-    public boolean hasIndexOrAlias(String aliasOrIndex, ClusterState state) {
-        Context context = new Context(state, IndicesOptions.lenientExpandOpen());
-        String resolvedAliasOrIndex = dateMathExpressionResolver.resolveExpression(aliasOrIndex, context);
-        return state.metaData().getAliasAndIndexLookup().containsKey(resolvedAliasOrIndex);
-    }
-
-    /**
-     * @return If the specified string is data math expression then this method returns the resolved expression.
-     */
-    public String resolveDateMathExpression(String dateExpression) {
-        // The data math expression resolver doesn't rely on cluster state or indices options, because
-        // it just resolves the date math to an actual date.
-        return dateMathExpressionResolver.resolveExpression(dateExpression, new Context(null, null));
-    }
-
-    /**
-     * Iterates through the list of indices and selects the effective list of filtering aliases for the
-     * given index.
-     * <p>Only aliases with filters are returned. If the indices list contains a non-filtering reference to
-     * the index itself - null is returned. Returns {@code null} if no filtering is required.
-     */
-    public String[] filteringAliases(ClusterState state, String index, String... expressions) {
-        return indexAliases(state, index, AliasMetaData::filteringRequired, false, expressions);
-    }
-
-    /**
-     * Iterates through the list of indices and selects the effective list of required aliases for the given index.
-     * <p>Only aliases where the given predicate tests successfully are returned. If the indices list contains a non-required reference to
-     * the index itself - null is returned. Returns {@code null} if no filtering is required.
-     */
-    public String[] indexAliases(ClusterState state, String index, Predicate<AliasMetaData> requiredAlias, boolean skipIdentity,
-                                 String... expressions) {
-        // expand the aliases wildcard
-        List<String> resolvedExpressions = expressions != null ? Arrays.asList(expressions) : Collections.emptyList();
-        Context context = new Context(state, IndicesOptions.lenientExpandOpen(), true, false);
-        for (ExpressionResolver expressionResolver : expressionResolvers) {
-            resolvedExpressions = expressionResolver.resolve(context, resolvedExpressions);
-        }
-
-        if (isAllIndices(resolvedExpressions)) {
-            return null;
-        }
-        final IndexMetaData indexMetaData = state.metaData().getIndices().get(index);
-        if (indexMetaData == null) {
-            // Shouldn't happen
-            throw new IndexNotFoundException(index);
-        }
-        // optimize for the most common single index/alias scenario
-        if (resolvedExpressions.size() == 1) {
-            String alias = resolvedExpressions.get(0);
-
-            AliasMetaData aliasMetaData = indexMetaData.getAliases().get(alias);
-            if (aliasMetaData == null || requiredAlias.test(aliasMetaData) == false) {
-                return null;
-            }
-            return new String[]{alias};
-        }
-        List<String> aliases = null;
-        for (String alias : resolvedExpressions) {
-            if (alias.equals(index)) {
-                if (skipIdentity) {
-                    continue;
-                } else {
-                    return null;
-                }
-            }
-            AliasMetaData aliasMetaData = indexMetaData.getAliases().get(alias);
-            // Check that this is an alias for the current index
-            // Otherwise - skip it
-            if (aliasMetaData != null) {
-                if (requiredAlias.test(aliasMetaData)) {
-                    // If required - add it to the list of aliases
-                    if (aliases == null) {
-                        aliases = new ArrayList<>();
-                    }
-                    aliases.add(alias);
-                } else {
-                    // If not, we have a non required alias for this index - no further checking needed
-                    return null;
-                }
-            }
-        }
-        if (aliases == null) {
-            return null;
-        }
-        return aliases.toArray(new String[aliases.size()]);
-    }
-
-    /**
-     * Resolves the search routing if in the expression aliases are used. If expressions point to concrete indices
-     * or aliases with no routing defined the specified routing is used.
-     *
-     * @return routing values grouped by concrete index
-     */
-    public Map<String, Set<String>> resolveSearchRouting(ClusterState state, @Nullable String routing, String... expressions) {
-        if (routing == null) {
-            return resolveSearchRouting(state, Collections.emptySet(), expressions);
-        }
-        return resolveSearchRouting(state, Sets.newHashSet(Strings.splitStringByCommaToArray(routing)), expressions);
-    }
-
     public Map<String, Set<String>> resolveSearchRouting(ClusterState state, Set<String> routing, String... expressions) {
-        List<String> resolvedExpressions = expressions != null ? Arrays.asList(expressions) : Collections.<String>emptyList();
         Context context = new Context(state, IndicesOptions.lenientExpandOpen());
-        for (ExpressionResolver expressionResolver : expressionResolvers) {
-            resolvedExpressions = expressionResolver.resolve(context, resolvedExpressions);
-        }
-
+        List<String> resolvedExpressions = expressionResolver.resolve(
+            context,
+            expressions != null ? Arrays.asList(expressions) : Collections.emptyList()
+        );
         // TODO: it appears that this can never be true?
         if (isAllIndices(resolvedExpressions)) {
             return resolveSearchRoutingAllIndices(state.metaData(), routing);
@@ -812,174 +687,4 @@ public class IndexNameExpressionResolver {
             }
         }
     }
-
-    static final class DateMathExpressionResolver implements ExpressionResolver {
-
-        private static final String EXPRESSION_LEFT_BOUND = "<";
-        private static final String EXPRESSION_RIGHT_BOUND = ">";
-        private static final char LEFT_BOUND = '{';
-        private static final char RIGHT_BOUND = '}';
-        private static final char ESCAPE_CHAR = '\\';
-        private static final char TIME_ZONE_BOUND = '|';
-
-        private final DateTimeZone defaultTimeZone;
-        private final String defaultDateFormatterPattern;
-        private final DateTimeFormatter defaultDateFormatter;
-
-        DateMathExpressionResolver(Settings settings) {
-            String defaultTimeZoneId = settings.get("date_math_expression_resolver.default_time_zone", "UTC");
-            this.defaultTimeZone = DateTimeZone.forID(defaultTimeZoneId);
-            defaultDateFormatterPattern = settings.get("date_math_expression_resolver.default_date_format", "YYYY.MM.dd");
-            this.defaultDateFormatter = DateTimeFormat.forPattern(defaultDateFormatterPattern);
-        }
-
-        @Override
-        public List<String> resolve(final Context context, List<String> expressions) {
-            List<String> result = new ArrayList<>(expressions.size());
-            for (String expression : expressions) {
-                result.add(resolveExpression(expression, context));
-            }
-            return result;
-        }
-
-        @SuppressWarnings("fallthrough")
-        String resolveExpression(String expression, final Context context) {
-            if (expression.startsWith(EXPRESSION_LEFT_BOUND) == false || expression.endsWith(EXPRESSION_RIGHT_BOUND) == false) {
-                return expression;
-            }
-
-            boolean escape = false;
-            boolean inDateFormat = false;
-            boolean inPlaceHolder = false;
-            final StringBuilder beforePlaceHolderSb = new StringBuilder();
-            StringBuilder inPlaceHolderSb = new StringBuilder();
-            final char[] text = expression.toCharArray();
-            final int from = 1;
-            final int length = text.length - 1;
-            for (int i = from; i < length; i++) {
-                boolean escapedChar = escape;
-                if (escape) {
-                    escape = false;
-                }
-
-                char c = text[i];
-                if (c == ESCAPE_CHAR) {
-                    if (escapedChar) {
-                        beforePlaceHolderSb.append(c);
-                        escape = false;
-                    } else {
-                        escape = true;
-                    }
-                    continue;
-                }
-                if (inPlaceHolder) {
-                    switch (c) {
-                        case LEFT_BOUND:
-                            if (inDateFormat && escapedChar) {
-                                inPlaceHolderSb.append(c);
-                            } else if (!inDateFormat) {
-                                inDateFormat = true;
-                                inPlaceHolderSb.append(c);
-                            } else {
-                                throw new ElasticsearchParseException("invalid dynamic name expression [{}]. invalid character in placeholder at position [{}]", new String(text, from, length), i);
-                            }
-                            break;
-
-                        case RIGHT_BOUND:
-                            if (inDateFormat && escapedChar) {
-                                inPlaceHolderSb.append(c);
-                            } else if (inDateFormat) {
-                                inDateFormat = false;
-                                inPlaceHolderSb.append(c);
-                            } else {
-                                String inPlaceHolderString = inPlaceHolderSb.toString();
-                                int dateTimeFormatLeftBoundIndex = inPlaceHolderString.indexOf(LEFT_BOUND);
-                                String mathExpression;
-                                String dateFormatterPattern;
-                                DateTimeFormatter dateFormatter;
-                                final DateTimeZone timeZone;
-                                if (dateTimeFormatLeftBoundIndex < 0) {
-                                    mathExpression = inPlaceHolderString;
-                                    dateFormatterPattern = defaultDateFormatterPattern;
-                                    dateFormatter = defaultDateFormatter;
-                                    timeZone = defaultTimeZone;
-                                } else {
-                                    if (inPlaceHolderString.lastIndexOf(RIGHT_BOUND) != inPlaceHolderString.length() - 1) {
-                                        throw new ElasticsearchParseException("invalid dynamic name expression [{}]. missing closing `}` for date math format", inPlaceHolderString);
-                                    }
-                                    if (dateTimeFormatLeftBoundIndex == inPlaceHolderString.length() - 2) {
-                                        throw new ElasticsearchParseException("invalid dynamic name expression [{}]. missing date format", inPlaceHolderString);
-                                    }
-                                    mathExpression = inPlaceHolderString.substring(0, dateTimeFormatLeftBoundIndex);
-                                    String dateFormatterPatternAndTimeZoneId = inPlaceHolderString.substring(dateTimeFormatLeftBoundIndex + 1, inPlaceHolderString.length() - 1);
-                                    int formatPatternTimeZoneSeparatorIndex = dateFormatterPatternAndTimeZoneId.indexOf(TIME_ZONE_BOUND);
-                                    if (formatPatternTimeZoneSeparatorIndex != -1) {
-                                        dateFormatterPattern = dateFormatterPatternAndTimeZoneId.substring(0, formatPatternTimeZoneSeparatorIndex);
-                                        timeZone = DateTimeZone.forID(dateFormatterPatternAndTimeZoneId.substring(formatPatternTimeZoneSeparatorIndex + 1));
-                                    } else {
-                                        dateFormatterPattern = dateFormatterPatternAndTimeZoneId;
-                                        timeZone = defaultTimeZone;
-                                    }
-                                    dateFormatter = DateTimeFormat.forPattern(dateFormatterPattern);
-                                }
-                                DateTimeFormatter parser = dateFormatter.withZone(timeZone);
-                                FormatDateTimeFormatter formatter = new FormatDateTimeFormatter(dateFormatterPattern, parser, Locale.ROOT);
-                                DateMathParser dateMathParser = formatter.toDateMathParser();
-                                long millis = dateMathParser.parse(mathExpression, context::getStartTime, false,
-                                    DateUtils.dateTimeZoneToZoneId(timeZone));
-
-                                String time = formatter.printer().print(millis);
-                                beforePlaceHolderSb.append(time);
-                                inPlaceHolderSb = new StringBuilder();
-                                inPlaceHolder = false;
-                            }
-                            break;
-
-                        default:
-                            inPlaceHolderSb.append(c);
-                    }
-                } else {
-                    switch (c) {
-                        case LEFT_BOUND:
-                            if (escapedChar) {
-                                beforePlaceHolderSb.append(c);
-                            } else {
-                                inPlaceHolder = true;
-                            }
-                            break;
-
-                        case RIGHT_BOUND:
-                            if (!escapedChar) {
-                                throw new ElasticsearchParseException("invalid dynamic name expression [{}]. invalid character at position [{}]. " +
-                                        "`{` and `}` are reserved characters and should be escaped when used as part of the index name using `\\` (e.g. `\\{text\\}`)", new String(text, from, length), i);
-                            }
-                        default:
-                            beforePlaceHolderSb.append(c);
-                    }
-                }
-            }
-
-            if (inPlaceHolder) {
-                throw new ElasticsearchParseException("invalid dynamic name expression [{}]. date math placeholder is open ended", new String(text, from, length));
-            }
-            if (beforePlaceHolderSb.length() == 0) {
-                throw new ElasticsearchParseException("nothing captured");
-            }
-            return beforePlaceHolderSb.toString();
-        }
-    }
-
-    /**
-     * Returns <code>true</code> iff the given expression resolves to the given index name otherwise <code>false</code>
-     */
-    public final boolean matchesIndex(String indexName, String expression, ClusterState state) {
-        final String[] concreteIndices = concreteIndexNames(state, IndicesOptions.lenientExpandOpen(), expression);
-        for (String index : concreteIndices) {
-            if (Regex.simpleMatch(index, indexName)) {
-                return true;
-            }
-        }
-        return indexName.equals(expression);
-    }
-
 }

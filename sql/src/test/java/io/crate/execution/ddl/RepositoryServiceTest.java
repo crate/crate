@@ -78,7 +78,7 @@ public class RepositoryServiceTest extends CrateDummyClusterServiceUnitTest {
         ClusterState state = ClusterState.builder(new ClusterName("dummy")).metaData(
             MetaData.builder().putCustom(RepositoriesMetaData.TYPE, repos)).build();
         ClusterServiceUtils.setState(clusterService, state);
-        IndexNameExpressionResolver indexNameExpressionResolver = new IndexNameExpressionResolver(Settings.EMPTY);
+        IndexNameExpressionResolver indexNameExpressionResolver = new IndexNameExpressionResolver();
 
 
         final AtomicBoolean deleteRepoCalled = new AtomicBoolean(false);
