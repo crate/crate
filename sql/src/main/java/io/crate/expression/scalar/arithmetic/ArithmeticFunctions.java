@@ -67,27 +67,27 @@ public class ArithmeticFunctions {
             Names.ADD,
             "+",
             FunctionInfo.DETERMINISTIC_AND_COMPARISON_REPLACEMENT,
-            Integer::sum,
+            Math::addExact,
             Double::sum,
-            Long::sum,
+            Math::addExact,
             Float::sum
         ));
         module.register(Names.SUBTRACT, new ArithmeticFunctionResolver(
             Names.SUBTRACT,
             "-",
             FunctionInfo.DETERMINISTIC_ONLY,
+            Math::subtractExact,
             (arg0, arg1) -> arg0 - arg1,
-            (arg0, arg1) -> arg0 - arg1,
-            (arg0, arg1) -> arg0 - arg1,
+            Math::subtractExact,
             (arg0, arg1) -> arg0 - arg1
         ));
         module.register(Names.MULTIPLY, new ArithmeticFunctionResolver(
             Names.MULTIPLY,
             "*",
             FunctionInfo.DETERMINISTIC_ONLY,
+            Math::multiplyExact,
             (arg0, arg1) -> arg0 * arg1,
-            (arg0, arg1) -> arg0 * arg1,
-            (arg0, arg1) -> arg0 * arg1,
+            Math::multiplyExact,
             (arg0, arg1) -> arg0 * arg1
         ));
         module.register(Names.DIVIDE, new ArithmeticFunctionResolver(
