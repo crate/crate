@@ -22,22 +22,16 @@ package org.elasticsearch.index.mapper;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.IndexOptions;
-import org.apache.lucene.index.PrefixCodedTerms;
-import org.apache.lucene.index.PrefixCodedTerms.TermIterator;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
-import org.apache.lucene.search.BoostQuery;
 import org.apache.lucene.search.ConstantScoreQuery;
 import org.apache.lucene.search.MultiTermQuery;
 import org.apache.lucene.search.Query;
-import org.apache.lucene.search.TermInSetQuery;
 import org.apache.lucene.search.TermQuery;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.geo.ShapeRelation;
-import org.elasticsearch.common.time.DateMathParser;
 import org.elasticsearch.common.unit.Fuzziness;
 import org.elasticsearch.index.analysis.NamedAnalyzer;
 import org.elasticsearch.index.fielddata.IndexFieldData;
@@ -318,11 +312,13 @@ public abstract class MappedFieldType extends FieldType {
      * Factory method for range queries.
      * @param relation the relation, nulls should be interpreted like INTERSECTS
      */
-    public Query rangeQuery(
-            Object lowerTerm, Object upperTerm,
-            boolean includeLower, boolean includeUpper,
-            ShapeRelation relation, DateTimeZone timeZone, DateMathParser parser,
-            QueryShardContext context) {
+    public Query rangeQuery(Object lowerTerm,
+                            Object upperTerm,
+                            boolean includeLower,
+                            boolean includeUpper,
+                            ShapeRelation relation,
+                            DateTimeZone timeZone,
+                            QueryShardContext context) {
         throw new IllegalArgumentException("Field [" + name + "] of type [" + typeName() + "] does not support range queries");
     }
 

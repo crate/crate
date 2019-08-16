@@ -74,7 +74,7 @@ public class TransportCreateIndexAction extends TransportMasterNodeAction<Create
             cause = "api";
         }
 
-        final String indexName = indexNameExpressionResolver.resolveDateMathExpression(request.index());
+        final String indexName = request.index();
         final CreateIndexClusterStateUpdateRequest updateRequest = new CreateIndexClusterStateUpdateRequest(
             cause, indexName, request.index(), request.updateAllTypes())
                 .ackTimeout(request.timeout()).masterNodeTimeout(request.masterNodeTimeout())

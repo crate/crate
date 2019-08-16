@@ -98,9 +98,9 @@ public class TransportResizeAction extends TransportMasterNodeAction<ResizeReque
                                    final ActionListener<ResizeResponse> listener) {
 
         // there is no need to fetch docs stats for split but we keep it simple and do it anyway for simplicity of the code
-        final String sourceIndex = indexNameExpressionResolver.resolveDateMathExpression(resizeRequest.getSourceIndex());
-        final String targetIndex = indexNameExpressionResolver.resolveDateMathExpression(resizeRequest.getTargetIndexRequest().index());
-        client.admin().indices().prepareStats(sourceIndex).clear().setDocs(true).execute(new ActionListener<IndicesStatsResponse>() {
+        final String sourceIndex = resizeRequest.getSourceIndex();
+        final String targetIndex = resizeRequest.getTargetIndexRequest().index();
+        client.admin().indices().prepareStats(sourceIndex).clear().setDocs(true).execute(new ActionListener<>() {
             @Override
             public void onResponse(IndicesStatsResponse indicesStatsResponse) {
                 CreateIndexClusterStateUpdateRequest updateRequest = prepareCreateIndexRequest(resizeRequest, state,

@@ -88,16 +88,16 @@ public class OptimizeQueryForSearchAfter implements Function<FieldDoc, Query> {
                     BooleanQuery.Builder booleanQuery = new BooleanQuery.Builder();
                     booleanQuery.add(new MatchAllDocsQuery(), BooleanClause.Occur.MUST);
                     if (orderBy.reverseFlags()[i]) {
-                        booleanQuery.add(fieldType.rangeQuery(null, value, false, true, null, null, null, queryShardContext), BooleanClause.Occur.MUST_NOT);
+                        booleanQuery.add(fieldType.rangeQuery(null, value, false, true, null, null, queryShardContext), BooleanClause.Occur.MUST_NOT);
                     } else {
-                        booleanQuery.add(fieldType.rangeQuery(value, null, true, false, null, null, null, queryShardContext), BooleanClause.Occur.MUST_NOT);
+                        booleanQuery.add(fieldType.rangeQuery(value, null, true, false, null, null, queryShardContext), BooleanClause.Occur.MUST_NOT);
                     }
                     orderQuery = booleanQuery.build();
                 } else {
                     if (orderBy.reverseFlags()[i]) {
-                        orderQuery = fieldType.rangeQuery(value, null, false, false, null, null, null, queryShardContext);
+                        orderQuery = fieldType.rangeQuery(value, null, false, false, null, null, queryShardContext);
                     } else {
-                        orderQuery = fieldType.rangeQuery(null, value, false, false, null, null, null, queryShardContext);
+                        orderQuery = fieldType.rangeQuery(null, value, false, false, null, null, queryShardContext);
                     }
                 }
                 queryBuilder.add(orderQuery, BooleanClause.Occur.MUST);

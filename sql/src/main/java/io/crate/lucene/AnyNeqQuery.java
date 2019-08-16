@@ -47,11 +47,11 @@ class AnyNeqQuery extends AbstractAnyQuery {
         BooleanQuery.Builder query = new BooleanQuery.Builder();
         query.setMinimumNumberShouldMatch(1);
         query.add(
-            fieldType.rangeQuery(value, null, false, false, null, null, null, context.queryShardContext),
+            fieldType.rangeQuery(value, null, false, false, null, null, context.queryShardContext),
             BooleanClause.Occur.SHOULD
         );
         query.add(
-            fieldType.rangeQuery(null, value, false, false, null, null, null, context.queryShardContext),
+            fieldType.rangeQuery(null, value, false, false, null, null, context.queryShardContext),
             BooleanClause.Occur.SHOULD
         );
         return query.build();

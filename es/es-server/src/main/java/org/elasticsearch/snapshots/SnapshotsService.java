@@ -256,7 +256,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
      */
     public void createSnapshot(final CreateSnapshotRequest request, final ActionListener<Snapshot> listener) {
         final String repositoryName = request.repository();
-        final String snapshotName = indexNameExpressionResolver.resolveDateMathExpression(request.snapshot());
+        final String snapshotName = request.snapshot();
         validate(repositoryName, snapshotName);
         final SnapshotId snapshotId = new SnapshotId(snapshotName, UUIDs.randomBase64UUID()); // new UUID for the snapshot
         final RepositoryData repositoryData = repositoriesService.repository(repositoryName).getRepositoryData();

@@ -1030,7 +1030,7 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
 
         DocTableInfoFactory docTableInfoFactory = new InternalDocTableInfoFactory(
             functions,
-            new IndexNameExpressionResolver(Settings.EMPTY)
+            new IndexNameExpressionResolver()
         );
         ViewInfoFactory viewInfoFactory = (ident, state) -> null;
         DocSchemaInfo docSchemaInfo = new DocSchemaInfo(Schemas.DOC_SCHEMA_NAME, clusterService, functions, udfService, viewInfoFactory, docTableInfoFactory );
