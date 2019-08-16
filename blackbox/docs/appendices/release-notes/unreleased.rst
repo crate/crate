@@ -74,7 +74,7 @@ Changes
 - Added support for the filter clause in
   :ref:`aggregate expressions <aggregate-expressions>` and
   :ref:`window functions <window-function-call>` that are
-  :ref:` aggregates <aggregation>`.
+  :ref:`aggregates <aggregation>`.
 
 - Added support for `offset PRECEDING` and `offset FOLLOWING`
   :ref:`window definitions <window-definition>`.
