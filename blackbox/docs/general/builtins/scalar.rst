@@ -2341,7 +2341,7 @@ Example::
 .. _pg_typeof:
 
 ``pg_typeof``
-=============
+-------------
 
 The function ``pg_typeof`` returns the text representation of the value's data
 type passed to it.
