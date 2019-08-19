@@ -193,5 +193,6 @@ public class RootTaskTest extends CrateUnitTest {
         assertThat(
             ((double) rootTask.executionTimes().get("2-TestingTask")),
             Matchers.greaterThan(0d));
+        assertThat(rootTask.completionFuture().isCompletedExceptionally(), is(true));
     }
 }
