@@ -32,7 +32,6 @@ import io.crate.data.RowConsumer;
 import io.crate.exceptions.Exceptions;
 
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -55,14 +54,9 @@ public final class TestingRowConsumer implements RowConsumer {
         consumer.accept(it, failure);
     }
 
-    @Override
-    public CompletableFuture<?> completionFuture() {
-        return consumer.completionFuture();
-    }
-
     public List<Object[]> getResult() throws Exception {
         try {
-            return consumer.completionFuture().get(10, TimeUnit.SECONDS);
+            return consumer.resultFuture().get(10, TimeUnit.SECONDS);
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();
             if (cause != null) {

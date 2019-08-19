@@ -33,7 +33,6 @@ import org.elasticsearch.common.breaker.CircuitBreaker;
 import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * Consumer implementation which applies projections onto the BatchIterator received on accept,
@@ -112,11 +111,6 @@ public class ProjectingRowConsumer implements RowConsumer {
         } else {
             consumer.accept(iterator, failure);
         }
-    }
-
-    @Override
-    public CompletableFuture<?> completionFuture() {
-        return consumer.completionFuture();
     }
 
     @Override

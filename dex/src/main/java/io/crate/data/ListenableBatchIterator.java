@@ -22,34 +22,26 @@
 
 package io.crate.data;
 
-import javax.annotation.Nullable;
 import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collector;
 
-public class CollectingRowConsumer<S, R> implements RowConsumer {
+public class ListenableBatchIterator<T> extends ForwardingBatchIterator<T> {
 
-    private final Collector<Row, S, R> collector;
-    private final CompletableFuture<R> resultFuture = new CompletableFuture<>();
+    private final BatchIterator<T> delegate;
+    private final CompletableFuture<Void> completeOnClose;
 
-    public CollectingRowConsumer(Collector<Row, S, R> collector) {
-        this.collector = collector;
-    }
-
-    public CompletableFuture<R> resultFuture() {
-        return resultFuture;
+    public ListenableBatchIterator(BatchIterator<T> delegate, CompletableFuture<Void> completeOnClose) {
+        this.delegate = delegate;
+        this.completeOnClose = completeOnClose;
     }
 
     @Override
-    public void accept(BatchIterator<Row> iterator, @Nullable Throwable failure) {
-        if (failure == null) {
-            BatchIterators
-                .collect(iterator, collector.supplier().get(), collector, resultFuture)
-                .whenComplete((r, f) -> iterator.close());
-        } else {
-            if (iterator != null) {
-                iterator.close();
-            }
-            resultFuture.completeExceptionally(failure);
-        }
+    protected BatchIterator<T> delegate() {
+        return delegate;
+    }
+
+    @Override
+    public void close() {
+        super.close();
+        completeOnClose.complete(null);
     }
 }
