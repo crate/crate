@@ -154,12 +154,12 @@ public class RootTask implements CompletionListenable<Void> {
         for (Task task : orderedTasks) {
             int phaseId = task.id();
             orderedTaskIds.add(phaseId);
+
+            task.completionFuture().whenComplete(new RemoveTaskListener(phaseId));
+
             if (tasksByPhaseId.put(phaseId, task) != null) {
                 throw new IllegalArgumentException("Task for " + phaseId + " already added");
             }
-            task.completionFuture().whenComplete(new RemoveTaskListener(phaseId));
-            jobsLogs.operationStarted(phaseId, jobId, task.name(), task::bytesUsed);
-            task.prepare();
             if (profiler != null) {
                 String subContextName = ProfilingContext.generateProfilingKey(task.id(), task.name());
                 if (taskTimersByPhaseId.put(phaseId, profiler.createTimer(subContextName)) != null) {
@@ -170,6 +170,7 @@ public class RootTask implements CompletionListenable<Void> {
                 logger.trace("adding subContext {}, now there are {} tasksByPhaseId", phaseId, tasksByPhaseId.size());
             }
         }
+        prepare(orderedTasks);
     }
 
     public UUID jobId() {
@@ -182,6 +183,15 @@ public class RootTask implements CompletionListenable<Void> {
 
     Collection<String> participatingNodes() {
         return participatedNodes;
+    }
+
+    private void prepare(List<Task> orderedTasks) throws Exception {
+        for (int i = 0; i < orderedTaskIds.size(); i++) {
+            int id = orderedTaskIds.get(i);
+            Task task = orderedTasks.get(i);
+            jobsLogs.operationStarted(id, jobId, task.name(), task::bytesUsed);
+            task.prepare();
+        }
     }
 
     public void start() throws Throwable {
