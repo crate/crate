@@ -1,5 +1,7 @@
 .. highlight:: psql
 
+.. _ref-explain:
+
 ===========
 ``EXPLAIN``
 ===========
