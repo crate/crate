@@ -115,6 +115,9 @@ Changes
 Fixes
 =====
 
+- Fixed an issue that would lead :ref:`ref-explain` of invalid statements
+  to stuck instead of fail.
+
 - Fixed a regression introduced in 4.0 that broke the ``MATCH`` predicate if
   used on aliased relations.
 
