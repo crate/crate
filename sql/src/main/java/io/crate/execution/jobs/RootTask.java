@@ -266,6 +266,9 @@ public class RootTask implements CompletionListenable<Void> {
             } catch (Throwable t) {
                 profilingFuture.completeExceptionally(t);
             }
+            if (failure != null) {
+                finishedFuture.completeExceptionally(failure);
+            }
         } else {
             close();
         }
