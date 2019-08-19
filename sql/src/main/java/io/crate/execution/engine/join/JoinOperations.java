@@ -104,11 +104,6 @@ public final class JoinOperations {
             }
 
             @Override
-            public CompletableFuture<?> completionFuture() {
-                return future;
-            }
-
-            @Override
             public boolean requiresScroll() {
                 return requiresRepeat;
             }

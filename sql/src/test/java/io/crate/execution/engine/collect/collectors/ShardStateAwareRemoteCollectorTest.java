@@ -128,7 +128,7 @@ public class ShardStateAwareRemoteCollectorTest extends CrateDummyClusterService
         setNewClusterStateFor(createStartedShardRouting("n2"));
         shardAwareRemoteCollector.doCollect();
 
-        consumer.completionFuture().get(10, TimeUnit.SECONDS);
+        consumer.resultFuture().get(10, TimeUnit.SECONDS);
         verify(remoteCrateCollector, times(1)).doCollect();
     }
 
@@ -136,7 +136,7 @@ public class ShardStateAwareRemoteCollectorTest extends CrateDummyClusterService
     public void testIsLocalCollectorIfRemoteNodeEqualsLocalNodeAndShardStarted() throws Exception {
         setNewClusterStateFor(createStartedShardRouting("n1"));
         shardAwareRemoteCollector.doCollect();
-        consumer.completionFuture().get(10, TimeUnit.SECONDS);
+        consumer.resultFuture().get(10, TimeUnit.SECONDS);
 
         // either being exhausted or closed is fine, just make sure the localBatchIterator was used.
         try {
@@ -153,7 +153,7 @@ public class ShardStateAwareRemoteCollectorTest extends CrateDummyClusterService
         shardAwareRemoteCollector.doCollect();
         setNewClusterStateFor(createStartedShardRouting("n2"));
 
-        consumer.completionFuture().get(10, TimeUnit.SECONDS);
+        consumer.resultFuture().get(10, TimeUnit.SECONDS);
         verify(remoteCrateCollector, times(1)).doCollect();
     }
 

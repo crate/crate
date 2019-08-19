@@ -23,7 +23,6 @@
 package io.crate.data;
 
 import javax.annotation.Nullable;
-import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
 
 /**
@@ -59,8 +58,6 @@ public interface RowConsumer extends BiConsumer<BatchIterator<Row>, Throwable> {
      */
     @Override
     void accept(BatchIterator<Row> iterator, @Nullable Throwable failure);
-
-    CompletableFuture<?> completionFuture();
 
     /**
      * @return true if the consumer wants to scroll backwards by using {@link BatchIterator#moveToStart}

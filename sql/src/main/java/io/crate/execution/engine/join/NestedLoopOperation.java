@@ -27,6 +27,7 @@ import io.crate.breaker.RowAccountingWithEstimators;
 import io.crate.concurrent.CompletionListenable;
 import io.crate.data.BatchIterator;
 import io.crate.data.FilteringBatchIterator;
+import io.crate.data.ListenableBatchIterator;
 import io.crate.data.Paging;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
@@ -46,7 +47,7 @@ public class NestedLoopOperation implements CompletionListenable {
 
     private final CompletableFuture<BatchIterator<Row>> leftBatchIterator = new CompletableFuture<>();
     private final CompletableFuture<BatchIterator<Row>> rightBatchIterator = new CompletableFuture<>();
-    private final RowConsumer resultConsumer;
+    private final CompletableFuture<Void> completionFuture = new CompletableFuture<>();
 
     public NestedLoopOperation(int numLeftCols,
                                int numRightCols,
@@ -60,11 +61,10 @@ public class NestedLoopOperation implements CompletionListenable {
                                long estimatedNumberOfRowsLeft,
                                boolean blockNestedLoop) {
 
-        this.resultConsumer = nlResultConsumer;
         CompletableFuture.allOf(leftBatchIterator, rightBatchIterator)
             .whenComplete((result, failure) -> {
                 if (failure == null) {
-                    BatchIterator<Row> nlIterator = createNestedLoopIterator(
+                    BatchIterator<Row> nlIterator = new ListenableBatchIterator<>(createNestedLoopIterator(
                         leftBatchIterator.join(),
                         numLeftCols,
                         rightBatchIterator.join(),
@@ -77,7 +77,7 @@ public class NestedLoopOperation implements CompletionListenable {
                         estimatedRowsSizeLeft,
                         estimatedNumberOfRowsLeft,
                         blockNestedLoop
-                    );
+                    ), completionFuture);
                     nlResultConsumer.accept(nlIterator, null);
                 } else {
                     nlResultConsumer.accept(null, failure);
@@ -87,7 +87,7 @@ public class NestedLoopOperation implements CompletionListenable {
 
     @Override
     public CompletableFuture<?> completionFuture() {
-        return resultConsumer.completionFuture();
+        return completionFuture;
     }
 
     public RowConsumer leftConsumer() {

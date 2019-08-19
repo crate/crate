@@ -170,7 +170,7 @@ public final class JobLauncher {
             CollectingRowConsumer<?, Long> consumer = new CollectingRowConsumer<>(
                 Collectors.collectingAndThen(Collectors.summingLong(r -> ((long) r.get(0))), sum -> sum));
             handlerConsumers.add(consumer);
-            results.add(consumer.completionFuture());
+            results.add(consumer.resultFuture());
             handlerPhases.add(nodeOperationTree.leaf());
         }
         try {

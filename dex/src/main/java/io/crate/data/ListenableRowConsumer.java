@@ -24,32 +24,39 @@ package io.crate.data;
 
 import javax.annotation.Nullable;
 import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collector;
 
-public class CollectingRowConsumer<S, R> implements RowConsumer {
+public class ListenableRowConsumer implements RowConsumer {
 
-    private final Collector<Row, S, R> collector;
-    private final CompletableFuture<R> resultFuture = new CompletableFuture<>();
+    private final RowConsumer delegate;
+    private final CompletableFuture<Void> completionFuture = new CompletableFuture<>();
 
-    public CollectingRowConsumer(Collector<Row, S, R> collector) {
-        this.collector = collector;
-    }
-
-    public CompletableFuture<R> resultFuture() {
-        return resultFuture;
+    public ListenableRowConsumer(RowConsumer delegate) {
+        this.delegate = delegate;
     }
 
     @Override
     public void accept(BatchIterator<Row> iterator, @Nullable Throwable failure) {
         if (failure == null) {
-            BatchIterators
-                .collect(iterator, collector.supplier().get(), collector, resultFuture)
-                .whenComplete((r, f) -> iterator.close());
+            delegate.accept(new ListenableBatchIterator<>(iterator, completionFuture), null);
         } else {
-            if (iterator != null) {
-                iterator.close();
-            }
-            resultFuture.completeExceptionally(failure);
+            delegate.accept(null, failure);
+            completionFuture.completeExceptionally(failure);
         }
+    }
+
+    @Override
+    public boolean requiresScroll() {
+        return delegate.requiresScroll();
+    }
+
+    public CompletableFuture<?> completionFuture() {
+        return completionFuture;
+    }
+
+    @Override
+    public String toString() {
+        return "ListenableBatchConsumer{" +
+               "delegate=" + delegate +
+               '}';
     }
 }
