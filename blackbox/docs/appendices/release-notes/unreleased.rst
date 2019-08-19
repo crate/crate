@@ -115,6 +115,9 @@ Changes
 Fixes
 =====
 
+- Fixed a regression introduced in 4.0 that broke the ``MATCH`` predicate if
+  used on aliased relations.
+
 - Improved error handling if an argument of a window function is not used as a
   grouping symbol.
 

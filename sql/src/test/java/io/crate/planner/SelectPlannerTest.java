@@ -870,4 +870,11 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         }
         assertThat(numShards, is(1));
     }
+
+    @Test
+    public void test_match_used_on_table_with_alias_is_resolved_to_a_function() {
+        Merge merge = e.plan("select name from users as u where match(u.text, 'yalla') order by 1");
+        Collect collect = (Collect) merge.subPlan();
+        assertThat(((RoutedCollectPhase) collect.collectPhase()).where(), isFunction("match"));
+    }
 }

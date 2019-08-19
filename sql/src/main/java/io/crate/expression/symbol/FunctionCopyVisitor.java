@@ -160,5 +160,4 @@ public abstract class FunctionCopyVisitor<C> extends SymbolVisitor<C, Symbol> {
     protected Symbol visitSymbol(Symbol symbol, C context) {
         return symbol;
     }
-
 }

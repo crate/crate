@@ -22,6 +22,7 @@
 
 package io.crate.expression.symbol;
 
+import java.util.HashMap;
 import java.util.function.Function;
 
 public final class FieldReplacer extends FunctionCopyVisitor<Function<? super Field, ? extends Symbol>> {
@@ -46,5 +47,25 @@ public final class FieldReplacer extends FunctionCopyVisitor<Function<? super Fi
     @Override
     public Symbol visitField(Field field, Function<? super Field, ? extends Symbol> replaceFunc) {
         return replaceFunc.apply(field);
+    }
+
+    @Override
+    public Symbol visitMatchPredicate(MatchPredicate matchPredicate,
+                                      Function<? super Field, ? extends Symbol> mapper) {
+        HashMap<Field, Symbol> newIdentBoost = new HashMap<>();
+        for (var entry : matchPredicate.identBoostMap().entrySet()) {
+            Symbol newKey = mapper.apply(entry.getKey());
+            if (newKey instanceof Field) {
+                newIdentBoost.put((Field) newKey, entry.getValue().accept(this, mapper));
+            } else {
+                newIdentBoost.put(entry.getKey(), entry.getValue().accept(this, mapper));
+            }
+        }
+        return new MatchPredicate(
+            newIdentBoost,
+            matchPredicate.queryTerm().accept(this, mapper),
+            matchPredicate.matchType(),
+            matchPredicate.options().accept(this, mapper)
+        );
     }
 }
