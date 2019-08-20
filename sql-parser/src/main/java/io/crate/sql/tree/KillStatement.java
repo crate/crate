@@ -21,43 +21,43 @@
 
 package io.crate.sql.tree;
 
-import java.util.Optional;
+import javax.annotation.Nullable;
+import java.util.Objects;
 
 public class KillStatement extends Statement {
 
-    private final Optional<Expression> jobId;
+    @Nullable
+    private final Expression jobId;
 
-
-    public KillStatement() {
-        this.jobId = Optional.empty();
+    public KillStatement(@Nullable Expression jobId) {
+        this.jobId = jobId;
     }
 
-    public KillStatement(Expression jobId) {
-        this.jobId = Optional.of(jobId);
-    }
-
-    public Optional<Expression> jobId() {
+    @Nullable
+    public Expression jobId() {
         return jobId;
     }
 
     @Override
-    public int hashCode() {
-        return jobId.hashCode();
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        KillStatement that = (KillStatement) o;
+        return Objects.equals(jobId, that.jobId);
     }
 
     @Override
-    public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (obj == null || getClass() != obj.getClass()) return false;
-
-        KillStatement that = (KillStatement) obj;
-
-        return jobId.equals(that.jobId);
+    public int hashCode() {
+        return Objects.hash(jobId);
     }
 
     @Override
     public String toString() {
-        return jobId.isPresent() ? "KILL '" + jobId.get() + "'" : "KILL ALL";
+        return jobId != null ? "KILL '" + jobId + "'" : "KILL ALL";
     }
 
     @Override

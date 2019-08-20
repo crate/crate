@@ -31,18 +31,21 @@ public class KillAnalyzer {
     private KillAnalyzer() {
     }
 
-
     public static KillAnalyzedStatement analyze(KillStatement killStatement, ParameterContext parameterContext) {
-        if (killStatement.jobId().isPresent()) {
-            UUID jobId;
+        var jobIdExpression = killStatement.jobId();
+
+        UUID jobId;
+        if (jobIdExpression != null) {
             try {
                 jobId = UUID.fromString(ExpressionToStringVisitor
-                    .convert(killStatement.jobId().get(), parameterContext.parameters()));
+                    .convert(jobIdExpression, parameterContext.parameters()));
             } catch (Exception e) {
                 throw new IllegalArgumentException("Can not parse job ID", e);
             }
-            return new KillAnalyzedStatement(jobId);
+        } else {
+            jobId = null;
         }
-        return new KillAnalyzedStatement();
+
+        return new KillAnalyzedStatement(jobId);
     }
 }
