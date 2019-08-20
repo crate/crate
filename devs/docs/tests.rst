@@ -9,6 +9,9 @@ Run tests in a single module using multiple forks::
 Run the doc-tests::
 
     $ ./gradlew itest
+      (export ITEST_FILE_NAME_FILTER=<file-name>
+       if you want to only run the test of a particular file.
+       Clear the env var to test all files.)
 
 Filter tests::
 
