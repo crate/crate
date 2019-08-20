@@ -81,6 +81,7 @@ import static com.google.common.base.Strings.repeat;
 import static io.crate.sql.parser.TreeAssertions.assertFormattedSql;
 import static java.lang.String.format;
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
@@ -347,13 +348,13 @@ public class TestStatementBuilder {
     @Test
     public void testKillJob() {
         KillStatement stmt = (KillStatement) SqlParser.createStatement("KILL $1");
-        assertThat(stmt.jobId().isPresent(), is(true));
+        assertThat(stmt.jobId(), is(notNullValue()));
     }
 
     @Test
     public void testKillAll() {
         Statement stmt = SqlParser.createStatement("KILL ALL");
-        assertTrue(stmt.equals(new KillStatement()));
+        assertThat(stmt, is(new KillStatement(null)));
     }
 
     @Test

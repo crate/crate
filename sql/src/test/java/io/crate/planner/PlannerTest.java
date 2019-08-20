@@ -17,6 +17,7 @@ import java.util.Collections;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 
 public class PlannerTest extends CrateDummyClusterServiceUnitTest {
@@ -67,13 +68,13 @@ public class PlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testKillPlanAll() throws Exception {
         KillPlan killPlan = e.plan("kill all");
         assertThat(killPlan, instanceOf(KillPlan.class));
-        assertThat(killPlan.jobToKill().isPresent(), is(false));
+        assertThat(killPlan.jobId(), is(nullValue()));
     }
 
     @Test
     public void testKillPlanJobs() throws Exception {
         KillPlan killJobsPlan = e.plan("kill '6a3d6fb6-1401-4333-933d-b38c9322fca7'");
-        assertThat(killJobsPlan.jobToKill().get().toString(), is("6a3d6fb6-1401-4333-933d-b38c9322fca7"));
+        assertThat(killJobsPlan.jobId().toString(), is("6a3d6fb6-1401-4333-933d-b38c9322fca7"));
     }
 
     @Test
