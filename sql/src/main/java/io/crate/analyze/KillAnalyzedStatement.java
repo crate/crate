@@ -21,23 +21,20 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Optional;
-
+import javax.annotation.Nullable;
 import java.util.UUID;
 
 public class KillAnalyzedStatement implements AnalyzedStatement {
 
-    private final Optional<UUID> jobId;
+    @Nullable
+    private final UUID jobId;
 
-    public KillAnalyzedStatement() {
-        jobId = Optional.absent();
+    KillAnalyzedStatement(@Nullable UUID jobId) {
+        this.jobId = jobId;
     }
 
-    public KillAnalyzedStatement(UUID jobId) {
-        this.jobId = Optional.of(jobId);
-    }
-
-    public Optional<UUID> jobId() {
+    @Nullable
+    public UUID jobId() {
         return jobId;
     }
 

@@ -35,36 +35,33 @@ import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
 
-import java.util.Collections;
-import java.util.Optional;
+import javax.annotation.Nullable;
+import java.util.List;
 import java.util.UUID;
 
 public class KillPlan implements Plan {
 
-    private final Optional<UUID> jobToKill;
+    @Nullable
+    private final UUID jobId;
 
-    public KillPlan() {
-        this.jobToKill = Optional.empty();
+    public KillPlan(@Nullable UUID jobId) {
+        this.jobId = jobId;
     }
 
-    public KillPlan(UUID jobToKill) {
-        this.jobToKill = Optional.of(jobToKill);
-    }
-
-    public Optional<UUID> jobToKill() {
-        return jobToKill;
+    @VisibleForTesting
+    @Nullable
+    public UUID jobId() {
+        return jobId;
     }
 
     @VisibleForTesting
     void execute(TransportKillAllNodeAction killAllNodeAction,
-                 TransportKillJobsNodeAction killjobsNodeAction,
+                 TransportKillJobsNodeAction killJobsNodeAction,
                  RowConsumer consumer) {
-        if (jobToKill.isPresent()) {
-            UUID jobId = jobToKill.get();
-            killjobsNodeAction.broadcast(
-                new KillJobsRequest(Collections.singletonList(jobId)),
-                new OneRowActionListener<>(consumer, Row1::new)
-            );
+        if (jobId != null) {
+            killJobsNodeAction.broadcast(
+                new KillJobsRequest(List.of(jobId)),
+                new OneRowActionListener<>(consumer, Row1::new));
         } else {
             killAllNodeAction.broadcast(new KillAllRequest(), new OneRowActionListener<>(consumer, Row1::new));
         }
