@@ -38,6 +38,15 @@ from crate.crash.printer import PrintWrapper, ColorPrinter
 from crate.client import connect
 
 
+ITEST_FILE_NAME_FILTER = os.environ.get('ITEST_FILE_NAME_FILTER')
+if ITEST_FILE_NAME_FILTER:
+    print("Applying file name filter: {}".format(ITEST_FILE_NAME_FILTER))
+
+
+def is_target_file_name(item):
+    return not ITEST_FILE_NAME_FILTER or (item and ITEST_FILE_NAME_FILTER in item)
+
+
 CRATE_CE = True if os.environ.get('CRATE_CE') == "1" else False
 
 CRATE_SETTINGS = {
@@ -407,7 +416,7 @@ doctest_file = partial(os.path.join, 'docs')
 
 
 def doctest_files(*items):
-    return (doctest_file(item) for item in items)
+    return (doctest_file(item) for item in items if is_target_file_name(item))
 
 
 def get_abspath(name):
@@ -505,6 +514,9 @@ def load_tests(loader, suite, ignore):
 
     for fn in doctest_files('general/dql/union.rst',):
         tests.append(docsuite(fn, setUp=setUpPhotosAndCountries))
+
+    if not tests:
+        raise ValueError("ITEST_FILE_NAME_FILTER, no matches for: {}".format(ITEST_FILE_NAME_FILTER))
 
     # randomize order of tests to make sure they don't depend on each other
     random.shuffle(tests)
