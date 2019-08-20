@@ -25,6 +25,7 @@ package io.crate.execution.engine.join;
 import io.crate.breaker.RowAccounting;
 import io.crate.concurrent.CompletionListenable;
 import io.crate.data.BatchIterator;
+import io.crate.data.CapturingRowConsumer;
 import io.crate.data.ListenableBatchIterator;
 import io.crate.data.Paging;
 import io.crate.data.Row;
@@ -44,9 +45,9 @@ import java.util.function.Predicate;
 
 public class HashJoinOperation implements CompletionListenable {
 
-    private final CompletableFuture<BatchIterator<Row>> leftBatchIterator = new CompletableFuture<>();
-    private final CompletableFuture<BatchIterator<Row>> rightBatchIterator = new CompletableFuture<>();
     private final CompletableFuture<Void> completionFuture = new CompletableFuture<>();
+    private final CapturingRowConsumer leftConsumer;
+    private final CapturingRowConsumer rightConsumer;
 
     public HashJoinOperation(int numLeftCols,
                              int numRightCols,
@@ -61,15 +62,17 @@ public class HashJoinOperation implements CompletionListenable {
                              long estimatedRowSizeForLeft,
                              long numberOfRowsForLeft) {
 
-        CompletableFuture.allOf(leftBatchIterator, rightBatchIterator)
+        this.leftConsumer = new CapturingRowConsumer(false);
+        this.rightConsumer = new CapturingRowConsumer(true);
+        CompletableFuture.allOf(leftConsumer.capturedBatchIterator(), rightConsumer.capturedBatchIterator())
             .whenComplete((result, failure) -> {
                 if (failure == null) {
                     BatchIterator<Row> joinIterator;
                     try {
                         joinIterator = new ListenableBatchIterator<>(createHashJoinIterator(
-                            leftBatchIterator.join(),
+                            leftConsumer.capturedBatchIterator().join(),
                             numLeftCols,
-                            rightBatchIterator.join(),
+                            rightConsumer.capturedBatchIterator().join(),
                             numRightCols,
                             joinPredicate,
                             getHashBuilderFromSymbols(txnCtx, inputFactory, joinLeftInputs),
@@ -93,11 +96,11 @@ public class HashJoinOperation implements CompletionListenable {
     }
 
     public RowConsumer leftConsumer() {
-        return JoinOperations.getBatchConsumer(leftBatchIterator, false);
+        return leftConsumer;
     }
 
     public RowConsumer rightConsumer() {
-        return JoinOperations.getBatchConsumer(rightBatchIterator, true);
+        return rightConsumer;
     }
 
     private static Function<Row, Integer> getHashBuilderFromSymbols(TransactionContext txnCtx,
