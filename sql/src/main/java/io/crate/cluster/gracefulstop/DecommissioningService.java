@@ -133,7 +133,7 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
         this.updateSettingsAction = updateSettingsAction;
 
         // There is a window where this node removed the last shards but still receives new operations because
-        // other nodes created the routing based on an earlier cluterState.
+        // other nodes created the routing based on an earlier clusterState.
         // We delay here to give these requests a chance to finish
         this.safeExitAction = safeExitAction == null
             ? () -> executorService.schedule(this::exit, 5, TimeUnit.SECONDS)

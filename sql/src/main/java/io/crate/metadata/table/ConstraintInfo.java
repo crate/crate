@@ -27,7 +27,7 @@ import io.crate.metadata.RelationName;
 
 /**
  * This class is used as information store of table constraints when
- * beeing displayed.
+ * being displayed.
  */
 public class ConstraintInfo {
 

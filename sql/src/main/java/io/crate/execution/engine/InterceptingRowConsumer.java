@@ -115,7 +115,7 @@ class InterceptingRowConsumer implements RowConsumer {
     @Override
     public String toString() {
         return "InterceptingBatchConsumer{" +
-               "consumerInvokedAndJobInitilaized=" + consumerInvokedAndJobInitialized +
+               "consumerInvokedAndJobInitialized=" + consumerInvokedAndJobInitialized +
                ", jobId=" + jobId +
                ", consumer=" + consumer +
                ", rowReceiverDone=" + consumerAccepted +
