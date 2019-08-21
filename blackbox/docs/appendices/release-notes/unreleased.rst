@@ -46,21 +46,4 @@ None
 Fixes
 =====
 
-- Fixed an issue that would lead :ref:`ref-explain` of invalid statements
-  to stuck instead of fail.
-
-- Fixed a regression introduced in 4.0 that broke the ``MATCH`` predicate if
-  used on aliased relations.
-
-- Improved error handling if an argument of a window function is not used as a
-  grouping symbol.
-
-- Fixed an ``OUTER JOIN`` issue resulting in an ``ArrayOutOfBoundException``
-  if the gap between matching rows of the tables was growing to big numbers.
-
-- Fixed serialization issue that might occur in distributed queries that
-  contain window function calls with the partition by clause in the select
-  list.
-
-- Fixed a race condition which could result in a ``AlreadyClosedException``
-  when querying the ``sys.shards`` table.
+None
