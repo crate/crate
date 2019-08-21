@@ -1,0 +1,71 @@
+.. _version_4.0.4:
+
+=============
+Version 4.0.4
+=============
+
+Released on 2019/08/21.
+
+.. NOTE::
+
+    Please consult the :ref:`version_4.0.0_upgrade_notes` before upgrading from
+    CrateDB 3.x or earlier.
+    Before upgrading to 4.0.4 you should be running a CrateDB cluster that is
+    at least on 3.0.7.
+
+    We recommend that you upgrade to the latest 3.3 release before moving to 4.0.4.
+
+    If you want to perform a `rolling upgrade`_, your current CrateDB version
+    number must be at least :ref:`version_4.0.2`. Any upgrade from a version
+    prior to this will require a `full restart upgrade`_.
+
+    When restarting, CrateDB will migrate indexes to a newer format. Depending
+    on the amount of data, this may delay node start-up time.
+
+.. WARNING::
+
+    Tables that were created prior CrateDB 3.x will not function with 4.x
+    and must be recreated before moving to 4.x.x.
+
+    You can recreate tables using ``COPY TO`` and ``COPY FROM`` or by
+    `inserting the data into a new table`_.
+
+    Before upgrading, you should `back up your data`_.
+
+.. _rolling upgrade: http://crate.io/docs/crate/guide/best_practices/rolling_upgrade.html
+.. _full restart upgrade: http://crate.io/docs/crate/guide/best_practices/full_restart_upgrade.html
+.. _back up your data: https://crate.io/a/backing-up-and-restoring-crate/
+.. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+
+See the :ref:`version_4.0.0` release notes for a full list of changes in the
+4.0 series.
+
+
+Fixes
+=====
+
+- Fixed an issue that would lead :ref:`ref-explain` of invalid statements
+  to stuck instead of fail.
+
+- Fixed a regression introduced in 4.0 that broke the ``MATCH`` predicate if
+  used on aliased relations.
+
+- Improved error handling if an argument of a window function is not used as a
+  grouping symbol.
+
+- Fixed an ``OUTER JOIN`` issue resulting in an ``ArrayOutOfBoundException``
+  if the gap between matching rows of the tables was growing to big numbers.
+
+- Fixed serialization issue that might occur in distributed queries that
+  contain window function calls with the partition by clause in the select
+  list.
+
+- Fixed a race condition which could result in a ``AlreadyClosedException``
+  when querying the ``sys.shards`` table.
