@@ -25,9 +25,6 @@ package io.crate.execution.engine.join;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import io.crate.analyze.relations.JoinPair;
-import io.crate.data.BatchIterator;
-import io.crate.data.Row;
-import io.crate.data.RowConsumer;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.Projection;
@@ -50,7 +47,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 
 public final class JoinOperations {
 
@@ -90,24 +86,6 @@ public final class JoinOperations {
             DistributionInfo.DEFAULT_SAME_NODE,
             resultDescription.orderBy()
         );
-    }
-
-    static RowConsumer getBatchConsumer(CompletableFuture<BatchIterator<Row>> future, boolean requiresRepeat) {
-        return new RowConsumer() {
-            @Override
-            public void accept(BatchIterator<Row> iterator, @Nullable Throwable failure) {
-                if (failure == null) {
-                    future.complete(iterator);
-                } else {
-                    future.completeExceptionally(failure);
-                }
-            }
-
-            @Override
-            public boolean requiresScroll() {
-                return requiresRepeat;
-            }
-        };
     }
 
     /**

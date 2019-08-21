@@ -26,6 +26,7 @@ import io.crate.breaker.RamAccountingContext;
 import io.crate.breaker.RowAccountingWithEstimators;
 import io.crate.concurrent.CompletionListenable;
 import io.crate.data.BatchIterator;
+import io.crate.data.CapturingRowConsumer;
 import io.crate.data.FilteringBatchIterator;
 import io.crate.data.ListenableBatchIterator;
 import io.crate.data.Paging;
@@ -45,9 +46,9 @@ import java.util.function.Predicate;
 
 public class NestedLoopOperation implements CompletionListenable {
 
-    private final CompletableFuture<BatchIterator<Row>> leftBatchIterator = new CompletableFuture<>();
-    private final CompletableFuture<BatchIterator<Row>> rightBatchIterator = new CompletableFuture<>();
     private final CompletableFuture<Void> completionFuture = new CompletableFuture<>();
+    private final CapturingRowConsumer leftConsumer;
+    private final CapturingRowConsumer rightConsumer;
 
     public NestedLoopOperation(int numLeftCols,
                                int numRightCols,
@@ -61,13 +62,15 @@ public class NestedLoopOperation implements CompletionListenable {
                                long estimatedNumberOfRowsLeft,
                                boolean blockNestedLoop) {
 
-        CompletableFuture.allOf(leftBatchIterator, rightBatchIterator)
+        this.leftConsumer = new CapturingRowConsumer(false);
+        this.rightConsumer = new CapturingRowConsumer(true);
+        CompletableFuture.allOf(leftConsumer.capturedBatchIterator(), rightConsumer.capturedBatchIterator())
             .whenComplete((result, failure) -> {
                 if (failure == null) {
                     BatchIterator<Row> nlIterator = new ListenableBatchIterator<>(createNestedLoopIterator(
-                        leftBatchIterator.join(),
+                        leftConsumer.capturedBatchIterator().join(),
                         numLeftCols,
-                        rightBatchIterator.join(),
+                        rightConsumer.capturedBatchIterator().join(),
                         numRightCols,
                         joinType,
                         joinPredicate,
@@ -91,11 +94,11 @@ public class NestedLoopOperation implements CompletionListenable {
     }
 
     public RowConsumer leftConsumer() {
-        return JoinOperations.getBatchConsumer(leftBatchIterator, false);
+        return leftConsumer;
     }
 
     public RowConsumer rightConsumer() {
-        return JoinOperations.getBatchConsumer(rightBatchIterator, true);
+        return rightConsumer;
     }
 
     @VisibleForTesting
