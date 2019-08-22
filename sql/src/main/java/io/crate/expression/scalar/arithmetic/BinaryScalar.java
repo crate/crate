@@ -62,6 +62,10 @@ public final class BinaryScalar<T> extends Scalar<T, T> {
         if (arg1Value == null) {
             return null;
         }
-        return func.apply(arg0Value, arg1Value);
+        try {
+            return func.apply(arg0Value, arg1Value);
+        } catch (ArithmeticException ae) {
+            throw new IllegalArgumentException(ae.getMessage());
+        }
     }
 }

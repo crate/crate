@@ -22,11 +22,7 @@
 
 package io.crate.execution.jobs;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.search.IndexSearcher;
-import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.engine.Engine;
@@ -35,13 +31,10 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
 
 import javax.annotation.concurrent.NotThreadSafe;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.UnaryOperator;
 
 @NotThreadSafe
 public class SharedShardContext {
-
-    private static final Logger LOGGER = LogManager.getLogger(SharedShardContext.class);
 
     private final IndicesService indicesService;
     private final ShardId shardId;
@@ -65,7 +58,7 @@ public class SharedShardContext {
     public Engine.Searcher acquireSearcher(String source) throws IndexNotFoundException {
         if (searcher == null) {
             Engine.Searcher searcher = indexShard().acquireSearcher(source);
-            this.searcher = RefCountSearcher.create(searcher, wrapSearcher);
+            this.searcher = new RefCountSearcher(shardId, searcher, wrapSearcher.apply(searcher.searcher()));
         }
         searcher.inc();
         return searcher;
@@ -87,45 +80,5 @@ public class SharedShardContext {
 
     public int readerId() {
         return readerId;
-    }
-
-    private static class RefCountSearcher extends Engine.Searcher {
-
-        private final AtomicInteger refs = new AtomicInteger();
-        private final Engine.Searcher searcher;
-
-        static RefCountSearcher create(Engine.Searcher searcher, UnaryOperator<IndexSearcher> wrapSearcher) {
-            return new RefCountSearcher(searcher, wrapSearcher.apply(searcher.searcher()));
-        }
-
-        private RefCountSearcher(Engine.Searcher searcher, IndexSearcher indexSearcher) {
-            super(searcher.source(), indexSearcher, () -> {});
-            this.searcher = searcher;
-        }
-
-        @Override
-        public IndexReader reader() {
-            return searcher.reader();
-        }
-
-        @Override
-        public void close() throws ElasticsearchException {
-            int remainingRefs = refs.decrementAndGet();
-            traceLog(remainingRefs, "Close called on RefCountSearcher; Remaining refs: {}");
-            if (remainingRefs == 0) {
-                searcher.close();
-            }
-        }
-
-        void inc() {
-            int newRefs = refs.incrementAndGet();
-            traceLog(newRefs, "Searcher refs increased: {}");
-        }
-
-        private void traceLog(int remainingRefs, String msg) {
-            if (LOGGER.isTraceEnabled()) {
-                LOGGER.trace(msg, remainingRefs);
-            }
-        }
     }
 }
