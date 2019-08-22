@@ -42,7 +42,6 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
-
 @UseJdbc(value = 0)
 @ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 0, supportsDedicatedMasters = false)
 public class HttpsTransportKeyStoreReloadIntegrationTest extends SQLHttpIntegrationTest {
@@ -133,7 +132,7 @@ public class HttpsTransportKeyStoreReloadIntegrationTest extends SQLHttpIntegrat
                 assertThat(result, containsString("\"rowcount\":1"));
                 assertThat(result, containsString("sslWorks"));
             } catch (Exception e) {
-                fail();
+                fail(e.getMessage());
             }
         }, 20, TimeUnit.SECONDS);
     }
