@@ -132,7 +132,9 @@ public class CumulativePageBucketReceiver implements PageBucketReceiver {
         }
         final boolean allBucketsOfPageReceived;
         synchronized (lock) {
-            traceLog("method=setBucket", bucketIdx);
+            if (traceEnabled) {
+                LOGGER.trace("method=setBucket phaseId={} bucket={} istLast={}", phaseId, bucketIdx, isLast);
+            }
 
             if (bucketsByIdx.putIfAbsent(bucketIdx, rows) != null) {
                 processingFuture.completeExceptionally(new IllegalStateException(String.format(Locale.ENGLISH,
@@ -262,12 +264,6 @@ public class CumulativePageBucketReceiver implements PageBucketReceiver {
         }
     }
 
-    private void traceLog(String msg, int bucketIdx) {
-        if (traceEnabled) {
-            LOGGER.trace("{} phaseId={} bucket={}", msg, phaseId, bucketIdx);
-        }
-    }
-
     @Override
     public Streamer<?>[] streamers() {
         return streamers;
@@ -299,5 +295,15 @@ public class CumulativePageBucketReceiver implements PageBucketReceiver {
         if (shouldTriggerConsumer) {
             consumer.accept(null, t);
         }
+    }
+
+    @Override
+    public String toString() {
+        return "CumulativePageBucketReceiver{" +
+               "nodeName='" + nodeName + '\'' +
+               ", phaseId=" + phaseId +
+               ", numBuckets=" + numBuckets +
+               ", consumer=" + consumer +
+               '}';
     }
 }
