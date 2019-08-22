@@ -100,4 +100,52 @@ public class GenerateSeriesTest extends AbstractTableFunctionsTest {
             "2\n"
         );
     }
+
+    @Test
+    public void test_generate_interval_from_start_date_to_end_date_with_10_hours_interval() {
+        assertExecute(
+            "generate_series('2008-03-01 00:00'::timestamp, '2008-03-04 12:00'::timestamp, '10 hours'::interval)",
+            "1204329600000\n" +
+            "1204365600000\n" +
+            "1204401600000\n" +
+            "1204437600000\n" +
+            "1204473600000\n" +
+            "1204509600000\n" +
+            "1204545600000\n" +
+            "1204581600000\n" +
+            "1204617600000\n"
+        );
+    }
+
+    @Test
+    public void test_generate_interval_from_start_date_to_end_date_with_minus_10_hours_interval() {
+        assertExecute(
+            "generate_series('2008-03-05 00:00'::timestamp, '2008-03-04 12:00'::timestamp, '-10 hours'::interval)",
+            "1204675200000\n" +
+            "1204639200000\n"
+        );
+    }
+
+    @Test
+    public void test_generate_series_with_interval_and_null_values_results_in_empty_result() {
+        assertExecute(
+            "generate_series(null::timestamp, '2019-03-04'::timestamp, '1 days'::interval)",
+            ""
+        );
+    }
+
+    @Test
+    public void test_generate_series_with_start_after_end_and_positive_step_returns_empty_result() {
+        assertExecute(
+            "generate_series('2020-01-01'::timestamp, '2019-03-04'::timestamp, '1 days -4 hours'::interval)",
+            ""
+        );
+    }
+
+    @Test
+    public void test_step_is_mandatory_for_timestamps() {
+        expectedException.expectMessage(
+            "generate_series(start, stop) has type `timestamp with time zone` for start, but requires long/int values for start and stop, or if used with timestamps, it requires a third argument for the step (interval)");
+        assertExecute("generate_series(null::timestamp, '2019-03-04'::timestamp)", "");
+    }
 }

@@ -57,6 +57,10 @@ Breaking Changes
 Changes
 =======
 
+- Added the :ref:`INTERVAL <interval_data_type>` datatype and extended
+  :ref:`table-functions-generate-series` to work with timestamps and the
+  new :ref:`INTERVAL <interval_data_type>` type
+
 - Added the :ref:`PG_TYPEOF <pg_typeof>` system function.
 
 - Support implicit object creation in update statements. E.g. ``UPDATE t SET
