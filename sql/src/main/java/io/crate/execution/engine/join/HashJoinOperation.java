@@ -26,7 +26,6 @@ import io.crate.breaker.RowAccounting;
 import io.crate.concurrent.CompletionListenable;
 import io.crate.data.BatchIterator;
 import io.crate.data.CapturingRowConsumer;
-import io.crate.data.ListenableBatchIterator;
 import io.crate.data.Paging;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
@@ -45,9 +44,9 @@ import java.util.function.Predicate;
 
 public class HashJoinOperation implements CompletionListenable {
 
-    private final CompletableFuture<Void> completionFuture = new CompletableFuture<>();
     private final CapturingRowConsumer leftConsumer;
     private final CapturingRowConsumer rightConsumer;
+    private final RowConsumer resultConsumer;
 
     public HashJoinOperation(int numLeftCols,
                              int numRightCols,
@@ -62,14 +61,15 @@ public class HashJoinOperation implements CompletionListenable {
                              long estimatedRowSizeForLeft,
                              long numberOfRowsForLeft) {
 
-        this.leftConsumer = new CapturingRowConsumer(false);
-        this.rightConsumer = new CapturingRowConsumer(true);
+        this.resultConsumer = nlResultConsumer;
+        this.leftConsumer = new CapturingRowConsumer(false, nlResultConsumer.completionFuture());
+        this.rightConsumer = new CapturingRowConsumer(true, nlResultConsumer.completionFuture());
         CompletableFuture.allOf(leftConsumer.capturedBatchIterator(), rightConsumer.capturedBatchIterator())
             .whenComplete((result, failure) -> {
                 if (failure == null) {
                     BatchIterator<Row> joinIterator;
                     try {
-                        joinIterator = new ListenableBatchIterator<>(createHashJoinIterator(
+                        joinIterator = createHashJoinIterator(
                             leftConsumer.capturedBatchIterator().join(),
                             numLeftCols,
                             rightConsumer.capturedBatchIterator().join(),
@@ -79,7 +79,7 @@ public class HashJoinOperation implements CompletionListenable {
                             getHashBuilderFromSymbols(txnCtx, inputFactory, joinRightInputs),
                             rowAccounting,
                             new RamBlockSizeCalculator(Paging.PAGE_SIZE, circuitBreaker, estimatedRowSizeForLeft, numberOfRowsForLeft)
-                        ), completionFuture);
+                        );
                         nlResultConsumer.accept(joinIterator, null);
                     } catch (Exception e) {
                         nlResultConsumer.accept(null, e);
@@ -92,7 +92,7 @@ public class HashJoinOperation implements CompletionListenable {
 
     @Override
     public CompletableFuture<?> completionFuture() {
-        return completionFuture;
+        return resultConsumer.completionFuture();
     }
 
     public RowConsumer leftConsumer() {

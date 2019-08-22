@@ -28,20 +28,23 @@ import io.crate.data.RowConsumer;
 import io.crate.exceptions.SQLExceptions;
 
 import javax.annotation.Nullable;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 public class RowConsumerToResultReceiver implements RowConsumer {
 
+    private final CompletableFuture<?> completionFuture = new CompletableFuture<>();
     private ResultReceiver resultReceiver;
     private int maxRows;
-    private final Consumer<Throwable> onCompletion;
     private long rowCount = 0;
     private BatchIterator<Row> activeIt;
 
     public RowConsumerToResultReceiver(ResultReceiver resultReceiver, int maxRows, Consumer<Throwable> onCompletion) {
         this.resultReceiver = resultReceiver;
         this.maxRows = maxRows;
-        this.onCompletion = onCompletion;
+        completionFuture.whenComplete((res, err) -> {
+            onCompletion.accept(err);
+        });
     }
 
     @Override
@@ -52,9 +55,14 @@ public class RowConsumerToResultReceiver implements RowConsumer {
             if (iterator != null) {
                 iterator.close();
             }
-            onCompletion.accept(failure);
+            completionFuture.completeExceptionally(failure);
             resultReceiver.fail(failure);
         }
+    }
+
+    @Override
+    public CompletableFuture<?> completionFuture() {
+        return completionFuture;
     }
 
     private void consumeIt(BatchIterator<Row> iterator) {
@@ -73,12 +81,12 @@ public class RowConsumerToResultReceiver implements RowConsumer {
             allLoaded = iterator.allLoaded();
         } catch (Throwable t) {
             iterator.close();
-            onCompletion.accept(t);
+            completionFuture.completeExceptionally(t);
             resultReceiver.fail(t);
             return;
         }
         if (allLoaded) {
-            onCompletion.accept(null);
+            completionFuture.complete(null);
             iterator.close();
             resultReceiver.allFinished(false);
         } else {
@@ -88,7 +96,7 @@ public class RowConsumerToResultReceiver implements RowConsumer {
                 } else {
                     Throwable t = SQLExceptions.unwrap(f);
                     iterator.close();
-                    onCompletion.accept(t);
+                    completionFuture.completeExceptionally(t);
                     resultReceiver.fail(t);
                 }
             });
@@ -102,7 +110,7 @@ public class RowConsumerToResultReceiver implements RowConsumer {
     public void closeAndFinishIfSuspended() {
         if (activeIt != null) {
             activeIt.close();
-            onCompletion.accept(null);
+            completionFuture.complete(null);
             resultReceiver.allFinished(true);
         }
     }
