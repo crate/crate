@@ -55,9 +55,10 @@ class FilesWatcher implements Runnable, Closeable {
 
     void addListener(Path path,
                      Consumer<WatchEvent<Path>> listener,
-                     WatchEvent.Kind<?>... watchEventKinds) throws IOException {
+                     WatchEvent.Kind<?>[] events,
+                     WatchEvent.Modifier... modifiers) throws IOException {
         Watcher watcher = new Watcher(path, listener);
-        WatchKey key = watcher.registrablePath().register(watchService, watchEventKinds);
+        WatchKey key = watcher.registrablePath().register(watchService, events, modifiers);
 
         if (watchers.containsKey(key)) {
             watchers.get(key).add(watcher);
