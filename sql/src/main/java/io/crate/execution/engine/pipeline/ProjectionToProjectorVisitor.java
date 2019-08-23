@@ -571,7 +571,7 @@ public class ProjectionToProjectorVisitor
     @Override
     public Projector visitSysUpdateProjection(SysUpdateProjection projection, Context context) {
         Map<Reference, Symbol> assignments = projection.assignments();
-        assert !assignments.isEmpty() : "at least one assignement is required";
+        assert !assignments.isEmpty() : "at least one assignment is required";
 
         List<Input<?>> valueInputs = new ArrayList<>(assignments.size());
         List<ColumnIdent> assignmentCols = new ArrayList<>(assignments.size());

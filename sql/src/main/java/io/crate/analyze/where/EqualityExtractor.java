@@ -370,7 +370,7 @@ public class EqualityExtractor {
             private List<Set<EqProxy>> comparisonSet() {
                 List<Set<EqProxy>> comps = new ArrayList<>(comparisons.size());
                 for (Comparison comparison : comparisons.values()) {
-                    // TODO: probably create a view instead of a seperate set
+                    // TODO: probably create a view instead of a separate set
                     comps.add(new HashSet<>(comparison.proxies.values()));
                 }
                 return comps;
