@@ -49,17 +49,15 @@ public final class Eval extends ForwardingLogicalPlan {
 
     private final List<Symbol> outputs;
 
-    static LogicalPlan.Builder create(LogicalPlan.Builder sourceBuilder, List<Symbol> outputs) {
-        return (tableStats, hints) -> {
-            final LogicalPlan source = sourceBuilder.build(tableStats, hints);
-            if (source.outputs().equals(outputs)) {
-                return source;
-            }
+    public static LogicalPlan create(LogicalPlan source, List<Symbol> outputs) {
+        if (source.outputs().equals(outputs)) {
+            return source;
+        } else {
             return new Eval(source, outputs);
-        };
+        }
     }
 
-    public Eval(LogicalPlan source, List<Symbol> outputs) {
+    private Eval(LogicalPlan source, List<Symbol> outputs) {
         super(source);
         this.outputs = outputs;
     }

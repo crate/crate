@@ -43,13 +43,10 @@ public class ProjectSet extends ForwardingLogicalPlan {
     final List<Symbol> standalone;
     private final List<Symbol> outputs;
 
-    static LogicalPlan.Builder create(LogicalPlan.Builder source, List<Function> tableFunctions) {
+    static LogicalPlan create(LogicalPlan source, List<Function> tableFunctions) {
         if (tableFunctions.isEmpty()) {
             return source;
-        }
-        return (tableStats, hints) -> {
-            LogicalPlan sourcePlan = source.build(tableStats, hints);
-
+        } else {
             // Use sourcePlan.outputs() as standalone to simply pass along all source outputs as well;
             // Parent operators will discard them if not required
             // The reason to do this is that we've no good way to detect what is required. E.g.
@@ -58,8 +55,8 @@ public class ProjectSet extends ForwardingLogicalPlan {
             //     so we can't simply discard any source outputs that are used as arguments for the table functions.
             //  -> x might be converted to _fetch by the Collect operator,
             //       so we don't necessarily "get" the outputs we would expect based on the select list.
-            return new ProjectSet(sourcePlan, tableFunctions, sourcePlan.outputs());
-        };
+            return new ProjectSet(source, tableFunctions, source.outputs());
+        }
     }
 
     private ProjectSet(LogicalPlan source, List<Function> tableFunctions, List<Symbol> standalone) {

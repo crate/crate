@@ -51,7 +51,6 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.util.Set;
-import java.util.Collections;
 
 import static io.crate.analyze.TableDefinitions.TEST_DOC_LOCATIONS_TABLE_DEFINITION;
 import static io.crate.analyze.TableDefinitions.USER_TABLE_DEFINITION;
@@ -98,8 +97,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
     private LogicalPlan createLogicalPlan(MultiSourceSelect mss, TableStats tableStats) {
         LogicalPlanner logicalPlanner = new LogicalPlanner(functions, tableStats);
         SubqueryPlanner subqueryPlanner = new SubqueryPlanner((s) -> logicalPlanner.planSubSelect(s, plannerCtx));
-        return JoinPlanBuilder.createNodes(mss, mss.where(), subqueryPlanner, functions, txnCtx)
-            .build(tableStats, Set.of());
+        return JoinPlanBuilder.createNodes(mss, mss.where(), subqueryPlanner, functions, txnCtx, Set.of(), tableStats);
     }
 
     private Join buildJoin(LogicalPlan operator) {
@@ -179,8 +177,8 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         PlannerContext context = e.getPlannerContext(clusterService.state());
         LogicalPlanner logicalPlanner = new LogicalPlanner(functions, tableStats);
         SubqueryPlanner subqueryPlanner = new SubqueryPlanner((s) -> logicalPlanner.planSubSelect(s, context));
-        LogicalPlan operator = JoinPlanBuilder.createNodes(mss, mss.where(), subqueryPlanner, e.functions(), txnCtx)
-            .build(tableStats, Set.of());
+        LogicalPlan operator = JoinPlanBuilder
+            .createNodes(mss, mss.where(), subqueryPlanner, e.functions(), txnCtx, Set.of(), tableStats);
         Join nl = (Join) operator.build(
             context, projectionBuilder, -1, 0, null, null, Row.EMPTY, SubQueryResults.EMPTY);
 

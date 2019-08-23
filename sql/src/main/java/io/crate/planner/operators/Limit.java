@@ -53,13 +53,12 @@ public class Limit extends ForwardingLogicalPlan {
     final Symbol limit;
     final Symbol offset;
 
-    static LogicalPlan.Builder create(LogicalPlan.Builder source, @Nullable Symbol limit, @Nullable Symbol offset) {
+    static LogicalPlan create(LogicalPlan source, @Nullable Symbol limit, @Nullable Symbol offset) {
         if (limit == null && offset == null) {
             return source;
+        } else {
+            return new Limit(source, firstNonNull(limit, Literal.of(-1L)), firstNonNull(offset, Literal.of(0)));
         }
-        return (tableStats, hints) -> new Limit(
-            source.build(tableStats, hints), firstNonNull(limit, Literal.of(-1L)), firstNonNull(offset, Literal.of(0L))
-        );
     }
 
     public Limit(LogicalPlan source, Symbol limit, Symbol offset) {
