@@ -46,11 +46,12 @@ public class Order extends ForwardingLogicalPlan {
     final OrderBy orderBy;
     private final List<Symbol> outputs;
 
-    static LogicalPlan.Builder create(LogicalPlan.Builder source, @Nullable OrderBy orderBy) {
+    static LogicalPlan create(LogicalPlan source, @Nullable OrderBy orderBy) {
         if (orderBy == null) {
             return source;
+        } else {
+            return new Order(source, orderBy);
         }
-        return (tableStats, hints, params) -> new Order(source.build(tableStats, hints, params), orderBy);
     }
 
     public Order(LogicalPlan source, OrderBy orderBy) {

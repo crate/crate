@@ -46,12 +46,10 @@ import io.crate.planner.node.dql.GroupByConsumer;
 import io.crate.statistics.ColumnStats;
 import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
-import org.elasticsearch.common.util.set.Sets;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.EnumSet;
 import java.util.List;
 
 import static io.crate.planner.operators.LogicalPlanner.NO_LIMIT;
@@ -64,22 +62,6 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
     private final List<Symbol> outputs;
     private final long numExpectedRows;
 
-    public static Builder create(Builder source, List<Symbol> groupKeys, List<Function> aggregates) {
-        return (tableStats, hints, params) -> {
-            LogicalPlan sourcePlan = source.build(
-                tableStats,
-                Sets.difference(hints, EnumSet.of(PlanHint.PREFER_SOURCE_LOOKUP)),
-                params
-            );
-            long numExpectedRows = approximateDistinctValues(sourcePlan.numExpectedRows(), tableStats, groupKeys);
-            return new GroupHashAggregate(
-                sourcePlan,
-                groupKeys,
-                aggregates,
-                numExpectedRows
-            );
-        };
-    }
 
     static long approximateDistinctValues(long numSourceRows, TableStats tableStats, List<Symbol> groupKeys) {
         long distinctValues = 1;
@@ -118,7 +100,7 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
         }
     }
 
-    GroupHashAggregate(LogicalPlan source, List<Symbol> groupKeys, List<Function> aggregates, long numExpectedRows) {
+    public GroupHashAggregate(LogicalPlan source, List<Symbol> groupKeys, List<Function> aggregates, long numExpectedRows) {
         super(source);
         this.numExpectedRows = numExpectedRows;
         this.outputs = Lists2.concat(groupKeys, aggregates);

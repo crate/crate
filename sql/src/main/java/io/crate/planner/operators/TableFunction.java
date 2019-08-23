@@ -51,8 +51,8 @@ public final class TableFunction implements LogicalPlan {
     private final List<Symbol> toCollect;
     final WhereClause where;
 
-    public static Builder create(TableFunctionRelation relation, List<Symbol> toCollect, WhereClause where) {
-        return (tableStats, hints, params) -> new TableFunction(relation, toCollect, where);
+    public static LogicalPlan create(TableFunctionRelation relation, List<Symbol> toCollect, WhereClause where) {
+        return new TableFunction(relation, toCollect, where);
     }
 
     public TableFunction(TableFunctionRelation relation, List<Symbol> toCollect, WhereClause where) {

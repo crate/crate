@@ -62,35 +62,26 @@ import java.util.Set;
  */
 public class RelationBoundary extends ForwardingLogicalPlan {
 
-    public static LogicalPlan.Builder create(LogicalPlan.Builder sourceBuilder, AnalyzedRelation relation) {
-        return (tableStats, hints, params) -> {
-            HashMap<Symbol, Symbol> expressionMapping = new HashMap<>();
-            HashMap<Symbol, Symbol> reverseMapping = new HashMap<>();
-            List<Field> fields = relation.fields();
-            for (int i = 0; i < fields.size(); i++) {
-                Field field = fields.get(i);
-                Symbol outputAtSamePosition = relation.outputs().get(i);
-                expressionMapping.put(field, outputAtSamePosition);
-                reverseMapping.put(outputAtSamePosition, field);
-            }
-            LogicalPlan source = sourceBuilder.build(tableStats, hints, params);
-            for (Symbol symbol : source.outputs()) {
-                RefVisitor.visitRefs(symbol, r -> {
-                    Field field = new Field(relation, r.column(), r);
-                    if (reverseMapping.putIfAbsent(r, field) == null) {
-                        expressionMapping.put(field, r);
-                    }
-                });
-                FieldsVisitor.visitFields(symbol, f -> {
-                    Field field = new Field(relation, f.path(), f);
-                    if (reverseMapping.putIfAbsent(f, field) == null) {
-                        expressionMapping.put(field, f);
-                    }
-                });
-            }
-            List<Symbol> outputs = OperatorUtils.mappedSymbols(source.outputs(), reverseMapping);
-            return new RelationBoundary(source, relation, outputs, reverseMapping);
-        };
+    public static LogicalPlan create(LogicalPlan source, AnalyzedRelation relation) {
+        HashMap<Symbol, Symbol> reverseMapping = new HashMap<>();
+        List<Field> fields = relation.fields();
+        for (int i = 0; i < fields.size(); i++) {
+            Field field = fields.get(i);
+            Symbol outputAtSamePosition = relation.outputs().get(i);
+            reverseMapping.put(outputAtSamePosition, field);
+        }
+        for (Symbol symbol : source.outputs()) {
+            RefVisitor.visitRefs(symbol, r -> {
+                Field field = new Field(relation, r.column(), r);
+                reverseMapping.putIfAbsent(r, field);
+            });
+            FieldsVisitor.visitFields(symbol, f -> {
+                Field field = new Field(relation, f.path(), f);
+                reverseMapping.putIfAbsent(f, field);
+            });
+        }
+        List<Symbol> outputs = OperatorUtils.mappedSymbols(source.outputs(), reverseMapping);
+        return new RelationBoundary(source, relation, outputs, reverseMapping);
     }
 
     private final List<Symbol> outputs;
