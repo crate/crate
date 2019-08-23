@@ -123,4 +123,5 @@ Changes
 Fixes
 =====
 
-None
+- Fixed the :ref:`ssl.resource_poll_interval <ssl.resource_poll_interval>`
+  setting processing and documentation.
