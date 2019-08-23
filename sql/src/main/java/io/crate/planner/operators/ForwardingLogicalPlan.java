@@ -79,4 +79,9 @@ public abstract class ForwardingLogicalPlan implements LogicalPlan {
     public long estimatedRowSize() {
         return source.estimatedRowSize();
     }
+
+    @Override
+    public List<Symbol> intermediatelyUsedColumns() {
+        return source.intermediatelyUsedColumns();
+    }
 }

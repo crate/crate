@@ -149,6 +149,11 @@ public class Union implements LogicalPlan {
     }
 
     @Override
+    public List<Symbol> intermediatelyUsedColumns() {
+        return List.of();
+    }
+
+    @Override
     public List<AbstractTableRelation> baseTables() {
         return Lists2.concat(lhs.baseTables(), rhs.baseTables());
     }
