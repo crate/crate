@@ -65,6 +65,11 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
     }
 
     @Override
+    public List<Symbol> intermediatelyUsedColumns() {
+        return outputs;
+    }
+
+    @Override
     public ExecutionPlan build(PlannerContext plannerContext,
                                ProjectionBuilder projectionBuilder,
                                int limit,

@@ -163,6 +163,11 @@ public class Collect implements LogicalPlan {
         return outputs;
     }
 
+    @Override
+    public List<Symbol> intermediatelyUsedColumns() {
+        return List.of();
+    }
+
     public WhereClause where() {
         return where;
     }

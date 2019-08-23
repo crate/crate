@@ -64,6 +64,7 @@ import io.crate.planner.TableStats;
 import io.crate.planner.WhereClauseOptimizer;
 import io.crate.planner.consumer.InsertFromSubQueryPlanner;
 import io.crate.planner.optimizer.Optimizer;
+import io.crate.planner.optimizer.rule.CollectAndFetch;
 import io.crate.planner.optimizer.rule.DeduplicateOrder;
 import io.crate.planner.optimizer.rule.MergeAggregateAndCollectToCount;
 import io.crate.planner.optimizer.rule.MergeFilterAndCollect;
@@ -197,7 +198,8 @@ public class LogicalPlanner {
         CoordinatorTxnCtx coordinatorTxnCtx = plannerContext.transactionContext();
         AnalyzedRelation relation = relationNormalizer.normalize(analyzedRelation, coordinatorTxnCtx);
         LogicalPlan logicalPlan = plan(relation, subqueryPlanner, true, functions, coordinatorTxnCtx, hints, tableStats);
-        return optimizer.optimize(logicalPlan);
+        Optimizer fetchOptimizer = new Optimizer(List.of(new CollectAndFetch()));
+        return fetchOptimizer.optimize(this.optimizer.optimize(logicalPlan));
     }
 
     static LogicalPlan plan(AnalyzedRelation relation,

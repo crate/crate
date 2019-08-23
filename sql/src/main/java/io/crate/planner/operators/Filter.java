@@ -38,6 +38,8 @@ import io.crate.types.DataTypes;
 import javax.annotation.Nullable;
 import java.util.List;
 
+import static io.crate.planner.operators.LogicalPlanner.extractColumns;
+
 public final class Filter extends ForwardingLogicalPlan {
 
     final Symbol query;
@@ -69,6 +71,11 @@ public final class Filter extends ForwardingLogicalPlan {
     public Filter(LogicalPlan source, Symbol query) {
         super(source);
         this.query = query;
+    }
+
+    @Override
+    public List<Symbol> intermediatelyUsedColumns() {
+        return List.copyOf(extractColumns(query));
     }
 
     public Symbol query() {

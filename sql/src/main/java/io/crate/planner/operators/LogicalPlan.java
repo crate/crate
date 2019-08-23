@@ -99,6 +99,19 @@ public interface LogicalPlan extends Plan {
     List<Symbol> outputs();
 
     /**
+     * While {@link #outputs()} contains all symbols that are part of the resultSet of this operator,
+     * this method returns only the columns which are actively used by the operator to produce the resultSet.
+     *
+     * For example a FILTER (x > 10) only uses `x`, but might output much more columns.
+     * Or LIMIT 10: It doesn't use any columns, but might have many outputs
+     */
+    List<Symbol> intermediatelyUsedColumns();
+
+    default PruneResult pruneColumnsOrFetchOptimize(List<Symbol> intermediatelyUsedColumnsByParent) {
+        return PruneResult.FAILURE;
+    }
+
+    /**
      * Indicates if the operators which are added on top of this LogicalPlan should operate on a shard level.
      * Operating on a shard level increases parallelism.
      */

@@ -91,6 +91,11 @@ public class Insert implements LogicalPlan {
     }
 
     @Override
+    public List<Symbol> intermediatelyUsedColumns() {
+        return List.copyOf(writeToTable.columnReferences());
+    }
+
+    @Override
     public List<AbstractTableRelation> baseTables() {
         return Collections.emptyList();
     }
