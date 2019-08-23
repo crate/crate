@@ -56,11 +56,13 @@ import io.crate.planner.consumer.OrderByPositionVisitor;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.selectivity.SelectivityFunctions;
 import io.crate.statistics.Stats;
+import io.crate.statistics.TableStats;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static io.crate.planner.operators.Limit.limitAndOffset;
 
@@ -85,20 +87,21 @@ public class Collect implements LogicalPlan {
 
     WhereClause where;
 
-    public static LogicalPlan.Builder create(AbstractTableRelation<?> relation,
-                                             List<Symbol> toCollect,
-                                             WhereClause where) {
-        return (tableStats, hints, params) -> {
-            Stats stats = tableStats.getStats(relation.tableInfo().ident());
-            return new Collect(
-                hints.contains(PlanHint.PREFER_SOURCE_LOOKUP),
-                relation,
-                toCollect,
-                where,
-                SelectivityFunctions.estimateNumRows(stats, where.queryOrFallback(), params),
-                stats.averageSizePerRowInBytes()
-            );
-        };
+    public static LogicalPlan create(AbstractTableRelation<?> relation,
+                                     List<Symbol> toCollect,
+                                     WhereClause where,
+                                     Set<PlanHint> hints,
+                                     TableStats tableStats,
+                                     Row params) {
+        Stats stats = tableStats.getStats(relation.tableInfo().ident());
+        return new Collect(
+            hints.contains(PlanHint.PREFER_SOURCE_LOOKUP),
+            relation,
+            toCollect,
+            where,
+            SelectivityFunctions.estimateNumRows(stats, where.queryOrFallback(), params),
+            stats.averageSizePerRowInBytes()
+        );
     }
 
     public Collect(boolean preferSourceLookup,

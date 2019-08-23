@@ -36,7 +36,7 @@ import static io.crate.metadata.SearchPath.createSearchPathFrom;
 public class SessionSettingRegistry {
 
     private static final String SEARCH_PATH_KEY = "search_path";
-    static final String HASH_JOIN_KEY = "enable_hashjoin";
+    public static final String HASH_JOIN_KEY = "enable_hashjoin";
     static final String MAX_INDEX_KEYS = "max_index_keys";
 
     public static final Map<String, SessionSetting<?>> SETTINGS = ImmutableMap.<String, SessionSetting<?>>builder()

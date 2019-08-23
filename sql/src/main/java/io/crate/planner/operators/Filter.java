@@ -42,17 +42,15 @@ public final class Filter extends ForwardingLogicalPlan {
 
     final Symbol query;
 
-    static LogicalPlan.Builder create(LogicalPlan.Builder sourceBuilder, @Nullable QueryClause queryClause) {
+    static LogicalPlan create(LogicalPlan source, @Nullable QueryClause queryClause) {
         if (queryClause == null) {
-            return sourceBuilder;
+            return source;
         }
         Symbol query = queryClause.queryOrFallback();
         if (isMatchAll(query)) {
-            return sourceBuilder;
+            return source;
         }
-        return (tableStats, hints, params) -> {
-            return new Filter(sourceBuilder.build(tableStats, hints, params), query);
-        };
+        return new Filter(source, query);
     }
 
     public static LogicalPlan create(LogicalPlan source, Symbol query) {

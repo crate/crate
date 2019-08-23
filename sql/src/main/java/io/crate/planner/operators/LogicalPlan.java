@@ -35,14 +35,12 @@ import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.sql.tree.QualifiedName;
-import io.crate.statistics.TableStats;
 
 import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.Set;
 
 /**
  * LogicalPlan is a tree of "Operators"
@@ -82,14 +80,6 @@ import java.util.Set;
  * </pre>
  */
 public interface LogicalPlan extends Plan {
-
-    interface Builder {
-
-        /**
-         * Create a LogicalPlan node
-         */
-        LogicalPlan build(TableStats tableStats, Set<PlanHint> hints, @Nullable Row params);
-    }
 
     /**
      * Uses the current shard allocation information to create a physical execution plan.

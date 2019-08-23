@@ -43,12 +43,14 @@ import io.crate.planner.ResultDescription;
 import io.crate.planner.SubqueryPlanner;
 import io.crate.planner.UnionExecutionPlan;
 import io.crate.planner.distribution.DistributionInfo;
+import io.crate.statistics.TableStats;
 import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static io.crate.planner.operators.Limit.limitAndOffset;
 
@@ -67,16 +69,19 @@ public class Union implements LogicalPlan {
     final LogicalPlan rhs;
     private final Map<LogicalPlan, SelectSymbol> dependencies;
 
-    static Builder create(UnionSelect union, SubqueryPlanner subqueryPlanner, Functions functions, CoordinatorTxnCtx txnCtx) {
-        return (tableStats, hints, params) -> {
-            AnalyzedRelation left = union.left();
-            AnalyzedRelation right = union.right();
+    static LogicalPlan create(UnionSelect union,
+                              SubqueryPlanner subqueryPlanner,
+                              Functions functions,
+                              CoordinatorTxnCtx txnCtx,
+                              Set<PlanHint> hints,
+                              TableStats tableStats,
+                              Row params) {
+        AnalyzedRelation left = union.left();
+        AnalyzedRelation right = union.right();
+        LogicalPlan lhsPlan = LogicalPlanner.plan(left, subqueryPlanner, true, functions, txnCtx, hints, tableStats, params);
+        LogicalPlan rhsPlan = LogicalPlanner.plan(right, subqueryPlanner, true, functions, txnCtx, hints, tableStats, params);
 
-            LogicalPlan lhsPlan = LogicalPlanner.plan(left, subqueryPlanner, true, functions, txnCtx).build(tableStats, hints, params);
-            LogicalPlan rhsPlan = LogicalPlanner.plan(right, subqueryPlanner, true, functions, txnCtx).build(tableStats, hints, params);
-
-            return new Union(lhsPlan, rhsPlan, union.outputs());
-        };
+        return new Union(lhsPlan, rhsPlan, union.outputs());
     }
 
     private Union(LogicalPlan lhs, LogicalPlan rhs, List<Symbol> outputs) {
