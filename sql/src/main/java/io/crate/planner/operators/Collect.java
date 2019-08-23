@@ -55,6 +55,7 @@ import io.crate.planner.ExecutionPlan;
 import io.crate.planner.ExplainLeaf;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.PositionalOrderBy;
+import io.crate.planner.TableStats;
 import io.crate.planner.consumer.OrderByPositionVisitor;
 import io.crate.planner.distribution.DistributionInfo;
 
@@ -63,6 +64,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static io.crate.planner.operators.Limit.limitAndOffset;
 
@@ -87,10 +89,12 @@ public class Collect implements LogicalPlan {
     private final long numExpectedRows;
     private final long estimatedRowSize;
 
-    public static LogicalPlan.Builder create(AbstractTableRelation relation,
-                                             List<Symbol> toCollect,
-                                             WhereClause where) {
-        return (tableStats, hints) -> new Collect(
+    public static LogicalPlan create(AbstractTableRelation relation,
+                                     List<Symbol> toCollect,
+                                     WhereClause where,
+                                     Set<PlanHint> hints,
+                                     TableStats tableStats) {
+        return new Collect(
             hints.contains(PlanHint.PREFER_SOURCE_LOOKUP),
             relation,
             toCollect,

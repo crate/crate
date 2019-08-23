@@ -60,36 +60,15 @@ import java.util.stream.Stream;
  * enabled by the {@link io.crate.metadata.settings.session.SessionSettingRegistry#HASH_JOIN_KEY} setting and its
  * application is mandated by {@link EquiJoinDetector}).
  */
-public class JoinPlanBuilder implements LogicalPlan.Builder {
+public class JoinPlanBuilder {
 
-    private final MultiSourceSelect mss;
-    private final WhereClause where;
-    private final SubqueryPlanner subqueryPlanner;
-    private final Functions functions;
-    private final CoordinatorTxnCtx txnCtx;
-
-    private JoinPlanBuilder(MultiSourceSelect mss,
-                            WhereClause where,
-                            SubqueryPlanner subqueryPlanner,
-                            Functions functions,
-                            CoordinatorTxnCtx txnCtx) {
-        this.mss = mss;
-        this.where = where;
-        this.subqueryPlanner = subqueryPlanner;
-        this.functions = functions;
-        this.txnCtx = txnCtx;
-    }
-
-    static JoinPlanBuilder createNodes(MultiSourceSelect mss,
-                                       WhereClause where,
-                                       SubqueryPlanner subqueryPlanner,
-                                       Functions functions,
-                                       CoordinatorTxnCtx txnCtx) {
-        return new JoinPlanBuilder(mss, where, subqueryPlanner, functions, txnCtx);
-    }
-
-    @Override
-    public LogicalPlan build(TableStats tableStats, Set<PlanHint> hints) {
+    static LogicalPlan createNodes(MultiSourceSelect mss,
+                                   WhereClause where,
+                                   SubqueryPlanner subqueryPlanner,
+                                   Functions functions,
+                                   CoordinatorTxnCtx txnCtx,
+                                   Set<PlanHint> hints,
+                                   TableStats tableStats) {
         Map<Set<QualifiedName>, Symbol> queryParts = getQueryParts(where);
         LinkedHashMap<Set<QualifiedName>, JoinPair> joinPairs =
             JoinOperations.buildRelationsToJoinPairsMap(
@@ -125,15 +104,10 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
             joinCondition = joinLhsRhs.condition();
         }
 
-        // use NEVER_CLEAR as fetchMode to prevent intermediate fetches
-        // This is necessary; because due to how the fetch-reader-allocation works it's not possible to
-        // have more than 1 fetchProjection within a single execution
         AnalyzedRelation lhs = mss.sources().get(lhsName);
         AnalyzedRelation rhs = mss.sources().get(rhsName);
-        LogicalPlan lhsPlan = LogicalPlanner.plan(lhs, subqueryPlanner, false, functions, txnCtx)
-            .build(tableStats, hints);
-        LogicalPlan rhsPlan = LogicalPlanner.plan(rhs, subqueryPlanner, false, functions, txnCtx)
-            .build(tableStats, hints);
+        LogicalPlan lhsPlan = LogicalPlanner.plan(lhs, subqueryPlanner, false, functions, txnCtx, hints, tableStats);
+        LogicalPlan rhsPlan = LogicalPlanner.plan(rhs, subqueryPlanner, false, functions, txnCtx, hints, tableStats);
         Symbol query = removeParts(queryParts, lhsName, rhsName);
         LogicalPlan joinPlan = createJoinPlan(
             lhsPlan,
@@ -235,8 +209,7 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
             condition = joinPair.condition();
         }
 
-        LogicalPlan nextPlan = LogicalPlanner.plan(nextRel, subqueryPlanner, false, functions, txnCtx)
-            .build(tableStats, hints);
+        LogicalPlan nextPlan = LogicalPlanner.plan(nextRel, subqueryPlanner, false, functions, txnCtx, hints, tableStats);
 
         Symbol query = AndOperator.join(
             Stream.of(

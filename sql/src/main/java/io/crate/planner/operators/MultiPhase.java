@@ -47,17 +47,15 @@ public class MultiPhase extends ForwardingLogicalPlan {
 
     private final Map<LogicalPlan, SelectSymbol> subQueries;
 
-    public static LogicalPlan.Builder createIfNeeded(LogicalPlan.Builder sourceBuilder,
-                                                     AnalyzedRelation relation,
-                                                     SubqueryPlanner subqueryPlanner) {
+    public static LogicalPlan createIfNeeded(LogicalPlan source,
+                                             AnalyzedRelation relation,
+                                             SubqueryPlanner subqueryPlanner) {
         Map<LogicalPlan, SelectSymbol> subQueries = subqueryPlanner.planSubQueries(relation);
         if (subQueries.isEmpty()) {
-            return sourceBuilder;
-        }
-        return (tableStats, hints) -> {
-            LogicalPlan source = sourceBuilder.build(tableStats, hints);
+            return source;
+        } else {
             return new MultiPhase(source, subQueries);
-        };
+        }
     }
 
     private MultiPhase(LogicalPlan source, Map<LogicalPlan, SelectSymbol> subQueries) {

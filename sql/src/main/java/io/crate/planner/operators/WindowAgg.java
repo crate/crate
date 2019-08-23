@@ -60,27 +60,25 @@ public class WindowAgg extends ForwardingLogicalPlan {
     private final List<Symbol> standalone;
     private final List<Symbol> outputs;
 
-    static LogicalPlan.Builder create(LogicalPlan.Builder source, List<WindowFunction> windowFunctions) {
+    static LogicalPlan create(LogicalPlan source, List<WindowFunction> windowFunctions) {
         if (windowFunctions.isEmpty()) {
             return source;
         }
-        return (tableStats, hints) -> {
-            LinkedHashMap<WindowDefinition, ArrayList<WindowFunction>> groupedFunctions = new LinkedHashMap<>();
-            for (WindowFunction windowFunction : windowFunctions) {
-                WindowDefinition windowDefinition = windowFunction.windowDefinition();
-                ArrayList<WindowFunction> functions = groupedFunctions.computeIfAbsent(windowDefinition, w -> new ArrayList<>());
-                functions.add(windowFunction);
-            }
-            LogicalPlan lastWindowAgg = source.build(tableStats, hints);
-            for (Map.Entry<WindowDefinition, ArrayList<WindowFunction>> entry : groupedFunctions.entrySet()) {
-                /*
-                 * Pass along the source outputs as standalone symbols as they might be required in cases like:
-                 *      select x, avg(x) OVER() from t;
-                 */
-                lastWindowAgg = new WindowAgg(lastWindowAgg, entry.getKey(), entry.getValue(), lastWindowAgg.outputs());
-            }
-            return lastWindowAgg;
-        };
+        LinkedHashMap<WindowDefinition, ArrayList<WindowFunction>> groupedFunctions = new LinkedHashMap<>();
+        for (WindowFunction windowFunction : windowFunctions) {
+            WindowDefinition windowDefinition = windowFunction.windowDefinition();
+            ArrayList<WindowFunction> functions = groupedFunctions.computeIfAbsent(windowDefinition, w -> new ArrayList<>());
+            functions.add(windowFunction);
+        }
+        LogicalPlan lastWindowAgg = source;
+        for (Map.Entry<WindowDefinition, ArrayList<WindowFunction>> entry : groupedFunctions.entrySet()) {
+            /*
+             * Pass along the source outputs as standalone symbols as they might be required in cases like:
+             *      select x, avg(x) OVER() from t;
+             */
+            lastWindowAgg = new WindowAgg(lastWindowAgg, entry.getKey(), entry.getValue(), lastWindowAgg.outputs());
+        }
+        return lastWindowAgg;
     }
 
     private WindowAgg(LogicalPlan source, WindowDefinition windowDefinition, List<WindowFunction> windowFunctions, List<Symbol> standalone) {
