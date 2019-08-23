@@ -18,16 +18,20 @@
 
 package io.crate.protocols.ssl;
 
+import com.sun.nio.file.SensitivityWatchEventModifier;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.core.internal.io.IOUtils;
 import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.nio.file.WatchEvent;
+import java.util.concurrent.TimeUnit;
 
 import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
 
@@ -52,6 +56,8 @@ public class SslContextProviderService extends AbstractLifecycleComponent {
 
     @Override
     protected void doStart() {
+        SensitivityWatchEventModifier pollSensitivity = pollSensitivity();
+
         try {
             filesWatcher = new FilesWatcher();
 
@@ -60,14 +66,16 @@ public class SslContextProviderService extends AbstractLifecycleComponent {
                 filesWatcher.addListener(
                     Paths.get(keystorePath),
                     event -> sslContextProvider.reloadSslContext(),
-                    ENTRY_MODIFY);
+                    new WatchEvent.Kind[]{ENTRY_MODIFY},
+                    pollSensitivity);
             }
             var trustStorePath = SslConfigSettings.SSL_TRUSTSTORE_FILEPATH.setting().get(settings);
             if (!trustStorePath.isEmpty()) {
                 filesWatcher.addListener(
                     Paths.get(trustStorePath),
                     event -> sslContextProvider.reloadSslContext(),
-                    ENTRY_MODIFY);
+                    new WatchEvent.Kind[]{ENTRY_MODIFY},
+                    pollSensitivity);
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -75,7 +83,7 @@ public class SslContextProviderService extends AbstractLifecycleComponent {
 
         watchRoutine = threadPool.scheduleWithFixedDelay(
             filesWatcher,
-            SslConfigSettings.SSL_RESOURCE_POLL_INTERVAL.setting().get(settings),
+            new TimeValue(pollSensitivity.sensitivityValueInSeconds(), TimeUnit.SECONDS),
             ThreadPool.Names.GENERIC);
     }
 
@@ -90,5 +98,19 @@ public class SslContextProviderService extends AbstractLifecycleComponent {
 
     @Override
     protected void doClose() {
+    }
+
+    private SensitivityWatchEventModifier pollSensitivity() {
+        TimeValue pollIntervalSetting = SslConfigSettings.SSL_RESOURCE_POLL_INTERVAL.setting().get(settings);
+        long pollInSeconds = pollIntervalSetting.getSeconds();
+        SensitivityWatchEventModifier pollSensitivity;
+        if (pollInSeconds <= SensitivityWatchEventModifier.HIGH.sensitivityValueInSeconds()) {
+            pollSensitivity = SensitivityWatchEventModifier.HIGH;
+        } else if (pollInSeconds <= SensitivityWatchEventModifier.MEDIUM.sensitivityValueInSeconds()) {
+            pollSensitivity = SensitivityWatchEventModifier.MEDIUM;
+        } else {
+            pollSensitivity = SensitivityWatchEventModifier.LOW;
+        }
+        return pollSensitivity;
     }
 }

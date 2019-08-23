@@ -105,7 +105,7 @@ public class HttpsTransportKeyStoreReloadIntegrationTest extends SQLHttpIntegrat
             .put(SslConfigSettings.SSL_HTTP_ENABLED.getKey(), true)
             .put(SslConfigSettings.SSL_KEYSTORE_FILEPATH.getKey(), keyStoreFile.getAbsolutePath())
             .put(SslConfigSettings.SSL_TRUSTSTORE_FILEPATH.getKey(), trustStoreFile.getAbsolutePath())
-            .put(SslConfigSettings.SSL_RESOURCE_POLL_INTERVAL.getKey(), 1)
+            .put(SslConfigSettings.SSL_RESOURCE_POLL_INTERVAL.getKey(), "2s")
             .build();
     }
 

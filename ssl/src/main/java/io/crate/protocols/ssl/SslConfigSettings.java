@@ -22,8 +22,11 @@
 
 package io.crate.protocols.ssl;
 
+import com.sun.nio.file.SensitivityWatchEventModifier;
 import io.crate.settings.CrateSetting;
 import io.crate.types.DataTypes;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
@@ -32,6 +35,8 @@ import org.elasticsearch.common.unit.TimeValue;
  * Settings for configuring Postgres SSL. Only applicable to the ssl-impl module.
  */
 public final class SslConfigSettings {
+
+    private static final Logger LOGGER = LogManager.getLogger(SslConfigSettings.class);
 
     private SslConfigSettings() {}
 
@@ -44,7 +49,7 @@ public final class SslConfigSettings {
     static final String SSL_KEYSTORE_PASSWORD_SETTING_NAME = "ssl.keystore_password";
     static final String SSL_KEYSTORE_KEY_PASSWORD_SETTING_NAME = "ssl.keystore_key_password";
 
-    private static final String SSL_RESOURCE_POLL_INTERVAL_NAME = "ssl.resource_poll_interval";
+    static final String SSL_RESOURCE_POLL_INTERVAL_NAME = "ssl.resource_poll_interval";
 
     public static final CrateSetting<Boolean> SSL_HTTP_ENABLED = CrateSetting.of(
         Setting.boolSetting(SSL_HTTP_ENABLED_SETTING_NAME, false, Setting.Property.NodeScope),
@@ -74,9 +79,10 @@ public final class SslConfigSettings {
         DataTypes.STRING);
 
     public static final CrateSetting<TimeValue> SSL_RESOURCE_POLL_INTERVAL = CrateSetting.of(
-        Setting.timeSetting(
+        new Setting<>(
             SSL_RESOURCE_POLL_INTERVAL_NAME,
-            TimeValue.timeValueSeconds(5),
+            TimeValue.timeValueSeconds(SensitivityWatchEventModifier.MEDIUM.sensitivityValueInSeconds()).getStringRep(),
+            new SslResourcePollIntervalParser(LOGGER),
             Setting.Property.NodeScope),
         DataTypes.STRING);
 

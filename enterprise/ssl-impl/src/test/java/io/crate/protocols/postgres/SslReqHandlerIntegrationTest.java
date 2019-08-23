@@ -85,7 +85,7 @@ public class SslReqHandlerIntegrationTest extends SQLTransportIntegrationTest {
             .put(super.nodeSettings(nodeOrdinal))
             .put(SslConfigSettings.SSL_PSQL_ENABLED.getKey(), true)
             .put(SslConfigSettings.SSL_KEYSTORE_FILEPATH.getKey(), keyStoreFile.getAbsolutePath())
-            .put(SslConfigSettings.SSL_RESOURCE_POLL_INTERVAL.getKey(), 1)
+            .put(SslConfigSettings.SSL_RESOURCE_POLL_INTERVAL.getKey(), "2s")
             .build();
     }
 

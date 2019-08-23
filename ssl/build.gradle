@@ -8,4 +8,8 @@ dependencies {
     implementation project(':common')
     implementation project(':es:es-server')
     implementation "io.netty:netty-handler:${versions.netty4}"
+
+    testImplementation project(':es:es-testing')
+    testImplementation "junit:junit:${versions.junit}"
+    testImplementation "org.hamcrest:hamcrest:${versions.hamcrest}"
 }
