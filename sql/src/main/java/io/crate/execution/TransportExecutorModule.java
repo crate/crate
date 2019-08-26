@@ -26,6 +26,7 @@ import io.crate.cluster.decommission.TransportDecommissionNodeAction;
 import io.crate.execution.ddl.TransportSchemaUpdateAction;
 import io.crate.execution.ddl.TransportSwapRelationsAction;
 import io.crate.execution.ddl.index.TransportSwapAndDropIndexNameAction;
+import io.crate.execution.ddl.tables.TransportAlterTableAction;
 import io.crate.execution.ddl.tables.TransportCreateTableAction;
 import io.crate.execution.ddl.tables.TransportDropTableAction;
 import io.crate.execution.ddl.tables.TransportOpenCloseTableOrPartitionAction;
@@ -76,5 +77,6 @@ public class TransportExecutorModule extends AbstractModule {
         bind(TransportCreateViewAction.class).asEagerSingleton();
         bind(TransportDropViewAction.class).asEagerSingleton();
         bind(TransportSwapRelationsAction.class).asEagerSingleton();
+        bind(TransportAlterTableAction.class).asEagerSingleton();
     }
 }
