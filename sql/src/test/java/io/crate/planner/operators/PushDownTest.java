@@ -235,7 +235,8 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
                 "RootBoundary[i, i]\n" +
                 "Eval[i, i]\n" +
                 "NestedLoopJoin[\n" +
-                "    Boundary[b, y, i, lower(b)]\n" +
+                "    Boundary[b, y, i]\n" +
+                "    Eval[b, y, i]\n" +
                 "    OrderBy[lower(b) ASC]\n" +
                 "    Collect[doc.t2 | [b, y, i] | All]\n" +
                 "    --- INNER ---\n" +

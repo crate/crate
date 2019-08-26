@@ -22,18 +22,18 @@
 
 package io.crate.planner.operators;
 
+import io.crate.common.collections.Lists2;
 import io.crate.expression.symbol.FieldReplacer;
 import io.crate.expression.symbol.FieldsVisitor;
 import io.crate.expression.symbol.RefReplacer;
 import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
-import io.crate.common.collections.Lists2;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Function;
 
 public final class OperatorUtils {
@@ -57,7 +57,7 @@ public final class OperatorUtils {
      * unused:    [y]
      * </pre>
      */
-    static List<Symbol> getUnusedColumns(List<Symbol> toCollect, Set<Symbol> usedColumns) {
+    static List<Symbol> getUnusedColumns(Iterable<? extends Symbol> toCollect, Collection<? extends Symbol> usedColumns) {
         List<Symbol> unusedCols = new ArrayList<>();
         for (Symbol symbol : toCollect) {
             if (usedColumns.contains(symbol)) {

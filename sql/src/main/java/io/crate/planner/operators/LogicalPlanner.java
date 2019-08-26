@@ -64,7 +64,7 @@ import io.crate.planner.TableStats;
 import io.crate.planner.WhereClauseOptimizer;
 import io.crate.planner.consumer.InsertFromSubQueryPlanner;
 import io.crate.planner.optimizer.Optimizer;
-import io.crate.planner.optimizer.rule.CollectAndFetch;
+import io.crate.planner.optimizer.rule.QueryThenFetch;
 import io.crate.planner.optimizer.rule.DeduplicateOrder;
 import io.crate.planner.optimizer.rule.MergeAggregateAndCollectToCount;
 import io.crate.planner.optimizer.rule.MergeFilterAndCollect;
@@ -82,7 +82,6 @@ import io.crate.planner.optimizer.rule.MoveOrderBeneathBoundary;
 import io.crate.planner.optimizer.rule.MoveOrderBeneathFetchOrEval;
 import io.crate.planner.optimizer.rule.MoveOrderBeneathNestedLoop;
 import io.crate.planner.optimizer.rule.MoveOrderBeneathUnion;
-import io.crate.planner.optimizer.rule.RemoveRedundantFetchOrEval;
 import io.crate.planner.optimizer.rule.RewriteFilterOnOuterJoinToInnerJoin;
 
 import java.util.Collection;
@@ -108,10 +107,10 @@ public class LogicalPlanner {
     private final Visitor statementVisitor = new Visitor();
     private final Functions functions;
     private final RelationNormalizer relationNormalizer;
+    private final Optimizer fetchOptimizer;
 
     public LogicalPlanner(Functions functions, TableStats tableStats) {
         this.optimizer = new Optimizer(List.of(
-            new RemoveRedundantFetchOrEval(),
             new MergeAggregateAndCollectToCount(),
             new MergeFilters(),
             new MoveFilterBeneathBoundary(),
@@ -131,6 +130,7 @@ public class LogicalPlanner {
             new MoveOrderBeneathFetchOrEval(),
             new DeduplicateOrder()
         ));
+        this.fetchOptimizer = new Optimizer(List.of(new QueryThenFetch()));
         this.tableStats = tableStats;
         this.functions = functions;
         this.relationNormalizer = new RelationNormalizer(functions);
@@ -171,7 +171,7 @@ public class LogicalPlanner {
         );
 
         plan = tryOptimizeForInSubquery(selectSymbol, relation, plan);
-        LogicalPlan optimizedPlan = optimizer.optimize(maybeApplySoftLimit.apply(plan));
+        LogicalPlan optimizedPlan = fetchOptimizer.optimize(optimizer.optimize(maybeApplySoftLimit.apply(plan)));
         return new RootRelationBoundary(optimizedPlan);
     }
 
@@ -198,8 +198,7 @@ public class LogicalPlanner {
         CoordinatorTxnCtx coordinatorTxnCtx = plannerContext.transactionContext();
         AnalyzedRelation relation = relationNormalizer.normalize(analyzedRelation, coordinatorTxnCtx);
         LogicalPlan logicalPlan = plan(relation, subqueryPlanner, true, functions, coordinatorTxnCtx, hints, tableStats);
-        Optimizer fetchOptimizer = new Optimizer(List.of(new CollectAndFetch()));
-        return fetchOptimizer.optimize(this.optimizer.optimize(logicalPlan));
+        return fetchOptimizer.optimize(optimizer.optimize(logicalPlan));
     }
 
     static LogicalPlan plan(AnalyzedRelation relation,

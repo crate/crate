@@ -107,8 +107,8 @@ public interface LogicalPlan extends Plan {
      */
     List<Symbol> intermediatelyUsedColumns();
 
-    default PruneResult pruneColumnsOrFetchOptimize(List<Symbol> intermediatelyUsedColumnsByParent) {
-        return PruneResult.FAILURE;
+    default PruneResult pruneColumnsOrFetchOptimize(List<Symbol> usedColumns, List<Symbol> intermediatelyUsedColumns) {
+        return PruneResult.NO_PRUNE;
     }
 
     /**

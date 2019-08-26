@@ -68,6 +68,19 @@ public class Limit extends ForwardingLogicalPlan {
     }
 
     @Override
+    public PruneResult pruneColumnsOrFetchOptimize(List<Symbol> usedColumns, List<Symbol> intermediatelyUsedColumns) {
+        PruneResult sourcePrune = source.pruneColumnsOrFetchOptimize(usedColumns, intermediatelyUsedColumns);
+        if (sourcePrune == PruneResult.NO_PRUNE) {
+            return PruneResult.NO_PRUNE;
+        }
+        return new PruneResult(
+            sourcePrune.hasPrunedColumns(),
+            sourcePrune.supportsFetch(),
+            () -> new Limit(sourcePrune.createPrunedOperators(), limit, offset)
+        );
+    }
+
+    @Override
     public ExecutionPlan build(PlannerContext plannerContext,
                                ProjectionBuilder projectionBuilder,
                                int limitHint,
