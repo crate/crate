@@ -33,8 +33,6 @@ import io.crate.analyze.AddColumnAnalyzedStatement;
 import io.crate.analyze.AlterTableAnalyzedStatement;
 import io.crate.analyze.AlterTableOpenCloseAnalyzedStatement;
 import io.crate.analyze.AlterTableRenameAnalyzedStatement;
-import io.crate.analyze.TableParameter;
-import io.crate.analyze.TableParameters;
 import io.crate.concurrent.MultiBiConsumer;
 import io.crate.data.Row;
 import io.crate.execution.ddl.index.SwapAndDropIndexRequest;
@@ -51,8 +49,6 @@ import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.elasticsearch.action.admin.indices.mapping.put.TransportPutMappingAction;
-import org.elasticsearch.action.admin.indices.settings.put.TransportUpdateSettingsAction;
-import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.action.admin.indices.shrink.ResizeRequest;
 import org.elasticsearch.action.admin.indices.shrink.ResizeResponse;
 import org.elasticsearch.action.admin.indices.shrink.ResizeType;
@@ -72,8 +68,6 @@ import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.IndexScopedSettings;
-import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
@@ -93,12 +87,9 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static org.elasticsearch.cluster.metadata.IndexMetaData.INDEX_BLOCKS_WRITE_SETTING;
 import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_SHARDS;
-import static org.elasticsearch.common.settings.AbstractScopedSettings.ARCHIVED_SETTINGS_PREFIX;
 
 @Singleton
 public class AlterTableOperation {
@@ -108,13 +99,12 @@ public class AlterTableOperation {
     private final ClusterService clusterService;
     private final TransportPutIndexTemplateAction transportPutIndexTemplateAction;
     private final TransportPutMappingAction transportPutMappingAction;
-    private final TransportUpdateSettingsAction transportUpdateSettingsAction;
+    private final TransportAlterTableAction transportAlterTableAction;
     private final TransportRenameTableAction transportRenameTableAction;
     private final TransportOpenCloseTableOrPartitionAction transportOpenCloseTableOrPartitionAction;
     private final TransportResizeAction transportResizeAction;
     private final TransportDeleteIndexAction transportDeleteIndexAction;
     private final TransportSwapAndDropIndexNameAction transportSwapAndDropIndexNameAction;
-    private final IndexScopedSettings indexScopedSettings;
     private final SQLOperations sqlOperations;
     private Session session;
 
@@ -122,25 +112,23 @@ public class AlterTableOperation {
     public AlterTableOperation(ClusterService clusterService,
                                TransportPutIndexTemplateAction transportPutIndexTemplateAction,
                                TransportPutMappingAction transportPutMappingAction,
-                               TransportUpdateSettingsAction transportUpdateSettingsAction,
                                TransportRenameTableAction transportRenameTableAction,
                                TransportOpenCloseTableOrPartitionAction transportOpenCloseTableOrPartitionAction,
                                TransportResizeAction transportResizeAction,
                                TransportDeleteIndexAction transportDeleteIndexAction,
                                TransportSwapAndDropIndexNameAction transportSwapAndDropIndexNameAction,
-                               SQLOperations sqlOperations,
-                               IndexScopedSettings indexScopedSettings) {
+                               TransportAlterTableAction transportAlterTableAction,
+                               SQLOperations sqlOperations) {
 
         this.clusterService = clusterService;
         this.transportPutIndexTemplateAction = transportPutIndexTemplateAction;
         this.transportPutMappingAction = transportPutMappingAction;
-        this.transportUpdateSettingsAction = transportUpdateSettingsAction;
         this.transportRenameTableAction = transportRenameTableAction;
         this.transportResizeAction = transportResizeAction;
         this.transportDeleteIndexAction = transportDeleteIndexAction;
         this.transportSwapAndDropIndexNameAction = transportSwapAndDropIndexNameAction;
         this.transportOpenCloseTableOrPartitionAction = transportOpenCloseTableOrPartitionAction;
-        this.indexScopedSettings = indexScopedSettings;
+        this.transportAlterTableAction = transportAlterTableAction;
         this.sqlOperations = sqlOperations;
     }
 
@@ -199,45 +187,21 @@ public class AlterTableOperation {
     }
 
     private CompletableFuture<Long> executeAlterTableSetOrReset(AlterTableAnalyzedStatement analysis) {
-        DocTableInfo table = analysis.table();
-        List<CompletableFuture<Long>> results = new ArrayList<>(3);
-        if (table.isPartitioned()) {
-            Optional<PartitionName> partitionName = analysis.partitionName();
-            if (partitionName.isPresent()) {
-                String index = partitionName.get().asIndexName();
-                results.add(updateMapping(analysis.tableParameter().mappings(), index));
-                results.add(updateSettings(analysis.tableParameter(), index));
-            } else {
-                // template gets all changes unfiltered
-                results.add(updateTemplate(analysis.tableParameter(), table.ident()));
-
-                if (!analysis.excludePartitions()) {
-                    // create new filtered partition table settings
-                    List<String> supportedSettings = TableParameters.PARTITIONED_TABLE_PARAMETER_INFO_FOR_TEMPLATE_UPDATE
-                        .supportedSettings()
-                        .values()
-                        .stream()
-                        .map(Setting::getKey)
-                        .collect(Collectors.toList());
-                    // auto_expand_replicas must be explicitly added as it is hidden under NumberOfReplicasSetting
-                    supportedSettings.add(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS);
-                    TableParameter parameterWithFilteredSettings = new TableParameter(
-                        analysis.tableParameter().settings(),
-                        supportedSettings);
-
-                    String[] indices = Stream.of(table.concreteIndices()).toArray(String[]::new);
-                    results.add(updateMapping(analysis.tableParameter().mappings(), indices));
-                    results.add(updateSettings(parameterWithFilteredSettings, indices));
-                }
-            }
-        } else {
-            results.add(updateMapping(analysis.tableParameter().mappings(), table.ident().indexNameOrAlias()));
-            results.add(updateSettings(analysis.tableParameter(), table.ident().indexNameOrAlias()));
+        try {
+            AlterTableRequest request = new AlterTableRequest(
+                analysis.table().ident(),
+                analysis.partitionName().map(PartitionName::asIndexName).orElse(null),
+                analysis.table().isPartitioned(),
+                analysis.excludePartitions(),
+                analysis.tableParameter().settings(),
+                analysis.tableParameter().mappings()
+            );
+            FutureActionListener<AcknowledgedResponse, Long> listener = new FutureActionListener<>(r -> -1L);
+            transportAlterTableAction.execute(request, listener);
+            return listener;
+        } catch (IOException e) {
+            return FutureActionListener.failedFuture(e);
         }
-
-        final CompletableFuture<Long> result = new CompletableFuture<>();
-        applyMultiFutureCallback(result, results);
-        return result;
     }
 
     private CompletableFuture<Long> executeAlterTableChangeNumberOfShards(AlterTableAnalyzedStatement analysis) {
@@ -404,19 +368,9 @@ public class AlterTableOperation {
         return listener;
     }
 
-    private CompletableFuture<Long> updateTemplate(TableParameter tableParameter, RelationName relationName) {
-        return updateTemplate(tableParameter.mappings(), tableParameter.settings(), relationName);
-    }
 
     private CompletableFuture<Long> updateTemplate(Map<String, Object> newMappings,
-                                                   Settings newSettings,
-                                                   RelationName relationName) {
-        return updateTemplate(newMappings, Collections.emptyMap(), newSettings, relationName);
-    }
 
-    private CompletableFuture<Long> updateTemplate(Map<String, Object> newMappings,
-                                                   Map<String, Object> mappingsToRemove,
-                                                   Settings newSettings,
                                                    RelationName relationName) {
         String templateName = PartitionName.templateName(relationName.schema(), relationName.name());
         IndexTemplateMetaData indexTemplateMetaData =
@@ -425,44 +379,30 @@ public class AlterTableOperation {
             return CompletableFuture.failedFuture(new RuntimeException("Template '" + templateName + "' for partitioned table is missing"));
         }
 
-        PutIndexTemplateRequest request = preparePutIndexTemplateRequest(indexScopedSettings, indexTemplateMetaData,
-            newMappings, mappingsToRemove, newSettings, relationName, templateName);
+        PutIndexTemplateRequest request = preparePutIndexTemplateRequest(indexTemplateMetaData,
+            newMappings, Collections.emptyMap(), relationName, templateName);
         FutureActionListener<AcknowledgedResponse, Long> listener = new FutureActionListener<>(r -> -1L);
         transportPutIndexTemplateAction.execute(request, listener);
         return listener;
     }
 
-    @VisibleForTesting
-    static PutIndexTemplateRequest preparePutIndexTemplateRequest(IndexScopedSettings indexScopedSettings,
-                                                                  IndexTemplateMetaData indexTemplateMetaData,
+    static PutIndexTemplateRequest preparePutIndexTemplateRequest(IndexTemplateMetaData indexTemplateMetaData,
                                                                   Map<String, Object> newMappings,
                                                                   Map<String, Object> mappingsToRemove,
-                                                                  Settings newSettings,
                                                                   RelationName relationName,
                                                                   String templateName) {
-        // merge mappings
-        Map<String, Object> mapping = mergeTemplateMapping(indexTemplateMetaData, newMappings);
-
-        // remove mappings
-        mapping = removeFromMapping(mapping, mappingsToRemove);
-
-        // merge settings
-        Settings.Builder settingsBuilder = Settings.builder();
-        settingsBuilder.put(indexTemplateMetaData.settings());
-        settingsBuilder.put(newSettings);
-
-        // Private settings must not be (over-)written as they are generated, remove them.
-        // Validation will fail otherwise.
-        Settings settings = settingsBuilder.build()
-            .filter(k -> indexScopedSettings.isPrivateSetting(k) == false);
+        //merge and remove mappings
+        Map<String, Object> mapping = removeFromMapping(mergeTemplateMapping(indexTemplateMetaData, newMappings),
+                                                        mappingsToRemove);
 
         PutIndexTemplateRequest request = new PutIndexTemplateRequest(templateName)
             .create(false)
             .mapping(Constants.DEFAULT_MAPPING_TYPE, mapping)
+            .settings(indexTemplateMetaData.settings())
             .order(indexTemplateMetaData.order())
-            .settings(settings)
             .patterns(indexTemplateMetaData.getPatterns())
             .alias(new Alias(relationName.indexNameOrAlias()));
+
         for (ObjectObjectCursor<String, AliasMetaData> container : indexTemplateMetaData.aliases()) {
             Alias alias = new Alias(container.key);
             request.alias(alias);
@@ -551,36 +491,7 @@ public class AlterTableOperation {
                 }
             }
         }
-
         return mapping;
-    }
-
-    private CompletableFuture<Long> updateSettings(TableParameter concreteTableParameter, String... indices) {
-        return updateSettings(concreteTableParameter.settings(), indices);
-    }
-
-    private CompletableFuture<Long> updateSettings(Settings newSettings, String... indices) {
-        if (newSettings.isEmpty() || indices.length == 0) {
-            return CompletableFuture.completedFuture(null);
-        }
-        UpdateSettingsRequest request = new UpdateSettingsRequest(markArchivedSettings(newSettings), indices);
-        request.indicesOptions(IndicesOptions.lenientExpandOpen());
-
-        FutureActionListener<AcknowledgedResponse, Long> listener = new FutureActionListener<>(r -> 0L);
-        transportUpdateSettingsAction.execute(request, listener);
-        return listener;
-    }
-
-    /**
-     * Mark possible archived settings to be removed, they are not allowed to be written.
-     * (Private settings are already filtered out later at the meta data update service.)
-     */
-    @VisibleForTesting
-    static Settings markArchivedSettings(Settings settings) {
-        return Settings.builder()
-            .put(settings)
-            .putNull(ARCHIVED_SETTINGS_PREFIX + "*")
-            .build();
     }
 
     private void addColumnToTable(AddColumnAnalyzedStatement analysis, final CompletableFuture<?> result) {
@@ -589,7 +500,7 @@ public class AlterTableOperation {
         final Map<String, Object> mapping = analysis.analyzedTableElements().toMapping();
 
         if (updateTemplate) {
-            results.add(updateTemplate(mapping, Settings.EMPTY, analysis.table().ident()));
+            results.add(updateTemplate(mapping, analysis.table().ident()));
         }
 
         String[] indexNames = analysis.table().concreteIndices();
