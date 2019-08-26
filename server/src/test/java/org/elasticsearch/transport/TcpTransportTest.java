@@ -21,6 +21,8 @@ package org.elasticsearch.transport;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
@@ -30,10 +32,13 @@ import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.threadpool.TestThreadPool;
 import org.hamcrest.Matcher;
 
+import java.io.IOException;
+import java.io.StreamCorruptedException;
 import java.net.InetSocketAddress;
 import java.util.Collections;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.core.IsInstanceOf.instanceOf;
 
 public class TcpTransportTest extends ESTestCase {
 
@@ -139,6 +144,32 @@ public class TcpTransportTest extends ESTestCase {
     public void testDefaultSeedAddressesWithNonstandardSinglePort() {
         testDefaultSeedAddresses(Settings.builder().put(TransportSettings.PORT.getKey(), "4500").build(),
                                  containsInAnyOrder("[::1]:4500", "127.0.0.1:4500"));
+    }
+
+    public void testTLSHeader() throws IOException {
+        BytesStreamOutput streamOutput = new BytesStreamOutput(1 << 14);
+
+        streamOutput.write(0x16);
+        streamOutput.write(0x03);
+        byte byte1 = randomByte();
+        streamOutput.write(byte1);
+        byte byte2 = randomByte();
+        streamOutput.write(byte2);
+        streamOutput.write(randomByte());
+        streamOutput.write(randomByte());
+        streamOutput.write(randomByte());
+
+        try {
+            BytesReference bytes = streamOutput.bytes();
+            TcpTransport.decodeFrame(bytes);
+            fail("Expected exception");
+        } catch (Exception ex) {
+            assertThat(ex, instanceOf(StreamCorruptedException.class));
+            String expected = "SSL/TLS request received but SSL/TLS is not enabled on this node, got (16,3,"
+                + Integer.toHexString(byte1 & 0xFF) + ","
+                + Integer.toHexString(byte2 & 0xFF) + ")";
+            assertEquals(expected, ex.getMessage());
+        }
     }
 
     private void testDefaultSeedAddresses(final Settings settings, Matcher<Iterable<? extends String>> seedAddressesMatcher) {
