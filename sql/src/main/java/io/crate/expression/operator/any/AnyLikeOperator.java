@@ -111,7 +111,7 @@ public final class AnyLikeOperator extends Operator<Object> {
             super(FuncParams.builder(
                 Param.ANY,
                 Param.of(
-                    new ArrayType(DataTypes.UNDEFINED))
+                    new ArrayType<>(DataTypes.UNDEFINED))
                     .withInnerType(Param.ANY))
                 .build());
             this.name = name;
