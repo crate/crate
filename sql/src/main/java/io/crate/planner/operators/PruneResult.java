@@ -22,14 +22,28 @@
 
 package io.crate.planner.operators;
 
+import java.util.function.Supplier;
+
 public class PruneResult {
 
-    public static final PruneResult FAILURE = new PruneResult(false);
+    public static final PruneResult NO_PRUNE = new PruneResult();
 
     private final boolean hasPrunedColumns;
+    private final boolean supportsFetch;
+    private final Supplier<LogicalPlan> createPrunedOperators;
 
-    public PruneResult(boolean hasPrunedColumns) {
+    private PruneResult() {
+        this.hasPrunedColumns = false;
+        this.supportsFetch = false;
+        this.createPrunedOperators = () -> {
+            throw new IllegalStateException("Cannot use createPrunedOperators if hasPrunedColumns is false");
+        };
+    }
+
+    public PruneResult(boolean hasPrunedColumns, boolean supportsFetch, Supplier<LogicalPlan> createPrunedOperators) {
         this.hasPrunedColumns = hasPrunedColumns;
+        this.supportsFetch = supportsFetch;
+        this.createPrunedOperators = createPrunedOperators;
     }
 
     public boolean hasPrunedColumns() {
@@ -37,10 +51,10 @@ public class PruneResult {
     }
 
     public boolean supportsFetch() {
-        return false;
+        return supportsFetch;
     }
 
     public LogicalPlan createPrunedOperators() {
-        throw new UnsupportedOperationException("NYI");
+        return createPrunedOperators.get();
     }
 }

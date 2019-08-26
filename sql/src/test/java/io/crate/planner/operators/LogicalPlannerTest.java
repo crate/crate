@@ -135,8 +135,9 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan, isPlan("Aggregate[sum(x)]\n" +
                                 "Boundary[x]\n" +       // Aliased relation boundary
                                 "Boundary[x]\n" +
+                                "Fetch[x]\n" +
                                 "Limit[10;0]\n" +
-                                "Collect[doc.t1 | [x] | All]\n"));
+                                "Collect[doc.t1 | [_fetchid] | All]\n"));
     }
 
     @Test
@@ -207,8 +208,9 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                                 "    --- INNER ---\n" +
                                 "    Boundary[i]\n" +       // Aliased relation boundary
                                 "    Boundary[i]\n" +
+                                "    Fetch[i]\n" +
                                 "    Limit[1;0]\n" +
-                                "    Collect[doc.t2 | [i] | All]\n" +
+                                "    Collect[doc.t2 | [_fetchid] | All]\n" +
                                 "]\n"));
     }
 
@@ -417,6 +419,13 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                 addSymbolsList(eval.outputs());
                 sb.append("]\n");
                 plan = eval.source;
+            }
+            if (plan instanceof Fetch) {
+                Fetch fetch = (Fetch) plan;
+                startLine("Fetch[");
+                addSymbolsList(fetch.outputs());
+                sb.append("]\n");
+                plan = fetch.source;
             }
             if (plan instanceof Limit) {
                 Limit limit = (Limit) plan;

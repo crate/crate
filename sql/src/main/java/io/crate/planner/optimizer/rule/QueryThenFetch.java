@@ -23,6 +23,7 @@
 package io.crate.planner.optimizer.rule;
 
 import io.crate.planner.operators.Eval;
+import io.crate.planner.operators.Fetch;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.HashJoin;
 import io.crate.planner.operators.Limit;
@@ -30,6 +31,9 @@ import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
+
+import javax.annotation.Nullable;
+import java.util.List;
 
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 
@@ -64,21 +68,21 @@ import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
  * and where only a sub-set of the columns is required to evaluate the join condition.
  * We can fetch the remaining columns later on in the same fashion as described further above.
  */
-public class CollectAndFetch implements Rule<Eval> {
+public class QueryThenFetch implements Rule<Eval> {
 
     private final Pattern<Eval> pattern;
 
-    public CollectAndFetch() {
-        pattern = typeOf(Eval.class)
-            .with(eval -> hasResultReducingOperatorAsSource(eval)
-                          && eval.source().intermediatelyUsedColumns().size() < eval.source().outputs().size());
+    public QueryThenFetch() {
+        pattern = typeOf(Eval.class);
     }
 
     private boolean hasResultReducingOperatorAsSource(Eval eval) {
         for (LogicalPlan source : eval.sources()) {
-           if (source instanceof Limit || source instanceof HashJoin || source instanceof Filter) {
-               return true;
-           }
+            // TODO: check that these are actually reducing rows.
+            // e.g. on a table that has 1000 rows, a limit of 10000 shouldn't cause a QTF(?)
+            if (source instanceof Limit || source instanceof HashJoin || source instanceof Filter) {
+                return true;
+            }
         }
         return false;
     }
@@ -90,21 +94,32 @@ public class CollectAndFetch implements Rule<Eval> {
 
     @Override
     public LogicalPlan apply(Eval eval, Captures captures) {
-        var pruneResult = eval.source().pruneColumnsOrFetchOptimize(eval.outputs());
+        if (!hasResultReducingOperatorAsSource(eval)) {
+            return tryRemoveRedundantEval(eval);
+        }
+        var pruneResult = eval.source().pruneColumnsOrFetchOptimize(eval.outputs(), List.of());
         if (pruneResult.hasPrunedColumns()) {
+            LogicalPlan prunedSource = pruneResult.createPrunedOperators();
             if (pruneResult.supportsFetch()) {
-                // TODO:
-                // return new Fetch(...);
-                return null;
+                return new Fetch(prunedSource, eval.outputs());
             } else {
-                return new Eval(pruneResult.createPrunedOperators(), eval.outputs());
+                if (prunedSource.outputs().equals(eval.outputs())) {
+                    return prunedSource;
+                } else {
+                    return Eval.create(prunedSource, eval.outputs());
+                }
             }
         } else {
-            if (eval.source().outputs().equals(eval.outputs())) {
-                return eval.source();
-            } else {
-                return null;
-            }
+            return tryRemoveRedundantEval(eval);
+        }
+    }
+
+    @Nullable
+    private static LogicalPlan tryRemoveRedundantEval(Eval eval) {
+        if (eval.outputs().equals(eval.source().outputs())) {
+            return eval.source();
+        } else {
+            return null;
         }
     }
 }
