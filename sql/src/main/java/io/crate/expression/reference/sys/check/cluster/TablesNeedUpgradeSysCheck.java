@@ -30,8 +30,8 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
-import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.concurrent.CompletableFuture;
 
 @Singleton
@@ -57,7 +57,7 @@ public class TablesNeedUpgradeSysCheck extends AbstractSysCheck {
 
     @Override
     public CompletableFuture<?> computeResult() {
-        ArrayList<String> fqTables = new ArrayList<>();
+        HashSet<String> fqTables = new HashSet<>();
         for (ObjectCursor<IndexMetaData> cursor : clusterService.state()
             .metaData()
             .indices()

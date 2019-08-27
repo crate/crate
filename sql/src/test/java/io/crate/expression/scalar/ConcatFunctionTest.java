@@ -67,8 +67,6 @@ public class ConcatFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testStringAndNumber() {
-        expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast 'foo' to type bigint");
         assertNormalize("concat('foo', 3)", isLiteral("foo3"));
     }
 
@@ -85,7 +83,7 @@ public class ConcatFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testTwoArraysOfIncompatibleInnerTypes() {
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast [[1, 2]] to type bigint_array");
+        expectedException.expectMessage("Cannot cast [1, 2] to type text");
         assertNormalize("concat([1, 2], [[1, 2]])", null);
     }
 
