@@ -39,16 +39,19 @@ import io.crate.execution.dsl.phases.TableFunctionCollectPhase;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.pipeline.TopN;
 import io.crate.expression.predicate.MatchPredicate;
+import io.crate.expression.symbol.FetchMarker;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.expression.symbol.SymbolVisitors;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.DocReferences;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.ExecutionPlan;
@@ -67,6 +70,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static io.crate.planner.operators.Limit.limitAndOffset;
+import static io.crate.planner.operators.OperatorUtils.getUnusedColumns;
 
 /**
  * An Operator for data-collection.
@@ -125,6 +129,52 @@ public class Collect implements LogicalPlan {
         this.relation = relation;
         this.where = where;
         this.tableInfo = relation.tableInfo();
+    }
+
+    @Override
+    public FetchRewrite rewriteForQueryThenFetch(List<Symbol> intermediatelyUsedColumns) {
+        if (!(tableInfo instanceof DocTableInfo)) {
+            return FetchRewrite.NO_FETCH;
+        }
+        List<Symbol> unusedColumns = getUnusedColumns(outputs, intermediatelyUsedColumns);
+        ArrayList<Symbol> fetchable = new ArrayList<>();
+        Symbol scoreCol = null;
+        for (Symbol unusedCol : unusedColumns) {
+            // _score cannot be fetched because it's a relative value only available during the query phase
+            if (Symbols.containsColumn(unusedCol, DocSysColumns.SCORE)) {
+                scoreCol = unusedCol;
+            } else if (SymbolVisitors.any(Symbols.IS_COLUMN, unusedCol)) {
+                // literals or functions like random() shouldn't be tracked as fetchable
+                fetchable.add(unusedCol);
+            }
+        }
+        if (fetchable.isEmpty()) {
+            return FetchRewrite.NO_FETCH;
+        } else {
+            List<Symbol> newOutputs = new ArrayList<>();
+            // TODO: Would it make sense to provide tableInfo, qualifiedName, etc. via a different structure?
+            newOutputs.add(new FetchMarker(
+                (DocTableInfo) tableInfo,
+                relation.getQualifiedName(),
+                DocSysColumns.forTable(tableInfo.ident(), DocSysColumns.FETCHID),
+                fetchable)
+            );
+            newOutputs.addAll(intermediatelyUsedColumns);
+            if (scoreCol != null) {
+                newOutputs.add(scoreCol);
+            }
+            return new FetchRewrite(
+                true,
+                () -> new Collect(
+                    preferSourceLookup,
+                    relation,
+                    newOutputs,
+                    where,
+                    numExpectedRows,
+                    estimatedRowSize
+                )
+            );
+        }
     }
 
     @Override

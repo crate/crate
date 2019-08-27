@@ -99,4 +99,8 @@ public class LogicalPlanVisitor<C, R> {
     public R visitWindowAgg(WindowAgg windowAgg, C context) {
         return visitPlan(windowAgg, context);
     }
+
+    public R visitFetch(Fetch fetch, C context) {
+        return visitPlan(fetch, context);
+    }
 }

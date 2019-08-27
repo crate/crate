@@ -98,6 +98,11 @@ public interface LogicalPlan extends Plan {
 
     List<Symbol> outputs();
 
+    // TODO: return nullable LogicalPlan ?
+    default FetchRewrite rewriteForQueryThenFetch(List<Symbol> intermediatelyUsedColumns) {
+        return FetchRewrite.NO_FETCH;
+    }
+
     /**
      * Indicates if the operators which are added on top of this LogicalPlan should operate on a shard level.
      * Operating on a shard level increases parallelism.

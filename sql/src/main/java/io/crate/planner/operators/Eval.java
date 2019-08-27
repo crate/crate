@@ -63,6 +63,16 @@ public final class Eval extends ForwardingLogicalPlan {
     }
 
     @Override
+    public FetchRewrite rewriteForQueryThenFetch(List<Symbol> intermediatelyUsedColumns) {
+        FetchRewrite fetchRewrite = source.rewriteForQueryThenFetch(List.of());
+        // TODO: which operator actually creates the `Fetch` operator?
+        return new FetchRewrite(
+            fetchRewrite.supportsFetch(),
+            () -> replaceSources(List.of(fetchRewrite.createRewrittenOperator()))
+        );
+    }
+
+    @Override
     public ExecutionPlan build(PlannerContext plannerContext,
                                ProjectionBuilder projectionBuilder,
                                int limit,

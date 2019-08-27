@@ -68,6 +68,15 @@ public class Limit extends ForwardingLogicalPlan {
     }
 
     @Override
+    public FetchRewrite rewriteForQueryThenFetch(List<Symbol> intermediatelyUsedColumns) {
+        FetchRewrite fetchRewrite = source.rewriteForQueryThenFetch(intermediatelyUsedColumns);
+        return new FetchRewrite(
+            fetchRewrite.supportsFetch(),
+            () -> replaceSources(List.of(fetchRewrite.createRewrittenOperator()))
+        );
+    }
+
+    @Override
     public ExecutionPlan build(PlannerContext plannerContext,
                                ProjectionBuilder projectionBuilder,
                                int limitHint,

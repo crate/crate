@@ -197,7 +197,17 @@ public class LogicalPlanner {
         CoordinatorTxnCtx coordinatorTxnCtx = plannerContext.transactionContext();
         AnalyzedRelation relation = relationNormalizer.normalize(analyzedRelation, coordinatorTxnCtx);
         LogicalPlan logicalPlan = plan(relation, subqueryPlanner, true, functions, coordinatorTxnCtx, hints, tableStats);
-        return optimizer.optimize(logicalPlan);
+        LogicalPlan optimizedPlan = optimizer.optimize(logicalPlan);
+        return fetchRewrite(optimizedPlan, analyzedRelation.outputs());
+    }
+
+    private LogicalPlan fetchRewrite(LogicalPlan plan, List<Symbol> outputs) {
+        FetchRewrite fetchRewrite = plan.rewriteForQueryThenFetch(outputs);
+        if (fetchRewrite.supportsFetch()) {
+            return fetchRewrite.createRewrittenOperator();
+        } else {
+            return plan;
+        }
     }
 
     static LogicalPlan plan(AnalyzedRelation relation,

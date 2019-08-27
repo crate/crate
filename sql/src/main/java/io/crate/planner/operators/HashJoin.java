@@ -109,6 +109,22 @@ public class HashJoin implements LogicalPlan {
     }
 
     @Override
+    public FetchRewrite rewriteForQueryThenFetch(List<Symbol> intermediatelyUsedColumns) {
+        FetchRewrite leftRewrite = lhs.rewriteForQueryThenFetch(List.of());
+        FetchRewrite rightRewrite = rhs.rewriteForQueryThenFetch(List.of());
+        return new FetchRewrite(
+            leftRewrite.supportsFetch() || rightRewrite.supportsFetch(),
+            () -> new HashJoin(
+                leftRewrite.supportsFetch() ? leftRewrite.createRewrittenOperator() : lhs,
+                rightRewrite.supportsFetch() ? rightRewrite.createRewrittenOperator() : rhs,
+                joinCondition,
+                concreteRelation,
+                tableStats
+            )
+        );
+    }
+
+    @Override
     public ExecutionPlan build(PlannerContext plannerContext,
                                ProjectionBuilder projectionBuilder,
                                int limit,

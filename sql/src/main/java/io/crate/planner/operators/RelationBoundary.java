@@ -28,6 +28,7 @@ import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.Field;
+import io.crate.expression.symbol.FieldReplacer;
 import io.crate.expression.symbol.FieldsVisitor;
 import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.Symbol;
@@ -40,6 +41,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 
 public class RelationBoundary extends ForwardingLogicalPlan {
 
@@ -96,6 +98,17 @@ public class RelationBoundary extends ForwardingLogicalPlan {
                                SubQueryResults subQueryResults) {
         return source.build(
             plannerContext, projectionBuilder, limit, offset, order, pageSizeHint, params, subQueryResults);
+    }
+
+    @Override
+    public FetchRewrite rewriteForQueryThenFetch(List<Symbol> intermediatelyUsedColumns) {
+        Function<? super Symbol, ? extends Symbol> followPointer = FieldReplacer.bind(Field::pointer);
+        FetchRewrite fetchRewrite = source.rewriteForQueryThenFetch(
+            Lists2.map(intermediatelyUsedColumns, followPointer));
+        return new FetchRewrite(
+            fetchRewrite.supportsFetch(),
+            () -> new RelationBoundary(fetchRewrite.createRewrittenOperator(), relation, outputs, reverseMapping)
+        );
     }
 
     @Override
