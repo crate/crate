@@ -52,6 +52,7 @@ public abstract class DataType<T> implements Comparable, Writeable {
         BooleanType,
         ShortType,
         IntegerType,
+        IntervalType,
         LongType,
         FloatType,
         DoubleType,

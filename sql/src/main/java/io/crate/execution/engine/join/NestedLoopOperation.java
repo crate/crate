@@ -28,7 +28,6 @@ import io.crate.concurrent.CompletionListenable;
 import io.crate.data.BatchIterator;
 import io.crate.data.CapturingRowConsumer;
 import io.crate.data.FilteringBatchIterator;
-import io.crate.data.ListenableBatchIterator;
 import io.crate.data.Paging;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
@@ -46,9 +45,9 @@ import java.util.function.Predicate;
 
 public class NestedLoopOperation implements CompletionListenable {
 
-    private final CompletableFuture<Void> completionFuture = new CompletableFuture<>();
     private final CapturingRowConsumer leftConsumer;
     private final CapturingRowConsumer rightConsumer;
+    private final RowConsumer resultConsumer;
 
     public NestedLoopOperation(int numLeftCols,
                                int numRightCols,
@@ -61,13 +60,13 @@ public class NestedLoopOperation implements CompletionListenable {
                                long estimatedRowsSizeLeft,
                                long estimatedNumberOfRowsLeft,
                                boolean blockNestedLoop) {
-
-        this.leftConsumer = new CapturingRowConsumer(false);
-        this.rightConsumer = new CapturingRowConsumer(true);
+        this.resultConsumer = nlResultConsumer;
+        this.leftConsumer = new CapturingRowConsumer(false, nlResultConsumer.completionFuture());
+        this.rightConsumer = new CapturingRowConsumer(true, nlResultConsumer.completionFuture());
         CompletableFuture.allOf(leftConsumer.capturedBatchIterator(), rightConsumer.capturedBatchIterator())
             .whenComplete((result, failure) -> {
                 if (failure == null) {
-                    BatchIterator<Row> nlIterator = new ListenableBatchIterator<>(createNestedLoopIterator(
+                    BatchIterator<Row> nlIterator = createNestedLoopIterator(
                         leftConsumer.capturedBatchIterator().join(),
                         numLeftCols,
                         rightConsumer.capturedBatchIterator().join(),
@@ -80,7 +79,7 @@ public class NestedLoopOperation implements CompletionListenable {
                         estimatedRowsSizeLeft,
                         estimatedNumberOfRowsLeft,
                         blockNestedLoop
-                    ), completionFuture);
+                    );
                     nlResultConsumer.accept(nlIterator, null);
                 } else {
                     nlResultConsumer.accept(null, failure);
@@ -90,7 +89,7 @@ public class NestedLoopOperation implements CompletionListenable {
 
     @Override
     public CompletableFuture<?> completionFuture() {
-        return completionFuture;
+        return resultConsumer.completionFuture();
     }
 
     public RowConsumer leftConsumer() {

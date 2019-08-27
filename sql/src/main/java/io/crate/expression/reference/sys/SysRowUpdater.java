@@ -63,7 +63,7 @@ public interface SysRowUpdater<TRow> {
     /**
      * Returns a new row writer which allows for updating multiple columns at once.
      *
-     * The returned writer takes an id object as arguemnt and uses {@link #getRow(Object)} to retrieve the row to write on.
+     * The returned writer takes an id object as argument and uses {@link #getRow(Object)} to retrieve the row to write on.
      * When called the values of the given list of inputs gets evaluated and written on the given columns by using
      * writers returned by {@link #getWriter(ColumnIdent)}.
      *

@@ -195,7 +195,7 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
                 if (v == null) {
                     ramAccountingContext.addBytes(
                         // values size + 32 bytes for entry, 4 bytes for increased capacity, 8 bytes for the new array
-                        // instance and 4 for the occurence count we store
+                        // instance and 4 for the occurrence count we store
                         RamAccountingContext.roundUp(innerTypeEstimator.estimateSize(value) + 48L)
                     );
                     return occurrenceIncrement;

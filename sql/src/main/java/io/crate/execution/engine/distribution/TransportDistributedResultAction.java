@@ -141,7 +141,7 @@ public class TransportDistributedResultAction implements NodeAction<DistributedR
         PageBucketReceiver pageBucketReceiver = rxTask.getBucketReceiver(request.executionPhaseInputId());
         if (pageBucketReceiver == null) {
             return CompletableFuture.failedFuture(new IllegalStateException(String.format(Locale.ENGLISH,
-                                                                                          "Couldn't find BucketReciever for input %d", request.executionPhaseInputId())));
+                                                                                          "Couldn't find BucketReceiver for input %d", request.executionPhaseInputId())));
         }
 
         Throwable throwable = request.throwable();

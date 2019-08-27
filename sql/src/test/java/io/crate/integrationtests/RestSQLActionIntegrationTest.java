@@ -106,6 +106,13 @@ public class RestSQLActionIntegrationTest extends SQLHttpIntegrationTest {
     public void testExecutionErrorContainsStackTrace() throws Exception {
         CloseableHttpResponse resp = post("{\"stmt\": \"select 1 / 0\"}");
         String bodyAsString = EntityUtils.toString(resp.getEntity());
-        assertThat(bodyAsString, containsString("ArithmeticFunctions.java"));
+        assertThat(bodyAsString, containsString("BinaryScalar.java"));
+    }
+
+    @Test
+    public void test_interval_is_represented_as_text_via_http() throws Exception{
+        var resp = post("{\"stmt\": \"select '5 days'::interval as x\"}");
+        String bodyAsString = EntityUtils.toString(resp.getEntity());
+        assertThat(bodyAsString, containsString("5 days"));
     }
 }

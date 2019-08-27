@@ -15,6 +15,8 @@ Scalar functions return a single value.
 String functions
 ================
 
+.. _scalar_concat:
+
 ``concat('first_arg', second_arg, [ parameter , ... ])``
 --------------------------------------------------------
 

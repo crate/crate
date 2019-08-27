@@ -37,7 +37,7 @@ public class SortedPagingIterator<TKey, TRow> implements PagingIterator<TKey, TR
     /**
      * @param comparator    determining how the items are sorted
      * @param needsRepeat if true additional internal state is kept in order to be able to repeat this iterator.
-     *                    If this is false a call to {@link #repeat()} might result in an excaption, at best the behaviour is undefined.
+     *                    If this is false a call to {@link #repeat()} might result in an exception, at best the behaviour is undefined.
      */
     public SortedPagingIterator(Comparator<TRow> comparator, boolean needsRepeat) {
         if (needsRepeat) {

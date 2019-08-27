@@ -42,7 +42,7 @@ public abstract class Symbol implements FuncArg, Writeable, ExplainLeaf {
 
     /**
      * Casts this Symbol to a new {@link DataType} by wrapping a cast function around it.
-     * Sublasses of this class may provide another cast methods.
+     * Subclasses of this class may provide another cast methods.
      * @param newDataType The resulting data type after applying the cast
      * @return An instance of {@link Function} which casts this symbol.
      */
@@ -52,7 +52,7 @@ public abstract class Symbol implements FuncArg, Writeable, ExplainLeaf {
 
     /**
      * Casts this Symbol to a new {@link DataType} by wrapping a cast function around it.
-     * Sublasses of this class may provide another cast methods.
+     * Subclasses of this class may provide another cast methods.
      * @param newDataType The resulting data type after applying the cast
      * @param tryCast If set to true, will return null the symbol cannot be casted.
      * @return An instance of {@link Function} which casts this symbol.

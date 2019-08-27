@@ -20,28 +20,35 @@
  * agreement.
  */
 
-package io.crate.data;
+package io.crate.types;
 
-import java.util.concurrent.CompletableFuture;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.hamcrest.Matchers;
+import org.joda.time.Period;
+import org.junit.Test;
 
-public class ListenableBatchIterator<T> extends ForwardingBatchIterator<T> {
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
-    private final BatchIterator<T> delegate;
-    private final CompletableFuture<Void> completeOnClose;
+public class IntervalTypeTest {
 
-    public ListenableBatchIterator(BatchIterator<T> delegate, CompletableFuture<Void> completeOnClose) {
-        this.delegate = delegate;
-        this.completeOnClose = completeOnClose;
+    @Test
+    public void test_interval_value_streaming_round_trip() throws Exception {
+        var out = new BytesStreamOutput();
+        var period = new Period(1, 2, 3, 4, 5, 6, 7, 8);
+        IntervalType.INSTANCE.writeValueTo(out, period);
+
+        var in = out.bytes().streamInput();
+        var periodFromStream = IntervalType.INSTANCE.readValueFrom(in);
+
+        assertThat(periodFromStream, is(period));
     }
 
-    @Override
-    protected BatchIterator<T> delegate() {
-        return delegate;
-    }
-
-    @Override
-    public void close() {
-        super.close();
-        completeOnClose.complete(null);
+    @Test
+    public void test_stream_null_period() throws Exception {
+        var out = new BytesStreamOutput();
+        IntervalType.INSTANCE.writeValueTo(out, null);
+        var in = out.bytes().streamInput();
+        assertThat(IntervalType.INSTANCE.readValueFrom(in), Matchers.nullValue());
     }
 }

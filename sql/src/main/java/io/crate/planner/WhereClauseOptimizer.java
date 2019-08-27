@@ -160,7 +160,7 @@ public final class WhereClauseOptimizer {
         EqualityExtractor eqExtractor = new EqualityExtractor(normalizer);
         List<List<Symbol>> pkValues = eqExtractor.extractExactMatches(pkCols, query, txnCtx);
 
-        int clusterdIdxWithinPK = table.primaryKey().indexOf(table.clusteredBy());
+        int clusterIdxWithinPK = table.primaryKey().indexOf(table.clusteredBy());
         final DocKeys docKeys;
         if (pkValues == null) {
             docKeys = null;
@@ -172,7 +172,7 @@ public final class WhereClauseOptimizer {
             docKeys = new DocKeys(pkValues,
                                   versionInQuery,
                                   sequenceVersioningInQuery,
-                                  clusterdIdxWithinPK,
+                                  clusterIdxWithinPK,
                                   partitionIndicesWithinPks);
         }
         List<List<Symbol>> partitionValues = null;

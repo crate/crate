@@ -105,6 +105,7 @@ import io.crate.sql.tree.Insert;
 import io.crate.sql.tree.InsertFromSubquery;
 import io.crate.sql.tree.InsertFromValues;
 import io.crate.sql.tree.Intersect;
+import io.crate.sql.tree.IntervalLiteral;
 import io.crate.sql.tree.IsNotNullPredicate;
 import io.crate.sql.tree.IsNullPredicate;
 import io.crate.sql.tree.Join;
@@ -221,6 +222,63 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     @Override
     public Node visitBegin(SqlBaseParser.BeginContext context) {
         return new BeginStatement();
+    }
+
+    @Override
+    public Node visitIntervalLiteral(SqlBaseParser.IntervalLiteralContext context) {
+        IntervalLiteral.IntervalField startField = getIntervalFieldType((Token) context.from.getChild(0).getPayload());
+        IntervalLiteral.IntervalField endField = null;
+        if (context.to != null) {
+            Token token = (Token) context.to.getChild(0).getPayload();
+            endField = getIntervalFieldType(token);
+        }
+
+        if (endField != null) {
+            if (startField.compareTo(endField) > 0) {
+                throw new IllegalArgumentException("Startfield must be less significant than Endfield");
+            }
+        }
+
+        IntervalLiteral.Sign sign = IntervalLiteral.Sign.PLUS;
+        if (context.sign != null) {
+            sign = getIntervalSign(context.sign);
+        }
+
+        return new IntervalLiteral(
+            ((StringLiteral) visit(context.stringLiteral())).getValue(),
+            sign,
+            startField,
+            endField);
+    }
+
+    private static IntervalLiteral.Sign getIntervalSign(Token token) {
+        switch (token.getType()) {
+            case SqlBaseLexer.MINUS:
+                return IntervalLiteral.Sign.MINUS;
+            case SqlBaseLexer.PLUS:
+                return IntervalLiteral.Sign.PLUS;
+            default:
+                throw new IllegalArgumentException("Unsupported sign: " + token.getText());
+        }
+    }
+
+    private static IntervalLiteral.IntervalField getIntervalFieldType(Token token) {
+        switch (token.getType()) {
+            case SqlBaseLexer.YEAR:
+                return IntervalLiteral.IntervalField.YEAR;
+            case SqlBaseLexer.MONTH:
+                return IntervalLiteral.IntervalField.MONTH;
+            case SqlBaseLexer.DAY:
+                return IntervalLiteral.IntervalField.DAY;
+            case SqlBaseLexer.HOUR:
+                return IntervalLiteral.IntervalField.HOUR;
+            case SqlBaseLexer.MINUTE:
+                return IntervalLiteral.IntervalField.MINUTE;
+            case SqlBaseLexer.SECOND:
+                return IntervalLiteral.IntervalField.SECOND;
+            default:
+                throw new IllegalArgumentException("Unsupported interval field: " + token.getText());
+        }
     }
 
     @Override
@@ -1896,8 +1954,10 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     private static void validateFunctionName(QualifiedName functionName) {
         if (functionName.getParts().size() > 2) {
-            throw new IllegalArgumentException(String.format(Locale.ENGLISH, "The function name is not correct! " +
-                "name [%s] does not conform the [[schema_name .] function_name] format.", functionName));
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                                                             "The function name is not correct! " +
+                                                             "name [%s] does not conform the [[schema_name .] function_name] format.",
+                                                             functionName));
         }
     }
 
