@@ -36,8 +36,8 @@ import io.crate.data.Row;
 import io.crate.data.UnsafeArrayRow;
 import io.crate.expression.InputRow;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
+import io.crate.metadata.TransactionContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -154,12 +154,13 @@ public class FetchBatchAccumulator implements BatchAccumulator<Row, Iterator<? e
                 if (!hasNext()) {
                     throw new NoSuchElementException("Iterator is exhausted");
                 }
-                Object[] cells = inputValues.get(idx);
-                inputRow.cells(cells);
+                Object[] inputCells = inputValues.get(idx);
+                inputRow.cells(inputCells);
                 for (int i = 0; i < fetchIdPositions.length; i++) {
-                    Object fetchIdObj = cells[fetchIdPositions[i]];
+                    Object fetchIdObj = inputCells[fetchIdPositions[i]];
+                    UnsafeArrayRow fetchRow = fetchRows[i];
                     if (fetchIdObj == null) {
-                        fetchRows[i].cells(nullCells[i]);
+                        fetchRow.cells(nullCells[i]);
                         continue;
                     }
                     long fetchId = (long) fetchIdObj;
@@ -168,9 +169,10 @@ public class FetchBatchAccumulator implements BatchAccumulator<Row, Iterator<? e
                     ReaderBucket readerBucket = context.getReaderBucket(readerId);
                     assert readerBucket != null : "readerBucket must not be null";
                     setPartitionRow(partitionRows, i, readerBucket);
-                    fetchRows[i].cells(readerBucket.get(docId));
-                    assert !readerBucket.fetchRequired() || fetchRows[i].cells() != null :
-                        "readerBucket doesn't require fetch or row is fetched";
+                    Object[] cells = readerBucket.get(docId);
+                    assert !readerBucket.fetchRequired() || cells != null
+                        : "fetch is required for readerId=" + readerId + ", but couldn't find result for docId=" + docId;
+                    fetchRow.cells(cells);
                 }
                 idx++;
                 if (!hasNext()) {

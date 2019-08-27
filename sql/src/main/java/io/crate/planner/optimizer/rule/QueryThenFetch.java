@@ -80,6 +80,7 @@ public class QueryThenFetch implements Rule<Eval> {
         for (LogicalPlan source : eval.sources()) {
             // TODO: check that these are actually reducing rows.
             // e.g. on a table that has 1000 rows, a limit of 10000 shouldn't cause a QTF(?)
+            // TODO: Add NL with joinCondition
             if (source instanceof Limit || source instanceof HashJoin || source instanceof Filter) {
                 return true;
             }
@@ -97,18 +98,10 @@ public class QueryThenFetch implements Rule<Eval> {
         if (!hasResultReducingOperatorAsSource(eval)) {
             return tryRemoveRedundantEval(eval);
         }
-        var pruneResult = eval.source().pruneColumnsOrFetchOptimize(eval.outputs(), List.of());
-        if (pruneResult.hasPrunedColumns()) {
-            LogicalPlan prunedSource = pruneResult.createPrunedOperators();
-            if (pruneResult.supportsFetch()) {
-                return new Fetch(prunedSource, eval.outputs());
-            } else {
-                if (prunedSource.outputs().equals(eval.outputs())) {
-                    return prunedSource;
-                } else {
-                    return Eval.create(prunedSource, eval.outputs());
-                }
-            }
+        var pruneResult = eval.source().rewriteForQueryThenFetch(List.of());
+        if (pruneResult.supportsFetch()) {
+            LogicalPlan prunedSource = pruneResult.createRewrittenOperator();
+            return new Fetch(prunedSource, eval.outputs());
         } else {
             return tryRemoveRedundantEval(eval);
         }

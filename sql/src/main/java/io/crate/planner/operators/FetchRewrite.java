@@ -24,37 +24,28 @@ package io.crate.planner.operators;
 
 import java.util.function.Supplier;
 
-public class PruneResult {
+public class FetchRewrite {
 
-    public static final PruneResult NO_PRUNE = new PruneResult();
+    public static final FetchRewrite NO_FETCH = new FetchRewrite(
+        false,
+        () -> {
+            throw new IllegalStateException("Cannot use createRewrittenOperator if supportsFetch is false");
+        }
+    );
 
-    private final boolean hasPrunedColumns;
     private final boolean supportsFetch;
     private final Supplier<LogicalPlan> createPrunedOperators;
 
-    private PruneResult() {
-        this.hasPrunedColumns = false;
-        this.supportsFetch = false;
-        this.createPrunedOperators = () -> {
-            throw new IllegalStateException("Cannot use createPrunedOperators if hasPrunedColumns is false");
-        };
-    }
-
-    public PruneResult(boolean hasPrunedColumns, boolean supportsFetch, Supplier<LogicalPlan> createPrunedOperators) {
-        this.hasPrunedColumns = hasPrunedColumns;
+    public FetchRewrite(boolean supportsFetch, Supplier<LogicalPlan> createPrunedOperators) {
         this.supportsFetch = supportsFetch;
         this.createPrunedOperators = createPrunedOperators;
-    }
-
-    public boolean hasPrunedColumns() {
-        return hasPrunedColumns;
     }
 
     public boolean supportsFetch() {
         return supportsFetch;
     }
 
-    public LogicalPlan createPrunedOperators() {
+    public LogicalPlan createRewrittenOperator() {
         return createPrunedOperators.get();
     }
 }
