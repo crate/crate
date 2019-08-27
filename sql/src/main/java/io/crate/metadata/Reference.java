@@ -238,7 +238,6 @@ public class Reference extends Symbol {
     public String toString() {
         return "Ref{"
                + ident.tableIdent().fqn() + '.' + ident.columnIdent().sqlFqn() + "::" + type +
-               ", pos=" + position +
                (columnPolicy != ColumnPolicy.DYNAMIC ? ", columnPolicy=" + columnPolicy : "") +
                (granularity != DOC ? ", granularity=" + granularity : "") +
                (indexType != IndexType.NOT_ANALYZED ? ", index=" + indexType : "") +

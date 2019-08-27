@@ -30,6 +30,7 @@ import io.crate.data.Row;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.pipeline.TopN;
 import io.crate.expression.symbol.Literal;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.TableStats;
@@ -50,21 +51,28 @@ public class LimitTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom())
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .build();
-        QueriedSelectRelation<?> queriedDocTable = e.analyze("select name from users");
+        QueriedSelectRelation<AbstractTableRelation<?>> normalizedRelation = e.normalize(
+            e.analyze("select name from users"), new CoordinatorTxnCtx(e.getSessionContext()));
 
         LogicalPlan plan = Limit.create(
             Limit.create(
-                Collect.create(((AbstractTableRelation<?>) queriedDocTable.subRelation()), queriedDocTable.outputs(), queriedDocTable.where()),
+                Collect.create(
+                    normalizedRelation.subRelation(),
+                    normalizedRelation.outputs(),
+                    normalizedRelation.where(),
+                    Set.of(),
+                    new TableStats()
+                ),
                 Literal.of(10L),
                 Literal.of(5L)
             ),
             Literal.of(20L),
             Literal.of(7L)
-        ).build(new TableStats(), Set.of(), Set.of());
+        );
 
         assertThat(plan, isPlan(e.functions(), "Limit[20;7]\n" +
                                                "Limit[10;5]\n" +
-                                               "Collect[doc.users | [_fetchid] | All]\n"));
+                                               "Collect[doc.users | [name] | All]\n"));
 
         PlannerContext ctx = e.getPlannerContext(clusterService.state());
         Merge merge = (Merge) plan.build(

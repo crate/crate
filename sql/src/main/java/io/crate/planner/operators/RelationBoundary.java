@@ -28,14 +28,16 @@ import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.Field;
-import io.crate.expression.symbol.FieldsVisitor;
-import io.crate.expression.symbol.RefVisitor;
+import io.crate.expression.symbol.FieldReplacer;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
+import io.crate.planner.consumer.FetchMode;
 import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -65,40 +67,15 @@ import java.util.function.Function;
  */
 public class RelationBoundary extends ForwardingLogicalPlan {
 
-    public static LogicalPlan.Builder create(LogicalPlan.Builder sourceBuilder, AnalyzedRelation relation) {
-        return (tableStats, hints, usedBeforeNextFetch) -> {
-            HashMap<Symbol, Symbol> expressionMapping = new HashMap<>();
-            HashMap<Symbol, Symbol> reverseMapping = new HashMap<>();
-            List<Field> fields = relation.fields();
-            for (int i = 0; i < fields.size(); i++) {
-                Field field = fields.get(i);
-                Symbol outputAtSamePosition = relation.outputs().get(i);
-                expressionMapping.put(field, outputAtSamePosition);
-                reverseMapping.put(outputAtSamePosition, field);
-            }
-            Function<Symbol, Symbol> mapper = OperatorUtils.getMapper(expressionMapping);
-            HashSet<Symbol> mappedUsedColumns = new LinkedHashSet<>();
-            for (Symbol beforeNextFetch : usedBeforeNextFetch) {
-                mappedUsedColumns.add(mapper.apply(beforeNextFetch));
-            }
-            LogicalPlan source = sourceBuilder.build(tableStats, hints, mappedUsedColumns);
-            for (Symbol symbol : source.outputs()) {
-                RefVisitor.visitRefs(symbol, r -> {
-                    Field field = new Field(relation, r.column(), r);
-                    if (reverseMapping.putIfAbsent(r, field) == null) {
-                        expressionMapping.put(field, r);
-                    }
-                });
-                FieldsVisitor.visitFields(symbol, f -> {
-                    Field field = new Field(relation, f.path(), f);
-                    if (reverseMapping.putIfAbsent(f, field) == null) {
-                        expressionMapping.put(field, f);
-                    }
-                });
-            }
-            List<Symbol> outputs = OperatorUtils.mappedSymbols(source.outputs(), reverseMapping);
-            return new RelationBoundary(source, relation, outputs, reverseMapping);
-        };
+    public static LogicalPlan create(LogicalPlan source, AnalyzedRelation relation) {
+        HashMap<Symbol, Symbol> reverseMapping = new HashMap<>();
+        List<Field> fields = relation.fields();
+        for (int i = 0; i < fields.size(); i++) {
+            Field field = fields.get(i);
+            Symbol outputAtSamePosition = relation.outputs().get(i);
+            reverseMapping.put(outputAtSamePosition, field);
+        }
+        return new RelationBoundary(source, relation, List.copyOf(relation.fields()), reverseMapping);
     }
 
     private final List<Symbol> outputs;
@@ -106,10 +83,10 @@ public class RelationBoundary extends ForwardingLogicalPlan {
     private final AnalyzedRelation relation;
     private final Map<Symbol, Symbol> reverseMapping;
 
-    public RelationBoundary(LogicalPlan source,
-                            AnalyzedRelation relation,
-                            List<Symbol> outputs,
-                            Map<Symbol, Symbol> reverseMapping) {
+    private RelationBoundary(LogicalPlan source,
+                             AnalyzedRelation relation,
+                             List<Symbol> outputs,
+                             Map<Symbol, Symbol> reverseMapping) {
         super(source);
         this.outputs = outputs;
         this.relation = relation;
@@ -134,6 +111,18 @@ public class RelationBoundary extends ForwardingLogicalPlan {
             plannerContext, projectionBuilder, limit, offset, order, pageSizeHint, params, subQueryResults);
     }
 
+    @Nullable
+    @Override
+    public LogicalPlan rewriteForFetch(FetchMode fetchMode, Set<Symbol> usedBeforeNextFetch) {
+        Function<? super Symbol, ? extends Symbol> mapFields = FieldReplacer.bind(Field::pointer);
+        HashSet<Symbol> mappedUsedColumns = new LinkedHashSet<>(usedBeforeNextFetch.size());
+        for (Symbol beforeNextFetch : usedBeforeNextFetch) {
+            mappedUsedColumns.add(mapFields.apply(beforeNextFetch));
+        }
+        LogicalPlan newSource = source.rewriteForFetch(fetchMode, mappedUsedColumns);
+        return newSource == null ? null : replaceSources(List.of(newSource));
+    }
+
     @Override
     public List<Symbol> outputs() {
         return outputs;
@@ -142,11 +131,36 @@ public class RelationBoundary extends ForwardingLogicalPlan {
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
         LogicalPlan newSource = Lists2.getOnlyElement(sources);
+        /*  RelationBoundary [xx, y]
+         *      |      expressionMapping { xx -> x + x
+         *                               , y  -> y     }
+         *      |
+         *  Collect [x + x, y]
+         *
+         *
+         * --> rewriteForFetch(..) --> Collect [_fetchId, x + x ] as newSource
+         * Must create
+         *  RelationBoundary [_fetchId, xx]
+         *              expressionMapping { xx -> x + x
+         *                                , _fetchId -> _fetchId }
+         */
+        List<Symbol> newOutputs = new ArrayList<>(newSource.outputs().size());
+        HashMap<Symbol, Symbol> newReverseMapping = new HashMap<>(reverseMapping);
+        for (Symbol newSourceOutput : newSource.outputs()) {
+            Symbol newOutput = reverseMapping.get(newSourceOutput);
+            if (newOutput == null) {
+                Field f = new Field(relation, Symbols.pathFromSymbol(newSourceOutput), newSourceOutput);
+                newOutputs.add(f);
+                newReverseMapping.put(f.pointer(), f);
+            } else {
+                newOutputs.add(newOutput);
+            }
+        }
         return new RelationBoundary(
             newSource,
             relation,
-            OperatorUtils.mappedSymbols(newSource.outputs(), reverseMapping),
-            reverseMapping
+            newOutputs,
+            newReverseMapping
         );
     }
 

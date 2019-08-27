@@ -34,6 +34,7 @@ import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.PositionalOrderBy;
+import io.crate.planner.consumer.FetchMode;
 
 import javax.annotation.Nullable;
 import java.util.LinkedHashSet;
@@ -47,22 +48,27 @@ public class Order extends ForwardingLogicalPlan {
     final OrderBy orderBy;
     private final List<Symbol> outputs;
 
-    static LogicalPlan.Builder create(LogicalPlan.Builder source, @Nullable OrderBy orderBy) {
+    static LogicalPlan create(LogicalPlan source, @Nullable OrderBy orderBy) {
         if (orderBy == null) {
             return source;
         }
-        return (tableStats, hints, usedColumns) -> {
-            Set<Symbol> allUsedColumns = new LinkedHashSet<>();
-            allUsedColumns.addAll(orderBy.orderBySymbols());
-            allUsedColumns.addAll(usedColumns);
-            return new Order(source.build(tableStats, hints, allUsedColumns), orderBy);
-        };
+        return new Order(source, orderBy);
     }
 
     public Order(LogicalPlan source, OrderBy orderBy) {
         super(source);
         this.outputs = Lists2.concatUnique(source.outputs(), orderBy.orderBySymbols());
         this.orderBy = orderBy;
+    }
+
+    @Nullable
+    @Override
+    public LogicalPlan rewriteForFetch(FetchMode fetchMode, Set<Symbol> usedBeforeNextFetch) {
+        Set<Symbol> allUsedColumns = new LinkedHashSet<>();
+        allUsedColumns.addAll(extractColumns(orderBy.orderBySymbols()));
+        allUsedColumns.addAll(usedBeforeNextFetch);
+        LogicalPlan newSource = source.rewriteForFetch(fetchMode, allUsedColumns);
+        return newSource == null ? null : new Order(newSource, orderBy);
     }
 
     public OrderBy orderBy() {

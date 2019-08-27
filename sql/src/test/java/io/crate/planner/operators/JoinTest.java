@@ -28,6 +28,7 @@ import io.crate.data.Row;
 import io.crate.execution.dsl.phases.HashJoinPhase;
 import io.crate.execution.dsl.phases.NestedLoopPhase;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
@@ -48,12 +49,12 @@ import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.Randomness;
-import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Set;
 
 import static io.crate.analyze.TableDefinitions.TEST_DOC_LOCATIONS_TABLE_DEFINITION;
@@ -102,8 +103,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
     private LogicalPlan createLogicalPlan(MultiSourceSelect mss, TableStats tableStats) {
         LogicalPlanner logicalPlanner = new LogicalPlanner(functions, tableStats);
         SubqueryPlanner subqueryPlanner = new SubqueryPlanner((s) -> logicalPlanner.planSubSelect(s, plannerCtx));
-        return JoinPlanBuilder.createNodes(mss, mss.where(), subqueryPlanner, functions, txnCtx)
-            .build(tableStats, Set.of(), Set.of());
+        return JoinPlanBuilder.createNodes(mss, mss.where(), subqueryPlanner, functions, txnCtx, Set.of(), tableStats);
     }
 
     private Join buildJoin(LogicalPlan operator) {
@@ -183,8 +183,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         PlannerContext context = e.getPlannerContext(clusterService.state());
         LogicalPlanner logicalPlanner = new LogicalPlanner(functions, tableStats);
         SubqueryPlanner subqueryPlanner = new SubqueryPlanner((s) -> logicalPlanner.planSubSelect(s, context));
-        LogicalPlan operator = JoinPlanBuilder.createNodes(mss, mss.where(), subqueryPlanner, e.functions(), txnCtx)
-            .build(tableStats, Set.of(), Set.of());
+        LogicalPlan operator = JoinPlanBuilder.createNodes(mss, mss.where(), subqueryPlanner, e.functions(), txnCtx, Set.of(), tableStats);
         Join nl = (Join) operator.build(
             context, projectionBuilder, -1, 0, null, null, Row.EMPTY, SubQueryResults.EMPTY);
 
@@ -230,10 +229,8 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         assertThat(((HashJoin) operator).concreteRelation.toString(), is("DocTableRelation{doc.locations}"));
 
         Join join = buildJoin(operator);
-        assertThat(join.joinPhase().leftMergePhase().inputTypes(), contains(DataTypes.LONG, DataTypes.LONG));
-        assertThat(join.joinPhase().rightMergePhase().inputTypes(), contains(DataTypes.LONG, DataTypes.LONG));
-        assertThat(join.joinPhase().projections().get(0).outputs().toString(),
-            is("[IC{0, bigint}, IC{1, bigint}, IC{2, bigint}, IC{3, bigint}]"));
+        List<Symbol> leftOutputSample = ((Collect) join.left()).collectPhase().toCollect().subList(0, 2);
+        assertThat(leftOutputSample, contains(isReference("id"), isReference("other_id")));
     }
 
     @Test
@@ -254,10 +251,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
         Join join = buildJoin(operator);
         // Plans must be switched (left<->right)
-        assertThat(join.joinPhase().leftMergePhase().inputTypes(), Matchers.contains(DataTypes.LONG, DataTypes.LONG));
-        assertThat(join.joinPhase().rightMergePhase().inputTypes(), Matchers.contains(DataTypes.LONG, DataTypes.LONG));
-        assertThat(join.joinPhase().projections().get(0).outputs().toString(),
-            is("[IC{2, bigint}, IC{3, bigint}, IC{0, bigint}, IC{1, bigint}]"));
+        assertThat(((Collect) join.left()).collectPhase().toCollect(), contains(isReference("id"), isReference("loc")));
     }
 
     @Test

@@ -43,6 +43,7 @@ import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.ResultDescription;
+import io.crate.planner.consumer.FetchMode;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.join.Join;
 import io.crate.planner.node.dql.join.JoinType;
@@ -52,9 +53,14 @@ import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 
+import static io.crate.planner.operators.HashJoin.addToUsedColumnsIfInSourceSymbols;
 import static io.crate.planner.operators.Limit.limitAndOffset;
 import static io.crate.planner.operators.LogicalPlanner.NO_LIMIT;
 
@@ -245,6 +251,30 @@ public class NestedLoopJoin implements LogicalPlan {
         );
     }
 
+    @Nullable
+    @Override
+    public LogicalPlan rewriteForFetch(FetchMode fetchMode, Set<Symbol> usedBeforeNextFetch) {
+        HashSet<Symbol> usedFromLeft = new LinkedHashSet<>();
+        HashSet<Symbol> usedFromRight = new LinkedHashSet<>();
+        for (Symbol beforeNextFetch : usedBeforeNextFetch) {
+            addToUsedColumnsIfInSourceSymbols(usedFromLeft, beforeNextFetch, lhs.outputs());
+            addToUsedColumnsIfInSourceSymbols(usedFromRight, beforeNextFetch, rhs.outputs());
+        }
+        if (joinCondition != null) {
+            addToUsedColumnsIfInSourceSymbols(usedFromLeft, joinCondition, lhs.outputs());
+            addToUsedColumnsIfInSourceSymbols(usedFromRight, joinCondition, rhs.outputs());
+        }
+        LogicalPlan newLhs = lhs.rewriteForFetch(FetchMode.NEVER_CLEAR, usedFromLeft);
+        LogicalPlan newRhs = rhs.rewriteForFetch(FetchMode.NEVER_CLEAR, usedFromRight);
+        if (newLhs == null && newRhs == null) {
+            return null;
+        }
+        return replaceSources(List.of(
+            Objects.requireNonNullElse(newLhs, lhs),
+            Objects.requireNonNullElse(newRhs, rhs)
+        ));
+    }
+
     private Tuple<Collection<String>, List<MergePhase>> configureExecution(ExecutionPlan left,
                                                                            ExecutionPlan right,
                                                                            PlannerContext plannerContext,
@@ -312,5 +342,14 @@ public class NestedLoopJoin implements LogicalPlan {
 
     public boolean orderByWasPushedDown() {
         return orderByWasPushedDown;
+    }
+
+    @Override
+    public String toString() {
+        return "NL{" +
+               "lhs=" + lhs.getClass().getSimpleName() +
+               ", rhs=" + rhs.getClass().getSimpleName() +
+               (joinCondition == null ? "" : ", condition=" + joinCondition) +
+               '}';
     }
 }

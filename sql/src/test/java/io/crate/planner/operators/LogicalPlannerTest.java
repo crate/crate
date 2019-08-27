@@ -288,7 +288,8 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                                 " (select b, i from t2 where b > 10) t2 " +
                                 "on t1.i = t2.i where t1.a > 50 and t2.b > 100 " +
                                 "limit 10");
-        assertThat(plan, isPlan("Limit[10;0]\n" +
+        assertThat(plan, isPlan("FetchOrEval[a, i, b, i]\n" +
+                                "Limit[10;0]\n" +
                                 "HashJoin[\n" +
                                 "    Boundary[a, i]\n" +    // Aliased relation boundary
                                 "    Boundary[a, i]\n" +
@@ -297,9 +298,9 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                                 "    OrderBy[a ASC]\n" +
                                 "    Collect[doc.t1 | [a, i] | All]\n" +
                                 "    --- INNER ---\n" +
-                                "    Boundary[b, i]\n" +    // Aliased relation boundary
-                                "    Boundary[b, i]\n" +
-                                "    Collect[doc.t2 | [b, i] | ((b > '10') AND (b > '100'))]\n" +
+                                "    Boundary[_fetchid, i]\n" +    // Aliased relation boundary
+                                "    Boundary[_fetchid, i]\n" +
+                                "    Collect[doc.t2 | [_fetchid, i] | ((b > '10') AND (b > '100'))]\n" +
                                 "]\n"));
     }
 

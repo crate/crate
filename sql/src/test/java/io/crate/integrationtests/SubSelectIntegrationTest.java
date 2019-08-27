@@ -223,8 +223,17 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("select aa, xyi from (" +
                 "  select (xy + i) as xyi, aa from (" +
-                "    select concat(t1.a, t2.a) as aa, t2.i, (t1.x + t2.y) as xy " +
-                "    from t1 left join t2 on t1.a = t2.a where t1.a='a') as t) as tt " +
+                "    select " +
+                "       concat(t1.a, t2.a) as aa," +
+                "       t2.i," +
+                "       (t1.x + t2.y) as xy " +
+                "    from " +
+                "       t1 " +
+                "       left join t2 on t1.a = t2.a " +
+                "    where " +
+                "       t1.a = 'a'" +
+                "     ) as t" +
+                "   ) as tt " +
                 "order by aa, xyi");
 
         assertThat(printedTable(response.rows()),

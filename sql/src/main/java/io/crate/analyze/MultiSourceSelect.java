@@ -197,7 +197,7 @@ public class MultiSourceSelect implements AnalyzedRelation {
 
     public MultiSourceSelect mapSubRelations(Function<? super AnalyzedRelation, ? extends AnalyzedRelation> mapper,
                                              Function<? super Symbol, ? extends Symbol> symbolMapper) {
-        LinkedHashMap<QualifiedName, AnalyzedRelation> mappedSources = new LinkedHashMap<>();
+        LinkedHashMap<QualifiedName, AnalyzedRelation> mappedSources = new LinkedHashMap<>(sources.size());
         for (var entry : sources.entrySet()) {
             mappedSources.put(entry.getKey(), mapper.apply(entry.getValue()));
         }

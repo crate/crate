@@ -37,12 +37,14 @@ import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.ResultDescription;
+import io.crate.planner.consumer.FetchMode;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
 import static io.crate.analyze.SymbolEvaluator.evaluate;
@@ -53,21 +55,24 @@ public class Limit extends ForwardingLogicalPlan {
     final Symbol limit;
     final Symbol offset;
 
-    static LogicalPlan.Builder create(LogicalPlan.Builder source, @Nullable Symbol limit, @Nullable Symbol offset) {
+    static LogicalPlan create(LogicalPlan source, @Nullable Symbol limit, @Nullable Symbol offset) {
         if (limit == null && offset == null) {
             return source;
         }
-        return (tableStats, hints, usedColumns) -> new Limit(
-            source.build(tableStats, hints, usedColumns),
-            firstNonNull(limit, Literal.of(-1L)),
-            firstNonNull(offset, Literal.of(0L))
-        );
+        return new Limit(source, firstNonNull(limit, Literal.of(-1L)), firstNonNull(offset, Literal.of(0L)));
     }
 
     public Limit(LogicalPlan source, Symbol limit, Symbol offset) {
         super(source);
         this.limit = limit;
         this.offset = offset;
+    }
+
+    @Nullable
+    @Override
+    public LogicalPlan rewriteForFetch(FetchMode fetchMode, Set<Symbol> usedBeforeNextFetch) {
+        LogicalPlan newSource = source.rewriteForFetch(fetchMode, usedBeforeNextFetch);
+        return newSource == null ? null : replaceSources(List.of(newSource));
     }
 
     @Override

@@ -27,7 +27,6 @@ import io.crate.analyze.OrderBy;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AbstractTableRelation;
-import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.common.collections.Lists2;
@@ -59,6 +58,7 @@ import io.crate.planner.ExplainLeaf;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.TableStats;
+import io.crate.planner.consumer.FetchMode;
 import io.crate.planner.consumer.OrderByPositionVisitor;
 import io.crate.planner.distribution.DistributionInfo;
 
@@ -99,33 +99,18 @@ public class Collect implements LogicalPlan {
     private final long numExpectedRows;
     private final long estimatedRowSize;
 
-    public static LogicalPlan.Builder create(AbstractTableRelation relation,
-                                             List<Symbol> toCollect,
-                                             WhereClause where) {
-        return (tableStats, hints, usedColumns) -> new Collect(
+    public static LogicalPlan create(AbstractTableRelation relation,
+                                     List<Symbol> toCollect,
+                                     WhereClause where,
+                                     Set<PlanHint> hints,
+                                     TableStats tableStats) {
+        return new Collect(
             hints.contains(PlanHint.PREFER_SOURCE_LOOKUP),
             relation,
             toCollect,
             where,
-            usedColumns,
             tableStats.numDocs(relation.tableInfo().ident()),
-            tableStats.estimatedSizePerRow(relation.tableInfo().ident()));
-    }
-
-    public Collect(boolean preferSourceLookup,
-                   AbstractTableRelation relation,
-                   List<Symbol> toCollect,
-                   WhereClause where,
-                   Set<Symbol> usedBeforeNextFetch,
-                   long numExpectedRows,
-                   long estimatedRowSize) {
-        this(
-            preferSourceLookup,
-            relation,
-            generateOutputs(toCollect, relation, usedBeforeNextFetch, where),
-            where,
-            numExpectedRows,
-            estimatedRowSize
+            tableStats.estimatedSizePerRow(relation.tableInfo().ident())
         );
     }
 
@@ -140,28 +125,37 @@ public class Collect implements LogicalPlan {
         this.baseTables = List.of(relation);
         this.numExpectedRows = numExpectedRows;
         this.estimatedRowSize = estimatedRowSize;
+        this.relation = relation;
+        this.where = where;
+        this.tableInfo = relation.tableInfo();
         if (where.hasVersions()) {
             throw VersioninigValidationException.versionInvalidUsage();
         } else if (where.hasSeqNoAndPrimaryTerm()) {
             throw VersioninigValidationException.seqNoAndPrimaryTermUsage();
         }
-        this.relation = relation;
-        this.where = where;
-        this.tableInfo = relation.tableInfo();
+        if (!(tableInfo instanceof DocTableInfo) && where.hasQuery()) {
+            NoPredicateVisitor.ensureNoMatchPredicate(where.query());
+        }
     }
 
-    private static List<Symbol> generateOutputs(List<Symbol> toCollect,
-                                                AbstractTableRelation tableRelation,
-                                                Set<Symbol> usedBeforeNextFetch,
-                                                WhereClause where) {
-        if (tableRelation instanceof DocTableRelation) {
-            return generateToCollectWithFetch(((DocTableRelation) tableRelation).tableInfo().ident(), toCollect, usedBeforeNextFetch);
-        } else {
-            if (where.hasQuery()) {
-                NoPredicateVisitor.ensureNoMatchPredicate(where.query());
+    @Nullable
+    @Override
+    public LogicalPlan rewriteForFetch(FetchMode fetchMode, Set<Symbol> usedBeforeNextFetch) {
+        if (tableInfo instanceof DocTableInfo) {
+            List<Symbol> newOutputs = generateToCollectWithFetch(tableInfo.ident(), outputs, usedBeforeNextFetch);
+            if (newOutputs == outputs) {
+                return null;
             }
-            return toCollect;
+            return new Collect(
+                preferSourceLookup,
+                relation,
+                newOutputs,
+                where,
+                numExpectedRows,
+                numExpectedRows
+            );
         }
+        return null;
     }
 
     private static List<Symbol> generateToCollectWithFetch(RelationName relationName,

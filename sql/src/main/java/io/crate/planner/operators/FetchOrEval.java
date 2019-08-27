@@ -26,6 +26,7 @@ import com.google.common.collect.Sets;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.relations.AbstractTableRelation;
+import io.crate.analyze.relations.AliasedAnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.common.collections.Lists2;
@@ -62,7 +63,6 @@ import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -110,69 +110,23 @@ import static io.crate.planner.operators.OperatorUtils.getUnusedColumns;
  */
 public class FetchOrEval extends ForwardingLogicalPlan {
 
-    private final FetchMode fetchMode;
+    private final boolean isLastFetch;
+    private final boolean childIsLimited;
     private final boolean doFetch;
     private final List<Symbol> outputs;
 
-    static LogicalPlan.Builder create(LogicalPlan.Builder sourceBuilder,
-                                      List<Symbol> outputs,
-                                      FetchMode fetchMode,
-                                      boolean isLastFetch,
-                                      boolean childIsLimited) {
-        return (tableStats, hints, usedBeforeNextFetch) -> {
-            final LogicalPlan source;
-
-            // This avoids collecting scalars unnecessarily if their source-columns are already collected
-            // Ex. cases like: select xx from (select x + x as xx, ... from t1 order by x ..)
-            usedBeforeNextFetch = extractColumns(usedBeforeNextFetch);
-
-            boolean doFetch = isLastFetch;
-            if (fetchMode == FetchMode.NEVER_CLEAR) {
-                source = sourceBuilder.build(tableStats, hints, usedBeforeNextFetch);
-            } else if (isLastFetch) {
-                source = sourceBuilder.build(tableStats, hints, Collections.emptySet());
-            } else {
-                /*
-                 * In a case like
-                 *      select sum(x) from (select x from t limit 10)
-                 *
-                 * It makes sense to do an intermediate fetch, to reduce the amount of rows.
-                 * All columns are used, so a _fetchId propagation wouldn't work.
-                 *
-                 *
-                 * But in a case like
-                 *      select x, y from (select x, y from t order by x limit 10) order by x asc limit 5
-                 *
-                 * A _fetchId propagation makes sense because there are unusedColumns (y), which can be fetched
-                 * at the end.
-                 */
-                List<Symbol> unusedColumns = getUnusedColumns(outputs, usedBeforeNextFetch);
-                if (unusedColumns.isEmpty() && childIsLimited) {
-                    source = sourceBuilder.build(tableStats, hints, Collections.emptySet());
-                    doFetch = true;
-                } else {
-                    source = sourceBuilder.build(tableStats, hints, usedBeforeNextFetch);
-                }
-            }
-            if (source.outputs().equals(outputs)) {
-                return source;
-            }
-            if (!doFetch && Symbols.containsColumn(source.outputs(), DocSysColumns.FETCHID)) {
-                if (usedBeforeNextFetch.isEmpty()) {
-                    return new FetchOrEval(source, source.outputs(), fetchMode, false);
-                } else {
-                    return new FetchOrEval(source, generateOutputs(outputs, source.outputs()), fetchMode, false);
-                }
-            } else {
-                return new FetchOrEval(source, outputs, fetchMode, true);
-            }
-        };
+    static LogicalPlan create(LogicalPlan source,
+                              List<Symbol> outputs,
+                              boolean isLastFetch,
+                              boolean childIsLimited) {
+        return new FetchOrEval(source, outputs, isLastFetch, childIsLimited, false);
     }
 
-    public FetchOrEval(LogicalPlan source, List<Symbol> outputs, FetchMode fetchMode, boolean doFetch) {
+    public FetchOrEval(LogicalPlan source, List<Symbol> outputs, boolean isLastFetch, boolean childIsLimited, boolean doFetch) {
         super(source);
         this.outputs = outputs;
-        this.fetchMode = fetchMode;
+        this.isLastFetch = isLastFetch;
+        this.childIsLimited = childIsLimited;
         this.doFetch = doFetch;
     }
 
@@ -242,6 +196,9 @@ public class FetchOrEval extends ForwardingLogicalPlan {
         ExecutionPlan executionPlan = source.build(
             plannerContext, projectionBuilder, limit, offset, null, pageSizeHint, params, subQueryResults);
         List<Symbol> sourceOutputs = source.outputs();
+        if (outputs.equals(sourceOutputs)) {
+            return executionPlan;
+        }
         if (doFetch && Symbols.containsColumn(sourceOutputs, DocSysColumns.FETCHID)) {
             return planWithFetch(plannerContext, executionPlan, sourceOutputs, params, subQueryResults);
         }
@@ -255,7 +212,7 @@ public class FetchOrEval extends ForwardingLogicalPlan {
 
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
-        return new FetchOrEval(Lists2.getOnlyElement(sources), outputs, fetchMode, doFetch);
+        return new FetchOrEval(Lists2.getOnlyElement(sources), outputs, isLastFetch, childIsLimited, doFetch);
     }
 
     private ExecutionPlan planWithFetch(PlannerContext plannerContext,
@@ -370,8 +327,7 @@ public class FetchOrEval extends ForwardingLogicalPlan {
         HashMap<FullQualifiedTableRelation, InputColumn> m = new HashMap<>();
         for (int i = 0; i < outputs.size(); i++) {
             Symbol output = outputs.get(i);
-            if (output instanceof Field &&
-                ((Field) output).path().sqlFqn().equals(DocSysColumns.FETCHID.sqlFqn())) {
+            if (output instanceof Field && ((Field) output).path().equals(DocSysColumns.FETCHID)) {
 
                 DocTableRelation rel = resolveDocTableRelation(output);
                 FullQualifiedTableRelation fqRel = new FullQualifiedTableRelation(
@@ -406,13 +362,18 @@ public class FetchOrEval extends ForwardingLogicalPlan {
 
     private static DocTableRelation resolveDocTableRelation(Field field) {
         AnalyzedRelation relation = field.relation();
-        if (relation instanceof DocTableRelation) {
-            return (DocTableRelation) relation;
-        }
-        if (relation instanceof QueriedSelectRelation
-            && ((QueriedSelectRelation) relation).subRelation() instanceof DocTableRelation) {
-
-            return ((DocTableRelation) ((QueriedSelectRelation) relation).subRelation());
+        boolean done = false;
+        while (!done) {
+            done = true;
+            if (relation instanceof DocTableRelation) {
+                return (DocTableRelation) relation;
+            } else if (relation instanceof QueriedSelectRelation) {
+                relation = ((QueriedSelectRelation) relation).subRelation();
+                done = false;
+            } else if (relation instanceof AliasedAnalyzedRelation) {
+                relation = ((AliasedAnalyzedRelation) relation).relation();
+                done = false;
+            }
         }
         return null;
     }
@@ -428,25 +389,18 @@ public class FetchOrEval extends ForwardingLogicalPlan {
         if (idxInSource > -1) {
             return new InputColumn(idxInSource, sourceOutputs.get(idxInSource).valueType());
         }
-
         Symbol boundedOutput = SubQueryAndParamBinder.convert(output, params, subQueryResults);
         idxInSource = sourceOutputs.indexOf(boundedOutput);
         if (idxInSource > -1) {
             return new InputColumn(idxInSource, sourceOutputs.get(idxInSource).valueType());
         }
-
         return FieldReplacer.replaceFields(boundedOutput, f -> {
             int idx = sourceOutputs.indexOf(f);
             if (idx > -1) {
                 return new InputColumn(idx, sourceOutputs.get(idx).valueType());
             }
             AnalyzedRelation relation = f.relation();
-            final QualifiedName qualifiedName;
-            if (currentQualifiedName != null) {
-                qualifiedName = currentQualifiedName;
-            } else {
-                qualifiedName = relation.getQualifiedName();
-            }
+            QualifiedName qualifiedName = currentQualifiedName == null ? relation.getQualifiedName() : currentQualifiedName;
             Symbol symbol = f.pointer();
             if (symbol instanceof Reference) {
                 Reference ref = (Reference) symbol;
@@ -458,7 +412,8 @@ public class FetchOrEval extends ForwardingLogicalPlan {
                 FullQualifiedTableRelation fqRel = new FullQualifiedTableRelation(qualifiedName, docTableRelation);
                 allocateFetchRef.accept(fqRel, ref);
                 InputColumn fetchId = fetchInputColumnsByTable.get(fqRel);
-                assert fetchId != null : "fetchId InputColumn for " + docTableRelation + " must be present";
+                assert fetchId != null
+                    : "Either fetchId for " + fqRel + " must be present (available for relations=" + fetchInputColumnsByTable.keySet() + ") or " + f + " must be available in " + sourceOutputs;
                 return new FetchReference(fetchId, ref);
             }
             return toInputColOrFetchRef(
@@ -517,6 +472,66 @@ public class FetchOrEval extends ForwardingLogicalPlan {
         return visitor.visitFetchOrEval(this, context);
     }
 
+    @Nullable
+    @Override
+    public LogicalPlan rewriteForFetch(FetchMode fetchMode, Set<Symbol> usedBeforeNextFetch) {
+        // This avoids collecting scalars unnecessarily if their source-columns are already collected
+        // Ex. cases like: select xx from (select x + x as xx, ... from t1 order by x ..)
+        Set<Symbol> usedColumns = extractColumns(usedBeforeNextFetch);
+        boolean doFetch = isLastFetch;
+        LogicalPlan newSource;
+        if (fetchMode == FetchMode.NEVER_CLEAR) {
+            newSource = source.rewriteForFetch(fetchMode, usedColumns);
+        } else if (isLastFetch) {
+            newSource = source.rewriteForFetch(fetchMode, Set.of());
+        } else {
+            /*
+             * In a case like
+             *      select sum(x) from (select x from t limit 10)
+             *
+             * It makes sense to do an intermediate fetch, to reduce the amount of rows.
+             * All columns are used, so a _fetchId propagation wouldn't work.
+             *
+             *
+             * But in a case like
+             *      select x, y from (select x, y from t order by x limit 10) order by x asc limit 5
+             *
+             * A _fetchId propagation makes sense because there are unusedColumns (y), which can be fetched
+             * at the end.
+             */
+            List<Symbol> unusedColumns = getUnusedColumns(outputs, usedColumns);
+            if (unusedColumns.isEmpty() && childIsLimited) {
+                newSource = source.rewriteForFetch(fetchMode, Set.of());
+                doFetch = true;
+            } else {
+                newSource = source.rewriteForFetch(fetchMode, usedColumns);
+            }
+        }
+        if (newSource == null) {
+            return outputs.equals(source.outputs())
+                ? source
+                : null;
+        }
+        if (newSource.outputs().equals(outputs)) {
+            return newSource;
+        }
+
+        if (!doFetch && Symbols.containsColumn(newSource.outputs(), DocSysColumns.FETCHID)) {
+            if (usedBeforeNextFetch.isEmpty()) {
+                return newSource;
+            } else {
+                List<Symbol> newOutputs = generateOutputs(this.outputs, newSource.outputs());
+                if (newOutputs.equals(newSource.outputs())) {
+                    return newSource;
+                } else {
+                    return new FetchOrEval(newSource, newOutputs, isLastFetch, childIsLimited, false);
+                }
+            }
+        } else {
+            return new FetchOrEval(newSource, outputs, isLastFetch, childIsLimited, true);
+        }
+    }
+
     private static class FullQualifiedTableRelation {
         private final QualifiedName qualifiedName;
         private final DocTableRelation docTableRelation;
@@ -547,6 +562,11 @@ public class FetchOrEval extends ForwardingLogicalPlan {
         @Override
         public int hashCode() {
             return Objects.hash(qualifiedName, docTableRelation);
+        }
+
+        @Override
+        public String toString() {
+            return "FQTable{" + qualifiedName + '=' + docTableRelation + '}';
         }
     }
 }

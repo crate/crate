@@ -37,6 +37,8 @@ import io.crate.metadata.RowGranularity;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.join.Join;
+import io.crate.planner.operators.LogicalPlan;
+import io.crate.planner.operators.LogicalPlannerTest;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
@@ -82,20 +84,23 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testNestedSimpleSelectWithEarlyFetchBecauseOfWhereClause() throws Exception {
-        QueryThenFetch qtf = e.plan(
-            "select x, i from (select x, i from t1 order by x asc limit 10) ti where ti.i = 10 order by x desc limit 3");
-        Collect collect = (Collect) qtf.subPlan();
-        List<Projection> projections = collect.collectPhase().projections();
-        assertThat(projections, Matchers.contains(
-            isTopN(10, 0),
-            instanceOf(FetchProjection.class),
-            instanceOf(FilterProjection.class),
-
-            // order by is on query symbol but LIMIT must be applied after WHERE
-            instanceOf(OrderedTopNProjection.class),
-            isTopN(3, 0)
-        ));
+    public void test_nested_select_with_order_by_limit_and_filter_in_between() throws Exception {
+        String statement = "select x, i " +
+                           "from (select x, i from t1 order by x asc limit 10) ti " +
+                           "where " +
+                           "    ti.i = 10 " +
+                           "order by x desc limit 3";
+        String expectedLogicalPlan = "RootBoundary[x, i]\n" +
+                                     "Limit[3;0]\n" +
+                                     "OrderBy[x DESC]\n" +
+                                     "Boundary[x, i]\n" +
+                                     "Boundary[x, i]\n" +
+                                     "Filter[(i = 10)]\n" +
+                                     "Limit[10;0]\n" +
+                                     "OrderBy[x ASC]\n" +
+                                     "Collect[doc.t1 | [x, i] | All]\n";
+        LogicalPlan logicalPlan = e.logicalPlan(statement);
+        assertThat(logicalPlan, LogicalPlannerTest.isPlan(e.functions(), expectedLogicalPlan));
     }
 
     @Test
@@ -161,12 +166,11 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
             instanceOf(EvalProjection.class),
             isTopN(10, 0),
             instanceOf(OrderedTopNProjection.class),
-            instanceOf(EvalProjection.class),
             isTopN(3, 0),
             instanceOf(EvalProjection.class)
         ));
         assertThat(projections.get(0).outputs(), isSQL("INPUT(0), INPUT(1), INPUT(2)"));
-        assertThat(projections.get(5).outputs(), isSQL("INPUT(2)"));
+        assertThat(projections.get(4).outputs(), isSQL("INPUT(1)"));
     }
 
     @Test

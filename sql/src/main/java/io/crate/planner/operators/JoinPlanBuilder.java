@@ -31,12 +31,12 @@ import io.crate.analyze.relations.QuerySplitter;
 import io.crate.execution.engine.join.JoinOperations;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.FieldsVisitor;
+import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
 import io.crate.planner.SubqueryPlanner;
 import io.crate.planner.TableStats;
-import io.crate.planner.consumer.FetchMode;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.sql.tree.QualifiedName;
 import org.elasticsearch.common.util.set.Sets;
@@ -47,7 +47,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -62,36 +61,15 @@ import java.util.stream.Stream;
  * enabled by the {@link io.crate.metadata.settings.session.SessionSettingRegistry#HASH_JOIN_KEY} setting and its
  * application is mandated by {@link EquiJoinDetector}).
  */
-public class JoinPlanBuilder implements LogicalPlan.Builder {
+public class JoinPlanBuilder {
 
-    private final MultiSourceSelect mss;
-    private final WhereClause where;
-    private final SubqueryPlanner subqueryPlanner;
-    private final Functions functions;
-    private final CoordinatorTxnCtx txnCtx;
-
-    private JoinPlanBuilder(MultiSourceSelect mss,
-                            WhereClause where,
-                            SubqueryPlanner subqueryPlanner,
-                            Functions functions,
-                            CoordinatorTxnCtx txnCtx) {
-        this.mss = mss;
-        this.where = where;
-        this.subqueryPlanner = subqueryPlanner;
-        this.functions = functions;
-        this.txnCtx = txnCtx;
-    }
-
-    static JoinPlanBuilder createNodes(MultiSourceSelect mss,
-                                       WhereClause where,
-                                       SubqueryPlanner subqueryPlanner,
-                                       Functions functions,
-                                       CoordinatorTxnCtx txnCtx) {
-        return new JoinPlanBuilder(mss, where, subqueryPlanner, functions, txnCtx);
-    }
-
-    @Override
-    public LogicalPlan build(TableStats tableStats, Set<PlanHint> hints, Set<Symbol> usedBeforeNextFetch) {
+    static LogicalPlan createNodes(MultiSourceSelect mss,
+                                   WhereClause where,
+                                   SubqueryPlanner subqueryPlanner,
+                                   Functions functions,
+                                   CoordinatorTxnCtx txnCtx,
+                                   Set<PlanHint> hints,
+                                   TableStats tableStats) {
         Map<Set<QualifiedName>, Symbol> queryParts = getQueryParts(where);
         LinkedHashMap<Set<QualifiedName>, JoinPair> joinPairs =
             JoinOperations.buildRelationsToJoinPairsMap(
@@ -112,8 +90,6 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
 
         final QualifiedName lhsName = it.next();
         final QualifiedName rhsName = it.next();
-        AnalyzedRelation lhs = mss.sources().get(lhsName);
-        AnalyzedRelation rhs = mss.sources().get(rhsName);
         Set<QualifiedName> joinNames = new HashSet<>();
         joinNames.add(lhsName);
         joinNames.add(rhsName);
@@ -129,25 +105,10 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
             joinCondition = joinLhsRhs.condition();
         }
 
-        Set<Symbol> usedFromLeft = new LinkedHashSet<>();
-        Set<Symbol> usedFromRight = new LinkedHashSet<>();
-        for (JoinPair joinPair : mss.joinPairs()) {
-            addColumnsFrom(joinPair.condition(), usedFromLeft::add, lhs);
-            addColumnsFrom(joinPair.condition(), usedFromRight::add, rhs);
-        }
-        addColumnsFrom(where.query(), usedFromLeft::add, lhs);
-        addColumnsFrom(where.query(), usedFromRight::add, rhs);
-
-        addColumnsFrom(usedBeforeNextFetch, usedFromLeft::add, lhs);
-        addColumnsFrom(usedBeforeNextFetch, usedFromRight::add, rhs);
-
-        // use NEVER_CLEAR as fetchMode to prevent intermediate fetches
-        // This is necessary; because due to how the fetch-reader-allocation works it's not possible to
-        // have more than 1 fetchProjection within a single execution
-        LogicalPlan lhsPlan = LogicalPlanner.plan(lhs, FetchMode.NEVER_CLEAR, subqueryPlanner, false, functions, txnCtx)
-            .build(tableStats, hints, usedFromLeft);
-        LogicalPlan rhsPlan = LogicalPlanner.plan(rhs, FetchMode.NEVER_CLEAR, subqueryPlanner, false, functions, txnCtx)
-            .build(tableStats, hints, usedFromRight);
+        AnalyzedRelation lhs = mss.sources().get(lhsName);
+        AnalyzedRelation rhs = mss.sources().get(rhsName);
+        LogicalPlan lhsPlan = LogicalPlanner.plan(lhs, subqueryPlanner, false, functions, txnCtx, hints, tableStats);
+        LogicalPlan rhsPlan = LogicalPlanner.plan(rhs, subqueryPlanner, false, functions, txnCtx, hints, tableStats);
         Symbol query = removeParts(queryParts, lhsName, rhsName);
         LogicalPlan joinPlan = createJoinPlan(
             lhsPlan,
@@ -168,7 +129,6 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
                 hints,
                 joinPlan,
                 nextRel,
-                usedBeforeNextFetch,
                 joinNames,
                 joinPairs,
                 queryParts,
@@ -230,7 +190,6 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
                                             Set<PlanHint> hints,
                                             LogicalPlan source,
                                             AnalyzedRelation nextRel,
-                                            Set<Symbol> usedColumns,
                                             Set<QualifiedName> joinNames,
                                             Map<Set<QualifiedName>, JoinPair> joinPairs,
                                             Map<Set<QualifiedName>, Symbol> queryParts,
@@ -240,8 +199,6 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
                                             CoordinatorTxnCtx txnCtx) {
         QualifiedName nextName = nextRel.getQualifiedName();
 
-        Set<Symbol> usedFromNext = new LinkedHashSet<>();
-        Consumer<Symbol> addToUsedColumns = usedFromNext::add;
         JoinPair joinPair = removeMatch(joinPairs, joinNames, nextName);
         final JoinType type;
         final Symbol condition;
@@ -251,18 +208,9 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
         } else {
             type = maybeInvertPair(nextName, joinPair);
             condition = joinPair.condition();
-            addColumnsFrom(condition, addToUsedColumns, nextRel);
         }
-        for (JoinPair pair : joinPairs.values()) {
-            addColumnsFrom(pair.condition(), addToUsedColumns, nextRel);
-        }
-        for (Symbol queryPart : queryParts.values()) {
-            addColumnsFrom(queryPart, addToUsedColumns, nextRel);
-        }
-        addColumnsFrom(usedColumns, addToUsedColumns, nextRel);
 
-        LogicalPlan nextPlan = LogicalPlanner.plan(nextRel, FetchMode.NEVER_CLEAR, subqueryPlanner, false, functions, txnCtx)
-            .build(tableStats, hints, usedFromNext);
+        LogicalPlan nextPlan = LogicalPlanner.plan(nextRel, subqueryPlanner, false, functions, txnCtx, hints, tableStats);
 
         Symbol query = AndOperator.join(
             Stream.of(
@@ -306,7 +254,7 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
         return null;
     }
 
-    private static void addColumnsFrom(Iterable<? extends Symbol> symbols,
+    static void addColumnsFrom(Iterable<? extends Symbol> symbols,
                                        Consumer<? super Symbol> consumer,
                                        AnalyzedRelation rel) {
 
@@ -315,13 +263,18 @@ public class JoinPlanBuilder implements LogicalPlan.Builder {
         }
     }
 
-    private static void addColumnsFrom(@Nullable Symbol symbol, Consumer<? super Symbol> consumer, AnalyzedRelation rel) {
+    static void addColumnsFrom(@Nullable Symbol symbol, Consumer<? super Symbol> consumer, AnalyzedRelation rel) {
         if (symbol == null) {
             return;
         }
         FieldsVisitor.visitFields(symbol, f -> {
             if (f.relation().getQualifiedName().equals(rel.getQualifiedName())) {
                 consumer.accept(f.pointer());
+            }
+        });
+        RefVisitor.visitRefs(symbol, ref -> {
+            if (rel.outputs().contains(ref)) {
+                consumer.accept(ref);
             }
         });
     }

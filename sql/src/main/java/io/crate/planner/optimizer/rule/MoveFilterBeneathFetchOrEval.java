@@ -55,11 +55,12 @@ public final class MoveFilterBeneathFetchOrEval implements Rule<Filter> {
     }
 
     @Override
-    public LogicalPlan apply(Filter plan, Captures captures) {
+    public LogicalPlan apply(Filter filter, Captures captures) {
         FetchOrEval fetchOrEval = captures.get(fetchOrEvalCapture);
         List<Symbol> outputsOfFetchSource = fetchOrEval.source().outputs();
-        if (outputsOfFetchSource.containsAll(extractColumns(plan.query()))) {
-            return transpose(plan, fetchOrEval);
+        if (outputsOfFetchSource.containsAll(extractColumns(filter.query()))
+            || extractColumns(outputsOfFetchSource).containsAll(extractColumns(filter.query()))) {
+            return transpose(filter, fetchOrEval);
         }
         return null;
     }

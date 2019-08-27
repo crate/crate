@@ -41,6 +41,7 @@ import io.crate.planner.ExplainLeaf;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.ResultDescription;
+import io.crate.planner.consumer.FetchMode;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.distribution.DistributionType;
 
@@ -50,6 +51,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import static io.crate.execution.dsl.phases.ExecutionPhases.executesOnHandler;
@@ -62,30 +64,25 @@ public class WindowAgg extends ForwardingLogicalPlan {
     private final List<Symbol> standalone;
     private final List<Symbol> outputs;
 
-    static LogicalPlan.Builder create(LogicalPlan.Builder source, List<WindowFunction> windowFunctions) {
+    static LogicalPlan create(LogicalPlan source, List<WindowFunction> windowFunctions) {
         if (windowFunctions.isEmpty()) {
             return source;
         }
-
-        return (tableStats, hints, usedBeforeNextFetch) -> {
-            HashSet<Symbol> allUsedColumns = new HashSet<>(extractColumns(usedBeforeNextFetch));
-            allUsedColumns.addAll(extractColumns(windowFunctions));
-            LinkedHashMap<WindowDefinition, ArrayList<WindowFunction>> groupedFunctions = new LinkedHashMap<>();
-            for (WindowFunction windowFunction : windowFunctions) {
-                WindowDefinition windowDefinition = windowFunction.windowDefinition();
-                ArrayList<WindowFunction> functions = groupedFunctions.computeIfAbsent(windowDefinition, w -> new ArrayList<>());
-                functions.add(windowFunction);
-            }
-            LogicalPlan lastWindowAgg = source.build(tableStats, hints, allUsedColumns);
-            for (Map.Entry<WindowDefinition, ArrayList<WindowFunction>> entry : groupedFunctions.entrySet()) {
-                /*
-                 * Pass along the source outputs as standalone symbols as they might be required in cases like:
-                 *      select x, avg(x) OVER() from t;
-                 */
-                lastWindowAgg = new WindowAgg(lastWindowAgg, entry.getKey(), entry.getValue(), lastWindowAgg.outputs());
-            }
-            return lastWindowAgg;
-        };
+        LinkedHashMap<WindowDefinition, ArrayList<WindowFunction>> groupedFunctions = new LinkedHashMap<>();
+        for (WindowFunction windowFunction : windowFunctions) {
+            WindowDefinition windowDefinition = windowFunction.windowDefinition();
+            ArrayList<WindowFunction> functions = groupedFunctions.computeIfAbsent(windowDefinition, w -> new ArrayList<>());
+            functions.add(windowFunction);
+        }
+        LogicalPlan lastWindowAgg = source;
+        for (Map.Entry<WindowDefinition, ArrayList<WindowFunction>> entry : groupedFunctions.entrySet()) {
+            /*
+             * Pass along the source outputs as standalone symbols as they might be required in cases like:
+             *      select x, avg(x) OVER() from t;
+             */
+            lastWindowAgg = new WindowAgg(lastWindowAgg, entry.getKey(), entry.getValue(), lastWindowAgg.outputs());
+        }
+        return lastWindowAgg;
     }
 
     private WindowAgg(LogicalPlan source, WindowDefinition windowDefinition, List<WindowFunction> windowFunctions, List<Symbol> standalone) {
@@ -94,6 +91,15 @@ public class WindowAgg extends ForwardingLogicalPlan {
         this.windowDefinition = windowDefinition;
         this.windowFunctions = windowFunctions;
         this.standalone = standalone;
+    }
+
+    @Nullable
+    @Override
+    public LogicalPlan rewriteForFetch(FetchMode fetchMode, Set<Symbol> usedBeforeNextFetch) {
+        HashSet<Symbol> allUsedColumns = new HashSet<>(extractColumns(usedBeforeNextFetch));
+        allUsedColumns.addAll(extractColumns(windowFunctions));
+        LogicalPlan newSource = source.rewriteForFetch(fetchMode, allUsedColumns);
+        return newSource == null ? null : replaceSources(List.of(newSource));
     }
 
     List<WindowFunction> windowFunctions() {
@@ -221,7 +227,8 @@ public class WindowAgg extends ForwardingLogicalPlan {
 
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
-        return new WindowAgg(Lists2.getOnlyElement(sources), windowDefinition, windowFunctions, standalone);
+        LogicalPlan newSource = Lists2.getOnlyElement(sources);
+        return new WindowAgg(newSource, windowDefinition, windowFunctions, newSource.outputs());
     }
 
     @Override

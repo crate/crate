@@ -27,6 +27,7 @@ import io.crate.planner.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
+import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -77,11 +78,11 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
             "select text from users " +
             "order by name");
         assertThat(plan, isPlan(sqlExecutor.functions(), "Union[\n" +
-                                                             "Boundary[name]\n" +   // Aliased relation boundary
-                                                             "Boundary[name]\n" +
                                                              "FetchOrEval[name]\n" +
+                                                             "Boundary[_fetchid, name]\n" +   // Aliased relation boundary
+                                                             "Boundary[_fetchid, name]\n" +
                                                              "OrderBy[name ASC]\n" +
-                                                             "Collect[doc.users | [name, text] | All]\n" +
+                                                             "Collect[doc.users | [_fetchid, name] | All]\n" +
                                                          "---\n" +
                                                              "OrderBy[text ASC]\n" +
                                                              "Collect[doc.users | [text] | All]\n" +
@@ -131,8 +132,9 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan, isPlan(sqlExecutor.functions(), "FetchOrEval[y, b, i]\n" +
                                                          "NestedLoopJoin[\n" +
                                                          "    Boundary[_fetchid, a, x]\n" +
+                                                         "    FetchOrEval[_fetchid, a, x]\n" +
                                                          "    OrderBy[x DESC]\n" +
-                                                         "    Collect[doc.t1 | [_fetchid, a, x] | All]\n" +
+                                                         "    Collect[doc.t1 | [_fetchid, x, a] | All]\n" +
                                                          "    --- INNER ---\n" +
                                                          "    Boundary[_fetchid, b]\n" +
                                                          "    Collect[doc.t2 | [_fetchid, b] | All]\n]" +
@@ -238,7 +240,7 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
                 "    Boundary[_fetchid, b, y]\n" +
                 "    FetchOrEval[_fetchid, b, y]\n" +
                 "    OrderBy[lower(b) ASC]\n" +
-                "    Collect[doc.t2 | [_fetchid, y, b] | All]\n" +
+                "    Collect[doc.t2 | [_fetchid, b, y] | All]\n" +
                 "    --- INNER ---\n" +
                 "    Boundary[_fetchid, x]\n" +
                 "    Collect[doc.t1 | [_fetchid, x] | All]\n" +
@@ -272,9 +274,8 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
         var expectedPlan =
             "RootBoundary[a, x, i, b, y, i]\n" +
             "FetchOrEval[a, x, i, b, y, i]\n" +
-            "Boundary[_fetchid, _fetchid, x, y]\n" +    // Aliased relation boundary
-            "Boundary[_fetchid, _fetchid, x, y]\n" +
-            "FetchOrEval[_fetchid, _fetchid, x, y]\n" +
+            "Boundary[_fetchid, x, _fetchid, y]\n" +    // Aliased relation boundary
+            "Boundary[_fetchid, x, _fetchid, y]\n" +
             "HashJoin[\n" +
             "    Boundary[_fetchid, x]\n" +
             "    Collect[doc.t1 | [_fetchid, x] | (x = 10)]\n" +
@@ -295,12 +296,11 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
         var expectedPlan =
             "RootBoundary[a, x, i, b, y, i]\n" +
             "FetchOrEval[a, x, i, b, y, i]\n" +
-            "Boundary[_fetchid, _fetchid, x]\n" +   // Aliased relation boundary
-            "Boundary[_fetchid, _fetchid, x]\n" +
-            "FetchOrEval[_fetchid, _fetchid, x]\n" +
+            "Boundary[_fetchid, _fetchid]\n" +   // Aliased relation boundary
+            "Boundary[_fetchid, _fetchid]\n" +
             "NestedLoopJoin[\n" +
-            "    Boundary[_fetchid, x]\n" +
-            "    Collect[doc.t1 | [_fetchid, x] | (x = 10)]\n" +
+            "    Boundary[_fetchid]\n" +
+            "    Collect[doc.t1 | [_fetchid] | (x = 10)]\n" +
             "    --- CROSS ---\n" +
             "    Boundary[_fetchid]\n" +
             "    Collect[doc.t2 | [_fetchid] | All]\n" +
@@ -319,9 +319,8 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
         var expectedPlan =
             "RootBoundary[a, x, i, b, y, i]\n" +
             "FetchOrEval[a, x, i, b, y, i]\n" +
-            "Boundary[_fetchid, _fetchid, a, x, b, y]\n" +  // Aliased relation boundary
-            "Boundary[_fetchid, _fetchid, a, x, b, y]\n" +
-            "FetchOrEval[_fetchid, _fetchid, a, x, b, y]\n" +
+            "Boundary[_fetchid, a, x, _fetchid, b, y]\n" +  // Aliased relation boundary
+            "Boundary[_fetchid, a, x, _fetchid, b, y]\n" +
             "Filter[(concat(a, b) = '')]\n" +
             "HashJoin[\n" +
             "    Boundary[_fetchid, a, x]\n" +

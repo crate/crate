@@ -22,7 +22,6 @@
 
 package io.crate.planner.operators;
 
-import com.google.common.annotations.VisibleForTesting;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -35,6 +34,8 @@ import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.join.JoinOperations;
 import io.crate.execution.engine.pipeline.TopN;
+import io.crate.expression.symbol.FieldsVisitor;
+import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
@@ -42,6 +43,7 @@ import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.ResultDescription;
 import io.crate.planner.TableStats;
+import io.crate.planner.consumer.FetchMode;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.node.dql.join.Join;
@@ -53,8 +55,12 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static io.crate.planner.operators.LogicalPlanner.NO_LIMIT;
@@ -63,21 +69,20 @@ public class HashJoin implements LogicalPlan {
 
     private final Symbol joinCondition;
     private final TableStats tableStats;
-    @VisibleForTesting
-    final AnalyzedRelation concreteRelation;
     private final List<Symbol> outputs;
     final LogicalPlan rhs;
     final LogicalPlan lhs;
+    final AnalyzedRelation concreteRelation;
 
-    public HashJoin(LogicalPlan lhs,
-                    LogicalPlan rhs,
+    public HashJoin(LogicalPlan lhsPlan,
+                    LogicalPlan rhsPlan,
                     Symbol joinCondition,
                     AnalyzedRelation concreteRelation,
                     TableStats tableStats) {
-        this.outputs = Lists2.concat(lhs.outputs(), rhs.outputs());
-        this.lhs = lhs;
-        this.rhs = rhs;
         this.concreteRelation = concreteRelation;
+        this.outputs = Lists2.concat(lhsPlan.outputs(), rhsPlan.outputs());
+        this.lhs = lhsPlan;
+        this.rhs = rhsPlan;
         this.joinCondition = joinCondition;
         this.tableStats = tableStats;
     }
@@ -208,6 +213,44 @@ public class HashJoin implements LogicalPlan {
             outputs.size(),
             null
         );
+    }
+
+    @Nullable
+    @Override
+    public LogicalPlan rewriteForFetch(FetchMode fetchMode, Set<Symbol> usedBeforeNextFetch) {
+        HashSet<Symbol> usedFromLeft = new LinkedHashSet<>();
+        HashSet<Symbol> usedFromRight = new LinkedHashSet<>();
+        addToUsedColumnsIfInSourceSymbols(usedFromLeft, joinCondition, lhs.outputs());
+        addToUsedColumnsIfInSourceSymbols(usedFromRight, joinCondition, rhs.outputs());
+        for (Symbol beforeNextFetch : usedBeforeNextFetch) {
+            addToUsedColumnsIfInSourceSymbols(usedFromLeft, beforeNextFetch, lhs.outputs());
+            addToUsedColumnsIfInSourceSymbols(usedFromRight, beforeNextFetch, rhs.outputs());
+        }
+        LogicalPlan newLhs = lhs.rewriteForFetch(FetchMode.NEVER_CLEAR, usedFromLeft);
+        LogicalPlan newRhs = rhs.rewriteForFetch(FetchMode.NEVER_CLEAR, usedFromRight);
+        if (newLhs == null && newRhs == null) {
+            return null;
+        }
+        return replaceSources(List.of(
+            Objects.requireNonNullElse(newLhs, lhs),
+            Objects.requireNonNullElse(newRhs, rhs)
+        ));
+    }
+
+    static void addToUsedColumnsIfInSourceSymbols(Set<Symbol> usedColumns, Symbol symbol, List<Symbol> sourceSymbols) {
+        if (sourceSymbols.contains(symbol)) {
+            usedColumns.add(symbol);
+        }
+        RefVisitor.visitRefs(symbol, ref -> {
+            if (sourceSymbols.contains(ref)) {
+                usedColumns.add(ref);
+            }
+        });
+        FieldsVisitor.visitFields(symbol, f -> {
+            if (sourceSymbols.contains(f)) {
+                usedColumns.add(f);
+            }
+        });
     }
 
     @Override

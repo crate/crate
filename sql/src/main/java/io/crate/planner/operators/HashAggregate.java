@@ -40,6 +40,7 @@ import io.crate.metadata.RowGranularity;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
+import io.crate.planner.consumer.FetchMode;
 import io.crate.planner.distribution.DistributionInfo;
 
 import javax.annotation.Nullable;
@@ -47,6 +48,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
+
+import static io.crate.planner.operators.LogicalPlanner.extractColumns;
 
 public class HashAggregate extends ForwardingLogicalPlan {
 
@@ -56,6 +60,14 @@ public class HashAggregate extends ForwardingLogicalPlan {
     HashAggregate(LogicalPlan source, List<Function> aggregates) {
         super(source);
         this.aggregates = aggregates;
+    }
+
+    @Nullable
+    @Override
+    public LogicalPlan rewriteForFetch(FetchMode fetchMode,
+                                       Set<Symbol> usedBeforeNextFetch) {
+        LogicalPlan newSource = source.rewriteForFetch(fetchMode, extractColumns(aggregates));
+        return newSource == null ? null : replaceSources(List.of(newSource));
     }
 
     @Override

@@ -33,6 +33,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RowGranularity;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
+import io.crate.planner.consumer.FetchMode;
 import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
@@ -46,21 +47,15 @@ public final class Filter extends ForwardingLogicalPlan {
 
     final Symbol query;
 
-    static LogicalPlan.Builder create(LogicalPlan.Builder sourceBuilder, @Nullable QueryClause queryClause) {
+    static LogicalPlan create(LogicalPlan source, @Nullable QueryClause queryClause) {
         if (queryClause == null) {
-            return sourceBuilder;
+            return source;
         }
         Symbol query = queryClause.queryOrFallback();
         if (isMatchAll(query)) {
-            return sourceBuilder;
+            return source;
         }
-        Set<Symbol> columnsInQuery = extractColumns(query);
-        return (tableStats, hints, usedColumns) -> {
-            Set<Symbol> allUsedColumns = new LinkedHashSet<>();
-            allUsedColumns.addAll(columnsInQuery);
-            allUsedColumns.addAll(usedColumns);
-            return new Filter(sourceBuilder.build(tableStats, hints, allUsedColumns), query);
-        };
+        return new Filter(source, query);
     }
 
     public static LogicalPlan create(LogicalPlan source, Symbol query) {
@@ -83,6 +78,19 @@ public final class Filter extends ForwardingLogicalPlan {
 
     public Symbol query() {
         return query;
+    }
+
+    @Nullable
+    @Override
+    public LogicalPlan rewriteForFetch(FetchMode fetchMode, Set<Symbol> usedBeforeNextFetch) {
+        Set<Symbol> allUsedColumns = new LinkedHashSet<>(usedBeforeNextFetch);
+        allUsedColumns.addAll(extractColumns(query));
+        LogicalPlan newSource = source.rewriteForFetch(fetchMode, allUsedColumns);
+        if (newSource == null) {
+            return null;
+        } else {
+            return new Filter(newSource, query);
+        }
     }
 
     @Override

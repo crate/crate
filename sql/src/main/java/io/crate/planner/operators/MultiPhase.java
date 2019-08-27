@@ -28,16 +28,19 @@ import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.SelectSymbol;
+import io.crate.expression.symbol.Symbol;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.MultiPhasePlan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.SubqueryPlanner;
+import io.crate.planner.consumer.FetchMode;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * This is the {@link LogicalPlan} equivalent of the {@link MultiPhasePlan} plan.
@@ -47,17 +50,14 @@ public class MultiPhase extends ForwardingLogicalPlan {
 
     private final Map<LogicalPlan, SelectSymbol> subQueries;
 
-    public static LogicalPlan.Builder createIfNeeded(LogicalPlan.Builder sourceBuilder,
-                                                     AnalyzedRelation relation,
-                                                     SubqueryPlanner subqueryPlanner) {
+    public static LogicalPlan createIfNeeded(LogicalPlan source,
+                                             AnalyzedRelation relation,
+                                             SubqueryPlanner subqueryPlanner) {
         Map<LogicalPlan, SelectSymbol> subQueries = subqueryPlanner.planSubQueries(relation);
         if (subQueries.isEmpty()) {
-            return sourceBuilder;
+            return source;
         }
-        return (tableStats, hints, usedBeforeNextFetch) -> {
-            LogicalPlan source = sourceBuilder.build(tableStats, hints, usedBeforeNextFetch);
-            return new MultiPhase(source, subQueries);
-        };
+        return new MultiPhase(source, subQueries);
     }
 
     private MultiPhase(LogicalPlan source, Map<LogicalPlan, SelectSymbol> subQueries) {
@@ -65,6 +65,17 @@ public class MultiPhase extends ForwardingLogicalPlan {
         HashMap<LogicalPlan, SelectSymbol> allSubQueries = new HashMap<>(source.dependencies());
         allSubQueries.putAll(subQueries);
         this.subQueries = Collections.unmodifiableMap(allSubQueries);
+    }
+
+    @Nullable
+    @Override
+    public LogicalPlan rewriteForFetch(FetchMode fetchMode, Set<Symbol> usedBeforeNextFetch) {
+        LogicalPlan newSource = source.rewriteForFetch(fetchMode, usedBeforeNextFetch);
+        if (newSource == null) {
+            return null;
+        } else {
+            return new MultiPhase(newSource, subQueries);
+        }
     }
 
     @Override

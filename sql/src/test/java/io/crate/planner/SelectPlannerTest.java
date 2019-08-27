@@ -583,10 +583,9 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(((RoutedCollectPhase) rightCM.collectPhase()).where(),
             isSQL("((doc.users.name = 'Arthur') AND (doc.users.id > 1))"));
 
-        // still contains "name" because we don't prune columns / re-run fetch optimization' after rule applications
         assertThat(
             rightCM.collectPhase().toCollect(),
-            contains(isReference("_fetchid"), isReference("id"), isReference("name")));
+            contains(isReference("_fetchid"), isReference("id")));
 
         Collect left = (Collect) nl.left();
         assertThat(left.collectPhase().toCollect(), contains(isReference("_fetchid"), isReference("id")));
@@ -855,9 +854,9 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(logicalPlan, isPlan(e.functions(),
             "RootBoundary[id, name, date, obj]\n" +
             "FetchOrEval[id, name, date, obj]\n" +
-            "Boundary[_fetchid, date]\n" +  // aliased relation boundary
-            "Boundary[_fetchid, date]\n" +
-            "Collect[doc.parted | [_fetchid, date] | date IS NULL]\n"
+            "Boundary[_fetchid]\n" +  // aliased relation boundary
+            "Boundary[_fetchid]\n" +
+            "Collect[doc.parted | [_fetchid] | date IS NULL]\n"
         ));
         QueryThenFetch qtf = e.plan(statement);
         ExecutionPlan subPlan = qtf.subPlan();
