@@ -45,7 +45,7 @@ public class FetchProjection extends Projection {
     private static final int HEAP_IN_MB = (int) (JvmInfo.jvmInfo().getConfiguredMaxHeapSize() / (1024 * 1024));
     private static final int MAX_FETCH_SIZE = maxFetchSize(HEAP_IN_MB);
 
-    private final int collectPhaseId;
+    private final int fetchPhaseId;
     private final int fetchSize;
     private final Map<RelationName, FetchSource> fetchSources;
     private final List<Symbol> outputSymbols;
@@ -53,7 +53,7 @@ public class FetchProjection extends Projection {
     private final TreeMap<Integer, String> readerIndices;
     private final Map<String, RelationName> indicesToIdents;
 
-    public FetchProjection(int collectPhaseId,
+    public FetchProjection(int fetchPhaseId,
                            int suppliedFetchSize,
                            Map<RelationName, FetchSource> fetchSources,
                            List<Symbol> outputSymbols,
@@ -63,7 +63,7 @@ public class FetchProjection extends Projection {
         assert outputSymbols.stream().noneMatch(s ->
             SymbolVisitors.any(x -> x instanceof Field || x instanceof SelectSymbol, s))
             : "Cannot operate on Field or SelectSymbol symbols: " + outputSymbols;
-        this.collectPhaseId = collectPhaseId;
+        this.fetchPhaseId = fetchPhaseId;
         this.fetchSources = fetchSources;
         this.outputSymbols = outputSymbols;
         this.nodeReaders = nodeReaders;
@@ -100,8 +100,8 @@ public class FetchProjection extends Projection {
         return Math.min(suppliedFetchSize, maxSize);
     }
 
-    public int collectPhaseId() {
-        return collectPhaseId;
+    public int fetchPhaseId() {
+        return fetchPhaseId;
     }
 
     public int getFetchSize() {
@@ -148,12 +148,12 @@ public class FetchProjection extends Projection {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         FetchProjection that = (FetchProjection) o;
-        return collectPhaseId == that.collectPhaseId;
+        return fetchPhaseId == that.fetchPhaseId;
     }
 
     @Override
     public int hashCode() {
-        return collectPhaseId;
+        return fetchPhaseId;
     }
 
     @Override

@@ -40,18 +40,18 @@ public class TransportFetchOperation implements FetchOperation {
     private final TransportFetchNodeAction transportFetchNodeAction;
     private final Map<String, ? extends IntObjectMap<Streamer[]>> nodeIdToReaderIdToStreamers;
     private final UUID jobId;
-    private final int executionPhaseId;
+    private final int fetchPhaseId;
     private final RamAccountingContext ramAccountingContext;
 
     public TransportFetchOperation(TransportFetchNodeAction transportFetchNodeAction,
                                    Map<String, ? extends IntObjectMap<Streamer[]>> nodeIdToReaderIdToStreamers,
                                    UUID jobId,
-                                   int executionPhaseId,
+                                   int fetchPhaseId,
                                    RamAccountingContext ramAccountingContext) {
         this.transportFetchNodeAction = transportFetchNodeAction;
         this.nodeIdToReaderIdToStreamers = nodeIdToReaderIdToStreamers;
         this.jobId = jobId;
-        this.executionPhaseId = executionPhaseId;
+        this.fetchPhaseId = fetchPhaseId;
         this.ramAccountingContext = ramAccountingContext;
     }
 
@@ -63,7 +63,7 @@ public class TransportFetchOperation implements FetchOperation {
         transportFetchNodeAction.execute(
             nodeId,
             nodeIdToReaderIdToStreamers.get(nodeId),
-            new NodeFetchRequest(jobId, executionPhaseId, closeContext, toFetch),
+            new NodeFetchRequest(jobId, fetchPhaseId, closeContext, toFetch),
             ramAccountingContext,
             listener);
         return listener;

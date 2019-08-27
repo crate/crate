@@ -23,21 +23,24 @@ package io.crate.expression.scalar;
 
 import com.google.common.base.Preconditions;
 import io.crate.data.Input;
+import io.crate.exceptions.ConversionException;
+import io.crate.expression.symbol.FuncArg;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.BaseFunctionResolver;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.TransactionContext;
+import io.crate.metadata.FunctionResolver;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.functions.params.Param;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
+import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Locale;
 
@@ -102,11 +105,10 @@ public abstract class ConcatFunction extends Scalar<String, String> {
         }
 
         @Override
-        public String evaluate(TransactionContext txnCtx, Input[] args) {
+        public String evaluate(TransactionContext txnCtx, Input<String>[] args) {
             StringBuilder sb = new StringBuilder();
             for (int i = 0; i < args.length; i++) {
-                Input input = args[i];
-                String value = DataTypes.STRING.value(input.value());
+                String value = args[i].value();
                 if (value != null) {
                     sb.append(value);
                 }
@@ -115,12 +117,31 @@ public abstract class ConcatFunction extends Scalar<String, String> {
         }
     }
 
-    private static class Resolver extends BaseFunctionResolver {
+    private static class Resolver implements FunctionResolver {
 
-        protected Resolver() {
-            super(FuncParams.builder(Param.ANY, Param.ANY)
-                .withVarArgs(Param.ANY)
-                .build());
+        private static final FuncParams STRINGS = FuncParams
+            .builder(Param.STRING, Param.STRING)
+            .withVarArgs(Param.STRING)
+            .build();
+        private static final FuncParams ARRAYS = FuncParams
+            .builder(
+                Param.of(new ArrayType<>(DataTypes.UNDEFINED)).withInnerType(Param.ANY),
+                Param.of(new ArrayType<>(DataTypes.UNDEFINED)).withInnerType(Param.ANY)
+            )
+            .build();
+
+        @Nullable
+        @Override
+        public List<DataType> getSignature(List<? extends FuncArg> funcArgs) {
+            try {
+                return STRINGS.match(funcArgs);
+            } catch (ConversionException e1) {
+                try {
+                    return ARRAYS.match(funcArgs);
+                } catch (ConversionException e2) {
+                    throw e1; // prefer error message with casts to string instead of casts to arrays
+                }
+            }
         }
 
         @Override
@@ -147,12 +168,6 @@ public abstract class ConcatFunction extends Scalar<String, String> {
 
                 return new ArrayCatFunction(ArrayCatFunction.createInfo(dataTypes));
             } else {
-                for (int i = 0; i < dataTypes.size(); i++) {
-                    if (!dataTypes.get(i).isConvertableTo(DataTypes.STRING)) {
-                        throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                            "Argument %d of the concat function can't be converted to string", i + 1));
-                    }
-                }
                 return new GenericConcatFunction(new FunctionInfo(new FunctionIdent(NAME, dataTypes), DataTypes.STRING));
             }
         }

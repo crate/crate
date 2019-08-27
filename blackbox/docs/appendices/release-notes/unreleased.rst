@@ -42,6 +42,10 @@ Unreleased Changes
 Breaking Changes
 ================
 
+- Changed arithmetic operations ``*``, ``+`` and ``-`` of types ``integer``
+  and ``bigint`` to throw an exception instead of rolling over from positive
+  to negative or the other way around.
+
 - Changed how columns of type :ref:`geo_point_data_type` are being communicated
   to PostgreSQL clients: Before clients were told that those columns are double
   arrays, now they're correctly mapped to the PostgreSQL ``point`` type. This
@@ -52,6 +56,13 @@ Breaking Changes
 
 Changes
 =======
+
+- Extended :ref:`CONCAT <scalar_concat>` to do implicit casts, so that calls
+  like ``SELECT 't' || 5`` are supported.
+
+- Added the :ref:`INTERVAL <interval_data_type>` datatype and extended
+  :ref:`table-functions-generate-series` to work with timestamps and the
+  new :ref:`INTERVAL <interval_data_type>` type
 
 - Added the :ref:`PG_TYPEOF <pg_typeof>` system function.
 
@@ -115,4 +126,8 @@ Changes
 Fixes
 =====
 
-None
+- Fixed the ``Tables need to be recreated`` :ref:`cluster check <sys-checks>`
+  to list partitioned tables only once instead of once per partition.
+
+- Fixed the :ref:`ssl.resource_poll_interval <ssl.resource_poll_interval>`
+  setting processing and documentation.

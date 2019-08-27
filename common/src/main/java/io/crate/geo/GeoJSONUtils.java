@@ -71,7 +71,7 @@ public class GeoJSONUtils {
     public static final String POLYGON = "Polygon";
     private static final String MULTI_POLYGON = "MultiPolygon";
 
-    private static final ImmutableMap<String, String> GEOSJON_TYPES = ImmutableMap.<String, String>builder()
+    private static final ImmutableMap<String, String> GEOJSON_TYPES = ImmutableMap.<String, String>builder()
         .put(GEOMETRY_COLLECTION, GEOMETRY_COLLECTION)
         .put(GEOMETRY_COLLECTION.toLowerCase(Locale.ENGLISH), GEOMETRY_COLLECTION)
         .put(POINT, POINT)
@@ -157,7 +157,7 @@ public class GeoJSONUtils {
             throw new IllegalArgumentException(invalidGeoJSON("type field missing"));
         }
 
-        type = GEOSJON_TYPES.get(type);
+        type = GEOJSON_TYPES.get(type);
         if (type == null) {
             throw new IllegalArgumentException(invalidGeoJSON("invalid type"));
         }
