@@ -46,6 +46,7 @@ class ReaderBucket {
         docs.putIfAbsent(doc, null);
     }
 
+    @Nullable
     Object[] get(int doc) {
         return docs.get(doc);
     }

@@ -68,15 +68,14 @@ public class Limit extends ForwardingLogicalPlan {
     }
 
     @Override
-    public PruneResult pruneColumnsOrFetchOptimize(List<Symbol> usedColumns, List<Symbol> intermediatelyUsedColumns) {
-        PruneResult sourcePrune = source.pruneColumnsOrFetchOptimize(usedColumns, intermediatelyUsedColumns);
-        if (sourcePrune == PruneResult.NO_PRUNE) {
-            return PruneResult.NO_PRUNE;
+    public FetchRewrite rewriteForQueryThenFetch(List<Symbol> intermediatelyUsedColumns) {
+        FetchRewrite fetchRewrite = source.rewriteForQueryThenFetch(intermediatelyUsedColumns);
+        if (fetchRewrite == FetchRewrite.NO_FETCH) {
+            return FetchRewrite.NO_FETCH;
         }
-        return new PruneResult(
-            sourcePrune.hasPrunedColumns(),
-            sourcePrune.supportsFetch(),
-            () -> new Limit(sourcePrune.createPrunedOperators(), limit, offset)
+        return new FetchRewrite(
+            fetchRewrite.supportsFetch(),
+            () -> new Limit(fetchRewrite.createRewrittenOperator(), limit, offset)
         );
     }
 

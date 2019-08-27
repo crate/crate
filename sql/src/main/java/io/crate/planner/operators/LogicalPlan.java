@@ -107,8 +107,8 @@ public interface LogicalPlan extends Plan {
      */
     List<Symbol> intermediatelyUsedColumns();
 
-    default PruneResult pruneColumnsOrFetchOptimize(List<Symbol> usedColumns, List<Symbol> intermediatelyUsedColumns) {
-        return PruneResult.NO_PRUNE;
+    default FetchRewrite rewriteForQueryThenFetch(List<Symbol> intermediatelyUsedColumns) {
+        return FetchRewrite.NO_FETCH;
     }
 
     /**

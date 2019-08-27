@@ -46,6 +46,8 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.sameInstance;
 
 public class RoutingBuilderTest extends CrateDummyClusterServiceUnitTest {
 
@@ -109,8 +111,7 @@ public class RoutingBuilderTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(readerAllocations.bases().get(relationName.indexNameOrAlias()), is(0));
 
-        // allocations must stay same on multiple calls
         ReaderAllocations readerAllocations2 = routingBuilder.buildReaderAllocations();
-        assertThat(readerAllocations, is(readerAllocations2));
+        assertThat(readerAllocations, not(sameInstance(readerAllocations2)));
     }
 }

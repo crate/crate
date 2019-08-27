@@ -47,8 +47,6 @@ final class RoutingBuilder {
     private final ClusterState clusterState;
     private final RoutingProvider routingProvider;
 
-    private ReaderAllocations readerAllocations;
-
     RoutingBuilder(ClusterState clusterState, RoutingProvider routingProvider) {
         this.clusterState = clusterState;
         this.routingProvider = routingProvider;
@@ -70,10 +68,6 @@ final class RoutingBuilder {
     }
 
     ReaderAllocations buildReaderAllocations() {
-        if (readerAllocations != null) {
-            return readerAllocations;
-        }
-
         Multimap<RelationName, String> indicesByTable = HashMultimap.create();
         IndexBaseBuilder indexBaseBuilder = new IndexBaseBuilder();
         Map<String, Map<Integer, String>> shardNodes = new HashMap<>();
@@ -94,8 +88,8 @@ final class RoutingBuilder {
                 }
             }
         }
-        readerAllocations = new ReaderAllocations(indexBaseBuilder.build(), shardNodes, indicesByTable);
-        return readerAllocations;
+        routingListByTable.clear();
+        return new ReaderAllocations(indexBaseBuilder.build(), shardNodes, indicesByTable);
     }
 
     private static void allocateRoutingNodes(Map<String, Map<Integer, String>> shardNodes,

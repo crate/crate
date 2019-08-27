@@ -65,7 +65,7 @@ public class FetchProjectorContext {
         return readerBuckets.get(readerId);
     }
 
-    ReaderBucket require(long fetchId) {
+    void require(long fetchId) {
         int readerId = FetchId.decodeReaderId(fetchId);
         int docId = FetchId.decodeDocId(fetchId);
         ReaderBucket readerBucket = readerBuckets.get(readerId);
@@ -74,7 +74,6 @@ public class FetchProjectorContext {
             readerBuckets.put(readerId, readerBucket);
         }
         readerBucket.require(docId);
-        return readerBucket;
     }
 
     private ReaderBucket createReaderBucket(int readerId) {

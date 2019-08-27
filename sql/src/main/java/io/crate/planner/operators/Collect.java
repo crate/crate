@@ -132,8 +132,11 @@ public class Collect implements LogicalPlan {
     }
 
     @Override
-    public PruneResult pruneColumnsOrFetchOptimize(List<Symbol> usedColumns, List<Symbol> intermediatelyUsedColumns) {
-        List<Symbol> unusedColumns = getUnusedColumns(usedColumns, intermediatelyUsedColumns);
+    public FetchRewrite rewriteForQueryThenFetch(List<Symbol> intermediatelyUsedColumns) {
+        if (!(tableInfo instanceof DocTableInfo)) {
+            return FetchRewrite.NO_FETCH;
+        }
+        List<Symbol> unusedColumns = getUnusedColumns(outputs, intermediatelyUsedColumns);
         ArrayList<Symbol> fetchable = new ArrayList<>();
         Symbol scoreCol = null;
         for (Symbol unusedCol : unusedColumns) {
@@ -145,9 +148,8 @@ public class Collect implements LogicalPlan {
                 fetchable.add(unusedCol);
             }
         }
-        if (fetchable.isEmpty() || !(tableInfo instanceof DocTableInfo)) {
-            // TODO: could still prune columns
-            return PruneResult.NO_PRUNE;
+        if (fetchable.isEmpty()) {
+            return FetchRewrite.NO_FETCH;
         } else {
             List<Symbol> newOutputs = new ArrayList<>();
             // TODO: Would it make sense to provide tableInfo, qualifiedName, etc. via a different structure?
@@ -161,16 +163,7 @@ public class Collect implements LogicalPlan {
             if (scoreCol != null) {
                 newOutputs.add(scoreCol);
             }
-            /*
-            // TODO: given that the fetchSource requires the InputColumn for the _fetchId, which we can't determine here,
-                it might make more sense to build this at a later point.
-            FetchSource fetchSource = new FetchSource(((DocTableInfo) tableInfo).partitionedByColumns());
-            for (Symbol symbol : fetchable) {
-                RefVisitor.visitRefs(symbol, fetchSource::addRefToFetch);
-            }
-            */
-            return new PruneResult(
-                true,
+            return new FetchRewrite(
                 true,
                 () -> new Collect(
                     preferSourceLookup,
