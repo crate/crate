@@ -46,5 +46,8 @@ None
 Fixes
 =====
 
+- Fixed the ``Tables need to be recreated`` :ref:`cluster check <sys-checks>`
+  to list partitioned tables only once instead of once per partition.
+
 - Fixed the :ref:`ssl.resource_poll_interval <ssl.resource_poll_interval>`
   setting processing and documentation.
