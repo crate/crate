@@ -126,6 +126,9 @@ Changes
 Fixes
 =====
 
+- Fixed an issue resulting in ``NULL`` values when the ``ORDER BY`` symbol is a
+  child of an ignored object column.
+
 - Fixed the ``Tables need to be recreated`` :ref:`cluster check <sys-checks>`
   to list partitioned tables only once instead of once per partition.
 

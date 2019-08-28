@@ -22,14 +22,18 @@
 
 package io.crate.expression.reference.doc.lucene;
 
+import io.crate.expression.symbol.DynamicReference;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.elasticsearch.index.mapper.KeywordFieldMapper;
 import org.junit.Test;
+
+import java.util.List;
 
 import static org.hamcrest.Matchers.instanceOf;
 
@@ -66,5 +70,15 @@ public class LuceneReferenceResolverTest extends CrateUnitTest {
         );
         assertThat(luceneReferenceResolver.getImplementation(primaryTerm),
                    instanceOf(PrimaryTermCollectorExpression.class));
+    }
+
+    @Test
+    public void test_ignored_dynamic_references_are_resolved_using_sourcelookup() {
+        Reference ignored = new DynamicReference(
+            new ReferenceIdent(
+                new RelationName("s", "t"), "a", List.of("b")), RowGranularity.DOC, ColumnPolicy.IGNORED);
+
+        assertThat(luceneReferenceResolver.getImplementation(ignored),
+                   instanceOf(DocCollectorExpression.ChildDocCollectorExpression.class));
     }
 }

@@ -25,11 +25,13 @@ import com.google.common.collect.ImmutableSet;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.expression.reference.ReferenceResolver;
+import io.crate.expression.symbol.SymbolType;
 import io.crate.lucene.FieldTypeLookup;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocSysColumns;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.BooleanType;
 import io.crate.types.ByteType;
 import io.crate.types.ArrayType;
@@ -107,7 +109,7 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
         String fqn = ref.column().fqn();
         MappedFieldType fieldType = fieldTypeLookup.get(fqn);
         if (fieldType == null) {
-            return NO_FIELD_TYPES.contains(unnest(ref.valueType()))
+            return NO_FIELD_TYPES.contains(unnest(ref.valueType())) || isIgnoredDynamicReference(ref)
                 ? DocCollectorExpression.create(toSourceLookup(ref))
                 : new NullValueCollectorExpression();
         }
@@ -142,6 +144,10 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
             default:
                 throw new UnhandledServerException("Unsupported type: " + ref.valueType().getName());
         }
+    }
+
+    private static boolean isIgnoredDynamicReference(Reference ref) {
+        return ref.symbolType() == SymbolType.DYNAMIC_REFERENCE && ref.columnPolicy() == ColumnPolicy.IGNORED;
     }
 
     private static class NullValueCollectorExpression extends LuceneCollectorExpression<Void> {
