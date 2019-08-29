@@ -50,7 +50,6 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 
 import static io.crate.execution.dsl.phases.ExecutionPhases.executesOnHandler;
@@ -70,25 +69,14 @@ public class WindowAgg extends ForwardingLogicalPlan {
 
         return (tableStats, hints, usedBeforeNextFetch) -> {
             HashSet<Symbol> allUsedColumns = new HashSet<>(extractColumns(usedBeforeNextFetch));
-            Set<Symbol> columnsUsedInFunctions = extractColumns(windowFunctions);
+            allUsedColumns.addAll(extractColumns(windowFunctions));
             LinkedHashMap<WindowDefinition, ArrayList<WindowFunction>> groupedFunctions = new LinkedHashMap<>();
             for (WindowFunction windowFunction : windowFunctions) {
                 WindowDefinition windowDefinition = windowFunction.windowDefinition();
-                if (windowFunction.filter() != null) {
-                    columnsUsedInFunctions.addAll(extractColumns(windowFunction.filter()));
-                }
-                OrderBy orderBy = windowDefinition.orderBy();
-                if (orderBy != null) {
-                    columnsUsedInFunctions.addAll(extractColumns(orderBy.orderBySymbols()));
-                }
-                columnsUsedInFunctions.addAll(extractColumns(windowDefinition.partitions()));
                 ArrayList<WindowFunction> functions = groupedFunctions.computeIfAbsent(windowDefinition, w -> new ArrayList<>());
                 functions.add(windowFunction);
             }
-            allUsedColumns.addAll(columnsUsedInFunctions);
-            LogicalPlan sourcePlan = source.build(tableStats, hints, allUsedColumns);
-
-            LogicalPlan lastWindowAgg = sourcePlan;
+            LogicalPlan lastWindowAgg = source.build(tableStats, hints, allUsedColumns);
             for (Map.Entry<WindowDefinition, ArrayList<WindowFunction>> entry : groupedFunctions.entrySet()) {
                 /*
                  * Pass along the source outputs as standalone symbols as they might be required in cases like:
