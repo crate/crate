@@ -37,6 +37,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.StringJoiner;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -136,6 +137,15 @@ public class QueriedSelectRelation<T extends AnalyzedRelation> implements Analyz
     @Override
     public boolean hasAggregates() {
         return querySpec.hasAggregates();
+    }
+
+    @Override
+    public String toString() {
+        StringJoiner joiner = new StringJoiner(", ");
+        for (Field field : fields.asList()) {
+            joiner.add(field.path().sqlFqn());
+        }
+        return "SELECT " + joiner.toString() + " FROM (" + subRelation + ')';
     }
 
     /**

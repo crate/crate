@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.hamcrest.Matchers.anyOf;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -62,7 +63,7 @@ public class ExplainAnalyzeIntegrationTest extends SQLTransportIntegrationTest {
 
         Map<String, Map<String, Object>> phasesAnalysis = (Map<String, Map<String, Object>>) executeAnalysis.get("Phases");
         assertThat(phasesAnalysis, is(notNullValue()));
-        assertThat(phasesAnalysis.size(), is(3));
+        assertThat(phasesAnalysis.keySet(), contains("0-collect", "1-mergeOnHandler", "2-fetchPhase"));
 
         DiscoveryNodes nodes = clusterService().state().nodes();
         for (DiscoveryNode discoveryNode : nodes) {

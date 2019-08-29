@@ -109,9 +109,8 @@ public class Field extends Symbol {
 
     @Override
     public String representation() {
-        return "Field{" + relation + "." + path +
-               ", pointer=" + pointer +
-               '}';
+        return "Field{" + relation.getQualifiedName() + "." + path +
+               ", ptr=" + pointer.getClass().getSimpleName() + '{' + Symbols.pathFromSymbol(pointer).sqlFqn() + "}}";
     }
 
     @Override

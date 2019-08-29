@@ -160,9 +160,7 @@ public class AliasedAnalyzedRelation implements AnalyzedRelation {
 
     @Override
     public String toString() {
-        return "AliasedAnalyzedRelation{" + "qualifiedName=" + qualifiedName +
-               ", relation=" + relation +
-               '}';
+        return relation + " AS " + qualifiedName;
     }
 
     @Override

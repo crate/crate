@@ -58,13 +58,13 @@ public class Optimizer {
                 Match match = rule.pattern().accept(node, Captures.empty());
                 if (match.isPresent()) {
                     if (isTraceEnabled) {
-                        LOGGER.trace("Rule '" + rule.getClass().getName() + "' matched");
+                        LOGGER.trace("Rule '" + rule.getClass().getSimpleName() + "' matched");
                     }
                     @SuppressWarnings("unchecked")
                     LogicalPlan transformedPlan = rule.apply(match.value(), match.captures());
                     if (transformedPlan != null) {
                         if (isTraceEnabled) {
-                            LOGGER.trace("Rule '" + rule.getClass().getName() + "' transformed the logical plan");
+                            LOGGER.trace("Rule '" + rule.getClass().getSimpleName() + "' transformed the logical plan");
                         }
                         node = transformedPlan;
                         done = false;

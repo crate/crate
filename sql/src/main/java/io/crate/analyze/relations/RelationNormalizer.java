@@ -47,7 +47,7 @@ public final class RelationNormalizer {
         return visitor.process(relation, coordinatorTxnCtx);
     }
 
-    private class NormalizerVisitor extends AnalyzedRelationVisitor<CoordinatorTxnCtx, AnalyzedRelation> {
+    private static class NormalizerVisitor extends AnalyzedRelationVisitor<CoordinatorTxnCtx, AnalyzedRelation> {
 
         private final Functions functions;
         private final EvaluatingNormalizer normalizer;
