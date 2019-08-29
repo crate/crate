@@ -97,7 +97,7 @@ public class ClusterDisruptionIT extends AbstractDisruptionTestCase {
 
         logger.info("creating table t clustered into {} shards with {} replicas", numberOfShards, replicas);
         execute("create table t (id int primary key, x string) clustered into " + numberOfShards + " shards " +
-                "with (number_of_replicas = " + replicas + ", \"write.wait_for_active_shards\" = 1)");
+                "with (number_of_replicas = " + replicas + ", \"write.wait_for_active_shards\" = 1, \"global_checkpoint_sync.interval\"='1s')");
         ensureGreen();
 
         ServiceDisruptionScheme disruptionScheme = addRandomDisruptionScheme();
