@@ -62,7 +62,7 @@ public final class ScalarsAndRefsToTrue extends SymbolVisitor<Void, Symbol> {
     }
 
     public static Symbol rewrite(Symbol symbol) {
-        return INSTANCE.process(symbol, null);
+        return symbol.accept(INSTANCE, null);
     }
 
     @Override
@@ -72,10 +72,10 @@ public final class ScalarsAndRefsToTrue extends SymbolVisitor<Void, Symbol> {
         if (functionName.equals(NotPredicate.NAME)) {
             Symbol argument = symbol.arguments().get(0);
             if (argument instanceof Reference) {
-                return process(argument, context);
+                return argument.accept(this, context);
             } else if (argument instanceof Function) {
                 if (!Operators.LOGICAL_OPERATORS.contains(((Function) argument).info().ident().name())) {
-                    return process(argument, context);
+                    return argument.accept(this, context);
                 }
             }
         }
@@ -84,7 +84,7 @@ public final class ScalarsAndRefsToTrue extends SymbolVisitor<Void, Symbol> {
         boolean allLiterals = true;
         boolean isNull = false;
         for (Symbol arg : symbol.arguments()) {
-            Symbol processedArg = process(arg, context);
+            Symbol processedArg = arg.accept(this, context);
             newArgs.add(processedArg);
             if (!processedArg.symbolType().isValueSymbol()) {
                 allLiterals = false;

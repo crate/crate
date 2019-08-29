@@ -36,14 +36,14 @@ public final class Aggregations {
      * @return true if the symbol is an aggregation or function which contains an aggregation or a scalar.
      */
     public static boolean containsAggregationOrscalar(Symbol s) {
-        return AGGREGATION_OR_SCALAR_SEARCHER.process(s, null);
+        return s.accept(AGGREGATION_OR_SCALAR_SEARCHER, null);
     }
 
     /**
      * @return true if the symbol is found in the group by, if the symbol is a scalar function all column arguments must be found in the group by.
      */
     public static boolean matchGroupBySymbol(Symbol s, List<Symbol> groupBy) {
-        return GROUP_BY_MATCHER.process(s, groupBy);
+        return s.accept(GROUP_BY_MATCHER, groupBy);
     }
 
     private static class AggregationOrScalarSearcher extends SymbolVisitor<Void, Boolean> {
@@ -91,7 +91,7 @@ public final class Aggregations {
             boolean isSymbolContained = true;
             if (symbol.info().type() == FunctionInfo.Type.SCALAR) {
                 for (int i = 0; i < symbol.arguments().size(); i++) {
-                    isSymbolContained = isSymbolContained && this.process(symbol.arguments().get(i), context);
+                    isSymbolContained = isSymbolContained && symbol.arguments().get(i).accept(this, context);
                 }
             }
             return isSymbolContained;

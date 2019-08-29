@@ -34,7 +34,7 @@ public class GroupBySymbolValidator {
     private static final InnerValidator INNER_VALIDATOR = new InnerValidator();
 
     public static void validate(Symbol symbol) throws IllegalArgumentException, UnsupportedOperationException {
-        INNER_VALIDATOR.process(symbol, "Cannot GROUP BY '%s': invalid data type '%s'");
+        symbol.accept(INNER_VALIDATOR, "Cannot GROUP BY '%s': invalid data type '%s'");
     }
 
     private static class InnerValidator extends SymbolVisitor<String, Void> {
@@ -44,7 +44,7 @@ public class GroupBySymbolValidator {
             switch (function.info().type()) {
                 case SCALAR:
                     for (Symbol argument : function.arguments()) {
-                        process(argument, errorMsgTemplate);
+                        argument.accept(this, errorMsgTemplate);
                     }
                     break;
                 case AGGREGATE:

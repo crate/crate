@@ -41,7 +41,7 @@ public final class NegateLiterals extends SymbolVisitor<Void, Symbol> {
     }
 
     public static Symbol negate(Symbol symbol) {
-        return INSTANCE.process(symbol, null);
+        return symbol.accept(INSTANCE, null);
     }
 
     @Override

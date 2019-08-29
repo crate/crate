@@ -60,7 +60,7 @@ public class BaseImplementationSymbolVisitor<C> extends SymbolVisitor<C, Input<?
             Input[] argumentInputs = new Input[arguments.size()];
             int i = 0;
             for (Symbol argument : function.arguments()) {
-                argumentInputs[i++] = process(argument, context);
+                argumentInputs[i++] = argument.accept(this, context);
             }
             return new FunctionExpression<>(txnCtx, scalarImpl, argumentInputs);
         } else {

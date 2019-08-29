@@ -38,7 +38,7 @@ public class HavingSymbolValidator {
     private static final InnerValidator INNER_VALIDATOR = new InnerValidator();
 
     public static void validate(Symbol symbol, @Nullable List<Symbol> groupBySymbols) throws IllegalArgumentException {
-        INNER_VALIDATOR.process(symbol, new HavingContext(groupBySymbols));
+        symbol.accept(INNER_VALIDATOR, new HavingContext(groupBySymbols));
     }
 
     static class HavingContext {
@@ -84,7 +84,7 @@ public class HavingSymbolValidator {
             }
 
             for (Symbol argument : function.arguments()) {
-                process(argument, context);
+                argument.accept(this, context);
             }
             if (type == FunctionInfo.Type.AGGREGATE) {
                 context.insideAggregation = false;

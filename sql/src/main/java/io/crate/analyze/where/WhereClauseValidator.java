@@ -52,7 +52,7 @@ public final class WhereClauseValidator {
     }
 
     public static void validate(Symbol query) {
-        VISITOR.process(query, new Visitor.Context());
+        query.accept(VISITOR, new Visitor.Context());
     }
 
     private static class Visitor extends SymbolVisitor<Visitor.Context, Symbol> {
@@ -108,7 +108,7 @@ public final class WhereClauseValidator {
 
         private Function continueTraversal(Function symbol, Context context) {
             for (Symbol argument : symbol.arguments()) {
-                process(argument, context);
+                argument.accept(this, context);
             }
             return symbol;
         }

@@ -67,7 +67,7 @@ public abstract class FunctionCopyVisitor<C> extends SymbolVisitor<C, Symbol> {
         boolean changed = false;
         for (Symbol arg : args) {
             Symbol newArg = requireNonNull(
-                process(arg, context),
+                arg.accept(this, context),
                 "function arguments must never be NULL"
             );
             changed |= arg != newArg;
@@ -84,10 +84,10 @@ public abstract class FunctionCopyVisitor<C> extends SymbolVisitor<C, Symbol> {
     private Function twoArgs(Function func, C context) {
         assert func.arguments().size() == 2 : "size of arguments must be two";
         Symbol arg1 = func.arguments().get(0);
-        Symbol newArg1 = requireNonNull(process(arg1, context), "function arguments must never be NULL");
+        Symbol newArg1 = requireNonNull(arg1.accept(this, context), "function arguments must never be NULL");
 
         Symbol arg2 = func.arguments().get(1);
-        Symbol newArg2 = requireNonNull(process(arg2, context), "function arguments must never be NULL");
+        Symbol newArg2 = requireNonNull(arg2.accept(this, context), "function arguments must never be NULL");
 
         Symbol filter = func.filter();
         Symbol newFilter = processNullable(filter, context);
@@ -106,7 +106,7 @@ public abstract class FunctionCopyVisitor<C> extends SymbolVisitor<C, Symbol> {
             return func;
         }
 
-        Symbol newFilter = process(filter, context);
+        Symbol newFilter = filter.accept(this, context);
         if (filter == newFilter) {
             return func;
         }
@@ -116,7 +116,7 @@ public abstract class FunctionCopyVisitor<C> extends SymbolVisitor<C, Symbol> {
     private Function oneArg(Function func, C context) {
         assert func.arguments().size() == 1 : "size of arguments must be one";
         Symbol arg = func.arguments().get(0);
-        Symbol newArg = requireNonNull(process(arg, context), "function arguments must never be NULL");
+        Symbol newArg = requireNonNull(arg.accept(this, context), "function arguments must never be NULL");
 
         Symbol filter = func.filter();
         Symbol newFilter = processNullable(filter, context);
@@ -147,7 +147,7 @@ public abstract class FunctionCopyVisitor<C> extends SymbolVisitor<C, Symbol> {
             processedFunction.info(),
             processedFunction.arguments(),
             processNullable(windowFunction.filter(), context),
-            windowFunction.windowDefinition().map(s -> process(s, context))
+            windowFunction.windowDefinition().map(s -> s.accept(this, context))
         );
     }
 

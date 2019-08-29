@@ -115,7 +115,7 @@ public final class GeneratedColumnExpander {
                 return symbol;
             } else {
                 Context ctx = new Context(referencedSingleReferences);
-                return process(symbol, ctx);
+                return symbol.accept(this, ctx);
             }
         }
 

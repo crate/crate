@@ -41,7 +41,7 @@ public class SemanticSortValidator {
     private static final InnerValidator INNER_VALIDATOR = new InnerValidator();
 
     public static void validate(Symbol symbol) throws UnsupportedOperationException {
-        INNER_VALIDATOR.process(symbol, new SortContext("ORDER BY"));
+        symbol.accept(INNER_VALIDATOR, new SortContext("ORDER BY"));
     }
 
     /**
@@ -52,7 +52,7 @@ public class SemanticSortValidator {
      * @throws UnsupportedOperationException
      */
     public static void validate(Symbol symbol, String operation) throws UnsupportedOperationException {
-        INNER_VALIDATOR.process(symbol, new SortContext(operation));
+        symbol.accept(INNER_VALIDATOR, new SortContext(operation));
     }
 
     static class SortContext {
@@ -81,7 +81,7 @@ public class SemanticSortValidator {
             try {
                 context.inFunction = true;
                 for (Symbol arg : symbol.arguments()) {
-                    process(arg, context);
+                    arg.accept(this, context);
                 }
             } finally {
                 context.inFunction = false;

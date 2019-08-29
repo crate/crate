@@ -123,7 +123,7 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
 
 
     private SortField generateSortField(Symbol symbol, SortSymbolContext sortSymbolContext) {
-        return process(symbol, sortSymbolContext);
+        return symbol.accept(this, sortSymbolContext);
     }
 
 

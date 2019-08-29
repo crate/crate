@@ -80,7 +80,7 @@ public class GroupByConsumer {
 
     public static void validateGroupBySymbols(List<Symbol> groupBySymbols) {
         for (Symbol symbol : groupBySymbols) {
-            GROUP_BY_VALIDATOR.process(symbol, null);
+            symbol.accept(GROUP_BY_VALIDATOR, null);
         }
     }
 
@@ -97,7 +97,7 @@ public class GroupByConsumer {
 
         @Override
         public Void visitField(Field field, Void context) {
-            return process(field.pointer(), context);
+            return field.pointer().accept(this, context);
         }
     }
 }

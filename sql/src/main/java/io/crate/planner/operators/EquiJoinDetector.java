@@ -60,7 +60,7 @@ public class EquiJoinDetector {
     private static boolean isEquiJoin(Symbol joinCondition) {
         assert joinCondition != null : "join condition must not be null on inner joins";
         Context context = new Context();
-        VISITOR.process(joinCondition, context);
+        joinCondition.accept(VISITOR, context);
         return context.isHashJoinPossible;
     }
 
@@ -78,14 +78,14 @@ public class EquiJoinDetector {
             switch (functionName) {
                 case AndOperator.NAME:
                     for (Symbol arg : function.arguments()) {
-                        process(arg, context);
+                        arg.accept(this, context);
                     }
                     break;
                 case EqOperator.NAME:
                     context.isHashJoinPossible = true;
                     context.insideEqOperator = true;
                     for (Symbol arg : function.arguments()) {
-                        process(arg, context);
+                        arg.accept(this, context);
                         if (context.usedRelationsInsideEqOperatorArgument.isEmpty() ||
                             context.usedRelationsInsideEqOperatorArgument.size() > 1) {
                             context.isHashJoinPossible = false;
@@ -96,7 +96,7 @@ public class EquiJoinDetector {
                 default:
                     if (context.insideEqOperator) {
                         for (Symbol arg : function.arguments()) {
-                            process(arg, context);
+                            arg.accept(this, context);
                         }
                     } else {
                         context.isHashJoinPossible = false;

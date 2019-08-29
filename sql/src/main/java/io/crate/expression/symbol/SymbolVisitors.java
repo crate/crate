@@ -29,7 +29,7 @@ public class SymbolVisitors {
     private static final AnyPredicateVisitor ANY_VISITOR = new AnyPredicateVisitor();
 
     public static boolean any(Predicate<? super Symbol> symbolPredicate, Symbol symbol) {
-        return ANY_VISITOR.process(symbol, symbolPredicate);
+        return symbol.accept(ANY_VISITOR, symbolPredicate);
     }
 
     private static class AnyPredicateVisitor extends SymbolVisitor<Predicate<? super Symbol>, Boolean> {

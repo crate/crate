@@ -47,7 +47,7 @@ class ParameterTypeExtractor extends DefaultTraversalSymbolVisitor<Void, Void> i
 
     @Override
     public void accept(Symbol symbol) {
-        process(symbol, null);
+        symbol.accept(this, null);
     }
 
     @Override

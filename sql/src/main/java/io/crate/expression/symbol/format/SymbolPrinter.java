@@ -101,7 +101,7 @@ public final class SymbolPrinter {
      */
     private String print(Symbol symbol, Style style) {
         SymbolPrinterContext context = style.createNewContext();
-        symbolPrintVisitor.process(symbol, context);
+        symbol.accept(symbolPrintVisitor, context);
         return context.formatted();
     }
 
@@ -184,7 +184,7 @@ public final class SymbolPrinter {
             List<Symbol> args = function.arguments();
             assert args.size() == 2 : "function's number of arguments must be 2";
             context.builder.append(PAREN_OPEN); // wrap operator in parens to ensure precedence
-            process(args.get(0), context);
+            args.get(0).accept(this, context);
 
             // print operator
             String operatorName = anyOperatorName(function.info().ident().name());
@@ -194,7 +194,7 @@ public final class SymbolPrinter {
                 .append(WS);
 
             context.builder.append(ANY).append(PAREN_OPEN);
-            process(args.get(1), context);
+            args.get(1).accept(this, context);
             context.builder.append(PAREN_CLOSE)
                 .append(PAREN_CLOSE);
         }
@@ -216,15 +216,15 @@ public final class SymbolPrinter {
                 Reference firstArgument = (Reference) arguments.get(0);
                 context.builder.append(firstArgument.column().name());
                 context.builder.append("[");
-                process(arguments.get(1), context);
+                arguments.get(1).accept(this, context);
                 context.builder.append("]");
                 context.builder.append("['");
                 context.builder.append(firstArgument.column().path().get(0));
                 context.builder.append("']");
             } else {
-                process(arguments.get(0), context);
+                arguments.get(0).accept(this, context);
                 context.builder.append("[");
-                process(arguments.get(1), context);
+                arguments.get(1).accept(this, context);
                 context.builder.append("]");
             }
         }
@@ -265,9 +265,9 @@ public final class SymbolPrinter {
         @Override
         public Void visitFetchReference(FetchReference fetchReference, SymbolPrinterContext context) {
             context.builder.append("FETCH(");
-            process(fetchReference.fetchId(), context);
+            ((Symbol) fetchReference.fetchId()).accept(this, context);
             context.builder.append(", ");
-            process(fetchReference.ref(), context);
+            ((Symbol) fetchReference.ref()).accept(this, context);
             context.builder.append(")");
             return null;
         }
@@ -313,7 +313,7 @@ public final class SymbolPrinter {
         private void printFunctionFilterIfPresent(@Nullable Symbol filter, SymbolPrinterContext context) {
             if (filter != null) {
                 context.builder.append(" : ");
-                process(filter, context);
+                filter.accept(this, context);
             }
         }
 
