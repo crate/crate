@@ -68,7 +68,7 @@ public class OrderByPositionVisitor extends SymbolVisitor<OrderByPositionVisitor
                                                List<? extends Symbol> outputSymbols) {
         Context context = new Context(outputSymbols);
         for (Symbol orderBySymbol : orderBySymbols) {
-            INSTANCE.process(orderBySymbol, context);
+            orderBySymbol.accept(INSTANCE, context);
         }
         if (context.orderByPositions.size() == orderBySymbols.size()) {
             return context.orderByPositions();

@@ -39,13 +39,12 @@ public class MappingSymbolVisitor extends FunctionCopyVisitor<Map<? extends Symb
         super();
     }
 
-    @Override
     public Symbol process(Symbol symbol, Map<? extends Symbol, ? extends Symbol> context) {
         Symbol mapped = context.get(symbol);
         if (mapped != null) {
             return mapped;
         }
-        return super.process(symbol, context);
+        return symbol.accept(this, context);
     }
 
 }

@@ -110,7 +110,7 @@ public class EvaluatingNormalizer {
 
                 List<Symbol> columnBoostMapArgs = new ArrayList<>(fieldBoostMap.size() * 2);
                 for (Map.Entry<Field, Symbol> entry : fieldBoostMap.entrySet()) {
-                    Symbol resolved = process(entry.getKey(), null);
+                    Symbol resolved = ((Symbol) entry.getKey()).accept(this, null);
                     if (resolved instanceof Reference) {
                         columnBoostMapArgs.add(Literal.of(((Reference) resolved).column().fqn()));
                         columnBoostMapArgs.add(entry.getValue());
@@ -127,7 +127,7 @@ public class EvaluatingNormalizer {
                         Literal.of(matchPredicate.matchType()),
                         matchPredicate.options()
                     ));
-                return process(function, context);
+                return ((Symbol) function).accept(this, context);
             }
             return matchPredicate;
         }
@@ -167,7 +167,7 @@ public class EvaluatingNormalizer {
                 normalizedFunction.info(),
                 normalizedFunction.arguments(),
                 normalizedFunction.filter(),
-                function.windowDefinition().map(s -> process(s, context))
+                function.windowDefinition().map(s -> s.accept(this, context))
             );
         }
     }
@@ -176,6 +176,6 @@ public class EvaluatingNormalizer {
         if (symbol == null) {
             return null;
         }
-        return visitor.process(symbol, txnCtx);
+        return symbol.accept(visitor, txnCtx);
     }
 }

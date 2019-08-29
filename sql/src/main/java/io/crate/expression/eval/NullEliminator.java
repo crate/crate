@@ -66,7 +66,7 @@ public final class NullEliminator {
      */
     public static Symbol eliminateNullsIfPossible(Symbol symbol,
                                                   java.util.function.Function<Symbol, Symbol> postProcessor) {
-        return VISITOR.process(symbol, new Context(postProcessor));
+        return symbol.accept(VISITOR, new Context(postProcessor));
     }
 
     private static class Context {

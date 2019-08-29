@@ -75,7 +75,7 @@ public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<Spli
     private void process(Collection<Symbol> symbols, Context context) {
         for (Symbol symbol : symbols) {
             context.foundAggregateOrTableFunction = false;
-            process(symbol, context);
+            symbol.accept(this, context);
             if (context.foundAggregateOrTableFunction == false) {
                 context.standalone.add(symbol);
             }
@@ -91,7 +91,7 @@ public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<Spli
         }
         HavingClause having = relation.having();
         if (having != null && having.hasQuery()) {
-            INSTANCE.process(having.query(), context);
+            having.query().accept(INSTANCE, context);
         }
         LinkedHashSet<Symbol> toCollect = new LinkedHashSet<>();
         for (Function tableFunction : context.tableFunctions) {

@@ -79,7 +79,7 @@ public class Symbols {
         if (symbol == null) {
             return false;
         }
-        return HAS_COLUMN_VISITOR.process(symbol, path);
+        return symbol.accept(HAS_COLUMN_VISITOR, path);
     }
 
     /**
@@ -96,7 +96,7 @@ public class Symbols {
 
     public static boolean allLiterals(Symbol symbol) {
         assert symbol != null : "symbol must not be null";
-        return ALL_LITERALS_MATCHER.process(symbol, null);
+        return symbol.accept(ALL_LITERALS_MATCHER, null);
     }
 
     public static void toStream(Collection<? extends Symbol> symbols, StreamOutput out) throws IOException {
@@ -157,7 +157,7 @@ public class Symbols {
         @Override
         public Boolean visitFunction(Function symbol, ColumnIdent column) {
             for (Symbol arg : symbol.arguments()) {
-                if (process(arg, column)) {
+                if (arg.accept(this, column)) {
                     return true;
                 }
             }
@@ -166,10 +166,10 @@ public class Symbols {
 
         @Override
         public Boolean visitFetchReference(FetchReference fetchReference, ColumnIdent column) {
-            if (process(fetchReference.fetchId(), column)) {
+            if (((Symbol) fetchReference.fetchId()).accept(this, column)) {
                 return true;
             }
-            return process(fetchReference.ref(), column);
+            return ((Symbol) fetchReference.ref()).accept(this, column);
         }
 
         @Override
@@ -190,7 +190,7 @@ public class Symbols {
 
         @Override
         public Boolean visitFunction(Function function, Void context) {
-            return function.arguments().stream().allMatch(arg -> process(arg, null));
+            return function.arguments().stream().allMatch(arg -> arg.accept(this, null));
         }
 
         @Override

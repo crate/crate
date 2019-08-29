@@ -23,14 +23,8 @@ package io.crate.expression.symbol;
 
 import io.crate.metadata.Reference;
 
-import javax.annotation.Nullable;
-
 
 public class SymbolVisitor<C, R> {
-
-    public R process(Symbol symbol, @Nullable C context) {
-        return symbol.accept(this, context);
-    }
 
     protected R visitSymbol(Symbol symbol, C context) {
         return null;

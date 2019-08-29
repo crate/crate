@@ -35,7 +35,7 @@ public class SelectSymbolValidator {
 
     public static void validate(Collection<Symbol> symbols) {
         for (Symbol symbol : symbols) {
-            INNER_VALIDATOR.process(symbol, null);
+            symbol.accept(INNER_VALIDATOR, null);
         }
     }
 
@@ -53,7 +53,7 @@ public class SelectSymbolValidator {
                         "FunctionInfo.Type %s not handled", symbol.info().type()));
             }
             for (Symbol arg : symbol.arguments()) {
-                process(arg, context);
+                arg.accept(this, context);
             }
             return null;
         }

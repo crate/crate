@@ -61,7 +61,7 @@ public final class SymbolEvaluator extends BaseImplementationSymbolVisitor<Row> 
                                   Row params,
                                   SubQueryResults subQueryValues) {
         SymbolEvaluator symbolEval = new SymbolEvaluator(txnCtx, functions, subQueryValues);
-        return symbolEval.process(symbol, params).value();
+        return symbol.accept(symbolEval, params).value();
     }
 
     @Override

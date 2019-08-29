@@ -73,7 +73,7 @@ class MatchPrinter {
                                      SymbolPrinter.SymbolPrintVisitor symbolPrintVisitor,
                                      SymbolPrinterContext context) {
         // second argument (keyword)
-        symbolPrintVisitor.process(keyword, context);
+        keyword.accept(symbolPrintVisitor, context);
     }
 
     private static void printMethod(Symbol method, StringBuilder sb) {

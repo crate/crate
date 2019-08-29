@@ -69,7 +69,7 @@ public final class HashJoinConditionSymbolsExtractor {
      */
     public static Map<AnalyzedRelation, List<Symbol>> extract(Symbol symbol) {
         Context ctx = new Context();
-        SYMBOL_EXTRACTOR.process(symbol, ctx);
+        symbol.accept(SYMBOL_EXTRACTOR, ctx);
         return ctx.symbolsPerRelation;
     }
 
@@ -90,7 +90,7 @@ public final class HashJoinConditionSymbolsExtractor {
                     context.insideEqOperator = true;
                     int duplicatePos = 0;
                     for (Symbol arg : function.arguments()) {
-                        AnalyzedRelation relation = RELATION_EXTRACTOR.process(arg, null);
+                        AnalyzedRelation relation = arg.accept(RELATION_EXTRACTOR, null);
                         List<Symbol> symbols = context.symbolsPerRelation.computeIfAbsent(relation, k -> new ArrayList<>());
                         if (symbols.contains(arg)) {
                             // duplicate detected, use the current size as the position of the other relation symbol we
@@ -127,7 +127,7 @@ public final class HashJoinConditionSymbolsExtractor {
         @Override
         public AnalyzedRelation visitFunction(Function symbol, Void context) {
             for (Symbol arg : symbol.arguments()) {
-                AnalyzedRelation relation = process(arg, context);
+                AnalyzedRelation relation = arg.accept(this, context);
                 if (relation != null) {
                     return relation;
                 }

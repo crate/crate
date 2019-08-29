@@ -64,7 +64,7 @@ public class SubqueryPlanner {
 
         @Override
         public void accept(Symbol symbol) {
-            process(symbol, null);
+            symbol.accept(this, null);
         }
     }
 }

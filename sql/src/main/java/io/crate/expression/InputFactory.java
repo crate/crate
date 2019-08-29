@@ -156,7 +156,7 @@ public class InputFactory {
          * </p>
          */
         public Input<?> add(Symbol symbol) {
-            return visitor.process(symbol, null);
+            return symbol.accept(visitor, null);
         }
 
         public List<AggregationContext> aggregations() {
@@ -203,10 +203,10 @@ public class InputFactory {
         public Input<?> visitAggregation(Aggregation symbol, Void context) {
             FunctionImplementation impl = functions.getQualified(symbol.functionIdent());
             //noinspection unchecked
-            Input<Boolean> filter = (Input<Boolean>) process(symbol.filter(), context);
+            Input<Boolean> filter = (Input<Boolean>) symbol.filter().accept(this, context);
             AggregationContext aggregationContext = new AggregationContext((AggregationFunction) impl, filter);
             for (Symbol aggInput : symbol.inputs()) {
-                aggregationContext.addInput(process(aggInput, context));
+                aggregationContext.addInput(aggInput.accept(this, context));
             }
             aggregationContexts.add(aggregationContext);
 

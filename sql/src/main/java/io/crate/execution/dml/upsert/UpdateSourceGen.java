@@ -124,7 +124,7 @@ final class UpdateSourceGen {
         Doc updatedDoc = result.withUpdatedSource(updatedSource);
         for (int i = 0; i < updateColumns.size(); i++) {
             Reference ref = updateColumns.get(i);
-            Object value = eval.process(updateAssignments[i], values).value();
+            Object value = updateAssignments[i].accept(eval, values).value();
             ColumnIdent column = ref.column();
             Maps.mergeInto(updatedSource, column.name(), column.path(), value);
         }

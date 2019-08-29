@@ -35,6 +35,6 @@ public final class FieldsVisitor extends DefaultTraversalSymbolVisitor<Consumer<
     }
 
     public static void visitFields(Symbol symbolTree, Consumer<? super Field> consumer) {
-        FIELDS_VISITOR.process(symbolTree, consumer);
+        symbolTree.accept(FIELDS_VISITOR, consumer);
     }
 }

@@ -122,10 +122,8 @@ public class LuceneQueryBuilder {
                            IndexCache indexCache) throws UnsupportedFeatureException {
         Context ctx = new Context(txnCtx, functions, mapperService, indexCache, queryShardContext);
         CoordinatorTxnCtx coordinatorTxnCtx = CoordinatorTxnCtx.systemTransactionContext();
-        ctx.query = VISITOR.process(
-            eliminateNullsIfPossible(inverseSourceLookup(query), s -> normalizer.normalize(s, coordinatorTxnCtx)),
-            ctx
-        );
+        ctx.query = eliminateNullsIfPossible(
+            inverseSourceLookup(query), s -> normalizer.normalize(s, coordinatorTxnCtx)).accept(VISITOR, ctx);
         if (LOGGER.isTraceEnabled()) {
             LOGGER.trace("WHERE CLAUSE [{}] -> LUCENE QUERY [{}] ", SymbolPrinter.INSTANCE.printUnqualified(query), ctx.query);
         }
@@ -230,7 +228,7 @@ public class LuceneQueryBuilder {
             public Query apply(Function input, Context context) {
                 List<Symbol> args = input.arguments();
                 assert args.size() == 1 : "ignore3vl expects exactly 1 argument, got: " + args.size();
-                return process(args.get(0), context);
+                return args.get(0).accept(Visitor.this, context);
             }
         }
 
@@ -292,7 +290,7 @@ public class LuceneQueryBuilder {
 
                     if (!isStrictThreeValuedLogicFunction(symbol)) {
                         for (Symbol arg : symbol.arguments()) {
-                            process(arg, context);
+                            arg.accept(this, context);
                         }
                     } else {
                         context.hasStrictThreeValuedLogicFunction = true;
@@ -315,7 +313,7 @@ public class LuceneQueryBuilder {
 
                 // handles not true / not false
                 Symbol arg = input.arguments().get(0);
-                Query innerQuery = process(arg, context);
+                Query innerQuery = arg.accept(Visitor.this, context);
                 Query notX = Queries.not(innerQuery);
 
                 // not x =  not x & x is not null
@@ -323,7 +321,7 @@ public class LuceneQueryBuilder {
                 builder.add(notX, BooleanClause.Occur.MUST);
 
                 SymbolToNotNullContext ctx = new SymbolToNotNullContext();
-                INNER_VISITOR.process(arg, ctx);
+                arg.accept(INNER_VISITOR, ctx);
                 for (Reference reference : ctx.references()) {
                     String columnName = reference.column().fqn();
                     MappedFieldType fieldType = context.getFieldTypeOrNull(columnName);
@@ -353,7 +351,7 @@ public class LuceneQueryBuilder {
                 assert input != null : "input must not be null";
                 BooleanQuery.Builder query = new BooleanQuery.Builder();
                 for (Symbol symbol : input.arguments()) {
-                    query.add(process(symbol, context), BooleanClause.Occur.MUST);
+                    query.add(symbol.accept(Visitor.this, context), BooleanClause.Occur.MUST);
                 }
                 return query.build();
             }
@@ -366,7 +364,7 @@ public class LuceneQueryBuilder {
                 BooleanQuery.Builder query = new BooleanQuery.Builder();
                 query.setMinimumNumberShouldMatch(1);
                 for (Symbol symbol : input.arguments()) {
-                    query.add(process(symbol, context), BooleanClause.Occur.SHOULD);
+                    query.add(symbol.accept(Visitor.this, context), BooleanClause.Occur.SHOULD);
                 }
                 return query.build();
             }

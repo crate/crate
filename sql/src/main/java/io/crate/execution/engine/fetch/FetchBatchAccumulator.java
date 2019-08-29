@@ -74,7 +74,7 @@ public class FetchBatchAccumulator implements BatchAccumulator<Row, Iterator<? e
 
         List<Input<?>> inputs = new ArrayList<>(outputSymbols.size());
         for (Symbol symbol : outputSymbols) {
-            inputs.add(rowInputSymbolVisitor.process(symbol, collectRowContext));
+            inputs.add(symbol.accept(rowInputSymbolVisitor, collectRowContext));
         }
         outputRow = new InputRow(inputs);
     }

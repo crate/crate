@@ -66,7 +66,7 @@ public class SubQueryAndParamBinder extends FunctionCopyVisitor<Void>
 
     @Override
     public Symbol apply(Symbol symbol) {
-        return process(symbol, null);
+        return symbol.accept(this, null);
     }
 
     private static Symbol convert(ParameterSymbol parameterSymbol, Row params) {

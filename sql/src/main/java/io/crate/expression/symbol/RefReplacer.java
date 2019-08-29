@@ -40,7 +40,7 @@ public final class RefReplacer extends FunctionCopyVisitor<Function<? super Refe
      * Applies {@code mapper} on all {@link Reference} instances within {@code tree}
      */
     public static Symbol replaceRefs(Symbol tree, Function<? super Reference, ? extends Symbol> mapper) {
-        return REPLACER.process(tree, mapper);
+        return tree.accept(REPLACER, mapper);
     }
 
     @Override

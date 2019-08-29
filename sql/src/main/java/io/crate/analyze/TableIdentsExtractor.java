@@ -60,7 +60,7 @@ public class TableIdentsExtractor {
     public static Collection<RelationName> extract(Iterable<? extends Symbol> symbols) {
         Collection<RelationName> relationNames = new HashSet<>();
         for (Symbol symbol : symbols) {
-            Collection<RelationName> relationNameList = SYMBOL_TABLE_IDENT_EXTRACTOR.process(symbol, null);
+            Collection<RelationName> relationNameList = symbol.accept(SYMBOL_TABLE_IDENT_EXTRACTOR, null);
             if (relationNameList != null) {
                 relationNames.addAll(relationNameList);
             }
@@ -72,7 +72,7 @@ public class TableIdentsExtractor {
      * Extracts all table idents from the given symbol if possible (some symbols don't provide any table ident info)
      */
     public static Iterable<RelationName> extract(Symbol symbol) {
-        return SYMBOL_TABLE_IDENT_EXTRACTOR.process(symbol, null);
+        return symbol.accept(SYMBOL_TABLE_IDENT_EXTRACTOR, null);
     }
 
     private static class TableIdentSymbolVisitor extends SymbolVisitor<Void, Collection<RelationName>> {
@@ -122,17 +122,17 @@ public class TableIdentsExtractor {
         public Collection<RelationName> visitMatchPredicate(MatchPredicate matchPredicate, Void context) {
             Set<RelationName> relationNames = new HashSet<>();
             for (Map.Entry<Field, Symbol> entry : matchPredicate.identBoostMap().entrySet()) {
-                relationNames.addAll(process(entry.getKey(), context));
-                relationNames.addAll(process(entry.getValue(), context));
+                relationNames.addAll(entry.getKey().accept(this, context));
+                relationNames.addAll(entry.getValue().accept(this, context));
             }
-            relationNames.addAll(process(matchPredicate.queryTerm(), context));
-            relationNames.addAll(process(matchPredicate.options(), context));
+            relationNames.addAll(matchPredicate.queryTerm().accept(this, context));
+            relationNames.addAll(matchPredicate.options().accept(this, context));
             return relationNames;
         }
 
         @Override
         public Collection<RelationName> visitFetchReference(FetchReference fetchReference, Void context) {
-            return process(fetchReference.ref(), context);
+            return ((Symbol) fetchReference.ref()).accept(this, context);
         }
 
         @Override

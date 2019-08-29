@@ -34,7 +34,7 @@ public final class RefVisitor extends DefaultTraversalSymbolVisitor<Consumer<? s
     }
 
     public static void visitRefs(Symbol tree, Consumer<? super Reference> consumer) {
-        VISITOR.process(tree, consumer);
+        tree.accept(VISITOR, consumer);
     }
 
     @Override

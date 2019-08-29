@@ -23,12 +23,12 @@
 package io.crate.analyze.relations;
 
 
+import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.MatchPredicate;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
-import io.crate.expression.operator.AndOperator;
 import io.crate.planner.consumer.QualifiedNameCollector;
 import io.crate.sql.tree.QualifiedName;
 
@@ -85,7 +85,7 @@ public class QuerySplitter {
      */
     public static Map<Set<QualifiedName>, Symbol> split(Symbol symbol) {
         Map<Set<QualifiedName>, Symbol> splits = new LinkedHashMap<>();
-        SPLIT_VISITOR.process(symbol, splits);
+        symbol.accept(SPLIT_VISITOR, splits);
         return splits;
     }
 
@@ -95,7 +95,7 @@ public class QuerySplitter {
         public Void visitFunction(Function function, Map<Set<QualifiedName>, Symbol> splits) {
             if (!function.info().equals(AndOperator.INFO)) {
                 HashSet<QualifiedName> qualifiedNames = new LinkedHashSet<>();
-                QualifiedNameCollector.INSTANCE.process(function, qualifiedNames);
+                ((Symbol) function).accept(QualifiedNameCollector.INSTANCE, qualifiedNames);
                 Symbol prevQuery = splits.put(qualifiedNames, function);
                 if (prevQuery != null) {
                     splits.put(qualifiedNames, AndOperator.of(prevQuery, function));
@@ -104,7 +104,7 @@ public class QuerySplitter {
             }
 
             for (Symbol arg : function.arguments()) {
-                process(arg, splits);
+                arg.accept(this, splits);
             }
             return null;
         }

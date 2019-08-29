@@ -160,7 +160,7 @@ public class HashAggregate extends ForwardingLogicalPlan {
             OutputValidatorContext ctx = new OutputValidatorContext();
             for (Symbol output : outputs) {
                 ctx.insideAggregation = false;
-                INSTANCE.process(output, ctx);
+                output.accept(INSTANCE, ctx);
             }
         }
 
@@ -169,7 +169,7 @@ public class HashAggregate extends ForwardingLogicalPlan {
             context.insideAggregation =
                 context.insideAggregation || symbol.info().type().equals(FunctionInfo.Type.AGGREGATE);
             for (Symbol argument : symbol.arguments()) {
-                process(argument, context);
+                argument.accept(this, context);
             }
             context.insideAggregation = false;
             return null;

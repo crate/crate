@@ -37,7 +37,7 @@ public final class FieldReplacer extends FunctionCopyVisitor<Function<? super Fi
         if (tree == null) {
             return null;
         }
-        return REPLACER.process(tree, replaceFunc);
+        return tree.accept(REPLACER, replaceFunc);
     }
 
     public static Function<? super Symbol, ? extends Symbol> bind(Function<? super Field, ? extends Symbol> replaceFunc) {

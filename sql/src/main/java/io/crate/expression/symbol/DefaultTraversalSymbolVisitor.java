@@ -36,11 +36,11 @@ public abstract class DefaultTraversalSymbolVisitor<C, R> extends SymbolVisitor<
     @Override
     public R visitFunction(Function symbol, C context) {
         for (Symbol arg : symbol.arguments()) {
-            process(arg, context);
+            arg.accept(this, context);
         }
         var filter = symbol.filter();
         if (filter != null) {
-            process(filter, context);
+            filter.accept(this, context);
         }
         return null;
     }
@@ -48,33 +48,33 @@ public abstract class DefaultTraversalSymbolVisitor<C, R> extends SymbolVisitor<
     @Override
     public R visitWindowFunction(WindowFunction symbol, C context) {
         for (Symbol arg : symbol.arguments()) {
-            process(arg, context);
+            arg.accept(this, context);
         }
         Symbol filter = symbol.filter();
         if (filter != null) {
-            process(filter, context);
+            filter.accept(this, context);
         }
         WindowDefinition windowDefinition = symbol.windowDefinition();
         OrderBy orderBy = windowDefinition.orderBy();
         if (orderBy != null) {
             for (Symbol orderBySymbol : orderBy.orderBySymbols()) {
-                process(orderBySymbol, context);
+                orderBySymbol.accept(this, context);
             }
         }
         for (Symbol partition : windowDefinition.partitions()) {
-            process(partition, context);
+            partition.accept(this, context);
         }
 
         Symbol frameStartValueSymbol = windowDefinition.windowFrameDefinition().start().value();
         if (frameStartValueSymbol != null) {
-            process(frameStartValueSymbol, context);
+            frameStartValueSymbol.accept(this, context);
         }
 
         FrameBoundDefinition end = windowDefinition.windowFrameDefinition().end();
         if (end != null) {
             Symbol frameEndValueSymbol = end.value();
             if (frameEndValueSymbol != null) {
-                process(frameEndValueSymbol, context);
+                frameEndValueSymbol.accept(this, context);
             }
         }
 
@@ -83,15 +83,15 @@ public abstract class DefaultTraversalSymbolVisitor<C, R> extends SymbolVisitor<
 
     @Override
     public R visitFetchReference(FetchReference fetchReference, C context) {
-        process(fetchReference.fetchId(), context);
-        process(fetchReference.ref(), context);
+        ((Symbol) fetchReference.fetchId()).accept(this, context);
+        ((Symbol) fetchReference.ref()).accept(this, context);
         return null;
     }
 
     @Override
     public R visitMatchPredicate(MatchPredicate matchPredicate, C context) {
         for (Field field : matchPredicate.identBoostMap().keySet()) {
-            process(field, context);
+            ((Symbol) field).accept(this, context);
         }
         return null;
     }

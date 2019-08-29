@@ -111,7 +111,7 @@ public class EqualityExtractor {
                                               @Nullable CoordinatorTxnCtx coordinatorTxnCtx) {
         EqualityExtractor.ProxyInjectingVisitor.Context context =
             new EqualityExtractor.ProxyInjectingVisitor.Context(columns, exact);
-        Symbol proxiedTree = ProxyInjectingVisitor.INSTANCE.process(symbol, context);
+        Symbol proxiedTree = symbol.accept(ProxyInjectingVisitor.INSTANCE, context);
 
         // bail out if we have any unknown part in the tree
         if (context.exact && context.seenUnknown) {
@@ -427,7 +427,7 @@ public class EqualityExtractor {
                 ArrayList<Symbol> newArgs = new ArrayList<>(arguments.size());
                 for (Symbol arg : arguments) {
                     context.proxyBelow = proxyBelowPre;
-                    newArgs.add(process(arg, context));
+                    newArgs.add(arg.accept(this, context));
                     proxyBelowPost = context.proxyBelow || proxyBelowPost;
                 }
                 context.proxyBelow = proxyBelowPost;

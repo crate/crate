@@ -417,7 +417,7 @@ public class Collect implements LogicalPlan {
         }
 
         static void ensureNoMatchPredicate(Symbol symbolTree) {
-            NO_PREDICATE_VISITOR.process(symbolTree, null);
+            symbolTree.accept(NO_PREDICATE_VISITOR, null);
         }
 
         @Override
@@ -426,7 +426,7 @@ public class Collect implements LogicalPlan {
                 throw new UnsupportedFeatureException("Cannot use match predicate on system tables");
             }
             for (Symbol argument : symbol.arguments()) {
-                process(argument, context);
+                argument.accept(this, context);
             }
             return null;
         }

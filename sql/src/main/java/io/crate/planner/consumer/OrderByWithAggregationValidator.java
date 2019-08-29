@@ -48,7 +48,7 @@ public class OrderByWithAggregationValidator {
     public static void validate(Symbol symbol,
                                 Collection<? extends Symbol> outputSymbols,
                                 boolean isDistinct) throws UnsupportedOperationException {
-        INNER_VALIDATOR.process(symbol, new ValidatorContext(outputSymbols, isDistinct));
+        symbol.accept(INNER_VALIDATOR, new ValidatorContext(outputSymbols, isDistinct));
     }
 
     private static class ValidatorContext {
@@ -72,7 +72,7 @@ public class OrderByWithAggregationValidator {
             }
             if (symbol.info().type() == FunctionInfo.Type.SCALAR) {
                 for (Symbol arg : symbol.arguments()) {
-                    process(arg, context);
+                    arg.accept(this, context);
                 }
             } else {
                 throw new UnsupportedOperationException(
