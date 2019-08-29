@@ -92,6 +92,7 @@ public class MetaDataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
                      "   \"blocks.read_only_allow_delete\" = false,\n" +
                      "   \"blocks.write\" = false,\n" +
                      "   column_policy = 'strict',\n" +
+                     "   \"global_checkpoint_sync.interval\" = 30000,\n" +
                      "   \"mapping.total_fields.limit\" = 1000,\n" +
                      "   max_ngram_diff = 1,\n" +
                      "   max_shingle_diff = 3,\n" +
@@ -137,6 +138,7 @@ public class MetaDataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
                      "   \"blocks.read_only_allow_delete\" = false,\n" +
                      "   \"blocks.write\" = false,\n" +
                      "   column_policy = 'strict',\n" +
+                     "   \"global_checkpoint_sync.interval\" = 30000,\n" +
                      "   \"mapping.total_fields.limit\" = 1000,\n" +
                      "   max_ngram_diff = 1,\n" +
                      "   max_shingle_diff = 3,\n" +
@@ -184,6 +186,7 @@ public class MetaDataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
                      "   \"blocks.read_only_allow_delete\" = false,\n" +
                      "   \"blocks.write\" = false,\n" +
                      "   column_policy = 'strict',\n" +
+                     "   \"global_checkpoint_sync.interval\" = 30000,\n" +
                      "   \"mapping.total_fields.limit\" = 1000,\n" +
                      "   max_ngram_diff = 1,\n" +
                      "   max_shingle_diff = 3,\n" +
@@ -231,6 +234,7 @@ public class MetaDataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
                      "   \"blocks.read_only_allow_delete\" = false,\n" +
                      "   \"blocks.write\" = false,\n" +
                      "   column_policy = 'strict',\n" +
+                     "   \"global_checkpoint_sync.interval\" = 30000,\n" +
                      "   \"mapping.total_fields.limit\" = 1000,\n" +
                      "   max_ngram_diff = 1,\n" +
                      "   max_shingle_diff = 3,\n" +
@@ -303,6 +307,7 @@ public class MetaDataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
                      "   \"blocks.read_only_allow_delete\" = false,\n" +
                      "   \"blocks.write\" = false,\n" +
                      "   column_policy = 'strict',\n" +
+                     "   \"global_checkpoint_sync.interval\" = 30000,\n" +
                      "   \"mapping.total_fields.limit\" = 1000,\n" +
                      "   max_ngram_diff = 1,\n" +
                      "   max_shingle_diff = 3,\n" +
@@ -346,6 +351,7 @@ public class MetaDataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
                      "   \"blocks.read_only_allow_delete\" = false,\n" +
                      "   \"blocks.write\" = false,\n" +
                      "   column_policy = 'strict',\n" +
+                     "   \"global_checkpoint_sync.interval\" = 30000,\n" +
                      "   \"mapping.total_fields.limit\" = 1000,\n" +
                      "   max_ngram_diff = 1,\n" +
                      "   max_shingle_diff = 3,\n" +
@@ -388,6 +394,7 @@ public class MetaDataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
                      "   \"blocks.read_only_allow_delete\" = false,\n" +
                      "   \"blocks.write\" = false,\n" +
                      "   column_policy = 'strict',\n" +
+                     "   \"global_checkpoint_sync.interval\" = 30000,\n" +
                      "   \"mapping.total_fields.limit\" = 1000,\n" +
                      "   max_ngram_diff = 1,\n" +
                      "   max_shingle_diff = 3,\n" +

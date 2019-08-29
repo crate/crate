@@ -39,6 +39,7 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.translog.Translog;
@@ -114,6 +115,9 @@ public class TableParameterInfo {
             .add(IndexMetaData.INDEX_ROUTING_REQUIRE_GROUP_SETTING)
             .add(IndexMetaData.INDEX_ROUTING_INCLUDE_GROUP_SETTING)
             .add(IndexMetaData.INDEX_ROUTING_EXCLUDE_GROUP_SETTING)
+
+            // this setting is needed for tests and is not documented. see ClusterDisruptionIT for usages.
+            .add(IndexService.GLOBAL_CHECKPOINT_SYNC_INTERVAL_SETTING)
             .build();
 
     static final Set<Setting> SETTINGS_WITH_OTHER_SETTING_FALLBACK = ImmutableSet.of(
