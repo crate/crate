@@ -40,6 +40,7 @@ already existing user-created doc tables in the cluster::
     |    "blocks.read_only_allow_delete" = false,         |
     |    "blocks.write" = false,                          |
     |    column_policy = 'strict',                        |
+    |    "global_checkpoint_sync.interval" = 30000,       |
     |    "mapping.total_fields.limit" = 1000,             |
     |    max_ngram_diff = 1,                              |
     |    max_shingle_diff = 3,                            |
