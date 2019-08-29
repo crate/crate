@@ -34,7 +34,8 @@ public class InputCollectExpression implements CollectExpression<Row, Object> {
 
     @Override
     public void setNextRow(Row row) {
-        assert row.numColumns() > position : "row smaller than input position " + row.numColumns() + "<=" + position;
+        assert row.numColumns() > position
+            : "Wanted to retrieve value for column at position=" + position + " from row=" + row + " but row has only " + row.numColumns() + " columns";
         value = row.get(position);
     }
 

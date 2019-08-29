@@ -21,7 +21,6 @@
 
 package io.crate.metadata;
 
-import com.google.common.base.MoreObjects;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.SymbolVisitor;
@@ -29,7 +28,6 @@ import io.crate.expression.symbol.Symbols;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.ObjectType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -37,6 +35,8 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Comparator;
 import java.util.Objects;
+
+import static io.crate.metadata.RowGranularity.DOC;
 
 public class Reference extends Symbol {
 
@@ -236,19 +236,16 @@ public class Reference extends Symbol {
 
     @Override
     public String toString() {
-        MoreObjects.ToStringHelper helper = MoreObjects.toStringHelper(this)
-            .add("ident", ident)
-            .add("granularity", granularity)
-            .add("position", position)
-            .add("default expression", defaultExpression)
-            .add("type", type);
-        if (type.id() == ObjectType.ID) {
-            helper.add("column policy", columnPolicy.name());
-        }
-        helper.add("index type", indexType.name());
-        helper.add("nullable", nullable);
-        helper.add("columnstore enabled", columnStoreDisabled);
-        return helper.toString();
+        return "Ref{"
+               + ident.tableIdent().fqn() + '.' + ident.columnIdent().sqlFqn() + "::" + type +
+               ", pos=" + position +
+               (columnPolicy != ColumnPolicy.DYNAMIC ? ", columnPolicy=" + columnPolicy : "") +
+               (granularity != DOC ? ", granularity=" + granularity : "") +
+               (indexType != IndexType.NOT_ANALYZED ? ", index=" + indexType : "") +
+               ", nullable=" + nullable +
+               (columnStoreDisabled ? ", columnStoreOff=" + columnStoreDisabled : "") +
+               (defaultExpression != null ? ", defaultExpression=" + defaultExpression : "") +
+               '}';
     }
 
     @Override
