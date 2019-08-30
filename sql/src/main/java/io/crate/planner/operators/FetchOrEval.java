@@ -457,23 +457,19 @@ public class FetchOrEval extends ForwardingLogicalPlan {
                 // missing in the expression mapping
                 symbol = f.pointer();
             }
-
             if (symbol instanceof Reference) {
-                return RefReplacer.replaceRefs(symbol, ref -> {
-                    DocTableRelation docTableRelation = resolveDocTableRelation(f);
-                    assert docTableRelation != null : "Couldn't retrieve DocTableRelation from " + f;
-
-                    if (ref.granularity() == RowGranularity.DOC) {
-                        ref = DocReferences.toSourceLookup(ref);
-                    }
-                    FullQualifiedTableRelation fqRel = new FullQualifiedTableRelation(qualifiedName, docTableRelation);
-                    allocateFetchRef.accept(fqRel, ref);
-                    InputColumn fetchId = fetchInputColumnsByTable.get(fqRel);
-                    assert fetchId != null : "fetchId InputColumn for " + docTableRelation + " must be present";
-                    return new FetchReference(fetchId, ref);
-                });
+                Reference ref = (Reference) symbol;
+                DocTableRelation docTableRelation = resolveDocTableRelation(f);
+                assert docTableRelation != null : "Couldn't retrieve DocTableRelation from " + f;
+                if (ref.granularity() == RowGranularity.DOC) {
+                    ref = DocReferences.toSourceLookup(ref);
+                }
+                FullQualifiedTableRelation fqRel = new FullQualifiedTableRelation(qualifiedName, docTableRelation);
+                allocateFetchRef.accept(fqRel, ref);
+                InputColumn fetchId = fetchInputColumnsByTable.get(fqRel);
+                assert fetchId != null : "fetchId InputColumn for " + docTableRelation + " must be present";
+                return new FetchReference(fetchId, ref);
             }
-
             assert symbol != null
                 : "Field mapping must exists for " + output + " in " + expressionMapping;
             return toInputColOrFetchRef(
