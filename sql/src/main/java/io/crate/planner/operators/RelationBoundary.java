@@ -48,7 +48,7 @@ import java.util.function.Function;
  * An Operator that marks the boundary of a relation.
  * In relational algebra terms this is a "no-op" operator - it doesn't apply any modifications on the source relation.
  *
- * It is used to take care of the field mapping (providing {@link LogicalPlan#expressionMapping()})
+ * It is used to take care of the field mapping (providing {@link RelationBoundary#expressionMapping()})
  */
 public class RelationBoundary extends ForwardingLogicalPlan {
 
@@ -84,7 +84,6 @@ public class RelationBoundary extends ForwardingLogicalPlan {
                 });
             }
             List<Symbol> outputs = OperatorUtils.mappedSymbols(source.outputs(), reverseMapping);
-            expressionMapping.putAll(source.expressionMapping());
             return new RelationBoundary(source, relation, outputs, expressionMapping, reverseMapping);
         };
     }
@@ -130,7 +129,19 @@ public class RelationBoundary extends ForwardingLogicalPlan {
         return outputs;
     }
 
-    @Override
+    /**
+     * A mapping from from symbol to symbol.
+     * This is used across relation boundaries to map parent expression to source expression
+     *
+     * Example:
+     * <pre>
+     *     select tt.bb from
+     *          (select t.b + t.b as bb from t) tt
+     *
+     * expressionMapping
+     *      tt.bb -> t.b + t.b
+     * </pre>
+     */
     public Map<Symbol, Symbol> expressionMapping() {
         return expressionMapping;
     }

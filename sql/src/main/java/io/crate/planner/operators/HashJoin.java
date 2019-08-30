@@ -27,7 +27,6 @@ import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.common.collections.Lists2;
-import io.crate.common.collections.Maps;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.HashJoinPhase;
 import io.crate.execution.dsl.phases.MergePhase;
@@ -69,7 +68,6 @@ public class HashJoin implements LogicalPlan {
     private final List<Symbol> outputs;
     final LogicalPlan rhs;
     final LogicalPlan lhs;
-    private final Map<Symbol, Symbol> expressionMapping;
 
     public HashJoin(LogicalPlan lhs,
                     LogicalPlan rhs,
@@ -82,7 +80,6 @@ public class HashJoin implements LogicalPlan {
         this.concreteRelation = concreteRelation;
         this.joinCondition = joinCondition;
         this.tableStats = tableStats;
-        this.expressionMapping = Maps.concat(lhs.expressionMapping(), rhs.expressionMapping());
     }
 
     public JoinType joinType() {
@@ -216,11 +213,6 @@ public class HashJoin implements LogicalPlan {
     @Override
     public List<Symbol> outputs() {
         return outputs;
-    }
-
-    @Override
-    public Map<Symbol, Symbol> expressionMapping() {
-        return expressionMapping;
     }
 
     @Override

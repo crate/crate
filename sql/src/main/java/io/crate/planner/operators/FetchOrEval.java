@@ -289,7 +289,6 @@ public class FetchOrEval extends ForwardingLogicalPlan {
                 sourceOutputs,
                 fetchInputColumnsByTable,
                 allocateFetchRef,
-                source.expressionMapping(),
                 null,
                 subQueryResults,
                 params)
@@ -391,19 +390,18 @@ public class FetchOrEval extends ForwardingLogicalPlan {
     }
 
     private DocTableRelation resolveDocTableRelation(Symbol output) {
-        Symbol mapped = output;
-        Symbol old;
-        do {
-            old = mapped;
-            if (old instanceof Field) {
-                Field field = (Field) old;
-                DocTableRelation tableRelation = resolveDocTableRelation(field);
-                if (tableRelation != null) {
-                    return tableRelation;
+        while (true) {
+            if (output instanceof Field) {
+                Field field = (Field) output;
+                DocTableRelation docTableRelation = resolveDocTableRelation(field);
+                if (docTableRelation != null) {
+                    return docTableRelation;
                 }
+                output = field.pointer();
+            } else {
+                throw new IllegalStateException("Couldn't retrieve DocTableRelation from " + output);
             }
-        } while ((mapped = source.expressionMapping().get(old)) != null);
-        throw new IllegalStateException("Couldn't retrieve DocTableRelation from " + output);
+        }
     }
 
     private static DocTableRelation resolveDocTableRelation(Field field) {
@@ -423,7 +421,6 @@ public class FetchOrEval extends ForwardingLogicalPlan {
                                                List<Symbol> sourceOutputs,
                                                Map<FullQualifiedTableRelation, InputColumn> fetchInputColumnsByTable,
                                                BiConsumer<FullQualifiedTableRelation, Reference> allocateFetchRef,
-                                               Map<Symbol, Symbol> expressionMapping,
                                                @Nullable QualifiedName currentQualifiedName,
                                                SubQueryResults subQueryResults,
                                                Row params) {
@@ -450,13 +447,7 @@ public class FetchOrEval extends ForwardingLogicalPlan {
             } else {
                 qualifiedName = relation.getQualifiedName();
             }
-
-            Symbol symbol = expressionMapping.get(f);
-            if (symbol == null) {
-                // If we've a subscript like obj['x'] and `obj` isn't in the outputs of the source relation it is
-                // missing in the expression mapping
-                symbol = f.pointer();
-            }
+            Symbol symbol = f.pointer();
             if (symbol instanceof Reference) {
                 Reference ref = (Reference) symbol;
                 DocTableRelation docTableRelation = resolveDocTableRelation(f);
@@ -470,14 +461,11 @@ public class FetchOrEval extends ForwardingLogicalPlan {
                 assert fetchId != null : "fetchId InputColumn for " + docTableRelation + " must be present";
                 return new FetchReference(fetchId, ref);
             }
-            assert symbol != null
-                : "Field mapping must exists for " + output + " in " + expressionMapping;
             return toInputColOrFetchRef(
                 symbol,
                 sourceOutputs,
                 fetchInputColumnsByTable,
                 allocateFetchRef,
-                expressionMapping,
                 qualifiedName,
                 subQueryResults,
                 params);
