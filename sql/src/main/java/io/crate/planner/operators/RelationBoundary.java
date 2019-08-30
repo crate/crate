@@ -48,7 +48,20 @@ import java.util.function.Function;
  * An Operator that marks the boundary of a relation.
  * In relational algebra terms this is a "no-op" operator - it doesn't apply any modifications on the source relation.
  *
- * It is used to take care of the field mapping (providing {@link RelationBoundary#expressionMapping()})
+ * It is used to take care of the field mapping,
+ * Across relation boundaries parent expression might have to be mapped to source expressions:
+ * Example:
+ *
+ * <pre>
+ *     select tt.bb from
+ *          (select t.b + t.b as bb from t) tt
+ *
+ * Mapping:
+ *      tt.bb -> t.b + t.b
+ *
+ * And reverse:
+ *      t.b + t.b -> tt.bb
+ * </pre>
  */
 public class RelationBoundary extends ForwardingLogicalPlan {
 
@@ -84,12 +97,11 @@ public class RelationBoundary extends ForwardingLogicalPlan {
                 });
             }
             List<Symbol> outputs = OperatorUtils.mappedSymbols(source.outputs(), reverseMapping);
-            return new RelationBoundary(source, relation, outputs, expressionMapping, reverseMapping);
+            return new RelationBoundary(source, relation, outputs, reverseMapping);
         };
     }
 
     private final List<Symbol> outputs;
-    private final Map<Symbol, Symbol> expressionMapping;
 
     private final AnalyzedRelation relation;
     private final Map<Symbol, Symbol> reverseMapping;
@@ -97,11 +109,9 @@ public class RelationBoundary extends ForwardingLogicalPlan {
     public RelationBoundary(LogicalPlan source,
                             AnalyzedRelation relation,
                             List<Symbol> outputs,
-                            Map<Symbol, Symbol> expressionMapping,
                             Map<Symbol, Symbol> reverseMapping) {
         super(source);
         this.outputs = outputs;
-        this.expressionMapping = expressionMapping;
         this.relation = relation;
         this.reverseMapping = reverseMapping;
     }
@@ -129,23 +139,6 @@ public class RelationBoundary extends ForwardingLogicalPlan {
         return outputs;
     }
 
-    /**
-     * A mapping from from symbol to symbol.
-     * This is used across relation boundaries to map parent expression to source expression
-     *
-     * Example:
-     * <pre>
-     *     select tt.bb from
-     *          (select t.b + t.b as bb from t) tt
-     *
-     * expressionMapping
-     *      tt.bb -> t.b + t.b
-     * </pre>
-     */
-    public Map<Symbol, Symbol> expressionMapping() {
-        return expressionMapping;
-    }
-
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
         LogicalPlan newSource = Lists2.getOnlyElement(sources);
@@ -153,7 +146,6 @@ public class RelationBoundary extends ForwardingLogicalPlan {
             newSource,
             relation,
             OperatorUtils.mappedSymbols(newSource.outputs(), reverseMapping),
-            expressionMapping,
             reverseMapping
         );
     }

@@ -59,7 +59,7 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testOrderByOnUnionIsMovedBeneathUnion() {
         LogicalPlan plan = plan("Select name from users union all select text from users order by name");
-        assertThat(plan, isPlan(sqlExecutor.functions(), "Boundary[name]\n" +
+        assertThat(plan, isPlan(sqlExecutor.functions(),
                                                 "Union[\n" +
                                                     "OrderBy[name ASC]\n" +
                                                     "Collect[doc.users | [name] | All]\n" +
@@ -76,8 +76,7 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
             "union all " +
             "select text from users " +
             "order by name");
-        assertThat(plan, isPlan(sqlExecutor.functions(), "Boundary[name]\n" +
-                                                         "Union[\n" +
+        assertThat(plan, isPlan(sqlExecutor.functions(), "Union[\n" +
                                                              "Boundary[name]\n" +   // Aliased relation boundary
                                                              "Boundary[name]\n" +
                                                              "FetchOrEval[name]\n" +
@@ -350,7 +349,6 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
             LogicalPlannerTest.isPlan(sqlExecutor.functions(),
                 "RootBoundary[name]\n" +
                 "Boundary[name]\n" +    // Aliased relation boundary
-                "Boundary[name]\n" +
                 "Union[\n" +
                 "Collect[sys.nodes | [name] | ((name LIKE 'b%') AND (name LIKE 'c%'))]\n" +
                 "---\n" +
