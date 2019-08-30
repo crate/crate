@@ -69,7 +69,6 @@ public class NestedLoopJoin implements LogicalPlan {
     final LogicalPlan rhs;
     private final List<Symbol> outputs;
     private final List<AbstractTableRelation> baseTables;
-    private final Map<Symbol, Symbol> expressionMapping;
     private final Map<LogicalPlan, SelectSymbol> dependencies;
     private boolean orderByWasPushedDown = false;
 
@@ -91,7 +90,6 @@ public class NestedLoopJoin implements LogicalPlan {
         this.baseTables = Lists2.concat(lhs.baseTables(), rhs.baseTables());
         this.topMostLeftRelation = topMostLeftRelation;
         this.joinCondition = joinCondition;
-        this.expressionMapping = Maps.concat(lhs.expressionMapping(), rhs.expressionMapping());
         this.dependencies = Maps.concat(lhs.dependencies(), rhs.dependencies());
     }
 
@@ -222,11 +220,6 @@ public class NestedLoopJoin implements LogicalPlan {
     @Override
     public List<Symbol> outputs() {
         return outputs;
-    }
-
-    @Override
-    public Map<Symbol, Symbol> expressionMapping() {
-        return expressionMapping;
     }
 
     @Override

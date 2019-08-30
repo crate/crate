@@ -91,11 +91,6 @@ public class Insert implements LogicalPlan {
     }
 
     @Override
-    public Map<Symbol, Symbol> expressionMapping() {
-        return Collections.emptyMap();
-    }
-
-    @Override
     public List<AbstractTableRelation> baseTables() {
         return Collections.emptyList();
     }
