@@ -109,8 +109,14 @@ public class Field extends Symbol {
 
     @Override
     public String representation() {
-        return "Field{" + relation.getQualifiedName() + "." + path +
-               ", ptr=" + pointer.getClass().getSimpleName() + '{' + Symbols.pathFromSymbol(pointer).sqlFqn() + "}}";
+        String formattedPointer;
+        if (pointer instanceof Field) {
+            Field f = (Field) this.pointer;
+            formattedPointer = "F{" + f.relation.getQualifiedName() + '.' + f.path + '}';
+        } else {
+            formattedPointer = pointer.getClass().getSimpleName() + '{' + Symbols.pathFromSymbol(pointer) + '}';
+        }
+        return "Field{" + relation.getQualifiedName() + "." + path + ", ptr=" + formattedPointer + '}';
     }
 
     @Override

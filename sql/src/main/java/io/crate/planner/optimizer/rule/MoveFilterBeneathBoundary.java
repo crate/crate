@@ -22,9 +22,10 @@
 
 package io.crate.planner.optimizer.rule;
 
+import io.crate.expression.symbol.Field;
+import io.crate.expression.symbol.FieldReplacer;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.LogicalPlan;
-import io.crate.planner.operators.OperatorUtils;
 import io.crate.planner.operators.RelationBoundary;
 import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.matcher.Capture;
@@ -57,7 +58,7 @@ public class MoveFilterBeneathBoundary implements Rule<Filter> {
         RelationBoundary boundary = captures.get(this.boundary);
         Filter newFilter = new Filter(
             boundary.source(),
-            OperatorUtils.getMapper(boundary.expressionMapping()).apply(plan.query())
+            FieldReplacer.replaceFields(plan.query(), Field::pointer)
         );
         return boundary.replaceSources(List.of(newFilter));
     }
