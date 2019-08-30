@@ -120,17 +120,9 @@ public class RelationBoundary extends ForwardingLogicalPlan {
             mappedUsedColumns.add(mapFields.apply(beforeNextFetch));
         }
         LogicalPlan newSource = source.rewriteForFetch(fetchMode, mappedUsedColumns);
-        return newSource == null ? null : replaceSources(List.of(newSource));
-    }
-
-    @Override
-    public List<Symbol> outputs() {
-        return outputs;
-    }
-
-    @Override
-    public LogicalPlan replaceSources(List<LogicalPlan> sources) {
-        LogicalPlan newSource = Lists2.getOnlyElement(sources);
+        if (newSource == null) {
+            return null;
+        }
         /*  RelationBoundary [xx, y]
          *      |      expressionMapping { xx -> x + x
          *                               , y  -> y     }
@@ -145,7 +137,7 @@ public class RelationBoundary extends ForwardingLogicalPlan {
          *                                , _fetchId -> _fetchId }
          */
         List<Symbol> newOutputs = new ArrayList<>(newSource.outputs().size());
-        HashMap<Symbol, Symbol> newReverseMapping = new HashMap<>(reverseMapping);
+        HashMap<Symbol, Symbol> newReverseMapping = new HashMap<>(newSource.outputs().size());
         for (Symbol newSourceOutput : newSource.outputs()) {
             Symbol newOutput = reverseMapping.get(newSourceOutput);
             if (newOutput == null) {
@@ -153,15 +145,24 @@ public class RelationBoundary extends ForwardingLogicalPlan {
                 newOutputs.add(f);
                 newReverseMapping.put(f.pointer(), f);
             } else {
+                newReverseMapping.put(newSourceOutput, newOutput);
+                assert !(newOutput instanceof Field) || ((Field) newOutput).pointer().equals(newSourceOutput)
+                    : "Field " + newOutput + " must point to " + newSourceOutput;
                 newOutputs.add(newOutput);
             }
         }
-        return new RelationBoundary(
-            newSource,
-            relation,
-            newOutputs,
-            newReverseMapping
-        );
+        return new RelationBoundary(newSource, relation, newOutputs, newReverseMapping);
+    }
+
+    @Override
+    public List<Symbol> outputs() {
+        return outputs;
+    }
+
+    @Override
+    public LogicalPlan replaceSources(List<LogicalPlan> sources) {
+        LogicalPlan newSource = Lists2.getOnlyElement(sources);
+        return new RelationBoundary(newSource, relation, outputs, reverseMapping);
     }
 
     @Override
