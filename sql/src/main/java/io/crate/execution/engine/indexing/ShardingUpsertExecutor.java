@@ -24,6 +24,7 @@ package io.crate.execution.engine.indexing;
 
 import io.crate.action.FutureActionListener;
 import io.crate.action.LimitedExponentialBackoff;
+import io.crate.breaker.TypeGuessEstimateRowSize;
 import io.crate.data.BatchIterator;
 import io.crate.data.BatchIterators;
 import io.crate.data.Row;
@@ -62,6 +63,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
+import java.util.function.ToLongFunction;
 
 import static io.crate.execution.jobs.NodeJobsCounter.MAX_NODE_CONCURRENT_OPERATIONS;
 
@@ -85,6 +87,7 @@ public class ShardingUpsertExecutor
     private final BulkRequestExecutor<ShardUpsertRequest> requestExecutor;
     private final TransportCreatePartitionsAction createPartitionsAction;
     private final BulkShardCreationLimiter bulkShardCreationLimiter;
+    private final IsUsedBytesOverThreshold isUsedBytesOverThreshold;
     private final UpsertResultCollector resultCollector;
     private final boolean isDebugEnabled;
     private volatile boolean createPartitionsRequestOngoing = false;
@@ -114,9 +117,11 @@ public class ShardingUpsertExecutor
         this.requestFactory = requestFactory;
         this.requestExecutor = requestExecutor;
         this.createPartitionsAction = createPartitionsAction;
+        ToLongFunction<Row> estimateRowSize = new TypeGuessEstimateRowSize();
         this.grouper = new GroupRowsByShard<>(
             clusterService,
             rowShardResolver,
+            estimateRowSize,
             indexNameResolver,
             expressions,
             upsertResultContext.getSourceInfoExpressions(),
@@ -131,6 +136,7 @@ public class ShardingUpsertExecutor
             targetTableNumShards,
             targetTableNumReplicas,
             clusterService.state().nodes().getDataNodes().size());
+        isUsedBytesOverThreshold = new IsUsedBytesOverThreshold();
         this.resultCollector = upsertResultContext.getResultCollector();
         isDebugEnabled = LOGGER.isDebugEnabled();
     }
@@ -248,9 +254,13 @@ public class ShardingUpsertExecutor
 
     @Override
     public CompletableFuture<? extends Iterable<Row>> apply(BatchIterator<Row> batchIterator) {
-        BatchIterator<ShardedRequests<ShardUpsertRequest, ShardUpsertRequest.Item>> reqBatchIterator =
-            BatchIterators.partition(batchIterator, bulkSize, () -> new ShardedRequests<>(requestFactory), grouper,
-                bulkShardCreationLimiter);
+        var reqBatchIterator = BatchIterators.partition(
+            batchIterator,
+            bulkSize,
+            () -> new ShardedRequests<>(requestFactory),
+            grouper,
+            bulkShardCreationLimiter.or(isUsedBytesOverThreshold)
+        );
 
         // If IO is involved the source iterator should pause when the target node reaches a concurrent job counter limit.
         // Without IO, we assume that the source iterates over in-memory structures which should be processed as
@@ -333,4 +343,23 @@ public class ShardingUpsertExecutor
         }
     }
 
+    private static class IsUsedBytesOverThreshold implements Predicate<ShardedRequests<?, ?>> {
+
+        private static final double HEAP_PERCENTAGE = 0.30d;
+        private static final double MAX_FREE_MEM_USAGE_PERCENT = 0.70d;
+
+        private final Runtime rt;
+        private final long maxBytesUsableByShardedRequests;
+
+        IsUsedBytesOverThreshold() {
+            rt = Runtime.getRuntime();
+            maxBytesUsableByShardedRequests = (long) (rt.maxMemory() * HEAP_PERCENTAGE);
+        }
+
+        @Override
+        public final boolean test(ShardedRequests<?, ?> shardedRequests) {
+            return shardedRequests.usedMemoryEstimate() > maxBytesUsableByShardedRequests
+                   || shardedRequests.usedMemoryEstimate() > (rt.freeMemory() * MAX_FREE_MEM_USAGE_PERCENT);
+        }
+    }
 }

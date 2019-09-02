@@ -42,6 +42,7 @@ public final class ShardedRequests<TReq extends ShardRequest<TReq, TItem>, TItem
     private final Function<ShardId, TReq> requestFactory;
 
     private int location = -1;
+    private long usedMemoryEstimate = 0L;
 
     /**
      * @param requestFactory function to create a request
@@ -50,12 +51,17 @@ public final class ShardedRequests<TReq extends ShardRequest<TReq, TItem>, TItem
         this.requestFactory = requestFactory;
     }
 
-    public void add(TItem item, String indexName, String routing, RowSourceInfo rowSourceInfo) {
+    /**
+     * @param itemSizeInBytes an estimate of how many bytes the item occupies in memory
+     */
+    public void add(TItem item, long itemSizeInBytes, String indexName, String routing, RowSourceInfo rowSourceInfo) {
+        usedMemoryEstimate += itemSizeInBytes;
         List<ItemAndRoutingAndSourceInfo<TItem>> items = itemsByMissingIndex.computeIfAbsent(indexName, k -> new ArrayList<>());
         items.add(new ItemAndRoutingAndSourceInfo<>(item, routing, rowSourceInfo));
     }
 
-    public void add(TItem item, ShardLocation shardLocation, RowSourceInfo rowSourceInfo) {
+    public void add(TItem item, long itemSizeInBytes, ShardLocation shardLocation, RowSourceInfo rowSourceInfo) {
+        usedMemoryEstimate += itemSizeInBytes;
         TReq req = itemsByShard.get(shardLocation);
         if (req == null) {
             req = requestFactory.apply(shardLocation.shardId);
@@ -75,6 +81,10 @@ public final class ShardedRequests<TReq extends ShardRequest<TReq, TItem>, TItem
     void addFailedUri(String sourceUri, String uriReadFailure) {
         assert sourceUrisWithFailure.get(sourceUri) == null : "A failure was already stored for this URI, should happen only once";
         sourceUrisWithFailure.put(sourceUri, uriReadFailure);
+    }
+
+    long usedMemoryEstimate() {
+        return usedMemoryEstimate;
     }
 
     static class ItemAndRoutingAndSourceInfo<TItem> {

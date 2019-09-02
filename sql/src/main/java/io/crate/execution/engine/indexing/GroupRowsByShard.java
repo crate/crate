@@ -27,11 +27,11 @@ import io.crate.data.Row;
 import io.crate.execution.dml.ShardRequest;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.RowShardResolver;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.index.IndexNotFoundException;
 
 import javax.annotation.Nullable;
@@ -43,6 +43,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
+import java.util.function.ToLongFunction;
 
 public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TItem extends ShardRequest.Item>
     implements BiConsumer<ShardedRequests<TReq, TItem>, Row> {
@@ -60,9 +61,11 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
     private final Predicate<ShardedRequests> hasSourceUriFailure;
     private final Input<String> sourceUriInput;
     private final Input<Long> lineNumberInput;
+    private final ToLongFunction<Row> estimateRowSize;
 
     GroupRowsByShard(ClusterService clusterService,
                      RowShardResolver rowShardResolver,
+                     ToLongFunction<Row> estimateRowSize,
                      Supplier<String> indexNameResolver,
                      List<? extends CollectExpression<Row, ?>> expressions,
                      List<? extends CollectExpression<Row, ?>> sourceInfoExpressions,
@@ -72,6 +75,7 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
                      Input<String> sourceUriInput,
                      Input<Long> lineNumberInput,
                      boolean autoCreateIndices) {
+        this.estimateRowSize = estimateRowSize;
         assert expressions instanceof RandomAccess
             : "expressions should be a RandomAccess list for zero allocation iterations";
 
@@ -113,10 +117,11 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
 
             RowSourceInfo rowSourceInfo = RowSourceInfo.emptyMarkerOrNewInstance(sourceUri, lineNumber);
             ShardLocation shardLocation = getShardLocation(indexName, id, routing);
+            long sizeEstimate = estimateRowSize.applyAsLong(row);
             if (shardLocation == null) {
-                shardedRequests.add(item, indexName, routing, rowSourceInfo);
+                shardedRequests.add(item, sizeEstimate, indexName, routing, rowSourceInfo);
             } else {
-                shardedRequests.add(item, shardLocation, rowSourceInfo);
+                shardedRequests.add(item, sizeEstimate, shardLocation, rowSourceInfo);
             }
         } catch (Throwable t) {
             itemFailureRecorder.accept(shardedRequests, t.getMessage());
@@ -171,7 +176,7 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
                 if (shardLocation == null) {
                     throw new IllegalStateException("shardLocation not resolvable after createIndices");
                 }
-                requests.add(itemAndRoutingAndSourceInfo.item, shardLocation, itemAndRoutingAndSourceInfo.rowSourceInfo);
+                requests.add(itemAndRoutingAndSourceInfo.item, 0, shardLocation, itemAndRoutingAndSourceInfo.rowSourceInfo);
                 it.remove();
             }
             if (items.isEmpty()) {
