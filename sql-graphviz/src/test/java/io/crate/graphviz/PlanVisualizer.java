@@ -111,14 +111,14 @@ public final class PlanVisualizer {
                     out.write(generateDotOutput(optimizedPlan).getBytes(StandardCharsets.UTF_8));
                 }
                 LogicalPlan optimizedWithFetch = optimizedPlan.rewriteForFetch(
-                    FetchMode.MAYBE_CLEAR, new HashSet<>(normalizedRelation.outputs()));
+                    FetchMode.MAYBE_RESET_USED_COLUMNS, new HashSet<>(normalizedRelation.outputs()), true);
                 if (optimizedWithFetch != null) {
                     try (var out = Files.newOutputStream(Paths.get("/tmp/plan-optimized-fetch.gv"))) {
                         out.write(generateDotOutput(optimizedWithFetch).getBytes(StandardCharsets.UTF_8));
                     }
                 }
                 LogicalPlan planWithFetch = plan.rewriteForFetch(
-                    FetchMode.MAYBE_CLEAR, new HashSet<>(normalizedRelation.outputs()));
+                    FetchMode.MAYBE_RESET_USED_COLUMNS, new HashSet<>(normalizedRelation.outputs()), true);
                 if (planWithFetch != null) {
                     try (var out = Files.newOutputStream(Paths.get("/tmp/plan-fetch.gv"))) {
                         out.write(generateDotOutput(planWithFetch).getBytes(StandardCharsets.UTF_8));

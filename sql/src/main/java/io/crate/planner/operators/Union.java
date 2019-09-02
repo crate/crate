@@ -83,7 +83,7 @@ public class Union implements LogicalPlan {
         );
     }
 
-    Union(LogicalPlan lhs, LogicalPlan rhs, List<Symbol> outputs) {
+    private Union(LogicalPlan lhs, LogicalPlan rhs, List<Symbol> outputs) {
         this.lhs = lhs;
         this.rhs = rhs;
         this.outputs = outputs;
@@ -92,9 +92,9 @@ public class Union implements LogicalPlan {
 
     @Nullable
     @Override
-    public LogicalPlan rewriteForFetch(FetchMode fetchMode, Set<Symbol> usedBeforeNextFetch) {
-        LogicalPlan newLhs = lhs.rewriteForFetch(FetchMode.NEVER_CLEAR, new LinkedHashSet<>(lhs.outputs()));
-        LogicalPlan newRhs = rhs.rewriteForFetch(FetchMode.NEVER_CLEAR, new LinkedHashSet<>(rhs.outputs()));
+    public LogicalPlan rewriteForFetch(FetchMode fetchMode, Set<Symbol> usedBeforeNextFetch, boolean isLastFetch) {
+        LogicalPlan newLhs = lhs.rewriteForFetch(FetchMode.PROPAGATE_USED_COLUMNS, new LinkedHashSet<>(lhs.outputs()), true);
+        LogicalPlan newRhs = rhs.rewriteForFetch(FetchMode.PROPAGATE_USED_COLUMNS, new LinkedHashSet<>(rhs.outputs()), true);
 
         if (newLhs == null && newRhs == null) {
             return null;

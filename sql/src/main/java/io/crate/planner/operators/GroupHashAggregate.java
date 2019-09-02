@@ -75,11 +75,11 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
 
     @Nullable
     @Override
-    public LogicalPlan rewriteForFetch(FetchMode fetchMode, Set<Symbol> usedBeforeNextFetch) {
+    public LogicalPlan rewriteForFetch(FetchMode fetchMode, Set<Symbol> usedBeforeNextFetch, boolean isLastFetch) {
         HashSet<Symbol> usedCols = new LinkedHashSet<>();
         usedCols.addAll(groupKeys);
         usedCols.addAll(extractColumns(aggregates));
-        LogicalPlan newSource = source.rewriteForFetch(fetchMode, usedCols);
+        LogicalPlan newSource = source.rewriteForFetch(fetchMode, usedCols, isLastFetch);
         if (newSource == null) {
             return null;
         } else {

@@ -63,11 +63,11 @@ public class Order extends ForwardingLogicalPlan {
 
     @Nullable
     @Override
-    public LogicalPlan rewriteForFetch(FetchMode fetchMode, Set<Symbol> usedBeforeNextFetch) {
+    public LogicalPlan rewriteForFetch(FetchMode fetchMode, Set<Symbol> usedBeforeNextFetch, boolean isLastFetch) {
         Set<Symbol> allUsedColumns = new LinkedHashSet<>();
         allUsedColumns.addAll(extractColumns(orderBy.orderBySymbols()));
         allUsedColumns.addAll(usedBeforeNextFetch);
-        LogicalPlan newSource = source.rewriteForFetch(fetchMode, allUsedColumns);
+        LogicalPlan newSource = source.rewriteForFetch(fetchMode, allUsedColumns, isLastFetch);
         return newSource == null ? null : new Order(newSource, orderBy);
     }
 

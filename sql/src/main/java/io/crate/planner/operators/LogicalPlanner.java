@@ -164,7 +164,6 @@ public class LogicalPlanner {
         LogicalPlan plan = prePlan(
             relation,
             subqueryPlanner,
-            true,
             functions,
             plannerContext.transactionContext(),
             Set.of(),
@@ -173,7 +172,8 @@ public class LogicalPlanner {
 
         plan = tryOptimizeForInSubquery(selectSymbol, relation, plan);
         LogicalPlan optimizedPlan = optimizer.optimize(maybeApplySoftLimit.apply(plan));
-        LogicalPlan planWithFetch = optimizedPlan.rewriteForFetch(FetchMode.NEVER_CLEAR, new HashSet<>(relation.outputs()));
+        LogicalPlan planWithFetch = optimizedPlan.rewriteForFetch(
+            FetchMode.PROPAGATE_USED_COLUMNS, new HashSet<>(relation.outputs()), true);
         return new RootRelationBoundary(planWithFetch == null ? optimizedPlan : planWithFetch);
     }
 
@@ -204,10 +204,10 @@ public class LogicalPlanner {
         System.out.println(logicalPlan);
         LogicalPlan optimizedPlan = optimizer.optimize(logicalPlan);
         System.out.println(optimizedPlan);
-        if (true) {
+        if (false) {
             return optimizedPlan;
         }
-        LogicalPlan planWithFetch = optimizedPlan.rewriteForFetch(fetchMode, new HashSet<>(relation.outputs()));
+        LogicalPlan planWithFetch = optimizedPlan.rewriteForFetch(fetchMode, new HashSet<>(relation.outputs()), true);
         System.out.println(planWithFetch);
         return planWithFetch == null ? optimizedPlan : planWithFetch;
     }
@@ -219,7 +219,7 @@ public class LogicalPlanner {
                                    CoordinatorTxnCtx txnCtx,
                                    Set<PlanHint> hints,
                             TableStats tableStats) {
-        LogicalPlan plan = prePlan(relation, subqueryPlanner, isLastFetch, functions, txnCtx, hints, tableStats);
+        LogicalPlan plan = prePlan(relation, subqueryPlanner, functions, txnCtx, hints, tableStats);
         if (isLastFetch) {
             return plan;
         }
@@ -235,7 +235,6 @@ public class LogicalPlanner {
 
     private static LogicalPlan prePlan(AnalyzedRelation relation,
                                        SubqueryPlanner subqueryPlanner,
-                                       boolean isLastFetch,
                                        Functions functions,
                                        CoordinatorTxnCtx txnCtx,
                                        Set<PlanHint> hints,
@@ -278,7 +277,6 @@ public class LogicalPlanner {
                     relation.offset()
                 ),
                 relation.outputs(),
-                isLastFetch,
                 relation.limit() != null
             ),
             relation,
@@ -459,7 +457,7 @@ public class LogicalPlanner {
         @Override
         public LogicalPlan visitSelectStatement(AnalyzedRelation relation, PlannerContext context) {
             SubqueryPlanner subqueryPlanner = new SubqueryPlanner((s) -> planSubSelect(s, context));
-            LogicalPlan logicalPlan = normalizeAndPlan(relation, context, subqueryPlanner, FetchMode.MAYBE_CLEAR, Set.of());
+            LogicalPlan logicalPlan = normalizeAndPlan(relation, context, subqueryPlanner, FetchMode.MAYBE_RESET_USED_COLUMNS, Set.of());
             return new RootRelationBoundary(logicalPlan);
         }
 

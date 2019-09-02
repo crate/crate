@@ -231,7 +231,7 @@ public class Reference extends Symbol {
 
     @Override
     public String representation() {
-        return toString();
+        return "Ref{" + ident.tableIdent() + '.' + ident.columnIdent() + ", " + type + '}';
     }
 
     @Override

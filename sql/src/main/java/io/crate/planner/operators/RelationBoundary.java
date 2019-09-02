@@ -115,13 +115,13 @@ public class RelationBoundary extends ForwardingLogicalPlan {
 
     @Nullable
     @Override
-    public LogicalPlan rewriteForFetch(FetchMode fetchMode, Set<Symbol> usedBeforeNextFetch) {
+    public LogicalPlan rewriteForFetch(FetchMode fetchMode, Set<Symbol> usedBeforeNextFetch, boolean isLastFetch) {
         Function<? super Symbol, ? extends Symbol> mapFields = FieldReplacer.bind(Field::pointer);
         HashSet<Symbol> mappedUsedColumns = new LinkedHashSet<>(usedBeforeNextFetch.size());
         for (Symbol beforeNextFetch : usedBeforeNextFetch) {
             mappedUsedColumns.add(mapFields.apply(beforeNextFetch));
         }
-        LogicalPlan newSource = source.rewriteForFetch(fetchMode, mappedUsedColumns);
+        LogicalPlan newSource = source.rewriteForFetch(fetchMode, mappedUsedColumns, isLastFetch);
         if (newSource == null) {
             return null;
         }

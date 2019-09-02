@@ -70,8 +70,8 @@ public class Limit extends ForwardingLogicalPlan {
 
     @Nullable
     @Override
-    public LogicalPlan rewriteForFetch(FetchMode fetchMode, Set<Symbol> usedBeforeNextFetch) {
-        LogicalPlan newSource = source.rewriteForFetch(fetchMode, usedBeforeNextFetch);
+    public LogicalPlan rewriteForFetch(FetchMode fetchMode, Set<Symbol> usedBeforeNextFetch, boolean isLastFetch) {
+        LogicalPlan newSource = source.rewriteForFetch(fetchMode, usedBeforeNextFetch, isLastFetch);
         return newSource == null ? null : replaceSources(List.of(newSource));
     }
 

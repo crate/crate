@@ -65,8 +65,8 @@ public class HashAggregate extends ForwardingLogicalPlan {
     @Nullable
     @Override
     public LogicalPlan rewriteForFetch(FetchMode fetchMode,
-                                       Set<Symbol> usedBeforeNextFetch) {
-        LogicalPlan newSource = source.rewriteForFetch(fetchMode, extractColumns(aggregates));
+                                       Set<Symbol> usedBeforeNextFetch, boolean isLastFetch) {
+        LogicalPlan newSource = source.rewriteForFetch(fetchMode, extractColumns(aggregates), isLastFetch);
         return newSource == null ? null : replaceSources(List.of(newSource));
     }
 

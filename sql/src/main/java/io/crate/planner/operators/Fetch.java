@@ -20,22 +20,7 @@
  * agreement.
  */
 
-package io.crate.planner.consumer;
+package io.crate.planner.operators;
 
-/**
- * Used in {@link io.crate.planner.operators.LogicalPlanner} to control how the {@link io.crate.planner.operators.FetchOrEval}
- * operator should behave.
- */
-public enum FetchMode {
-
-    /**
-     * Indicates that FetchOrEval should not clear the {@code usedBeforeNextFetch} columns,
-     * but instead propagate them to it's child.
-     */
-    PROPAGATE_USED_COLUMNS,
-
-    /**
-     * Indicate that FetchOrEval should clear {@code usedBeforeNextFetch} columns and do a fetch if sensible
-     */
-    MAYBE_RESET_USED_COLUMNS
+public class Fetch {
 }

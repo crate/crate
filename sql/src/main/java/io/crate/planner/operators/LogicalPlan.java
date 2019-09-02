@@ -99,7 +99,7 @@ public interface LogicalPlan extends Plan {
 
 
     @Nullable
-    default LogicalPlan rewriteForFetch(FetchMode fetchMode, Set<Symbol> usedBeforeNextFetch) {
+    default LogicalPlan rewriteForFetch(FetchMode fetchMode, Set<Symbol> usedBeforeNextFetch, boolean isLastFetch) {
         return null;
     }
 

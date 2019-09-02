@@ -110,22 +110,19 @@ import static io.crate.planner.operators.OperatorUtils.getUnusedColumns;
  */
 public class FetchOrEval extends ForwardingLogicalPlan {
 
-    private final boolean isLastFetch;
     private final boolean childIsLimited;
     private final boolean doFetch;
     private final List<Symbol> outputs;
 
     static LogicalPlan create(LogicalPlan source,
                               List<Symbol> outputs,
-                              boolean isLastFetch,
                               boolean childIsLimited) {
-        return new FetchOrEval(source, outputs, isLastFetch, childIsLimited, false);
+        return new FetchOrEval(source, outputs, childIsLimited, false);
     }
 
-    public FetchOrEval(LogicalPlan source, List<Symbol> outputs, boolean isLastFetch, boolean childIsLimited, boolean doFetch) {
+    public FetchOrEval(LogicalPlan source, List<Symbol> outputs, boolean childIsLimited, boolean doFetch) {
         super(source);
         this.outputs = outputs;
-        this.isLastFetch = isLastFetch;
         this.childIsLimited = childIsLimited;
         this.doFetch = doFetch;
     }
@@ -212,7 +209,7 @@ public class FetchOrEval extends ForwardingLogicalPlan {
 
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
-        return new FetchOrEval(Lists2.getOnlyElement(sources), outputs, isLastFetch, childIsLimited, doFetch);
+        return new FetchOrEval(Lists2.getOnlyElement(sources), outputs, childIsLimited, doFetch);
     }
 
     private ExecutionPlan planWithFetch(PlannerContext plannerContext,
@@ -474,16 +471,16 @@ public class FetchOrEval extends ForwardingLogicalPlan {
 
     @Nullable
     @Override
-    public LogicalPlan rewriteForFetch(FetchMode fetchMode, Set<Symbol> usedBeforeNextFetch) {
+    public LogicalPlan rewriteForFetch(FetchMode fetchMode, Set<Symbol> usedBeforeNextFetch, boolean isLastFetch) {
         // This avoids collecting scalars unnecessarily if their source-columns are already collected
         // Ex. cases like: select xx from (select x + x as xx, ... from t1 order by x ..)
         Set<Symbol> usedColumns = extractColumns(usedBeforeNextFetch);
         boolean doFetch = isLastFetch;
         LogicalPlan newSource;
-        if (fetchMode == FetchMode.NEVER_CLEAR) {
-            newSource = source.rewriteForFetch(fetchMode, usedColumns);
+        if (fetchMode == FetchMode.PROPAGATE_USED_COLUMNS) {
+            newSource = source.rewriteForFetch(fetchMode, usedColumns, false);
         } else if (isLastFetch) {
-            newSource = source.rewriteForFetch(fetchMode, Set.of());
+            newSource = source.rewriteForFetch(fetchMode, Set.of(), false);
         } else {
             /*
              * In a case like
@@ -501,10 +498,10 @@ public class FetchOrEval extends ForwardingLogicalPlan {
              */
             List<Symbol> unusedColumns = getUnusedColumns(outputs, usedColumns);
             if (unusedColumns.isEmpty() && childIsLimited) {
-                newSource = source.rewriteForFetch(fetchMode, Set.of());
+                newSource = source.rewriteForFetch(fetchMode, Set.of(), false);
                 doFetch = true;
             } else {
-                newSource = source.rewriteForFetch(fetchMode, usedColumns);
+                newSource = source.rewriteForFetch(fetchMode, usedColumns, false);
             }
         }
         if (newSource == null) {
@@ -524,11 +521,11 @@ public class FetchOrEval extends ForwardingLogicalPlan {
                 if (newOutputs.equals(newSource.outputs())) {
                     return newSource;
                 } else {
-                    return new FetchOrEval(newSource, newOutputs, isLastFetch, childIsLimited, false);
+                    return new FetchOrEval(newSource, newOutputs, childIsLimited, false);
                 }
             }
         } else {
-            return new FetchOrEval(newSource, outputs, isLastFetch, childIsLimited, true);
+            return new FetchOrEval(newSource, outputs, childIsLimited, true);
         }
     }
 

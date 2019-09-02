@@ -140,7 +140,7 @@ public class Collect implements LogicalPlan {
 
     @Nullable
     @Override
-    public LogicalPlan rewriteForFetch(FetchMode fetchMode, Set<Symbol> usedBeforeNextFetch) {
+    public LogicalPlan rewriteForFetch(FetchMode fetchMode, Set<Symbol> usedBeforeNextFetch, boolean isLastFetch) {
         if (tableInfo instanceof DocTableInfo) {
             List<Symbol> newOutputs = generateToCollectWithFetch(tableInfo.ident(), outputs, usedBeforeNextFetch);
             if (newOutputs == outputs) {

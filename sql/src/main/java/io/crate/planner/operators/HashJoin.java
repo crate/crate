@@ -217,7 +217,7 @@ public class HashJoin implements LogicalPlan {
 
     @Nullable
     @Override
-    public LogicalPlan rewriteForFetch(FetchMode fetchMode, Set<Symbol> usedBeforeNextFetch) {
+    public LogicalPlan rewriteForFetch(FetchMode fetchMode, Set<Symbol> usedBeforeNextFetch, boolean isLastFetch) {
         HashSet<Symbol> usedFromLeft = new LinkedHashSet<>();
         HashSet<Symbol> usedFromRight = new LinkedHashSet<>();
         addToUsedColumnsIfInSourceSymbols(usedFromLeft, joinCondition, lhs.outputs());
@@ -226,8 +226,8 @@ public class HashJoin implements LogicalPlan {
             addToUsedColumnsIfInSourceSymbols(usedFromLeft, beforeNextFetch, lhs.outputs());
             addToUsedColumnsIfInSourceSymbols(usedFromRight, beforeNextFetch, rhs.outputs());
         }
-        LogicalPlan newLhs = lhs.rewriteForFetch(FetchMode.NEVER_CLEAR, usedFromLeft);
-        LogicalPlan newRhs = rhs.rewriteForFetch(FetchMode.NEVER_CLEAR, usedFromRight);
+        LogicalPlan newLhs = lhs.rewriteForFetch(FetchMode.PROPAGATE_USED_COLUMNS, usedFromLeft, isLastFetch);
+        LogicalPlan newRhs = rhs.rewriteForFetch(FetchMode.PROPAGATE_USED_COLUMNS, usedFromRight, isLastFetch);
         if (newLhs == null && newRhs == null) {
             return null;
         }

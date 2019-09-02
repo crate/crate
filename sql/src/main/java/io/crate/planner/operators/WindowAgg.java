@@ -95,10 +95,10 @@ public class WindowAgg extends ForwardingLogicalPlan {
 
     @Nullable
     @Override
-    public LogicalPlan rewriteForFetch(FetchMode fetchMode, Set<Symbol> usedBeforeNextFetch) {
+    public LogicalPlan rewriteForFetch(FetchMode fetchMode, Set<Symbol> usedBeforeNextFetch, boolean isLastFetch) {
         HashSet<Symbol> allUsedColumns = new HashSet<>(extractColumns(usedBeforeNextFetch));
         allUsedColumns.addAll(extractColumns(windowFunctions));
-        LogicalPlan newSource = source.rewriteForFetch(fetchMode, allUsedColumns);
+        LogicalPlan newSource = source.rewriteForFetch(fetchMode, allUsedColumns, isLastFetch);
         return newSource == null ? null : replaceSources(List.of(newSource));
     }
 

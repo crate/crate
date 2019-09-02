@@ -80,11 +80,11 @@ public class ProjectSet extends ForwardingLogicalPlan {
 
     @Nullable
     @Override
-    public LogicalPlan rewriteForFetch(FetchMode fetchMode, Set<Symbol> usedBeforeNextFetch) {
+    public LogicalPlan rewriteForFetch(FetchMode fetchMode, Set<Symbol> usedBeforeNextFetch, boolean isLastFetch) {
         HashSet<Symbol> allUsedColumns = new HashSet<>(usedBeforeNextFetch);
         Set<Symbol> columnsUsedInTableFunctions = extractColumns(tableFunctions);
         allUsedColumns.addAll(columnsUsedInTableFunctions);
-        LogicalPlan newSource = source.rewriteForFetch(fetchMode, allUsedColumns);
+        LogicalPlan newSource = source.rewriteForFetch(fetchMode, allUsedColumns, isLastFetch);
         if (newSource == null) {
             return null;
         }

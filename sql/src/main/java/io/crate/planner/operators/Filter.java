@@ -82,10 +82,10 @@ public final class Filter extends ForwardingLogicalPlan {
 
     @Nullable
     @Override
-    public LogicalPlan rewriteForFetch(FetchMode fetchMode, Set<Symbol> usedBeforeNextFetch) {
+    public LogicalPlan rewriteForFetch(FetchMode fetchMode, Set<Symbol> usedBeforeNextFetch, boolean isLastFetch) {
         Set<Symbol> allUsedColumns = new LinkedHashSet<>(usedBeforeNextFetch);
         allUsedColumns.addAll(extractColumns(query));
-        LogicalPlan newSource = source.rewriteForFetch(fetchMode, allUsedColumns);
+        LogicalPlan newSource = source.rewriteForFetch(fetchMode, allUsedColumns, isLastFetch);
         if (newSource == null) {
             return null;
         } else {
