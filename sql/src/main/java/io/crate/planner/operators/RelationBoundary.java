@@ -31,6 +31,8 @@ import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.FieldReplacer;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.doc.DocSysColumns;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.consumer.FetchMode;
@@ -141,7 +143,10 @@ public class RelationBoundary extends ForwardingLogicalPlan {
         for (Symbol newSourceOutput : newSource.outputs()) {
             Symbol newOutput = reverseMapping.get(newSourceOutput);
             if (newOutput == null) {
-                Field f = new Field(relation, Symbols.pathFromSymbol(newSourceOutput), newSourceOutput);
+                ColumnIdent column = Symbols.pathFromSymbol(newSourceOutput);
+                assert source.outputs().contains(newSourceOutput) || column.equals(DocSysColumns.FETCHID)
+                    : "fetchRewrite of source may only add a _fetchId column, but not other columns. Got: " + newSourceOutput;
+                Field f = new Field(relation, column, newSourceOutput);
                 newOutputs.add(f);
                 newReverseMapping.put(f.pointer(), f);
             } else {
