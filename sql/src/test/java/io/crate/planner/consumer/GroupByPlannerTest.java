@@ -64,6 +64,7 @@ import org.junit.Test;
 import java.io.IOException;
 import java.util.List;
 
+import static io.crate.test.integration.ClusterServices.NODE_ID;
 import static io.crate.testing.SymbolMatchers.isAggregation;
 import static io.crate.testing.SymbolMatchers.isInputColumn;
 import static io.crate.testing.SymbolMatchers.isReference;

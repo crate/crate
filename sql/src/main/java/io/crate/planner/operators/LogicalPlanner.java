@@ -104,11 +104,11 @@ public class LogicalPlanner {
 
     public static final int NO_LIMIT = -1;
 
-    private final Optimizer optimizer;
+    public final Optimizer optimizer;
     private final TableStats tableStats;
     private final Visitor statementVisitor = new Visitor();
     private final Functions functions;
-    private final RelationNormalizer relationNormalizer;
+    public final RelationNormalizer relationNormalizer;
 
     public LogicalPlanner(Functions functions, TableStats tableStats) {
         this.optimizer = new Optimizer(List.of(
@@ -212,12 +212,12 @@ public class LogicalPlanner {
         return planWithFetch == null ? optimizedPlan : planWithFetch;
     }
 
-    static LogicalPlan plan(AnalyzedRelation relation,
-                            SubqueryPlanner subqueryPlanner,
-                            boolean isLastFetch,
-                            Functions functions,
-                            CoordinatorTxnCtx txnCtx,
-                            Set<PlanHint> hints,
+    public static LogicalPlan plan(AnalyzedRelation relation,
+                                   SubqueryPlanner subqueryPlanner,
+                                   boolean isLastFetch,
+                                   Functions functions,
+                                   CoordinatorTxnCtx txnCtx,
+                                   Set<PlanHint> hints,
                             TableStats tableStats) {
         LogicalPlan plan = prePlan(relation, subqueryPlanner, isLastFetch, functions, txnCtx, hints, tableStats);
         if (isLastFetch) {

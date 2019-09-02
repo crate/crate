@@ -1,0 +1,34 @@
+apply plugin: 'application'
+mainClassName = 'io.crate.graphviz.PlanVisualizer'
+apply from: "$rootDir/gradle/javaModule.gradle"
+
+dependencies {
+    implementation (project(':sql')) {
+        exclude group: 'com.carrotsearch.randomizedtesting', module: 'randomizedtesting-runner'
+    }
+    implementation (project(path: ':sql', configuration: 'testOutput')) {
+        exclude group: 'com.carrotsearch.randomizedtesting', module: 'randomizedtesting-runner'
+    }
+    implementation (project(':integration-testing')) {
+        exclude group: 'com.carrotsearch.randomizedtesting', module: 'randomizedtesting-runner'
+    }
+}
+
+
+shadowJar {
+    append 'META-INF/services/org.apache.lucene.codecs.DocValuesFormat'
+    append 'META-INF/services/org.apache.lucene.codecs.Codec'
+    append 'META-INF/services/org.apache.lucene.codecs.PostingsFormat'
+    exclude('com/carrotsearch/randomizedtesting/**')
+
+    // We keep the benchmarks in the test sources instead of main, because
+    // IntelliJ doesn't pick up the `:sql / testOutput` dependencies otherwise
+    // So test.output contains the benchmarks which we want to have in the jar
+    from sourceSets.test.output
+}
+
+task graphvizJar (
+    dependsOn: shadowJar,
+    description: 'Generates an uberjar for plan visualization',
+    group: 'PlanVisualizer'
+)

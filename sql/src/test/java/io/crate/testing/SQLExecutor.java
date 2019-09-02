@@ -88,6 +88,7 @@ import io.crate.planner.Planner;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.TableStats;
 import io.crate.planner.operators.LogicalPlan;
+import io.crate.planner.operators.LogicalPlanner;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.CreateBlobTable;
@@ -169,7 +170,7 @@ import static org.mockito.Mockito.mock;
 /**
  * Lightweight alternative to {@link SQLTransportExecutor}.
  *
- * Can be used for unit-tests testss which don't require the full execution-layer/nodes to be started.
+ * Can be used for unit-tests tests which don't require the full execution-layer/nodes to be started.
  */
 public class SQLExecutor {
 
@@ -179,6 +180,7 @@ public class SQLExecutor {
     public final Analyzer analyzer;
     public final Planner planner;
     private final RelationNormalizer relationNormalizer;
+    public final LogicalPlanner logicalPlanner;
     private final RelationAnalyzer relAnalyzer;
     private final SessionContext sessionContext;
     private final CoordinatorTxnCtx coordinatorTxnCtx;
@@ -418,6 +420,7 @@ public class SQLExecutor {
                     tableStats,
                     () -> hasValidLicense
                 ),
+                new LogicalPlanner(functions, tableStats),
                 relationAnalyzer,
                 new SessionContext(Option.NONE, user, searchPath),
                 schemas,
@@ -621,6 +624,7 @@ public class SQLExecutor {
     private SQLExecutor(Functions functions,
                         Analyzer analyzer,
                         Planner planner,
+                        LogicalPlanner logicalPlanner,
                         RelationAnalyzer relAnalyzer,
                         SessionContext sessionContext,
                         Schemas schemas,
@@ -629,6 +633,7 @@ public class SQLExecutor {
         this.relationNormalizer = new RelationNormalizer(functions);
         this.analyzer = analyzer;
         this.planner = planner;
+        this.logicalPlanner = logicalPlanner;
         this.relAnalyzer = relAnalyzer;
         this.sessionContext = sessionContext;
         this.coordinatorTxnCtx = new CoordinatorTxnCtx(sessionContext);

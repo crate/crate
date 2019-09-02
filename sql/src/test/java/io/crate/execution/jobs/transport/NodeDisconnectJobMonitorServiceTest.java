@@ -42,6 +42,7 @@ import java.util.Collections;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static io.crate.test.integration.ClusterServices.NODE_ID;
 import static io.crate.testing.DiscoveryNodes.newNode;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;

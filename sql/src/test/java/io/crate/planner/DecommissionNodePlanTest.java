@@ -25,6 +25,8 @@ package io.crate.planner;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.junit.Test;
 
+import static io.crate.test.integration.ClusterServices.NODE_ID;
+import static io.crate.test.integration.ClusterServices.NODE_NAME;
 import static org.hamcrest.Matchers.is;
 
 public class DecommissionNodePlanTest extends CrateDummyClusterServiceUnitTest {

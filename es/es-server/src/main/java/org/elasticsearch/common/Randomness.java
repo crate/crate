@@ -97,6 +97,9 @@ public final class Randomness {
      *                               running but tests.seed is not set
      */
     public static Random get() {
+        if (true) {
+            return getWithoutSeed();
+        }
         if (currentMethod != null && getRandomMethod != null) {
             try {
                 Object randomizedContext = currentMethod.invoke(null);
