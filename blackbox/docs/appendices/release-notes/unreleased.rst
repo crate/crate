@@ -46,6 +46,10 @@ None
 Fixes
 =====
 
+- Fail the storage engine if indexing on a replica shard fails after it was
+  successfully done on a primary shard. It prevents replica and primary shards
+  from going out of sync.
+
 - Fixed bug in the disk threshold decider logic that would ignore to account
   new relocating shard (``STARTED`` to ``RELOCATING``) when deciding how to
   allocate or relocate shards with respect to
