@@ -134,6 +134,10 @@ Changes
 Fixes
 =====
 
+- Fail the storage engine if indexing on a replica shard fails after it was
+  successfully done on a primary shard. It prevents replica and primary shards
+  from going out of sync.
+
 - Fixed an issue resulting in ``NULL`` values when the ``ORDER BY`` symbol is a
   child of an ignored object column.
 
