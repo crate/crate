@@ -2927,27 +2927,6 @@ public class InternalEngineTests extends EngineTestCase {
                 assertNotNull(indexResult.getTranslogLocation());
                 engine.index(indexForDoc(doc2));
 
-                // test failure while deleting
-                // all these simulated exceptions are not fatal to the IW so we treat them as document failures
-                final Engine.DeleteResult deleteResult;
-                if (randomBoolean()) {
-                    throwingIndexWriter.get().setThrowFailure(() -> new IOException("simulated"));
-                    deleteResult = engine.delete(new Engine.Delete(
-                        "default", "1", newUid(doc1), UNASSIGNED_SEQ_NO,
-                        primaryTerm.get(), Versions.MATCH_ANY, VersionType.INTERNAL,
-                        Engine.Operation.Origin.PRIMARY, System.nanoTime(), UNASSIGNED_SEQ_NO, 0));
-                    assertThat(deleteResult.getFailure(), instanceOf(IOException.class));
-                } else {
-                    throwingIndexWriter.get().setThrowFailure(() -> new IllegalArgumentException("simulated max token length"));
-                    deleteResult = engine.delete(new Engine.Delete(
-                        "default", "1",  newUid(doc1), UNASSIGNED_SEQ_NO,
-                        primaryTerm.get(), Versions.MATCH_ANY, VersionType.INTERNAL,
-                        Engine.Operation.Origin.PRIMARY, System.nanoTime(), UNASSIGNED_SEQ_NO, 0));
-                    assertThat(deleteResult.getFailure(), instanceOf(IllegalArgumentException.class));
-                }
-                assertThat(deleteResult.getVersion(), equalTo(2L));
-                assertThat(deleteResult.getSeqNo(), equalTo(3L));
-
                 // test non document level failure is thrown
                 if (randomBoolean()) {
                     // simulate close by corruption
@@ -2983,6 +2962,43 @@ public class InternalEngineTests extends EngineTestCase {
                 } catch (Exception e) {
                     assertThat(e, instanceOf(AlreadyClosedException.class));
                 }
+            }
+        }
+    }
+
+    public void testDeleteWithFatalError() throws Exception {
+        final IllegalStateException tragicException = new IllegalStateException("fail to store tombstone");
+        try (Store store = createStore()) {
+            EngineConfig.TombstoneDocSupplier tombstoneDocSupplier = new EngineConfig.TombstoneDocSupplier() {
+                @Override
+                public ParsedDocument newDeleteTombstoneDoc(String id) {
+                    ParsedDocument parsedDocument = tombstoneDocSupplier().newDeleteTombstoneDoc(id);
+                    parsedDocument.rootDoc().add(new StoredField("foo", "bar") {
+                        // this is a hack to add a failure during store document which triggers a tragic event
+                        // and in turn fails the engine
+                        @Override
+                        public BytesRef binaryValue() {
+                            throw tragicException;
+                        }
+                    });
+                    return parsedDocument;
+                }
+
+                @Override
+                public ParsedDocument newNoopTombstoneDoc(String reason) {
+                    return tombstoneDocSupplier().newNoopTombstoneDoc(reason);
+                }
+            };
+            try (InternalEngine engine = createEngine(config(this.engine.config(), store, tombstoneDocSupplier))) {
+                final ParsedDocument doc = testParsedDocument("1", null, testDocumentWithTextField(), SOURCE, null);
+                engine.index(indexForDoc(doc));
+                expectThrows(IllegalStateException.class, () -> engine.delete(
+                    new Engine.Delete(
+                        "test", "1", newUid(doc), UNASSIGNED_SEQ_NO,
+                        primaryTerm.get(), Versions.MATCH_ANY, VersionType.INTERNAL,
+                        Engine.Operation.Origin.PRIMARY, System.nanoTime(), UNASSIGNED_SEQ_NO, 0)));
+                assertTrue(engine.isClosed.get());
+                assertSame(tragicException, engine.failedEngine.get());
             }
         }
     }
