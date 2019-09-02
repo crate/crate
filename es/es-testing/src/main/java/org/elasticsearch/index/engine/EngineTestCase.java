@@ -565,12 +565,61 @@ public abstract class EngineTestCase extends ESTestCase {
             globalCheckpointSupplier = new ReplicationTracker(shardId, allocationId.getId(), indexSettings, SequenceNumbers.NO_OPS_PERFORMED, update -> {
             });
         }
-        EngineConfig config = new EngineConfig(shardId, allocationId.getId(), threadPool, indexSettings, null, store,
-            mergePolicy, iwc.getAnalyzer(), new CodecService(null, logger), listener,
-            IndexSearcher.getDefaultQueryCache(), IndexSearcher.getDefaultQueryCachingPolicy(), translogConfig,
-            TimeValue.timeValueMinutes(5), extRefreshListenerList, intRefreshListenerList, new NoneCircuitBreakerService(),
-            globalCheckpointSupplier, primaryTerm::get, tombstoneDocSupplier());
-        return config;
+
+        return new EngineConfig(
+            shardId,
+            allocationId.getId(),
+            threadPool,
+            indexSettings,
+            null,
+            store,
+            mergePolicy,
+            iwc.getAnalyzer(),
+            new CodecService(null, logger),
+            listener,
+            IndexSearcher.getDefaultQueryCache(),
+            IndexSearcher.getDefaultQueryCachingPolicy(),
+            translogConfig,
+            TimeValue.timeValueMinutes(5),
+            extRefreshListenerList,
+            intRefreshListenerList,
+            new NoneCircuitBreakerService(),
+            globalCheckpointSupplier,
+            primaryTerm::get,
+            tombstoneDocSupplier());
+    }
+
+    protected EngineConfig config(EngineConfig config,
+                                  Store store,
+                                  EngineConfig.TombstoneDocSupplier tombstoneDocSupplier) {
+        IndexSettings indexSettings = IndexSettingsModule.newIndexSettings(
+            "test",
+            Settings.builder()
+                .put(config.getIndexSettings().getSettings())
+                .put(IndexSettings.INDEX_SOFT_DELETES_SETTING.getKey(), true)
+                .build()
+        );
+        return new EngineConfig(
+            config.getShardId(),
+            config.getAllocationId(),
+            config.getThreadPool(),
+            indexSettings,
+            config.getWarmer(),
+            store,
+            config.getMergePolicy(),
+            config.getAnalyzer(),
+            new CodecService(null, logger),
+            config.getEventListener(),
+            config.getQueryCache(),
+            config.getQueryCachingPolicy(),
+            config.getTranslogConfig(),
+            config.getFlushMergesAfter(),
+            config.getExternalRefreshListener(),
+            config.getInternalRefreshListener(),
+            config.getCircuitBreakerService(),
+            config.getGlobalCheckpointSupplier(),
+            config.getPrimaryTermSupplier(),
+            tombstoneDocSupplier);
     }
 
     protected static final BytesReference B_1 = new BytesArray(new byte[]{1});
