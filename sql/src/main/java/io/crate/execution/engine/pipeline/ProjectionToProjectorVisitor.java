@@ -403,7 +403,6 @@ public class ProjectionToProjectorVisitor
         } else {
             upsertResultContext = UpsertResultContext.forRowCount();
         }
-
         return new IndexWriterProjector(
             clusterService,
             nodeJobsCounter,
