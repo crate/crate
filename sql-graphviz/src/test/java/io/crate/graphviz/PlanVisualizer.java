@@ -36,9 +36,18 @@ import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LogicalPlanVisitor;
 import io.crate.planner.operators.LogicalPlanner;
 import io.crate.testing.SQLExecutor;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.config.Configurator;
+import org.elasticsearch.common.logging.LogConfigurator;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -51,15 +60,20 @@ import static io.crate.test.integration.ClusterServices.createClusterService;
 public final class PlanVisualizer {
 
     public static void main(String[] args) throws Exception {
+        final String loggerLevel = System.getProperty("es.logger.level", Level.ERROR.name());
+        final Settings settings = Settings.builder().put("logger.level", loggerLevel).build();
+        LogConfigurator.configureWithoutConfig(settings);
         var clusterService = createClusterService(
             List.of(),
             "PlanVisualizer",
             new ThreadPool(Settings.EMPTY)
         );
-        args = new String[] {
-            "create table t1 (x int)",
-            "select * from t1"
-        };
+        if (args.length == 0) {
+            args = new String[]{
+                "create table t1 (x int)",
+                "select * from t1"
+            };
+        }
         SQLExecutor.Builder builder = SQLExecutor.builder(clusterService, 2, new Random());
         for (String arg : args) {
             if (arg.toLowerCase(Locale.ENGLISH).startsWith("create table")) {
@@ -83,11 +97,17 @@ public final class PlanVisualizer {
                     true,
                     e.functions(),
                     txnCtx).build(new TableStats(), Set.of(), new HashSet<>(normalizedRelation.outputs()));
+                try (var out = Files.newOutputStream(Paths.get("/tmp/plan-1.gv"))) {
+                    out.write(generateDotOutput(plan).getBytes(StandardCharsets.UTF_8));
+                }
                 System.out.println(generateDotOutput(plan));
                 LogicalPlan optimizedPlan = e.logicalPlanner.optimizer.optimize(plan);
+                try (var out = Files.newOutputStream(Paths.get("/tmp/plan-2.gv"))) {
+                    out.write(generateDotOutput(optimizedPlan).getBytes(StandardCharsets.UTF_8));
+                }
                 System.out.println();
                 System.out.println();
-                System.out.println(generateDotOutput(optimizedPlan));
+                //System.out.println(generateDotOutput(optimizedPlan));
             }
         }
     }

@@ -114,7 +114,7 @@ public class Loggers {
         if (!LogManager.ROOT_LOGGER_NAME.equals(logger.getName())) {
             Configurator.setLevel(logger.getName(), level);
         } else {
-            final LoggerContext ctx = LoggerContext.getContext(false);
+            final LoggerContext ctx = LoggerContext.getContext(Loggers.class.getClassLoader(), false, null);
             final Configuration config = ctx.getConfiguration();
             final LoggerConfig loggerConfig = config.getLoggerConfig(logger.getName());
             loggerConfig.setLevel(level);
@@ -122,7 +122,7 @@ public class Loggers {
         }
 
         // we have to descend the hierarchy
-        final LoggerContext ctx = LoggerContext.getContext(false);
+        final LoggerContext ctx = LoggerContext.getContext(Loggers.class.getClassLoader(), false, null);
         for (final LoggerConfig loggerConfig : ctx.getConfiguration().getLoggers().values()) {
             if (LogManager.ROOT_LOGGER_NAME.equals(logger.getName()) || loggerConfig.getName().startsWith(logger.getName() + ".")) {
                 Configurator.setLevel(loggerConfig.getName(), level);
