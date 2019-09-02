@@ -29,10 +29,8 @@ import io.crate.data.Row;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.FieldReplacer;
+import io.crate.expression.symbol.RefReplacer;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.doc.DocSysColumns;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.consumer.FetchMode;
@@ -95,6 +93,10 @@ public class RelationBoundary extends ForwardingLogicalPlan {
         this.reverseMapping = reverseMapping;
     }
 
+    public Map<Symbol, Symbol> reverseMapping() {
+        return reverseMapping;
+    }
+
     @Override
     public Set<QualifiedName> getRelationNames() {
         return Set.of(relation.getQualifiedName());
@@ -143,18 +145,15 @@ public class RelationBoundary extends ForwardingLogicalPlan {
         for (Symbol newSourceOutput : newSource.outputs()) {
             Symbol newOutput = reverseMapping.get(newSourceOutput);
             if (newOutput == null) {
-                ColumnIdent column = Symbols.pathFromSymbol(newSourceOutput);
-                assert source.outputs().contains(newSourceOutput) || column.equals(DocSysColumns.FETCHID)
-                    : "fetchRewrite of source may only add a _fetchId column, but not other columns. Got: " + newSourceOutput;
-                Field f = new Field(relation, column, newSourceOutput);
-                newOutputs.add(f);
-                newReverseMapping.put(f.pointer(), f);
-            } else {
-                newReverseMapping.put(newSourceOutput, newOutput);
-                assert !(newOutput instanceof Field) || ((Field) newOutput).pointer().equals(newSourceOutput)
-                    : "Field " + newOutput + " must point to " + newSourceOutput;
-                newOutputs.add(newOutput);
+                newOutput = RefReplacer.replaceRefs(
+                    FieldReplacer.replaceFields(newSourceOutput, f -> new Field(relation, f.path(), f)),
+                    ref -> new Field(relation, ref.column(), ref)
+                );
             }
+            newOutputs.add(newOutput);
+            newReverseMapping.put(newSourceOutput, newOutput);
+            assert !(newOutput instanceof Field) || ((Field) newOutput).pointer().equals(newSourceOutput)
+                : "Field " + newOutput + " must point to " + newSourceOutput;
         }
         return new RelationBoundary(newSource, relation, newOutputs, newReverseMapping);
     }

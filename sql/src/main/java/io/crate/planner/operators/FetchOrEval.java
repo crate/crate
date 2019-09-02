@@ -238,15 +238,19 @@ public class FetchOrEval extends ForwardingLogicalPlan {
         };
         List<Symbol> fetchOutputs = new ArrayList<>(outputs.size());
         for (Symbol output : outputs) {
-            fetchOutputs.add(toInputColOrFetchRef(
-                output,
-                sourceOutputs,
-                fetchInputColumnsByTable,
-                allocateFetchRef,
-                null,
-                subQueryResults,
-                params)
-            );
+            try {
+                fetchOutputs.add(toInputColOrFetchRef(
+                    output,
+                    sourceOutputs,
+                    fetchInputColumnsByTable,
+                    allocateFetchRef,
+                    null,
+                    subQueryResults,
+                    params)
+                );
+            } catch (AssertionError e) {
+                throw new AssertionError("Could not create InputColumn/FetchReference for output=" + output + " given the sources=" + sourceOutputs + "\nerror=" + e);
+            }
         }
         if (source.baseTables().size() == 1) {
             // If there are no relation boundaries involved the outputs will have contained no fields but only references

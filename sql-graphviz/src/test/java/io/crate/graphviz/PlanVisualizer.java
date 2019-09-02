@@ -24,6 +24,7 @@ package io.crate.graphviz;
 
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.SubqueryPlanner;
@@ -34,6 +35,7 @@ import io.crate.planner.operators.FetchOrEval;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LogicalPlanVisitor;
 import io.crate.planner.operators.LogicalPlanner;
+import io.crate.planner.operators.NestedLoopJoin;
 import io.crate.planner.operators.Order;
 import io.crate.planner.operators.RelationBoundary;
 import io.crate.testing.SQLExecutor;
@@ -68,12 +70,14 @@ public final class PlanVisualizer {
             new ThreadPool(Settings.EMPTY)
         );
         if (args.length == 0) {
-            String s = "select aa, (xxi + 1) \n" +
-                       "from (select (xx + i) as xxi, concat(a, a) as aa \n" +
-                       " from (select a, i, (x + x) as xx from t1) as t) as tt \n" +
-                       "order by aa";
+            String s = "select aa, xyi from (\n" +
+                       "  select (xy + i) as xyi, aa from (\n" +
+                       "    select concat(t1.a, t2.a) as aa, t2.i, (t1.x + t2.y) as xy \n" +
+                       "    from t1, t2 where t1.a='a' or t2.a='aa') as t) as tt \n" +
+                       "order by aa, xyi";
             args = new String[]{
                 "create table t1 (a string, i integer, x integer)",
+                "create table t2 (a string, i integer, y integer)",
                 s
             };
         }
@@ -222,6 +226,10 @@ public final class PlanVisualizer {
 
             context.sb.append(startTable("RelationBoundary(" + id + ")"));
             addRows(context.sb, boundary.outputs());
+            context.sb.append("<TR><TD>---</TD></TR>\n");
+            addRows(context.sb, boundary.reverseMapping().entrySet().stream()
+                .map(e -> e.getKey().toString() + " → " + e.getValue().toString())
+                .collect(Collectors.toList()));
             endTable(context.sb);
 
             String sourceName = boundary.source().accept(this, context);
@@ -230,6 +238,31 @@ public final class PlanVisualizer {
             context.sb.append(" -> ");
             context.sb.append(sourceName);
             context.sb.append("\n");
+            return name;
+        }
+
+        @Override
+        public String visitNestedLoopJoin(NestedLoopJoin nestedLoop, Context context) {
+            int id = context.idGen.incrementAndGet();
+            String name = "\"NestedLoop[" + id + "]\"";
+            context.sb.append(name);
+            context.sb.append(" [\n");
+
+            context.sb.append(startTable("NestedLoop(" + id + "/" + nestedLoop.joinType() + "))"));
+            Symbol joinCondition = nestedLoop.joinCondition();
+            if (joinCondition != null) {
+                addRow(context.sb, "JoinCondition: " + joinCondition.toString());
+            }
+            addRows(context.sb, nestedLoop.outputs());
+            endTable(context.sb);
+
+            for (LogicalPlan source : nestedLoop.sources()) {
+                String sourceName = source.accept(this, context);
+                context.sb.append(name);
+                context.sb.append(" -> ");
+                context.sb.append(sourceName);
+                context.sb.append("\n");
+            }
             return name;
         }
 
@@ -242,10 +275,14 @@ public final class PlanVisualizer {
 
         private static void addRows(StringBuilder sb, Iterable<?> items) {
             for (Object item : items) {
-                sb.append("<TR><TD>")
-                    .append(item.toString())
-                    .append("</TD></TR>\n");
+                addRow(sb, item);
             }
+        }
+
+        private static void addRow(StringBuilder sb, Object item) {
+            sb.append("<TR><TD>")
+                .append(item.toString())
+                .append("</TD></TR>\n");
         }
 
         private static String startTable(String name) {
