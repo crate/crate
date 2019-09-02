@@ -97,7 +97,7 @@ public final class Randomness {
      *                               running but tests.seed is not set
      */
     public static Random get() {
-        if (true) {
+        if ("true".equalsIgnoreCase(System.getProperty("cratedb.skip_randomness_check"))) {
             return getWithoutSeed();
         }
         if (currentMethod != null && getRandomMethod != null) {

@@ -24,7 +24,6 @@ package io.crate.graphviz;
 
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.SubqueryPlanner;
@@ -35,16 +34,14 @@ import io.crate.planner.operators.FetchOrEval;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LogicalPlanVisitor;
 import io.crate.planner.operators.LogicalPlanner;
+import io.crate.planner.operators.Order;
+import io.crate.planner.operators.RelationBoundary;
 import io.crate.testing.SQLExecutor;
 import org.apache.logging.log4j.Level;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.core.config.Configurator;
 import org.elasticsearch.common.logging.LogConfigurator;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -54,6 +51,7 @@ import java.util.Locale;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 import static io.crate.test.integration.ClusterServices.createClusterService;
 
@@ -63,15 +61,20 @@ public final class PlanVisualizer {
         final String loggerLevel = System.getProperty("es.logger.level", Level.ERROR.name());
         final Settings settings = Settings.builder().put("logger.level", loggerLevel).build();
         LogConfigurator.configureWithoutConfig(settings);
+        System.setProperty("cratedb.skip_randomness_check", Boolean.TRUE.toString());
         var clusterService = createClusterService(
             List.of(),
             "PlanVisualizer",
             new ThreadPool(Settings.EMPTY)
         );
         if (args.length == 0) {
+            String s = "select aa, (xxi + 1) \n" +
+                       "from (select (xx + i) as xxi, concat(a, a) as aa \n" +
+                       " from (select a, i, (x + x) as xx from t1) as t) as tt \n" +
+                       "order by aa";
             args = new String[]{
-                "create table t1 (x int)",
-                "select * from t1"
+                "create table t1 (a string, i integer, x integer)",
+                s
             };
         }
         SQLExecutor.Builder builder = SQLExecutor.builder(clusterService, 2, new Random());
@@ -92,18 +95,34 @@ public final class PlanVisualizer {
                 var subQueryPlanner = new SubqueryPlanner(s -> e.logicalPlanner.planSubSelect(s, plannerContext));
                 LogicalPlan plan = LogicalPlanner.plan(
                     normalizedRelation,
-                    FetchMode.MAYBE_CLEAR,
                     subQueryPlanner,
                     true,
                     e.functions(),
-                    txnCtx).build(new TableStats(), Set.of(), new HashSet<>(normalizedRelation.outputs()));
-                try (var out = Files.newOutputStream(Paths.get("/tmp/plan-1.gv"))) {
+                    txnCtx,
+                    Set.of(),
+                    new TableStats()
+                );
+                try (var out = Files.newOutputStream(Paths.get("/tmp/plan.gv"))) {
                     out.write(generateDotOutput(plan).getBytes(StandardCharsets.UTF_8));
                 }
                 System.out.println(generateDotOutput(plan));
                 LogicalPlan optimizedPlan = e.logicalPlanner.optimizer.optimize(plan);
-                try (var out = Files.newOutputStream(Paths.get("/tmp/plan-2.gv"))) {
+                try (var out = Files.newOutputStream(Paths.get("/tmp/plan-optimized.gv"))) {
                     out.write(generateDotOutput(optimizedPlan).getBytes(StandardCharsets.UTF_8));
+                }
+                LogicalPlan optimizedWithFetch = optimizedPlan.rewriteForFetch(
+                    FetchMode.MAYBE_CLEAR, new HashSet<>(normalizedRelation.outputs()));
+                if (optimizedWithFetch != null) {
+                    try (var out = Files.newOutputStream(Paths.get("/tmp/plan-optimized-fetch.gv"))) {
+                        out.write(generateDotOutput(optimizedWithFetch).getBytes(StandardCharsets.UTF_8));
+                    }
+                }
+                LogicalPlan planWithFetch = plan.rewriteForFetch(
+                    FetchMode.MAYBE_CLEAR, new HashSet<>(normalizedRelation.outputs()));
+                if (planWithFetch != null) {
+                    try (var out = Files.newOutputStream(Paths.get("/tmp/plan-fetch.gv"))) {
+                        out.write(generateDotOutput(planWithFetch).getBytes(StandardCharsets.UTF_8));
+                    }
                 }
                 System.out.println();
                 System.out.println();
@@ -142,22 +161,16 @@ public final class PlanVisualizer {
             String name = "\"FetchOrEval[" + id + "]\"";
             context.sb.append(name);
             context.sb.append(" [\n");
-
-            context.sb.append("  label=\"FetchOrEval(").append(id).append(")");
-            for (Symbol output : fetchOrEval.outputs()) {
-                context.sb.append("| ");
-                context.sb.append(output.toString().replace("{", "\\{").replace("}", "\\}"));
-            }
-            context.sb.append("\"\n");
-            context.sb.append("  shape=record\n");
-            context.sb.append("]\n");
-            context.sb.append("\n");
+            context.sb.append(startTable("FetchOrEval(" + id + ")"));
+            addRows(context.sb, fetchOrEval.outputs());
+            endTable(context.sb);
 
             String sourceName = fetchOrEval.source().accept(this, context);
 
             context.sb.append(name);
             context.sb.append(" -> ");
             context.sb.append(sourceName);
+            context.sb.append("\n");
             return name;
         }
 
@@ -167,18 +180,81 @@ public final class PlanVisualizer {
             String name = "\"Collect[" + id + "]\"";
             context.sb.append(name);
             context.sb.append(" [\n");
-
-            context.sb.append("  label=\"Collect(").append(id).append(")");
-            for (Symbol output : collect.outputs()) {
-                context.sb.append("| ");
-                context.sb.append(output.toString().replace("{", "\\{").replace("}", "\\}"));
-            }
-            context.sb.append("\"\n");
-            context.sb.append("  shape=record\n");
-            context.sb.append("]\n");
-            context.sb.append("\n");
+            context.sb.append(startTable("Collect(" + id + ")"));
+            addRows(context.sb, collect.outputs());
+            endTable(context.sb);
 
             return name;
+        }
+
+        @Override
+        public String visitOrder(Order order, Context context) {
+            int id = context.idGen.incrementAndGet();
+            String name = "\"Order[" + id + "]\"";
+            context.sb.append(name);
+            context.sb.append(" [\n");
+
+            context.sb.append(startTable("Order(" + id + ")"));
+            addRows(context.sb, order.outputs());
+            addRows(
+                context.sb,
+                order.orderBy().orderBySymbols().stream()
+                    .map(x -> "ORDER BY " + x.toString())
+                    .collect(Collectors.toList())
+            );
+            endTable(context.sb);
+
+            String sourceName = order.source().accept(this, context);
+
+            context.sb.append(name);
+            context.sb.append(" -> ");
+            context.sb.append(sourceName);
+            context.sb.append("\n");
+            return name;
+        }
+
+        @Override
+        public String visitRelationBoundary(RelationBoundary boundary, Context context) {
+            int id = context.idGen.incrementAndGet();
+            String name = "\"RelationBoundary[" + id + "]\"";
+            context.sb.append(name);
+            context.sb.append(" [\n");
+
+            context.sb.append(startTable("RelationBoundary(" + id + ")"));
+            addRows(context.sb, boundary.outputs());
+            endTable(context.sb);
+
+            String sourceName = boundary.source().accept(this, context);
+
+            context.sb.append(name);
+            context.sb.append(" -> ");
+            context.sb.append(sourceName);
+            context.sb.append("\n");
+            return name;
+        }
+
+        private static void endTable(StringBuilder sb) {
+            sb.append("</TABLE>>\n");
+            sb.append("  shape=none\n");
+            sb.append("]\n");
+            sb.append("\n");
+        }
+
+        private static void addRows(StringBuilder sb, Iterable<?> items) {
+            for (Object item : items) {
+                sb.append("<TR><TD>")
+                    .append(item.toString())
+                    .append("</TD></TR>\n");
+            }
+        }
+
+        private static String startTable(String name) {
+            return ("  label=<<TABLE CELLBORDER=\"0\">\n<TR><TD><B>" + name + "</B></TD></TR>\n");
+        }
+
+        @Override
+        protected String visitPlan(LogicalPlan logicalPlan, Context context) {
+            throw new UnsupportedOperationException("NYI: printing " + logicalPlan);
         }
     }
 }

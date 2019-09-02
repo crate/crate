@@ -116,7 +116,7 @@ public class Field extends Symbol {
         } else {
             formattedPointer = pointer.getClass().getSimpleName() + '{' + Symbols.pathFromSymbol(pointer) + '}';
         }
-        return "Field{" + relation.getQualifiedName() + "." + path + ", ptr=" + formattedPointer + '}';
+        return "Field{" + relation.getQualifiedName() + "." + path + '}';
     }
 
     @Override

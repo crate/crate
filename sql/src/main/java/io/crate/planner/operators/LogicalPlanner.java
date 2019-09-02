@@ -204,7 +204,7 @@ public class LogicalPlanner {
         System.out.println(logicalPlan);
         LogicalPlan optimizedPlan = optimizer.optimize(logicalPlan);
         System.out.println(optimizedPlan);
-        if (false) {
+        if (true) {
             return optimizedPlan;
         }
         LogicalPlan planWithFetch = optimizedPlan.rewriteForFetch(fetchMode, new HashSet<>(relation.outputs()));

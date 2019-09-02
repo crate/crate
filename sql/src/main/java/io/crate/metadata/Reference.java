@@ -231,19 +231,23 @@ public class Reference extends Symbol {
 
     @Override
     public String representation() {
-        return "Ref{" + ident.tableIdent() + '.' + ident.columnIdent() + ", " + type + '}';
+        return toString();
     }
 
     @Override
     public String toString() {
-        return "Ref{"
-               + ident.tableIdent().fqn() + '.' + ident.columnIdent().sqlFqn() + "::" + type +
-               (columnPolicy != ColumnPolicy.DYNAMIC ? ", columnPolicy=" + columnPolicy : "") +
-               (granularity != DOC ? ", granularity=" + granularity : "") +
-               (indexType != IndexType.NOT_ANALYZED ? ", index=" + indexType : "") +
-               ", nullable=" + nullable +
-               (columnStoreDisabled ? ", columnStoreOff=" + columnStoreDisabled : "") +
-               (defaultExpression != null ? ", defaultExpression=" + defaultExpression : "") +
+        return "Ref{" +
+               ident.tableIdent().fqn() +
+               "." +
+               ident.columnIdent().sqlFqn() +
+               (nullable ? "?" : "") +
+               "::" +
+               type +
+               (columnPolicy == ColumnPolicy.DYNAMIC ? "" : ", columnPolicy=" + columnPolicy) +
+               (granularity == DOC ? "" : ", granularity=" + granularity) +
+               (indexType == IndexType.NOT_ANALYZED ? "" : ", index=" + indexType) +
+               (!columnStoreDisabled ? "" : ", columnStoreOff=true") +
+               (defaultExpression == null ? "" : ", defaultExpression=" + defaultExpression) +
                '}';
     }
 

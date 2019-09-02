@@ -240,8 +240,10 @@ public class ShardCollectSource implements CollectSource {
         @Override
         public void beforeIndexShardClosed(ShardId shardId, @Nullable IndexShard indexShard, Settings indexSettings) {
             LOGGER.debug("removing shard upon close in {} shard={} numShards={}", ShardCollectSource.this, shardId, shards.size());
-            assert shards.containsKey(shardId) : "shard entry missing upon close";
-            shards.remove(shardId);
+            Supplier<ShardCollectorProvider> removed = shards.remove(shardId);
+            if (removed == null) {
+                LOGGER.debug("shard entry missing upon close for shard={}", shardId);
+            }
         }
 
         @Override
