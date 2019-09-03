@@ -22,9 +22,7 @@
 
 package io.crate.execution.ddl.tables;
 
-import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import com.google.common.annotations.VisibleForTesting;
-import io.crate.Constants;
 import io.crate.action.FutureActionListener;
 import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SQLOperations;
@@ -33,7 +31,6 @@ import io.crate.analyze.AddColumnAnalyzedStatement;
 import io.crate.analyze.AlterTableAnalyzedStatement;
 import io.crate.analyze.AlterTableOpenCloseAnalyzedStatement;
 import io.crate.analyze.AlterTableRenameAnalyzedStatement;
-import io.crate.concurrent.MultiBiConsumer;
 import io.crate.data.Row;
 import io.crate.execution.ddl.index.SwapAndDropIndexRequest;
 import io.crate.execution.ddl.index.TransportSwapAndDropIndexNameAction;
@@ -42,51 +39,31 @@ import io.crate.execution.support.ChainableActions;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
-import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
-import org.elasticsearch.action.admin.indices.mapping.put.TransportPutMappingAction;
 import org.elasticsearch.action.admin.indices.shrink.ResizeRequest;
 import org.elasticsearch.action.admin.indices.shrink.ResizeResponse;
 import org.elasticsearch.action.admin.indices.shrink.ResizeType;
 import org.elasticsearch.action.admin.indices.shrink.TransportResizeAction;
-import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
-import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.action.support.ActiveShardCount;
-import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
-import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Nullable;
-import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.DeprecationHandler;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.XContentHelper;
-import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.BiConsumer;
 
 import static org.elasticsearch.cluster.metadata.IndexMetaData.INDEX_BLOCKS_WRITE_SETTING;
 import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_SHARDS;
@@ -97,8 +74,6 @@ public class AlterTableOperation {
     public static final String RESIZE_PREFIX = ".resized.";
 
     private final ClusterService clusterService;
-    private final TransportPutIndexTemplateAction transportPutIndexTemplateAction;
-    private final TransportPutMappingAction transportPutMappingAction;
     private final TransportAlterTableAction transportAlterTableAction;
     private final TransportRenameTableAction transportRenameTableAction;
     private final TransportOpenCloseTableOrPartitionAction transportOpenCloseTableOrPartitionAction;
@@ -110,8 +85,6 @@ public class AlterTableOperation {
 
     @Inject
     public AlterTableOperation(ClusterService clusterService,
-                               TransportPutIndexTemplateAction transportPutIndexTemplateAction,
-                               TransportPutMappingAction transportPutMappingAction,
                                TransportRenameTableAction transportRenameTableAction,
                                TransportOpenCloseTableOrPartitionAction transportOpenCloseTableOrPartitionAction,
                                TransportResizeAction transportResizeAction,
@@ -121,8 +94,6 @@ public class AlterTableOperation {
                                SQLOperations sqlOperations) {
 
         this.clusterService = clusterService;
-        this.transportPutIndexTemplateAction = transportPutIndexTemplateAction;
-        this.transportPutMappingAction = transportPutMappingAction;
         this.transportRenameTableAction = transportRenameTableAction;
         this.transportResizeAction = transportResizeAction;
         this.transportDeleteIndexAction = transportDeleteIndexAction;
@@ -133,7 +104,7 @@ public class AlterTableOperation {
     }
 
     public CompletableFuture<Long> executeAlterTableAddColumn(final AddColumnAnalyzedStatement analysis) {
-        final CompletableFuture<Long> result = new CompletableFuture<>();
+        FutureActionListener<AcknowledgedResponse, Long> result = new FutureActionListener<>(r -> -1L);
         if (analysis.newPrimaryKeys() || analysis.hasNewGeneratedColumns()) {
             RelationName ident = analysis.table().ident();
             String stmt =
@@ -145,7 +116,7 @@ public class AlterTableOperation {
                 result.completeExceptionally(t);
             }
         } else {
-            addColumnToTable(analysis, result);
+            return addColumnToTable(analysis, result);
         }
         return result;
     }
@@ -368,188 +339,31 @@ public class AlterTableOperation {
         return listener;
     }
 
-
-    private CompletableFuture<Long> updateTemplate(Map<String, Object> newMappings,
-
-                                                   RelationName relationName) {
-        String templateName = PartitionName.templateName(relationName.schema(), relationName.name());
-        IndexTemplateMetaData indexTemplateMetaData =
-            clusterService.state().metaData().templates().get(templateName);
-        if (indexTemplateMetaData == null) {
-            return CompletableFuture.failedFuture(new RuntimeException("Template '" + templateName + "' for partitioned table is missing"));
-        }
-
-        PutIndexTemplateRequest request = preparePutIndexTemplateRequest(indexTemplateMetaData,
-            newMappings, Collections.emptyMap(), relationName, templateName);
-        FutureActionListener<AcknowledgedResponse, Long> listener = new FutureActionListener<>(r -> -1L);
-        transportPutIndexTemplateAction.execute(request, listener);
-        return listener;
-    }
-
-    static PutIndexTemplateRequest preparePutIndexTemplateRequest(IndexTemplateMetaData indexTemplateMetaData,
-                                                                  Map<String, Object> newMappings,
-                                                                  Map<String, Object> mappingsToRemove,
-                                                                  RelationName relationName,
-                                                                  String templateName) {
-        //merge and remove mappings
-        Map<String, Object> mapping = removeFromMapping(mergeTemplateMapping(indexTemplateMetaData, newMappings),
-                                                        mappingsToRemove);
-
-        PutIndexTemplateRequest request = new PutIndexTemplateRequest(templateName)
-            .create(false)
-            .mapping(Constants.DEFAULT_MAPPING_TYPE, mapping)
-            .settings(indexTemplateMetaData.settings())
-            .order(indexTemplateMetaData.order())
-            .patterns(indexTemplateMetaData.getPatterns())
-            .alias(new Alias(relationName.indexNameOrAlias()));
-
-        for (ObjectObjectCursor<String, AliasMetaData> container : indexTemplateMetaData.aliases()) {
-            Alias alias = new Alias(container.key);
-            request.alias(alias);
-        }
-        return request;
-    }
-
-    /**
-     It is important to add the _meta field explicitly to the changed mapping here since ES updates
-     the mapping and removes/overwrites the _meta field.
-     Tested with PartitionedTableIntegrationTest#testAlterPartitionedTableKeepsMetadata()
-     */
-    @VisibleForTesting
-    static PutMappingRequest preparePutMappingRequest(Map<String, Object> oldMapping, Map<String, Object> newMapping, String... indices) {
-
-        // Only merge the _meta
-        XContentHelper.update(oldMapping, newMapping, false);
-        newMapping.put("_meta", oldMapping.get("_meta"));
-
-        // update mapping of all indices
-        PutMappingRequest request = new PutMappingRequest(indices);
-        request.indicesOptions(IndicesOptions.lenientExpandOpen());
-        request.type(Constants.DEFAULT_MAPPING_TYPE);
-        request.source(newMapping);
-        return request;
-    }
-
-    private CompletableFuture<Long> updateMapping(Map<String, Object> newMapping, String... indices) {
-        if (newMapping.isEmpty()) {
-            return CompletableFuture.completedFuture(null);
-        }
-
-        assert areAllMappingsEqual(clusterService.state().metaData(), indices) :
-            "Trying to update mapping for indices with different existing mappings";
-
-        Map<String, Object> mapping;
+    private CompletableFuture<Long> addColumnToTable(AddColumnAnalyzedStatement analysis, final FutureActionListener<AcknowledgedResponse, Long> result) {
         try {
-            MetaData metaData = clusterService.state().metaData();
-            String index = indices[0];
-            mapping = metaData.index(index).mapping(Constants.DEFAULT_MAPPING_TYPE).getSourceAsMap();
-        } catch (ElasticsearchParseException e) {
-            return CompletableFuture.failedFuture(e);
-        }
-
-        FutureActionListener<AcknowledgedResponse, Long> listener = new FutureActionListener<>(r -> 0L);
-        transportPutMappingAction.execute(preparePutMappingRequest(mapping, newMapping, indices), listener);
-        return listener;
-    }
-
-    public static Map<String, Object> parseMapping(String mappingSource) throws IOException {
-        try (XContentParser parser = JsonXContent.jsonXContent
-            .createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, mappingSource)) {
-            return parser.map();
+            AlterTableRequest request = new AlterTableRequest(
+                analysis.table().ident(),
+                null,
+                analysis.table().isPartitioned(),
+                false,
+                analysis.analyzedTableElements().settings(),
+                analysis.analyzedTableElements().toMapping()
+            );
+            transportAlterTableAction.execute(request, result);
+            return result;
         } catch (IOException e) {
-            throw new ElasticsearchException("failed to parse mapping");
+            return FutureActionListener.failedFuture(e);
         }
-    }
-
-    public static Map<String, Object> mergeTemplateMapping(IndexTemplateMetaData templateMetaData,
-                                                           Map<String, Object> newMapping) {
-        Map<String, Object> mergedMapping = new HashMap<>();
-        for (ObjectObjectCursor<String, CompressedXContent> cursor : templateMetaData.mappings()) {
-            try {
-                Map<String, Object> mapping = parseMapping(cursor.value.toString());
-                Object o = mapping.get(Constants.DEFAULT_MAPPING_TYPE);
-                assert o != null && o instanceof Map :
-                    "o must not be null and must be instance of Map";
-
-                XContentHelper.update(mergedMapping, (Map) o, false);
-            } catch (IOException e) {
-                // pass
-            }
-        }
-        XContentHelper.update(mergedMapping, newMapping, false);
-        return mergedMapping;
-    }
-
-    public static Map<String, Object> removeFromMapping(Map<String, Object> mapping, Map<String, Object> mappingsToRemove) {
-        for (String key : mappingsToRemove.keySet()) {
-            if (mapping.containsKey(key)) {
-                if (mapping.get(key) instanceof Map) {
-                    mapping.put(key, removeFromMapping((Map<String, Object>) mapping.get(key),
-                        (Map<String, Object>) mappingsToRemove.get(key)));
-                } else {
-                    mapping.remove(key);
-                }
-            }
-        }
-        return mapping;
-    }
-
-    private void addColumnToTable(AddColumnAnalyzedStatement analysis, final CompletableFuture<?> result) {
-        boolean updateTemplate = analysis.table().isPartitioned();
-        List<CompletableFuture<Long>> results = new ArrayList<>(2);
-        final Map<String, Object> mapping = analysis.analyzedTableElements().toMapping();
-
-        if (updateTemplate) {
-            results.add(updateTemplate(mapping, analysis.table().ident()));
-        }
-
-        String[] indexNames = analysis.table().concreteIndices();
-        if (indexNames.length > 0) {
-            results.add(updateMapping(mapping, indexNames));
-        }
-
-        applyMultiFutureCallback(result, results);
-    }
-
-    private static void applyMultiFutureCallback(final CompletableFuture<?> result, List<CompletableFuture<Long>> futures) {
-        BiConsumer<List<Long>, Throwable> finalConsumer = (List<Long> receivedResult, Throwable t) -> {
-            if (t == null) {
-                result.complete(null);
-            } else {
-                result.completeExceptionally(t);
-            }
-        };
-
-        MultiBiConsumer<Long> consumer = new MultiBiConsumer<>(futures.size(), finalConsumer);
-        for (CompletableFuture<Long> future : futures) {
-            future.whenComplete(consumer);
-        }
-    }
-
-    private static boolean areAllMappingsEqual(MetaData metaData, String... indices) {
-        Map<String, Object> lastMapping = null;
-        for (String index : indices) {
-            try {
-                Map<String, Object> mapping = metaData.index(index).mapping(Constants.DEFAULT_MAPPING_TYPE).getSourceAsMap();
-                if (lastMapping != null && !lastMapping.equals(mapping)) {
-                    return false;
-                }
-                lastMapping = mapping;
-            } catch (ElasticsearchParseException e) {
-                throw new RuntimeException(e);
-            }
-        }
-        return true;
     }
 
     private class ResultSetReceiver implements ResultReceiver {
 
         private final AddColumnAnalyzedStatement analysis;
-        private final CompletableFuture<?> result;
+        private final FutureActionListener<AcknowledgedResponse, Long> result;
 
         private long count;
 
-        ResultSetReceiver(AddColumnAnalyzedStatement analysis, CompletableFuture<?> result) {
+        ResultSetReceiver(AddColumnAnalyzedStatement analysis, FutureActionListener<AcknowledgedResponse, Long> result) {
             this.analysis = analysis;
             this.result = result;
         }
