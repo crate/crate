@@ -5062,6 +5062,33 @@ public class InternalEngineTests extends EngineTestCase {
         }
     }
 
+    @Test
+    public void testShouldPeriodicallyFlushAfterMerge() throws Exception {
+        assertThat("Empty engine does not need flushing", engine.shouldPeriodicallyFlush(), equalTo(false));
+        ParsedDocument doc =
+            testParsedDocument(Integer.toString(0), null, testDocumentWithTextField(), SOURCE, null);
+        engine.index(indexForDoc(doc));
+        engine.refresh("test");
+        assertThat("Not exceeded translog flush threshold yet", engine.shouldPeriodicallyFlush(), equalTo(false));
+        final IndexSettings indexSettings = engine.config().getIndexSettings();
+        final IndexMetaData indexMetaData = IndexMetaData.builder(indexSettings.getIndexMetaData())
+            .settings(Settings.builder().put(indexSettings.getSettings())
+                          .put(IndexSettings.INDEX_FLUSH_AFTER_MERGE_THRESHOLD_SIZE_SETTING.getKey(),  "0b")).build();
+        indexSettings.updateIndexMetaData(indexMetaData);
+        engine.onSettingsChanged();
+        assertThat(engine.shouldPeriodicallyFlush(), equalTo(false));
+        doc = testParsedDocument(Integer.toString(1), null, testDocumentWithTextField(), SOURCE, null);
+        engine.index(indexForDoc(doc));
+        engine.refresh("test");
+        engine.forceMerge(false, 1, false, false, false);
+        assertBusy(() -> {
+            // the merge listner runs concurrently after the force merge returned
+            assertThat(engine.shouldPeriodicallyFlush(), equalTo(true));
+        });
+        engine.flush();
+        assertThat(engine.shouldPeriodicallyFlush(), equalTo(false));
+    }
+
     private static void trimUnsafeCommits(EngineConfig config) throws IOException {
         final Store store = config.getStore();
         final TranslogConfig translogConfig = config.getTranslogConfig();
