@@ -23,6 +23,8 @@
 package io.crate.planner.optimizer.rule;
 
 import io.crate.analyze.WindowDefinition;
+import io.crate.metadata.TransactionContext;
+import io.crate.planner.TableStats;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.WindowAgg;
@@ -53,7 +55,10 @@ public final class MoveFilterBeneathWindowAgg implements Rule<Filter> {
     }
 
     @Override
-    public LogicalPlan apply(Filter plan, Captures captures) {
+    public LogicalPlan apply(Filter plan,
+                             Captures captures,
+                             TableStats tableStats,
+                             TransactionContext txnCtx) {
         WindowAgg windowAgg = captures.get(windowAggCapture);
         WindowDefinition windowDefinition = windowAgg.windowDefinition();
         if (windowDefinition.partitions().containsAll(extractColumns(plan.query()))) {

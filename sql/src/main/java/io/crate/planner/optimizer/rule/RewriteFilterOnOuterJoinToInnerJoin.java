@@ -30,6 +30,8 @@ import io.crate.expression.symbol.FieldReplacer;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Functions;
+import io.crate.metadata.TransactionContext;
+import io.crate.planner.TableStats;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.LogicalPlan;
@@ -117,7 +119,10 @@ public final class RewriteFilterOnOuterJoinToInnerJoin implements Rule<Filter> {
     }
 
     @Override
-    public LogicalPlan apply(Filter filter, Captures captures) {
+    public LogicalPlan apply(Filter filter,
+                             Captures captures,
+                             TableStats tableStats,
+                             TransactionContext txnCtx) {
         NestedLoopJoin nl = captures.get(nlCapture);
         Symbol query = filter.query();
         Map<Set<QualifiedName>, Symbol> splitQueries = QuerySplitter.split(query);

@@ -83,6 +83,7 @@ import io.crate.planner.optimizer.rule.MoveOrderBeneathFetchOrEval;
 import io.crate.planner.optimizer.rule.MoveOrderBeneathNestedLoop;
 import io.crate.planner.optimizer.rule.MoveOrderBeneathUnion;
 import io.crate.planner.optimizer.rule.RemoveRedundantFetchOrEval;
+import io.crate.planner.optimizer.rule.RewriteCollectToGet;
 import io.crate.planner.optimizer.rule.RewriteFilterOnOuterJoinToInnerJoin;
 
 import java.util.Collection;
@@ -130,7 +131,8 @@ public class LogicalPlanner {
             new MoveOrderBeneathNestedLoop(),
             new MoveOrderBeneathBoundary(),
             new MoveOrderBeneathFetchOrEval(),
-            new DeduplicateOrder()
+            new DeduplicateOrder(),
+            new RewriteCollectToGet(functions)
         ));
         this.tableStats = tableStats;
         this.functions = functions;
@@ -171,9 +173,11 @@ public class LogicalPlanner {
             plannerContext.transactionContext());
 
         planBuilder = tryOptimizeForInSubquery(selectSymbol, relation, planBuilder);
-        LogicalPlan optimizedPlan = optimizer.optimize(maybeApplySoftLimit.apply(planBuilder.build(tableStats,
-                                                                                                   Set.of(),
-                                                                                                   Collections.emptySet())));
+        LogicalPlan optimizedPlan = optimizer.optimize(
+            maybeApplySoftLimit.apply(planBuilder.build(tableStats, Set.of(), Collections.emptySet())),
+            tableStats,
+            plannerContext.transactionContext()
+        );
         return new RootRelationBoundary(optimizedPlan);
     }
 
@@ -203,7 +207,7 @@ public class LogicalPlanner {
         LogicalPlan logicalPlan = plan(relation, fetchMode, subqueryPlanner, true, functions, coordinatorTxnCtx)
             .build(tableStats, hints, new HashSet<>(relation.outputs()));
 
-        return optimizer.optimize(logicalPlan);
+        return optimizer.optimize(logicalPlan, tableStats, coordinatorTxnCtx);
     }
 
     static LogicalPlan.Builder plan(AnalyzedRelation relation,

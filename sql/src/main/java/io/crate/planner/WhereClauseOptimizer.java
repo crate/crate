@@ -36,6 +36,7 @@ import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.operators.SubQueryAndParamBinder;
@@ -143,7 +144,7 @@ public final class WhereClauseOptimizer {
     public static DetailedQuery optimize(EvaluatingNormalizer normalizer,
                                          Symbol query,
                                          DocTableInfo table,
-                                         CoordinatorTxnCtx txnCtx) {
+                                         TransactionContext txnCtx) {
         Symbol queryGenColsProcessed = GeneratedColumnExpander.maybeExpand(
             query,
             table.generatedColumns(),

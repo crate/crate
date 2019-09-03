@@ -24,6 +24,8 @@ package io.crate.planner.optimizer.rule;
 
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.FieldReplacer;
+import io.crate.metadata.TransactionContext;
+import io.crate.planner.TableStats;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.RelationBoundary;
@@ -54,7 +56,10 @@ public class MoveFilterBeneathBoundary implements Rule<Filter> {
     }
 
     @Override
-    public LogicalPlan apply(Filter plan, Captures captures) {
+    public LogicalPlan apply(Filter plan,
+                             Captures captures,
+                             TableStats tableStats,
+                             TransactionContext txnCtx) {
         RelationBoundary boundary = captures.get(this.boundary);
         Filter newFilter = new Filter(
             boundary.source(),

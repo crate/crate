@@ -23,6 +23,8 @@
 package io.crate.planner.optimizer.rule;
 
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.TransactionContext;
+import io.crate.planner.TableStats;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.Order;
 import io.crate.planner.operators.Union;
@@ -53,7 +55,10 @@ public final class MoveOrderBeneathUnion implements Rule<Order> {
     }
 
     @Override
-    public LogicalPlan apply(Order order, Captures captures) {
+    public LogicalPlan apply(Order order,
+                             Captures captures,
+                             TableStats tableStats,
+                             TransactionContext txnCtx) {
         Union union = captures.get(unionCapture);
         List<LogicalPlan> unionSources = union.sources();
         assert unionSources.size() == 2 : "A UNION must have exactly 2 unionSources";
