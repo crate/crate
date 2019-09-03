@@ -22,6 +22,8 @@
 
 package io.crate.planner.optimizer.rule;
 
+import io.crate.metadata.TransactionContext;
+import io.crate.planner.TableStats;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.NestedLoopJoin;
@@ -57,7 +59,10 @@ public final class MoveFilterBeneathNestedLoop implements Rule<Filter> {
     }
 
     @Override
-    public LogicalPlan apply(Filter filter, Captures captures) {
+    public LogicalPlan apply(Filter filter,
+                             Captures captures,
+                             TableStats tableStats,
+                             TransactionContext txnCtx) {
         NestedLoopJoin join = captures.get(joinCapture);
         return moveQueryBelowJoin(filter.query(), join);
     }

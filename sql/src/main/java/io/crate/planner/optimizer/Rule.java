@@ -22,6 +22,8 @@
 
 package io.crate.planner.optimizer;
 
+import io.crate.metadata.TransactionContext;
+import io.crate.planner.TableStats;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
@@ -30,5 +32,5 @@ public interface Rule<T> {
 
     Pattern<T> pattern();
 
-    LogicalPlan apply(T plan, Captures captures);
+    LogicalPlan apply(T plan, Captures captures, TableStats tableStats, TransactionContext txnCtx);
 }

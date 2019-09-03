@@ -61,7 +61,7 @@ public class Get implements LogicalPlan {
     final long estimatedSizePerRow;
     private final List<Symbol> outputs;
 
-    Get(DocTableRelation table, DocKeys docKeys, List<Symbol> outputs, TableStats tableStats) {
+    public Get(DocTableRelation table, DocKeys docKeys, List<Symbol> outputs, TableStats tableStats) {
         this.outputs = outputs;
         this.tableRelation = table;
         this.docKeys = docKeys;

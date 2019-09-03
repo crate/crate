@@ -23,6 +23,8 @@
 package io.crate.planner.optimizer;
 
 import io.crate.common.collections.Lists2;
+import io.crate.metadata.TransactionContext;
+import io.crate.planner.TableStats;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Match;
@@ -41,12 +43,12 @@ public class Optimizer {
         this.rules = rules;
     }
 
-    public LogicalPlan optimize(LogicalPlan plan) {
-        LogicalPlan optimizedRoot = tryApplyRules(plan);
-        return optimizedRoot.replaceSources(Lists2.map(optimizedRoot.sources(), this::optimize));
+    public LogicalPlan optimize(LogicalPlan plan, TableStats tableStats, TransactionContext txnCtx) {
+        LogicalPlan optimizedRoot = tryApplyRules(plan, tableStats, txnCtx);
+        return optimizedRoot.replaceSources(Lists2.map(optimizedRoot.sources(), x -> optimize(x, tableStats, txnCtx)));
     }
 
-    private LogicalPlan tryApplyRules(LogicalPlan plan) {
+    private LogicalPlan tryApplyRules(LogicalPlan plan, TableStats tableStats, TransactionContext txnCtx) {
         final boolean isTraceEnabled = LOGGER.isTraceEnabled();
         LogicalPlan node = plan;
         // Some rules may only become applicable after another rule triggered, so we keep
@@ -61,7 +63,7 @@ public class Optimizer {
                         LOGGER.trace("Rule '" + rule.getClass().getSimpleName() + "' matched");
                     }
                     @SuppressWarnings("unchecked")
-                    LogicalPlan transformedPlan = rule.apply(match.value(), match.captures());
+                    LogicalPlan transformedPlan = rule.apply(match.value(), match.captures(), tableStats, txnCtx);
                     if (transformedPlan != null) {
                         if (isTraceEnabled) {
                             LOGGER.trace("Rule '" + rule.getClass().getSimpleName() + "' transformed the logical plan");

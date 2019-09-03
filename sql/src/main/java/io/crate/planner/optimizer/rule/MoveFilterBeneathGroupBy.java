@@ -27,6 +27,8 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.TransactionContext;
+import io.crate.planner.TableStats;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.GroupHashAggregate;
 import io.crate.planner.operators.LogicalPlan;
@@ -72,7 +74,10 @@ public final class MoveFilterBeneathGroupBy implements Rule<Filter> {
     }
 
     @Override
-    public LogicalPlan apply(Filter filter, Captures captures) {
+    public LogicalPlan apply(Filter filter,
+                             Captures captures,
+                             TableStats tableStats,
+                             TransactionContext txnCtx) {
         // Since something like `SELECT x, sum(y) FROM t GROUP BY x HAVING y > 10` is not valid
         // (y would have to be declared as group key) any parts of a HAVING that is not an aggregation can be moved.
         Symbol predicate = filter.query();

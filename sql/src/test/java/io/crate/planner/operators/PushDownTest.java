@@ -453,4 +453,17 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
         var expectedPlan = "Count[doc.t1 | ((x > 10) AND (x > 1))]\n";
         assertThat(plan, isPlan(sqlExecutor.functions(), expectedPlan));
     }
+
+    @Test
+    public void test_filter_on_pk_column_on_derived_table_is_optimized_to_get() {
+        // the ORDER BY id, name is here to avoid a collect-then-fetch, which would (currently) break the Get optimization
+        var plan = plan(
+            "SELECT id, name FROM (SELECT id, name FROM users ORDER BY id, name) AS u WHERE id = 1 ORDER BY 1, 2");
+        var expectedPlan = "OrderBy[id ASC name ASC]\n" +
+                           "Boundary[id, name]\n" +
+                           "Boundary[id, name]\n" +
+                           "OrderBy[id ASC name ASC]\n" +
+                           "Get[doc.users | id, name | DocKeys{1}";
+        assertThat(plan, isPlan(sqlExecutor.functions(), expectedPlan));
+    }
 }

@@ -27,6 +27,8 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.expression.symbol.Field;
 import io.crate.expression.symbol.FieldsVisitor;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.TransactionContext;
+import io.crate.planner.TableStats;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.NestedLoopJoin;
 import io.crate.planner.operators.Order;
@@ -73,7 +75,10 @@ public final class MoveOrderBeneathNestedLoop implements Rule<Order> {
     }
 
     @Override
-    public LogicalPlan apply(Order order, Captures captures) {
+    public LogicalPlan apply(Order order,
+                             Captures captures,
+                             TableStats tableStats,
+                             TransactionContext txnCtx) {
         NestedLoopJoin nestedLoop = captures.get(nlCapture);
         Set<AnalyzedRelation> relationsInOrderBy =
             Collections.newSetFromMap(new IdentityHashMap<>());
