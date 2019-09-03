@@ -21,6 +21,7 @@ package org.elasticsearch.index.engine;
 
 import org.apache.lucene.search.Sort;
 import org.apache.lucene.util.Accountable;
+import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.unit.ByteSizeValue;
 
 import java.util.Map;
@@ -67,8 +68,21 @@ public class Segment {
         return this.docCount;
     }
 
+    public int getDeletedDocs() {
+        return this.delDocCount;
+    }
+
     public ByteSizeValue getSize() {
         return new ByteSizeValue(sizeInBytes);
+    }
+
+    /**
+     * If set, a string representing that the segment is part of a merge, with the value representing the
+     * group of segments that represent this merge.
+     */
+    @Nullable
+    public String getMergeId() {
+        return this.mergeId;
     }
 
     public long getSizeInBytes() {
@@ -77,6 +91,11 @@ public class Segment {
 
     public org.apache.lucene.util.Version getVersion() {
         return version;
+    }
+
+    @Nullable
+    public Boolean isCompound() {
+        return compound;
     }
 
     /**

@@ -38,7 +38,6 @@ import org.apache.lucene.index.Term;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.ReferenceManager;
-import org.apache.lucene.search.Sort;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TotalHitCountCollector;
 import org.apache.lucene.store.Directory;
@@ -111,6 +110,7 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.shuffle;
 import static org.elasticsearch.index.engine.Engine.Operation.Origin.PRIMARY;
 import static org.elasticsearch.index.engine.Engine.Operation.Origin.REPLICA;
+import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_SEQ_NO;
 import static org.elasticsearch.index.translog.TranslogDeletionPolicies.createTranslogDeletionPolicy;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
@@ -418,7 +418,7 @@ public abstract class EngineTestCase extends ESTestCase {
         @Nullable BiFunction<Long, Long, LocalCheckpointTracker> localCheckpointTrackerSupplier,
         @Nullable LongSupplier globalCheckpointSupplier) throws IOException {
         return createEngine(
-            indexSettings, store, translogPath, mergePolicy, indexWriterFactory, localCheckpointTrackerSupplier, null, null,
+            indexSettings, store, translogPath, mergePolicy, indexWriterFactory, localCheckpointTrackerSupplier, null,
             globalCheckpointSupplier);
     }
 
@@ -439,7 +439,6 @@ public abstract class EngineTestCase extends ESTestCase {
             indexWriterFactory,
             localCheckpointTrackerSupplier,
             seqNoForOperation,
-            null,
             globalCheckpointSupplier);
     }
 
@@ -451,9 +450,8 @@ public abstract class EngineTestCase extends ESTestCase {
         @Nullable IndexWriterFactory indexWriterFactory,
         @Nullable BiFunction<Long, Long, LocalCheckpointTracker> localCheckpointTrackerSupplier,
         @Nullable ToLongBiFunction<Engine, Engine.Operation> seqNoForOperation,
-        @Nullable Sort indexSort,
         @Nullable LongSupplier globalCheckpointSupplier) throws IOException {
-        EngineConfig config = config(indexSettings, store, translogPath, mergePolicy, null, indexSort, globalCheckpointSupplier);
+        EngineConfig config = config(indexSettings, store, translogPath, mergePolicy, null, globalCheckpointSupplier);
         return createEngine(indexWriterFactory, localCheckpointTrackerSupplier, seqNoForOperation, config);
     }
 
@@ -542,14 +540,14 @@ public abstract class EngineTestCase extends ESTestCase {
     }
 
     public EngineConfig config(IndexSettings indexSettings, Store store, Path translogPath, MergePolicy mergePolicy,
-                               ReferenceManager.RefreshListener refreshListener, Sort indexSort, LongSupplier globalCheckpointSupplier) {
-        return config(indexSettings, store, translogPath, mergePolicy, refreshListener, null, indexSort, globalCheckpointSupplier);
+                               ReferenceManager.RefreshListener refreshListener, LongSupplier globalCheckpointSupplier) {
+        return config(indexSettings, store, translogPath, mergePolicy, refreshListener, null, globalCheckpointSupplier);
     }
 
     public EngineConfig config(IndexSettings indexSettings, Store store, Path translogPath, MergePolicy mergePolicy,
                                ReferenceManager.RefreshListener externalRefreshListener,
                                ReferenceManager.RefreshListener internalRefreshListener,
-                               Sort indexSort, LongSupplier globalCheckpointSupplier) {
+                               LongSupplier globalCheckpointSupplier) {
         IndexWriterConfig iwc = newIndexWriterConfig();
         TranslogConfig translogConfig = new TranslogConfig(shardId, translogPath, indexSettings, BigArrays.NON_RECYCLING_INSTANCE);
         Engine.EventListener listener = new Engine.EventListener() {
@@ -590,6 +588,33 @@ public abstract class EngineTestCase extends ESTestCase {
 
     public static Term newUid(ParsedDocument doc) {
         return newUid(doc.id());
+    }
+
+    protected Engine.Get newGet(boolean realtime, ParsedDocument doc) {
+        return new Engine.Get(realtime, false, doc.id(), newUid(doc));
+    }
+
+    protected Engine.Index indexForDoc(ParsedDocument doc) {
+        return new Engine.Index(
+            newUid(doc), doc, UNASSIGNED_SEQ_NO, primaryTerm.get(),
+            Versions.MATCH_ANY, VersionType.INTERNAL, Engine.Operation.Origin.PRIMARY,
+            System.nanoTime(), -1, false, UNASSIGNED_SEQ_NO, 0);
+    }
+
+    protected Engine.Index replicaIndexForDoc(ParsedDocument doc,
+                                              long version,
+                                              long seqNo,
+                                              boolean isRetry) {
+        return new Engine.Index(
+            newUid(doc), doc, seqNo, primaryTerm.get(), version, null,
+            Engine.Operation.Origin.REPLICA, System.nanoTime(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
+            isRetry, SequenceNumbers.UNASSIGNED_SEQ_NO, 0);
+    }
+
+    protected Engine.Delete replicaDeleteForDoc(String id, long version, long seqNo, long startTime) {
+        return new Engine.Delete(
+            "default", id, newUid(id), seqNo, 1, version, null,
+            Engine.Operation.Origin.REPLICA, startTime, SequenceNumbers.UNASSIGNED_SEQ_NO, 0);
     }
 
     protected static void assertVisibleCount(InternalEngine engine, int numDocs) throws IOException {
@@ -647,21 +672,21 @@ public abstract class EngineTestCase extends ESTestCase {
             }
             if (randomBoolean()) {
                 op = new Engine.Index(id, testParsedDocument(docId, null, testDocumentWithTextField(valuePrefix + i), SOURCE, null),
-                                      forReplica && i >= startWithSeqNo ? i * 2 : SequenceNumbers.UNASSIGNED_SEQ_NO,
+                                      forReplica && i >= startWithSeqNo ? i * 2 : UNASSIGNED_SEQ_NO,
                                       forReplica && i >= startWithSeqNo && incrementTermWhenIntroducingSeqNo ? primaryTerm + 1 : primaryTerm,
                                       version,
                                       forReplica ? null : versionType,
                                       forReplica ? REPLICA : PRIMARY,
                                       System.currentTimeMillis(), -1, false,
-                                      SequenceNumbers.UNASSIGNED_SEQ_NO, 0);
+                                      UNASSIGNED_SEQ_NO, 0);
             } else {
                 op = new Engine.Delete("test", docId, id,
-                                       forReplica && i >= startWithSeqNo ? i * 2 : SequenceNumbers.UNASSIGNED_SEQ_NO,
+                                       forReplica && i >= startWithSeqNo ? i * 2 : UNASSIGNED_SEQ_NO,
                                        forReplica && i >= startWithSeqNo && incrementTermWhenIntroducingSeqNo ? primaryTerm + 1 : primaryTerm,
                                        version,
                                        forReplica ? null : versionType,
                                        forReplica ? REPLICA : PRIMARY,
-                                       System.currentTimeMillis(), SequenceNumbers.UNASSIGNED_SEQ_NO, 0);
+                                       System.currentTimeMillis(), UNASSIGNED_SEQ_NO, 0);
             }
             ops.add(op);
         }
