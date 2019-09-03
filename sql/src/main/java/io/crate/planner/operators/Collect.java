@@ -117,11 +117,6 @@ public class Collect implements LogicalPlan {
         if (where.hasQuery() && !(relation instanceof DocTableRelation)) {
             NoPredicateVisitor.ensureNoMatchPredicate(where.query());
         }
-        if (where.hasVersions()) {
-            throw VersioninigValidationException.versionInvalidUsage();
-        } else if (where.hasSeqNoAndPrimaryTerm()) {
-            throw VersioninigValidationException.seqNoAndPrimaryTermUsage();
-        }
         this.relation = relation;
         this.where = where;
         this.tableInfo = relation.tableInfo();
@@ -232,6 +227,11 @@ public class Collect implements LogicalPlan {
             relation,
             plannerContext.functions(),
             plannerContext.transactionContext());
+        if (where.hasVersions()) {
+            throw VersioninigValidationException.versionInvalidUsage();
+        } else if (where.hasSeqNoAndPrimaryTerm()) {
+            throw VersioninigValidationException.seqNoAndPrimaryTermUsage();
+        }
         SubQueryAndParamBinder binder = new SubQueryAndParamBinder(params, subQueryResults);
         List<Symbol> boundOutputs = Lists2.map(outputs, binder);
 
