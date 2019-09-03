@@ -33,12 +33,9 @@ import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AliasedAnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedView;
-import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.RelationNormalizer;
 import io.crate.analyze.relations.TableFunctionRelation;
-import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.relations.UnionSelect;
-import io.crate.analyze.where.DocKeys;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.MultiPhaseExecutor;
@@ -46,7 +43,6 @@ import io.crate.execution.dsl.phases.NodeOperationTree;
 import io.crate.execution.dsl.projection.builder.SplitPoints;
 import io.crate.execution.dsl.projection.builder.SplitPointsBuilder;
 import io.crate.execution.engine.NodeOperationTreeGenerator;
-import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.FieldsVisitor;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
@@ -55,13 +51,11 @@ import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
-import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.SubqueryPlanner;
-import io.crate.planner.WhereClauseOptimizer;
 import io.crate.planner.consumer.InsertFromSubQueryPlanner;
 import io.crate.planner.optimizer.Optimizer;
 import io.crate.planner.optimizer.rule.DeduplicateOrder;
@@ -94,7 +88,6 @@ import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Supplier;
@@ -156,8 +149,9 @@ public class LogicalPlanner {
     }
 
     public LogicalPlan planSubSelect(SelectSymbol selectSymbol, PlannerContext plannerContext) {
+        CoordinatorTxnCtx txnCtx = plannerContext.transactionContext();
         AnalyzedRelation relation = relationNormalizer.normalize(
-            selectSymbol.relation(), plannerContext.transactionContext());
+            selectSymbol.relation(), txnCtx);
 
         final int fetchSize;
         final java.util.function.Function<LogicalPlan, LogicalPlan> maybeApplySoftLimit;
@@ -180,18 +174,14 @@ public class LogicalPlanner {
             relation,
             subqueryPlanner,
             functions,
-            plannerContext.transactionContext(),
+            txnCtx,
             Set.of(),
             tableStats,
             subSelectPlannerContext.params()
         );
 
         plan = tryOptimizeForInSubquery(selectSymbol, relation, plan);
-        LogicalPlan optimizedPlan = optimizer.optimize(
-            maybeApplySoftLimit.apply(plan),
-            tableStats,
-            plannerContext.transactionContext()
-        );
+        LogicalPlan optimizedPlan = optimizer.optimize(maybeApplySoftLimit.apply(plan), tableStats, txnCtx);
         return new RootRelationBoundary(optimizedPlan);
     }
 
@@ -362,34 +352,9 @@ public class LogicalPlanner {
         }
         if (analyzedRelation instanceof QueriedSelectRelation) {
             QueriedSelectRelation<?> selectRelation = (QueriedSelectRelation<?>) analyzedRelation;
-
             AnalyzedRelation subRelation = selectRelation.subRelation();
-            if (subRelation instanceof DocTableRelation) {
-                DocTableRelation docTableRelation = (DocTableRelation) subRelation;
-                EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
-                    functions, RowGranularity.CLUSTER, null, docTableRelation);
-
-                WhereClauseOptimizer.DetailedQuery detailedQuery = WhereClauseOptimizer.optimize(
-                    normalizer,
-                    where.queryOrFallback(),
-                    docTableRelation.tableInfo(),
-                    txnCtx
-                );
-
-                Optional<DocKeys> docKeys = detailedQuery.docKeys();
-                if (docKeys.isPresent()) {
-                    return new Get(docTableRelation, docKeys.get(), toCollect, tableStats);
-                }
-                return Collect.create(
-                    docTableRelation,
-                    toCollect,
-                    new WhereClause(detailedQuery.query(), where.partitions(), detailedQuery.clusteredBy()),
-                    hints,
-                    tableStats,
-                    params
-                );
-            } else if (subRelation instanceof TableRelation) {
-                return Collect.create(((TableRelation) subRelation), toCollect, where, hints, tableStats, params);
+            if (subRelation instanceof AbstractTableRelation<?>) {
+                return Collect.create(((AbstractTableRelation<?>) subRelation), toCollect, where, hints, tableStats, params);
             } else if (subRelation instanceof TableFunctionRelation) {
                 return TableFunction.create(((TableFunctionRelation) subRelation), toCollect, where);
             }
