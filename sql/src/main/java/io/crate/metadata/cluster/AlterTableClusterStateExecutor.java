@@ -22,15 +22,12 @@
 
 package io.crate.metadata.cluster;
 
-import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.Constants;
 import io.crate.analyze.TableParameters;
-import io.crate.execution.ddl.tables.AlterTableOperation;
 import io.crate.execution.ddl.tables.AlterTableRequest;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
-import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingClusterStateUpdateRequest;
@@ -38,7 +35,6 @@ import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsCluster
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlocks;
-import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
@@ -48,15 +44,11 @@ import org.elasticsearch.cluster.metadata.MetaDataMappingService;
 import org.elasticsearch.cluster.metadata.MetaDataUpdateSettingsService;
 import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
-import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.ValidationException;
-import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.indices.IndicesService;
@@ -64,6 +56,7 @@ import org.elasticsearch.indices.InvalidIndexTemplateException;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -73,13 +66,13 @@ import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
+import static org.elasticsearch.cluster.metadata.MetaDataUpdateSettingsService.maybeUpdateClusterBlock;
 import static org.elasticsearch.common.settings.AbstractScopedSettings.ARCHIVED_SETTINGS_PREFIX;
 import static org.elasticsearch.index.IndexSettings.same;
-import static org.elasticsearch.cluster.metadata.MetaDataUpdateSettingsService.maybeUpdateClusterBlock;
 
 public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<AlterTableRequest> {
 
-    private static final IndicesOptions FIND_OPEN_AND_CLOSED_INDICES_INGORE_UNAVAILABLE_AND_NON_EXISTING = IndicesOptions.fromOptions(
+    private static final IndicesOptions FIND_OPEN_AND_CLOSED_INDICES_IGNORE_UNAVAILABLE_AND_NON_EXISTING = IndicesOptions.fromOptions(
         true, true, true, true);
 
     private final MetaDataMappingService metaDataMappingService;
@@ -341,39 +334,17 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
         String templateName = PartitionName.templateName(relationName.schema(), relationName.name());
 
         IndexTemplateMetaData indexTemplateMetaData = currentState.metaData().templates().get(templateName);
+        IndexTemplateMetaData newIndexTemplateMetaData = DDLClusterStateHelpers.updateTemplate(
+            indexTemplateMetaData,
+            newMapping,
+            Collections.emptyMap(),
+            newSetting,
+            settingsValidator,
+            k -> indexScopedSettings.isPrivateSetting(k) == false
+            );
 
-        final Settings settings = Settings.builder()
-            .put(indexTemplateMetaData.settings())
-            .put(newSetting)
-            .normalizePrefix(IndexMetaData.INDEX_SETTING_PREFIX)
-            // Private settings must not be (over-)written as they are generated, remove them.
-            .build().filter(k -> indexScopedSettings.isPrivateSetting(k) == false);
-
-        settingsValidator.accept(templateName, settings);
-
-        final IndexTemplateMetaData.Builder templateBuilder = IndexTemplateMetaData.builder(templateName)
-            .order(indexTemplateMetaData.order())
-            .patterns(indexTemplateMetaData.getPatterns())
-            .settings(settings)
-            .putMapping(Constants.DEFAULT_MAPPING_TYPE, mergeTemplateMapping(indexTemplateMetaData, newMapping));
-
-        for (ObjectObjectCursor<String, AliasMetaData> container : indexTemplateMetaData.aliases()) {
-            templateBuilder.putAlias(container.value);
-        }
-
-        final MetaData.Builder metaData = MetaData.builder(currentState.metaData()).put(templateBuilder.build());
+        final MetaData.Builder metaData = MetaData.builder(currentState.metaData()).put(newIndexTemplateMetaData);
         return ClusterState.builder(currentState).metaData(metaData).build();
-    }
-
-    private static String mergeTemplateMapping(IndexTemplateMetaData templateMetaData, Map<String, Object> newMapping) {
-        Map<String, Object> merged = AlterTableOperation.mergeTemplateMapping(templateMetaData, newMapping);
-        try {
-            return Strings.toString(XContentFactory.contentBuilder(XContentType.JSON).map(MapBuilder.<String, Object>newMapBuilder().put(
-                Constants.DEFAULT_MAPPING_TYPE,
-                merged).map()));
-        } catch (IOException e) {
-            throw new ElasticsearchException("failed to serialize mapping");
-        }
     }
 
     private static void validateSettings(String name,
@@ -410,7 +381,8 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
     }
 
     private Index[] resolveIndices(ClusterState currentState, String indexExpressions) {
-        return indexNameExpressionResolver.concreteIndices(currentState, FIND_OPEN_AND_CLOSED_INDICES_INGORE_UNAVAILABLE_AND_NON_EXISTING, indexExpressions);
+        return indexNameExpressionResolver.concreteIndices(currentState,
+                                                           FIND_OPEN_AND_CLOSED_INDICES_IGNORE_UNAVAILABLE_AND_NON_EXISTING, indexExpressions);
     }
 
     /**

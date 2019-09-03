@@ -61,27 +61,6 @@ public class AlterTableOperationTest extends CrateUnitTest {
     }
 
     @Test
-    public void testPrepareAlterTableMappingRequest() throws Exception {
-        Map<String, Object> oldMapping = MapBuilder.<String, Object>newMapBuilder()
-            .put("properties", MapBuilder.<String, String>newMapBuilder().put("foo", "foo").map())
-            .put("_meta", MapBuilder.<String, String>newMapBuilder().put("meta1", "val1").map())
-            .map();
-
-        Map<String, Object> newMapping = MapBuilder.<String, Object>newMapBuilder()
-            .put("properties", MapBuilder.<String, String>newMapBuilder().put("foo", "bar").map())
-            .put("_meta", MapBuilder.<String, String>newMapBuilder()
-                .put("meta1", "v1")
-                .put("meta2", "v2")
-                .map())
-            .map();
-
-        PutMappingRequest request = AlterTableOperation.preparePutMappingRequest(oldMapping, newMapping);
-
-        assertThat(request.type(), is(Constants.DEFAULT_MAPPING_TYPE));
-        assertThat(request.source(), is("{\"_meta\":{\"meta2\":\"v2\",\"meta1\":\"v1\"},\"properties\":{\"foo\":\"bar\"}}"));
-    }
-
-    @Test
     public void testValidateReadOnlyForResizeOperation() {
         Settings settings = Settings.builder()
             .put(baseIndexSettings())
