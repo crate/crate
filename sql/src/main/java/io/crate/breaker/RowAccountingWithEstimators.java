@@ -26,23 +26,19 @@ import io.crate.data.Row;
 import io.crate.execution.engine.join.HashInnerJoinBatchIterator;
 import io.crate.types.DataType;
 
-import java.util.ArrayList;
 import java.util.Collection;
 
 public class RowAccountingWithEstimators implements RowAccounting<Row> {
 
     private final RamAccounting ramAccounting;
-    private final ArrayList<SizeEstimator<Object>> estimators;
+    private final EstimateRowSize estimateRowSize;
     private int extraSizePerRow = 0;
 
     /**
      * See {@link RowAccountingWithEstimators#RowAccountingWithEstimators(Collection, RamAccounting, int)}
      */
     public RowAccountingWithEstimators(Collection<? extends DataType> columnTypes, RamAccounting ramAccounting) {
-        this.estimators = new ArrayList<>(columnTypes.size());
-        for (DataType columnType : columnTypes) {
-            estimators.add(SizeEstimatorFactory.create(columnType));
-        }
+        this.estimateRowSize = new EstimateRowSize(columnTypes);
         this.ramAccounting = ramAccounting;
     }
 
@@ -66,15 +62,9 @@ public class RowAccountingWithEstimators implements RowAccounting<Row> {
      */
     @Override
     public void accountForAndMaybeBreak(Row row) {
-        assert row.numColumns() == estimators.size() : "Size of row must match the number of estimators";
-
         // Container size of the row is excluded because here it's unknown where the values will be saved to.
         // As size estimation is generally "best-effort" this should be good enough.
-        long size = 0;
-        for (int i = 0; i < row.numColumns(); i++) {
-            size += (estimators.get(i).estimateSize(row.get(i)) + extraSizePerRow);
-        }
-        ramAccounting.addBytes(size);
+        ramAccounting.addBytes(estimateRowSize.applyAsLong(row) + extraSizePerRow);
     }
 
     @Override
