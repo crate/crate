@@ -239,7 +239,7 @@ public class MetaDataUpdateSettingsService {
     /**
      * Updates the cluster block only iff the setting exists in the given settings
      */
-    private static void maybeUpdateClusterBlock(String[] actualIndices, ClusterBlocks.Builder blocks, ClusterBlock block, Setting<Boolean> setting, Settings openSettings) {
+    public static void maybeUpdateClusterBlock(String[] actualIndices, ClusterBlocks.Builder blocks, ClusterBlock block, Setting<Boolean> setting, Settings openSettings) {
         if (setting.exists(openSettings)) {
             final boolean updateBlock = setting.get(openSettings);
             for (String index : actualIndices) {

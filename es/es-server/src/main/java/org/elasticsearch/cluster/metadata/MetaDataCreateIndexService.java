@@ -551,7 +551,7 @@ public class MetaDataCreateIndexService {
         }
     }
 
-    List<String> getIndexSettingsValidationErrors(final Settings settings, final boolean forbidPrivateIndexSettings) {
+    public List<String> getIndexSettingsValidationErrors(final Settings settings, final boolean forbidPrivateIndexSettings) {
         String customPath = IndexMetaData.INDEX_DATA_PATH_SETTING.get(settings);
         List<String> validationErrors = new ArrayList<>();
         if (Strings.isEmpty(customPath) == false && env.sharedDataFile() == null) {

@@ -61,54 +61,6 @@ public class AlterTableOperationTest extends CrateUnitTest {
     }
 
     @Test
-    public void testPrepareAlterTableMappingRequest() throws Exception {
-        Map<String, Object> oldMapping = MapBuilder.<String, Object>newMapBuilder()
-            .put("properties", MapBuilder.<String, String>newMapBuilder().put("foo", "foo").map())
-            .put("_meta", MapBuilder.<String, String>newMapBuilder().put("meta1", "val1").map())
-            .map();
-
-        Map<String, Object> newMapping = MapBuilder.<String, Object>newMapBuilder()
-            .put("properties", MapBuilder.<String, String>newMapBuilder().put("foo", "bar").map())
-            .put("_meta", MapBuilder.<String, String>newMapBuilder()
-                .put("meta1", "v1")
-                .put("meta2", "v2")
-                .map())
-            .map();
-
-        PutMappingRequest request = AlterTableOperation.preparePutMappingRequest(oldMapping, newMapping);
-
-        assertThat(request.type(), is(Constants.DEFAULT_MAPPING_TYPE));
-        assertThat(request.source(), is("{\"_meta\":{\"meta2\":\"v2\",\"meta1\":\"v1\"},\"properties\":{\"foo\":\"bar\"}}"));
-    }
-
-    @Test
-    public void testPrivateSettingsAreRemovedOnPrepareIndexTemplateRequest() {
-        IndexScopedSettings indexScopedSettings = new IndexScopedSettings(Settings.EMPTY, Collections.emptySet());
-
-        Settings settings = Settings.builder()
-            .put(SETTING_CREATION_DATE, false)      // private, must be filtered out
-            .put(SETTING_NUMBER_OF_SHARDS, 4)
-            .build();
-        IndexTemplateMetaData indexTemplateMetaData = IndexTemplateMetaData.builder("t1")
-            .patterns(Collections.singletonList("*"))
-            .settings(settings)
-            .build();
-
-        PutIndexTemplateRequest request = AlterTableOperation.preparePutIndexTemplateRequest(indexScopedSettings, indexTemplateMetaData,
-            Collections.emptyMap(), Collections.emptyMap(), Settings.EMPTY, new RelationName(Schemas.DOC_SCHEMA_NAME, "t1"), "t1.*");
-
-        assertThat(request.settings().keySet(), contains(SETTING_NUMBER_OF_SHARDS));
-    }
-
-    @Test
-    public void testMarkArchivedSettings() {
-        Settings.Builder builder = Settings.builder()
-            .put(SETTING_NUMBER_OF_SHARDS, 4);
-        Settings preparedSettings = AlterTableOperation.markArchivedSettings(builder.build());
-        assertThat(preparedSettings.keySet(), containsInAnyOrder(SETTING_NUMBER_OF_SHARDS, ARCHIVED_SETTINGS_PREFIX + "*"));
-    }
-
-    @Test
     public void testValidateReadOnlyForResizeOperation() {
         Settings settings = Settings.builder()
             .put(baseIndexSettings())

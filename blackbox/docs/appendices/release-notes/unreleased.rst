@@ -57,6 +57,10 @@ Breaking Changes
 Changes
 =======
 
+- Improved resiliency of ``ALTER TABLE ADD`` operation.
+
+- Improved resiliency of ``ALTER TABLE`` operation.
+
 - Extended :ref:`CONCAT <scalar_concat>` to do implicit casts, so that calls
   like ``SELECT 't' || 5`` are supported.
 

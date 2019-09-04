@@ -106,10 +106,22 @@ public abstract class AbstractOpenCloseTableClusterStateTaskExecutor extends DDL
         Map<String, Object> metaMap = Collections.singletonMap("_meta", Collections.singletonMap("closed", true));
         if (openTable) {
             //Remove the mapping from the template.
-            return DDLClusterStateHelpers.updateTemplate(indexTemplateMetaData, Collections.emptyMap(), metaMap, Settings.EMPTY);
+            return DDLClusterStateHelpers.updateTemplate(
+                indexTemplateMetaData,
+                Collections.emptyMap(),
+                metaMap,
+                Settings.EMPTY,
+                (n, s) -> { },
+                s -> true);
         } else {
             //Otherwise, add the mapping to the template.
-            return DDLClusterStateHelpers.updateTemplate(indexTemplateMetaData, metaMap, Collections.emptyMap(), Settings.EMPTY);
+            return DDLClusterStateHelpers.updateTemplate(
+                indexTemplateMetaData,
+                metaMap,
+                Collections.emptyMap(),
+                Settings.EMPTY,
+                (n, s) -> { },
+                s -> true);
         }
     }
 }

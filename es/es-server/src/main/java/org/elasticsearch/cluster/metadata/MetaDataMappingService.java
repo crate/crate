@@ -65,7 +65,7 @@ public class MetaDataMappingService {
     private final IndicesService indicesService;
 
     final RefreshTaskExecutor refreshExecutor = new RefreshTaskExecutor();
-    final PutMappingExecutor putMappingExecutor = new PutMappingExecutor();
+    public final PutMappingExecutor putMappingExecutor = new PutMappingExecutor();
 
 
     @Inject
@@ -208,7 +208,7 @@ public class MetaDataMappingService {
         );
     }
 
-    class PutMappingExecutor implements ClusterStateTaskExecutor<PutMappingClusterStateUpdateRequest> {
+    public class PutMappingExecutor implements ClusterStateTaskExecutor<PutMappingClusterStateUpdateRequest> {
         @Override
         public ClusterTasksResult<PutMappingClusterStateUpdateRequest> execute(ClusterState currentState,
                                                                                List<PutMappingClusterStateUpdateRequest> tasks) throws Exception {
@@ -238,7 +238,7 @@ public class MetaDataMappingService {
             }
         }
 
-        private ClusterState applyRequest(ClusterState currentState, PutMappingClusterStateUpdateRequest request,
+        public ClusterState applyRequest(ClusterState currentState, PutMappingClusterStateUpdateRequest request,
                                           Map<Index, MapperService> indexMapperServices) throws IOException {
             String mappingType = request.type();
             CompressedXContent mappingUpdateSource = new CompressedXContent(request.source());
