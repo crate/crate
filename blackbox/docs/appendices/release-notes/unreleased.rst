@@ -57,6 +57,10 @@ Breaking Changes
 Changes
 =======
 
+- Added a dynamic bulk sizing mechanism that should prevent ``INSERT INTO ...
+  FROM query`` operations to run into out of memory errors if the individual
+  records of a table are very large.
+
 - Improved resiliency of ``ALTER TABLE ADD`` operation.
 
 - Improved resiliency of ``ALTER TABLE`` operation.
