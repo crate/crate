@@ -754,7 +754,6 @@ public abstract class ESIntegTestCase extends ESTestCase {
             byte[] masterClusterStateBytes = ClusterState.Builder.toBytes(masterClusterState);
             // remove local node reference
             masterClusterState = ClusterState.Builder.fromBytes(masterClusterStateBytes, null, namedWriteableRegistry);
-            Map<String, Object> masterStateMap = convertToMap(masterClusterState);
             int masterClusterStateSize = ClusterState.Builder.toBytes(masterClusterState).length;
             String masterId = masterClusterState.nodes().getMasterNodeId();
             for (Client client : cluster().getClients()) {
@@ -762,14 +761,14 @@ public abstract class ESIntegTestCase extends ESTestCase {
                 byte[] localClusterStateBytes = ClusterState.Builder.toBytes(localClusterState);
                 // remove local node reference
                 localClusterState = ClusterState.Builder.fromBytes(localClusterStateBytes, null, namedWriteableRegistry);
-                final Map<String, Object> localStateMap = convertToMap(localClusterState);
                 final int localClusterStateSize = ClusterState.Builder.toBytes(localClusterState).length;
                 // Check that the non-master node has the same version of the cluster state as the master and
                 // that the master node matches the master (otherwise there is no requirement for the cluster state to match)
                 if (masterClusterState.version() == localClusterState.version()
                         && masterId.equals(localClusterState.nodes().getMasterNodeId())) {
                     try {
-                        assertEquals("cluster state UUID does not match", masterClusterState.stateUUID(), localClusterState.stateUUID());
+                        assertThat("cluster state UUID does not match", masterClusterState.stateUUID(), is(localClusterState.stateUUID()));
+                        assertThat("cluster state size does not match", masterClusterStateSize, is(localClusterStateSize));
                         // remove non-core customs and compare the cluster states
                         assertNull(
                                 "cluster state JSON serialization does not match (after removing some customs)",
