@@ -46,6 +46,10 @@ None
 Fixes
 =====
 
+- Fixed an issue resulting in ``pg_catalog.pg_attribute.attnum`` and
+  ``information_schema.columns.ordinal_position`` being ``NULL`` on tables
+  created with CrateDB < 4.0.
+
 - Fixed an issue resulting in ``NULL`` values when the ``ORDER BY`` symbol is a
   child of an ignored object column.
 
