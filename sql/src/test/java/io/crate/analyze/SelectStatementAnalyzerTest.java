@@ -939,10 +939,8 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void testOrderByWithOrdinal() throws Exception {
-        AnalyzedRelation relation = analyze(
-            "select name from users u order by 1");
-        AnalyzedRelation queriedTable = ((AliasedAnalyzedRelation) relation).relation();
-        assertEquals(queriedTable.outputs().get(0), queriedTable.orderBy().orderBySymbols().get(0));
+        QueriedSelectRelation<AliasedAnalyzedRelation> relation = analyze("select name from users u order by 1");
+        assertEquals(relation.outputs().get(0), relation.orderBy().orderBySymbols().get(0));
     }
 
     @Test
