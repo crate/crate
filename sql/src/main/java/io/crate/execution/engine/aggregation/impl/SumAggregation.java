@@ -42,24 +42,15 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
     public static final String NAME = "sum";
 
     public static void register(AggregationImplModule mod) {
-
-        final BinaryOperator<Long> longAddImpl = (n1, n2) -> {
-            long r = n1 + n2;
-            // Overflow if both arguments have the opposite sign of the result
-            if (((n1 ^ r) & (n2 ^ r)) < 0) {
-                throw new ArithmeticException("long overflow");
-            }
-            return r;
-        };
-
-        final BinaryOperator<Long> longSubImpl = (n1, n2) -> n1 - n2;
+        final BinaryOperator<Long> add = Math::addExact;
+        final BinaryOperator<Long> substract = Math::subtractExact;
 
         mod.register(new SumAggregation<Float>(DataTypes.FLOAT, (n1, n2) -> n1 + n2, (n1, n2) -> n1 - n2));
         mod.register(new SumAggregation<Double>(DataTypes.DOUBLE, (n1, n2) -> n1 + n2, (n1, n2) -> n1 - n2));
-        mod.register(new SumAggregation<>(DataTypes.BYTE, DataTypes.LONG, longAddImpl, longSubImpl));
-        mod.register(new SumAggregation<>(DataTypes.SHORT, DataTypes.LONG, longAddImpl, longSubImpl));
-        mod.register(new SumAggregation<>(DataTypes.INTEGER, DataTypes.LONG, longAddImpl, longSubImpl));
-        mod.register(new SumAggregation<>(DataTypes.LONG, longAddImpl, longSubImpl));
+        mod.register(new SumAggregation<>(DataTypes.BYTE, DataTypes.LONG, add, substract));
+        mod.register(new SumAggregation<>(DataTypes.SHORT, DataTypes.LONG, add, substract));
+        mod.register(new SumAggregation<>(DataTypes.INTEGER, DataTypes.LONG, add, substract));
+        mod.register(new SumAggregation<>(DataTypes.LONG, add, substract));
     }
 
     private final FunctionInfo info;
