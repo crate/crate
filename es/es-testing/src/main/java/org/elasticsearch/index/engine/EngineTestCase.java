@@ -591,6 +591,7 @@ public abstract class EngineTestCase extends ESTestCase {
 
     protected EngineConfig config(EngineConfig config,
                                   Store store,
+                                  Path translogPath,
                                   EngineConfig.TombstoneDocSupplier tombstoneDocSupplier) {
         IndexSettings indexSettings = IndexSettingsModule.newIndexSettings(
             "test",
@@ -599,6 +600,8 @@ public abstract class EngineTestCase extends ESTestCase {
                 .put(IndexSettings.INDEX_SOFT_DELETES_SETTING.getKey(), true)
                 .build()
         );
+        TranslogConfig translogConfig = new TranslogConfig(
+            shardId, translogPath, indexSettings, BigArrays.NON_RECYCLING_INSTANCE);
         return new EngineConfig(
             config.getShardId(),
             config.getAllocationId(),
@@ -612,7 +615,7 @@ public abstract class EngineTestCase extends ESTestCase {
             config.getEventListener(),
             config.getQueryCache(),
             config.getQueryCachingPolicy(),
-            config.getTranslogConfig(),
+            translogConfig,
             config.getFlushMergesAfter(),
             config.getExternalRefreshListener(),
             config.getInternalRefreshListener(),

@@ -2990,7 +2990,8 @@ public class InternalEngineTests extends EngineTestCase {
                     return tombstoneDocSupplier().newNoopTombstoneDoc(reason);
                 }
             };
-            try (InternalEngine engine = createEngine(config(this.engine.config(), store, tombstoneDocSupplier))) {
+            EngineConfig config = config(this.engine.config(), store, createTempDir(), tombstoneDocSupplier);
+            try (InternalEngine engine = createEngine(config)) {
                 final ParsedDocument doc = testParsedDocument("1", null, testDocumentWithTextField(), SOURCE, null);
                 engine.index(indexForDoc(doc));
                 expectThrows(IllegalStateException.class, () -> engine.delete(
