@@ -134,6 +134,10 @@ Changes
 Fixes
 =====
 
+- Fixed an issue resulting in ``pg_catalog.pg_attribute.attnum`` and
+  ``information_schema.columns.ordinal_position`` being ``NULL`` on tables
+  created with CrateDB < 4.0.
+
 - Fail the storage engine if indexing on a replica shard fails after it was
   successfully done on a primary shard. It prevents replica and primary shards
   from going out of sync.
