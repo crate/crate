@@ -289,18 +289,17 @@ public class Collect implements LogicalPlan {
 
     private RoutedCollectPhase createPhase(PlannerContext plannerContext, Row params, SubQueryResults subQueryResults) {
         SessionContext sessionContext = plannerContext.transactionContext().sessionContext();
+        SubQueryAndParamBinder binder = new SubQueryAndParamBinder(params, subQueryResults);
+
         // bind all parameters and possible subQuery values and re-analyze the query
         // (could result in a NO_MATCH, routing could've changed, etc).
         // the <p>where</p> instance variable must be overwritten as the plan creation of outer operators relies on it
         // (e.g. GroupHashAggregate will build different plans based on the collect routing)
-        where = WhereClauseAnalyzer.bindAndAnalyze(
-            where,
-            params,
-            subQueryResults,
+        where = WhereClauseAnalyzer.resolvePartitions(
+            where.map(binder),
             relation,
             plannerContext.functions(),
             plannerContext.transactionContext());
-        SubQueryAndParamBinder binder = new SubQueryAndParamBinder(params, subQueryResults);
         List<Symbol> boundOutputs = Lists2.map(outputs, binder);
 
         if (relation instanceof TableFunctionRelation) {

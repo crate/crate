@@ -27,7 +27,6 @@ import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.common.collections.Lists2;
-import io.crate.data.Row;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.reference.partitioned.PartitionExpression;
 import io.crate.expression.symbol.Literal;
@@ -39,8 +38,6 @@ import io.crate.metadata.PartitionReferenceResolver;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.planner.operators.SubQueryAndParamBinder;
-import io.crate.planner.operators.SubQueryResults;
 import org.elasticsearch.common.collect.Tuple;
 
 import java.util.ArrayList;
@@ -48,9 +45,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import static io.crate.common.StringUtils.nullOrString;
 
@@ -59,41 +53,28 @@ public class WhereClauseAnalyzer {
     /**
      * Replace parameters and sub-queries with the related values and analyze the query afterwards.
      */
-    public static WhereClause bindAndAnalyze(WhereClause where,
-                                             Row params,
-                                             SubQueryResults subQueryResults,
-                                             AbstractTableRelation tableRelation,
-                                             Functions functions,
-                                             CoordinatorTxnCtx coordinatorTxnCtx) {
-        if (where.hasQuery()) {
-            Function<Symbol, Symbol> bind = new SubQueryAndParamBinder(params, subQueryResults);
-            Symbol query = bind.apply(where.query());
-            Set<Symbol> clusteredBy = where.clusteredBy().stream().map(bind).collect(Collectors.toSet());
-            if (tableRelation instanceof DocTableRelation) {
-                DocTableInfo table = ((DocTableRelation) tableRelation).tableInfo();
-                if (table.isPartitioned()) {
-                    if (table.partitions().isEmpty()) {
-                        return WhereClause.NO_MATCH;
-                    }
-                    PartitionResult partitionResult = resolvePartitions(query, table, functions, coordinatorTxnCtx);
-                    if (!where.partitions().isEmpty()
-                        && !partitionResult.partitions.isEmpty()
-                        && !partitionResult.partitions.equals(where.partitions())) {
-
-                        throw new IllegalArgumentException("Given partition ident does not match partition evaluated from where clause");
-                    }
-                    return new WhereClause(
-                        partitionResult.query,
-                        partitionResult.partitions,
-                        clusteredBy
-                    );
-                }
-                return new WhereClause(query, where.partitions(), clusteredBy);
-            } else {
-                return new WhereClause(query, where.partitions(), clusteredBy);
-            }
+    public static WhereClause resolvePartitions(WhereClause where,
+                                                AbstractTableRelation tableRelation,
+                                                Functions functions,
+                                                CoordinatorTxnCtx coordinatorTxnCtx) {
+        if (!where.hasQuery() || !(tableRelation instanceof DocTableRelation)) {
+            return where;
         }
-        return where;
+        DocTableInfo table = ((DocTableRelation) tableRelation).tableInfo();
+        if (!table.isPartitioned()) {
+            return where;
+        }
+        if (table.partitions().isEmpty()) {
+            return WhereClause.NO_MATCH;
+        }
+        PartitionResult partitionResult = resolvePartitions(where.queryOrFallback(), table, functions, coordinatorTxnCtx);
+        if (!where.partitions().isEmpty()
+            && !partitionResult.partitions.isEmpty()
+            && !partitionResult.partitions.equals(where.partitions())) {
+
+            throw new IllegalArgumentException("Given partition ident does not match partition evaluated from where clause");
+        }
+        return new WhereClause(partitionResult.query, partitionResult.partitions, where.clusteredBy());
     }
 
     private static PartitionReferenceResolver preparePartitionResolver(List<Reference> partitionColumns) {
