@@ -120,8 +120,9 @@ public class TableParameterInfo {
             .add(IndexService.GLOBAL_CHECKPOINT_SYNC_INTERVAL_SETTING)
             .build();
 
-    static final Set<Setting> SETTINGS_WITH_OTHER_SETTING_FALLBACK = ImmutableSet.of(
-        IndexMetaData.INDEX_NUMBER_OF_ROUTING_SHARDS_SETTING
+    static final Set<Setting> SETTINGS_NOT_INCLUDED_IN_DEFAULT = ImmutableSet.of(
+        IndexMetaData.INDEX_NUMBER_OF_ROUTING_SHARDS_SETTING,
+        IndexService.GLOBAL_CHECKPOINT_SYNC_INTERVAL_SETTING
     );
 
     private static final Map<String, Setting<?>> SUPPORTED_SETTINGS_DEFAULT
