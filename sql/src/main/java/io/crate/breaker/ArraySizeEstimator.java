@@ -25,24 +25,53 @@ package io.crate.breaker;
 import javax.annotation.Nullable;
 import java.util.List;
 
-public class ArraySizeEstimator extends SizeEstimator<List<Object>> {
+public final class ArraySizeEstimator {
 
-    private final SizeEstimator<Object> elementEstimator;
-
-    ArraySizeEstimator(SizeEstimator<Object> elementEstimator) {
-        this.elementEstimator = elementEstimator;
+    public static <T> SizeEstimator<List<T>> create(SizeEstimator<T> elementEstimator) {
+        if (elementEstimator instanceof ConstSizeEstimator) {
+            long elementSize = ((ConstSizeEstimator) elementEstimator).size();
+            return new ConstElementArraySizeEstimator<>(elementSize);
+        } else {
+            return new DynamicArraySizeEstimator<>(elementEstimator);
+        }
     }
 
-    @Override
-    public long estimateSize(@Nullable List<Object> value) {
-        if (value == null) {
-            return 8;
+    private static class ConstElementArraySizeEstimator<T> extends SizeEstimator<List<T>> {
+        private final long elementSize;
+
+        ConstElementArraySizeEstimator(long elementSize) {
+            this.elementSize = elementSize;
         }
-        long size = 16;
-        for (Object val : value) {
-            size += elementEstimator.estimateSize(val);
+
+        @Override
+        public long estimateSize(@Nullable List<T> values) {
+            if (values == null) {
+                return 8;
+            }
+            // 16 for the container
+            return 16 + values.size() * elementSize;
         }
-        return size;
+
     }
 
+    private static class DynamicArraySizeEstimator<T> extends SizeEstimator<List<T>> {
+
+        private final SizeEstimator<T> elementEstimator;
+
+        DynamicArraySizeEstimator(SizeEstimator<T> elementEstimator) {
+            this.elementEstimator = elementEstimator;
+        }
+
+        @Override
+        public long estimateSize(@Nullable List<T> values) {
+            if (values == null) {
+                return 8;
+            }
+            long size = 16;
+            for (T val : values) {
+                size += elementEstimator.estimateSize(val);
+            }
+            return size;
+        }
+    }
 }
