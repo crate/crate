@@ -114,6 +114,7 @@ import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.index.translog.TranslogConfig;
 import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
 import org.elasticsearch.test.IndexSettingsModule;
+import org.hamcrest.Matcher;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.Test;
@@ -3015,21 +3016,21 @@ public class InternalEngineTests extends EngineTestCase {
         if (randomBoolean()) {
             Engine.IndexResult indexResult = engine.index(operation);
             assertLuceneOperations(engine, 1, 0, 0);
-            assertEquals(0, engine.getNumVersionLookups());
+            assertThatIfAssertionEnabled(engine.getNumVersionLookups(), is(0L));
             assertNotNull(indexResult.getTranslogLocation());
             Engine.IndexResult retryResult = engine.index(retry);
             assertLuceneOperations(engine, 1, 1, 0);
-            assertEquals(0, engine.getNumVersionLookups());
+            assertThatIfAssertionEnabled(engine.getNumVersionLookups(), is(0L));
             assertNotNull(retryResult.getTranslogLocation());
             assertTrue(retryResult.getTranslogLocation().compareTo(indexResult.getTranslogLocation()) > 0);
         } else {
             Engine.IndexResult retryResult = engine.index(retry);
             assertLuceneOperations(engine, 0, 1, 0);
-            assertEquals(0, engine.getNumVersionLookups());
+            assertThatIfAssertionEnabled(engine.getNumVersionLookups(), is(0L));
             assertNotNull(retryResult.getTranslogLocation());
             Engine.IndexResult indexResult = engine.index(operation);
             assertLuceneOperations(engine, 0, 2, 0);
-            assertEquals(0, engine.getNumVersionLookups());
+            assertThatIfAssertionEnabled(engine.getNumVersionLookups(), is(0L));
             assertNotNull(retryResult.getTranslogLocation());
             assertTrue(retryResult.getTranslogLocation().compareTo(indexResult.getTranslogLocation()) < 0);
         }
@@ -3077,25 +3078,25 @@ public class InternalEngineTests extends EngineTestCase {
         if (randomBoolean()) {
             Engine.IndexResult indexResult = engine.index(operation);
             assertLuceneOperations(engine, 1, 0, 0);
-            assertEquals(0, engine.getNumVersionLookups());
+            assertThatIfAssertionEnabled(engine.getNumVersionLookups(), is(0L));
             assertNotNull(indexResult.getTranslogLocation());
             engine.delete(delete);
-            assertEquals(1, engine.getNumVersionLookups());
+            assertThatIfAssertionEnabled(engine.getNumVersionLookups(), is(1L));
             assertLuceneOperations(engine, 1, 0, 1);
             Engine.IndexResult retryResult = engine.index(retry);
-            assertEquals(belowLckp ? 1 : 2, engine.getNumVersionLookups());
+            assertThatIfAssertionEnabled(engine.getNumVersionLookups(), is(belowLckp ? 1L : 2L));
             assertNotNull(retryResult.getTranslogLocation());
             assertTrue(retryResult.getTranslogLocation().compareTo(indexResult.getTranslogLocation()) > 0);
         } else {
             Engine.IndexResult retryResult = engine.index(retry);
             assertLuceneOperations(engine, 1, 0, 0);
-            assertEquals(1, engine.getNumVersionLookups());
+            assertThatIfAssertionEnabled(engine.getNumVersionLookups(), is(1L));
             assertNotNull(retryResult.getTranslogLocation());
             engine.delete(delete);
             assertLuceneOperations(engine, 1, 0, 1);
-            assertEquals(2, engine.getNumVersionLookups());
+            assertThatIfAssertionEnabled(engine.getNumVersionLookups(), is(2L));
             Engine.IndexResult indexResult = engine.index(operation);
-            assertEquals(belowLckp ? 2 : 3, engine.getNumVersionLookups());
+            assertThatIfAssertionEnabled(engine.getNumVersionLookups(), is(belowLckp ? 2L : 3L));
             assertNotNull(retryResult.getTranslogLocation());
             assertTrue(retryResult.getTranslogLocation().compareTo(indexResult.getTranslogLocation()) < 0);
         }
@@ -3119,7 +3120,7 @@ public class InternalEngineTests extends EngineTestCase {
         if (randomBoolean()) {
             Engine.IndexResult indexResult = engine.index(operation);
             assertLuceneOperations(engine, 1, 0, 0);
-            assertEquals(0, engine.getNumVersionLookups());
+            assertThatIfAssertionEnabled(engine.getNumVersionLookups(), is(0L));
             assertNotNull(indexResult.getTranslogLocation());
             Engine.IndexResult retryResult = engine.index(retry);
             if (retry.seqNo() > operation.seqNo()) {
@@ -3127,13 +3128,13 @@ public class InternalEngineTests extends EngineTestCase {
             } else {
                 assertLuceneOperations(engine, 1, 0, 0);
             }
-            assertEquals(belowLckp ? 0 : 1, engine.getNumVersionLookups());
+            assertThatIfAssertionEnabled(engine.getNumVersionLookups(), is(belowLckp ? 0L : 1L));
             assertNotNull(retryResult.getTranslogLocation());
             assertTrue(retryResult.getTranslogLocation().compareTo(indexResult.getTranslogLocation()) > 0);
         } else {
             Engine.IndexResult retryResult = engine.index(retry);
             assertLuceneOperations(engine, 1, 0, 0);
-            assertEquals(1, engine.getNumVersionLookups());
+            assertThatIfAssertionEnabled(engine.getNumVersionLookups(), is(1L));
             assertNotNull(retryResult.getTranslogLocation());
             Engine.IndexResult indexResult = engine.index(operation);
             if (operation.seqNo() > retry.seqNo()) {
@@ -3141,7 +3142,7 @@ public class InternalEngineTests extends EngineTestCase {
             } else {
                 assertLuceneOperations(engine, 1, 0, 0);
             }
-            assertEquals(belowLckp ? 1 : 2, engine.getNumVersionLookups());
+            assertThatIfAssertionEnabled(engine.getNumVersionLookups(), is(belowLckp ? 1L : 2L));
             assertNotNull(retryResult.getTranslogLocation());
             assertTrue(retryResult.getTranslogLocation().compareTo(indexResult.getTranslogLocation()) < 0);
         }
@@ -3183,27 +3184,27 @@ public class InternalEngineTests extends EngineTestCase {
         if (randomBoolean()) {
             Engine.IndexResult indexResult = engine.index(operation);
             assertLuceneOperations(engine, 1, 0, 0);
-            assertEquals(1, engine.getNumVersionLookups());
+            assertThatIfAssertionEnabled(engine.getNumVersionLookups(), is(1L));
             assertNotNull(indexResult.getTranslogLocation());
             if (randomBoolean()) {
                 engine.refresh("test");
             }
             Engine.IndexResult retryResult = engine.index(duplicate);
             assertLuceneOperations(engine, 1, 0, 0);
-            assertEquals(2, engine.getNumVersionLookups());
+            assertThatIfAssertionEnabled(engine.getNumVersionLookups(), is(2L));
             assertNotNull(retryResult.getTranslogLocation());
             assertTrue(retryResult.getTranslogLocation().compareTo(indexResult.getTranslogLocation()) > 0);
         } else {
             Engine.IndexResult retryResult = engine.index(duplicate);
             assertLuceneOperations(engine, 1, 0, 0);
-            assertEquals(1, engine.getNumVersionLookups());
+            assertThatIfAssertionEnabled(engine.getNumVersionLookups(), is(1L));
             assertNotNull(retryResult.getTranslogLocation());
             if (randomBoolean()) {
                 engine.refresh("test");
             }
             Engine.IndexResult indexResult = engine.index(operation);
             assertLuceneOperations(engine, 1, 0, 0);
-            assertEquals(2, engine.getNumVersionLookups());
+            assertThatIfAssertionEnabled(engine.getNumVersionLookups(), is(2L));
             assertNotNull(retryResult.getTranslogLocation());
             assertTrue(retryResult.getTranslogLocation().compareTo(indexResult.getTranslogLocation()) < 0);
         }
@@ -3319,14 +3320,6 @@ public class InternalEngineTests extends EngineTestCase {
     public Engine.Index appendOnlyReplica(ParsedDocument doc, boolean retry, final long autoGeneratedIdTimestamp, final long seqNo) {
         return new Engine.Index(newUid(doc), doc, seqNo, 2, 1, null,
                                 Engine.Operation.Origin.REPLICA, System.nanoTime(), autoGeneratedIdTimestamp, retry, UNASSIGNED_SEQ_NO, 0);
-    }
-
-    public static long getNumVersionLookups(InternalEngine engine) { // for other tests to access this
-        return engine.getNumVersionLookups();
-    }
-
-    public static long getNumIndexVersionsLookups(InternalEngine engine) { // for other tests to access this
-        return engine.getNumIndexVersionsLookups();
     }
 
     @Test
@@ -4666,20 +4659,20 @@ public class InternalEngineTests extends EngineTestCase {
             engine.delete(replicaDeleteForDoc("d", 1, seqnoNormalOp, randomNonNegativeLong()));
         }
         lookupTimes++;
-        assertThat(engine.getNumVersionLookups(), equalTo(lookupTimes));
+        assertThatIfAssertionEnabled(engine.getNumVersionLookups(), is(lookupTimes));
         assertThat(engine.getMaxSeqNoOfNonAppendOnlyOperations(), equalTo(seqnoNormalOp));
 
         // should not optimize for doc1 and process as a regular doc (eg. look up in version map)
         engine.index(appendOnlyReplica(testParsedDocument("append-only-1", null, testDocumentWithTextField(), SOURCE, null),
                                        false, randomNonNegativeLong(), seqNoAppendOnly1));
         lookupTimes++;
-        assertThat(engine.getNumVersionLookups(), equalTo(lookupTimes));
+        assertThatIfAssertionEnabled(engine.getNumVersionLookups(), is(lookupTimes));
 
         // optimize for other append-only 2 (its seqno > max_seqno of non-append-only) - do not look up in version map.
         engine.index(appendOnlyReplica(testParsedDocument("append-only-2", null,
                                                           testDocumentWithTextField(), SOURCE, null),
                                        false, randomNonNegativeLong(), generateNewSeqNo(engine)));
-        assertThat(engine.getNumVersionLookups(), equalTo(lookupTimes));
+        assertThatIfAssertionEnabled(engine.getNumVersionLookups(), is(lookupTimes));
     }
 
     @Test
@@ -5090,6 +5083,7 @@ public class InternalEngineTests extends EngineTestCase {
         assertThat(engine.shouldPeriodicallyFlush(), equalTo(false));
     }
 
+    @Test
     public void testHandleDocumentFailureOnReplica() throws Exception {
         AtomicReference<IOException> addDocException = new AtomicReference<>();
         IndexWriterFactory indexWriterFactory = (dir, iwc) -> new IndexWriter(dir, iwc) {
@@ -5149,5 +5143,11 @@ public class InternalEngineTests extends EngineTestCase {
         assertThat(message, engine.getNumDocAppends(), equalTo(expectedAppends));
         assertThat(message, engine.getNumDocUpdates(), equalTo(expectedUpdates));
         assertThat(message, engine.getNumDocDeletes(), equalTo(expectedDeletes));
+    }
+
+    public static <T> void assertThatIfAssertionEnabled(T actual, Matcher<? super T> matcher) {
+        if (InternalEngineTests.class.desiredAssertionStatus()) {
+            assertThat(actual, matcher);
+        }
     }
 }
