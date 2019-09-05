@@ -75,14 +75,12 @@ public class Count implements LogicalPlan {
                                SubQueryResults subQueryResults) {
         // bind all parameters and possible subQuery values and re-analyze the query
         // (could result in a NO_MATCH, routing could've changed, etc).
-        WhereClause boundWhere = WhereClauseAnalyzer.bindAndAnalyze(
-            where,
-            params,
-            subQueryResults,
+        WhereClause boundWhere = WhereClauseAnalyzer.resolvePartitions(
+            where.map(s -> SubQueryAndParamBinder.convert(s, params, subQueryResults)),
             tableRelation,
             plannerContext.functions(),
-            plannerContext.transactionContext());
-
+            plannerContext.transactionContext()
+        );
         Routing routing = plannerContext.allocateRouting(
             tableRelation.tableInfo(),
             boundWhere,
