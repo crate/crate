@@ -104,10 +104,11 @@ public class TableParameters {
         );
 
     /**
-     * Settings which have a default value that depends on other settings
+     * Settings which are not included in table default settings
      */
-    static final Set<Setting> SETTINGS_WITH_COMPUTED_DEFAULT = Set.of(
-        IndexMetaData.INDEX_NUMBER_OF_ROUTING_SHARDS_SETTING
+    static final Set<Setting> SETTINGS_NOT_INCLUDED_IN_DEFAULT = Set.of(
+        IndexMetaData.INDEX_NUMBER_OF_ROUTING_SHARDS_SETTING,
+        IndexService.GLOBAL_CHECKPOINT_SYNC_INTERVAL_SETTING
     );
 
     private static final Map<String, Setting<?>> SUPPORTED_SETTINGS_DEFAULT
