@@ -155,12 +155,16 @@ public class WhereClause extends QueryClause {
         return this;
     }
 
-    WhereClause map(Function<? super Symbol, ? extends Symbol> replaceFunction) {
-        if (!hasQuery()) {
+    public WhereClause map(Function<? super Symbol, ? extends Symbol> mapper) {
+        if (query == null && clusteredBy.isEmpty()) {
             return this;
         }
-        Symbol newQuery = replaceFunction.apply(query);
-        return new WhereClause(newQuery, partitions, clusteredBy);
+        Symbol newQuery = query == null ? null : mapper.apply(query);
+        HashSet<Symbol> newClusteredBy = new HashSet<>(clusteredBy.size());
+        for (Symbol symbol : clusteredBy) {
+            newClusteredBy.add(mapper.apply(symbol));
+        }
+        return new WhereClause(newQuery, partitions, newClusteredBy);
     }
 
     @Override
