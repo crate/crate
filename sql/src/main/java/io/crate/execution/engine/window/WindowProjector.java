@@ -23,12 +23,9 @@
 package io.crate.execution.engine.window;
 
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.WindowDefinition;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.breaker.RowAccounting;
 import io.crate.breaker.RowAccountingWithEstimators;
-import io.crate.data.BatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Projector;
 import io.crate.data.Row;
@@ -37,11 +34,15 @@ import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.expression.ExpressionsInput;
 import io.crate.expression.InputFactory;
+import io.crate.expression.symbol.InputColumn;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.metadata.TransactionContext;
-import io.crate.planner.operators.SubQueryResults;
+import io.crate.sql.tree.WindowFrame;
+import io.crate.types.DataType;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.util.BigArrays;
 
@@ -50,37 +51,26 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.Executor;
+import java.util.function.BiFunction;
+import java.util.function.BinaryOperator;
+import java.util.function.Function;
 import java.util.function.IntSupplier;
 import java.util.function.Supplier;
 
+import static io.crate.analyze.SymbolEvaluator.evaluateWithoutParams;
 import static io.crate.execution.engine.sort.Comparators.createComparator;
 
-public class WindowProjector implements Projector {
+public class WindowProjector {
 
-    private final Comparator<Object[]> cmpPartitionBy;
-    private final Comparator<Object[]> cmpOrderBy;
-    private final int cellOffset;
-    private final ArrayList<WindowFunction> windowFunctions;
-    private final List<CollectExpression<Row, ?>> argsExpressions;
-    private final Input[][] args;
-    private final IntSupplier numThreads;
-    private final Executor executor;
-    private final RowAccounting<Row> rowAccounting;
-    private final WindowDefinition windowDefinition;
-    @Nullable
-    private final Object startFrameOffset;
-    @Nullable
-    private final Object endFrameOffset;
-
-    public static WindowProjector fromProjection(WindowAggProjection projection,
-                                                 Functions functions,
-                                                 InputFactory inputFactory,
-                                                 TransactionContext txnCtx,
-                                                 RamAccountingContext ramAccountingContext,
-                                                 BigArrays bigArrays,
-                                                 Version indexVersionCreated,
-                                                 IntSupplier numThreads,
-                                                 Executor executor) {
+    public static Projector fromProjection(WindowAggProjection projection,
+                                           Functions functions,
+                                           InputFactory inputFactory,
+                                           TransactionContext txnCtx,
+                                           RamAccountingContext ramAccountingContext,
+                                           BigArrays bigArrays,
+                                           Version indexVersionCreated,
+                                           IntSupplier numThreads,
+                                           Executor executor) {
         var windowFunctionContexts = projection.windowFunctionContexts();
         var numWindowFunctions = windowFunctionContexts.size();
 
@@ -130,64 +120,125 @@ public class WindowProjector implements Projector {
         int arrayListElementOverHead = 32;
         RowAccountingWithEstimators accounting = new RowAccountingWithEstimators(
             Symbols.typeView(projection.standalone()), ramAccountingContext, arrayListElementOverHead);
-        return new WindowProjector(
-            accounting,
+        Comparator<Object[]> cmpPartitionBy = partitions.isEmpty()
+            ? null
+            : createComparator(createInputFactoryContext, new OrderBy(windowDefinition.partitions()));
+        Comparator<Object[]> cmpOrderBy = createComparator(createInputFactoryContext, windowDefinition.orderBy());
+        int numCellsInSourceRow = projection.standalone().size();
+        ComputeFrameBoundary<Object[]> computeFrameStart = createComputeStartFrameBoundary(
+            numCellsInSourceRow,
+            functions,
+            txnCtx,
             windowDefinition,
-            SymbolEvaluator.evaluate(txnCtx, functions, windowDefinition.windowFrameDefinition().start().value(), Row.EMPTY, SubQueryResults.EMPTY),
-            SymbolEvaluator.evaluate(txnCtx, functions, windowDefinition.windowFrameDefinition().end().value(), Row.EMPTY, SubQueryResults.EMPTY),
-            partitions.isEmpty() ? null : createComparator(createInputFactoryContext, new OrderBy(windowDefinition.partitions())),
-            createComparator(createInputFactoryContext, windowDefinition.orderBy()),
-            projection.standalone().size(),
-            windowFunctions,
-            windowFuncArgsExpressions,
-            windowFuncArgsInputs,
-            numThreads,
-            executor
+            cmpOrderBy
         );
-    }
-
-    private WindowProjector(RowAccounting<Row> rowAccounting,
-                            WindowDefinition windowDefinition,
-                            @Nullable Object startFrameOffset,
-                            @Nullable Object endFrameOffset,
-                            Comparator<Object[]> cmpPartitionBy,
-                            Comparator<Object[]> cmpOrderBy,
-                            int cellOffset,
-                            ArrayList<WindowFunction> windowFunctions,
-                            ArrayList<CollectExpression<Row, ?>> argsExpressions,
-                            Input[][] args,
-                            IntSupplier numThreads,
-                            Executor executor) {
-        this.rowAccounting = rowAccounting;
-        this.windowDefinition = windowDefinition;
-        this.startFrameOffset = startFrameOffset;
-        this.endFrameOffset = endFrameOffset;
-        this.cmpPartitionBy = cmpPartitionBy;
-        this.cmpOrderBy = cmpOrderBy;
-        this.cellOffset = cellOffset;
-        this.windowFunctions = windowFunctions;
-        this.argsExpressions = argsExpressions;
-        this.args = args;
-        this.numThreads = numThreads;
-        this.executor = executor;
-    }
-
-    @Override
-    public BatchIterator<Row> apply(BatchIterator<Row> source) {
-        return WindowFunctionBatchIterator.of(
-            source,
-            rowAccounting,
+        ComputeFrameBoundary<Object[]> computeFrameEnd = createComputeEndFrameBoundary(
+            numCellsInSourceRow,
+            functions,
+            txnCtx,
             windowDefinition,
-            startFrameOffset,
-            endFrameOffset,
+            cmpOrderBy
+        );
+        return sourceRows -> WindowFunctionBatchIterator.of(
+            sourceRows,
+            accounting,
+            computeFrameStart,
+            computeFrameEnd,
             cmpPartitionBy,
             cmpOrderBy,
-            cellOffset,
+            numCellsInSourceRow,
             numThreads,
             executor,
             windowFunctions,
-            argsExpressions,
-            args
+            windowFuncArgsExpressions,
+            windowFuncArgsInputs
         );
+    }
+
+    static ComputeFrameBoundary<Object[]> createComputeEndFrameBoundary(int numCellsInSourceRow,
+                                                                        Functions functions,
+                                                                        TransactionContext txnCtx,
+                                                                        WindowDefinition windowDefinition,
+                                                                        Comparator<Object[]> cmpOrderBy) {
+        var frameDefinition = windowDefinition.windowFrameDefinition();
+        var frameBoundEnd = frameDefinition.end();
+        var framingMode = frameDefinition.mode();
+        Object offsetValue = evaluateWithoutParams(txnCtx, functions, frameBoundEnd.value());
+        Object[] endProbeValues = new Object[numCellsInSourceRow];
+        BiFunction<Object[], Object[], Object[]> updateProbeValues;
+        if (offsetValue != null && framingMode == WindowFrame.Mode.RANGE) {
+            updateProbeValues = createUpdateProbeValueFunction(windowDefinition, ArithmeticOperatorsFactory::getAddFunction, offsetValue);
+        } else {
+            updateProbeValues = (currentRow, x) -> x;
+        }
+        return (partitionStart, partitionEnd, currentIndex, sortedRows) -> frameBoundEnd.type().getEnd(
+            framingMode,
+            partitionStart,
+            partitionEnd,
+            currentIndex,
+            offsetValue,
+            updateProbeValues.apply(sortedRows.get(currentIndex), endProbeValues),
+            cmpOrderBy,
+            sortedRows
+        );
+    }
+
+    static ComputeFrameBoundary<Object[]> createComputeStartFrameBoundary(int numCellsInSourceRow,
+                                                                          Functions functions,
+                                                                          TransactionContext txnCtx,
+                                                                          WindowDefinition windowDefinition,
+                                                                          @Nullable Comparator<Object[]> cmpOrderBy) {
+        var frameDefinition = windowDefinition.windowFrameDefinition();
+        var frameBoundStart = frameDefinition.start();
+        var framingMode = frameDefinition.mode();
+        Object offsetValue = evaluateWithoutParams(txnCtx, functions, frameBoundStart.value());
+        Object[] startProbeValues = new Object[numCellsInSourceRow];
+        BiFunction<Object[], Object[], Object[]> updateStartProbeValue;
+        if (offsetValue != null && framingMode == WindowFrame.Mode.RANGE) {
+            updateStartProbeValue = createUpdateProbeValueFunction(windowDefinition, ArithmeticOperatorsFactory::getSubtractFunction, offsetValue);
+        } else {
+            updateStartProbeValue = (currentRow, x) -> x;
+        }
+        return (partitionStart, partitionEnd, currentIndex, sortedRows) -> frameBoundStart.type().getStart(
+            framingMode,
+            partitionStart,
+            partitionEnd,
+            currentIndex,
+            offsetValue,
+            updateStartProbeValue.apply(sortedRows.get(currentIndex), startProbeValues),
+            cmpOrderBy,
+            sortedRows
+        );
+    }
+
+    private static BiFunction<Object[], Object[], Object[]> createUpdateProbeValueFunction(WindowDefinition windowDefinition,
+                                                                                           Function<DataType<?>, BinaryOperator<?>> getOffsetApplicationFunction,
+                                                                                           Object offsetValue) {
+        OrderBy windowOrdering = windowDefinition.orderBy();
+        assert windowOrdering != null : "The window definition must be ordered if custom offsets are specified";
+        List<Symbol> orderBySymbols = windowOrdering.orderBySymbols();
+        if (orderBySymbols.size() != 1) {
+            throw new IllegalArgumentException("Must have exactly 1 ORDER BY expression if using <offset> FOLLOWING/PRECEDING");
+        }
+        int offsetColumnPosition;
+        Symbol orderSymbol = orderBySymbols.get(0);
+        BinaryOperator applyOffsetOnOrderingValue = getOffsetApplicationFunction.apply(orderSymbol.valueType());
+        if (orderSymbol.symbolType() == SymbolType.LITERAL) {
+            offsetColumnPosition = -1;
+        } else {
+            assert orderSymbol instanceof InputColumn
+                : "ORDER BY expression must resolve to an InputColumn, but got: " + orderSymbol;
+            offsetColumnPosition = ((InputColumn) orderSymbol).index();
+        }
+        var finalOffsetValue = orderSymbol.valueType().value(offsetValue);
+        return (currentRow, x) -> {
+            // if the offsetCell position is -1 the window is ordered by a Literal so we leave the
+            // probe value to null so it doesn't impact ordering (ie. all values will be consistently GT or LT
+            // `null`)
+            if (offsetColumnPosition != -1) {
+                x[offsetColumnPosition] = applyOffsetOnOrderingValue.apply(currentRow[offsetColumnPosition], finalOffsetValue);
+            }
+            return x;
+        };
     }
 }

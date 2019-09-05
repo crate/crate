@@ -25,7 +25,6 @@ package io.crate.execution.engine.window;
 import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.FrameBoundDefinition;
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.WindowFrameDefinition;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
@@ -53,7 +52,6 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -69,6 +67,7 @@ import org.junit.rules.ExpectedException;
 
 import java.lang.reflect.Array;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -168,21 +167,21 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
         }
 
         int numCellsInSourceRows = inputRows[0].length;
-        InputColumns.SourceSymbols inputColSources = new InputColumns.SourceSymbols(sourceSymbols);
         var windowDef = windowFunctionSymbol.windowDefinition();
         var partitionOrderBy = windowDef.partitions().isEmpty() ? null : new OrderBy(windowDef.partitions());
-        Object startOffsetValue = SymbolEvaluator.evaluate(
-            txnCtx, functions, windowDef.windowFrameDefinition().start().value(), Row.EMPTY, SubQueryResults.EMPTY);
-        Object endOffsetValue = SymbolEvaluator.evaluate(
-            txnCtx, functions, windowDef.windowFrameDefinition().end().value(), Row.EMPTY, SubQueryResults.EMPTY);
+        Comparator<Object[]> cmpOrderBy = createComparator(
+            () -> inputFactory.ctxForRefs(txnCtx, referenceResolver),
+            windowDef.orderBy()
+        );
+        InputColumns.SourceSymbols inputColSources = new InputColumns.SourceSymbols(sourceSymbols);
+        var mappedWindowDef = windowDef.map(s -> InputColumns.create(s, inputColSources));
         BatchIterator<Row> iterator = WindowFunctionBatchIterator.of(
             InMemoryBatchIterator.of(Arrays.stream(inputRows).map(RowN::new).collect(Collectors.toList()), SENTINEL),
             new IgnoreRowAccounting(),
-            windowDef.map(s -> InputColumns.create(s, inputColSources)),
-            startOffsetValue,
-            endOffsetValue,
+            WindowProjector.createComputeStartFrameBoundary(numCellsInSourceRows, functions, txnCtx, mappedWindowDef, cmpOrderBy),
+            WindowProjector.createComputeEndFrameBoundary(numCellsInSourceRows, functions, txnCtx, mappedWindowDef, cmpOrderBy),
             createComparator(() -> inputFactory.ctxForRefs(txnCtx, referenceResolver), partitionOrderBy),
-            createComparator(() -> inputFactory.ctxForRefs(txnCtx, referenceResolver), windowDef.orderBy()),
+            cmpOrderBy,
             numCellsInSourceRows,
             () -> 1,
             Runnable::run,

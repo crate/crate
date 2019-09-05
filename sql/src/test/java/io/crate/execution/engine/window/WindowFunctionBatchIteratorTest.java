@@ -23,7 +23,6 @@
 package io.crate.execution.engine.window;
 
 import com.carrotsearch.randomizedtesting.annotations.Repeat;
-import io.crate.analyze.WindowDefinition;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Input;
 import io.crate.data.Row;
@@ -41,7 +40,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import static io.crate.analyze.WindowDefinition.RANGE_UNBOUNDED_PRECEDING_CURRENT_ROW;
 import static io.crate.execution.engine.window.WindowFunctionBatchIterator.sortAndComputeWindowFunctions;
 import static org.hamcrest.Matchers.contains;
 
@@ -57,9 +55,8 @@ public class WindowFunctionBatchIteratorTest extends CrateUnitTest {
                 new Object[]{"a", 8, null},
                 new Object[]{"b", 2, null}
             ),
-            new WindowDefinition(List.of(), null, RANGE_UNBOUNDED_PRECEDING_CURRENT_ROW),
-            null,
-            null,
+            (partitionStart, partitionEnd, currentIndex, sortedRows) -> 0,
+            (partitionStart, partitionEnd, currentIndex, sortedRows) -> currentIndex,
             OrderingByPosition.arrayOrdering(0, false, false),
             OrderingByPosition.arrayOrdering(1, false, false),
             2,
