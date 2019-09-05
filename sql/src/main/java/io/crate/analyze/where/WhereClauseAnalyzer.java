@@ -40,6 +40,7 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
 import org.elasticsearch.common.collect.Tuple;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -139,12 +140,19 @@ public class WhereClauseAnalyzer {
             return new PartitionResult(
                 entry.getKey(), Lists2.map(entry.getValue(), literal -> nullOrString(literal.value())));
         } else if (queryPartitionMap.size() > 0) {
-            return tieBreakPartitionQueries(normalizer, queryPartitionMap, coordinatorTxnCtx);
+            PartitionResult partitionResult = tieBreakPartitionQueries(
+                normalizer, queryPartitionMap, coordinatorTxnCtx);
+            return partitionResult == null
+                // if partitionResult is null we can't narrow the partitions and keep the full query + use all partitions
+                // the query will then be evaluated correctly within each partition to see whether it matches or not
+                ? new PartitionResult(query, Lists2.map(tableInfo.partitions(), PartitionName::asIndexName))
+                : partitionResult;
         } else {
             return new PartitionResult(Literal.BOOLEAN_FALSE, Collections.emptyList());
         }
     }
 
+    @Nullable
     private static PartitionResult tieBreakPartitionQueries(EvaluatingNormalizer normalizer,
                                                             Map<Symbol, List<Literal>> queryPartitionMap,
                                                             CoordinatorTxnCtx coordinatorTxnCtx) throws UnsupportedOperationException {
@@ -190,8 +198,6 @@ public class WhereClauseAnalyzer {
                 Lists2.map(symbolListTuple.v2(), literal -> nullOrString(literal.value()))
             );
         }
-        throw new UnsupportedOperationException(
-            "logical conjunction of the conditions in the WHERE clause which " +
-            "involve partitioned columns led to a query that can't be executed.");
+        return null;
     }
 }
