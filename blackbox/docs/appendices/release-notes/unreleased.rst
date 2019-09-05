@@ -57,6 +57,11 @@ Breaking Changes
 Changes
 =======
 
+- Removed a restriction for predicates in the ``WHERE`` clause involving
+  partitioned by columns which could result in a failure response with the
+  message ``logical conjunction of the conditions in the WHERE clause which
+  involve partitioned columns led to a query that can't be executed``.
+
 - Added a dynamic bulk sizing mechanism that should prevent ``INSERT INTO ...
   FROM query`` operations to run into out of memory errors if the individual
   records of a table are very large.

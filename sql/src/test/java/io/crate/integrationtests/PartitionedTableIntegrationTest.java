@@ -65,6 +65,7 @@ import java.util.List;
 import java.util.Map;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
+import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 import static io.crate.Constants.DEFAULT_MAPPING_TYPE;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.both;
@@ -2273,5 +2274,24 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         execute("select version['created'] from information_schema.table_partitions where table_name='p1'");
 
         assertThat(response.rows()[0][0], is(Version.CURRENT.externalNumber()));
+    }
+
+    @Test
+    public void test_where_clause_that_could_match_on_null_partition_filters_correct_records() {
+        execute("create table t (id int, p int) clustered into 1 shards partitioned by (p)");
+        execute("insert into t (id, p) values (?, ?)", $$(
+            $(1, null),
+            $(2, 1),
+            $(3, 1),
+            $(4, 2)));
+        execute("refresh table t");
+
+        execute("select id from t where p = 1 or id = 4 order by 1");
+        assertThat(
+            printedTable(response.rows()),
+            is("2\n" + // match on p = 1
+               "3\n" + // match on p = 1
+               "4\n")  // match on id = 4
+        );
     }
 }

@@ -284,31 +284,14 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testSelectFromPartitionedTableUnsupported() throws Exception {
-        // these queries won't work because we would have to execute 2 separate ESSearch tasks
-        // and merge results which is not supported right now and maybe never will be
-        String expectedMessage = "logical conjunction of the conditions in the WHERE clause which involve " +
-                                 "partitioned columns led to a query that can't be executed.";
-        try {
-            analyzeSelectWhere("select id, name from parted where date = 1395961200000 or id = 1");
-            fail("Expected UnsupportedOperationException with message: " + expectedMessage);
-        } catch (UnsupportedOperationException e) {
-            assertThat(e.getMessage(), is(expectedMessage));
-        }
-
-        try {
-            analyzeSelectWhere("select id, name from parted where id = 1 or date = 1395961200000");
-            fail("Expected UnsupportedOperationException with message: " + expectedMessage);
-        } catch (UnsupportedOperationException e) {
-            assertThat(e.getMessage(), is(expectedMessage));
-        }
-
-        try {
-            analyzeSelectWhere("select id, name from parted where date = 1395961200000 or date/0 = 1");
-            fail("Expected UnsupportedOperationException with message: " + expectedMessage);
-        } catch (UnsupportedOperationException e) {
-            assertThat(e.getMessage(), is(expectedMessage));
-        }
+    public void test_where_on_date_with_null_partition_or_id_can_match_all_partitions() throws Exception {
+        WhereClause whereClause = analyzeSelectWhere("select id, name from parted where date = 1395961200000 or id = 1");
+        assertThat(whereClause.partitions(), containsInAnyOrder(
+            ".partitioned.parted.0400",
+            ".partitioned.parted.04732cpp6ksjcc9i60o30c1g",
+            ".partitioned.parted.04732cpp6ks3ed1o60o30c1g"
+        ));
+        assertThat(whereClause.queryOrFallback(), isSQL("((doc.parted.date = 1395961200000) OR (doc.parted.id = 1))"));
     }
 
     @Test
