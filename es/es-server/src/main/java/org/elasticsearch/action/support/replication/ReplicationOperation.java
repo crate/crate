@@ -96,18 +96,28 @@ public class ReplicationOperation<
         final ShardId primaryId = primaryRouting.shardId();
         if (activeShardCountFailure != null) {
             finishAsFailed(new UnavailableShardsException(primaryId,
-                "{} Timeout: [{}], request: [{}]", activeShardCountFailure, request.timeout(), request));
+                                                          "{} Timeout: [{}], request: [{}]",
+                                                          activeShardCountFailure,
+                                                          request.timeout(),
+                                                          request));
             return;
         }
 
         totalShards.incrementAndGet();
         pendingActions.incrementAndGet(); // increase by 1 until we finish all primary coordination
-        primaryResult = primary.perform(request);
-        primary.updateLocalCheckpointForShard(primaryRouting.allocationId().getId(), primary.localCheckpoint());
+        primary.perform(request, ActionListener.wrap(this::handlePrimaryResult, resultListener::onFailure));
+    }
+
+    private void handlePrimaryResult(final PrimaryResultT primaryResult) {
+        this.primaryResult = primaryResult;
+        primary.updateLocalCheckpointForShard(primary.routingEntry().allocationId().getId(), primary.localCheckpoint());
         final ReplicaRequest replicaRequest = primaryResult.replicaRequest();
         if (replicaRequest != null) {
             if (logger.isTraceEnabled()) {
-                logger.trace("[{}] op [{}] completed on primary for request [{}]", primaryId, opType, request);
+                logger.trace("[{}] op [{}] completed on primary for request [{}]",
+                             primary.routingEntry().shardId(),
+                             opType,
+                             request);
             }
 
             // we have to get the replication group after successfully indexing into the primary in order to honour recovery semantics.
@@ -310,9 +320,9 @@ public class ReplicationOperation<
          * also complete after. Deal with it.
          *
          * @param request the request to perform
-         * @return the request to send to the replicas
+         * @param listener result listener
          */
-        PrimaryResultT perform(RequestT request) throws Exception;
+        void perform(RequestT request, ActionListener<PrimaryResultT> listener) throws Exception;
 
         /**
          * Notifies the primary of a local checkpoint for the given allocation.

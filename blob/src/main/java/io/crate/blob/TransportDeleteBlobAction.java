@@ -23,6 +23,7 @@ package io.crate.blob;
 
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.blob.v2.BlobShard;
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
@@ -72,12 +73,17 @@ public class TransportDeleteBlobAction extends TransportReplicationAction<Delete
     }
 
     @Override
-    protected PrimaryResult shardOperationOnPrimary(DeleteBlobRequest request, IndexShard primary) throws Exception {
-        logger.trace("shardOperationOnPrimary {}", request);
-        BlobShard blobShard = blobIndicesService.blobShardSafe(request.shardId());
-        boolean deleted = blobShard.delete(request.id());
-        final DeleteBlobResponse response = new DeleteBlobResponse(deleted);
-        return new PrimaryResult<>(request, response);
+    protected void shardOperationOnPrimary(DeleteBlobRequest request,
+                                           IndexShard primary,
+                                           ActionListener<PrimaryResult<DeleteBlobRequest, DeleteBlobResponse>> listener) {
+
+        ActionListener.completeWith(listener, () -> {
+            logger.trace("shardOperationOnPrimary {}", request);
+            BlobShard blobShard = blobIndicesService.blobShardSafe(request.shardId());
+            boolean deleted = blobShard.delete(request.id());
+            final DeleteBlobResponse response = new DeleteBlobResponse(deleted);
+            return new PrimaryResult<>(request, response);
+        });
     }
 
     @Override

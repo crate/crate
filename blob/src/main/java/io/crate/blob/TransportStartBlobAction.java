@@ -21,6 +21,7 @@
 
 package io.crate.blob;
 
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
@@ -73,11 +74,15 @@ public class TransportStartBlobAction extends TransportReplicationAction<StartBl
     }
 
     @Override
-    protected PrimaryResult shardOperationOnPrimary(StartBlobRequest request, IndexShard primary) throws Exception {
-        logger.trace("shardOperationOnPrimary {}", request);
-        final StartBlobResponse response = new StartBlobResponse();
-        transferTarget.startTransfer(request, response);
-        return new PrimaryResult<>(request, response);
+    protected void shardOperationOnPrimary(StartBlobRequest request,
+                                           IndexShard primary,
+                                           ActionListener<PrimaryResult<StartBlobRequest, StartBlobResponse>> listener) {
+        ActionListener.completeWith(listener, () -> {
+            logger.trace("shardOperationOnPrimary {}", request);
+            final StartBlobResponse response = new StartBlobResponse();
+            transferTarget.startTransfer(request, response);
+            return new PrimaryResult<>(request, response);
+        });
     }
 
     @Override

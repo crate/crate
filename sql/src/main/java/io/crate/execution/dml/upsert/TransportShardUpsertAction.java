@@ -42,6 +42,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import org.elasticsearch.ExceptionsHelper;
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
@@ -72,6 +73,9 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.IntPredicate;
+import java.util.stream.IntStream;
 
 import static io.crate.exceptions.SQLExceptions.userFriendlyCrateExceptionTopOnly;
 
@@ -115,9 +119,10 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
     }
 
     @Override
-    protected WritePrimaryResult<ShardUpsertRequest, ShardResponse> processRequestItems(IndexShard indexShard,
-                                                                                        ShardUpsertRequest request,
-                                                                                        AtomicBoolean killed) {
+    protected void processRequestItems(IndexShard indexShard,
+                                       ShardUpsertRequest request,
+                                       AtomicBoolean killed,
+                                       ActionListener<PrimaryResult<ShardUpsertRequest, ShardResponse>> listener) {
         ShardResponse shardResponse = new ShardResponse();
         String indexName = request.index();
         DocTableInfo tableInfo = schemas.getTableInfo(RelationName.fromIndexName(indexName), Operation.INSERT);
@@ -135,9 +140,9 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             ? null
             : new UpdateSourceGen(functions, txnCtx, tableInfo, request.updateColumns());
 
-        Translog.Location translogLocation = null;
+        AtomicReference<Translog.Location> translogLocation = new AtomicReference<>();
+        AtomicBoolean breakLoop = new AtomicBoolean();
         for (ShardUpsertRequest.Item item : request.items()) {
-            int location = item.location();
             if (killed.get()) {
                 // set failure on response and skip all next items.
                 // this way replica operation will be executed, but only items with a valid source (= was processed on primary)
@@ -145,45 +150,58 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 shardResponse.failure(new InterruptedException());
                 break;
             }
-            try {
-                translogLocation = indexItem(
-                    request,
-                    item,
-                    indexShard,
-                    item.insertValues() != null, // try insert first
-                    updateSourceGen,
-                    insertSourceGen
-                );
-                if (translogLocation != null) {
-                    shardResponse.add(location);
-                }
-            } catch (Exception e) {
-                if (retryPrimaryException(e)) {
-                    if (e instanceof RuntimeException) {
-                        throw (RuntimeException) e;
+            indexItem(
+                request,
+                item,
+                indexShard,
+                item.insertValues() != null, // try insert first
+                updateSourceGen,
+                insertSourceGen,
+                ActionListener.wrap(
+                    traslogLocus -> {
+                        translogLocation.set(traslogLocus);
+                        if (traslogLocus != null) {
+                            shardResponse.add(item.location());
+                        }
+                    },
+                    e -> {
+                        if (retryPrimaryException(e)) {
+                            RuntimeException rte;
+                            if (e instanceof RuntimeException) {
+                                rte = (RuntimeException) e;
+                            }
+                            rte = new RuntimeException(e);
+                            breakLoop.set(true);
+                            listener.onFailure(rte);
+                        } else {
+                            if (logger.isDebugEnabled()) {
+                                logger.debug("Failed to execute upsert shardId={} id={} error={}",
+                                             request.shardId(), item.id(), e);
+                            }
+
+                            // *mark* the item as failed by setting the source to null to prevent
+                            // the replica operation from processing this concrete item
+                            item.source(null);
+
+                            if (false == request.continueOnError()) {
+                                shardResponse.failure(e);
+                            } else {
+                                shardResponse.add(item.location(),
+                                                  new ShardResponse.Failure(
+                                                      item.id(),
+                                                      userFriendlyCrateExceptionTopOnly(e),
+                                                      (e instanceof VersionConflictEngineException)));
+                            }
+                        }
                     }
-                    throw new RuntimeException(e);
-                }
-                if (logger.isDebugEnabled()) {
-                    logger.debug("Failed to execute upsert shardId={} id={} error={}", request.shardId(), item.id(), e);
-                }
-
-                // *mark* the item as failed by setting the source to null
-                // to prevent the replica operation from processing this concrete item
-                item.source(null);
-
-                if (!request.continueOnError()) {
-                    shardResponse.failure(e);
-                    break;
-                }
-                shardResponse.add(location,
-                    new ShardResponse.Failure(
-                        item.id(),
-                        userFriendlyCrateExceptionTopOnly(e),
-                        (e instanceof VersionConflictEngineException)));
+                )
+            );
+            if (breakLoop.get()) {
+                break;
             }
         }
-        return new WritePrimaryResult<>(request, shardResponse, translogLocation, null, indexShard);
+        listener.onResponse(new WritePrimaryResult<>(
+            request, shardResponse, translogLocation.get(), null, indexShard));
     }
 
     @Override
@@ -229,61 +247,92 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
     }
 
     @Nullable
-    private Translog.Location indexItem(ShardUpsertRequest request,
-                                        ShardUpsertRequest.Item item,
-                                        IndexShard indexShard,
-                                        boolean tryInsertFirst,
-                                        @Nullable UpdateSourceGen updateSourceGen,
-                                        @Nullable InsertSourceGen insertSourceGen) throws Exception {
-        VersionConflictEngineException lastException = null;
-        for (int retryCount = 0; retryCount < MAX_RETRY_LIMIT; retryCount++) {
-            try {
-                return indexItem(
-                    request,
-                    item,
-                    indexShard,
-                    tryInsertFirst,
-                    updateSourceGen,
-                    insertSourceGen,
-                    retryCount > 0
-                );
-            } catch (VersionConflictEngineException e) {
-                lastException = e;
-                if (request.duplicateKeyAction() == DuplicateKeyAction.IGNORE) {
-                    // on conflict do nothing
-                    item.source(null);
-                    return null;
-                }
-                Symbol[] updateAssignments = item.updateAssignments();
-                if (updateAssignments != null && updateAssignments.length > 0) {
-                    if (tryInsertFirst) {
-                        // insert failed, document already exists, try update
-                        tryInsertFirst = false;
-                        continue;
-                    } else if (item.retryOnConflict()) {
-                        if (logger.isTraceEnabled()) {
-                            logger.trace("[{}] VersionConflict, retrying operation for document id={}, version={} retryCount={}",
-                                indexShard.shardId(), item.id(), item.version(), retryCount);
+    private void indexItem(ShardUpsertRequest request,
+                           ShardUpsertRequest.Item item,
+                           IndexShard indexShard,
+                           boolean tryInsertFirst,
+                           @Nullable UpdateSourceGen updateSourceGen,
+                           @Nullable InsertSourceGen insertSourceGen,
+                           ActionListener<Translog.Location> listener) {
+        AtomicBoolean insertFirst = new AtomicBoolean(tryInsertFirst);
+        AtomicReference<VersionConflictEngineException> lastException = new AtomicReference<>();
+        AtomicBoolean breakLoop = new AtomicBoolean();
+        IntPredicate tryAgain = (i) -> false == breakLoop.get();
+        IntStream.range(0, MAX_RETRY_LIMIT).takeWhile(tryAgain).forEach(
+            attemptNo -> indexItem(
+                request,
+                item,
+                indexShard,
+                insertFirst.get(),
+                updateSourceGen,
+                insertSourceGen,
+                attemptNo > 0,
+                ActionListener.wrap(
+                    (l) -> {
+                        breakLoop.set(true);
+                        listener.onResponse(l);
+                    },
+                    e -> {
+                        if (e instanceof VersionConflictEngineException) {
+                            lastException.set((VersionConflictEngineException) e);
+                            if (request.duplicateKeyAction() == DuplicateKeyAction.IGNORE) {
+                                // on conflict do nothing
+                                item.source(null);
+                                breakLoop.set(true);
+                                listener.onResponse(null);
+                            } else {
+                                Symbol[] updateAssignments = item.updateAssignments();
+                                boolean doContinue = false;
+                                if (updateAssignments != null && updateAssignments.length > 0) {
+                                    if (insertFirst.get()) {
+                                        // insert failed, document already exists, try update
+                                        insertFirst.set(false);
+                                        // continue next iteration of loop
+                                        doContinue = true;
+                                    } else if (item.retryOnConflict()) {
+                                        if (logger.isTraceEnabled()) {
+                                            logger.trace(
+                                                "[{}] VersionConflict, retrying operation for document id={}, version={} retryCount={}",
+                                                indexShard.shardId(),
+                                                item.id(),
+                                                item.version(),
+                                                attemptNo);
+                                        }
+                                        // continue next iteration of loop
+                                        doContinue = true;
+                                    }
+                                }
+                                if (false == doContinue) {
+                                    breakLoop.set(true);
+                                    listener.onFailure(e);
+                                }
+                            }
+                        } else {
+                            breakLoop.set(true);
+                            listener.onFailure(e);
                         }
-                        continue;
                     }
-                }
-                throw e;
+                )
+            )
+        );
+        if (false == breakLoop.get()) {
+            logger.warn("[{}] VersionConflict for document id={}, version={} exceeded retry limit of {}, will stop retrying",
+                        indexShard.shardId(), item.id(), item.version(), MAX_RETRY_LIMIT);
+            if (lastException.get() != null) {
+                listener.onFailure(lastException.get());
             }
         }
-        logger.warn("[{}] VersionConflict for document id={}, version={} exceeded retry limit of {}, will stop retrying",
-            indexShard.shardId(), item.id(), item.version(), MAX_RETRY_LIMIT);
-        throw lastException;
     }
 
     @VisibleForTesting
-    protected Translog.Location indexItem(ShardUpsertRequest request,
-                                          ShardUpsertRequest.Item item,
-                                          IndexShard indexShard,
-                                          boolean tryInsertFirst,
-                                          UpdateSourceGen updateSourceGen,
-                                          InsertSourceGen insertSourceGen,
-                                          boolean isRetry) throws Exception {
+    protected void indexItem(ShardUpsertRequest request,
+                             ShardUpsertRequest.Item item,
+                             IndexShard indexShard,
+                             boolean tryInsertFirst,
+                             UpdateSourceGen updateSourceGen,
+                             InsertSourceGen insertSourceGen,
+                             boolean isRetry,
+                             ActionListener<Translog.Location> listener) {
         final long seqNo;
         final long primaryTerm;
         final long version;
@@ -301,11 +350,17 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             }
         } else {
             Doc currentDoc = getDocument(indexShard, item.id(), item.version(), item.seqNo(), item.primaryTerm());
-            BytesReference updatedSource = updateSourceGen.generateSource(
-                currentDoc,
-                item.updateAssignments(),
-                item.insertValues()
-            );
+            BytesReference updatedSource;
+            try {
+                updatedSource = updateSourceGen.generateSource(
+                    currentDoc,
+                    item.updateAssignments(),
+                    item.insertValues()
+                );
+            } catch (IOException e) {
+                listener.onFailure(e);
+                return;
+            }
             item.source(updatedSource);
             seqNo = item.seqNo();
             primaryTerm = item.primaryTerm();
@@ -317,7 +372,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             item.source(),
             XContentType.JSON
         );
-        Engine.IndexResult indexResult = executeOnPrimaryHandlingMappingUpdate(
+        executeOnPrimaryHandlingMappingUpdate(
             indexShard.shardId(),
             () -> indexShard.applyIndexOperationOnPrimary(
                 version,
@@ -328,24 +383,30 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
                 isRetry
             ),
-            e -> indexShard.getFailedIndexResult(e, Versions.MATCH_ANY)
+            e -> indexShard.getFailedIndexResult(e, Versions.MATCH_ANY),
+            ActionListener.wrap(
+                indexResult -> {
+                    switch (indexResult.getResultType()) {
+                        case SUCCESS:
+                            // update the seqNo and version on request for the replicas
+                            item.seqNo(indexResult.getSeqNo());
+                            item.version(indexResult.getVersion());
+                            listener.onResponse(indexResult.getTranslogLocation());
+                            break;
+
+                        case FAILURE:
+                            Exception failure = indexResult.getFailure();
+                            assert failure != null : "Failure must not be null if resultType is FAILURE";
+                            listener.onFailure(failure);
+                            break;
+
+                        case MAPPING_UPDATE_REQUIRED:
+                        default:
+                            throw new AssertionError("IndexResult must either succeed or fail. Required mapping updates must have been handled.");
+                    }
+                },
+                listener::onFailure)
         );
-        switch (indexResult.getResultType()) {
-            case SUCCESS:
-                // update the seqNo and version on request for the replicas
-                item.seqNo(indexResult.getSeqNo());
-                item.version(indexResult.getVersion());
-                return indexResult.getTranslogLocation();
-
-            case FAILURE:
-                Exception failure = indexResult.getFailure();
-                assert failure != null : "Failure must not be null if resultType is FAILURE";
-                throw failure;
-
-            case MAPPING_UPDATE_REQUIRED:
-            default:
-                throw new AssertionError("IndexResult must either succeed or fail. Required mapping updates must have been handled.");
-        }
     }
 
     private static Doc getDocument(IndexShard indexShard, String id, long version, long seqNo, long primaryTerm) {

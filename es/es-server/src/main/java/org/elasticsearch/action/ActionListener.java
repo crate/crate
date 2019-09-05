@@ -160,6 +160,7 @@ public interface ActionListener<Response> {
     }
 
     /**
+<<<<<<< HEAD
      * Wraps a given listener and returns a new listener which executes the provided {@code runAfter}
      * callback when the listener is notified via either {@code #onResponse} or {@code #onFailure}.
      */
@@ -204,6 +205,7 @@ public interface ActionListener<Response> {
     }
 
     /**
+     * Make mapping updates (as part of an INSERT or UPDATE) asynchronous.
      * Completes the given listener with the result from the provided supplier accordingly.
      * This method is mainly used to complete a listener with a block of synchronous code.
      */

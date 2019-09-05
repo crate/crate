@@ -21,6 +21,7 @@
 
 package io.crate.blob;
 
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
@@ -77,19 +78,23 @@ public class TransportPutChunkAction extends TransportReplicationAction<PutChunk
     }
 
     @Override
-    protected PrimaryResult<PutChunkReplicaRequest, PutChunkResponse> shardOperationOnPrimary(PutChunkRequest request, IndexShard primary) {
-        PutChunkResponse response = new PutChunkResponse();
-        transferTarget.continueTransfer(request, response);
-        final PutChunkReplicaRequest replicaRequest = new PutChunkReplicaRequest(
-            request.shardId(),
-            clusterService.localNode().getId(),
-            request.transferId(),
-            request.currentPos(),
-            request.content(),
-            request.isLast()
-        );
-        replicaRequest.index(request.index());
-        return new PrimaryResult<>(replicaRequest, response);
+    protected void shardOperationOnPrimary(PutChunkRequest request,
+                                           IndexShard primary,
+                                           ActionListener<PrimaryResult<PutChunkReplicaRequest, PutChunkResponse>> listener) {
+        ActionListener.completeWith(listener, () -> {
+            PutChunkResponse response = new PutChunkResponse();
+            transferTarget.continueTransfer(request, response);
+            final PutChunkReplicaRequest replicaRequest = new PutChunkReplicaRequest(
+                request.shardId(),
+                clusterService.localNode().getId(),
+                request.transferId(),
+                request.currentPos(),
+                request.content(),
+                request.isLast()
+            );
+            replicaRequest.index(request.index());
+            return new PrimaryResult<>(replicaRequest, response);
+        });
     }
 
     @Override

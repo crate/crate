@@ -27,6 +27,7 @@ import io.crate.exceptions.JobKilledException;
 import io.crate.execution.ddl.SchemaUpdateClient;
 import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.dml.TransportShardAction;
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.TransportActions;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
@@ -75,9 +76,10 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
     }
 
     @Override
-    protected WritePrimaryResult<ShardDeleteRequest, ShardResponse> processRequestItems(IndexShard indexShard,
-                                                                                        ShardDeleteRequest request,
-                                                                                        AtomicBoolean killed) throws IOException {
+    protected void processRequestItems(IndexShard indexShard,
+                                       ShardDeleteRequest request,
+                                       AtomicBoolean killed,
+                                       ActionListener<PrimaryResult<ShardDeleteRequest, ShardResponse>> listener) throws IOException {
         ShardResponse shardResponse = new ShardResponse();
         Translog.Location translogLocation = null;
         boolean debugEnabled = logger.isDebugEnabled();
@@ -139,8 +141,7 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
                 }
             }
         }
-
-        return new WritePrimaryResult<>(request, shardResponse, translogLocation, null, indexShard);
+        listener.onResponse(new WritePrimaryResult<>(request, shardResponse, translogLocation, null, indexShard));
     }
 
     @Override
