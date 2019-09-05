@@ -23,7 +23,6 @@
 package io.crate.execution.engine.window;
 
 import com.google.common.collect.Lists;
-import io.crate.analyze.WindowDefinition;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.breaker.RowAccountingWithEstimators;
 import io.crate.common.collections.Lists2;
@@ -34,6 +33,8 @@ import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.sort.OrderingByPosition;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
+import io.crate.sql.tree.FrameBound;
+import io.crate.sql.tree.WindowFrame;
 import io.crate.testing.BatchIteratorTester;
 import io.crate.testing.BatchSimulatingIterator;
 import io.crate.testing.TestingBatchIterators;
@@ -46,14 +47,13 @@ import org.junit.Test;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
-import static io.crate.analyze.WindowDefinition.RANGE_UNBOUNDED_PRECEDING_CURRENT_ROW;
-import static io.crate.execution.engine.window.AbstractWindowFunctionTest.RANGE_CURRENT_ROW_UNBOUNDED_FOLLOWING;
 import static io.crate.execution.engine.window.WindowFunctionBatchIterator.sortAndComputeWindowFunctions;
 import static org.elasticsearch.common.collect.Tuple.tuple;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -76,20 +76,22 @@ public class WindowBatchIteratorTest {
     @Test
     public void testWindowBatchIterator() throws Exception {
         BatchIteratorTester tester = new BatchIteratorTester(
-            () -> WindowFunctionBatchIterator.of(
-                TestingBatchIterators.range(0, 10),
-                new IgnoreRowAccounting(),
-                new WindowDefinition(List.of(), null, RANGE_UNBOUNDED_PRECEDING_CURRENT_ROW),
-                null,
-                null,
-                null,
-                OrderingByPosition.arrayOrdering(0, false, false),
-                1,
-                () -> 1,
-                Runnable::run,
-                Collections.singletonList(rowNumberWindowFunction()),
-                Collections.emptyList(),
-                new Input[0])
+            () -> {
+                Comparator<Object[]> cmpOrderBy = OrderingByPosition.arrayOrdering(0, false, false);
+                return WindowFunctionBatchIterator.of(
+                    TestingBatchIterators.range(0, 10),
+                    new IgnoreRowAccounting(),
+                    getComputeFrameStart(cmpOrderBy, FrameBound.Type.UNBOUNDED_PRECEDING),
+                    getComputeFrameEnd(cmpOrderBy, FrameBound.Type.CURRENT_ROW),
+                    null,
+                    cmpOrderBy,
+                    1,
+                    () -> 1,
+                    Runnable::run,
+                    Collections.singletonList(rowNumberWindowFunction()),
+                    Collections.emptyList(),
+                    new Input[0]);
+            }
         );
         tester.verifyResultAndEdgeCaseBehaviour(expectedRowNumberResult);
     }
@@ -97,20 +99,22 @@ public class WindowBatchIteratorTest {
     @Test
     public void testWindowBatchIteratorWithBatchSimulatingSource() throws Exception {
         BatchIteratorTester tester = new BatchIteratorTester(
-            () -> WindowFunctionBatchIterator.of(
-                new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 10), 4, 2, null),
-                new IgnoreRowAccounting(),
-                new WindowDefinition(List.of(), null, RANGE_UNBOUNDED_PRECEDING_CURRENT_ROW),
-                null,
-                null,
-                null,
-                OrderingByPosition.arrayOrdering(0, false, false),
-                1,
-                () -> 1,
-                Runnable::run,
-                Collections.singletonList(rowNumberWindowFunction()),
-                Collections.emptyList(),
-                new Input[0])
+            () -> {
+                Comparator<Object[]> cmpOrderBy = OrderingByPosition.arrayOrdering(0, false, false);
+                return WindowFunctionBatchIterator.of(
+                    new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 10), 4, 2, null),
+                    new IgnoreRowAccounting(),
+                    getComputeFrameStart(cmpOrderBy, FrameBound.Type.UNBOUNDED_PRECEDING),
+                    getComputeFrameEnd(cmpOrderBy, FrameBound.Type.CURRENT_ROW),
+                    null,
+                    cmpOrderBy,
+                    1,
+                    () -> 1,
+                    Runnable::run,
+                    Collections.singletonList(rowNumberWindowFunction()),
+                    Collections.emptyList(),
+                    new Input[0]);
+            }
         );
         tester.verifyResultAndEdgeCaseBehaviour(expectedRowNumberResult);
     }
@@ -120,9 +124,8 @@ public class WindowBatchIteratorTest {
         var rows = IntStream.range(0, 10).mapToObj(i -> new Object[]{i, null}).collect(Collectors.toList());
         var result = Lists.newArrayList(sortAndComputeWindowFunctions(
             new ArrayList<>(rows),
-            new WindowDefinition(List.of(), null, RANGE_UNBOUNDED_PRECEDING_CURRENT_ROW),
-            null,
-            null,
+            getComputeFrameStart(null, FrameBound.Type.UNBOUNDED_PRECEDING),
+            getComputeFrameEnd(null, FrameBound.Type.CURRENT_ROW),
             null,
             null,
             1,
@@ -142,9 +145,8 @@ public class WindowBatchIteratorTest {
         var rowsWithSpare = Lists2.map(rows, i -> new Object[] { i, null });
         var result = sortAndComputeWindowFunctions(
             rowsWithSpare,
-            new WindowDefinition(List.of(), null, RANGE_UNBOUNDED_PRECEDING_CURRENT_ROW),
-            null,
-            null,
+            getComputeFrameStart(null, FrameBound.Type.UNBOUNDED_PRECEDING),
+            getComputeFrameEnd(null, FrameBound.Type.CURRENT_ROW),
             OrderingByPosition.arrayOrdering(0, false, false),
             null,
             1,
@@ -186,13 +188,13 @@ public class WindowBatchIteratorTest {
             $(null, null, null),
             $(null, null, null)
         );
+        Comparator<Object[]> cmpOrderBy = OrderingByPosition.arrayOrdering(1, false, false);
         var result = sortAndComputeWindowFunctions(
             rows,
-            new WindowDefinition(List.of(), null, RANGE_UNBOUNDED_PRECEDING_CURRENT_ROW),
-            null,
-            null,
+            getComputeFrameStart(cmpOrderBy, FrameBound.Type.UNBOUNDED_PRECEDING),
+            getComputeFrameEnd(cmpOrderBy, FrameBound.Type.CURRENT_ROW),
             OrderingByPosition.arrayOrdering(0, false, false),
-            OrderingByPosition.arrayOrdering(1, false, false),
+            cmpOrderBy,
             2,
             () -> 1,
             Runnable::run,
@@ -233,13 +235,13 @@ public class WindowBatchIteratorTest {
             $(null, null, null),
             $(null, null, null)
         );
+        Comparator<Object[]> cmpOrderBy = OrderingByPosition.arrayOrdering(1, false, false);
         var result = sortAndComputeWindowFunctions(
             rows,
-            new WindowDefinition(List.of(), null, RANGE_CURRENT_ROW_UNBOUNDED_FOLLOWING),
-            null,
-            null,
+            getComputeFrameStart(cmpOrderBy, FrameBound.Type.CURRENT_ROW),
+            getComputeFrameEnd(cmpOrderBy, FrameBound.Type.UNBOUNDED_FOLLOWING),
             OrderingByPosition.arrayOrdering(0, false, false),
-            OrderingByPosition.arrayOrdering(1, false, false),
+            cmpOrderBy,
             2,
             () -> 1,
             Runnable::run,
@@ -265,6 +267,32 @@ public class WindowBatchIteratorTest {
         );
     }
 
+    private ComputeFrameBoundary<Object[]> getComputeFrameEnd(Comparator<Object[]> cmpOrderBy, FrameBound.Type frameBoundType) {
+        return (partitionStart, partitionEnd, currentIndex, sortedRows) -> frameBoundType.getEnd(
+            WindowFrame.Mode.RANGE,
+            partitionStart,
+            partitionEnd,
+            currentIndex,
+            null,
+            null,
+            cmpOrderBy,
+            sortedRows
+        );
+    }
+
+    private ComputeFrameBoundary<Object[]> getComputeFrameStart(Comparator<Object[]> cmpOrderBy, FrameBound.Type frameBoundType) {
+        return (partitionStart, partitionEnd, currentIndex, sortedRows) -> frameBoundType.getStart(
+            WindowFrame.Mode.RANGE,
+            partitionStart,
+            partitionEnd,
+            currentIndex,
+            null,
+            null,
+            cmpOrderBy,
+            sortedRows
+        );
+    }
+
     @Test
     public void testFrameBoundsForUnboundedFollowingUnorderedWindow() throws Exception {
         // window: partition by IC0
@@ -282,9 +310,8 @@ public class WindowBatchIteratorTest {
         );
         var result = sortAndComputeWindowFunctions(
             rows,
-            new WindowDefinition(List.of(), null, RANGE_CURRENT_ROW_UNBOUNDED_FOLLOWING),
-            null,
-            null,
+            getComputeFrameStart(null, FrameBound.Type.CURRENT_ROW),
+            getComputeFrameEnd(null, FrameBound.Type.UNBOUNDED_FOLLOWING),
             OrderingByPosition.arrayOrdering(0, false, false),
             null,
             1,
@@ -316,9 +343,8 @@ public class WindowBatchIteratorTest {
         BatchIterator<Row> iterator = WindowFunctionBatchIterator.of(
             TestingBatchIterators.range(0, 10),
             new RowAccountingWithEstimators(List.of(DataTypes.INTEGER), ramAccountingContext, 32),
-            new WindowDefinition(List.of(), null, RANGE_UNBOUNDED_PRECEDING_CURRENT_ROW),
-            null,
-            null,
+            (partitionStart, partitionEnd, currentIndex, sortedRows) -> 0,
+            (partitionStart, partitionEnd, currentIndex, sortedRows) -> currentIndex,
             null,
             null,
             1,
@@ -342,9 +368,8 @@ public class WindowBatchIteratorTest {
         );
         var result = sortAndComputeWindowFunctions(
             rows,
-            new WindowDefinition(List.of(), null, RANGE_UNBOUNDED_PRECEDING_CURRENT_ROW),
-            null,
-            null,
+            (partitionStart, partitionEnd, currentIndex, sortedRows) -> 0,
+            (partitionStart, partitionEnd, currentIndex, sortedRows) -> currentIndex,
             null,
             OrderingByPosition.arrayOrdering(0, true, true),
             1,
@@ -410,5 +435,4 @@ public class WindowBatchIteratorTest {
             }
         };
     }
-
 }

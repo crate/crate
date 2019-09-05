@@ -31,8 +31,8 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.ParameterSymbol;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Functions;
+import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.types.DataType;
 
@@ -53,6 +53,10 @@ public final class SymbolEvaluator extends BaseImplementationSymbolVisitor<Row> 
     private SymbolEvaluator(TransactionContext txnCtx, Functions functions, SubQueryResults subQueryResults) {
         super(txnCtx, functions);
         this.subQueryResults = subQueryResults;
+    }
+
+    public static Object evaluateWithoutParams(TransactionContext txn, Functions functions, Symbol symbol) {
+        return evaluate(txn, functions, symbol, Row.EMPTY, SubQueryResults.EMPTY);
     }
 
     public static Object evaluate(TransactionContext txnCtx,
