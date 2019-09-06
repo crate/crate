@@ -2975,11 +2975,15 @@ public class InternalEngineTests extends EngineTestCase {
             final ParsedDocument doc3 = testParsedDocument("3", null, testDocumentWithTextField(), B_1, null);
 
             AtomicReference<ThrowingIndexWriter> throwingIndexWriter = new AtomicReference<>();
-            try (Engine engine = createEngine(defaultSettings, store, createTempDir(), NoMergePolicy.INSTANCE,
-                                              (directory, iwc) -> {
-                                                  throwingIndexWriter.set(new ThrowingIndexWriter(directory, iwc));
-                                                  return throwingIndexWriter.get();
-                                              })
+            try (InternalEngine engine = createEngine(
+                defaultSettings,
+                store,
+                createTempDir(),
+                NoMergePolicy.INSTANCE,
+                (directory, iwc) -> {
+                    throwingIndexWriter.set(new ThrowingIndexWriter(directory, iwc));
+                    return throwingIndexWriter.get();
+                })
             ) {
                 // test document failure while indexing
                 if (randomBoolean()) {
@@ -3024,19 +3028,19 @@ public class InternalEngineTests extends EngineTestCase {
                     engine.close();
                 }
                 // now the engine is closed check we respond correctly
-                try {
-                    if (randomBoolean()) {
-                        engine.index(indexForDoc(doc1));
-                    } else {
-                        engine.delete(new Engine.Delete(
-                            "default", "",  newUid(doc1), UNASSIGNED_SEQ_NO,
-                            primaryTerm.get(), Versions.MATCH_ANY, VersionType.INTERNAL,
-                            Engine.Operation.Origin.PRIMARY, System.nanoTime(), UNASSIGNED_SEQ_NO, 0));
-                    }
-                    fail("engine should be closed");
-                } catch (Exception e) {
-                    assertThat(e, instanceOf(AlreadyClosedException.class));
-                }
+                expectThrows(AlreadyClosedException.class, () -> engine.index(indexForDoc(doc1)));
+                expectThrows(AlreadyClosedException.class,
+                             () -> engine.delete(new Engine.Delete(
+                                 "test", "1", newUid(doc1), UNASSIGNED_SEQ_NO,
+                                 primaryTerm.get(), Versions.MATCH_ANY, VersionType.INTERNAL,
+                                 Engine.Operation.Origin.PRIMARY, System.nanoTime(), UNASSIGNED_SEQ_NO, 0)));
+                expectThrows(AlreadyClosedException.class,
+                             () -> engine.noOp(
+                                 new Engine.NoOp(engine.getLocalCheckpointTracker().generateSeqNo(),
+                                                 engine.config().getPrimaryTermSupplier().getAsLong(),
+                                                 randomFrom(Engine.Operation.Origin.values()),
+                                                 randomNonNegativeLong(),
+                                                 "test")));
             }
         }
     }
