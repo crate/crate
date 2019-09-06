@@ -135,11 +135,8 @@ public abstract class EngineTestCase extends ESTestCase {
     protected Path primaryTranslogDir;
     protected Path replicaTranslogDir;
     // A default primary term is used by engine instances created in this test.
-    protected AtomicLong primaryTerm = new AtomicLong();
+    protected final PrimaryTermSupplier primaryTerm = new PrimaryTermSupplier(0L);
 
-    protected static void assertVisibleCount(Engine engine, int numDocs) throws IOException {
-        assertVisibleCount(engine, numDocs, true);
-    }
 
     protected static void assertVisibleCount(Engine engine, int numDocs, boolean refresh) throws IOException {
         if (refresh) {
@@ -565,12 +562,27 @@ public abstract class EngineTestCase extends ESTestCase {
             globalCheckpointSupplier = new ReplicationTracker(shardId, allocationId.getId(), indexSettings, SequenceNumbers.NO_OPS_PERFORMED, update -> {
             });
         }
-        EngineConfig config = new EngineConfig(shardId, allocationId.getId(), threadPool, indexSettings, null, store,
-            mergePolicy, iwc.getAnalyzer(), new CodecService(null, logger), listener,
-            IndexSearcher.getDefaultQueryCache(), IndexSearcher.getDefaultQueryCachingPolicy(), translogConfig,
-            TimeValue.timeValueMinutes(5), extRefreshListenerList, intRefreshListenerList, new NoneCircuitBreakerService(),
-            globalCheckpointSupplier, primaryTerm::get, tombstoneDocSupplier());
-        return config;
+        return new EngineConfig(
+            shardId,
+            allocationId.getId(),
+            threadPool,
+            indexSettings,
+            null,
+            store,
+            mergePolicy,
+            iwc.getAnalyzer(),
+            new CodecService(null, logger),
+            listener,
+            IndexSearcher.getDefaultQueryCache(),
+            IndexSearcher.getDefaultQueryCachingPolicy(),
+            translogConfig,
+            TimeValue.timeValueMinutes(5),
+            extRefreshListenerList,
+            intRefreshListenerList,
+            new NoneCircuitBreakerService(),
+            globalCheckpointSupplier,
+            primaryTerm,
+            tombstoneDocSupplier());
     }
 
     protected static final BytesReference B_1 = new BytesArray(new byte[]{1});
@@ -928,5 +940,26 @@ public abstract class EngineTestCase extends ESTestCase {
         assert engine instanceof InternalEngine : "only InternalEngines have translogs, got: " + engine.getClass();
         InternalEngine internalEngine = (InternalEngine) engine;
         return internalEngine.getTranslog();
+    }
+
+    public static final class PrimaryTermSupplier implements LongSupplier {
+        private final AtomicLong term;
+
+        PrimaryTermSupplier(long initialTerm) {
+            this.term = new AtomicLong(initialTerm);
+        }
+
+        public long get() {
+            return term.get();
+        }
+
+        public void set(long newTerm) {
+            this.term.set(newTerm);
+        }
+
+        @Override
+        public long getAsLong() {
+            return get();
+        }
     }
 }
