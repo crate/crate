@@ -22,7 +22,6 @@
 
 package io.crate.data.join;
 
-import io.crate.analyze.WindowDefinition;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.breaker.RowAccounting;
 import io.crate.breaker.RowAccountingWithEstimators;
@@ -65,7 +64,6 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.StreamSupport;
 
-import static io.crate.analyze.WindowDefinition.RANGE_UNBOUNDED_PRECEDING_CURRENT_ROW;
 import static io.crate.data.SentinelRow.SENTINEL;
 
 @BenchmarkMode(Mode.AverageTime)
@@ -207,9 +205,8 @@ public class RowsBatchIteratorBenchmark {
         BatchIterator<Row> batchIterator = WindowFunctionBatchIterator.of(
             new InMemoryBatchIterator<>(rows, SENTINEL),
             new NoRowAccounting(),
-            new WindowDefinition(List.of(), null, RANGE_UNBOUNDED_PRECEDING_CURRENT_ROW),
-            null,
-            null,
+            (partitionStart, partitionEnd, currentIndex, sortedRows) -> 0,
+            (partitionStart, partitionEnd, currentIndex, sortedRows) -> currentIndex,
             (arg1, arg2) -> 0,
             (arg1, arg2) -> 0,
             1,

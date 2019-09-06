@@ -23,8 +23,6 @@
 package io.crate.execution.engine.window;
 
 import com.google.common.collect.Iterables;
-import io.crate.analyze.WindowDefinition;
-import io.crate.analyze.WindowFrameDefinition;
 import io.crate.breaker.RowAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.BatchIterators;
@@ -34,12 +32,7 @@ import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.sort.Sort;
-import io.crate.expression.symbol.InputColumn;
-import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolType;
-import io.crate.types.DataType;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nullable;
@@ -50,13 +43,11 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
-import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.function.IntSupplier;
 import java.util.stream.Collectors;
 
 import static io.crate.common.collections.Lists2.findFirstNonPeer;
-import static io.crate.sql.tree.WindowFrame.Mode.RANGE;
 
 /**
  * BatchIterator which computes window functions (incl. partitioning + ordering)
@@ -87,9 +78,8 @@ public final class WindowFunctionBatchIterator {
 
     public static BatchIterator<Row> of(BatchIterator<Row> source,
                                         RowAccounting<Row> rowAccounting,
-                                        WindowDefinition windowDefinition,
-                                        @Nullable Object startFrameOffset,
-                                        @Nullable Object endFrameOffset,
+                                        ComputeFrameBoundary<Object[]> computeFrameStart,
+                                        ComputeFrameBoundary<Object[]> computeFrameEnd,
                                         Comparator<Object[]> cmpPartitionBy,
                                         Comparator<Object[]> cmpOrderBy,
                                         int numCellsInSourceRow,
@@ -110,9 +100,8 @@ public final class WindowFunctionBatchIterator {
                 .collect(src, Collectors.mapping(materialize, Collectors.toList()))
                 .thenCompose(rows -> sortAndComputeWindowFunctions(
                     rows,
-                    windowDefinition,
-                    startFrameOffset,
-                    endFrameOffset,
+                    computeFrameStart,
+                    computeFrameEnd,
                     cmpPartitionBy,
                     cmpOrderBy,
                     numCellsInSourceRow,
@@ -137,9 +126,8 @@ public final class WindowFunctionBatchIterator {
 
     static CompletableFuture<Iterable<Object[]>> sortAndComputeWindowFunctions(
         List<Object[]> rows,
-        WindowDefinition windowDefinition,
-        @Nullable Object startFrameOffset,
-        @Nullable Object endFrameOffset,
+        ComputeFrameBoundary<Object[]> computeFrameStart,
+        ComputeFrameBoundary<Object[]> computeFrameEnd,
         @Nullable Comparator<Object[]> cmpPartitionBy,
         @Nullable Comparator<Object[]> cmpOrderBy,
         int numCellsInSourceRow,
@@ -151,11 +139,9 @@ public final class WindowFunctionBatchIterator {
 
         Function<List<Object[]>, Iterable<Object[]>> computeWindowsFn = sortedRows -> computeWindowFunctions(
             sortedRows,
-            windowDefinition,
-            startFrameOffset,
-            endFrameOffset,
+            computeFrameStart,
+            computeFrameEnd,
             cmpPartitionBy,
-            cmpOrderBy,
             numCellsInSourceRow,
             windowFunctions,
             argsExpressions,
@@ -172,11 +158,9 @@ public final class WindowFunctionBatchIterator {
     }
 
     private static Iterable<Object[]> computeWindowFunctions(List<Object[]> sortedRows,
-                                                             WindowDefinition windowDefinition,
-                                                             @Nullable Object startFrameOffset,
-                                                             @Nullable Object endFrameOffset,
+                                                             ComputeFrameBoundary<Object[]> computeFrameStart,
+                                                             ComputeFrameBoundary<Object[]> computeFrameEnd,
                                                              @Nullable Comparator<Object[]> cmpPartitionBy,
-                                                             @Nullable Comparator<Object[]> cmpOrderBy,
                                                              int numCellsInSourceRow,
                                                              List<WindowFunction> windowFunctions,
                                                              List<? extends CollectExpression<Row, ?>> argsExpressions,
@@ -188,22 +172,6 @@ public final class WindowFunctionBatchIterator {
             private final int start = 0;
             private final int end = sortedRows.size();
             private final WindowFrameState frame = new WindowFrameState(start, end, sortedRows);
-            private final WindowFrameDefinition frameDefinition = windowDefinition.windowFrameDefinition();
-            private final Tuple<Object[], int[]> startOffsetCellsAndPositions =
-                getOffsetCellsAndPositions(windowDefinition, startFrameOffset, numCellsInSourceRow);
-
-            private final Tuple<Object[], int[]> endOffsetCellsAndPositions =
-                getOffsetCellsAndPositions(windowDefinition, endFrameOffset, numCellsInSourceRow);
-
-            @Nullable
-            private final BinaryOperator<Object> substractFunction =
-                getFunctionForRangeCustomOffset(windowDefinition, startFrameOffset, ArithmeticOperatorsFactory::getSubtractFunction);
-            @Nullable
-            private final BinaryOperator<Object> addFunction =
-                getFunctionForRangeCustomOffset(windowDefinition, endFrameOffset, ArithmeticOperatorsFactory::getAddFunction);
-
-            private final Object[] startProbeValue = new Object[numCellsInSourceRow];
-            private final Object[] endProbeValue = new Object[numCellsInSourceRow];
 
             private int pStart = start;
             private int pEnd = findFirstNonPeer(sortedRows, pStart, end, cmpPartitionBy);
@@ -226,48 +194,8 @@ public final class WindowFunctionBatchIterator {
                     idxInPartition = 0;
                     pEnd = findFirstNonPeer(sortedRows, pStart, end, cmpPartitionBy);
                 }
-
-                if (windowDefinition.windowFrameDefinition().mode() == RANGE) {
-                    // if the offsetCell position is -1 the window is ordered by a Literal so we leave the
-                    // probe value to null so it doesn't impact ordering (ie. all values will be consistently GT or LT
-                    // `null`)
-                    for (int offsetCellPos : startOffsetCellsAndPositions.v2()) {
-                        if (offsetCellPos != -1) {
-                            startProbeValue[offsetCellPos] = substractFunction
-                                .apply(sortedRows.get(i)[offsetCellPos], startOffsetCellsAndPositions.v1()[offsetCellPos]);
-                        }
-                    }
-
-                    for (int offsetCellPos : endOffsetCellsAndPositions.v2()) {
-                        if (offsetCellPos != -1) {
-                            endProbeValue[offsetCellPos] = addFunction
-                                .apply(sortedRows.get(i)[offsetCellPos], endOffsetCellsAndPositions.v1()[offsetCellPos]);
-                        }
-                    }
-                }
-
-                int wBegin = frameDefinition.start().type().getStart(
-                    frameDefinition.mode(),
-                    pStart,
-                    pEnd,
-                    i,
-                    startFrameOffset,
-                    startProbeValue,
-                    cmpOrderBy,
-                    sortedRows
-                );
-
-                int wEnd = frameDefinition.end().type().getEnd(
-                    frameDefinition.mode(),
-                    pStart,
-                    pEnd,
-                    i,
-                    endFrameOffset,
-                    endProbeValue,
-                    cmpOrderBy,
-                    sortedRows
-                );
-
+                int wBegin = computeFrameStart.apply(pStart, pEnd, i, sortedRows);
+                int wEnd = computeFrameEnd.apply(pStart, pEnd, i, sortedRows);
                 frame.updateBounds(pStart, pEnd, wBegin, wEnd);
                 final Object[] row = computeAndInjectResults(
                     sortedRows, numCellsInSourceRow, windowFunctions, frame, i, idxInPartition, argsExpressions, args);
@@ -282,45 +210,6 @@ public final class WindowFunctionBatchIterator {
                 return row;
             }
         };
-    }
-
-    @Nullable
-    private static BinaryOperator<Object> getFunctionForRangeCustomOffset(WindowDefinition windowDefinition,
-                                                                          @Nullable Object frameOffset,
-                                                                          Function<DataType, BinaryOperator<Object>> functionSupplier) {
-        if (windowDefinition.windowFrameDefinition().mode() == RANGE && frameOffset != null) {
-            assert windowDefinition.orderBy() !=
-                   null : "The window definition must be ordered if custom offsets are specified";
-            DataType orderByDataType = windowDefinition.orderBy().orderBySymbols().get(0).valueType();
-            return functionSupplier.apply(orderByDataType);
-        }
-        return null;
-    }
-
-    private static Tuple<Object[], int[]> getOffsetCellsAndPositions(WindowDefinition windowDefinition,
-                                                                     @Nullable Object frameOffset,
-                                                                     int numCellsInSourceRow) {
-        if (frameOffset != null) {
-            assert windowDefinition.orderBy() !=
-                   null : "The window definition must be ordered if custom offsets are specified";
-            List<Symbol> orderBySymbols = windowDefinition.orderBy().orderBySymbols();
-            Object[] offsetCells = new Object[numCellsInSourceRow];
-            int[] offsetColumnsPositions = new int[orderBySymbols.size()];
-            for (int i = 0; i < orderBySymbols.size(); i++) {
-                var orderSymbol = orderBySymbols.get(i);
-                if (orderSymbol.symbolType() == SymbolType.LITERAL) {
-                    offsetColumnsPositions[i] = -1;
-                    continue;
-                }
-                assert orderSymbol instanceof InputColumn;
-                int orderByColumnPosition = ((InputColumn) orderSymbol).index();
-                offsetCells[orderByColumnPosition] = orderSymbol.valueType().value(frameOffset);
-                offsetColumnsPositions[i] = orderByColumnPosition;
-            }
-            return new Tuple<>(offsetCells, offsetColumnsPositions);
-        } else {
-            return new Tuple<>(new Object[0], new int[0]);
-        }
     }
 
     @Nullable
