@@ -31,6 +31,10 @@ class ConstSizeEstimator extends SizeEstimator<Object> {
         this.size = size;
     }
 
+    public long size() {
+        return size;
+    }
+
     @Override
     public long estimateSize(@Nullable Object value) {
         if (value == null) {

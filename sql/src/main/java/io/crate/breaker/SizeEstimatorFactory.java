@@ -50,7 +50,8 @@ public class SizeEstimatorFactory {
                 // geo_shapes are usually large objects, so estimated greater than regular object type
                 return (SizeEstimator<T>) new ConstSizeEstimator(120);
             case ArrayType.ID:
-                return (SizeEstimator<T>) new ArraySizeEstimator(create(((ArrayType) type).innerType()));
+                var innerEstimator = create(((ArrayType<?>) type).innerType());
+                return (SizeEstimator<T>) ArraySizeEstimator.create(innerEstimator);
             default:
                 if (type instanceof FixedWidthType) {
                     return (SizeEstimator<T>) new ConstSizeEstimator(((FixedWidthType) type).fixedSize());
