@@ -20,51 +20,40 @@
  * agreement.
  */
 
-package io.crate.execution.engine.window;
+package io.crate.sql.tree;
 
-import io.crate.test.integration.CrateUnitTest;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Comparator;
 import java.util.List;
 
-import static io.crate.sql.tree.FrameBound.Type.UNBOUNDED_PRECEDING;
+import static io.crate.sql.tree.FrameBound.Type.PRECEDING;
 import static io.crate.sql.tree.WindowFrame.Mode.RANGE;
+import static io.crate.sql.tree.WindowFrame.Mode.ROWS;
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
 
-public class UnboundedPrecedingFrameBoundTest extends CrateUnitTest {
+public class OffsetPrecedingFrameBoundTest {
 
-    private List<Integer> partition;
     private Comparator<Integer> intComparator;
+    private List<Integer> partition;
 
     @Before
     public void setupPartitionAndComparator() {
         intComparator = Comparator.comparing(x -> x);
-        partition = List.of(1, 2, 2);
+        partition = List.of(1, 2, 3, 6, 7);
     }
 
     @Test
-    public void testStartForFirstFrame() {
-        int end = UNBOUNDED_PRECEDING.getStart(RANGE, 0, 3, 1, null, null, intComparator, partition);
-        assertThat("the start boundary should always be the start of the partition for the UNBOUNDED PRECEDING frames",
-                   end,
-                   is(0));
+    public void test_preceding_start_in_range_mode() {
+        int frameStart = PRECEDING.getStart(RANGE, 0, 4, 4, 2L, 4, intComparator, partition);
+        assertThat(frameStart, is(3));
     }
 
     @Test
-    public void testStartForSecondFrame() {
-        int end = UNBOUNDED_PRECEDING.getStart(RANGE, 0, 3, 2, null, null, intComparator, partition);
-        assertThat("the start boundary should always be the start of the partition for the UNBOUNDED PRECEDING frames",
-                   end,
-                   is(0));
+    public void test_preceding_start_in_rows_mode() {
+        int frameStart = PRECEDING.getStart(ROWS, 0, 4, 3, 2L, null, intComparator, partition);
+        assertThat(frameStart, is(1));
     }
-
-    @Test
-    public void testUnboundePrecedingCannotBeTheEndOfTheFrame() {
-        expectedException.expect(IllegalStateException.class);
-        expectedException.expectMessage("UNBOUNDED PRECEDING cannot be the start of a frame");
-        UNBOUNDED_PRECEDING.getEnd(RANGE, 0, 3, 1, null, null, intComparator, partition);
-    }
-
 }
