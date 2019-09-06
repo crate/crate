@@ -69,6 +69,7 @@ import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.cluster.routing.TestShardRouting;
+import org.elasticsearch.common.CheckedBiConsumer;
 import org.elasticsearch.common.CheckedRunnable;
 import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.Strings;
@@ -5227,15 +5228,57 @@ public class InternalEngineTests extends EngineTestCase {
             IndexMetaData.builder(defaultSettings.getIndexMetaData()).settings(settings).build());
         try (Store store = createStore();
              Engine engine = createEngine((dir, iwc) -> new IndexWriter(dir, iwc) {
+
                  @Override
-                 public long addDocument(Iterable<? extends IndexableField> doc) throws IOException {
+                 public long addDocument(Iterable<? extends IndexableField> doc) {
                      throw new IllegalArgumentException("fatal");
                  }
+
              }, null, null, config(indexSettings, store, createTempDir(), NoMergePolicy.INSTANCE, null))) {
             final Engine.NoOp op = new Engine.NoOp(0, 0, PRIMARY, System.currentTimeMillis(), "test");
             final IllegalArgumentException e = expectThrows(IllegalArgumentException. class, () -> engine.noOp(op));
             assertThat(e.getMessage(), equalTo("fatal"));
             assertTrue(engine.isClosed.get());
+            assertThat(engine.failedEngine.get(), not(nullValue()));
+            assertThat(engine.failedEngine.get(), instanceOf(IllegalArgumentException.class));
+            assertThat(engine.failedEngine.get().getMessage(), equalTo("fatal"));
+        }
+    }
+
+    @Test
+    public void testDeleteDocumentFailuresShouldFailEngine() throws IOException {
+        engine.close();
+
+        final Settings settings = Settings.builder()
+            .put(defaultSettings.getSettings())
+            .build();
+        final IndexSettings indexSettings = IndexSettingsModule.newIndexSettings(
+            IndexMetaData.builder(defaultSettings.getIndexMetaData()).settings(settings).build());
+        final AtomicReference<ThrowingIndexWriter> iw = new AtomicReference<>();
+        try (Store store = createStore();
+             InternalEngine engine = createEngine(
+                 (dir, iwc) -> {
+                     iw.set(new ThrowingIndexWriter(dir, iwc));
+                     return iw.get();
+                 },
+                 null,
+                 null,
+                 config(indexSettings, store, createTempDir(), NoMergePolicy.INSTANCE, null))) {
+
+            engine.index(new Engine.Index(
+                newUid("0"), InternalEngineTests.createParsedDoc("0", null), UNASSIGNED_SEQ_NO, primaryTerm.get(),
+                Versions.MATCH_DELETED, VersionType.INTERNAL,
+                Engine.Operation.Origin.PRIMARY, System.nanoTime(), -1, false, UNASSIGNED_SEQ_NO, 0));
+
+            Engine.Delete op = new Engine.Delete(
+                "_doc", "0", newUid("0"), UNASSIGNED_SEQ_NO,
+                primaryTerm.get(), Versions.MATCH_ANY, VersionType.INTERNAL,
+                Engine.Operation.Origin.PRIMARY, System.nanoTime(), UNASSIGNED_SEQ_NO, 0);
+
+            iw.get().setThrowFailure(() -> new IllegalArgumentException("fatal"));
+            final IllegalArgumentException e = expectThrows(IllegalArgumentException.class, () -> engine.delete(op));
+            assertThat(e.getMessage(), equalTo("fatal"));
+            assertThat(engine.isClosed.get(), is(true));
             assertThat(engine.failedEngine.get(), not(nullValue()));
             assertThat(engine.failedEngine.get(), instanceOf(IllegalArgumentException.class));
             assertThat(engine.failedEngine.get().getMessage(), equalTo("fatal"));

@@ -137,18 +137,6 @@ public abstract class EngineTestCase extends ESTestCase {
     // A default primary term is used by engine instances created in this test.
     protected final PrimaryTermSupplier primaryTerm = new PrimaryTermSupplier(0L);
 
-
-    protected static void assertVisibleCount(Engine engine, int numDocs, boolean refresh) throws IOException {
-        if (refresh) {
-            engine.refresh("test");
-        }
-        try (Engine.Searcher searcher = engine.acquireSearcher("test")) {
-            final TotalHitCountCollector collector = new TotalHitCountCollector();
-            searcher.searcher().search(new MatchAllDocsQuery(), collector);
-            assertThat(collector.getTotalHits(), equalTo(numDocs));
-        }
-    }
-
     protected Settings indexSettings() {
         // TODO randomize more settings
         return Settings.builder()
