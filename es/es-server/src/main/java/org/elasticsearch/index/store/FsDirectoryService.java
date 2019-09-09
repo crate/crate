@@ -82,7 +82,7 @@ public class FsDirectoryService extends DirectoryService {
             .get(IndexModule.INDEX_STORE_TYPE_SETTING.getKey(), IndexModule.Type.FS.getSettingsKey());
         IndexModule.Type type;
         if (IndexModule.Type.FS.match(storeType)) {
-            type = IndexModule.defaultStoreType(IndexModule.NODE_STORE_ALLOW_MMAPFS.get(indexSettings.getNodeSettings()));
+            type = IndexModule.defaultStoreType(IndexModule.NODE_STORE_ALLOW_MMAP.get(indexSettings.getNodeSettings()));
         } else {
             type = IndexModule.Type.fromSettingsKey(storeType);
         }
