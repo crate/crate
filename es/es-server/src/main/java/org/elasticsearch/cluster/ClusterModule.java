@@ -31,7 +31,7 @@ import org.elasticsearch.cluster.metadata.MetaDataMappingService;
 import org.elasticsearch.cluster.metadata.MetaDataUpdateSettingsService;
 import org.elasticsearch.cluster.metadata.RepositoriesMetaData;
 import org.elasticsearch.cluster.routing.DelayedAllocationService;
-import org.elasticsearch.cluster.routing.RoutingService;
+import org.elasticsearch.cluster.routing.BatchedRerouteService;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.routing.allocation.allocator.BalancedShardsAllocator;
 import org.elasticsearch.cluster.routing.allocation.allocator.ShardsAllocator;
@@ -268,7 +268,7 @@ public class ClusterModule extends AbstractModule {
         bind(MetaDataUpdateSettingsService.class).asEagerSingleton();
         bind(MetaDataIndexTemplateService.class).asEagerSingleton();
         bind(IndexNameExpressionResolver.class).toInstance(indexNameExpressionResolver);
-        bind(RoutingService.class).asEagerSingleton();
+        bind(BatchedRerouteService.class).asEagerSingleton();
         bind(DelayedAllocationService.class).asEagerSingleton();
         bind(ShardStateAction.class).asEagerSingleton();
         bind(NodeMappingRefreshAction.class).asEagerSingleton();

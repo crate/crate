@@ -44,7 +44,6 @@ import org.elasticsearch.transport.ReceiveTimeoutTransportException;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 
 /**
  * InternalClusterInfoService provides the ClusterInfoService interface,
@@ -80,10 +79,9 @@ public class InternalClusterInfoService implements ClusterInfoService, LocalNode
     private final ClusterService clusterService;
     private final ThreadPool threadPool;
     private final NodeClient client;
-    private final Consumer<ClusterInfo> listener;
+    //private final Consumer<ClusterInfo> listener;
 
-    public InternalClusterInfoService(Settings settings, ClusterService clusterService, ThreadPool threadPool, NodeClient client,
-                                      Consumer<ClusterInfo> listener) {
+    public InternalClusterInfoService(Settings settings, ClusterService clusterService, ThreadPool threadPool, NodeClient client) {
         this.leastAvailableSpaceUsages = ImmutableOpenMap.of();
         this.mostAvailableSpaceUsages = ImmutableOpenMap.of();
         this.shardRoutingToDataPath = ImmutableOpenMap.of();
@@ -103,7 +101,7 @@ public class InternalClusterInfoService implements ClusterInfoService, LocalNode
         this.clusterService.addLocalNodeMasterListener(this);
         // Add to listen for state changes (when nodes are added)
         this.clusterService.addListener(this);
-        this.listener = listener;
+       // this.listener = listener;
     }
 
     private void setEnabled(boolean enabled) {
@@ -300,7 +298,7 @@ public class InternalClusterInfoService implements ClusterInfoService, LocalNode
         }
         ClusterInfo clusterInfo = getClusterInfo();
         try {
-            listener.accept(clusterInfo);
+            //listener.accept(clusterInfo);
         } catch (Exception e) {
             logger.info("Failed executing ClusterInfoService listener", e);
         }

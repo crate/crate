@@ -44,7 +44,7 @@ public class MockInternalClusterInfoService extends InternalClusterInfoService {
 
     public MockInternalClusterInfoService(Settings settings, ClusterService clusterService, ThreadPool threadPool, NodeClient client,
                                           Consumer<ClusterInfo> listener) {
-        super(settings, clusterService, threadPool, client, listener);
+        super(settings, clusterService, threadPool, client);
     }
 
     @Override

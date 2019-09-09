@@ -139,11 +139,10 @@ public class MockNode extends Node {
         }
     }
 
-    @Override
     protected ClusterInfoService newClusterInfoService(Settings settings, ClusterService clusterService,
                                                        ThreadPool threadPool, NodeClient client, Consumer<ClusterInfo> listener) {
         if (getPluginsService().filterPlugins(MockInternalClusterInfoService.TestPlugin.class).isEmpty()) {
-            return super.newClusterInfoService(settings, clusterService, threadPool, client, listener);
+            return super.newClusterInfoService(settings, clusterService, threadPool, client);
         } else {
             return new MockInternalClusterInfoService(settings, clusterService, threadPool, client, listener);
         }
