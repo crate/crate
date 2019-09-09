@@ -48,6 +48,7 @@ public class TableSettingsTest extends SQLTransportIntegrationTest {
                 "\"translog.sync_interval\" = '3600ms', " +
                 "\"translog.flush_threshold_size\" = '1000000b', " +
                 "\"warmer.enabled\" = false, " +
+                "\"store.type\" = 'simplefs', " +
                 "\"translog.sync_interval\" = '20s'," +
                 "\"refresh_interval\" = '1000ms'," +
                 "\"unassigned.node_left.delayed_timeout\" = '1m'," +
@@ -75,6 +76,7 @@ public class TableSettingsTest extends SQLTransportIntegrationTest {
             assertTrue(((Map<String, Object>) row[0]).containsKey("refresh_interval"));
             assertTrue(((Map<String, Object>) row[0]).containsKey("unassigned"));
             assertTrue(((Map<String, Object>) row[0]).containsKey("write"));
+            assertTrue(((Map<String, Object>) row[0]).containsKey("store"));
         }
     }
 

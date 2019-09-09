@@ -36,6 +36,7 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.index.IndexModule;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.engine.EngineConfig;
@@ -98,6 +99,7 @@ public class TableParameters {
             IndexMetaData.INDEX_ROUTING_INCLUDE_GROUP_SETTING,
             IndexMetaData.INDEX_ROUTING_EXCLUDE_GROUP_SETTING,
             EngineConfig.INDEX_CODEC_SETTING,
+            IndexModule.INDEX_STORE_TYPE_SETTING,
 
             // this setting is needed for tests and is not documented. see ClusterDisruptionIT for usages.
             IndexService.GLOBAL_CHECKPOINT_SYNC_INTERVAL_SETTING

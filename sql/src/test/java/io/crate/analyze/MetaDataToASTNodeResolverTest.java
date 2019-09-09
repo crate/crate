@@ -100,6 +100,7 @@ public class MetaDataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
                      "   refresh_interval = 1000,\n" +
                      "   \"routing.allocation.enable\" = 'all',\n" +
                      "   \"routing.allocation.total_shards_per_node\" = -1,\n" +
+                     "   \"store.type\" = 'fs',\n" +
                      "   \"translog.durability\" = 'REQUEST',\n" +
                      "   \"translog.flush_threshold_size\" = 536870912,\n" +
                      "   \"translog.sync_interval\" = 5000,\n" +
@@ -146,6 +147,7 @@ public class MetaDataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
                      "   refresh_interval = 1000,\n" +
                      "   \"routing.allocation.enable\" = 'all',\n" +
                      "   \"routing.allocation.total_shards_per_node\" = -1,\n" +
+                     "   \"store.type\" = 'fs',\n" +
                      "   \"translog.durability\" = 'REQUEST',\n" +
                      "   \"translog.flush_threshold_size\" = 536870912,\n" +
                      "   \"translog.sync_interval\" = 5000,\n" +
@@ -194,6 +196,7 @@ public class MetaDataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
                      "   refresh_interval = 1000,\n" +
                      "   \"routing.allocation.enable\" = 'all',\n" +
                      "   \"routing.allocation.total_shards_per_node\" = -1,\n" +
+                     "   \"store.type\" = 'fs',\n" +
                      "   \"translog.durability\" = 'REQUEST',\n" +
                      "   \"translog.flush_threshold_size\" = 536870912,\n" +
                      "   \"translog.sync_interval\" = 5000,\n" +
@@ -242,6 +245,7 @@ public class MetaDataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
                      "   refresh_interval = 1000,\n" +
                      "   \"routing.allocation.enable\" = 'all',\n" +
                      "   \"routing.allocation.total_shards_per_node\" = -1,\n" +
+                     "   \"store.type\" = 'fs',\n" +
                      "   \"translog.durability\" = 'REQUEST',\n" +
                      "   \"translog.flush_threshold_size\" = 536870912,\n" +
                      "   \"translog.sync_interval\" = 5000,\n" +
@@ -315,6 +319,7 @@ public class MetaDataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
                      "   refresh_interval = 1000,\n" +
                      "   \"routing.allocation.enable\" = 'all',\n" +
                      "   \"routing.allocation.total_shards_per_node\" = -1,\n" +
+                     "   \"store.type\" = 'fs',\n" +
                      "   \"translog.durability\" = 'REQUEST',\n" +
                      "   \"translog.flush_threshold_size\" = 536870912,\n" +
                      "   \"translog.sync_interval\" = 5000,\n" +
@@ -359,6 +364,7 @@ public class MetaDataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
                      "   refresh_interval = 1000,\n" +
                      "   \"routing.allocation.enable\" = 'all',\n" +
                      "   \"routing.allocation.total_shards_per_node\" = -1,\n" +
+                     "   \"store.type\" = 'fs',\n" +
                      "   \"translog.durability\" = 'REQUEST',\n" +
                      "   \"translog.flush_threshold_size\" = 536870912,\n" +
                      "   \"translog.sync_interval\" = 5000,\n" +
@@ -402,6 +408,7 @@ public class MetaDataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
                      "   refresh_interval = 1000,\n" +
                      "   \"routing.allocation.enable\" = 'all',\n" +
                      "   \"routing.allocation.total_shards_per_node\" = -1,\n" +
+                     "   \"store.type\" = 'fs',\n" +
                      "   \"translog.durability\" = 'REQUEST',\n" +
                      "   \"translog.flush_threshold_size\" = 536870912,\n" +
                      "   \"translog.sync_interval\" = 5000,\n" +

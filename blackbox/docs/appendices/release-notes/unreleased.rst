@@ -56,6 +56,12 @@ Breaking Changes
 Changes
 =======
 
+- Allow user to control how table data is stored and accessed on a disk
+  via the :ref:`store.type <table_parameter.store_type>` table parameter and
+  :ref:`node.store.allow_mmap <node.store_allow_mmap>` node setting.
+
+- Changed the default table data store type from ``mmapfs`` to ``hybridfs``.
+
 - Added ``phonetic`` token filter with following encoders: ``metaphone``,
   ``double_metaphone``, ``soundex``, ``refined_soundex``, ``caverphone1``,
   ``caverphone2``, ``cologne``, ``nysiis``, ``koelnerphonetik``,
