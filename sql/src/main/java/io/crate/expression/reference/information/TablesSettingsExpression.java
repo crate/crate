@@ -22,6 +22,7 @@
 package io.crate.expression.reference.information;
 
 import io.crate.execution.engine.collect.NestableCollectExpression;
+import io.crate.expression.reference.ObjectCollectExpression;
 import io.crate.metadata.RelationInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
@@ -35,6 +36,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
+import static org.elasticsearch.index.IndexModule.INDEX_STORE_TYPE_SETTING;
 import static org.elasticsearch.index.IndexSettings.INDEX_REFRESH_INTERVAL_SETTING;
 import static org.elasticsearch.index.engine.EngineConfig.INDEX_CODEC_SETTING;
 import static org.elasticsearch.index.mapper.MapperService.INDEX_MAPPING_TOTAL_FIELDS_LIMIT_SETTING;
@@ -55,6 +57,11 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
             "codec", forFunction(
                 (RelationInfo row) -> row.parameters().getOrDefault(INDEX_CODEC_SETTING.getKey(), INDEX_CODEC_SETTING.getDefault(Settings.EMPTY))
             )
+        );
+        childImplementations.put("store", new ObjectCollectExpression<RelationInfo>(
+            Map.of(
+                "type",
+                forFunction((RelationInfo row) -> row.parameters().get(INDEX_STORE_TYPE_SETTING.getKey()))))
         );
         childImplementations.put(TablesSettingsMappingExpression.NAME, new TablesSettingsMappingExpression());
         childImplementations.put(TablesSettingsRoutingExpression.NAME, new TablesSettingsRoutingExpression());

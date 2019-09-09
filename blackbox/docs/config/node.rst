@@ -39,6 +39,14 @@ Basics
   Defines how many nodes are allowed to be started on the same machine using
   the same configured data path defined via `path.data`_.
 
+.. _node.store_allow_mmap:
+
+**node.store.allow_mmap**
+  | *Default:*    ``true``
+  | *Runtime:*   ``no``
+
+  The setting indicates whether or not memory-mapping is allowed.
+
 Node types
 ==========
 

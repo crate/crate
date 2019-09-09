@@ -426,10 +426,48 @@ By default data is stored using ``LZ4`` compression. This can be changed to
 ``best_compression`` which uses ``DEFLATE`` for a higher compression ratio, at
 the expense of slower column value lookups.
 
-
 :values:
   ``default`` or ``best_compression``
-  
+
+.. _table_parameter.store_type:
+
+``store.type``
+--------------
+
+The store type setting allows you to control how data is stored
+and accessed on disk. The following storage types are supported:
+
+:fs:
+  Default file system implementation. It will pick the best implementation
+  depending on the operating environment, which is currently ``hybridfs``
+  on all supported systems but is subject to change.
+
+:simplefs:
+  The ``Simple FS`` type is an implementation of file system storage
+  (Lucene ``SimpleFsDirectory``) using a random access file.
+  This implementation has poor concurrent performance. It is usually
+  better to use the ``niofs`` when you need index persistence.
+
+:niofs:
+  The ``NIO FS`` type stores the shard index on the file system
+  (Lucene ``NIOFSDirectory``) using NIO. It allows multiple threads
+  to read from the same file concurrently.
+
+:mmapfs:
+  The ``MMap FS`` type stores the shard index on the file system
+  (Lucene ``MMapDirectory``) by mapping a file into memory (mmap).
+  Memory mapping uses up a portion of the virtual memory address space
+  in your process equal to the size of the file being mapped. Before
+  using this type, be sure you have allowed plenty of virtual address space.
+
+:hybridfs:
+  The ``hybridfs`` type is a hybrid of ``niofs`` and ``mmapfs``, which
+  chooses the best file system type for each type of file based on the
+  read access pattern. Similarly to ``mmapfs`` be sure you have allowed
+  plenty of virtual address space.
+
+It is possible to restrict the use of the ``mmapfs`` and ``hybridfs`` store
+type via the :ref:`node.store.allow_mmap <node.store_allow_mmap>` node setting.
 
 ``mapping.total_fields.limit``
 ------------------------------

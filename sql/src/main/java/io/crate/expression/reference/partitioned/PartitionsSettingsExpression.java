@@ -35,6 +35,7 @@ import org.elasticsearch.index.mapper.MapperService;
 import java.util.Map;
 
 import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
+import static org.elasticsearch.index.IndexModule.INDEX_STORE_TYPE_SETTING;
 import static org.elasticsearch.index.engine.EngineConfig.INDEX_CODEC_SETTING;
 
 public class PartitionsSettingsExpression extends ObjectCollectExpression<PartitionInfo> {
@@ -46,6 +47,11 @@ public class PartitionsSettingsExpression extends ObjectCollectExpression<Partit
                 "codec",
                 forFunction((PartitionInfo row) -> row.tableParameters()
                     .getOrDefault(INDEX_CODEC_SETTING.getKey(), INDEX_CODEC_SETTING.getDefault(Settings.EMPTY)))
+            ),
+            Map.entry("store", new ObjectCollectExpression<PartitionInfo>(
+                Map.of(
+                    "type",
+                    forFunction((PartitionInfo row) -> row.tableParameters().get(INDEX_STORE_TYPE_SETTING.getKey()))))
             ),
             Map.entry(PartitionSettingsMappingExpression.NAME, new PartitionSettingsMappingExpression()),
             Map.entry(PartitionsSettingsRoutingExpression.NAME, new PartitionsSettingsRoutingExpression()),

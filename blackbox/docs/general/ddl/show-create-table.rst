@@ -48,6 +48,7 @@ already existing user-created doc tables in the cluster::
     |    refresh_interval = 1000,                         |
     |    "routing.allocation.enable" = 'all',             |
     |    "routing.allocation.total_shards_per_node" = -1, |
+    |    "store.type" = 'fs',                             |
     |    "translog.durability" = 'REQUEST',               |
     |    "translog.flush_threshold_size" = 536870912,     |
     |    "translog.sync_interval" = 5000,                 |

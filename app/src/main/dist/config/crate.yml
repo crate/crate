@@ -208,6 +208,10 @@ auth:
 # installation location. To allow it, set the following to a higher value:
 #node.max_local_storage_nodes: 1
 
+# The setting indicates whether or not memory-mapping is allowed.
+# The default value is `true`.
+#node.store.allow_mmap: true
+
 #################################### Paths ###################################
 
 # Path to directory containing configuration (this file and
