@@ -29,6 +29,9 @@ import org.elasticsearch.action.admin.cluster.health.ClusterHealthAction;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequestBuilder;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
+import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsAction;
+import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsRequest;
+import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsResponse;
 import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryAction;
 import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryRequestBuilder;
 import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryAction;
@@ -250,6 +253,11 @@ public abstract class AbstractClient implements Client {
         @Override
         public DeleteRepositoryRequestBuilder prepareDeleteRepository(String name) {
             return new DeleteRepositoryRequestBuilder(this, DeleteRepositoryAction.INSTANCE, name);
+        }
+
+        @Override
+        public void nodesStats(final NodesStatsRequest request, final ActionListener<NodesStatsResponse> listener) {
+            execute(NodesStatsAction.INSTANCE, request, listener);
         }
     }
 

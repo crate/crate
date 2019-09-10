@@ -24,6 +24,9 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequestBuilder;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
+import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsRequest;
+import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsRequestBuilder;
+import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsResponse;
 import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryRequestBuilder;
 import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryRequestBuilder;
 import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteRequest;
@@ -113,4 +116,15 @@ public interface ClusterAdminClient extends ElasticsearchClient {
      * that update the cluster state (for example, a create index operation)
      */
     PendingClusterTasksRequestBuilder preparePendingClusterTasks();
+
+    /**
+     * Nodes stats of the cluster.
+     *
+     * @param request  The nodes info request
+     * @param listener A listener to be notified with a result
+     * @see org.elasticsearch.client.Requests#nodesStatsRequest(String...)
+     */
+    void nodesStats(NodesStatsRequest request, ActionListener<NodesStatsResponse> listener);
+
+
 }
