@@ -24,6 +24,8 @@ package org.elasticsearch.index.shard;
 import org.apache.lucene.index.IndexNotFoundException;
 import org.apache.lucene.store.Directory;
 import org.elasticsearch.Version;
+import org.elasticsearch.action.admin.indices.flush.FlushRequest;
+import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
@@ -34,14 +36,19 @@ import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.cluster.routing.TestShardRouting;
 import org.elasticsearch.common.CheckedFunction;
 import org.elasticsearch.common.Nullable;
+import org.elasticsearch.common.UUIDs;
+import org.elasticsearch.common.bytes.BytesArray;
+import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.util.BigArrays;
+import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.core.internal.io.IOUtils;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.MapperTestUtils;
+import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.cache.IndexCache;
 import org.elasticsearch.index.cache.query.DisabledQueryCache;
 import org.elasticsearch.index.engine.DocIdSeqNoAndTerm;
@@ -50,6 +57,7 @@ import org.elasticsearch.index.engine.EngineFactory;
 import org.elasticsearch.index.engine.EngineTestCase;
 import org.elasticsearch.index.engine.InternalEngineFactory;
 import org.elasticsearch.index.mapper.MapperService;
+import org.elasticsearch.index.mapper.SourceToParse;
 import org.elasticsearch.index.seqno.ReplicationTracker;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.store.Store;
@@ -62,6 +70,9 @@ import org.elasticsearch.indices.recovery.RecoverySourceHandler;
 import org.elasticsearch.indices.recovery.RecoveryState;
 import org.elasticsearch.indices.recovery.RecoveryTarget;
 import org.elasticsearch.indices.recovery.StartRecoveryRequest;
+import org.elasticsearch.repositories.IndexId;
+import org.elasticsearch.repositories.Repository;
+import org.elasticsearch.snapshots.Snapshot;
 import org.elasticsearch.test.DummyShardLock;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.threadpool.TestThreadPool;
@@ -82,6 +93,7 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import static org.elasticsearch.cluster.routing.TestShardRouting.newShardRouting;
+import static org.elasticsearch.index.translog.Translog.UNSET_AUTO_GENERATED_TIMESTAMP;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 
@@ -157,6 +169,73 @@ public abstract class IndexShardTestCase extends ESTestCase {
 
     protected Store createStore(ShardId shardId, IndexSettings indexSettings, Directory directory) throws IOException {
         return new Store(shardId, indexSettings, directory, new DummyShardLock(shardId));
+    }
+
+    protected Engine.IndexResult indexDoc(IndexShard shard, String id) throws IOException {
+        return indexDoc(shard, id, "{}");
+    }
+
+    protected Engine.IndexResult indexDoc(IndexShard shard, String id, String source) throws IOException {
+        return indexDoc(shard, id, source, XContentType.JSON, null);
+    }
+
+    protected Engine.IndexResult indexDoc(IndexShard shard,
+                                          String id,
+                                          String source,
+                                          XContentType xContentType,
+                                          String routing) throws IOException {
+        SourceToParse sourceToParse = new SourceToParse(
+            shard.shardId().getIndexName(), id, new BytesArray(source), xContentType, routing);
+        Engine.IndexResult result;
+        if (shard.routingEntry().primary()) {
+            result = shard.applyIndexOperationOnPrimary(
+                Versions.MATCH_ANY,
+                VersionType.INTERNAL,
+                sourceToParse,
+                SequenceNumbers.UNASSIGNED_SEQ_NO,
+                0,
+                UNSET_AUTO_GENERATED_TIMESTAMP,
+                false);
+            if (result.getResultType() == Engine.Result.Type.MAPPING_UPDATE_REQUIRED) {
+                updateMappings(shard, IndexMetaData.builder(shard.indexSettings().getIndexMetaData())
+                    .putMapping("default", result.getRequiredMappingUpdate().toString()).build());
+                result = shard.applyIndexOperationOnPrimary(
+                    Versions.MATCH_ANY,
+                    VersionType.INTERNAL,
+                    sourceToParse,
+                    SequenceNumbers.UNASSIGNED_SEQ_NO,
+                    0,
+                    UNSET_AUTO_GENERATED_TIMESTAMP,
+                    false);
+            }
+            shard.updateLocalCheckpointForShard(
+                shard.routingEntry().allocationId().getId(),
+                shard.getLocalCheckpoint());
+        } else {
+            final long seqNo = shard.seqNoStats().getMaxSeqNo() + 1;
+            shard.advanceMaxSeqNoOfUpdatesOrDeletes(seqNo); // manually replicate max_seq_no_of_updates
+            result = shard.applyIndexOperationOnReplica(seqNo, 0, UNSET_AUTO_GENERATED_TIMESTAMP, false, sourceToParse);
+            if (result.getResultType() == Engine.Result.Type.MAPPING_UPDATE_REQUIRED) {
+                throw new TransportReplicationAction.RetryOnReplicaException(
+                    shard.shardId,
+                    "Mappings are not available on the replica yet, triggered update: " +
+                    result.getRequiredMappingUpdate());
+            }
+        }
+        return result;
+    }
+
+    protected void updateMappings(IndexShard shard, IndexMetaData indexMetadata) {
+        shard.indexSettings().updateIndexMetaData(indexMetadata);
+        shard.mapperService().merge(indexMetadata, MapperService.MergeReason.MAPPING_UPDATE, false);
+    }
+
+    protected void flushShard(IndexShard shard) {
+        flushShard(shard, false);
+    }
+
+    protected void flushShard(IndexShard shard, boolean force) {
+        shard.flush(new FlushRequest(shard.shardId().getIndexName()).force(force));
     }
 
     /**
