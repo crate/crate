@@ -27,26 +27,47 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-class RecoveryResponse extends TransportResponse {
+final class RecoveryResponse extends TransportResponse {
 
-    List<String> phase1FileNames = new ArrayList<>();
-    List<Long> phase1FileSizes = new ArrayList<>();
-    List<String> phase1ExistingFileNames = new ArrayList<>();
-    List<Long> phase1ExistingFileSizes = new ArrayList<>();
-    long phase1TotalSize;
-    long phase1ExistingTotalSize;
-    long phase1Time;
-    long phase1ThrottlingWaitTime;
+    final List<String> phase1FileNames;
+    final List<Long> phase1FileSizes;
+    final List<String> phase1ExistingFileNames;
+    final List<Long> phase1ExistingFileSizes;
+    final long phase1TotalSize;
+    final long phase1ExistingTotalSize;
+    final long phase1Time;
+    final long phase1ThrottlingWaitTime;
 
-    long startTime;
+    final long startTime;
 
-    int phase2Operations;
-    long phase2Time;
+    final int phase2Operations;
+    final long phase2Time;
 
-    public RecoveryResponse() {
+    RecoveryResponse(List<String> phase1FileNames,
+                     List<Long> phase1FileSizes,
+                     List<String> phase1ExistingFileNames,
+                     List<Long> phase1ExistingFileSizes,
+                     long phase1TotalSize,
+                     long phase1ExistingTotalSize,
+                     long phase1Time,
+                     long phase1ThrottlingWaitTime,
+                     long startTime,
+                     int phase2Operations,
+                     long phase2Time) {
+        this.phase1FileNames = phase1FileNames;
+        this.phase1FileSizes = phase1FileSizes;
+        this.phase1ExistingFileNames = phase1ExistingFileNames;
+        this.phase1ExistingFileSizes = phase1ExistingFileSizes;
+        this.phase1TotalSize = phase1TotalSize;
+        this.phase1ExistingTotalSize = phase1ExistingTotalSize;
+        this.phase1Time = phase1Time;
+        this.phase1ThrottlingWaitTime = phase1ThrottlingWaitTime;
+        this.startTime = startTime;
+        this.phase2Operations = phase2Operations;
+        this.phase2Time = phase2Time;
     }
 
-    public RecoveryResponse(StreamInput in) throws IOException {
+    RecoveryResponse(StreamInput in) throws IOException {
         int size = in.readVInt();
         phase1FileNames = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
@@ -88,7 +109,6 @@ class RecoveryResponse extends TransportResponse {
         for (long size : phase1FileSizes) {
             out.writeVLong(size);
         }
-
         out.writeVInt(phase1ExistingFileNames.size());
         for (String name : phase1ExistingFileNames) {
             out.writeString(name);
@@ -97,7 +117,6 @@ class RecoveryResponse extends TransportResponse {
         for (long size : phase1ExistingFileSizes) {
             out.writeVLong(size);
         }
-
         out.writeVLong(phase1TotalSize);
         out.writeVLong(phase1ExistingTotalSize);
         out.writeVLong(phase1Time);
