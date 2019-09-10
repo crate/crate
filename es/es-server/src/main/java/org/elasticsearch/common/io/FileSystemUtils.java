@@ -111,6 +111,15 @@ public final class FileSystemUtils {
     }
 
     /**
+     * Returns an array of all files in the given directory matching.
+     */
+    public static Path[] files(Path from, DirectoryStream.Filter<Path> filter) throws IOException {
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(from, filter)) {
+            return toArray(stream);
+        }
+    }
+
+    /**
      * Returns an array of all files in the given directory matching the glob.
      */
     public static Path[] files(Path directory, String glob) throws IOException {
