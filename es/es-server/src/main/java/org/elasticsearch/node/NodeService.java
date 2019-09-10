@@ -19,9 +19,12 @@
 
 package org.elasticsearch.node;
 
+import org.elasticsearch.action.admin.cluster.node.stats.NodeStats;
+import org.elasticsearch.action.admin.indices.stats.CommonStatsFlags;
 import org.elasticsearch.core.internal.io.IOUtils;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.monitor.MonitorService;
+import org.elasticsearch.transport.TransportService;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -30,10 +33,12 @@ public class NodeService implements Closeable {
 
     private final MonitorService monitorService;
     private final IndicesService indicesService;
+    private final TransportService transportService;
 
-    NodeService(MonitorService monitorService, IndicesService indicesService) {
+    NodeService(MonitorService monitorService, IndicesService indicesService, TransportService transportService) {
         this.monitorService = monitorService;
         this.indicesService = indicesService;
+        this.transportService = transportService;
     }
 
     public MonitorService getMonitorService() {
@@ -45,4 +50,7 @@ public class NodeService implements Closeable {
         IOUtils.close(indicesService);
     }
 
+    public NodeStats stats() {
+        return new NodeStats(transportService.getLocalNode(), System.currentTimeMillis(), monitorService.fsService().stats());
+    }
 }
