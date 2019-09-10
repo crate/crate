@@ -19,6 +19,8 @@
 
 package org.elasticsearch.cluster;
 
+import java.util.function.Consumer;
+
 /**
  * Interface for a class used to gather information about a cluster at
  * regular intervals
@@ -27,4 +29,12 @@ public interface ClusterInfoService {
 
     /** The latest cluster information */
     ClusterInfo getClusterInfo();
+
+    /**
+     * Add a listener for new cluster information
+     */
+    default void addListener(Consumer<ClusterInfo> clusterInfoConsumer) {
+        throw new UnsupportedOperationException();
+    }
+
 }

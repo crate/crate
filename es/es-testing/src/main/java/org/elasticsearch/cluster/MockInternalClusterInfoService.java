@@ -42,8 +42,7 @@ public class MockInternalClusterInfoService extends InternalClusterInfoService {
     public static class TestPlugin extends Plugin {}
 
 
-    public MockInternalClusterInfoService(Settings settings, ClusterService clusterService, ThreadPool threadPool, NodeClient client,
-                                          Consumer<ClusterInfo> listener) {
+    public MockInternalClusterInfoService(Settings settings, ClusterService clusterService, ThreadPool threadPool, NodeClient client) {
         super(settings, clusterService, threadPool, client);
     }
 

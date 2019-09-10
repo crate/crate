@@ -154,6 +154,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
@@ -308,37 +309,15 @@ public class Node implements Closeable {
                                                                      threadPool);
             resourcesToClose.add(clusterService);
 
-
-
-
             final ClusterInfoService clusterInfoService = newClusterInfoService(settings,
                                                                                 clusterService,
                                                                                 threadPool,
                                                                                 client);
 
-            ModulesBuilder modules = new ModulesBuilder();
-            // plugin modules must be added here, before others or we can get crazy injection errors...
-            for (Module pluginModule : pluginsService.createGuiceModules()) {
-                modules.add(pluginModule);
-            }
-            final MonitorService monitorService = new MonitorService(settings,
-                                                                     nodeEnvironment,
-                                                                     threadPool,
-                                                                     clusterInfoService);
             ClusterModule clusterModule = new ClusterModule(settings,
                                                             clusterService,
                                                             clusterPlugins,
                                                             clusterInfoService);
-            modules.add(clusterModule);
-            IndicesModule indicesModule = new IndicesModule(pluginsService.filterPlugins(MapperPlugin.class));
-            modules.add(indicesModule);
-
-            BooleanQuery.setMaxClauseCount(SearchModule.INDICES_MAX_CLAUSE_COUNT_SETTING.get(settings));
-
-            CircuitBreakerService circuitBreakerService = createCircuitBreakerService(settingsModule.getSettings(),
-                                                                                      settingsModule.getClusterSettings());
-            resourcesToClose.add(circuitBreakerService);
-            modules.add(new GatewayModule());
 
             final RerouteService rerouteService
                 = new BatchedRerouteService(clusterService, clusterModule.getAllocationService()::reroute);
@@ -349,7 +328,30 @@ public class Node implements Closeable {
                                                                            client,
                                                                            threadPool::relativeTimeInMillis,
                                                                            rerouteService);
+            clusterInfoService.addListener(listener::onNewInfo);
 
+
+
+            ModulesBuilder modules = new ModulesBuilder();
+            // plugin modules must be added here, before others or we can get crazy injection errors...
+            for (Module pluginModule : pluginsService.createGuiceModules()) {
+                modules.add(pluginModule);
+            }
+            final MonitorService monitorService = new MonitorService(settings,
+                                                                     nodeEnvironment,
+                                                                     threadPool,
+                                                                     clusterInfoService);
+
+            modules.add(clusterModule);
+            IndicesModule indicesModule = new IndicesModule(pluginsService.filterPlugins(MapperPlugin.class));
+            modules.add(indicesModule);
+
+            BooleanQuery.setMaxClauseCount(SearchModule.INDICES_MAX_CLAUSE_COUNT_SETTING.get(settings));
+
+            CircuitBreakerService circuitBreakerService = createCircuitBreakerService(settingsModule.getSettings(),
+                                                                                      settingsModule.getClusterSettings());
+            resourcesToClose.add(circuitBreakerService);
+            modules.add(new GatewayModule());
 
             PageCacheRecycler pageCacheRecycler = createPageCacheRecycler(settings);
             BigArrays bigArrays = createBigArrays(pageCacheRecycler, circuitBreakerService);
