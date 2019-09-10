@@ -172,7 +172,7 @@ public class TypeConversionTest extends CrateUnitTest {
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void testFloatOutOfRangenegative() throws Exception {
+    public void testFloatOutOfRangeNegative() throws Exception {
         DataTypes.FLOAT.value(-Double.MAX_VALUE);
     }
 

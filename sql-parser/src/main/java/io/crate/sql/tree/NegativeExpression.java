@@ -31,7 +31,7 @@ public class NegativeExpression
 
     /**
      * @return o * -1
-     * @throws IllegalArgumentException if o is neither a Long nor a Doube
+     * @throws IllegalArgumentException if o is neither a Long nor a Double
      */
     public static Number negate(Object o) {
         if (o instanceof Long) {

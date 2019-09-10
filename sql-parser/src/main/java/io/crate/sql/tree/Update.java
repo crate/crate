@@ -46,7 +46,7 @@ public class Update extends Statement {
         return relation;
     }
 
-    public List<Assignment> assignements() {
+    public List<Assignment> assignments() {
         return assignments;
     }
 

@@ -297,7 +297,7 @@ public abstract class DefaultTraversalVisitor<R, C> extends AstVisitor<R, C> {
     @Override
     public R visitUpdate(Update node, C context) {
         node.relation().accept(this, context);
-        for (Assignment assignment : node.assignements()) {
+        for (Assignment assignment : node.assignments()) {
             assignment.accept(this, context);
         }
         if (node.whereClause().isPresent()) {

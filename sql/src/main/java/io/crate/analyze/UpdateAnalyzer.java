@@ -112,7 +112,7 @@ public final class UpdateAnalyzer {
         ExpressionAnalysisContext exprCtx = new ExpressionAnalysisContext();
 
         Map<Reference, Symbol> assignmentByTargetCol = getAssignments(
-            update.assignements(), typeHints, txnCtx, table, normalizer, subqueryAnalyzer, sourceExprAnalyzer, exprCtx);
+            update.assignments(), typeHints, txnCtx, table, normalizer, subqueryAnalyzer, sourceExprAnalyzer, exprCtx);
 
         Symbol query = sourceExprAnalyzer.generateQuerySymbol(update.whereClause(), exprCtx);
         query = maybeAliasedStatement.maybeMapFields(query);
