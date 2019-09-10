@@ -70,7 +70,7 @@ public class CrateDB extends EnvironmentAwareCommand {
             .withRequiredArg()
             .withValuesConvertedBy(new PathConverter());
         quietOption = parser.acceptsAll(Arrays.asList("q", "quiet"),
-            "Turns off standard ouput/error streams logging in console")
+            "Turns off standard output/error streams logging in console")
             .availableUnless(versionOption)
             .availableUnless(daemonizeOption);
     }
