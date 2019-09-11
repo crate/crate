@@ -37,8 +37,11 @@ import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.recovery.PeerRecoverySourceService;
 import org.elasticsearch.transport.TransportService;
+
+import static org.elasticsearch.indices.recovery.RecoverySettings.INDICES_RECOVERY_MAX_CONCURRENT_FILE_CHUNKS_SETTING;
 
 public class BlobService extends AbstractLifecycleComponent {
 
@@ -50,6 +53,7 @@ public class BlobService extends AbstractLifecycleComponent {
     private final BlobTransferTarget blobTransferTarget;
     private final Client client;
     private final PipelineRegistry pipelineRegistry;
+    private final Settings settings;
 
     @Inject
     public BlobService(ClusterService clusterService,
@@ -59,7 +63,8 @@ public class BlobService extends AbstractLifecycleComponent {
                        TransportService transportService,
                        BlobTransferTarget blobTransferTarget,
                        Client client,
-                       PipelineRegistry pipelineRegistry) {
+                       PipelineRegistry pipelineRegistry,
+                       Settings settings) {
         this.clusterService = clusterService;
         this.blobIndicesService = blobIndicesService;
         this.blobHeadRequestHandler = blobHeadRequestHandler;
@@ -68,6 +73,7 @@ public class BlobService extends AbstractLifecycleComponent {
         this.blobTransferTarget = blobTransferTarget;
         this.client = client;
         this.pipelineRegistry = pipelineRegistry;
+        this.settings = settings;
     }
 
     public RemoteDigestBlob newBlob(String index, String digest) {
@@ -92,6 +98,7 @@ public class BlobService extends AbstractLifecycleComponent {
                 recoveryTarget,
                 request,
                 fileChunkSizeInBytes,
+                INDICES_RECOVERY_MAX_CONCURRENT_FILE_CHUNKS_SETTING.get(settings),
                 transportService,
                 blobTransferTarget,
                 blobIndicesService

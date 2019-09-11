@@ -176,9 +176,13 @@ public class PeerRecoverySourceService implements IndexEventListener {
 
             private RecoverySourceHandler createRecoverySourceHandler(StartRecoveryRequest request, IndexShard shard) {
                 RecoverySourceHandler handler;
-                final RemoteRecoveryTargetHandler recoveryTarget =
-                    new RemoteRecoveryTargetHandler(request.recoveryId(), request.shardId(), transportService,
-                        request.targetNode(), recoverySettings, throttleTime -> shard.recoveryStats().addThrottleTime(throttleTime));
+                final RemoteRecoveryTargetHandler recoveryTarget = new RemoteRecoveryTargetHandler(
+                    request.recoveryId(),
+                    request.shardId(),
+                    transportService,
+                    request.targetNode(),
+                    recoverySettings,
+                    throttleTime -> shard.recoveryStats().addThrottleTime(throttleTime));
 
                 // CRATE_PATCH: used to inject BlobRecoveryHandler
                 int recoveryChunkSizeInBytes = recoverySettings.getChunkSize().bytesAsInt();
@@ -191,17 +195,23 @@ public class PeerRecoverySourceService implements IndexEventListener {
 
                 if (handler != null){
                     return handler;
+                } else {
+                    return new RecoverySourceHandler(
+                        shard,
+                        recoveryTarget,
+                        request,
+                        recoveryChunkSizeInBytes,
+                        recoverySettings.getMaxConcurrentFileChunks());
                 }
-                return new RecoverySourceHandler(shard, recoveryTarget, request, recoveryChunkSizeInBytes);
             }
         }
     }
 
     @Nullable
-    RecoverySourceHandler getCustomRecoverySourceHandler(IndexShard shard,
-                                                         RemoteRecoveryTargetHandler recoveryTarget,
-                                                         StartRecoveryRequest request,
-                                                         int recoveryChunkSizeInBytes) {
+    private RecoverySourceHandler getCustomRecoverySourceHandler(IndexShard shard,
+                                                                 RemoteRecoveryTargetHandler recoveryTarget,
+                                                                 StartRecoveryRequest request,
+                                                                 int recoveryChunkSizeInBytes) {
         for (RecoverySourceHandlerProvider recoverySourceHandlerProvider : recoverySourceHandlerProviders) {
             RecoverySourceHandler handler = recoverySourceHandlerProvider.get(
                 shard, request, recoveryTarget, recoveryChunkSizeInBytes);
