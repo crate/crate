@@ -22,6 +22,7 @@ package org.elasticsearch.action;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.common.CheckedConsumer;
 import org.elasticsearch.common.CheckedFunction;
+import org.elasticsearch.common.CheckedSupplier;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -200,5 +201,18 @@ public interface ActionListener<Response> {
                 delegate.onFailure(e);
             }
         };
+    }
+
+    /**
+     * Completes the given listener with the result from the provided supplier accordingly.
+     * This method is mainly used to complete a listener with a block of synchronous code.
+     */
+    static <Response> void completeWith(ActionListener<Response> listener,
+                                        CheckedSupplier<Response, ? extends Exception> supplier) {
+        try {
+            listener.onResponse(supplier.get());
+        } catch (Exception e) {
+            listener.onFailure(e);
+        }
     }
 }
