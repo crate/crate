@@ -27,7 +27,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-final class RecoveryResponse extends TransportResponse {
+public final class RecoveryResponse extends TransportResponse {
 
     final List<String> phase1FileNames;
     final List<Long> phase1FileSizes;
