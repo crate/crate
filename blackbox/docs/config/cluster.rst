@@ -879,6 +879,22 @@ Recovery
   fail. Defaults to :ref:`internal_action_long_timeout
   <indices.recovery.internal_action_long_timeout>`.
 
+.. _indices.recovery.max_concurrent_file_chunks:
+
+**indices.recovery.max_concurrent_file_chunks**
+  | *Default:*  ``2``
+  | *Runtime:*  ``yes``
+
+  Controls the number of file chunk requests that can be sent in parallel
+  per recovery. As multiple recoveries are already running in parallel,
+  controlled by :ref:`cluster.routing.allocation.node_concurrent_recoveries
+  <cluster.routing.allocation.node_concurrent_recoveries>`, increasing this
+  expert-level setting might only help in situations where peer recovery of
+  a single shard is not reaching the total inbound and outbound peer recovery
+  traffic as configured by :ref:`indices.recovery.max_bytes_per_sec
+  <indices.recovery.max_bytes_per_sec>`, but is CPU-bound instead, typically
+  when using transport-level security or compression.
+
 Query circuit breaker
 ---------------------
 

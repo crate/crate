@@ -42,6 +42,24 @@ public final class Numbers {
         return (((long) high) << 32) | (low & 0x0ffffffffL);
     }
 
+    /**
+     * Converts a long to a byte array.
+     *
+     * @param val The long to convert to a byte array
+     * @return The byte array converted
+     */
+    public static byte[] longToBytes(long val) {
+        byte[] arr = new byte[8];
+        arr[0] = (byte) (val >>> 56);
+        arr[1] = (byte) (val >>> 48);
+        arr[2] = (byte) (val >>> 40);
+        arr[3] = (byte) (val >>> 32);
+        arr[4] = (byte) (val >>> 24);
+        arr[5] = (byte) (val >>> 16);
+        arr[6] = (byte) (val >>> 8);
+        arr[7] = (byte) (val);
+        return arr;
+    }
 
     /** Return the long that {@code n} stores, or throws an exception if the
      *  stored value cannot be converted to a long that stores the exact same

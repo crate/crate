@@ -387,6 +387,10 @@ auth:
 # that are expected to take a long time.
 #indices.recovery.retry_internal_long_action_timeout: 30m
 
+# Controls the number of file chunk requests that can be sent
+# in parallel per recovery.
+# indices.recovery.max_concurrent_file_chunks: 2
+
 
 ################################# Discovery ##################################
 
