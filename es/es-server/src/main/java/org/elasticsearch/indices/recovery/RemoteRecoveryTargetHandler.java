@@ -120,17 +120,29 @@ public class RemoteRecoveryTargetHandler implements RecoveryTargetHandler {
     }
 
     @Override
-    public long indexTranslogOperations(List<Translog.Operation> operations, int totalTranslogOps,
-                                        long maxSeenAutoIdTimestampOnPrimary, long maxSeqNoOfDeletesOrUpdatesOnPrimary) {
-        final RecoveryTranslogOperationsRequest translogOperationsRequest = new RecoveryTranslogOperationsRequest(
-            recoveryId, shardId, operations, totalTranslogOps, maxSeenAutoIdTimestampOnPrimary, maxSeqNoOfDeletesOrUpdatesOnPrimary);
-        final TransportFuture<RecoveryTranslogOperationsResponse> future = transportService.submitRequest(
-                targetNode,
-                PeerRecoveryTargetService.Actions.TRANSLOG_OPS,
-                translogOperationsRequest,
-                translogOpsRequestOptions,
-                RecoveryTranslogOperationsResponse.HANDLER);
-        return future.txGet().localCheckpoint;
+    public void indexTranslogOperations(List<Translog.Operation> operations,
+                                        int totalTranslogOps,
+                                        long maxSeenAutoIdTimestampOnPrimary,
+                                        long maxSeqNoOfDeletesOrUpdatesOnPrimary,
+                                        ActionListener<Long> listener) {
+        final RecoveryTranslogOperationsRequest request = new RecoveryTranslogOperationsRequest(
+            recoveryId,
+            shardId,
+            operations,
+            totalTranslogOps,
+            maxSeenAutoIdTimestampOnPrimary,
+            maxSeqNoOfDeletesOrUpdatesOnPrimary);
+        transportService.submitRequest(
+            targetNode,
+            PeerRecoveryTargetService.Actions.TRANSLOG_OPS,
+            request,
+            translogOpsRequestOptions,
+            new ActionListenerResponseHandler<>(
+                ActionListener.wrap(
+                    r -> listener.onResponse(r.localCheckpoint), listener::onFailure),
+                RecoveryTranslogOperationsResponse::new,
+                ThreadPool.Names.GENERIC)
+        );
     }
 
     @Override
