@@ -116,7 +116,7 @@ public class IntervalParserTest extends CrateUnitTest {
     }
 
     @Test
-    public void parse_negtive_days_negative_seconds() {
+    public void parse_negative_days_negative_seconds() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Invalid interval format -1 -1");
         IntervalParser.apply("-1 -1");

@@ -49,7 +49,7 @@ public class BlobService extends AbstractLifecycleComponent {
     private final TransportService transportService;
     private final BlobTransferTarget blobTransferTarget;
     private final Client client;
-    private final PipelineRegistry piplineRegistry;
+    private final PipelineRegistry pipelineRegistry;
 
     @Inject
     public BlobService(ClusterService clusterService,
@@ -67,7 +67,7 @@ public class BlobService extends AbstractLifecycleComponent {
         this.transportService = transportService;
         this.blobTransferTarget = blobTransferTarget;
         this.client = client;
-        this.piplineRegistry = pipelineRegistry;
+        this.pipelineRegistry = pipelineRegistry;
     }
 
     public RemoteDigestBlob newBlob(String index, String digest) {
@@ -77,7 +77,7 @@ public class BlobService extends AbstractLifecycleComponent {
 
     @Override
     protected void doStart() throws ElasticsearchException {
-        piplineRegistry.addBefore(
+        pipelineRegistry.addBefore(
             new PipelineRegistry.ChannelPipelineItem(
                 "aggregator", "blob_handler", netty4CorsConfig -> new HttpBlobHandler(this, blobIndicesService, netty4CorsConfig))
         );

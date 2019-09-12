@@ -76,7 +76,7 @@ public class PluginLoaderPlugin extends Plugin implements ActionPlugin, MapperPl
             .put(settings)
             .build();
         // SQLPlugin contains modules which use settings which may be overwritten by CratePlugins,
-        // so the SQLPLugin needs to be created here with settings that incl. pluginLoader.additionalSettings
+        // so the SQLPlugin needs to be created here with settings that incl. pluginLoader.additionalSettings
         sqlPlugin = new SQLPlugin(this.settings);
         additionalSettings = Settings.builder()
             .put(pluginLoader.additionalSettings())
