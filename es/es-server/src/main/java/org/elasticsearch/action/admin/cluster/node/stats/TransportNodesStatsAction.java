@@ -28,7 +28,6 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.node.NodeService;
-import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
@@ -69,8 +68,8 @@ public class TransportNodesStatsAction extends TransportNodesAction<NodesStatsRe
     }
 
     @Override
-    protected NodeStats read(StreamInput in) throws IOException {
-        return new NodeStats(in);
+    protected NodeStats newNodeResponse() {
+        return nodeService.stats();
     }
 
     @Override
@@ -82,14 +81,18 @@ public class TransportNodesStatsAction extends TransportNodesAction<NodesStatsRe
 
         NodesStatsRequest request;
 
-        public NodeStatsRequest(StreamInput in) throws IOException {
-            super(in);
-            this.request = new NodesStatsRequest(in);
-        }
+        NodeStatsRequest() { }
 
-        public NodeStatsRequest(String nodeId, NodesStatsRequest request){
+        NodeStatsRequest(String nodeId, NodesStatsRequest request) {
             super(nodeId);
             this.request = request;
+        }
+
+        @Override
+        public void readFrom(StreamInput in) throws IOException {
+            super.readFrom(in);
+            request = new NodesStatsRequest();
+            request.readFrom(in);
         }
 
         @Override
