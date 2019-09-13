@@ -34,19 +34,32 @@ public class AddColumnDefinition<T> extends TableElement<T> {
     private final T name;
     @Nullable
     private final T generatedExpression;
+    private final boolean generated;
     @Nullable
-    private final ColumnType type;
+    private final ColumnType<T> type;
     private final List<ColumnConstraint<T>> constraints;
 
     public AddColumnDefinition(T name,
                                @Nullable T generatedExpression,
-                               @Nullable ColumnType type,
+                               @Nullable ColumnType<T> type,
                                List<ColumnConstraint<T>> constraints) {
+        this(name, generatedExpression, type, constraints, true, generatedExpression != null);
+    }
+
+    public AddColumnDefinition(T name,
+                               @Nullable T generatedExpression,
+                               @Nullable ColumnType<T> type,
+                               List<ColumnConstraint<T>> constraints,
+                               boolean validate,
+                               boolean generated) {
         this.name = name;
         this.generatedExpression = generatedExpression;
+        this.generated = generated;
         this.type = type;
         this.constraints = constraints;
-        validateColumnDefinition();
+        if (validate) {
+            validateColumnDefinition();
+        }
     }
 
     private void validateColumnDefinition() {
@@ -65,8 +78,12 @@ public class AddColumnDefinition<T> extends TableElement<T> {
         return generatedExpression;
     }
 
+    public boolean isGenerated() {
+        return generated;
+    }
+
     @Nullable
-    public ColumnType type() {
+    public ColumnType<T> type() {
         return type;
     }
 
@@ -117,9 +134,23 @@ public class AddColumnDefinition<T> extends TableElement<T> {
     public <U> AddColumnDefinition<U> map(Function<? super T, ? extends U> mapper) {
         return new AddColumnDefinition<>(
             mapper.apply(name),
-            mapper.apply(generatedExpression),
-            type,
-            Lists2.map(constraints, x -> x.map(mapper))
+            null,   // expression must be mapped later on using mapExpressions()
+            type == null ? null : type.map(mapper),
+            Lists2.map(constraints, x -> x.map(mapper)),
+            false,
+            generatedExpression != null
+        );
+    }
+
+    @Override
+    public <U> TableElement<U> mapExpressions(TableElement<U> mappedElement,
+                                              Function<? super T, ? extends U> mapper) {
+        AddColumnDefinition<U> mappedAddDefinition = (AddColumnDefinition<U>) mappedElement;
+        return new AddColumnDefinition<>(
+            mappedAddDefinition.name,
+            generatedExpression == null ? null : mapper.apply(generatedExpression),
+            type == null ? null : type.mapExpressions(mappedAddDefinition.type, mapper),
+            mappedAddDefinition.constraints
         );
     }
 

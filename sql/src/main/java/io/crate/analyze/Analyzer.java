@@ -192,7 +192,7 @@ public class Analyzer {
         this.optimizeTableAnalyzer = new OptimizeTableAnalyzer(schemas);
         this.alterTableAnalyzer = new AlterTableAnalyzer(schemas);
         this.alterBlobTableAnalyzer = new AlterBlobTableAnalyzer(schemas);
-        this.alterTableAddColumnAnalyzer = new AlterTableAddColumnAnalyzer(schemas, fulltextAnalyzerResolver, functions);
+        this.alterTableAddColumnAnalyzer = new AlterTableAddColumnAnalyzer(schemas, functions);
         this.alterTableOpenCloseAnalyzer = new AlterTableOpenCloseAnalyzer(schemas);
         this.alterTableRerouteAnalyzer = new AlterTableRerouteAnalyzer(functions, schemas);
         this.copyAnalyzer = new CopyAnalyzer(schemas, functions);
@@ -365,8 +365,12 @@ public class Analyzer {
         }
 
         @Override
-        public AnalyzedStatement visitAlterTableAddColumnStatement(AlterTableAddColumn node, Analysis context) {
-            return alterTableAddColumnAnalyzer.analyze(node, context);
+        public AnalyzedStatement visitAlterTableAddColumnStatement(AlterTableAddColumn node, Analysis analysis) {
+            return alterTableAddColumnAnalyzer.analyze(
+                (AlterTableAddColumn<Expression>) node,
+                analysis.sessionContext().searchPath(),
+                analysis.parameterContext(),
+                analysis.transactionContext());
         }
 
         @Override

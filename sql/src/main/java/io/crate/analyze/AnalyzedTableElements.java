@@ -23,17 +23,13 @@ package io.crate.analyze;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import io.crate.analyze.expressions.ExpressionAnalysisContext;
-import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.TableReferenceResolver;
-import io.crate.analyze.relations.FieldProvider;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.scalar.cast.CastFunctionResolver;
 import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.format.SymbolPrinter;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.Functions;
 import io.crate.metadata.GeneratedReference;
@@ -41,7 +37,6 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
-import io.crate.sql.tree.Expression;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -49,7 +44,6 @@ import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -305,141 +299,6 @@ public class AnalyzedTableElements<T> {
         return builder.build();
     }
 
-    static void finalizeAndValidate(AnalyzedTableElements<Object> tableElements,
-                                    RelationName relationName,
-                                    Collection<? extends Reference> existingColumns,
-                                    Functions functions,
-                                    ParameterContext parameterContext,
-                                    CoordinatorTxnCtx coordinatorTxnCtx) {
-        tableElements.expandColumnIdents();
-        validateExpressions(tableElements, relationName, existingColumns, functions, parameterContext, coordinatorTxnCtx);
-        for (AnalyzedColumnDefinition<Object> column : tableElements.columns) {
-            column.validate();
-            tableElements.addCopyToInfo(column);
-        }
-        validateIndexDefinitions(tableElements, relationName);
-        validatePrimaryKeys(relationName, tableElements);
-    }
-
-    private static void validateIndexDefinitions(AnalyzedTableElements<Object> tableElements,
-                                                 RelationName relationName) {
-        for (Map.Entry<Object, Set<String>> entry : tableElements.copyToMap.entrySet()) {
-            ColumnIdent columnIdent = ColumnIdent.fromPath(entry.getKey().toString());
-            if (!tableElements.columnIdents.contains(columnIdent)) {
-                throw new ColumnUnknownException(columnIdent.sqlFqn(), relationName);
-            }
-            if (!DataTypes.STRING.equals(tableElements.columnTypes.get(columnIdent))) {
-                throw new IllegalArgumentException("INDEX definition only support 'string' typed source columns");
-            }
-        }
-    }
-
-    private static void validateExpressions(AnalyzedTableElements<Object> tableElements,
-                                            RelationName relationName,
-                                            Collection<? extends Reference> existingColumns,
-                                            Functions functions,
-                                            ParameterContext parameterContext,
-                                            CoordinatorTxnCtx coordinatorTxnCtx) {
-        List<Reference> tableReferences = new ArrayList<>();
-        for (AnalyzedColumnDefinition<Object> columnDefinition : tableElements.columns) {
-            buildReference(relationName, columnDefinition, tableReferences);
-        }
-        tableReferences.addAll(existingColumns);
-
-        TableReferenceResolver tableReferenceResolver = new TableReferenceResolver(tableReferences, relationName);
-        ExpressionAnalyzer generatedExpressionAnalyzer = new ExpressionAnalyzer(
-            functions, coordinatorTxnCtx, parameterContext, tableReferenceResolver, null);
-        ExpressionAnalysisContext generatedExpressionAnalysisContext = new ExpressionAnalysisContext();
-
-        // Default expressions must not contain column references,
-        // so a separate instance with FieldProvider.UNSUPPORTED is used.
-        ExpressionAnalyzer defaultExpressionAnalyzer = new ExpressionAnalyzer(
-            functions, coordinatorTxnCtx, parameterContext, FieldProvider.UNSUPPORTED, null);
-        ExpressionAnalysisContext defaultExpressionAnalysisContext = new ExpressionAnalysisContext();
-
-        SymbolPrinter printer = new SymbolPrinter(functions);
-
-        for (AnalyzedColumnDefinition<Object> columnDefinition : tableElements.columns) {
-            processExpressions(columnDefinition,
-                               generatedExpressionAnalyzer,
-                               generatedExpressionAnalysisContext,
-                               defaultExpressionAnalyzer,
-                               defaultExpressionAnalysisContext,
-                               printer);
-        }
-    }
-
-    private static void processExpressions(AnalyzedColumnDefinition<Object> columnDefinition,
-                                           ExpressionAnalyzer generatedExpressionAnalyzer,
-                                           ExpressionAnalysisContext generatedExpressionAnalysisContext,
-                                           ExpressionAnalyzer defaultExpressionAnalyzer,
-                                           ExpressionAnalysisContext defaultExpressionAnalysisContext,
-                                           SymbolPrinter printer) {
-        if (columnDefinition.generatedExpression() != null) {
-            Symbol function = generatedExpressionAnalyzer.convert((Expression) columnDefinition.generatedExpression(), generatedExpressionAnalysisContext);
-            final String formattedExpression = validateAndFormatExpression(function, columnDefinition, printer);
-            columnDefinition.formattedGeneratedExpression(formattedExpression);
-        }
-        if (columnDefinition.defaultExpression() != null) {
-            Symbol function = defaultExpressionAnalyzer.convert((Expression) columnDefinition.defaultExpression(), defaultExpressionAnalysisContext);
-            final String formattedExpression = validateAndFormatExpression(function, columnDefinition, printer);
-            columnDefinition.formattedDefaultExpression(formattedExpression);
-        }
-        for (AnalyzedColumnDefinition<Object> child : columnDefinition.children()) {
-            processExpressions(
-                child,
-                generatedExpressionAnalyzer,
-                generatedExpressionAnalysisContext,
-                defaultExpressionAnalyzer,
-                defaultExpressionAnalysisContext,
-                printer
-            );
-        }
-    }
-
-    private static String validateAndFormatExpression(Symbol function,
-                                                      AnalyzedColumnDefinition columnDefinition,
-                                                      SymbolPrinter symbolPrinter) {
-        String formattedExpression;
-        DataType valueType = function.valueType();
-        DataType definedType = columnDefinition.dataType();
-
-        // check for optional defined type and add `cast` to expression if possible
-        if (definedType != null && !definedType.equals(valueType)) {
-            final DataType columnDataType;
-            if (ArrayType.NAME.equals(columnDefinition.collectionType())) {
-                columnDataType = new ArrayType(definedType);
-            } else {
-                columnDataType = definedType;
-            }
-            Preconditions.checkArgument(
-                valueType.isConvertableTo(columnDataType),
-                "expression value type '%s' not supported for conversion to '%s'",
-                valueType, columnDataType.getName());
-
-            Symbol castFunction = CastFunctionResolver.generateCastFunction(function, columnDataType, false);
-            formattedExpression = symbolPrinter.printUnqualified(castFunction);
-        } else {
-            if (valueType instanceof ArrayType) {
-                columnDefinition.collectionType(ArrayType.NAME);
-                columnDefinition.dataType(ArrayType.unnest(valueType).getName());
-            } else {
-                columnDefinition.dataType(valueType.getName());
-            }
-            formattedExpression = symbolPrinter.printUnqualified(function);
-        }
-        return formattedExpression;
-    }
-
-    public Settings settings() {
-        Settings.Builder builder = Settings.builder();
-        for (AnalyzedColumnDefinition column : columns) {
-            builder.put(column.builtAnalyzerSettings());
-        }
-        return builder.build();
-    }
-
-
     public static Map<String, Object> finalizeAndValidate(RelationName relationName,
                                                           AnalyzedTableElements<Symbol> tableElementsWithExpressionSymbols,
                                                           AnalyzedTableElements<Object> tableElementsEvaluated,
@@ -546,6 +405,13 @@ public class AnalyzedTableElements<T> {
         formattedExpressionConsumer.accept(formattedExpression);
     }
 
+    public Settings settings() {
+        Settings.Builder builder = Settings.builder();
+        for (AnalyzedColumnDefinition column : columns) {
+            builder.put(column.builtAnalyzerSettings());
+        }
+        return builder.build();
+    }
 
     private static <T> void buildReference(RelationName relationName,
                                            AnalyzedColumnDefinition<T> columnDefinition,
@@ -705,7 +571,7 @@ public class AnalyzedTableElements<T> {
         return columns;
     }
 
-    boolean hasGeneratedColumns() {
+    public boolean hasGeneratedColumns() {
         return numGeneratedColumns > 0;
     }
 }
