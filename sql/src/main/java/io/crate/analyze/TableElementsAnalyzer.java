@@ -21,10 +21,8 @@
 
 package io.crate.analyze;
 
-import io.crate.analyze.expressions.ExpressionToColumnIdentVisitor;
-import io.crate.data.Row;
+import io.crate.expression.symbol.Literal;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.TableInfo;
@@ -36,7 +34,6 @@ import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.ColumnStorageDefinition;
 import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.DefaultTraversalVisitor;
-import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.IndexColumnConstraint;
 import io.crate.sql.tree.IndexDefinition;
@@ -52,38 +49,7 @@ import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Locale;
 
-import static java.util.Collections.singletonList;
-
 public class TableElementsAnalyzer {
-
-    private static final InnerTableElementsAnalyzer ANALYZER = new InnerTableElementsAnalyzer();
-
-    public static AnalyzedTableElements<Object> analyze(List<TableElement<Expression>> tableElements,
-                                                        Row parameters,
-                                                        FulltextAnalyzerResolver fulltextAnalyzerResolver,
-                                                        RelationName relationName,
-                                                        @Nullable TableInfo tableInfo) {
-        AnalyzedTableElements<Object> analyzedTableElements = new AnalyzedTableElements<>();
-        int positionOffset = tableInfo == null ? 0 : tableInfo.columns().size();
-        for (int i = 0; i < tableElements.size(); i++) {
-            TableElement tableElement = tableElements.get(i);
-            int position = positionOffset + i + 1;
-            ColumnDefinitionContext<Object> ctx = new ColumnDefinitionContext<>(
-                position, null, parameters, fulltextAnalyzerResolver, analyzedTableElements, relationName, tableInfo, true);
-            tableElement.accept(ANALYZER, ctx);
-            if (ctx.analyzedColumnDefinition.ident() != null) {
-                analyzedTableElements.add(ctx.analyzedColumnDefinition);
-            }
-        }
-        return analyzedTableElements;
-    }
-
-    public static AnalyzedTableElements<Object> analyze(TableElement<Expression> tableElement,
-                                                            Row parameters,
-                                                            FulltextAnalyzerResolver fulltextAnalyzerResolver,
-                                                            TableInfo tableInfo) {
-        return analyze(singletonList(tableElement), parameters, fulltextAnalyzerResolver, tableInfo.ident(), tableInfo);
-    }
 
     public static <T> AnalyzedTableElements<T> analyze(List<TableElement<T>> tableElements,
                                                        RelationName relationName,
@@ -104,8 +70,6 @@ public class TableElementsAnalyzer {
             ColumnDefinitionContext<T> ctx = new ColumnDefinitionContext<>(
                 position,
                 null,
-                Row.EMPTY,
-                null,
                 analyzedTableElements,
                 relationName,
                 tableInfo,
@@ -121,8 +85,6 @@ public class TableElementsAnalyzer {
 
     private static class ColumnDefinitionContext<T> {
 
-        private final Row parameters;
-        final FulltextAnalyzerResolver fulltextAnalyzerResolver;
         AnalyzedColumnDefinition<T> analyzedColumnDefinition;
         final AnalyzedTableElements<T> analyzedTableElements;
         final RelationName relationName;
@@ -132,15 +94,11 @@ public class TableElementsAnalyzer {
 
         ColumnDefinitionContext(Integer position,
                                 @Nullable AnalyzedColumnDefinition<T> parent,
-                                Row parameters,
-                                FulltextAnalyzerResolver fulltextAnalyzerResolver,
                                 AnalyzedTableElements<T> analyzedTableElements,
                                 RelationName relationName,
                                 @Nullable TableInfo tableInfo,
                                 boolean logWarnings) {
             this.analyzedColumnDefinition = new AnalyzedColumnDefinition<>(position, parent);
-            this.parameters = parameters;
-            this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
             this.analyzedTableElements = analyzedTableElements;
             this.relationName = relationName;
             this.tableInfo = tableInfo;
@@ -172,21 +130,22 @@ public class TableElementsAnalyzer {
         }
 
         @Override
-        public Void visitAddColumnDefinition(AddColumnDefinition<?> node, ColumnDefinitionContext<T> ctx) {
-            AddColumnDefinition<Expression> columnDefinition = (AddColumnDefinition<Expression>) node;
-            ColumnDefinitionContext<Expression> context = (ColumnDefinitionContext<Expression>) ctx;
-            ColumnIdent column = ExpressionToColumnIdentVisitor.convert(columnDefinition.name());
+        public Void visitAddColumnDefinition(AddColumnDefinition<?> node, ColumnDefinitionContext<T> context) {
+            AddColumnDefinition<T> addColumnDefinition = (AddColumnDefinition<T>) node;
+            assert addColumnDefinition.name() instanceof Literal : "column name is expected to be a literal already";
+            ColumnIdent column = ColumnIdent.fromPath(((Literal) addColumnDefinition.name()).value().toString());
             context.analyzedColumnDefinition.name(column.name());
+
             assert context.tableInfo != null : "Table must be available for `addColumnDefinition`";
 
             // nested columns can only be added using alter table so no other columns exist.
             assert context.analyzedTableElements.columns().size() == 0 :
                 "context.analyzedTableElements.columns().size() must be 0";
 
-            final AnalyzedColumnDefinition<Expression> root = context.analyzedColumnDefinition;
+            final AnalyzedColumnDefinition<T> root = context.analyzedColumnDefinition;
             if (!column.path().isEmpty()) {
-                AnalyzedColumnDefinition<Expression> parent = context.analyzedColumnDefinition;
-                AnalyzedColumnDefinition<Expression> leaf = parent;
+                AnalyzedColumnDefinition<T> parent = context.analyzedColumnDefinition;
+                AnalyzedColumnDefinition<T> leaf = parent;
                 for (String name : column.path()) {
                     parent.dataType(ObjectType.NAME);
                     // Check if parent is already defined.
@@ -202,7 +161,7 @@ public class TableElementsAnalyzer {
                         }
                     }
                     parent.markAsParentColumn();
-                    leaf = new AnalyzedColumnDefinition<Expression>(null, parent);
+                    leaf = new AnalyzedColumnDefinition<>(null, parent);
                     leaf.name(name);
                     parent.addChild(leaf);
                     parent = leaf;
@@ -210,16 +169,16 @@ public class TableElementsAnalyzer {
                 context.analyzedColumnDefinition = leaf;
             }
 
-            for (ColumnConstraint columnConstraint : node.constraints()) {
+            for (ColumnConstraint<T> columnConstraint : addColumnDefinition.constraints()) {
                 columnConstraint.accept(this, context);
             }
             ColumnType type = node.type();
             if (type != null) {
                 type.accept(this, context);
             }
-            if (node.generatedExpression() != null) {
-                context.analyzedColumnDefinition.setGenerated(true);
-                context.analyzedColumnDefinition.generatedExpression((Expression) node.generatedExpression());
+            context.analyzedColumnDefinition.setGenerated(addColumnDefinition.isGenerated());
+            if (addColumnDefinition.generatedExpression() != null) {
+                context.analyzedColumnDefinition.generatedExpression(addColumnDefinition.generatedExpression());
             }
 
             context.analyzedColumnDefinition = root;
@@ -242,8 +201,6 @@ public class TableElementsAnalyzer {
                 ColumnDefinitionContext<T> childContext = new ColumnDefinitionContext<>(
                     null,
                     context.analyzedColumnDefinition,
-                    context.parameters,
-                    context.fulltextAnalyzerResolver,
                     context.analyzedTableElements,
                     context.relationName,
                     context.tableInfo,

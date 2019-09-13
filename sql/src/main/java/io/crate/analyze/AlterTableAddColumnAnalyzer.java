@@ -21,118 +21,71 @@
 
 package io.crate.analyze;
 
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.FulltextAnalyzerResolver;
+import io.crate.analyze.expressions.ExpressionAnalysisContext;
+import io.crate.analyze.expressions.ExpressionAnalyzer;
+import io.crate.analyze.expressions.ExpressionToColumnIdentVisitor;
+import io.crate.analyze.expressions.TableReferenceResolver;
+import io.crate.analyze.relations.FieldProvider;
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
-import io.crate.metadata.Reference;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.SearchPath;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
-import io.crate.metadata.table.TableInfo;
+import io.crate.sql.tree.AddColumnDefinition;
 import io.crate.sql.tree.AlterTableAddColumn;
 import io.crate.sql.tree.Expression;
-import io.crate.types.ArrayType;
+import io.crate.sql.tree.ParameterExpression;
 
-import java.util.List;
-import java.util.Locale;
+import java.util.function.Function;
+
+import static java.util.Collections.singletonList;
 
 class AlterTableAddColumnAnalyzer {
 
     private final Schemas schemas;
-    private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
     private final Functions functions;
 
     AlterTableAddColumnAnalyzer(Schemas schemas,
-                                FulltextAnalyzerResolver fulltextAnalyzerResolver,
                                 Functions functions) {
         this.schemas = schemas;
-        this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
         this.functions = functions;
     }
 
-    public AddColumnAnalyzedStatement analyze(AlterTableAddColumn<Expression> node, Analysis analysis) {
-        if (!node.table().partitionProperties().isEmpty()) {
+    public AnalyzedAlterTableAddColumn analyze(AlterTableAddColumn<Expression> alterTable,
+                                               SearchPath searchPath,
+                                               Function<ParameterExpression, Symbol> convertParamFunction,
+                                               CoordinatorTxnCtx txnCtx) {
+        if (!alterTable.table().partitionProperties().isEmpty()) {
             throw new UnsupportedOperationException("Adding a column to a single partition is not supported");
         }
-        DocTableInfo tableInfo = (DocTableInfo) schemas.resolveTableInfo(node.table().getName(), Operation.ALTER,
-            analysis.sessionContext().searchPath());
-        AnalyzedTableElements<Object> tableElements = TableElementsAnalyzer.analyze(
-            node.tableElement(),
-            analysis.parameterContext().parameters(),
-            fulltextAnalyzerResolver,
-            tableInfo
-        );
-        for (AnalyzedColumnDefinition<Object> column : tableElements.columns()) {
-            ensureColumnLeafsAreNew(column, tableInfo);
-        }
-        addExistingPrimaryKeys(tableInfo, tableElements);
-        ensureNoIndexDefinitions(tableElements.columns());
-        AnalyzedTableElements.finalizeAndValidate(
-            tableElements,
-            tableInfo.ident(),
-            tableInfo.columns(),
-            functions,
-            analysis.parameterContext(),
-            analysis.transactionContext());
+        DocTableInfo tableInfo = (DocTableInfo) schemas.resolveTableInfo(alterTable.table().getName(), Operation.ALTER,
+                                                                         searchPath);
+        TableReferenceResolver referenceResolver = new TableReferenceResolver(tableInfo.columns(), tableInfo.ident());
 
-        int numCurrentPks = tableInfo.primaryKey().size();
-        if (tableInfo.primaryKey().contains(DocSysColumns.ID)) {
-            numCurrentPks -= 1;
-        }
+        var exprAnalyzerWithReferenceResolver = new ExpressionAnalyzer(
+            functions, txnCtx, convertParamFunction, referenceResolver, null);
+        var exprAnalyzerWithFieldsAsString = new ExpressionAnalyzer(
+            functions, txnCtx, convertParamFunction, FieldProvider.FIELDS_AS_LITERAL, null);
+        var exprCtx = new ExpressionAnalysisContext();
 
-        boolean hasNewPrimaryKeys = AnalyzedTableElements.primaryKeys(tableElements).size() > numCurrentPks;
-        boolean hasGeneratedColumns = tableElements.hasGeneratedColumns();
-        return new AddColumnAnalyzedStatement(
-            tableInfo,
-            tableElements,
-            hasNewPrimaryKeys,
-            hasGeneratedColumns
-        );
-    }
+        AddColumnDefinition<Expression> tableElement = alterTable.tableElement();
+        // convert and validate the column name
+        ExpressionToColumnIdentVisitor.convert(tableElement.name());
 
-    private static void ensureColumnLeafsAreNew(AnalyzedColumnDefinition<Object> column, TableInfo tableInfo) {
-        if ((!column.isParentColumn() || !column.hasChildren()) && tableInfo.getReference(column.ident()) != null) {
-            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                "The table %s already has a column named %s",
-                tableInfo.ident().sqlFqn(),
-                column.ident().sqlFqn()));
-        }
-        for (AnalyzedColumnDefinition<Object> child : column.children()) {
-            ensureColumnLeafsAreNew(child, tableInfo);
-        }
-    }
+        AddColumnDefinition<Symbol> addColumnDefinition = tableElement.map(x -> exprAnalyzerWithFieldsAsString.convert(x, exprCtx));
+        AnalyzedTableElements<Symbol> analyzedTableElements = TableElementsAnalyzer.analyze(
+            singletonList(addColumnDefinition), tableInfo.ident(), tableInfo);
 
-    private static void addExistingPrimaryKeys(DocTableInfo tableInfo, AnalyzedTableElements<Object> tableElements) {
-        for (ColumnIdent pkIdent : tableInfo.primaryKey()) {
-            if (pkIdent.name().equals("_id")) {
-                continue;
-            }
-            Reference pkInfo = tableInfo.getReference(pkIdent);
-            assert pkInfo != null : "pk must not be null";
+        // 2nd phase, analyze possible generated expressions
+        AddColumnDefinition<Symbol> addColumnDefinitionWithExpression = (AddColumnDefinition<Symbol>) tableElement.mapExpressions(
+            addColumnDefinition,
+            x -> exprAnalyzerWithReferenceResolver.convert(x, exprCtx));
+        AnalyzedTableElements<Symbol> analyzedTableElementsWithExpressions = TableElementsAnalyzer.analyze(
+            singletonList(addColumnDefinitionWithExpression), tableInfo.ident(), tableInfo);
 
-            AnalyzedColumnDefinition<Object> pkColumn = new AnalyzedColumnDefinition<>(null, null);
-            pkColumn.ident(pkIdent);
-            pkColumn.name(pkIdent.name());
-            pkColumn.setPrimaryKeyConstraint();
 
-            assert !(pkInfo.valueType() instanceof ArrayType) : "pk can't be an array";
-            pkColumn.dataType(pkInfo.valueType().getName());
-            tableElements.add(pkColumn);
-        }
-
-        for (ColumnIdent columnIdent : tableInfo.partitionedBy()) {
-            AnalyzedTableElements.changeToPartitionedByColumn(tableElements, columnIdent, true, tableInfo.ident());
-        }
-    }
-
-    private static void ensureNoIndexDefinitions(List<AnalyzedColumnDefinition<Object>> columns) {
-        for (AnalyzedColumnDefinition<Object> column : columns) {
-            if (column.isIndexColumn()) {
-                throw new UnsupportedOperationException(
-                    "Adding an index using ALTER TABLE ADD COLUMN is not supported");
-            }
-            ensureNoIndexDefinitions(column.children());
-        }
+        return new AnalyzedAlterTableAddColumn(tableInfo, analyzedTableElements, analyzedTableElementsWithExpressions);
     }
 }

@@ -33,7 +33,7 @@ public class AlterTableAddColumn<T> extends Statement {
         this.addColumnDefinition = addColumnDefinition;
     }
 
-    public TableElement<T> tableElement() {
+    public AddColumnDefinition<T> tableElement() {
         return addColumnDefinition;
     }
 

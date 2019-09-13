@@ -30,15 +30,21 @@ public class AddColumnAnalyzedStatement implements DDLStatement {
 
     private final DocTableInfo tableInfo;
     private final AnalyzedTableElements<Object> analyzedTableElements;
+    private final Settings settings;
+    private final Map<String, Object> mapping;
     private final boolean newPrimaryKeys;
     private final boolean hasNewGeneratedColumns;
 
-    protected AddColumnAnalyzedStatement(DocTableInfo tableInfo,
-                                         AnalyzedTableElements<Object> tableElements,
-                                         boolean newPrimaryKeys,
-                                         boolean hasNewGeneratedColumns) {
+    public AddColumnAnalyzedStatement(DocTableInfo tableInfo,
+                                      AnalyzedTableElements<Object> analyzedTableElements,
+                                      Settings settings,
+                                      Map<String, Object> mapping,
+                                      boolean newPrimaryKeys,
+                                      boolean hasNewGeneratedColumns) {
         this.tableInfo = tableInfo;
-        analyzedTableElements = tableElements;
+        this.analyzedTableElements = analyzedTableElements;
+        this.settings = settings;
+        this.mapping = mapping;
         this.newPrimaryKeys = newPrimaryKeys;
         this.hasNewGeneratedColumns = hasNewGeneratedColumns;
     }
@@ -53,7 +59,7 @@ public class AddColumnAnalyzedStatement implements DDLStatement {
     }
 
     public AnalyzedTableElements<Object> analyzedTableElements() {
-        return this.analyzedTableElements;
+        return analyzedTableElements;
     }
 
     public boolean newPrimaryKeys() {
@@ -65,10 +71,10 @@ public class AddColumnAnalyzedStatement implements DDLStatement {
     }
 
     public Map<String, Object> mapping() {
-        return AnalyzedTableElements.toMapping(analyzedTableElements);
+        return mapping;
     }
 
     public Settings settings() {
-        return analyzedTableElements.settings();
+        return settings;
     }
 }

@@ -246,4 +246,8 @@ public class AnalyzedStatementVisitor<C, R> {
     public R visitCreateTable(AnalyzedCreateTable createTable, C context) {
         return visitDDLStatement(createTable, context);
     }
+
+    public R visitAlterTableAddColumn(AnalyzedAlterTableAddColumn alterTableAddColumn, C context) {
+        return visitDDLStatement(alterTableAddColumn, context);
+    }
 }

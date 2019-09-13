@@ -59,7 +59,6 @@ import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 
@@ -151,7 +150,7 @@ public class CreateTablePlan implements Plan {
             createTable.analyzedTableElementsWithExpressions().map(x -> SubQueryAndParamBinder.convert(x, params, subQueryResults));
 
         // validate table elements
-        Map<String, Object> tableElementsMapping = AnalyzedTableElements.finalizeAndValidate(
+        AnalyzedTableElements.finalizeAndValidate(
             relationName,
             tableElementsWithExpressions,
             tableElements,

@@ -26,6 +26,7 @@ import io.crate.action.sql.DCLStatementDispatcher;
 import io.crate.execution.TransportActionProvider;
 import io.crate.execution.ddl.DDLStatementDispatcher;
 import io.crate.execution.ddl.TransportSwapRelationsAction;
+import io.crate.execution.ddl.tables.AlterTableOperation;
 import io.crate.execution.ddl.tables.TransportDropTableAction;
 import io.crate.execution.ddl.views.TransportCreateViewAction;
 import io.crate.execution.ddl.views.TransportDropViewAction;
@@ -64,6 +65,7 @@ public class DependencyCarrier {
     private final TransportDropViewAction dropViewAction;
     private final TransportSwapRelationsAction swapRelationsAction;
     private final LicenseService licenseService;
+    private final AlterTableOperation alterTableOperation;
     private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
 
     @Inject
@@ -81,6 +83,7 @@ public class DependencyCarrier {
                              TransportCreateViewAction createViewAction,
                              TransportDropViewAction dropViewAction,
                              TransportSwapRelationsAction swapRelationsAction,
+                             AlterTableOperation alterTableOperation,
                              FulltextAnalyzerResolver fulltextAnalyzerResolver) {
         this.settings = settings;
         this.transportActionProvider = transportActionProvider;
@@ -97,6 +100,7 @@ public class DependencyCarrier {
         this.createViewAction = createViewAction;
         this.dropViewAction = dropViewAction;
         this.swapRelationsAction = swapRelationsAction;
+        this.alterTableOperation = alterTableOperation;
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
     }
 
@@ -170,5 +174,9 @@ public class DependencyCarrier {
 
     public FulltextAnalyzerResolver fulltextAnalyzerResolver() {
         return fulltextAnalyzerResolver;
+    }
+
+    public AlterTableOperation alterTableOperation() {
+        return alterTableOperation;
     }
 }
