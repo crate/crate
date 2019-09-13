@@ -349,15 +349,18 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 throw ExceptionsHelper.convertToElastic(e);
             }
         } else {
-            Doc currentDoc = getDocument(indexShard, item.id(), item.version(), item.seqNo(), item.primaryTerm());
             BytesReference updatedSource;
             try {
+                Doc currentDoc = getDocument(indexShard, item.id(), item.version(), item.seqNo(), item.primaryTerm());
                 updatedSource = updateSourceGen.generateSource(
                     currentDoc,
                     item.updateAssignments(),
                     item.insertValues()
                 );
-            } catch (IOException e) {
+            } catch (VersionConflictEngineException |
+                     DocumentMissingException |
+                     DocumentSourceMissingException |
+                     IOException e) {
                 listener.onFailure(e);
                 return;
             }

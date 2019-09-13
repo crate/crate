@@ -24,6 +24,7 @@ package io.crate.execution.dml.upsert;
 
 import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.execution.ddl.SchemaUpdateClient;
+import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
 import io.crate.execution.jobs.TasksService;
 import io.crate.metadata.Functions;
@@ -69,8 +70,11 @@ import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static io.crate.testing.TestingHelpers.getFunctions;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.any;
@@ -189,14 +193,12 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         ).newRequest(shardId);
         request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null, null, null));
 
-//        transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(false), ActionListener.wrap(
-//            result -> {
-//                assertTrue(true);
-//            },
-//            e -> {
-//                fail(e.getMessage());
-//            }
-//        ));
+        transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(false), ActionListener.wrap(
+            result -> {
+                assertThat(result.finalResponseIfSuccessful.failure(), instanceOf(VersionConflictEngineException.class));
+            },
+            e -> fail(e.getMessage())
+        ));
 
     }
 
@@ -215,14 +217,16 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         ).newRequest(shardId);
         request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null, null, null));
 
-        // TODO
-//        TransportWriteAction.WritePrimaryResult<ShardUpsertRequest, ShardResponse> result =
-//            transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(false));
-//
-//        ShardResponse response = result.finalResponseIfSuccessful;
-//        assertThat(response.failures().size(), is(1));
-//        assertThat(response.failures().get(0).message(),
-//                   is("[1]: version conflict, document with id: 1 already exists in 'characters'"));
+        transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(false), ActionListener.wrap(
+            result -> {
+                ShardResponse response = result.finalResponseIfSuccessful;
+                assertThat(response.failures().size(), is(1));
+                assertThat(response.failures().get(0).message(),
+                           is("[1]: version conflict, document with id: 1 already exists in 'characters'"));
+            },
+            e -> fail(e.getMessage())
+        ));
+
     }
 
     @Test
@@ -257,11 +261,12 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         ).newRequest(shardId);
         request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null, null, null));
 
-        // TODO
-//        TransportWriteAction.WritePrimaryResult<ShardUpsertRequest, ShardResponse> result =
-//            transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(true));
-
-        //assertThat(result.finalResponseIfSuccessful.failure(), instanceOf(InterruptedException.class));
+        transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(true), ActionListener.wrap(
+            result -> {
+                assertThat(result.finalResponseIfSuccessful.failure(), instanceOf(InterruptedException.class));
+            },
+            e -> fail(e.getMessage())
+        ));
     }
 
     @Test
