@@ -318,9 +318,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         if (false == breakLoop.get()) {
             logger.warn("[{}] VersionConflict for document id={}, version={} exceeded retry limit of {}, will stop retrying",
                         indexShard.shardId(), item.id(), item.version(), MAX_RETRY_LIMIT);
-            if (lastException.get() != null) {
-                listener.onFailure(lastException.get());
-            }
+            listener.onFailure(lastException.get());
         }
     }
 
@@ -357,10 +355,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                     item.updateAssignments(),
                     item.insertValues()
                 );
-            } catch (VersionConflictEngineException |
-                     DocumentMissingException |
-                     DocumentSourceMissingException |
-                     IOException e) {
+            } catch (Exception e) {
                 listener.onFailure(e);
                 return;
             }

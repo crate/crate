@@ -216,7 +216,13 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
                 mappingUpdate,
                 ActionListener.wrap(
                     ack -> {
-                        T r = execute.get();
+                        T r;
+                        try {
+                            r = execute.get();
+                        } catch (Exception e) {
+                            listener.onFailure(e);
+                            return;
+                        }
                         if (r.getResultType() == Engine.Result.Type.MAPPING_UPDATE_REQUIRED) {
                             // double mapping update. We assume that the successful mapping update
                             // wasn't yet processed on the node and retry the entire request again.
