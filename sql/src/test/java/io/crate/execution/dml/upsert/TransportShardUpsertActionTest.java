@@ -22,6 +22,7 @@
 
 package io.crate.execution.dml.upsert;
 
+import io.crate.action.FutureActionListener;
 import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.execution.ddl.SchemaUpdateClient;
 import io.crate.execution.dml.ShardResponse;
@@ -70,6 +71,7 @@ import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static io.crate.testing.TestingHelpers.getFunctions;
@@ -120,18 +122,20 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
 
         @Nullable
         @Override
-        protected void indexItem(ShardUpsertRequest request,
-                                 ShardUpsertRequest.Item item,
-                                 IndexShard indexShard,
-                                 boolean tryInsertFirst,
-                                 UpdateSourceGen updateSourceGen,
-                                 InsertSourceGen insertSourceGen,
-                                 boolean isRetry,
-                                 ActionListener<Translog.Location> listener) {
-            listener.onFailure(new VersionConflictEngineException(
+        protected CompletableFuture<Translog.Location> indexItem(ShardUpsertRequest request,
+                                                                 ShardUpsertRequest.Item item,
+                                                                 IndexShard indexShard,
+                                                                 boolean tryInsertFirst,
+                                                                 UpdateSourceGen updateSourceGen,
+                                                                 InsertSourceGen insertSourceGen,
+                                                                 boolean isRetry) {
+
+            FutureActionListener<Translog.Location, Translog.Location> indexOpResult = FutureActionListener.newInstance();
+            indexOpResult.onFailure(new VersionConflictEngineException(
                 indexShard.shardId(),
                 item.id(),
                 "document with id: " + item.id() + " already exists in '" + request.shardId().getIndexName() + '\''));
+            return indexOpResult;
         }
     }
 
