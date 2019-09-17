@@ -170,7 +170,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         Translog.Location translogLocation = null;
         if (false == killed.get()) {
             Iterator<Map.Entry<CompletableFuture<Translog.Location>, ShardUpsertRequest.Item>> it = indexOpResults.entrySet().iterator();
-            for (it.hasNext()) {
+            while (it.hasNext()) {
                 Map.Entry<CompletableFuture<Translog.Location>, ShardUpsertRequest.Item> entry = it.next();
                 CompletableFuture<Translog.Location> indexResult = entry.getKey();
                 ShardUpsertRequest.Item item = entry.getValue();
