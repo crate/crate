@@ -74,6 +74,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -148,7 +149,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             ? null
             : new UpdateSourceGen(functions, txnCtx, tableInfo, request.updateColumns());
 
-        Map<CompletableFuture<Translog.Location>, ShardUpsertRequest.Item> indexOpResults = new HashMap<>();
+        Map<CompletableFuture<Translog.Location>, ShardUpsertRequest.Item> indexOpResults = new LinkedHashMap<>();
         for (ShardUpsertRequest.Item item : request.items()) {
             if (killed.get()) {
                 // set failure on response and skip all next items.
