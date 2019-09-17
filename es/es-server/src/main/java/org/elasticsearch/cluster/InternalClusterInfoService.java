@@ -131,10 +131,9 @@ public class InternalClusterInfoService implements ClusterInfoService, LocalNode
         threadPool.scheduleUnlessShuttingDown(updateFrequency, executorName(), new SubmitReschedulingClusterInfoUpdatedJob());
 
         try {
-            if (clusterService.state().getNodes().getDataNodes().size() > 1) {
-                // Submit an info update job to be run immediately
-                threadPool.executor(executorName()).execute(() -> maybeRefresh());
-            }
+            // Submit an info update job to be run immediately
+            threadPool.executor(executorName()).execute(() -> maybeRefresh());
+
         } catch (EsRejectedExecutionException ex) {
             if (logger.isDebugEnabled()) {
                 logger.debug("Couldn't schedule cluster info update task - node might be shutting down", ex);
@@ -264,12 +263,18 @@ public class InternalClusterInfoService implements ClusterInfoService, LocalNode
     private void maybeRefresh() {
         // Short-circuit if not enabled
         if (enabled) {
-            refresh();
+            if(dataNodesAvailable()) {
+                refresh();
+            }
         } else {
             if (logger.isTraceEnabled()) {
                 logger.trace("Skipping ClusterInfoUpdatedJob since it is disabled");
             }
         }
+    }
+
+    private boolean dataNodesAvailable() {
+        return clusterService.state().getNodes().getDataNodes().size() > 1;
     }
 
     /**
