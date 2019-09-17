@@ -41,10 +41,13 @@ Unreleased Changes
 Changes
 =======
 
-None
+- Improved the help section of the admin-ui and added Spanish translations.
 
 Fixes
 =====
+
+- Fixed an issue in the admin-ui to no longer display all columns as being
+  generated columns in the table/column view section.
 
 - Fixed an issue introduced in CrateDB 4.0 resulting in dysfunctional disk-based
   allocation thresholds.
