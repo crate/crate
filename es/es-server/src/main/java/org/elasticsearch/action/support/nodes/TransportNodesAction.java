@@ -152,8 +152,6 @@ public abstract class TransportNodesAction<NodesRequest extends BaseNodesRequest
             this.task = task;
             this.request = request;
             this.listener = listener;
-            assert request.concreteNodes() != null : "concreteNodes on NodesRequest must not be null";
-            assert request.concreteNodes().length > 0 : "concreteNodes on NodesRequest must not be empty";
             this.responses = new AtomicReferenceArray<>(request.concreteNodes().length);
         }
 
