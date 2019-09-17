@@ -23,6 +23,8 @@
 package io.crate.execution.ddl;
 
 import org.elasticsearch.ElasticsearchTimeoutException;
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.action.index.MappingUpdatedAction;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -52,11 +54,18 @@ public class SchemaUpdateClient {
         this.dynamicMappingUpdateTimeout = dynamicMappingUpdateTimeout;
     }
 
-    public void blockingUpdateOnMaster(Index index, Mapping mappingUpdate) {
+    public void blockingUpdateOnMaster(Index index, Mapping mappingUpdate, ActionListener<AcknowledgedResponse> ackListener) {
         TimeValue timeout = this.dynamicMappingUpdateTimeout;
-        var response = schemaUpdateAction.execute(new SchemaUpdateRequest(index, mappingUpdate.toString())).actionGet();
-        if (!response.isAcknowledged()) {
-            throw new ElasticsearchTimeoutException("Failed to acknowledge mapping update within [" + timeout + "]");
-        }
+        schemaUpdateAction.execute(new SchemaUpdateRequest(index, mappingUpdate.toString()), ActionListener.wrap(
+            ack -> {
+                if (!ack.isAcknowledged()) {
+                    ackListener.onFailure(new ElasticsearchTimeoutException(
+                        "Failed to acknowledge mapping update within [" + timeout + "]"));
+                } else {
+                    ackListener.onResponse(ack);
+                }
+            },
+            ackListener::onFailure
+        ));
     }
 }

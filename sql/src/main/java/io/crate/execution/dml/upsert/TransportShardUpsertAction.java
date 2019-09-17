@@ -24,6 +24,7 @@ package io.crate.execution.dml.upsert;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.Constants;
+import io.crate.action.FutureActionListener;
 import io.crate.execution.ddl.SchemaUpdateClient;
 import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.dml.TransportShardAction;
@@ -71,6 +72,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static io.crate.exceptions.SQLExceptions.userFriendlyCrateExceptionTopOnly;
@@ -317,7 +319,8 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             item.source(),
             XContentType.JSON
         );
-        Engine.IndexResult indexResult = executeOnPrimaryHandlingMappingUpdate(
+        FutureActionListener<Engine.IndexResult, Engine.IndexResult> onPrimaryWithMappingListener = FutureActionListener.newInstance();
+        executeOnPrimaryHandlingMappingUpdate(
             indexShard.shardId(),
             () -> indexShard.applyIndexOperationOnPrimary(
                 version,
@@ -328,23 +331,29 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
                 isRetry
             ),
-            e -> indexShard.getFailedIndexResult(e, Versions.MATCH_ANY)
+            e -> indexShard.getFailedIndexResult(e, Versions.MATCH_ANY),
+            onPrimaryWithMappingListener
         );
-        switch (indexResult.getResultType()) {
-            case SUCCESS:
-                // update the seqNo and version on request for the replicas
-                item.seqNo(indexResult.getSeqNo());
-                item.version(indexResult.getVersion());
-                return indexResult.getTranslogLocation();
+        try {
+            Engine.IndexResult indexResult = onPrimaryWithMappingListener.get();
+            switch (indexResult.getResultType()) {
+                case SUCCESS:
+                    // update the seqNo and version on request for the replicas
+                    item.seqNo(indexResult.getSeqNo());
+                    item.version(indexResult.getVersion());
+                    return indexResult.getTranslogLocation();
 
-            case FAILURE:
-                Exception failure = indexResult.getFailure();
-                assert failure != null : "Failure must not be null if resultType is FAILURE";
-                throw failure;
+                case FAILURE:
+                    Exception failure = indexResult.getFailure();
+                    assert failure != null : "Failure must not be null if resultType is FAILURE";
+                    throw failure;
 
-            case MAPPING_UPDATE_REQUIRED:
-            default:
-                throw new AssertionError("IndexResult must either succeed or fail. Required mapping updates must have been handled.");
+                case MAPPING_UPDATE_REQUIRED:
+                default:
+                    throw new AssertionError("IndexResult must either succeed or fail. Required mapping updates must have been handled.");
+            }
+        } catch (ExecutionException ee) {
+            throw (Exception) ee.getCause();
         }
     }
 

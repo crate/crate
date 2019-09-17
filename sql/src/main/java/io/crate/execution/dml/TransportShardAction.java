@@ -27,13 +27,12 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
-import io.crate.Constants;
 import io.crate.exceptions.JobKilledException;
 import io.crate.execution.ddl.SchemaUpdateClient;
 import io.crate.execution.jobs.kill.KillAllListener;
 import io.crate.execution.jobs.kill.KillableCallable;
 import io.crate.metadata.ColumnIdent;
-import org.elasticsearch.action.bulk.MappingUpdatePerformer;
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.replication.ReplicationOperation;
 import org.elasticsearch.action.support.replication.TransportWriteAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
@@ -44,6 +43,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.mapper.Mapper;
+import org.elasticsearch.index.mapper.Mapping;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
@@ -56,18 +56,20 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
  * Base class for performing Crate-specific TransportWriteActions like Delete or Upsert.
+ *
  * @param <Request> The ShardRequest implementation including a replicated write request
  */
 public abstract class TransportShardAction<Request extends ShardRequest<Request, Item>, Item extends ShardRequest.Item>
-        extends TransportWriteAction<Request, Request, ShardResponse>
-        implements KillAllListener {
+    extends TransportWriteAction<Request, Request, ShardResponse>
+    implements KillAllListener {
 
     private final Multimap<UUID, KillableCallable> activeOperations = Multimaps.synchronizedMultimap(HashMultimap.<UUID, KillableCallable>create());
-    private final MappingUpdatePerformer mappingUpdate;
+    private final SchemaUpdateClient schemaUpdateClient;
 
     protected TransportShardAction(String actionName,
                                    TransportService transportService,
@@ -90,10 +92,7 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
             reader,
             ThreadPool.Names.WRITE
         );
-        this.mappingUpdate = (update, shardId, type) -> {
-            validateMapping(update.root().iterator(), false);
-            schemaUpdateClient.blockingUpdateOnMaster(shardId.getIndex(), update);
-        };
+        this.schemaUpdateClient = schemaUpdateClient;
     }
 
     @Override
@@ -108,14 +107,15 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
 
     @VisibleForTesting
     @Override
-    protected WritePrimaryResult<Request, ShardResponse> shardOperationOnPrimary(Request shardRequest, IndexShard indexShard) {
+    protected WritePrimaryResult<Request, ShardResponse> shardOperationOnPrimary(Request shardRequest,
+                                                                                 IndexShard indexShard) {
         KillableWrapper<WritePrimaryResult<Request, ShardResponse>> callable =
             new KillableWrapper<WritePrimaryResult<Request, ShardResponse>>() {
                 @Override
                 public WritePrimaryResult<Request, ShardResponse> call() throws Exception {
                     return processRequestItems(indexShard, shardRequest, killed);
                 }
-        };
+            };
         return wrapOperationInKillable(shardRequest, callable);
     }
 
@@ -128,11 +128,12 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
                 public WriteReplicaResult<Request> call() throws Exception {
                     return processRequestItemsOnReplica(indexShard, replicaRequest);
                 }
-        };
+            };
         return wrapOperationInKillable(replicaRequest, callable);
     }
 
-    private <WrapperResponse> WrapperResponse wrapOperationInKillable(Request request, KillableCallable<WrapperResponse> callable) {
+    private <WrapperResponse> WrapperResponse wrapOperationInKillable(Request request,
+                                                                      KillableCallable<WrapperResponse> callable) {
         activeOperations.put(request.jobId(), callable);
         WrapperResponse response;
         try {
@@ -168,9 +169,12 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
         }
     }
 
-    protected abstract WritePrimaryResult<Request, ShardResponse> processRequestItems(IndexShard indexShard, Request request, AtomicBoolean killed) throws InterruptedException, IOException;
+    protected abstract WritePrimaryResult<Request, ShardResponse> processRequestItems(IndexShard indexShard,
+                                                                                      Request request,
+                                                                                      AtomicBoolean killed) throws InterruptedException, IOException;
 
-    protected abstract WriteReplicaResult<Request> processRequestItemsOnReplica(IndexShard indexShard, Request replicaRequest) throws IOException;
+    protected abstract WriteReplicaResult<Request> processRequestItemsOnReplica(IndexShard indexShard,
+                                                                                Request replicaRequest) throws IOException;
 
     abstract static class KillableWrapper<WrapperResponse> implements KillableCallable<WrapperResponse> {
 
@@ -182,27 +186,56 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
         }
     }
 
-    protected <T extends Engine.Result> T executeOnPrimaryHandlingMappingUpdate(ShardId shardId,
-                                                                                CheckedSupplier<T, IOException> execute,
-                                                                                Function<Exception, T> onMappingUpdateError) throws IOException {
-        T result = execute.get();
-        if (result.getResultType() == Engine.Result.Type.MAPPING_UPDATE_REQUIRED) {
-            try {
-                mappingUpdate.updateMappings(result.getRequiredMappingUpdate(), shardId, Constants.DEFAULT_MAPPING_TYPE);
-            } catch (Exception e) {
-                return onMappingUpdateError.apply(e);
-            }
+    protected <T extends Engine.Result> void executeOnPrimaryHandlingMappingUpdate(ShardId shardId,
+                                                                                   CheckedSupplier<T, IOException> execute,
+                                                                                   Function<Exception, T> onMappingUpdateError,
+                                                                                   ActionListener<T> mappingUpdateListener) {
+        T result;
+        try {
             result = execute.get();
-            if (result.getResultType() == Engine.Result.Type.MAPPING_UPDATE_REQUIRED) {
-                // double mapping update. We assume that the successful mapping update wasn't yet processed on the node
-                // and retry the entire request again.
-                throw new ReplicationOperation.RetryOnPrimaryException(shardId,
-                    "Dynamic mappings are not available on the node that holds the primary yet");
-            }
+        } catch (IOException e) {
+            mappingUpdateListener.onFailure(e);
+            return;
         }
-        assert result.getFailure() instanceof ReplicationOperation.RetryOnPrimaryException == false :
-            "IndexShard shouldn't use RetryOnPrimaryException. got " + result.getFailure();
-        return result;
+
+        Consumer<T> listenerOnResponseAssert = (r) -> {
+            assert r.getFailure() instanceof ReplicationOperation.RetryOnPrimaryException == false :
+                "IndexShard shouldn't use RetryOnPrimaryException. got " + r.getFailure();
+            mappingUpdateListener.onResponse(r);
+        };
+
+        if (result.getResultType() == Engine.Result.Type.MAPPING_UPDATE_REQUIRED) {
+            Mapping mappingUpdate = result.getRequiredMappingUpdate();
+            try {
+                validateMapping(mappingUpdate.root().iterator(), false);
+            } catch (Exception e) {
+                mappingUpdateListener.onResponse(onMappingUpdateError.apply(e));
+                return;
+            }
+            schemaUpdateClient.blockingUpdateOnMaster(shardId.getIndex(), mappingUpdate, ActionListener.wrap(
+                ack -> {
+                    T r;
+                    try {
+                        r = execute.get();
+                    } catch (IOException e) {
+                        mappingUpdateListener.onFailure(e);
+                        return;
+                    }
+                    if (r.getResultType() == Engine.Result.Type.MAPPING_UPDATE_REQUIRED) {
+                        // double mapping update. We assume that the successful mapping update
+                        // wasn't yet processed on the node and retry the entire request again.
+                        mappingUpdateListener.onFailure(new ReplicationOperation.RetryOnPrimaryException(
+                            shardId,
+                            "Dynamic mappings are not available on the node that holds the primary yet"));
+                    } else {
+                        listenerOnResponseAssert.accept(r);
+                    }
+                },
+                e -> mappingUpdateListener.onResponse(onMappingUpdateError.apply(e))
+            ));
+        } else {
+            listenerOnResponseAssert.accept(result);
+        }
     }
 
     @VisibleForTesting
