@@ -43,6 +43,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import org.elasticsearch.ExceptionsHelper;
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
@@ -319,7 +320,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             item.source(),
             XContentType.JSON
         );
-        FutureActionListener<Engine.IndexResult, Engine.IndexResult> onPrimaryWithMappingListener = FutureActionListener.newInstance();
+        FutureActionListener<Translog.Location, Translog.Location> onPrimaryWithMappingListener = FutureActionListener.newInstance();
         executeOnPrimaryHandlingMappingUpdate(
             indexShard.shardId(),
             () -> indexShard.applyIndexOperationOnPrimary(
@@ -332,26 +333,33 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 isRetry
             ),
             e -> indexShard.getFailedIndexResult(e, Versions.MATCH_ANY),
-            onPrimaryWithMappingListener
+            ActionListener.wrap(
+                indexResult -> {
+                    switch (indexResult.getResultType()) {
+                        case SUCCESS:
+                            // update the seqNo and version on request for the replicas
+                            item.seqNo(indexResult.getSeqNo());
+                            item.version(indexResult.getVersion());
+                            onPrimaryWithMappingListener.onResponse(indexResult.getTranslogLocation());
+                            break;
+
+                        case FAILURE:
+                            Exception failure = indexResult.getFailure();
+                            assert failure != null : "Failure must not be null if resultType is FAILURE";
+                            onPrimaryWithMappingListener.onFailure(failure);
+                            break;
+
+                        case MAPPING_UPDATE_REQUIRED:
+                        default:
+                            throw new AssertionError(
+                                "IndexResult must either succeed or fail. Required mapping updates must have been handled.");
+                    }
+                },
+                onPrimaryWithMappingListener::onFailure
+            )
         );
         try {
-            Engine.IndexResult indexResult = onPrimaryWithMappingListener.get();
-            switch (indexResult.getResultType()) {
-                case SUCCESS:
-                    // update the seqNo and version on request for the replicas
-                    item.seqNo(indexResult.getSeqNo());
-                    item.version(indexResult.getVersion());
-                    return indexResult.getTranslogLocation();
-
-                case FAILURE:
-                    Exception failure = indexResult.getFailure();
-                    assert failure != null : "Failure must not be null if resultType is FAILURE";
-                    throw failure;
-
-                case MAPPING_UPDATE_REQUIRED:
-                default:
-                    throw new AssertionError("IndexResult must either succeed or fail. Required mapping updates must have been handled.");
-            }
+            return onPrimaryWithMappingListener.get();
         } catch (ExecutionException ee) {
             throw (Exception) ee.getCause();
         }
