@@ -30,8 +30,8 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.store.Store;
 import org.elasticsearch.index.store.StoreFileMetaData;
 import org.elasticsearch.index.translog.Translog;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.EmptyTransportResponseHandler;
-import org.elasticsearch.transport.TransportFuture;
 import org.elasticsearch.transport.TransportRequestOptions;
 import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportService;
@@ -79,19 +79,32 @@ public class RemoteRecoveryTargetHandler implements RecoveryTargetHandler {
     }
 
     @Override
-    public void prepareForTranslogOperations(boolean fileBasedRecovery, int totalTranslogOps) throws IOException {
-        transportService.submitRequest(targetNode, PeerRecoveryTargetService.Actions.PREPARE_TRANSLOG,
-                new RecoveryPrepareForTranslogOperationsRequest(recoveryId, shardId, totalTranslogOps, fileBasedRecovery),
-                TransportRequestOptions.builder().withTimeout(recoverySettings.internalActionTimeout()).build(),
-                EmptyTransportResponseHandler.INSTANCE_SAME).txGet();
+    public void prepareForTranslogOperations(boolean fileBasedRecovery,
+                                             int totalTranslogOps,
+                                             ActionListener<Void> listener) {
+        transportService.submitRequest(
+            targetNode,
+            PeerRecoveryTargetService.Actions.PREPARE_TRANSLOG,
+            new RecoveryPrepareForTranslogOperationsRequest(recoveryId, shardId, totalTranslogOps, fileBasedRecovery),
+            TransportRequestOptions.builder().withTimeout(recoverySettings.internalActionTimeout()).build(),
+            new ActionListenerResponseHandler<>(
+                ActionListener.wrap(r -> listener.onResponse(null), listener::onFailure),
+                in -> TransportResponse.Empty.INSTANCE, ThreadPool.Names.GENERIC)
+        );
     }
 
     @Override
-    public void finalizeRecovery(final long globalCheckpoint) {
-        transportService.submitRequest(targetNode, PeerRecoveryTargetService.Actions.FINALIZE,
+    public void finalizeRecovery(final long globalCheckpoint, final ActionListener<Void> listener) {
+        transportService.submitRequest(
+            targetNode,
+            PeerRecoveryTargetService.Actions.FINALIZE,
             new RecoveryFinalizeRecoveryRequest(recoveryId, shardId, globalCheckpoint),
             TransportRequestOptions.builder().withTimeout(recoverySettings.internalActionLongTimeout()).build(),
-            EmptyTransportResponseHandler.INSTANCE_SAME).txGet();
+            new ActionListenerResponseHandler<>(
+                ActionListener.wrap(r -> listener.onResponse(null), listener::onFailure),
+                in -> TransportResponse.Empty.INSTANCE, ThreadPool.Names.GENERIC
+            )
+        );
     }
 
     @Override
@@ -113,17 +126,29 @@ public class RemoteRecoveryTargetHandler implements RecoveryTargetHandler {
     }
 
     @Override
-    public long indexTranslogOperations(List<Translog.Operation> operations, int totalTranslogOps,
-                                        long maxSeenAutoIdTimestampOnPrimary, long maxSeqNoOfDeletesOrUpdatesOnPrimary) {
-        final RecoveryTranslogOperationsRequest translogOperationsRequest = new RecoveryTranslogOperationsRequest(
-            recoveryId, shardId, operations, totalTranslogOps, maxSeenAutoIdTimestampOnPrimary, maxSeqNoOfDeletesOrUpdatesOnPrimary);
-        final TransportFuture<RecoveryTranslogOperationsResponse> future = transportService.submitRequest(
-                targetNode,
-                PeerRecoveryTargetService.Actions.TRANSLOG_OPS,
-                translogOperationsRequest,
-                translogOpsRequestOptions,
-                RecoveryTranslogOperationsResponse.HANDLER);
-        return future.txGet().localCheckpoint;
+    public void indexTranslogOperations(List<Translog.Operation> operations,
+                                        int totalTranslogOps,
+                                        long maxSeenAutoIdTimestampOnPrimary,
+                                        long maxSeqNoOfDeletesOrUpdatesOnPrimary,
+                                        ActionListener<Long> listener) {
+        final RecoveryTranslogOperationsRequest request = new RecoveryTranslogOperationsRequest(
+            recoveryId,
+            shardId,
+            operations,
+            totalTranslogOps,
+            maxSeenAutoIdTimestampOnPrimary,
+            maxSeqNoOfDeletesOrUpdatesOnPrimary);
+        transportService.submitRequest(
+            targetNode,
+            PeerRecoveryTargetService.Actions.TRANSLOG_OPS,
+            request,
+            translogOpsRequestOptions,
+            new ActionListenerResponseHandler<>(
+                ActionListener.wrap(
+                    r -> listener.onResponse(r.localCheckpoint), listener::onFailure),
+                RecoveryTranslogOperationsResponse::new,
+                ThreadPool.Names.GENERIC)
+        );
     }
 
     @Override

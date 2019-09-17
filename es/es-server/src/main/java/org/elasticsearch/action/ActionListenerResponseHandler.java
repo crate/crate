@@ -37,10 +37,19 @@ public class ActionListenerResponseHandler<Response extends TransportResponse> i
 
     private final ActionListener<? super Response> listener;
     private final Writeable.Reader<Response> reader;
+    private final String executor;
 
-    public ActionListenerResponseHandler(ActionListener<? super Response> listener, Writeable.Reader<Response> reader) {
+    public ActionListenerResponseHandler(ActionListener<? super Response> listener,
+                                         Writeable.Reader<Response> reader,
+                                         String executor) {
         this.listener = Objects.requireNonNull(listener);
         this.reader = Objects.requireNonNull(reader);
+        this.executor = Objects.requireNonNull(executor);
+    }
+
+    public ActionListenerResponseHandler(ActionListener<? super Response> listener,
+                                         Writeable.Reader<Response> reader) {
+        this(listener, reader, ThreadPool.Names.SAME);
     }
 
     @Override
@@ -60,6 +69,6 @@ public class ActionListenerResponseHandler<Response extends TransportResponse> i
 
     @Override
     public String executor() {
-        return ThreadPool.Names.SAME;
+        return executor;
     }
 }

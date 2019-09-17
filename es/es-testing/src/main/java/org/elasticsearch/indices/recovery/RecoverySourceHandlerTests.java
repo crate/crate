@@ -37,6 +37,7 @@ import org.apache.lucene.util.BytesRefIterator;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.Numbers;
@@ -74,8 +75,11 @@ import org.elasticsearch.test.CorruptionUtils;
 import org.elasticsearch.test.DummyShardLock;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.IndexSettingsModule;
+import org.elasticsearch.threadpool.TestThreadPool;
+import org.elasticsearch.threadpool.ThreadPool;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
-import org.mockito.ArgumentCaptor;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -83,6 +87,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -109,7 +114,6 @@ import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class RecoverySourceHandlerTests extends ESTestCase {
@@ -121,6 +125,18 @@ public class RecoverySourceHandlerTests extends ESTestCase {
     );
     private final ShardId shardId = new ShardId(INDEX_SETTINGS.getIndex(), 1);
     private final ClusterSettings service = new ClusterSettings(Settings.EMPTY, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS);
+
+    private ThreadPool threadPool;
+
+    @Before
+    public void setUpThreadPool() {
+        threadPool = new TestThreadPool(getTestName());
+    }
+
+    @After
+    public void tearDownThreadPool() {
+        terminate(threadPool);
+    }
 
     @Test
     public void testSendFiles() throws Throwable {
@@ -215,92 +231,98 @@ public class RecoverySourceHandlerTests extends ESTestCase {
 
     @Test
     public void testSendSnapshotSendsOps() throws IOException {
-        final RecoverySettings recoverySettings = new RecoverySettings(Settings.EMPTY, service);
-        final int fileChunkSizeInBytes = recoverySettings.getChunkSize().bytesAsInt();
+        final int fileChunkSizeInBytes = between(1, 4096);
         final StartRecoveryRequest request = getStartRecoveryRequest();
         final IndexShard shard = mock(IndexShard.class);
         when(shard.state()).thenReturn(IndexShardState.STARTED);
-        final RecoveryTargetHandler recoveryTarget = mock(RecoveryTargetHandler.class);
-        final RecoverySourceHandler handler =
-            new RecoverySourceHandler(shard, recoveryTarget, request, fileChunkSizeInBytes, between(1, 10));
         final List<Translog.Operation> operations = new ArrayList<>();
-        final int initialNumberOfDocs = randomIntBetween(16, 64);
+        final int initialNumberOfDocs = randomIntBetween(10, 1000);
         for (int i = 0; i < initialNumberOfDocs; i++) {
             final Engine.Index index = getIndex(Integer.toString(i));
             operations.add(new Translog.Index(index, new Engine.IndexResult(1, 1, SequenceNumbers.UNASSIGNED_SEQ_NO, true)));
         }
-        final int numberOfDocsWithValidSequenceNumbers = randomIntBetween(16, 64);
+        final int numberOfDocsWithValidSequenceNumbers = randomIntBetween(10, 1000);
         for (int i = initialNumberOfDocs; i < initialNumberOfDocs + numberOfDocsWithValidSequenceNumbers; i++) {
             final Engine.Index index = getIndex(Integer.toString(i));
             operations.add(new Translog.Index(index, new Engine.IndexResult(1, 1, i - initialNumberOfDocs, true)));
         }
-        operations.add(null);
         final long startingSeqNo = randomIntBetween(0, numberOfDocsWithValidSequenceNumbers - 1);
         final long requiredStartingSeqNo = randomIntBetween((int) startingSeqNo, numberOfDocsWithValidSequenceNumbers - 1);
         final long endingSeqNo = randomIntBetween((int) requiredStartingSeqNo - 1, numberOfDocsWithValidSequenceNumbers - 1);
-        RecoverySourceHandler.SendSnapshotResult result = handler.phase2(
-            startingSeqNo, requiredStartingSeqNo, endingSeqNo, new Translog.Snapshot() {
 
-                @Override
-                public void close() {
-
-                }
-
-                private int counter = 0;
-
-                @Override
-                public int totalOperations() {
-                    return operations.size() - 1;
-                }
-
-                @Override
-                public Translog.Operation next() throws IOException {
-                    return operations.get(counter++);
-                }
-            }, randomNonNegativeLong(), randomNonNegativeLong());
+        final List<Translog.Operation> shippedOps = new ArrayList<>();
+        final AtomicLong checkpointOnTarget = new AtomicLong(SequenceNumbers.NO_OPS_PERFORMED);
+        RecoveryTargetHandler recoveryTarget = new TestRecoveryTargetHandler() {
+            @Override
+            public void indexTranslogOperations(List<Translog.Operation> operations,
+                                                int totalTranslogOps,
+                                                long timestamp,
+                                                long msu,
+                                                ActionListener<Long> listener) {
+                shippedOps.addAll(operations);
+                checkpointOnTarget.set(randomLongBetween(checkpointOnTarget.get(), Long.MAX_VALUE));
+                maybeExecuteAsync(() -> listener.onResponse(checkpointOnTarget.get()));
+            }
+        };
+        RecoverySourceHandler handler = new RecoverySourceHandler(shard, recoveryTarget, request, fileChunkSizeInBytes, between(1, 10));
+        PlainActionFuture<RecoverySourceHandler.SendSnapshotResult> future = new PlainActionFuture<>();
+        handler.phase2(startingSeqNo, requiredStartingSeqNo, endingSeqNo, newTranslogSnapshot(operations, Collections.emptyList()),
+                       randomNonNegativeLong(), randomNonNegativeLong(), future);
         final int expectedOps = (int) (endingSeqNo - startingSeqNo + 1);
+        RecoverySourceHandler.SendSnapshotResult result = future.actionGet();
         assertThat(result.totalOperations, equalTo(expectedOps));
-        final ArgumentCaptor<List> shippedOpsCaptor = ArgumentCaptor.forClass(List.class);
-        verify(recoveryTarget).indexTranslogOperations(
-            shippedOpsCaptor.capture(), ArgumentCaptor.forClass(Integer.class).capture(),
-            ArgumentCaptor.forClass(Long.class).capture(), ArgumentCaptor.forClass(Long.class).capture());
-        List<Translog.Operation> shippedOps = new ArrayList<>();
-        for (List list : shippedOpsCaptor.getAllValues()) {
-            shippedOps.addAll(list);
-        }
         shippedOps.sort(Comparator.comparing(Translog.Operation::seqNo));
         assertThat(shippedOps.size(), equalTo(expectedOps));
         for (int i = 0; i < shippedOps.size(); i++) {
             assertThat(shippedOps.get(i), equalTo(operations.get(i + (int) startingSeqNo + initialNumberOfDocs)));
         }
+        assertThat(result.targetLocalCheckpoint, equalTo(checkpointOnTarget.get()));
         if (endingSeqNo >= requiredStartingSeqNo + 1) {
             // check that missing ops blows up
             List<Translog.Operation> requiredOps = operations.subList(0, operations.size() - 1).stream() // remove last null marker
                 .filter(o -> o.seqNo() >= requiredStartingSeqNo && o.seqNo() <= endingSeqNo).collect(Collectors.toList());
             List<Translog.Operation> opsToSkip = randomSubsetOf(randomIntBetween(1, requiredOps.size()), requiredOps);
-            expectThrows(IllegalStateException.class, () ->
-                handler.phase2(startingSeqNo, requiredStartingSeqNo, endingSeqNo, new Translog.Snapshot() {
-                        @Override
-                        public void close() {
+            PlainActionFuture<RecoverySourceHandler.SendSnapshotResult> failedFuture = new PlainActionFuture<>();
+            expectThrows(IllegalStateException.class, () -> {
+                handler.phase2(startingSeqNo, requiredStartingSeqNo, endingSeqNo, newTranslogSnapshot(operations, opsToSkip),
+                               randomNonNegativeLong(), randomNonNegativeLong(), failedFuture);
+                failedFuture.actionGet();
+            });
+        }
+    }
 
-                        }
-
-                        private int counter = 0;
-
-                        @Override
-                        public int totalOperations() {
-                            return operations.size() - 1 - opsToSkip.size();
-                        }
-
-                        @Override
-                        public Translog.Operation next() {
-                            Translog.Operation op;
-                            do {
-                                op = operations.get(counter++);
-                            } while (op != null && opsToSkip.contains(op));
-                            return op;
-                        }
-                    }, randomNonNegativeLong(), randomNonNegativeLong()));
+    @Test
+    public void testSendSnapshotStopOnError() throws Exception {
+        final int fileChunkSizeInBytes = between(1, 10 * 1024);
+        final StartRecoveryRequest request = getStartRecoveryRequest();
+        final IndexShard shard = mock(IndexShard.class);
+        when(shard.state()).thenReturn(IndexShardState.STARTED);
+        final List<Translog.Operation> ops = new ArrayList<>();
+        for (int numOps = between(1, 256), i = 0; i < numOps; i++) {
+            final Engine.Index index = getIndex(Integer.toString(i));
+            ops.add(new Translog.Index(index, new Engine.IndexResult(1, 1, i, true)));
+        }
+        final AtomicBoolean wasFailed = new AtomicBoolean();
+        RecoveryTargetHandler recoveryTarget = new TestRecoveryTargetHandler() {
+            @Override
+            public void indexTranslogOperations(List<Translog.Operation> operations, int totalTranslogOps, long timestamp,
+                                                long msu, ActionListener<Long> listener) {
+                if (randomBoolean()) {
+                    maybeExecuteAsync(() -> listener.onResponse(SequenceNumbers.NO_OPS_PERFORMED));
+                } else {
+                    maybeExecuteAsync(() -> listener.onFailure(new RuntimeException("test - failed to index")));
+                    wasFailed.set(true);
+                }
+            }
+        };
+        RecoverySourceHandler handler = new RecoverySourceHandler(shard, recoveryTarget, request, fileChunkSizeInBytes, between(1, 10));
+        PlainActionFuture<RecoverySourceHandler.SendSnapshotResult> future = new PlainActionFuture<>();
+        final long startingSeqNo = randomLongBetween(0, ops.size() - 1L);
+        final long endingSeqNo = randomLongBetween(startingSeqNo, ops.size() - 1L);
+        handler.phase2(startingSeqNo, startingSeqNo, endingSeqNo, newTranslogSnapshot(ops, Collections.emptyList()),
+                       randomNonNegativeLong(), randomNonNegativeLong(), future);
+        if (wasFailed.get()) {
+            assertThat(expectThrows(RuntimeException.class, future::actionGet).getMessage(), equalTo("test - failed to index"));
         }
     }
 
@@ -506,26 +528,38 @@ public class RecoverySourceHandlerTests extends ESTestCase {
             }
 
             @Override
-            TimeValue prepareTargetForTranslog(final boolean fileBasedRecovery,
-                                               final int totalTranslogOps) throws IOException {
+            void prepareTargetForTranslog(boolean fileBasedRecovery,
+                                          int totalTranslogOps,
+                                          ActionListener<TimeValue> listener) {
                 prepareTargetForTranslogCalled.set(true);
-                return super.prepareTargetForTranslog(fileBasedRecovery, totalTranslogOps);
+                super.prepareTargetForTranslog(fileBasedRecovery, totalTranslogOps, listener);
             }
 
             @Override
-            SendSnapshotResult phase2(long startingSeqNo,
-                                      long requiredSeqNoRangeStart,
-                                      long endingSeqNo,
-                                      Translog.Snapshot snapshot,
-                                      long maxSeenAutoIdTimestamp,
-                                      long maxSeqNoOfUpdatesOrDeletes) throws IOException {
+            void phase2(long startingSeqNo,
+                        long requiredSeqNoRangeStart,
+                        long endingSeqNo,
+                        Translog.Snapshot snapshot,
+                        long maxSeenAutoIdTimestamp,
+                        long maxSeqNoOfUpdatesOrDeletes,
+                        ActionListener<SendSnapshotResult> listener) throws IOException {
                 phase2Called.set(true);
-                return super.phase2(
-                    startingSeqNo, requiredSeqNoRangeStart, endingSeqNo, snapshot,
-                    maxSeenAutoIdTimestamp, maxSeqNoOfUpdatesOrDeletes);
+                super.phase2(
+                    startingSeqNo,
+                    requiredSeqNoRangeStart,
+                    endingSeqNo,
+                    snapshot,
+                    maxSeenAutoIdTimestamp,
+                    maxSeqNoOfUpdatesOrDeletes,
+                    listener);
             }
+
         };
-        expectThrows(IndexShardRelocatedException.class, handler::recoverToTarget);
+        PlainActionFuture<RecoveryResponse> future = new PlainActionFuture<>();
+        expectThrows(IndexShardRelocatedException.class, () -> {
+            handler.recoverToTarget(future);
+            future.actionGet();
+        });
         assertFalse(phase1Called.get());
         assertFalse(prepareTargetForTranslogCalled.get());
         assertFalse(phase2Called.get());
@@ -676,6 +710,47 @@ public class RecoverySourceHandlerTests extends ESTestCase {
         assertBusy(() -> assertTrue(freed.get()));
     }
 
+    @Test
+    public void testVerifySeqNoStatsWhenRecoverWithSyncId() throws Exception {
+        IndexShard shard = mock(IndexShard.class);
+        when(shard.state()).thenReturn(IndexShardState.STARTED);
+        RecoverySourceHandler handler = new RecoverySourceHandler(
+            shard, new TestRecoveryTargetHandler(), getStartRecoveryRequest(), between(1, 16), between(1, 4));
+
+        String syncId = UUIDs.randomBase64UUID();
+        int numDocs = between(0, 1000);
+        long localCheckpoint = randomLongBetween(SequenceNumbers.NO_OPS_PERFORMED, Long.MAX_VALUE);
+        long maxSeqNo = randomLongBetween(SequenceNumbers.NO_OPS_PERFORMED, Long.MAX_VALUE);
+        assertTrue(handler.canSkipPhase1(
+            newMetadataSnapshot(syncId, Long.toString(localCheckpoint), Long.toString(maxSeqNo), numDocs),
+            newMetadataSnapshot(syncId, Long.toString(localCheckpoint), Long.toString(maxSeqNo), numDocs)));
+
+        AssertionError error = expectThrows(AssertionError.class, () -> {
+            long localCheckpointOnTarget = randomValueOtherThan(
+                localCheckpoint,
+                () -> randomLongBetween(SequenceNumbers.NO_OPS_PERFORMED, Long.MAX_VALUE));
+            long maxSeqNoOnTarget = randomValueOtherThan(
+                maxSeqNo,
+                () -> randomLongBetween(SequenceNumbers.NO_OPS_PERFORMED, Long.MAX_VALUE));
+            handler.canSkipPhase1(
+                newMetadataSnapshot(syncId, Long.toString(localCheckpoint), Long.toString(maxSeqNo), numDocs),
+                newMetadataSnapshot(syncId, Long.toString(localCheckpointOnTarget), Long.toString(maxSeqNoOnTarget), numDocs));
+        });
+        assertThat(error.getMessage(), containsString("try to recover [index][1] with sync id but seq_no stats are mismatched:"));
+    }
+
+    private Store.MetadataSnapshot newMetadataSnapshot(String syncId, String localCheckpoint, String maxSeqNo, int numDocs) {
+        HashMap<String, String> userData = new HashMap<>();
+        userData.put(Engine.SYNC_COMMIT_ID, syncId);
+        if (localCheckpoint != null) {
+            userData.put(SequenceNumbers.LOCAL_CHECKPOINT_KEY, localCheckpoint);
+        }
+        if (maxSeqNo != null) {
+            userData.put(SequenceNumbers.LOCAL_CHECKPOINT_KEY, maxSeqNo);
+        }
+        return new Store.MetadataSnapshot(Collections.emptyMap(), userData, numDocs);
+    }
+
     private Store newStore(Path path) throws IOException {
         return newStore(path, true);
     }
@@ -720,14 +795,24 @@ public class RecoverySourceHandlerTests extends ESTestCase {
         return files;
     }
 
+    private void maybeExecuteAsync(Runnable runnable) {
+        if (randomBoolean()) {
+            threadPool.generic().execute(runnable);
+        } else {
+            runnable.run();
+        }
+    }
+
     class TestRecoveryTargetHandler implements RecoveryTargetHandler {
 
         @Override
-        public void prepareForTranslogOperations(boolean fileBasedRecovery, int totalTranslogOps) {
+        public void prepareForTranslogOperations(boolean fileBasedRecovery,
+                                                 int totalTranslogOps,
+                                                 ActionListener<Void> listener) {
         }
 
         @Override
-        public void finalizeRecovery(long globalCheckpoint) {
+        public void finalizeRecovery(long globalCheckpoint, ActionListener<Void> listener) {
         }
 
         @Override
@@ -739,11 +824,11 @@ public class RecoverySourceHandlerTests extends ESTestCase {
         }
 
         @Override
-        public long indexTranslogOperations(List<Translog.Operation> operations,
+        public void indexTranslogOperations(List<Translog.Operation> operations,
                                             int totalTranslogOps,
                                             long timestamp,
-                                            long msu) {
-            return 0;
+                                            long msu,
+                                            ActionListener<Long> listener) {
         }
 
         @Override
@@ -766,5 +851,41 @@ public class RecoverySourceHandlerTests extends ESTestCase {
                                    int totalTranslogOps,
                                    ActionListener<Void> listener) {
         }
+    }
+
+    private Translog.Snapshot newTranslogSnapshot(List<Translog.Operation> operations,
+                                                  List<Translog.Operation> operationsToSkip) {
+        return new Translog.Snapshot() {
+            int index = 0;
+            int skippedCount = 0;
+
+            @Override
+            public int totalOperations() {
+                return operations.size();
+            }
+
+            @Override
+            public int skippedOperations() {
+                return skippedCount;
+            }
+
+            @Override
+            public Translog.Operation next() {
+                while (index < operations.size()) {
+                    Translog.Operation op = operations.get(index++);
+                    if (operationsToSkip.contains(op)) {
+                        skippedCount++;
+                    } else {
+                        return op;
+                    }
+                }
+                return null;
+            }
+
+            @Override
+            public void close() {
+
+            }
+        };
     }
 }
