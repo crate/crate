@@ -57,12 +57,12 @@ public class SchemaUpdateClient {
     public void updateOnMaster(Index index, Mapping mappingUpdate, ActionListener<AcknowledgedResponse> listener) {
         TimeValue timeout = this.dynamicMappingUpdateTimeout;
         schemaUpdateAction.execute(new SchemaUpdateRequest(index, mappingUpdate.toString()), ActionListener.wrap(
-            response -> {
-                if (false == response.isAcknowledged()) {
+            ack -> {
+                if (false == ack.isAcknowledged()) {
                     listener.onFailure(new ElasticsearchTimeoutException(
                         "Failed to acknowledge mapping update within [" + timeout + "]"));
                 } else {
-                    listener.onResponse(response);
+                    listener.onResponse(ack);
                 }
             },
             listener::onFailure

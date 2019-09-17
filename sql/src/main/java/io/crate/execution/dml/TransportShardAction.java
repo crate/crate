@@ -198,11 +198,13 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
             listener.onFailure(e);
             return;
         }
+
         Consumer<T> listenerOnResponseAssert = (r) -> {
             assert r.getFailure() instanceof ReplicationOperation.RetryOnPrimaryException == false :
                 "IndexShard shouldn't use RetryOnPrimaryException. got " + r.getFailure();
             listener.onResponse(r);
         };
+
         if (result.getResultType() == Engine.Result.Type.MAPPING_UPDATE_REQUIRED) {
             Mapping mappingUpdate = result.getRequiredMappingUpdate();
             try {
@@ -223,6 +225,7 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
                             listener.onFailure(e);
                             return;
                         }
+
                         if (r.getResultType() == Engine.Result.Type.MAPPING_UPDATE_REQUIRED) {
                             // double mapping update. We assume that the successful mapping update
                             // wasn't yet processed on the node and retry the entire request again.

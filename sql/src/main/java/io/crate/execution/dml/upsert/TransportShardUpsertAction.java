@@ -77,6 +77,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static io.crate.exceptions.SQLExceptions.userFriendlyCrateExceptionTopOnly;
@@ -151,8 +152,8 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         for (ShardUpsertRequest.Item item : request.items()) {
             if (killed.get()) {
                 // set failure on response and skip all next items.
-                // this way replica operation will be executed, but only items with a valid source (= was processed on primary)
-                // will be processed on the replica
+                // with a valid source (= was processed on primary) will be processed on
+                // the replica this way replica operation will be executed, but only items
                 shardResponse.failure(new InterruptedException());
                 break;
             }
@@ -168,9 +169,9 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
 
         Translog.Location translogLocation = null;
         if (false == killed.get()) {
-            Iterator<Map.Entry<CompletableFuture<Translog.Location>, ShardUpsertRequest.Item>> indexOpResultsIt = indexOpResults.entrySet().iterator();
-            while (indexOpResultsIt.hasNext()) {
-                Map.Entry<CompletableFuture<Translog.Location>, ShardUpsertRequest.Item> entry = indexOpResultsIt.next();
+            Iterator<Map.Entry<CompletableFuture<Translog.Location>, ShardUpsertRequest.Item>> it = indexOpResults.entrySet().iterator();
+            for (it.hasNext()) {
+                Map.Entry<CompletableFuture<Translog.Location>, ShardUpsertRequest.Item> entry = it.next();
                 CompletableFuture<Translog.Location> indexResult = entry.getKey();
                 ShardUpsertRequest.Item item = entry.getValue();
                 if (indexResult.isDone() || indexResult.isCompletedExceptionally()) {
@@ -178,18 +179,20 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                         translogLocation = indexResult.get();
                         shardResponse.add(item.location());
                     } catch (Exception e) {
-                        if (retryPrimaryException(e)) {
+                        Throwable realCause = e.getCause();
+                        if (retryPrimaryException(realCause)) {
                             RuntimeException rte;
-                            if (e instanceof RuntimeException) {
-                                rte = (RuntimeException) e;
+                            if (realCause instanceof RuntimeException) {
+                                rte = (RuntimeException) realCause;
+                            } else {
+                                rte = new RuntimeException(realCause);
                             }
-                            rte = new RuntimeException(e);
                             listener.onFailure(rte);
                             break;
                         } else {
                             if (logger.isDebugEnabled()) {
                                 logger.debug("Failed to execute upsert shardId={} id={} error={}",
-                                             request.shardId(), item.id(), e);
+                                             request.shardId(), item.id(), realCause);
                             }
 
                             // *mark* the item as failed by setting the source to null to prevent
@@ -203,11 +206,11 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                                   new ShardResponse.Failure(
                                                       item.id(),
                                                       userFriendlyCrateExceptionTopOnly(e),
-                                                      (e instanceof VersionConflictEngineException)));
+                                                      (realCause instanceof VersionConflictEngineException)));
                             }
                         }
                     } finally {
-                        indexOpResultsIt.remove();
+                        it.remove();
                     }
                 }
             }
@@ -272,36 +275,40 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 return CompletableFuture.completedFuture(indexItem(request,
                                                                    item,
                                                                    indexShard,
-                                                                   tryInsertFirst,
+                                                                   insertFirst,
                                                                    updateSourceGen,
                                                                    insertSourceGen,
                                                                    attemptNo > 0).get());
-            } catch (VersionConflictEngineException e) {
-                lastException = e;
-                if (request.duplicateKeyAction() == DuplicateKeyAction.IGNORE) {
-                    // on conflict do nothing
-                    item.source(null);
-                    return CompletableFuture.completedFuture(null);
-                }
-                Symbol[] updateAssignments = item.updateAssignments();
-                if (updateAssignments != null && updateAssignments.length > 0) {
-                    if (insertFirst) {
-                        insertFirst = false;
-                        continue;
+            } catch (ExecutionException e) {
+                if (e.getCause() instanceof VersionConflictEngineException) {
+                    lastException = (VersionConflictEngineException) e.getCause();
+                    if (request.duplicateKeyAction() == DuplicateKeyAction.IGNORE) {
+                        // on conflict do nothing
+                        item.source(null);
+                        return CompletableFuture.completedFuture(null);
                     }
-                    if (item.retryOnConflict()) {
-                        if (logger.isTraceEnabled()) {
-                            logger.trace(
-                                "[{}] VersionConflict, retrying operation for document id={}, version={} retryCount={}",
-                                indexShard.shardId(),
-                                item.id(),
-                                item.version(),
-                                attemptNo);
+                    Symbol[] updateAssignments = item.updateAssignments();
+                    if (updateAssignments != null && updateAssignments.length > 0) {
+                        if (insertFirst) {
+                            insertFirst = false;
+                            continue;
                         }
-                        continue;
+                        if (item.retryOnConflict()) {
+                            if (logger.isTraceEnabled()) {
+                                logger.trace(
+                                    "[{}] VersionConflict, retrying operation for document id={}, version={} retryCount={}",
+                                    indexShard.shardId(),
+                                    item.id(),
+                                    item.version(),
+                                    attemptNo);
+                            }
+                            continue;
+                        }
                     }
+                    return CompletableFuture.failedFuture(lastException);
+                } else {
+                    return CompletableFuture.failedFuture(e.getCause());
                 }
-                return CompletableFuture.failedFuture(e);
             } catch (Exception other) {
                 return CompletableFuture.failedFuture(other);
             }
@@ -320,7 +327,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                                              UpdateSourceGen updateSourceGen,
                                                              InsertSourceGen insertSourceGen,
                                                              boolean isRetry) {
-        FutureActionListener<Translog.Location, Translog.Location> indexOperationResult = FutureActionListener.newInstance();
+        FutureActionListener<Translog.Location, Translog.Location> indexItemResult = FutureActionListener.newInstance();
         final long seqNo;
         final long primaryTerm;
         final long version;
@@ -334,8 +341,8 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 insertSourceGen.checkConstraints(item.insertValues());
                 item.source(insertSourceGen.generateSource(item.insertValues()));
             } catch (IOException e) {
-                indexOperationResult.onFailure(ExceptionsHelper.convertToElastic(e));
-                return indexOperationResult;
+                indexItemResult.onFailure(ExceptionsHelper.convertToElastic(e));
+                return indexItemResult;
             }
         } else {
             BytesReference updatedSource;
@@ -347,8 +354,8 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                     item.insertValues()
                 );
             } catch (Exception e) {
-                indexOperationResult.onFailure(e);
-                return indexOperationResult;
+                indexItemResult.onFailure(e);
+                return indexItemResult;
             }
             item.source(updatedSource);
             seqNo = item.seqNo();
@@ -380,13 +387,13 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                             // update the seqNo and version on request for the replicas
                             item.seqNo(indexResult.getSeqNo());
                             item.version(indexResult.getVersion());
-                            indexOperationResult.onResponse(indexResult.getTranslogLocation());
+                            indexItemResult.onResponse(indexResult.getTranslogLocation());
                             break;
 
                         case FAILURE:
                             Exception failure = indexResult.getFailure();
                             assert failure != null : "Failure must not be null if resultType is FAILURE";
-                            indexOperationResult.onFailure(failure);
+                            indexItemResult.onFailure(failure);
                             break;
 
                         case MAPPING_UPDATE_REQUIRED:
@@ -395,9 +402,9 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                 "IndexResult must either succeed or fail. Required mapping updates must have been handled.");
                     }
                 },
-                indexOperationResult::onFailure)
+                indexItemResult::onFailure)
         );
-        return indexOperationResult;
+        return indexItemResult;
     }
 
     private static Doc getDocument(IndexShard indexShard, String id, long version, long seqNo, long primaryTerm) {
