@@ -483,21 +483,21 @@ public class PostgresITest extends SQLTransportIntegrationTest {
             assertThat(preparedStatement.executeBatch(), is(new int[]{1, 1}));
             conn.createStatement().executeUpdate("refresh table t");
 
-//            preparedStatement = conn.prepareStatement("update t set x = log(x) where id = ?");
-//            preparedStatement.setInt(1, 1);
-//            preparedStatement.addBatch();
-//
-//            preparedStatement.setInt(1, 2);
-//            preparedStatement.addBatch();
-//            assertThat(preparedStatement.executeBatch(), is(new int[]{-3, 1}));
-//            conn.createStatement().executeUpdate("refresh table t");
-//
-//            ResultSet rs = conn.createStatement().executeQuery("select x from t order by id");
-//            assertThat(rs.next(), is(true));
-//            assertThat(rs.getInt(1), is(0)); // log(0) is an error - the update failed and the value remains unchanged
-//
-//            assertThat(rs.next(), is(true));
-//            assertThat(rs.getInt(1), is(1)); // log(10) -> 1
+            preparedStatement = conn.prepareStatement("update t set x = log(x) where id = ?");
+            preparedStatement.setInt(1, 1);
+            preparedStatement.addBatch();
+
+            preparedStatement.setInt(1, 2);
+            preparedStatement.addBatch();
+            assertThat(preparedStatement.executeBatch(), is(new int[]{-3, 1}));
+            conn.createStatement().executeUpdate("refresh table t");
+
+            ResultSet rs = conn.createStatement().executeQuery("select x from t order by id");
+            assertThat(rs.next(), is(true));
+            assertThat(rs.getInt(1), is(0)); // log(0) is an error - the update failed and the value remains unchanged
+
+            assertThat(rs.next(), is(true));
+            assertThat(rs.getInt(1), is(1)); // log(10) -> 1
         }
     }
 

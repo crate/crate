@@ -177,8 +177,10 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 if (indexResult.isDone() || indexResult.isCompletedExceptionally()) {
                     try {
                         translogLocation = indexResult.get();
-                        shardResponse.add(item.location());
-                    } catch (Exception e) {
+                        if (null != translogLocation) {
+                            shardResponse.add(item.location());
+                        }
+                    } catch (ExecutionException e) {
                         Throwable realCause = e.getCause();
                         if (retryPrimaryException(realCause)) {
                             RuntimeException rte;
@@ -200,15 +202,18 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                             item.source(null);
 
                             if (false == request.continueOnError()) {
-                                shardResponse.failure(e);
+                                shardResponse.failure((Exception) realCause);
                             } else {
                                 shardResponse.add(item.location(),
                                                   new ShardResponse.Failure(
                                                       item.id(),
-                                                      userFriendlyCrateExceptionTopOnly(e),
+                                                      userFriendlyCrateExceptionTopOnly(realCause),
                                                       (realCause instanceof VersionConflictEngineException)));
                             }
                         }
+                    } catch (Exception e) {
+                        listener.onFailure(e);
+                        break;
                     } finally {
                         it.remove();
                     }
@@ -292,8 +297,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                         if (insertFirst) {
                             insertFirst = false;
                             continue;
-                        }
-                        if (item.retryOnConflict()) {
+                        } else if (item.retryOnConflict()) {
                             if (logger.isTraceEnabled()) {
                                 logger.trace(
                                     "[{}] VersionConflict, retrying operation for document id={}, version={} retryCount={}",
