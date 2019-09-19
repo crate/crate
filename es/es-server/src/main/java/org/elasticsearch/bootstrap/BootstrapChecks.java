@@ -396,7 +396,7 @@ final class BootstrapChecks {
         @Override
         public BootstrapCheckResult check(final Settings settings) {
             // we only enforce the check if a store is allowed to use mmap at all
-            if (IndexModule.NODE_STORE_ALLOW_MMAP.get(settings)) {
+            if (IndexModule.NODE_STORE_ALLOW_MMAP.getWithFallback(settings)) {
                 long maxMapCount = getMaxMapCount();
                 if (maxMapCount != -1 && maxMapCount < LIMIT) {
                     final String message = String.format(

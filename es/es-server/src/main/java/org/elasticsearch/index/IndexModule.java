@@ -22,6 +22,7 @@ package org.elasticsearch.index;
 import org.apache.lucene.store.MMapDirectory;
 import org.apache.lucene.util.Constants;
 import org.apache.lucene.util.SetOnce;
+import org.elasticsearch.common.Booleans;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
@@ -72,8 +73,16 @@ import java.util.function.Function;
  */
 public final class IndexModule {
 
-    public static final Setting<Boolean> NODE_STORE_ALLOW_MMAP = Setting.boolSetting(
-        "node.store.allow_mmap", true, Property.NodeScope);
+    @Deprecated
+    public static final Setting<Boolean> NODE_STORE_ALLOW_MMAPFS = Setting.boolSetting(
+        "node.store.allow_mmapfs", true, Property.NodeScope, Property.Deprecated);
+
+    public static final Setting<Boolean> NODE_STORE_ALLOW_MMAP = new Setting<>(
+        new Setting.SimpleKey("node.store.allow_mmap"),
+        NODE_STORE_ALLOW_MMAPFS,
+        Booleans::parseBoolean,
+        Property.NodeScope
+    );
 
     public static final Setting<String> INDEX_STORE_TYPE_SETTING =
             new Setting<>("index.store.type", "fs", Function.identity(), Property.IndexScope, Property.NodeScope);
@@ -359,7 +368,7 @@ public final class IndexModule {
             final IndexSettings indexSettings, final Map<String, Function<IndexSettings, IndexStore>> indexStoreFactories) {
         final String storeType = indexSettings.getValue(INDEX_STORE_TYPE_SETTING);
         final Type type;
-        final Boolean allowMmap = NODE_STORE_ALLOW_MMAP.get(indexSettings.getNodeSettings());
+        final Boolean allowMmap = NODE_STORE_ALLOW_MMAP.getWithFallback(indexSettings.getNodeSettings());
         if (storeType.isEmpty() || Type.FS.getSettingsKey().equals(storeType)) {
             type = defaultStoreType(allowMmap);
         } else {

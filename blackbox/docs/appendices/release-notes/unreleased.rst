@@ -53,6 +53,12 @@ Breaking Changes
   to use ``PgPoint``. (See `Geometric DataTypes in JDBC
   <https://jdbc.postgresql.org/documentation/head/geometric.html>`_)
 
+Deprecations
+============
+
+- Deprecated the `node.store.allow_mmapfs` setting in favour of
+  :ref:`node.store.allow_mmap <node.store_allow_mmap>`.
+
 Changes
 =======
 
