@@ -1,0 +1,72 @@
+.. _version_4.0.5:
+
+=============
+Version 4.0.5
+=============
+
+Released on 2019/09/19.
+
+.. NOTE::
+
+    Please consult the :ref:`version_4.0.0_upgrade_notes` before upgrading from
+    CrateDB 3.x or earlier.
+    Before upgrading to 4.0.5 you should be running a CrateDB cluster that is
+    at least on 3.0.7.
+
+    We recommend that you upgrade to the latest 3.3 release before moving to 4.0.5.
+
+    If you want to perform a `rolling upgrade`_, your current CrateDB version
+    number must be at least :ref:`version_4.0.2`. Any upgrade from a version
+    prior to this will require a `full restart upgrade`_.
+
+    When restarting, CrateDB will migrate indexes to a newer format. Depending
+    on the amount of data, this may delay node start-up time.
+
+.. WARNING::
+
+    Tables that were created prior CrateDB 3.x will not function with 4.x
+    and must be recreated before moving to 4.x.x.
+
+    You can recreate tables using ``COPY TO`` and ``COPY FROM`` or by
+    `inserting the data into a new table`_.
+
+    Before upgrading, you should `back up your data`_.
+
+.. _rolling upgrade: http://crate.io/docs/crate/guide/best_practices/rolling_upgrade.html
+.. _full restart upgrade: http://crate.io/docs/crate/guide/best_practices/full_restart_upgrade.html
+.. _back up your data: https://crate.io/a/backing-up-and-restoring-crate/
+.. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+
+See the :ref:`version_4.0.0` release notes for a full list of changes in the
+4.0 series.
+
+Fixes
+=====
+
+- Improved the help section of the admin-ui including the spanish translations.
+
+- Fixed an issue in the admin-ui to no longer display all columns as being
+  generated columns in the table/column view section.
+
+- Fixed an issue introduced in CrateDB 4.0 resulting in dysfunctional disk-based
+  allocation thresholds.
+
+- Fixed an issue resulting in ``pg_catalog.pg_attribute.attnum`` and
+  ``information_schema.columns.ordinal_position`` being ``NULL`` on tables
+  created with CrateDB < 4.0.
+
+- Fixed an issue resulting in ``NULL`` values when the ``ORDER BY`` symbol is a
+  child of an ignored object column.
+
+- Fixed the ``Tables need to be recreated`` :ref:`cluster check <sys-checks>`
+  to list partitioned tables only once instead of once per partition.
+
+- Fixed the :ref:`ssl.resource_poll_interval <ssl.resource_poll_interval>`
+  setting processing and documentation.

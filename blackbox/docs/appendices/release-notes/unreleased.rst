@@ -41,26 +41,7 @@ Unreleased Changes
 Changes
 =======
 
-- Improved the help section of the admin-ui and added Spanish translations.
+None
 
 Fixes
 =====
-
-- Fixed an issue in the admin-ui to no longer display all columns as being
-  generated columns in the table/column view section.
-
-- Fixed an issue introduced in CrateDB 4.0 resulting in dysfunctional disk-based
-  allocation thresholds.
-
-- Fixed an issue resulting in ``pg_catalog.pg_attribute.attnum`` and
-  ``information_schema.columns.ordinal_position`` being ``NULL`` on tables
-  created with CrateDB < 4.0.
-
-- Fixed an issue resulting in ``NULL`` values when the ``ORDER BY`` symbol is a
-  child of an ignored object column.
-
-- Fixed the ``Tables need to be recreated`` :ref:`cluster check <sys-checks>`
-  to list partitioned tables only once instead of once per partition.
-
-- Fixed the :ref:`ssl.resource_poll_interval <ssl.resource_poll_interval>`
-  setting processing and documentation.
