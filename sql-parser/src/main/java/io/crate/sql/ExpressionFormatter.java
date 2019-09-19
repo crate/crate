@@ -475,7 +475,7 @@ public final class ExpressionFormatter {
 
             builder.append('(')
                 .append(node.getValue().accept(this, parameters))
-                .append(" LIKE ")
+                .append(node.getIgnoreCase() ? " ILIKE " : " LIKE ")
                 .append(node.getPattern().accept(this, parameters));
 
             if (node.getEscape() != null) {
@@ -494,7 +494,7 @@ public final class ExpressionFormatter {
             builder.append('(')
                 .append(node.getPattern().accept(this, parameters))
                 .append(node.inverse() ? " NOT" : "")
-                .append(" LIKE ")
+                .append(node.getIgnoreCase() ? " ILIKE " : " LIKE ")
                 .append(node.quantifier().name())
                 .append(" (")
                 .append(node.getValue().accept(this, parameters))

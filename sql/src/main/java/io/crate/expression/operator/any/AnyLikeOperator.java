@@ -38,7 +38,6 @@ import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 
 import java.util.List;
-import java.util.function.BiPredicate;
 import java.util.regex.Pattern;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -49,7 +48,7 @@ public final class AnyLikeOperator extends Operator<Object> {
     public static final String LIKE = AnyOperator.OPERATOR_PREFIX + "like";
     public static final String NOT_LIKE = AnyOperator.OPERATOR_PREFIX + "not_like";
     private final FunctionInfo info;
-    private final BiPredicate<String, String> matches;
+    private final TriPredicate<String, String, Boolean> matches;
 
     public static void register(OperatorModule operatorModule) {
         operatorModule.registerDynamicOperatorFunction(
@@ -57,14 +56,21 @@ public final class AnyLikeOperator extends Operator<Object> {
             new AnyLikeResolver(LIKE, AnyLikeOperator::matches));
         operatorModule.registerDynamicOperatorFunction(
             NOT_LIKE,
-            new AnyLikeResolver(NOT_LIKE, ((BiPredicate<String, String>) AnyLikeOperator::matches).negate()));
+            new AnyLikeResolver(NOT_LIKE, ((TriPredicate<String, String, Boolean>) AnyLikeOperator::matches).negate()));
     }
 
-    private static boolean matches(String expr, String pattern) {
-        return Pattern.matches(LikeOperator.patternToRegex(pattern, LikeOperator.DEFAULT_ESCAPE, true), expr);
+    private static boolean matches(String expr, String pattern, boolean ignoreCase) {
+        int flags = Pattern.DOTALL;
+        if (ignoreCase) {
+            flags |= Pattern.CASE_INSENSITIVE;
+        }
+        return Pattern
+            .compile(LikeOperator.patternToRegex(pattern, LikeOperator.DEFAULT_ESCAPE, true), flags)
+            .matcher(expr)
+            .matches();
     }
 
-    AnyLikeOperator(FunctionInfo info, BiPredicate<String, String> matches) {
+    private AnyLikeOperator(FunctionInfo info, TriPredicate<String, String, Boolean> matches) {
         this.info = info;
         this.matches = matches;
     }
@@ -74,7 +80,7 @@ public final class AnyLikeOperator extends Operator<Object> {
         return info;
     }
 
-    private Boolean doEvaluate(Object left, Iterable<?> rightIterable) {
+    private Boolean doEvaluate(Object left, Iterable<?> rightIterable, boolean ignoreCase) {
         String pattern = (String) left;
         boolean hasNull = false;
         for (Object elem : rightIterable) {
@@ -84,7 +90,7 @@ public final class AnyLikeOperator extends Operator<Object> {
             }
             assert elem instanceof String : "elem must be a String";
             String elemValue = (String) elem;
-            if (matches.test(elemValue, pattern)) {
+            if (matches.test(elemValue, pattern, ignoreCase)) {
                 return true;
             }
         }
@@ -95,25 +101,30 @@ public final class AnyLikeOperator extends Operator<Object> {
     public Boolean evaluate(TransactionContext txnCtx, Input<Object>... args) {
         Object value = args[0].value();
         Object collectionReference = args[1].value();
-
+        Boolean ignoreCase = Boolean.valueOf((String) args[2].value());
         if (collectionReference == null || value == null) {
             return null;
         }
-        return doEvaluate(value, collectionValueToIterable(collectionReference));
+        return doEvaluate(value, collectionValueToIterable(collectionReference), ignoreCase);
+    }
+
+    private interface TriPredicate<A, B, C> {
+        boolean test(A a, B b, C c);
+
+        default TriPredicate<A, B, C> negate() {
+            return (A a, B b, C c) -> false == test(a, b, c);
+        }
     }
 
     private static class AnyLikeResolver extends BaseFunctionResolver {
-
         private final String name;
-        private final BiPredicate<String, String> matches;
+        private final TriPredicate<String, String, Boolean> matches;
 
-        AnyLikeResolver(String name, BiPredicate<String, String> matches) {
+        AnyLikeResolver(String name, TriPredicate<String, String, Boolean> matches) {
             super(FuncParams.builder(
                 Param.ANY,
-                Param.of(
-                    new ArrayType<>(DataTypes.UNDEFINED))
-                    .withInnerType(Param.ANY))
-                .build());
+                Param.of(new ArrayType<>(DataTypes.UNDEFINED)).withInnerType(Param.ANY),
+                Param.STRING).build());
             this.name = name;
             this.matches = matches;
         }
@@ -125,11 +136,7 @@ public final class AnyLikeOperator extends Operator<Object> {
                 "The inner type of the array/set passed to ANY must match its left expression");
             checkArgument(innerType.id() != ObjectType.ID,
                 "ANY on object arrays is not supported");
-
-            return new AnyLikeOperator(
-                new FunctionInfo(new FunctionIdent(name, dataTypes), DataTypes.BOOLEAN),
-                matches
-            );
+            return new AnyLikeOperator(new FunctionInfo(new FunctionIdent(name, dataTypes), DataTypes.BOOLEAN), matches);
         }
     }
 }

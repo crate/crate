@@ -346,9 +346,10 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         AnalyzedRelation relation = analyze("select sum(floats) from users group by name having name like 'Slartibart%'");
         assertThat(relation.having().query(), isFunction("op_like"));
         Function havingFunction = (Function) relation.having().query();
-        assertThat(havingFunction.arguments().size(), is(2));
+        assertThat(havingFunction.arguments().size(), is(3));
         assertThat(havingFunction.arguments().get(0), isReference("name"));
         assertThat(havingFunction.arguments().get(1), isLiteral("Slartibart%"));
+        assertThat(havingFunction.arguments().get(2), isLiteral("false"));
     }
 
     @Test
@@ -401,9 +402,10 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             "select sum(floats), name from users group by name having name like 'Slartibart%'");
         assertThat(relation.having().query(), isFunction("op_like"));
         Function havingFunction = (Function) relation.having().query();
-        assertThat(havingFunction.arguments().size(), is(2));
+        assertThat(havingFunction.arguments().size(), is(3));
         assertThat(havingFunction.arguments().get(0), isReference("name"));
         assertThat(havingFunction.arguments().get(1), isLiteral("Slartibart%"));
+        assertThat(havingFunction.arguments().get(2), isLiteral("false"));
     }
 
     @Test

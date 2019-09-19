@@ -24,6 +24,8 @@ package io.crate.lucene;
 
 import io.crate.expression.operator.LikeOperator;
 import io.crate.expression.symbol.Function;
+import io.crate.lucene.match.CrateRegexCapabilities;
+import io.crate.lucene.match.CrateRegexQuery;
 import io.crate.metadata.Reference;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -41,31 +43,41 @@ final class LikeQuery implements FunctionToQuery {
 
     @Override
     public Query apply(Function input, LuceneQueryBuilder.Context context) {
-        RefAndLiteral refAndLiteral = RefAndLiteral.of(input);
-        if (refAndLiteral == null) {
+        CaseAwareRefAndLiteral csRrefAndLiteral = CaseAwareRefAndLiteral.of(input);
+        if (csRrefAndLiteral == null) {
             return null;
         }
-        return toQuery(refAndLiteral.reference(), refAndLiteral.literal().value(), context);
+        return toQuery(csRrefAndLiteral.reference(),
+                       csRrefAndLiteral.literal().value(),
+                       csRrefAndLiteral.ignoreCase(),
+                       context);
     }
 
-    static Query toQuery(Reference reference, Object value, LuceneQueryBuilder.Context context) {
+    static Query toQuery(Reference reference, Object value, boolean ignoreCase, LuceneQueryBuilder.Context context) {
         DataType dataType = ArrayType.unnest(reference.valueType());
         return like(
             dataType,
             context.getFieldTypeOrNull(reference.column().fqn()),
-            value
+            value,
+            ignoreCase
         );
     }
 
-    public static Query like(DataType dataType, @Nullable MappedFieldType fieldType, Object value) {
+    public static Query like(DataType dataType, @Nullable MappedFieldType fieldType, Object value, boolean ignoreCase) {
         if (fieldType == null) {
             // column doesn't exist on this index -> no match
             return Queries.newMatchNoDocsQuery("column does not exist in this index");
         }
         if (dataType.equals(DataTypes.STRING)) {
-            return new WildcardQuery(new Term(
+            Term term = new Term(
                 fieldType.name(),
-                convertSqlLikeToLuceneWildcard(BytesRefs.toString(value))));
+                convertSqlLikeToLuceneWildcard(BytesRefs.toString(value)));
+            if (ignoreCase) {
+                return new CrateRegexQuery(term,
+                    CrateRegexCapabilities.FLAG_CASE_INSENSITIVE | CrateRegexCapabilities.FLAG_UNICODE_CASE);
+            } else {
+                return new WildcardQuery(term);
+            }
         }
         return fieldType.termQuery(value, null);
     }

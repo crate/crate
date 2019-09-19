@@ -327,13 +327,16 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testAnyLikeConvertableArrayTypeLiterals() throws Exception {
         WhereClause whereClause = analyzeSelectWhere("select * from users where name like any([1, 2, 3])");
-        assertThat(whereClause.query(), isFunction(AnyLikeOperator.LIKE, ImmutableList.<DataType>of(DataTypes.STRING, new ArrayType(DataTypes.STRING))));
+        assertThat(whereClause.query(), isFunction(AnyLikeOperator.LIKE,
+                                                   ImmutableList.<DataType>of(DataTypes.STRING, new ArrayType(DataTypes.STRING), DataTypes.STRING)));
     }
 
     @Test
     public void testAnyLikeArrayLiteral() throws Exception {
         WhereClause whereClause = analyzeSelectWhere("select * from users where name like any(['a', 'b', 'c'])");
-        assertThat(whereClause.query(), isFunction(AnyLikeOperator.LIKE, ImmutableList.<DataType>of(DataTypes.STRING, new ArrayType(DataTypes.STRING))));
+        assertThat(whereClause.query(),
+                   isFunction(AnyLikeOperator.LIKE,
+                              ImmutableList.<DataType>of(DataTypes.STRING, new ArrayType(DataTypes.STRING), DataTypes.STRING)));
     }
 
     @Test

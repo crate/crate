@@ -36,13 +36,27 @@ import org.apache.lucene.util.BytesRef;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.util.List;
 
 abstract class AbstractAnyQuery implements FunctionToQuery {
 
+    private Boolean ignoreCase;
+
+    boolean ignoreCase() {
+        return null != ignoreCase ? ignoreCase.booleanValue() : false;
+    }
+
     @Override
     public Query apply(Function function, LuceneQueryBuilder.Context context) throws IOException {
-        Symbol left = function.arguments().get(0);
-        Symbol collectionSymbol = function.arguments().get(1);
+        List<Symbol> arguments = function.arguments();
+        Symbol left = arguments.get(0);
+        Symbol collectionSymbol = arguments.get(1);
+        if (arguments.size() == 3) {
+            Symbol ignoreCaseSymbol = arguments.get(2);
+            if (ignoreCaseSymbol instanceof Literal) {
+                ignoreCase = Boolean.valueOf((String) ((Literal) ignoreCaseSymbol).value());
+            }
+        }
         Preconditions.checkArgument(DataTypes.isArray(collectionSymbol.valueType()),
             "invalid argument for ANY expression");
 

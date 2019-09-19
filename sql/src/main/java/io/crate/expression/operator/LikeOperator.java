@@ -21,8 +21,11 @@
 
 package io.crate.expression.operator;
 
+import com.google.common.collect.ImmutableList;
 import io.crate.data.Input;
+import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
@@ -40,7 +43,12 @@ public class LikeOperator extends Operator<String> {
     public static final char DEFAULT_ESCAPE = '\\';
 
     public static void register(OperatorModule module) {
-        module.registerOperatorFunction(new LikeOperator(generateInfo(NAME, DataTypes.STRING)));
+        module.registerOperatorFunction(new LikeOperator(
+            new FunctionInfo(new FunctionIdent(NAME,
+                                               ImmutableList.of(DataTypes.STRING,
+                                                                DataTypes.STRING,
+                                                                DataTypes.STRING)),
+                             RETURN_TYPE)));
     }
 
     public LikeOperator(FunctionInfo info) {
@@ -60,7 +68,8 @@ public class LikeOperator extends Operator<String> {
             if (value == null) {
                 return this;
             }
-            return new CompiledLike(info, (String) value);
+            boolean ignoreCase = Boolean.valueOf(((Literal<String>) arguments.get(2)).value());
+            return new CompiledLike(info, (String) value, ignoreCase);
         }
         return super.compile(arguments);
     }
@@ -68,20 +77,26 @@ public class LikeOperator extends Operator<String> {
     @Override
     public Boolean evaluate(TransactionContext txnCtx, Input<String>... args) {
         assert args != null : "args must not be null";
-        assert args.length == 2 : "number of args must be 2";
+        assert args.length == 3 : "number of args must be 3";
 
         String expression = args[0].value();
         String pattern = args[1].value();
+        boolean ignoreCase = Boolean.valueOf(args[2].value());
+
         if (expression == null || pattern == null) {
             return null;
         }
 
-        return matches(expression, pattern);
+        return matches(expression, pattern, ignoreCase);
     }
 
-    private boolean matches(String expression, String pattern) {
+    private boolean matches(String expression, String pattern, boolean ignoreCase) {
+        int flags = Pattern.DOTALL;
+        if (ignoreCase) {
+            flags |= Pattern.CASE_INSENSITIVE;
+        }
         return Pattern.compile(
-            patternToRegex(pattern, DEFAULT_ESCAPE, true), Pattern.DOTALL).matcher(expression).matches();
+            patternToRegex(pattern, DEFAULT_ESCAPE, true), flags).matcher(expression).matches();
     }
 
     public static String patternToRegex(String patternString, char escapeChar, boolean shouldEscape) {
@@ -143,9 +158,13 @@ public class LikeOperator extends Operator<String> {
         private final FunctionInfo info;
         private final Pattern pattern;
 
-        CompiledLike(FunctionInfo info, String pattern) {
+        CompiledLike(FunctionInfo info, String pattern, boolean ignoreCase) {
             this.info = info;
-            this.pattern = Pattern.compile(patternToRegex(pattern, DEFAULT_ESCAPE, true), Pattern.DOTALL);
+            int flags = Pattern.DOTALL;
+            if (ignoreCase) {
+                flags |= Pattern.CASE_INSENSITIVE;
+            }
+            this.pattern = Pattern.compile(patternToRegex(pattern, DEFAULT_ESCAPE, true), flags);
         }
 
         @Override

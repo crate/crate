@@ -87,6 +87,8 @@ public class AnyNotLikeOperatorTest extends AbstractScalarFunctionsTest {
         assertEvaluate("'%i%m%' not like any (['Lorem ipsum dolor..'])", false);
         assertEvaluate("'%%%sum%%' not like any (['Lorem ipsum dolor...'])", false);
         assertEvaluate("'%i%m' not like any (['Lorem ipsum dolor...'])", true);
+        assertEvaluate("'%%%sum%%' not ilike any (['Lorem IPSUM dolor...'])", false);
+
     }
 
     @Test

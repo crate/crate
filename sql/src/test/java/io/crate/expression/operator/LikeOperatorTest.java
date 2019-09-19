@@ -33,6 +33,10 @@ public class LikeOperatorTest extends AbstractScalarFunctionsTest {
     public void testNormalizeSymbolEqual() {
         assertNormalize("'foo' like 'foo'", isLiteral(true));
         assertNormalize("'notFoo' like 'foo'", isLiteral(false));
+
+        assertNormalize("'foo' ilike 'FOO'", isLiteral(true));
+        assertNormalize("'FOO' ilike 'foo'", isLiteral(true));
+        assertNormalize("'FOO' ilike 'FOO'", isLiteral(true));
     }
 
     @Test
@@ -52,6 +56,11 @@ public class LikeOperatorTest extends AbstractScalarFunctionsTest {
         assertNormalize("'foo' like 'foo%'", isLiteral(true));
         assertNormalize("'fo' like 'foo%'", isLiteral(false));
         assertNormalize("'foobar' like '%oob%'", isLiteral(true));
+
+        assertNormalize("'fOobAr' ilike '%BaR'", isLiteral(true));
+        assertNormalize("'Fo' ilike 'fOo%'", isLiteral(false));
+        assertNormalize("'foobar' ilike '%OoB%'", isLiteral(true));
+
     }
 
     @Test
@@ -62,7 +71,9 @@ public class LikeOperatorTest extends AbstractScalarFunctionsTest {
         assertNormalize("'foo' like 'fo_'", isLiteral(true));
         assertNormalize("'foo' like 'foo_'", isLiteral(false));
         assertNormalize("'foo' like '_o_'", isLiteral(true));
-        assertNormalize("'foobar' like '_foobar_'", isLiteral(false));
+        assertNormalize("'foo' like '_o_'", isLiteral(true));
+
+        assertNormalize("'foObAr' ilike '_OoBa_'", isLiteral(true));
     }
 
     // Following tests: mixed wildcards:
@@ -76,6 +87,9 @@ public class LikeOperatorTest extends AbstractScalarFunctionsTest {
         assertNormalize("'Lorem ipsum dolor...' like '%i%m%'", isLiteral(true));
         assertNormalize("'Lorem ipsum dolor...' like '%%%sum%%'", isLiteral(true));
         assertNormalize("'Lorem ipsum dolor...' like '%i%m'", isLiteral(false));
+
+        assertNormalize("'Lorem IPSUM dolor...' ilike '%i%m%'", isLiteral(true));
+
     }
 
     // Following tests: escaping wildcards
@@ -143,5 +157,15 @@ public class LikeOperatorTest extends AbstractScalarFunctionsTest {
 
         assertEvaluate("'foobarbaz' like name", null, Literal.NULL);
         assertEvaluate("name like 'foobarbaz'", null, Literal.NULL);
+    }
+
+    @Test
+    public void testIlikeOperator() {
+        assertEvaluate("'FOOBARBAZ' ilike 'foo%baz'", true);
+        assertEvaluate("'FOOBARBAZ' ilike 'foo___baz'", true);
+        assertEvaluate("'characters' ilike 'CHaraC%'", true);
+
+        assertEvaluate("'foobarbaz' ilike name", null, Literal.NULL);
+        assertEvaluate("name ilike 'foobarbaz'", null, Literal.NULL);
     }
 }

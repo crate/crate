@@ -206,8 +206,8 @@ predicate[ParserRuleContext value]
     | NOT? BETWEEN lower=valueExpression AND upper=valueExpression                   #between
     | NOT? IN '(' expr (',' expr)* ')'                                               #inList
     | NOT? IN subqueryExpression                                                     #inSubquery
-    | NOT? LIKE pattern=valueExpression (ESCAPE escape=valueExpression)?             #like
-    | NOT? LIKE quant=setCmpQuantifier '(' v=valueExpression')'
+    | NOT? (LIKE | ILIKE) pattern=valueExpression (ESCAPE escape=valueExpression)?   #like
+    | NOT? (LIKE | ILIKE) quant=setCmpQuantifier '(' v=valueExpression')'
         (ESCAPE escape=valueExpression)?                                             #arrayLike
     | IS NOT? NULL                                                                   #nullPredicate
     | IS NOT? DISTINCT FROM right=valueExpression                                    #distinctFrom
@@ -691,6 +691,7 @@ NOT: 'NOT';
 EXISTS: 'EXISTS';
 BETWEEN: 'BETWEEN';
 LIKE: 'LIKE';
+ILIKE: 'ILIKE';
 IS: 'IS';
 NULL: 'NULL';
 TRUE: 'TRUE';

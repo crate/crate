@@ -42,13 +42,15 @@ public class ArrayLikePredicate extends LikePredicate implements ArrayComparison
      * @param pattern         the like pattern used
      * @param escape          the escape value
      * @param inverse         if true, inverse the operation for every single comparison
+     * @param ignoreCase      if true, comparison is case insensitive
      */
     public ArrayLikePredicate(Quantifier quantifier,
                               Expression arrayExpression,
                               Expression pattern,
                               Expression escape,
-                              boolean inverse) {
-        super(pattern, arrayExpression, escape);
+                              boolean inverse,
+                              boolean ignoreCase) {
+        super(pattern, arrayExpression, escape, ignoreCase);
         this.quantifier = quantifier;
         this.inverse = inverse;
     }
@@ -71,6 +73,7 @@ public class ArrayLikePredicate extends LikePredicate implements ArrayComparison
 
         if (inverse != that.inverse) return false;
         if (quantifier != that.quantifier) return false;
+        if (getIgnoreCase() != that.getIgnoreCase()) return false;
 
         return true;
     }
@@ -80,6 +83,7 @@ public class ArrayLikePredicate extends LikePredicate implements ArrayComparison
         int result = super.hashCode();
         result = 31 * result + quantifier.hashCode();
         result = 31 * result + (inverse ? 1 : 0);
+        result = 31 * result + (getIgnoreCase() ? 1 : 0);
         return result;
     }
 

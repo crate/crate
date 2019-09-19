@@ -585,7 +585,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertNotNull(relation.where());
         Function whereClause = (Function) relation.where().query();
         assertThat(whereClause.info().ident().name(), is(LikeOperator.NAME));
-        ImmutableList<DataType> argumentTypes = ImmutableList.of(DataTypes.STRING, DataTypes.STRING);
+        ImmutableList<DataType> argumentTypes = ImmutableList.of(DataTypes.STRING, DataTypes.STRING, DataTypes.STRING);
         assertEquals(argumentTypes, whereClause.info().ident().argumentTypes());
 
         assertThat(whereClause.arguments().get(0), isReference("name"));
@@ -605,7 +605,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         AnalyzedRelation relation = analyze("select * from sys.nodes where name like 1");
 
         // check if the implicit cast of the pattern worked
-        ImmutableList<DataType> argumentTypes = ImmutableList.of(DataTypes.STRING, DataTypes.STRING);
+        ImmutableList<DataType> argumentTypes = ImmutableList.of(DataTypes.STRING, DataTypes.STRING, DataTypes.STRING);
         Function whereClause = (Function) relation.where().query();
         assertEquals(argumentTypes, whereClause.info().ident().argumentTypes());
         assertThat(whereClause.arguments().get(1), IsInstanceOf.instanceOf(Literal.class));
@@ -986,10 +986,11 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat(relation.where().hasQuery(), is(true));
         Function query = (Function) relation.where().query();
         assertThat(query.info().ident().name(), is("any_like"));
-        assertThat(query.arguments().size(), is(2));
+        assertThat(query.arguments().size(), is(3));
         assertThat(query.arguments().get(0), instanceOf(Literal.class));
         assertThat(query.arguments().get(0), isLiteral("awesome", DataTypes.STRING));
         assertThat(query.arguments().get(1), isReference("tags"));
+        assertThat(query.arguments().get(2), isLiteral("false"));
     }
 
     @Test
@@ -1013,10 +1014,11 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         Function query = (Function) relation.where().query();
         assertThat(query.info().ident().name(), is("any_not_like"));
 
-        assertThat(query.arguments().size(), is(2));
+        assertThat(query.arguments().size(), is(3));
         assertThat(query.arguments().get(0), instanceOf(Literal.class));
         assertThat(query.arguments().get(0), isLiteral("awesome", DataTypes.STRING));
         assertThat(query.arguments().get(1), isReference("tags"));
+        assertThat(query.arguments().get(2), isLiteral("false"));
     }
 
     @Test

@@ -30,35 +30,43 @@ import io.crate.metadata.Reference;
 import javax.annotation.Nullable;
 import java.util.List;
 
-class RefAndLiteral {
+final class CaseAwareRefAndLiteral {
 
     private final Reference ref;
     private final Literal literal;
+    private final boolean ignoreCase;
 
     @Nullable
-    public static RefAndLiteral of(Function function) {
+    public static CaseAwareRefAndLiteral of(Function function) {
         List<Symbol> args = function.arguments();
-        assert args.size() == 2 : "Function must have 2 arguments";
+        assert args.size() == 3 : "Function must have 3 arguments";
 
         Symbol fst = args.get(0);
         Symbol snd = args.get(1);
-        if (fst instanceof Reference && snd instanceof Literal) {
-            return new RefAndLiteral((Reference) fst, (Literal) snd);
+        Symbol trd = args.get(2);
+        if (fst instanceof Reference && snd instanceof Literal && trd instanceof Literal) {
+            boolean ignoreCase = Boolean.valueOf((String) ((Literal) trd).value());
+            return new CaseAwareRefAndLiteral((Reference) fst, (Literal) snd, ignoreCase);
         } else {
             return null;
         }
     }
 
-    private RefAndLiteral(Reference ref, Literal literal) {
+    private CaseAwareRefAndLiteral(Reference ref, Literal literal, boolean ignoreCase) {
         this.ref = ref;
         this.literal = literal;
+        this.ignoreCase = ignoreCase;
     }
 
-    public final Reference reference() {
+    Reference reference() {
         return ref;
     }
 
-    public final Literal literal() {
+    Literal literal() {
         return literal;
+    }
+
+    boolean ignoreCase() {
+        return ignoreCase;
     }
 }
