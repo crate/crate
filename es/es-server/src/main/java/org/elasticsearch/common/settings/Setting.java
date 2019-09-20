@@ -397,6 +397,18 @@ public class Setting<T> implements ToXContentObject {
     }
 
     /**
+     * Returns the setting's or the fallback setting's value if the setting
+     * is not present. If the setting and its fallback setting are not present
+     * in the given settings object the default value the fallback setting is returned.
+     */
+    public final T getWithFallback(Settings settings) {
+        if (exists(settings) || fallbackSetting == null) {
+            return get(settings);
+        }
+        return fallbackSetting.get(settings);
+    }
+
+    /**
      * Returns the settings value. If the setting is not present in the given settings object the default value is returned
      * instead.
      */
