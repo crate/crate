@@ -87,15 +87,20 @@ public class LikeOperator extends Operator<Object> {
         return matches(expression, pattern, ignoreCase);
     }
 
-    protected static boolean matches(String expression, String pattern, boolean ignoreCase) {
+    protected static Pattern makePattern(String pattern, boolean ignoreCase) {
         int flags = Pattern.DOTALL;
         if (ignoreCase) {
             flags |= Pattern.CASE_INSENSITIVE;
         }
-        return Pattern
-            .compile(patternToRegex(pattern, DEFAULT_ESCAPE, true), flags)
-            .matcher(expression)
-            .matches();
+        return Pattern.compile(patternToRegex(pattern, DEFAULT_ESCAPE, true), flags);
+    }
+
+    protected static boolean matches(String expression, Pattern pattern) {
+        return pattern.matcher(expression).matches();
+    }
+
+    protected static boolean matches(String expression, String pattern, boolean ignoreCase) {
+        return matches(expression, makePattern(pattern, ignoreCase));
     }
 
     public static String patternToRegex(String patternString) {
@@ -104,7 +109,6 @@ public class LikeOperator extends Operator<Object> {
 
     public static String patternToRegex(String patternString, char escapeChar, boolean shouldEscape) {
         StringBuilder regex = new StringBuilder(patternString.length() * 2);
-
         regex.append('^');
         boolean escaped = false;
         for (char currentChar : patternString.toCharArray()) {
@@ -163,12 +167,7 @@ public class LikeOperator extends Operator<Object> {
 
         CompiledLike(FunctionInfo info, String pattern, boolean ignoreCase) {
             this.info = info;
-            int flags = Pattern.DOTALL;
-            if (ignoreCase) {
-                flags |= Pattern.CASE_INSENSITIVE;
-            }
-            this.pattern = Pattern
-                .compile(patternToRegex(pattern, DEFAULT_ESCAPE, true), flags);
+            this.pattern = makePattern(pattern, ignoreCase);
         }
 
         @Override
@@ -183,7 +182,7 @@ public class LikeOperator extends Operator<Object> {
             if (value == null) {
                 return null;
             }
-            return pattern.matcher(value).matches();
+            return matches(value, pattern);
         }
     }
 }

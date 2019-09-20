@@ -78,6 +78,9 @@ final class LikeQuery implements FunctionToQuery {
         return fieldType.termQuery(value, null);
     }
 
+    private static final int CASE_INSENSITIVE = CrateRegexCapabilities.FLAG_CASE_INSENSITIVE
+                                                | CrateRegexCapabilities.FLAG_UNICODE_CASE;
+
     private static Query createCaseAwareQuery(String fieldName,
                                               String text,
                                               boolean ignoreCase) {
@@ -86,10 +89,7 @@ final class LikeQuery implements FunctionToQuery {
             :
             LikeQuery::convertSqlLikeToLuceneWildcard;
         Term term = new Term(fieldName, regexTransformer.apply(text));
-        return ignoreCase ?
-            new CrateRegexQuery(term, CrateRegexCapabilities.FLAG_CASE_INSENSITIVE | CrateRegexCapabilities.FLAG_UNICODE_CASE)
-            :
-            new WildcardQuery(term);
+        return ignoreCase ? new CrateRegexQuery(term, CASE_INSENSITIVE) : new WildcardQuery(term);
     }
 
     static String convertSqlLikeToLuceneWildcard(String wildcardString) {

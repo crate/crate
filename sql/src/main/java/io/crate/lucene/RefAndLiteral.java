@@ -54,11 +54,11 @@ final class RefAndLiteral {
         this.literal = literal;
     }
 
-    public Reference reference() {
+    Reference reference() {
         return ref;
     }
 
-    public Literal literal() {
+    Literal literal() {
         return literal;
     }
 }

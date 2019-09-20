@@ -63,8 +63,7 @@ public final class AnyLikeOperator extends LikeOperator {
         this.matches = matches;
     }
 
-    private Boolean doEvaluate(Object left, Iterable<?> rightIterable, boolean ignoreCase) {
-        String pattern = (String) left;
+    private Boolean doEvaluate(String pattern, Iterable<?> rightIterable, boolean ignoreCase) {
         boolean hasNull = false;
         for (Object elem : rightIterable) {
             if (elem == null) {
@@ -86,7 +85,7 @@ public final class AnyLikeOperator extends LikeOperator {
 
     @Override
     public Boolean evaluate(TransactionContext txnCtx, Input<Object>... args) {
-        Object value = args[0].value();
+        String value = (String) args[0].value();
         Object collectionReference = args[1].value();
         Boolean ignoreCase = (Boolean) args[2].value();
         if (collectionReference == null || value == null) {

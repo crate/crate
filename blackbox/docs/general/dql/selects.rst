@@ -308,10 +308,10 @@ Examples::
 ``LIKE (ILIKE)``
 ================
 
-CrateDB supports the ``LIKE``, and its case insensitive variety ``ILIKE``
+CrateDB supports the ``LIKE``, and its case insensitive variety ``ILIKE``,
 operators. These operators can be used to query for rows where only part of
-a columns value should match something. The only difference is that in the
-case of ``ILIKE`` the matching is case insensitive.
+a columns value should match something. The only difference is that, in the
+case of ``ILIKE``, the matching is case insensitive.
 
 For example to get all locations where the name starts with 'Ar' the following
 queries can be used::
@@ -368,10 +368,10 @@ escape them using a backslash::
 
 .. CAUTION::
 
-    Queries with a like/ilike clause can be quite slow. Especially if the like
-    clause starts with a wildcard character. Because in that case CrateDB has to
-    iterate over all rows and can't utilize the index. For better performance
-    consider using a fulltext index.
+    Queries with a like/ilike clause can be quite slow. Especially if the clause
+    starts with a wildcard character. Because in that case CrateDB has to iterate
+    over all rows and can't utilize the index. For better performance consider
+    using a fulltext index.
 
 .. _sql_dql_not:
 

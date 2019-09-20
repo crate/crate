@@ -190,6 +190,10 @@ public final class SymbolPrinter {
             return ignoreCase;
         }
 
+        private static String caseSensitiveOperatorName(String name, boolean ignoreCase) {
+            return name.contains("LIKE") && ignoreCase ? name.replace("LIKE", "ILIKE") : name;
+        }
+
         private void printAnyOperator(Function function, SymbolPrinterContext context) {
             List<Symbol> args = function.arguments();
             assert args.size() == 2 || args.size() == 3 : "function's number of arguments must be 2";
@@ -198,13 +202,10 @@ public final class SymbolPrinter {
 
             // The 'Like' operators take a 3rd parameter (boolean caseSensitive)
             boolean ignoreCase = extractIgnoreCase(function);
+            String functionName = function.info().ident().name();
+            String operatorName = caseSensitiveOperatorName(anyOperatorName(functionName), ignoreCase);
 
             // print operator
-            String operatorName = anyOperatorName(function.info().ident().name());
-            if (operatorName.contains("LIKE") && ignoreCase) {
-                operatorName = operatorName.replace("LIKE", "ILIKE");
-            }
-
             context.builder
                 .append(WS)
                 .append(operatorName)
@@ -307,13 +308,8 @@ public final class SymbolPrinter {
                 case 2:
                 case 3:
                     function.arguments().get(0).accept(this, context);
-                    String functionName = formatter.operator(function);
-                    if (functionName.contains("LIKE") && numArgs == 3) {
-                        boolean ignoreCase = extractIgnoreCase(function);
-                        if (ignoreCase) {
-                            functionName = functionName.replace("LIKE", "ILIKE");
-                        }
-                    }
+                    String functionName = caseSensitiveOperatorName(
+                        formatter.operator(function), extractIgnoreCase(function));
                     context.builder.append(WS)
                         .append(functionName)
                         .append(WS);
