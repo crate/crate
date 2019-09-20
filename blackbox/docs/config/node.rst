@@ -643,8 +643,8 @@ Queries
   | *Runtime:* ``no``
 
   This setting defines the maximum number of elements an array can have so
-  that the ``!= ANY()``, ``LIKE ANY()`` and the ``NOT LIKE ANY()`` operators
-  can be applied on it.
+  that the ``!= ANY()``, ``LIKE ANY()``, ``ILIKE ANY()``, ``NOT LIKE ANY()``
+  and the ``NOT ILIKE ANY()`` operators can be applied on it.
 
   .. NOTE::
 
