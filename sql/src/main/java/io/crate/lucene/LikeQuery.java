@@ -69,17 +69,27 @@ final class LikeQuery implements FunctionToQuery {
             return Queries.newMatchNoDocsQuery("column does not exist in this index");
         }
         if (dataType.equals(DataTypes.STRING)) {
-            Term term = new Term(
+            return createCaseAwareQuery(
                 fieldType.name(),
-                convertSqlLikeToLuceneWildcard(BytesRefs.toString(value)));
-            if (ignoreCase) {
-                return new CrateRegexQuery(term,
-                    CrateRegexCapabilities.FLAG_CASE_INSENSITIVE | CrateRegexCapabilities.FLAG_UNICODE_CASE);
-            } else {
-                return new WildcardQuery(term);
-            }
+                BytesRefs.toString(value),
+                ignoreCase
+            );
         }
         return fieldType.termQuery(value, null);
+    }
+
+    private static Query createCaseAwareQuery(String fieldName,
+                                              String text,
+                                              boolean ignoreCase) {
+        java.util.function.Function<String, String> regexTransformer = ignoreCase ?
+            LikeOperator::patternToRegex
+            :
+            LikeQuery::convertSqlLikeToLuceneWildcard;
+        Term term = new Term(fieldName, regexTransformer.apply(text));
+        return ignoreCase ?
+            new CrateRegexQuery(term, CrateRegexCapabilities.FLAG_CASE_INSENSITIVE | CrateRegexCapabilities.FLAG_UNICODE_CASE)
+            :
+            new WildcardQuery(term);
     }
 
     static String convertSqlLikeToLuceneWildcard(String wildcardString) {

@@ -179,15 +179,32 @@ public final class SymbolPrinter {
             }
         }
 
-        private void printAnyOperator(Function function, SymbolPrinterContext context) {
+        private static boolean extractIgnoreCase(Function function) {
+            boolean ignoreCase = false;
+            if (function.arguments().size() == 3) {
+                Symbol s = function.arguments().get(2);
+                if (s instanceof Literal) {
+                    ignoreCase = ((Literal<Boolean>) s).value();
+                }
+            }
+            return ignoreCase;
+        }
 
+        private void printAnyOperator(Function function, SymbolPrinterContext context) {
             List<Symbol> args = function.arguments();
             assert args.size() == 2 || args.size() == 3 : "function's number of arguments must be 2";
             context.builder.append(PAREN_OPEN); // wrap operator in parens to ensure precedence
             args.get(0).accept(this, context);
 
+            // The 'Like' operators take a 3rd parameter (boolean caseSensitive)
+            boolean ignoreCase = extractIgnoreCase(function);
+
             // print operator
             String operatorName = anyOperatorName(function.info().ident().name());
+            if (operatorName.contains("LIKE") && ignoreCase) {
+                operatorName = operatorName.replace("LIKE", "ILIKE");
+            }
+
             context.builder
                 .append(WS)
                 .append(operatorName)
@@ -290,8 +307,15 @@ public final class SymbolPrinter {
                 case 2:
                 case 3:
                     function.arguments().get(0).accept(this, context);
+                    String functionName = formatter.operator(function);
+                    if (functionName.contains("LIKE") && numArgs == 3) {
+                        boolean ignoreCase = extractIgnoreCase(function);
+                        if (ignoreCase) {
+                            functionName = functionName.replace("LIKE", "ILIKE");
+                        }
+                    }
                     context.builder.append(WS)
-                        .append(formatter.operator(function))
+                        .append(functionName)
                         .append(WS);
                     function.arguments().get(1).accept(this, context);
                     break;

@@ -784,7 +784,7 @@ public class ExpressionAnalyzer {
             }
             Symbol arraySymbol = node.getValue().accept(this, context);
             Symbol leftSymbol = node.getPattern().accept(this, context);
-            Symbol ignoreCase = Literal.of(node.getIgnoreCase() ? "true" : "false");
+            Symbol ignoreCase = Literal.of(node.getIgnoreCase());
             String operatorName = node.inverse() ? AnyLikeOperator.NOT_LIKE : AnyLikeOperator.LIKE;
             ImmutableList<Symbol> arguments = ImmutableList.of(leftSymbol, arraySymbol, ignoreCase);
             return allocateFunction(
@@ -800,7 +800,7 @@ public class ExpressionAnalyzer {
             }
             Symbol expression = node.getValue().accept(this, context);
             Symbol pattern = node.getPattern().accept(this, context);
-            Symbol ignoreCase = Literal.of(node.getIgnoreCase() ? "true" : "false");
+            Symbol ignoreCase = Literal.of(node.getIgnoreCase());
             return allocateFunction(
                 LikeOperator.NAME,
                 ImmutableList.of(expression, pattern, ignoreCase),

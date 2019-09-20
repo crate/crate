@@ -62,9 +62,20 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("select id, name " +
                 "from (select * from characters where female = true) as ch " +
-                "where name ilike 'Arthur'");
+                "where name like 'Arthur'");
         assertThat(printedTable(response.rows()),
             is("4| Arthur\n"));
+    }
+
+    @Test
+    public void testSubSelectWhereWithILike() throws Exception {
+        setup.setUpCharacters();
+
+        execute("select id, name " +
+                "from (select * from characters where female = true) as ch " +
+                "where name ilike '__THUR%'");
+        assertThat(printedTable(response.rows()),
+                   is("4| Arthur\n"));
     }
 
     @Test

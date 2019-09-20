@@ -45,7 +45,7 @@ final class CaseAwareRefAndLiteral {
         Symbol snd = args.get(1);
         Symbol trd = args.get(2);
         if (fst instanceof Reference && snd instanceof Literal && trd instanceof Literal) {
-            boolean ignoreCase = Boolean.valueOf((String) ((Literal) trd).value());
+            boolean ignoreCase = ((Literal<Boolean>) trd).value();
             return new CaseAwareRefAndLiteral((Reference) fst, (Literal) snd, ignoreCase);
         } else {
             return null;

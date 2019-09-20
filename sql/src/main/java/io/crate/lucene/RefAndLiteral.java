@@ -30,7 +30,7 @@ import io.crate.metadata.Reference;
 import javax.annotation.Nullable;
 import java.util.List;
 
-class RefAndLiteral {
+final class RefAndLiteral {
 
     private final Reference ref;
     private final Literal literal;
@@ -54,11 +54,11 @@ class RefAndLiteral {
         this.literal = literal;
     }
 
-    public final Reference reference() {
+    public Reference reference() {
         return ref;
     }
 
-    public final Literal literal() {
+    public Literal literal() {
         return literal;
     }
 }

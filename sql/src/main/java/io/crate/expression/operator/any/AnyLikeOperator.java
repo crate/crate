@@ -23,12 +23,13 @@ package io.crate.expression.operator.any;
 
 import io.crate.data.Input;
 import io.crate.expression.operator.LikeOperator;
-import io.crate.expression.operator.Operator;
 import io.crate.expression.operator.OperatorModule;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.BaseFunctionResolver;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.functions.params.Param;
@@ -38,46 +39,28 @@ import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 
 import java.util.List;
-import java.util.regex.Pattern;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static io.crate.expression.operator.any.AnyOperators.collectionValueToIterable;
 
-public final class AnyLikeOperator extends Operator<Object> {
+public final class AnyLikeOperator extends LikeOperator {
 
     public static final String LIKE = AnyOperator.OPERATOR_PREFIX + "like";
     public static final String NOT_LIKE = AnyOperator.OPERATOR_PREFIX + "not_like";
-    private final FunctionInfo info;
     private final TriPredicate<String, String, Boolean> matches;
 
     public static void register(OperatorModule operatorModule) {
         operatorModule.registerDynamicOperatorFunction(
             LIKE,
-            new AnyLikeResolver(LIKE, AnyLikeOperator::matches));
+            new AnyLikeResolver(LIKE, LikeOperator::matches));
         operatorModule.registerDynamicOperatorFunction(
             NOT_LIKE,
-            new AnyLikeResolver(NOT_LIKE, ((TriPredicate<String, String, Boolean>) AnyLikeOperator::matches).negate()));
-    }
-
-    private static boolean matches(String expr, String pattern, boolean ignoreCase) {
-        int flags = Pattern.DOTALL;
-        if (ignoreCase) {
-            flags |= Pattern.CASE_INSENSITIVE;
-        }
-        return Pattern
-            .compile(LikeOperator.patternToRegex(pattern, LikeOperator.DEFAULT_ESCAPE, true), flags)
-            .matcher(expr)
-            .matches();
+            new AnyLikeResolver(NOT_LIKE, TriPredicate.negate(LikeOperator::matches)));
     }
 
     private AnyLikeOperator(FunctionInfo info, TriPredicate<String, String, Boolean> matches) {
-        this.info = info;
+        super(info);
         this.matches = matches;
-    }
-
-    @Override
-    public FunctionInfo info() {
-        return info;
     }
 
     private Boolean doEvaluate(Object left, Iterable<?> rightIterable, boolean ignoreCase) {
@@ -97,19 +80,28 @@ public final class AnyLikeOperator extends Operator<Object> {
         return hasNull ? null : false;
     }
 
+    public Scalar<Boolean, Object> compile(List<Symbol> arguments) {
+        return this;
+    }
+
     @Override
     public Boolean evaluate(TransactionContext txnCtx, Input<Object>... args) {
         Object value = args[0].value();
         Object collectionReference = args[1].value();
-        Boolean ignoreCase = Boolean.valueOf((String) args[2].value());
+        Boolean ignoreCase = (Boolean) args[2].value();
         if (collectionReference == null || value == null) {
             return null;
         }
         return doEvaluate(value, collectionValueToIterable(collectionReference), ignoreCase);
     }
 
+    @FunctionalInterface
     private interface TriPredicate<A, B, C> {
         boolean test(A a, B b, C c);
+
+        static <A, B, C> TriPredicate<A, B, C> negate(TriPredicate<A, B, C> pred) {
+            return pred.negate();
+        }
 
         default TriPredicate<A, B, C> negate() {
             return (A a, B b, C c) -> false == test(a, b, c);
@@ -124,7 +116,7 @@ public final class AnyLikeOperator extends Operator<Object> {
             super(FuncParams.builder(
                 Param.ANY,
                 Param.of(new ArrayType<>(DataTypes.UNDEFINED)).withInnerType(Param.ANY),
-                Param.STRING).build());
+                Param.BOOLEAN).build());
             this.name = name;
             this.matches = matches;
         }

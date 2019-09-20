@@ -350,6 +350,14 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void testPrintILikeOperator() throws Exception {
+        Symbol likeQuery = sqlExpressions.asSymbol("foo ilike '%bla%'");
+        assertPrint(likeQuery, "(doc.formatter.foo ILIKE '%bla%')");
+        assertPrintStatic(likeQuery, "(doc.formatter.foo ILIKE '%bla%')");
+        assertPrintIsParseable("(foo ILIKE 'a')");
+    }
+
+    @Test
     public void testPrintAnyEqOperator() throws Exception {
         assertPrintingRoundTrip("foo = ANY (['a', 'b', 'c'])", "(doc.formatter.foo = ANY(['a', 'b', 'c']))");
         assertPrintingRoundTrip("foo = ANY(s_arr)", "(doc.formatter.foo = ANY(doc.formatter.s_arr))");
@@ -370,5 +378,11 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
     public void testAnyLikeOperator() throws Exception {
         assertPrintingRoundTrip("foo LIKE ANY (s_arr)", "(doc.formatter.foo LIKE ANY(doc.formatter.s_arr))");
         assertPrintingRoundTrip("foo NOT LIKE ANY (['a', 'b', 'c'])", "(doc.formatter.foo NOT LIKE ANY(['a', 'b', 'c']))");
+    }
+
+    @Test
+    public void testAnyILikeOperator() throws Exception {
+        assertPrintingRoundTrip("foo ILIKE ANY (s_arr)", "(doc.formatter.foo ILIKE ANY(doc.formatter.s_arr))");
+        assertPrintingRoundTrip("foo NOT ILIKE ANY (['a', 'b', 'c'])", "(doc.formatter.foo NOT ILIKE ANY(['a', 'b', 'c']))");
     }
 }

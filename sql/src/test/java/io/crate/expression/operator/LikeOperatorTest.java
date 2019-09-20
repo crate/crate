@@ -43,6 +43,10 @@ public class LikeOperatorTest extends AbstractScalarFunctionsTest {
     public void testPatternIsNoLiteral() throws Exception {
         assertEvaluate("name like timezone", false, Literal.of("foo"), Literal.of("bar"));
         assertEvaluate("name like name", true, Literal.of("foo"), Literal.of("foo"));
+
+        assertEvaluate("name ilike timezone", false, Literal.of("foO"), Literal.of("FFo"));
+        assertEvaluate("name ilike timezone", true, Literal.of("foO"), Literal.of("FOo"));
+        assertEvaluate("name ilike timezone", true, Literal.of("foO"), Literal.of("F__"));
     }
 
     @Test

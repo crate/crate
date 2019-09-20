@@ -54,7 +54,7 @@ abstract class AbstractAnyQuery implements FunctionToQuery {
         if (arguments.size() == 3) {
             Symbol ignoreCaseSymbol = arguments.get(2);
             if (ignoreCaseSymbol instanceof Literal) {
-                ignoreCase = Boolean.valueOf((String) ((Literal) ignoreCaseSymbol).value());
+                ignoreCase = ((Literal<Boolean>) ignoreCaseSymbol).value();
             }
         }
         Preconditions.checkArgument(DataTypes.isArray(collectionSymbol.valueType()),

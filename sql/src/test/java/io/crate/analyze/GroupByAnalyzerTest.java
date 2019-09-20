@@ -349,7 +349,7 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(havingFunction.arguments().size(), is(3));
         assertThat(havingFunction.arguments().get(0), isReference("name"));
         assertThat(havingFunction.arguments().get(1), isLiteral("Slartibart%"));
-        assertThat(havingFunction.arguments().get(2), isLiteral("false"));
+        assertThat(havingFunction.arguments().get(2), isLiteral(false));
     }
 
     @Test
@@ -405,7 +405,7 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(havingFunction.arguments().size(), is(3));
         assertThat(havingFunction.arguments().get(0), isReference("name"));
         assertThat(havingFunction.arguments().get(1), isLiteral("Slartibart%"));
-        assertThat(havingFunction.arguments().get(2), isLiteral("false"));
+        assertThat(havingFunction.arguments().get(2), isLiteral(false));
     }
 
     @Test
