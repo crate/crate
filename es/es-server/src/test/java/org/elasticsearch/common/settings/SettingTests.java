@@ -61,7 +61,6 @@ public class SettingTests extends ESTestCase {
         assertTrue(booleanSetting.get(Settings.builder().put("foo.bar", true).build()));
     }
 
-
     @Test
     public void testByteSizeSetting() {
         final Setting<ByteSizeValue> byteSizeValueSetting =
@@ -953,6 +952,27 @@ public class SettingTests extends ESTestCase {
             assertFalse(fooSetting.exists(Settings.builder().put(setting, "bar").build()));
             assertTrue(fooSetting.existsOrFallbackExists(Settings.builder().put(setting, "bar").build()));
         }
+    }
+
+    @Test
+    public void testGetWithFallbackWithProvidedSettingValue() {
+        Setting<String> fallbackSetting = Setting.simpleString("bar", Property.NodeScope);
+        Setting<String> setting = Setting.simpleString("foo", fallbackSetting, Property.NodeScope);
+        assertThat(setting.getWithFallback(Settings.builder().put("foo", "test").build()), is("test"));
+    }
+
+    @Test
+    public void testGetWithFallbackWithProvidedFallbackSettingValue() {
+        Setting<String> fallbackSetting = Setting.simpleString("bar", Property.NodeScope);
+        Setting<String> setting = Setting.simpleString("foo", fallbackSetting, Property.NodeScope);
+        assertThat(setting.getWithFallback(Settings.builder().put("bar", "test").build()), is("test"));
+    }
+
+    @Test
+    public void testGetWithFallbackReturnsFallbackSettingDefaultIfNoSettingValuesProvided() {
+        Setting<String> fallbackSetting = Setting.simpleString("bar", "test", Property.NodeScope);
+        Setting<String> setting = Setting.simpleString("foo", fallbackSetting, Property.NodeScope);
+        assertThat(setting.getWithFallback(Settings.EMPTY), is("test"));
     }
 
     @Test
