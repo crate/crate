@@ -327,7 +327,7 @@ queries can be used::
 
 ::
 
-    cr> select name from locations where name ilike 'AR%' order by name asc;
+    cr> select name from locations where name ilike 'ar%' order by name asc;
     +-------------------+
     | name              |
     +-------------------+
