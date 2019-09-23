@@ -373,10 +373,10 @@ public class InternalClusterInfoService implements ClusterInfoService, LocalNode
         }
     }
 
-    static void fillDiskUsagePerNode(Logger logger,
-                                     List<NodeStats> nodeStatsArray,
-                                     ImmutableOpenMap.Builder<String, DiskUsage> newLeastAvaiableUsages,
-                                     ImmutableOpenMap.Builder<String, DiskUsage> newMostAvaiableUsages) {
+    private static void fillDiskUsagePerNode(Logger logger,
+                                             List<NodeStats> nodeStatsArray,
+                                             ImmutableOpenMap.Builder<String, DiskUsage> newLeastAvaiableUsages,
+                                             ImmutableOpenMap.Builder<String, DiskUsage> newMostAvaiableUsages) {
         boolean traceEnabled = logger.isTraceEnabled();
         for (NodeStats nodeStats : nodeStatsArray) {
             if (nodeStats.getFs() == null) {
@@ -396,30 +396,45 @@ public class InternalClusterInfoService implements ClusterInfoService, LocalNode
                 }
                 String nodeId = nodeStats.getNode().getId();
                 String nodeName = nodeStats.getNode().getName();
-                var leastAvailableTotals = leastAvailablePath.getTotal();
-                var mostAvailableTotals = mostAvailablePath.getTotal();
                 if (traceEnabled) {
-                    logger.trace("node: [{}], most available: total disk: {}, available disk: {} / least available: total disk: {}, available disk: {}",
-                            nodeId, mostAvailableTotals, leastAvailablePath.getAvailable(),
-                                 leastAvailableTotals, leastAvailablePath.getAvailable());
+                    logger.trace(
+                        "node: [{}], most available: total disk: {}, available disk: {} / least available: total disk: {}, available disk: {}",
+                        nodeId,
+                        mostAvailablePath.getTotal(),
+                        leastAvailablePath.getAvailable(),
+                        leastAvailablePath.getTotal(),
+                        leastAvailablePath.getAvailable());
                 }
-                var leastAvailableTotalBytes = leastAvailableTotals.getBytes();
-                var mostAvailableTotalBytes = mostAvailableTotals.getBytes();
-                if (leastAvailableTotalBytes < 0) {
+                if (leastAvailablePath.getTotal().getBytes() < 0) {
                     if (traceEnabled) {
-                        logger.trace("node: [{}] least available path has less than 0 total bytes of disk [{}], skipping",
-                                nodeId, leastAvailableTotalBytes);
+                        logger.trace(
+                            "node: [{}] least available path has less than 0 total bytes of disk [{}], skipping",
+                            nodeId, leastAvailablePath.getTotal().getBytes());
                     }
                 } else {
-                    newLeastAvaiableUsages.put(nodeId, new DiskUsage(nodeId, nodeName, leastAvailablePath.getPath(), leastAvailableTotalBytes, leastAvailableTotalBytes));
+                    newLeastAvaiableUsages.put(
+                        nodeId, new DiskUsage(
+                            nodeId,
+                            nodeName,
+                            leastAvailablePath.getPath(),
+                            leastAvailablePath.getTotal().getBytes(),
+                            leastAvailablePath.getAvailable().getBytes()));
                 }
-                if (mostAvailableTotalBytes < 0) {
+                if (mostAvailablePath.getTotal().getBytes() < 0) {
                     if (traceEnabled) {
-                        logger.trace("node: [{}] most available path has less than 0 total bytes of disk [{}], skipping",
-                                nodeId, mostAvailableTotalBytes);
+                        logger.trace(
+                            "node: [{}] most available path has less than 0 total bytes of disk [{}], skipping",
+                            nodeId, mostAvailablePath.getTotal().getBytes());
                     }
                 } else {
-                    newMostAvaiableUsages.put(nodeId, new DiskUsage(nodeId, nodeName, mostAvailablePath.getPath(), mostAvailableTotalBytes, mostAvailableTotalBytes));
+                    newMostAvaiableUsages.put(
+                        nodeId,
+                        new DiskUsage(
+                            nodeId,
+                            nodeName,
+                            mostAvailablePath.getPath(),
+                            mostAvailablePath.getTotal().getBytes(),
+                            mostAvailablePath.getAvailable().getBytes()));
                 }
             }
         }
