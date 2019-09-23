@@ -34,7 +34,6 @@ import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.bootstrap.BootstrapCheck;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.node.NodeClient;
-import org.elasticsearch.cluster.ClusterInfo;
 import org.elasticsearch.cluster.ClusterInfoService;
 import org.elasticsearch.cluster.ClusterModule;
 import org.elasticsearch.cluster.ClusterState;
@@ -153,7 +152,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
@@ -308,13 +306,17 @@ public class Node implements Closeable {
                                                                      threadPool);
             resourcesToClose.add(clusterService);
 
-            final DiskThresholdMonitor listener = new DiskThresholdMonitor(settings, clusterService::state,
-                                                                           clusterService.getClusterSettings(), client);
-            final ClusterInfoService clusterInfoService = newClusterInfoService(settings,
-                                                                                clusterService,
-                                                                                threadPool,
-                                                                                client,
-                                                                                listener::onNewInfo);
+            final DiskThresholdMonitor diskThresholdMonitor = new DiskThresholdMonitor(
+                settings,
+                clusterService::state,
+                clusterService.getClusterSettings(),
+                client);
+            final ClusterInfoService clusterInfoService = newClusterInfoService(
+                settings,
+                clusterService,
+                threadPool,
+                client);
+            clusterInfoService.addListener(diskThresholdMonitor::onNewInfo);
 
             ModulesBuilder modules = new ModulesBuilder();
             // plugin modules must be added here, before others or we can get crazy injection errors...
@@ -952,9 +954,11 @@ public class Node implements Closeable {
     }
 
     /** Constructs a ClusterInfoService which may be mocked for tests. */
-    protected ClusterInfoService newClusterInfoService(Settings settings, ClusterService clusterService,
-                                                       ThreadPool threadPool, NodeClient client, Consumer<ClusterInfo> listeners) {
-        return new InternalClusterInfoService(settings, clusterService, threadPool, client, listeners);
+    protected ClusterInfoService newClusterInfoService(Settings settings,
+                                                       ClusterService clusterService,
+                                                       ThreadPool threadPool,
+                                                       NodeClient client) {
+        return new InternalClusterInfoService(settings, clusterService, threadPool, client);
     }
 
     /** Constructs a {@link org.elasticsearch.http.HttpServerTransport} which may be mocked for tests. */

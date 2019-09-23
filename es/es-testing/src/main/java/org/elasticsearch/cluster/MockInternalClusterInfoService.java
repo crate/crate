@@ -21,7 +21,6 @@ package org.elasticsearch.cluster;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.concurrent.CountDownLatch;
-import java.util.function.Consumer;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
@@ -80,9 +79,8 @@ public class MockInternalClusterInfoService extends InternalClusterInfoService {
     public MockInternalClusterInfoService(Settings settings,
                                           ClusterService clusterService,
                                           ThreadPool threadPool,
-                                          NodeClient client,
-                                          Consumer<ClusterInfo> listener) {
-        super(settings, clusterService, threadPool, client, listener);
+                                          NodeClient client) {
+        super(settings, clusterService, threadPool, client);
         this.clusterName = ClusterName.CLUSTER_NAME_SETTING.get(settings);
         stats[0] = makeStats("node_t1", new DiskUsage("node_t1", "n1", "/dev/null", 100, 100));
         stats[1] = makeStats("node_t2", new DiskUsage("node_t2", "n2", "/dev/null", 100, 100));
