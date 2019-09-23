@@ -34,7 +34,7 @@ import io.crate.types.DataTypes;
 import java.util.List;
 import java.util.regex.Pattern;
 
-public class LikeOperator extends Operator<Object> {
+public class LikeOperator extends Operator<String> {
 
     public static final String NAME = "op_like";
     public static final char DEFAULT_ESCAPE = '\\';
@@ -60,7 +60,7 @@ public class LikeOperator extends Operator<Object> {
     }
 
     @Override
-    public Scalar<Boolean, Object> compile(List<Symbol> arguments) {
+    public Scalar<Boolean, String> compile(List<Symbol> arguments) {
         Symbol pattern = arguments.get(1);
         if (pattern instanceof Input) {
             Object value = ((Input) pattern).value();
@@ -74,16 +74,16 @@ public class LikeOperator extends Operator<Object> {
     }
 
     @Override
-    public Boolean evaluate(TransactionContext txnCtx, Input<Object>... args) {
+    public Boolean evaluate(TransactionContext txnCtx, Input<String>... args) {
         assert args != null : "args must not be null";
         assert args.length == 3 : "number of args must be 3";
 
-        String expression = (String) args[0].value();
-        String pattern = (String) args[1].value();
+        String expression = args[0].value();
+        String pattern = args[1].value();
         if (expression == null || pattern == null) {
             return null;
         }
-        boolean ignoreCase = (Boolean) args[2].value();
+        boolean ignoreCase = (Boolean) ((Object) args[2].value());
         return matches(expression, pattern, ignoreCase);
     }
 
@@ -99,7 +99,7 @@ public class LikeOperator extends Operator<Object> {
         return pattern.matcher(expression).matches();
     }
 
-    protected static boolean matches(String expression, String pattern, boolean ignoreCase) {
+    public static boolean matches(String expression, String pattern, boolean ignoreCase) {
         return matches(expression, makePattern(pattern, ignoreCase));
     }
 
@@ -161,7 +161,7 @@ public class LikeOperator extends Operator<Object> {
         return regex.toString();
     }
 
-    private static class CompiledLike extends Scalar<Boolean, Object> {
+    private static class CompiledLike extends Scalar<Boolean, String> {
         private final FunctionInfo info;
         private final Pattern pattern;
 
@@ -177,8 +177,8 @@ public class LikeOperator extends Operator<Object> {
 
         @SafeVarargs
         @Override
-        public final Boolean evaluate(TransactionContext txnCtx, Input<Object>... args) {
-            String value = (String) args[0].value();
+        public final Boolean evaluate(TransactionContext txnCtx, Input<String>... args) {
+            String value = args[0].value();
             if (value == null) {
                 return null;
             }

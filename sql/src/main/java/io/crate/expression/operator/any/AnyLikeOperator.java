@@ -23,6 +23,7 @@ package io.crate.expression.operator.any;
 
 import io.crate.data.Input;
 import io.crate.expression.operator.LikeOperator;
+import io.crate.expression.operator.Operator;
 import io.crate.expression.operator.OperatorModule;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.BaseFunctionResolver;
@@ -43,10 +44,12 @@ import java.util.List;
 import static com.google.common.base.Preconditions.checkArgument;
 import static io.crate.expression.operator.any.AnyOperators.collectionValueToIterable;
 
-public final class AnyLikeOperator extends LikeOperator {
+public final class AnyLikeOperator extends Operator<String> {
 
     public static final String LIKE = AnyOperator.OPERATOR_PREFIX + "like";
     public static final String NOT_LIKE = AnyOperator.OPERATOR_PREFIX + "not_like";
+
+    private FunctionInfo info;
     private final TriPredicate<String, String, Boolean> matches;
 
     public static void register(OperatorModule operatorModule) {
@@ -59,8 +62,13 @@ public final class AnyLikeOperator extends LikeOperator {
     }
 
     private AnyLikeOperator(FunctionInfo info, TriPredicate<String, String, Boolean> matches) {
-        super(info);
+        this.info = info;
         this.matches = matches;
+    }
+
+    @Override
+    public FunctionInfo info() {
+        return info;
     }
 
     private Boolean doEvaluate(String pattern, Iterable<?> rightIterable, boolean ignoreCase) {
@@ -79,15 +87,15 @@ public final class AnyLikeOperator extends LikeOperator {
         return hasNull ? null : false;
     }
 
-    public Scalar<Boolean, Object> compile(List<Symbol> arguments) {
+    public Scalar<Boolean, String> compile(List<Symbol> arguments) {
         return this;
     }
 
     @Override
-    public Boolean evaluate(TransactionContext txnCtx, Input<Object>... args) {
-        String value = (String) args[0].value();
+    public Boolean evaluate(TransactionContext txnCtx, Input<String>... args) {
+        String value = args[0].value();
         Object collectionReference = args[1].value();
-        Boolean ignoreCase = (Boolean) args[2].value();
+        boolean ignoreCase = (Boolean) ((Object) args[2].value());
         if (collectionReference == null || value == null) {
             return null;
         }
