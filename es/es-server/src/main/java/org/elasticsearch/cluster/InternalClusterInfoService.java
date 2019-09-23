@@ -48,9 +48,8 @@ import org.elasticsearch.monitor.fs.FsInfo;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.ReceiveTimeoutTransportException;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -68,7 +67,7 @@ import java.util.function.Consumer;
  */
 public class InternalClusterInfoService implements ClusterInfoService, LocalNodeMasterListener, ClusterStateListener {
 
-    private static final Logger logger = LogManager.getLogger(InternalClusterInfoService.class);
+    private static final Logger LOGGER = LogManager.getLogger(InternalClusterInfoService.class);
 
     public static final Setting<TimeValue> INTERNAL_CLUSTER_INFO_UPDATE_INTERVAL_SETTING =
         Setting.timeSetting("cluster.info.update.interval", TimeValue.timeValueSeconds(30), TimeValue.timeValueSeconds(10),
@@ -79,8 +78,8 @@ public class InternalClusterInfoService implements ClusterInfoService, LocalNode
 
     private volatile TimeValue updateFrequency;
 
-    private volatile ImmutableOpenMap<String, DiskUsage> leastAvailableSpaceUsages;
-    private volatile ImmutableOpenMap<String, DiskUsage> mostAvailableSpaceUsages;
+    volatile ImmutableOpenMap<String, DiskUsage> leastAvailableSpaceUsages;
+    volatile ImmutableOpenMap<String, DiskUsage> mostAvailableSpaceUsages;
     private volatile ImmutableOpenMap<ShardRouting, String> shardRoutingToDataPath;
     private volatile ImmutableOpenMap<String, Long> shardSizes;
     private volatile boolean isMaster = false;
@@ -89,7 +88,7 @@ public class InternalClusterInfoService implements ClusterInfoService, LocalNode
     private final ClusterService clusterService;
     private final ThreadPool threadPool;
     private final NodeClient client;
-    private final List<Consumer<ClusterInfo>> listeners = Collections.synchronizedList(new ArrayList<>(1));
+    private final List<Consumer<ClusterInfo>> listeners = new CopyOnWriteArrayList<>();
 
     public InternalClusterInfoService(Settings settings, ClusterService clusterService, ThreadPool threadPool, NodeClient client) {
         this.leastAvailableSpaceUsages = ImmutableOpenMap.of();
@@ -124,8 +123,8 @@ public class InternalClusterInfoService implements ClusterInfoService, LocalNode
     @Override
     public void onMaster() {
         this.isMaster = true;
-        if (logger.isTraceEnabled()) {
-            logger.trace("I have been elected master, scheduling a ClusterInfoUpdateJob");
+        if (LOGGER.isTraceEnabled()) {
+            LOGGER.trace("I have been elected master, scheduling a ClusterInfoUpdateJob");
         }
 
         // Submit a job that will start after DEFAULT_STARTING_INTERVAL, and reschedule itself after running
@@ -137,8 +136,8 @@ public class InternalClusterInfoService implements ClusterInfoService, LocalNode
                 threadPool.executor(executorName()).execute(this::maybeRefresh);
             }
         } catch (EsRejectedExecutionException ex) {
-            if (logger.isDebugEnabled()) {
-                logger.debug("Couldn't schedule cluster info update task - node might be shutting down", ex);
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("Couldn't schedule cluster info update task - node might be shutting down", ex);
             }
         }
     }
@@ -169,17 +168,17 @@ public class InternalClusterInfoService implements ClusterInfoService, LocalNode
         }
 
         if (this.isMaster && dataNodeAdded && event.state().getNodes().getDataNodes().size() > 1) {
-            if (logger.isDebugEnabled()) {
-                logger.debug("data node was added, retrieving new cluster info");
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("data node was added, retrieving new cluster info");
             }
-            threadPool.executor(executorName()).execute(() -> maybeRefresh());
+            threadPool.executor(executorName()).execute(this::maybeRefresh);
         }
 
         if (this.isMaster && event.nodesRemoved()) {
             for (DiscoveryNode removedNode : event.nodesDelta().removedNodes()) {
                 if (removedNode.isDataNode()) {
-                    if (logger.isTraceEnabled()) {
-                        logger.trace("Removing node from cluster info: {}", removedNode.getId());
+                    if (LOGGER.isTraceEnabled()) {
+                        LOGGER.trace("Removing node from cluster info: {}", removedNode.getId());
                     }
                     if (leastAvailableSpaceUsages.containsKey(removedNode.getId())) {
                         ImmutableOpenMap.Builder<String, DiskUsage> newMaxUsages = ImmutableOpenMap.builder(leastAvailableSpaceUsages);
@@ -211,8 +210,8 @@ public class InternalClusterInfoService implements ClusterInfoService, LocalNode
     public class SubmitReschedulingClusterInfoUpdatedJob implements Runnable {
         @Override
         public void run() {
-            if (logger.isTraceEnabled()) {
-                logger.trace("Submitting new rescheduling cluster info update job");
+            if (LOGGER.isTraceEnabled()) {
+                LOGGER.trace("Submitting new rescheduling cluster info update job");
             }
             try {
                 threadPool.executor(executorName()).execute(() -> {
@@ -220,16 +219,16 @@ public class InternalClusterInfoService implements ClusterInfoService, LocalNode
                         maybeRefresh();
                     } finally { //schedule again after we refreshed
                         if (isMaster) {
-                            if (logger.isTraceEnabled()) {
-                                logger.trace("Scheduling next run for updating cluster info in: {}", updateFrequency.toString());
+                            if (LOGGER.isTraceEnabled()) {
+                                LOGGER.trace("Scheduling next run for updating cluster info in: {}", updateFrequency.toString());
                             }
                             threadPool.scheduleUnlessShuttingDown(updateFrequency, executorName(), this);
                         }
                     }
                 });
             } catch (EsRejectedExecutionException ex) {
-                if (logger.isDebugEnabled()) {
-                    logger.debug("Couldn't re-schedule cluster info update task - node might be shutting down", ex);
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug("Couldn't re-schedule cluster info update task - node might be shutting down", ex);
                 }
             }
         }
@@ -252,7 +251,7 @@ public class InternalClusterInfoService implements ClusterInfoService, LocalNode
      * Retrieve the latest indices stats, calling the listener when complete
      * @return a latch that can be used to wait for the indices stats to complete if desired
      */
-    protected CountDownLatch updateIndicesStats(final ActionListener<IndicesStatsResponse> listener) {
+    private CountDownLatch updateIndicesStats(final ActionListener<IndicesStatsResponse> listener) {
         final CountDownLatch latch = new CountDownLatch(1);
         final IndicesStatsRequest indicesStatsRequest = new IndicesStatsRequest();
         indicesStatsRequest.clear();
@@ -267,8 +266,8 @@ public class InternalClusterInfoService implements ClusterInfoService, LocalNode
         if (enabled) {
             refresh();
         } else {
-            if (logger.isTraceEnabled()) {
-                logger.trace("Skipping ClusterInfoUpdatedJob since it is disabled");
+            if (LOGGER.isTraceEnabled()) {
+                LOGGER.trace("Skipping ClusterInfoUpdatedJob since it is disabled");
             }
         }
     }
@@ -277,30 +276,34 @@ public class InternalClusterInfoService implements ClusterInfoService, LocalNode
      * Refreshes the ClusterInfo in a blocking fashion
      */
     public final ClusterInfo refresh() {
-        if (logger.isTraceEnabled()) {
-            logger.trace("Performing ClusterInfoUpdateJob");
+        if (LOGGER.isTraceEnabled()) {
+            LOGGER.trace("Performing ClusterInfoUpdateJob");
         }
         final CountDownLatch nodeLatch = updateNodeStats(new ActionListener<>() {
             @Override
-            public void onResponse(NodesStatsResponse nodeStatses) {
-                ImmutableOpenMap.Builder<String, DiskUsage> newLeastAvaiableUsages = ImmutableOpenMap.builder();
-                ImmutableOpenMap.Builder<String, DiskUsage> newMostAvaiableUsages = ImmutableOpenMap.builder();
-                fillDiskUsagePerNode(logger, nodeStatses.getNodes(), newLeastAvaiableUsages, newMostAvaiableUsages);
-                leastAvailableSpaceUsages = newLeastAvaiableUsages.build();
-                mostAvailableSpaceUsages = newMostAvaiableUsages.build();
+            public void onResponse(NodesStatsResponse nodesStatsResponse) {
+                ImmutableOpenMap.Builder<String, DiskUsage> leastAvailableUsagesBuilder = ImmutableOpenMap.builder();
+                ImmutableOpenMap.Builder<String, DiskUsage> mostAvailableUsagesBuilder = ImmutableOpenMap.builder();
+                fillDiskUsagePerNode(
+                    LOGGER,
+                    nodesStatsResponse.getNodes(),
+                    leastAvailableUsagesBuilder,
+                    mostAvailableUsagesBuilder);
+                leastAvailableSpaceUsages = leastAvailableUsagesBuilder.build();
+                mostAvailableSpaceUsages = mostAvailableUsagesBuilder.build();
             }
 
             @Override
             public void onFailure(Exception e) {
                 if (e instanceof ReceiveTimeoutTransportException) {
-                    logger.error("NodeStatsAction timed out for ClusterInfoUpdateJob", e);
+                    LOGGER.error("NodeStatsAction timed out for ClusterInfoUpdateJob", e);
                 } else {
                     if (e instanceof ClusterBlockException) {
-                        if (logger.isTraceEnabled()) {
-                            logger.trace("Failed to execute NodeStatsAction for ClusterInfoUpdateJob", e);
+                        if (LOGGER.isTraceEnabled()) {
+                            LOGGER.trace("Failed to execute NodeStatsAction for ClusterInfoUpdateJob", e);
                         }
                     } else {
-                        logger.warn("Failed to execute NodeStatsAction for ClusterInfoUpdateJob", e);
+                        LOGGER.warn("Failed to execute NodeStatsAction for ClusterInfoUpdateJob", e);
                     }
                     // we empty the usages list, to be safe - we don't know what's going on.
                     leastAvailableSpaceUsages = ImmutableOpenMap.of();
@@ -315,7 +318,7 @@ public class InternalClusterInfoService implements ClusterInfoService, LocalNode
                 ShardStats[] stats = indicesStatsResponse.getShards();
                 ImmutableOpenMap.Builder<String, Long> newShardSizes = ImmutableOpenMap.builder();
                 ImmutableOpenMap.Builder<ShardRouting, String> newShardRoutingToDataPath = ImmutableOpenMap.builder();
-                buildShardLevelInfo(logger, stats, newShardSizes, newShardRoutingToDataPath, clusterService.state());
+                buildShardLevelInfo(LOGGER, stats, newShardSizes, newShardRoutingToDataPath, clusterService.state());
                 shardSizes = newShardSizes.build();
                 shardRoutingToDataPath = newShardRoutingToDataPath.build();
             }
@@ -323,14 +326,14 @@ public class InternalClusterInfoService implements ClusterInfoService, LocalNode
             @Override
             public void onFailure(Exception e) {
                 if (e instanceof ReceiveTimeoutTransportException) {
-                    logger.error("IndicesStatsAction timed out for ClusterInfoUpdateJob", e);
+                    LOGGER.error("IndicesStatsAction timed out for ClusterInfoUpdateJob", e);
                 } else {
                     if (e instanceof ClusterBlockException) {
-                        if (logger.isTraceEnabled()) {
-                            logger.trace("Failed to execute IndicesStatsAction for ClusterInfoUpdateJob", e);
+                        if (LOGGER.isTraceEnabled()) {
+                            LOGGER.trace("Failed to execute IndicesStatsAction for ClusterInfoUpdateJob", e);
                         }
                     } else {
-                        logger.warn("Failed to execute IndicesStatsAction for ClusterInfoUpdateJob", e);
+                        LOGGER.warn("Failed to execute IndicesStatsAction for ClusterInfoUpdateJob", e);
                     }
                     // we empty the usages list, to be safe - we don't know what's going on.
                     shardSizes = ImmutableOpenMap.of();
@@ -343,24 +346,24 @@ public class InternalClusterInfoService implements ClusterInfoService, LocalNode
             nodeLatch.await(fetchTimeout.getMillis(), TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt(); // restore interrupt status
-            logger.warn("Failed to update node information for ClusterInfoUpdateJob within {} timeout", fetchTimeout);
+            LOGGER.warn("Failed to update node information for ClusterInfoUpdateJob within {} timeout", fetchTimeout);
         }
 
         try {
             indicesLatch.await(fetchTimeout.getMillis(), TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt(); // restore interrupt status
-            logger.warn("Failed to update shard information for ClusterInfoUpdateJob within {} timeout", fetchTimeout);
+            LOGGER.warn("Failed to update shard information for ClusterInfoUpdateJob within {} timeout", fetchTimeout);
         }
         ClusterInfo clusterInfo = getClusterInfo();
         boolean anyListeners = false;
         for (final Consumer<ClusterInfo> listener : listeners) {
             anyListeners = true;
             try {
-                logger.trace("notifying [{}] of new cluster info", listener);
+                LOGGER.trace("notifying [{}] of new cluster info", listener);
                 listener.accept(clusterInfo);
             } catch (Exception e) {
-                logger.info(new ParameterizedMessage("failed to notify [{}] of new cluster info", listener), e);
+                LOGGER.info(new ParameterizedMessage("failed to notify [{}] of new cluster info", listener), e);
             }
         }
         assert anyListeners : "expected to notify at least one listener";
@@ -385,10 +388,10 @@ public class InternalClusterInfoService implements ClusterInfoService, LocalNode
         }
     }
 
-    private static void fillDiskUsagePerNode(Logger logger,
-                                             List<NodeStats> nodeStatsArray,
-                                             ImmutableOpenMap.Builder<String, DiskUsage> newLeastAvaiableUsages,
-                                             ImmutableOpenMap.Builder<String, DiskUsage> newMostAvaiableUsages) {
+    static void fillDiskUsagePerNode(Logger logger,
+                                     List<NodeStats> nodeStatsArray,
+                                     ImmutableOpenMap.Builder<String, DiskUsage> newLeastAvaiableUsages,
+                                     ImmutableOpenMap.Builder<String, DiskUsage> newMostAvaiableUsages) {
         boolean traceEnabled = logger.isTraceEnabled();
         for (NodeStats nodeStats : nodeStatsArray) {
             if (nodeStats.getFs() == null) {
@@ -400,7 +403,7 @@ public class InternalClusterInfoService implements ClusterInfoService, LocalNode
                     if (leastAvailablePath == null) {
                         assert mostAvailablePath == null;
                         mostAvailablePath = leastAvailablePath = info;
-                    } else if (leastAvailablePath.getAvailable().getBytes() > info.getAvailable().getBytes()){
+                    } else if (leastAvailablePath.getAvailable().getBytes() > info.getAvailable().getBytes()) {
                         leastAvailablePath = info;
                     } else if (mostAvailablePath.getAvailable().getBytes() < info.getAvailable().getBytes()) {
                         mostAvailablePath = info;

@@ -160,6 +160,14 @@ Changes
 Fixes
 =====
 
+- Fixed bug in the disk threshold decider logic that would ignore to account
+  new relocating shard (``STARTED`` to ``RELOCATING``) when deciding how to
+  allocate or relocate shards with respect to
+  :ref:`cluster.routing.allocation.disk.watermark.low
+  <cluster.routing.allocation.disk.watermark.low>` and
+  :ref:`cluster.routing.allocation.disk.watermark.high
+  <cluster.routing.allocation.disk.watermark.high>` settings.
+
 - Fixed regression that prevented shards from reallocation when a node passes
   over :ref:`cluster.routing.allocation.disk.watermark.high
   <cluster.routing.allocation.disk.watermark.high>`.
