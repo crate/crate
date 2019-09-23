@@ -87,10 +87,6 @@ public final class AnyLikeOperator extends Operator<String> {
         return hasNull ? null : false;
     }
 
-    public Scalar<Boolean, String> compile(List<Symbol> arguments) {
-        return this;
-    }
-
     @Override
     public Boolean evaluate(TransactionContext txnCtx, Input<String>... args) {
         String value = args[0].value();
