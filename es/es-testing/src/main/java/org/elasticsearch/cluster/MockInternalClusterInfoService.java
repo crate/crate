@@ -128,9 +128,9 @@ public class MockInternalClusterInfoService extends InternalClusterInfoService {
      * ClusterInfo that always points to DevNull.
      */
     public static class DevNullClusterInfo extends ClusterInfo {
-        DevNullClusterInfo(ImmutableOpenMap<String, DiskUsage> leastAvailableSpaceUsage,
-                           ImmutableOpenMap<String, DiskUsage> mostAvailableSpaceUsage,
-                           ImmutableOpenMap<String, Long> shardSizes) {
+        public DevNullClusterInfo(ImmutableOpenMap<String, DiskUsage> leastAvailableSpaceUsage,
+                                  ImmutableOpenMap<String, DiskUsage> mostAvailableSpaceUsage,
+                                  ImmutableOpenMap<String, Long> shardSizes) {
             super(leastAvailableSpaceUsage, mostAvailableSpaceUsage, shardSizes, null);
         }
 
