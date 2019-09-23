@@ -40,10 +40,10 @@ import java.util.List;
 
 abstract class AbstractAnyQuery implements FunctionToQuery {
 
-    private Boolean ignoreCase;
+    private boolean ignoreCase;
 
     boolean ignoreCase() {
-        return null != ignoreCase ? ignoreCase.booleanValue() : false;
+        return ignoreCase;
     }
 
     @Override
