@@ -115,13 +115,13 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<HttpPipelinedReq
     protected void channelRead0(ChannelHandlerContext ctx, HttpPipelinedRequest msg) {
         FullHttpRequest request = (FullHttpRequest) msg.last();
         if (request.uri().startsWith("/_sql")) {
-            ensureSession(request);
+            Session session = ensureSession(request);
             Map<String, List<String>> parameters = new QueryStringDecoder(request.uri()).parameters();
             ByteBuf content = request.content();
-            handleSQLRequest(content, paramContainFlag(parameters, "types"))
+            handleSQLRequest(session, content, paramContainFlag(parameters, "types"))
                 .whenComplete((result, t) -> {
                     try {
-                        sendResponse(ctx, msg, request, parameters, result, t);
+                        sendResponse(session, ctx, msg, request, parameters, result, t);
                     } catch (Throwable ex) {
                         LOGGER.error("Error sending response", ex);
                         throw ex;
@@ -152,7 +152,8 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<HttpPipelinedReq
         super.channelUnregistered(ctx);
     }
 
-    private void sendResponse(ChannelHandlerContext ctx,
+    private void sendResponse(Session session,
+                              ChannelHandlerContext ctx,
                               HttpPipelinedRequest msg,
                               FullHttpRequest request,
                               Map<String, List<String>> parameters,
@@ -198,7 +199,7 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<HttpPipelinedReq
                    && !HttpHeaderValues.KEEP_ALIVE.contentEqualsIgnoreCase(headers.get(HttpHeaderNames.CONNECTION)));
     }
 
-    private CompletableFuture<XContentBuilder> handleSQLRequest(ByteBuf content, boolean includeTypes) {
+    private CompletableFuture<XContentBuilder> handleSQLRequest(Session session, ByteBuf content, boolean includeTypes) {
         SQLRequestParseContext parseContext;
         try {
             parseContext = SQLRequestParser.parseSource(Netty4Utils.toBytesReference(content));
@@ -222,10 +223,11 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<HttpPipelinedReq
         }
     }
 
-    private void ensureSession(FullHttpRequest request) {
+    private Session ensureSession(FullHttpRequest request) {
         String defaultSchema = request.headers().get(REQUEST_HEADER_SCHEMA);
         User user = userFromAuthHeader(request.headers().get(HttpHeaderNames.AUTHORIZATION));
         Set<Option> options = optionsFromUserHeader(request.headers().get(REQUEST_HEADER_USER));
+        Session session = this.session;
         if (session == null) {
             session = sqlOperations.createSession(defaultSchema, user, options, DEFAULT_SOFT_LIMIT);
         } else if (optionsChanged(user, options, session.sessionContext())) {
@@ -240,6 +242,8 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<HttpPipelinedReq
                 sessionContext.setSearchPath(defaultSchema);
             }
         }
+        this.session = session;
+        return session;
     }
 
     private static boolean optionsChanged(User user, Set<Option> options, SessionContext sessionContext) {

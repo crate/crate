@@ -51,4 +51,5 @@ None
 Fixes
 =====
 
-None
+- Removed a case where a ``NullPointerException`` was logged if a HTTP client
+  disconnected before a pending response could be sent to the client.
