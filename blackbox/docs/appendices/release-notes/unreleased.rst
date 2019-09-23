@@ -160,6 +160,9 @@ Changes
 Fixes
 =====
 
+- Removed a case where a ``NullPointerException`` was logged if a HTTP client
+  disconnected before a pending response could be sent to the client.
+
 - Fail the storage engine if indexing on a replica shard fails after it was
   successfully done on a primary shard. It prevents replica and primary shards
   from going out of sync.
