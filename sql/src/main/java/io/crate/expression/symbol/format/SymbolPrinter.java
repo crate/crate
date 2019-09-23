@@ -196,7 +196,7 @@ public final class SymbolPrinter {
 
         private void printAnyOperator(Function function, SymbolPrinterContext context) {
             List<Symbol> args = function.arguments();
-            assert args.size() == 2 || args.size() == 3 : "function's number of arguments must be 2";
+            assert args.size() == 2 || args.size() == 3 : "function's number of arguments must be 2, or 3";
             context.builder.append(PAREN_OPEN); // wrap operator in parens to ensure precedence
             args.get(0).accept(this, context);
 
