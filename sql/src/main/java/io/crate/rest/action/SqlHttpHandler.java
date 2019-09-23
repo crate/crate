@@ -114,13 +114,13 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest request) {
         if (request.uri().startsWith("/_sql")) {
-            ensureSession(request);
+            Session session = ensureSession(request);
             Map<String, List<String>> parameters = new QueryStringDecoder(request.uri()).parameters();
             ByteBuf content = request.content();
-            handleSQLRequest(content, paramContainFlag(parameters, "types"))
+            handleSQLRequest(session, content, paramContainFlag(parameters, "types"))
                 .whenComplete((result, t) -> {
                     try {
-                        sendResponse(ctx, request, parameters, result, t);
+                        sendResponse(session, ctx, request, parameters, result, t);
                     } catch (Throwable ex) {
                         LOGGER.error("Error sending response", ex);
                         throw ex;
@@ -150,7 +150,8 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         super.channelUnregistered(ctx);
     }
 
-    private void sendResponse(ChannelHandlerContext ctx,
+    private void sendResponse(Session session,
+                              ChannelHandlerContext ctx,
                               FullHttpRequest request,
                               Map<String, List<String>> parameters,
                               XContentBuilder result,
@@ -188,7 +189,7 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         ctx.writeAndFlush(resp, promise);
     }
 
-    private CompletableFuture<XContentBuilder> handleSQLRequest(ByteBuf content, boolean includeTypes) {
+    private CompletableFuture<XContentBuilder> handleSQLRequest(Session session, ByteBuf content, boolean includeTypes) {
         SQLRequestParseContext parseContext;
         try {
             parseContext = SQLRequestParser.parseSource(Netty4Utils.toBytesReference(content));
@@ -212,10 +213,11 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         }
     }
 
-    private void ensureSession(FullHttpRequest request) {
+    private Session ensureSession(FullHttpRequest request) {
         String defaultSchema = request.headers().get(REQUEST_HEADER_SCHEMA);
         User user = userFromAuthHeader(request.headers().get(HttpHeaderNames.AUTHORIZATION));
         Set<Option> options = optionsFromUserHeader(request.headers().get(REQUEST_HEADER_USER));
+        Session session = this.session;
         if (session == null) {
             session = sqlOperations.createSession(defaultSchema, user, options);
         } else if (optionsChanged(user, options, session.sessionContext())) {
@@ -230,6 +232,8 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
                 sessionContext.setSearchPath(defaultSchema);
             }
         }
+        this.session = session;
+        return session;
     }
 
     private static boolean optionsChanged(User user, Set<Option> options, SessionContext sessionContext) {
