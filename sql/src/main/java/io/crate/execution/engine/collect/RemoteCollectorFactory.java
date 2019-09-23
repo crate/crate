@@ -24,27 +24,27 @@ package io.crate.execution.engine.collect;
 
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntIndexedContainer;
+import com.google.common.collect.Lists;
 import io.crate.common.collections.TreeMapBuilder;
 import io.crate.data.BatchIterator;
 import io.crate.data.Buckets;
 import io.crate.data.CollectingBatchIterator;
 import io.crate.data.CollectingRowConsumer;
 import io.crate.data.Row;
-import io.crate.data.RowConsumer;
 import io.crate.exceptions.Exceptions;
 import io.crate.execution.TransportActionProvider;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.Projections;
 import io.crate.execution.engine.collect.collectors.RemoteCollector;
-import io.crate.execution.engine.collect.collectors.ShardStateAwareRemoteCollector;
+import io.crate.execution.engine.collect.collectors.ShardStateObserver;
 import io.crate.execution.engine.collect.sources.ShardCollectorProviderFactory;
 import io.crate.execution.jobs.TasksService;
 import io.crate.metadata.Routing;
 import io.crate.planner.distribution.DistributionInfo;
+import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -53,8 +53,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
-import java.util.function.Function;
+import java.util.function.Consumer;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
@@ -98,73 +99,64 @@ public class RemoteCollectorFactory {
                                               RoutedCollectPhase collectPhase,
                                               CollectTask collectTask,
                                               ShardCollectorProviderFactory shardCollectorProviderFactory) {
-        final UUID childJobId = UUID.randomUUID(); // new job because subContexts can't be merged into an existing job
-
-        Collector<Row, ?, List<Object[]>> listCollector = Collectors.mapping(Row::materialize, Collectors.toList());
-        CollectingRowConsumer<?, List<Object[]>> consumer = new CollectingRowConsumer<>(listCollector);
-
-        ShardStateAwareRemoteCollector shardStateAwareRemoteCollector = new ShardStateAwareRemoteCollector(
-            shardId,
-            consumer,
-            clusterService,
-            indicesService,
-            getLocalCollectorProvider(shardCollectorProviderFactory, collectPhase, collectTask, consumer),
-            getRemoteCollectorProvider(childJobId, shardId, collectPhase, collectTask, consumer),
-            searchTp,
-            threadPool.getThreadContext());
-
+        ShardStateObserver shardStateObserver = new ShardStateObserver(clusterService, threadPool.getThreadContext());
+        CompletableFuture<ShardRouting> shardBecameActive = shardStateObserver.waitForActiveShard(shardId);
+        Runnable onClose = () -> {};
+        Consumer<Throwable> kill = killReason -> {
+            shardBecameActive.cancel(true);
+            shardBecameActive.completeExceptionally(killReason);
+        };
         return CollectingBatchIterator.newInstance(
-            () -> {},
-            shardStateAwareRemoteCollector::kill,
-            () -> {
-                shardStateAwareRemoteCollector.doCollect();
-                return consumer.completionFuture().thenApply(results -> results.stream().map(Buckets.arrayToSharedRow())::iterator);
-            },
+            onClose,
+            kill,
+            () -> shardBecameActive.thenCompose(
+                activePrimaryRouting -> retrieveRows(activePrimaryRouting, collectPhase, collectTask, shardCollectorProviderFactory)),
             true
         );
     }
 
-    private Function<IndexShard, BatchIterator<Row>> getLocalCollectorProvider(ShardCollectorProviderFactory shardCollectorProviderFactory,
-                                                                               RoutedCollectPhase collectPhase,
-                                                                               CollectTask collectTask,
-                                                                               RowConsumer consumer) {
-        return indexShard -> {
+    private CompletableFuture<List<Row>> retrieveRows(ShardRouting activePrimaryRouting,
+                                                      RoutedCollectPhase collectPhase,
+                                                      CollectTask collectTask,
+                                                      ShardCollectorProviderFactory shardCollectorProviderFactory) {
+        Collector<Row, ?, List<Object[]>> listCollector = Collectors.mapping(Row::materialize, Collectors.toList());
+        CollectingRowConsumer<?, List<Object[]>> consumer = new CollectingRowConsumer<>(listCollector);
+        String nodeId = activePrimaryRouting.currentNodeId();
+        String localNodeId = clusterService.localNode().getId();
+        if (localNodeId.equalsIgnoreCase(nodeId)) {
+            var indexShard = indicesService.indexServiceSafe(activePrimaryRouting.index()).getShard(activePrimaryRouting.shardId().id());
+            var collectorProvider = shardCollectorProviderFactory.create(indexShard);
+            BatchIterator<Row> it;
             try {
-                return shardCollectorProviderFactory
-                    .create(indexShard)
-                    .getIterator(collectPhase, consumer.requiresScroll(), collectTask);
+                it = collectorProvider.getIterator(collectPhase, consumer.requiresScroll(), collectTask);
             } catch (Exception e) {
-                Exceptions.rethrowUnchecked(e);
-                return null;
+                return Exceptions.rethrowRuntimeException(e);
             }
-        };
+            consumer.accept(it, null);
+        } else {
+            UUID childJobId = UUID.randomUUID();
+            RemoteCollector remoteCollector = new RemoteCollector(
+                childJobId,
+                collectTask.txnCtx().sessionSettings(),
+                localNodeId,
+                nodeId,
+                transportActionProvider.transportJobInitAction(),
+                transportActionProvider.transportKillJobsNodeAction(),
+                searchTp,
+                tasksService,
+                collectTask.queryPhaseRamAccountingContext(),
+                consumer,
+                createRemoteCollectPhase(childJobId, collectPhase, activePrimaryRouting.shardId(), nodeId)
+            );
+            remoteCollector.doCollect();
+        }
+        return consumer.completionFuture().thenApply(rows -> Lists.transform(rows, Buckets.arrayToSharedRow()::apply));
     }
 
-    private Function<String, RemoteCollector> getRemoteCollectorProvider(UUID jobId,
-                                                                         ShardId shardId,
-                                                                         RoutedCollectPhase collectPhase,
-                                                                         CollectTask collectTask,
-                                                                         RowConsumer consumer) {
-        String localNode = clusterService.localNode().getId();
-        return remoteNode -> new RemoteCollector(
-            jobId,
-            collectTask.txnCtx().sessionSettings(),
-            localNode,
-            remoteNode,
-            transportActionProvider.transportJobInitAction(),
-            transportActionProvider.transportKillJobsNodeAction(),
-            searchTp,
-            tasksService,
-            collectTask.queryPhaseRamAccountingContext(),
-            consumer,
-            createRemoteCollectPhase(jobId, collectPhase, shardId, remoteNode)
-        );
-    }
-
-    private RoutedCollectPhase createRemoteCollectPhase(UUID childJobId,
-                                                        RoutedCollectPhase collectPhase,
-                                                        ShardId shardId,
-                                                        String nodeId) {
+    private static RoutedCollectPhase createRemoteCollectPhase(UUID childJobId,
+                                                               RoutedCollectPhase collectPhase,
+                                                               ShardId shardId,
+                                                               String nodeId) {
 
         Routing routing = new Routing(TreeMapBuilder.<String, Map<String, IntIndexedContainer>>newMapBuilder()
             .put(nodeId, TreeMapBuilder.<String, IntIndexedContainer>newMapBuilder()
