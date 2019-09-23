@@ -46,5 +46,9 @@ None
 Fixes
 =====
 
+- Fixed regression that prevented shards from reallocation when a node passes
+  over :ref:`cluster.routing.allocation.disk.watermark.high
+  <cluster.routing.allocation.disk.watermark.high>`.
+
 - Removed a case where a ``NullPointerException`` was logged if a HTTP client
   disconnected before a pending response could be sent to the client.
