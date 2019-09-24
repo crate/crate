@@ -22,7 +22,7 @@
 
 package io.crate.lucene;
 
-import io.crate.expression.operator.LikeOperator;
+import io.crate.expression.operator.LikeOperators;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.Reference;
 import org.apache.lucene.index.Term;
@@ -43,9 +43,13 @@ class AnyNotLikeQuery extends AbstractAnyQuery {
         return String.format(Locale.ENGLISH, "~(%s)", wildCard);
     }
 
+    AnyNotLikeQuery(boolean ignoreCase) {
+        super(ignoreCase);
+    }
+
     @Override
     protected Query literalMatchesAnyArrayRef(Literal candidate, Reference array, LuceneQueryBuilder.Context context) throws IOException {
-        String regexString = LikeOperator.patternToRegex((String) candidate.value(), LikeOperator.DEFAULT_ESCAPE, false);
+        String regexString = LikeOperators.patternToRegex((String) candidate.value(), LikeOperators.DEFAULT_ESCAPE, false);
         regexString = regexString.substring(1, regexString.length() - 1);
         String notLike = negateWildcard(regexString);
 
@@ -65,7 +69,7 @@ class AnyNotLikeQuery extends AbstractAnyQuery {
         BooleanQuery.Builder andLikeQueries = new BooleanQuery.Builder();
         for (Object value : toIterable(array.value())) {
             andLikeQueries.add(
-                LikeQuery.like(candidate.valueType(), fieldType, value),
+                LikeQuery.like(candidate.valueType(), fieldType, value, ignoreCase),
                 BooleanClause.Occur.MUST);
         }
         return Queries.not(andLikeQueries.build());

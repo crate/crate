@@ -22,7 +22,6 @@
 
 package io.crate.expression.operator;
 
-import io.crate.expression.operator.any.AnyLikeOperator;
 import io.crate.expression.operator.any.AnyOperators;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
@@ -62,12 +61,11 @@ public class OperatorModule extends AbstractModule {
         LteOperator.register(this);
         GtOperator.register(this);
         GteOperator.register(this);
-        LikeOperator.register(this);
         RegexpMatchOperator.register(this);
         RegexpMatchCaseInsensitiveOperator.register(this);
 
         AnyOperators.register(this);
-        AnyLikeOperator.register(this);
+        LikeOperators.register(this);
 
         // bind all registered functions and resolver
         // by doing it here instead of the register functions, plugins can also use the

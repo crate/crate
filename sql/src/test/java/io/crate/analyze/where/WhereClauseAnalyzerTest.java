@@ -32,7 +32,7 @@ import io.crate.data.Row;
 import io.crate.exceptions.VersioninigValidationException;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.operator.EqOperator;
-import io.crate.expression.operator.any.AnyLikeOperator;
+import io.crate.expression.operator.LikeOperators;
 import io.crate.expression.operator.any.AnyOperators;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.PartitionName;
@@ -327,13 +327,25 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testAnyLikeConvertableArrayTypeLiterals() throws Exception {
         WhereClause whereClause = analyzeSelectWhere("select * from users where name like any([1, 2, 3])");
-        assertThat(whereClause.query(), isFunction(AnyLikeOperator.LIKE, ImmutableList.<DataType>of(DataTypes.STRING, new ArrayType(DataTypes.STRING))));
+        assertThat(whereClause.query(), isFunction(LikeOperators.ANY_LIKE, ImmutableList.<DataType>of(DataTypes.STRING, new ArrayType(DataTypes.STRING))));
+    }
+
+    @Test
+    public void testAnyILikeConvertableArrayTypeLiterals() throws Exception {
+        WhereClause whereClause = analyzeSelectWhere("select * from users where name ilike any([1, 2, 3])");
+        assertThat(whereClause.query(), isFunction(LikeOperators.ANY_ILIKE, ImmutableList.<DataType>of(DataTypes.STRING, new ArrayType(DataTypes.STRING))));
     }
 
     @Test
     public void testAnyLikeArrayLiteral() throws Exception {
         WhereClause whereClause = analyzeSelectWhere("select * from users where name like any(['a', 'b', 'c'])");
-        assertThat(whereClause.query(), isFunction(AnyLikeOperator.LIKE, ImmutableList.<DataType>of(DataTypes.STRING, new ArrayType(DataTypes.STRING))));
+        assertThat(whereClause.query(), isFunction(LikeOperators.ANY_LIKE, ImmutableList.<DataType>of(DataTypes.STRING, new ArrayType(DataTypes.STRING))));
+    }
+
+    @Test
+    public void testAnyILikeArrayLiteral() throws Exception {
+        WhereClause whereClause = analyzeSelectWhere("select * from users where name ilike any(['a', 'b', 'c'])");
+        assertThat(whereClause.query(), isFunction(LikeOperators.ANY_ILIKE, ImmutableList.<DataType>of(DataTypes.STRING, new ArrayType(DataTypes.STRING))));
     }
 
     @Test

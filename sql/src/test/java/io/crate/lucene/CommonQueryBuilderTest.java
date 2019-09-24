@@ -279,6 +279,18 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     }
 
     @Test
+    public void testILikeAnyOnArrayLiteral() throws Exception {
+        Query likeQuery = convert("name ilike any (['A', 'B', 'B'])");
+        assertThat(likeQuery, instanceOf(BooleanQuery.class));
+        BooleanQuery likeBQuery = (BooleanQuery) likeQuery;
+        assertThat(likeBQuery.clauses().size(), is(3));
+        for (int i = 0; i < 2; i++) {
+            Query filteredQuery = likeBQuery.clauses().get(i).getQuery();
+            assertThat(filteredQuery, instanceOf(CrateRegexQuery.class));
+        }
+    }
+
+    @Test
     public void testNotLikeAnyOnArrayLiteral() throws Exception {
         Query notLikeQuery = convert("name not like any (['a', 'b', 'c'])");
         assertThat(notLikeQuery, instanceOf(BooleanQuery.class));
@@ -290,6 +302,21 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
         for (BooleanClause innerClause : ((BooleanQuery) clause.getQuery()).clauses()) {
             assertThat(innerClause.getOccur(), is(BooleanClause.Occur.MUST));
             assertThat(innerClause.getQuery(), instanceOf(WildcardQuery.class));
+        }
+    }
+
+    @Test
+    public void testNotILikeAnyOnArrayLiteral() throws Exception {
+        Query notLikeQuery = convert("name not ilike any (['A', 'B', 'C'])");
+        assertThat(notLikeQuery, instanceOf(BooleanQuery.class));
+        BooleanQuery notLikeBQuery = (BooleanQuery) notLikeQuery;
+        assertThat(notLikeBQuery.clauses(), hasSize(2));
+        BooleanClause clause = notLikeBQuery.clauses().get(1);
+        assertThat(clause.getOccur(), is(BooleanClause.Occur.MUST_NOT));
+        assertThat(((BooleanQuery) clause.getQuery()).clauses(), hasSize(3));
+        for (BooleanClause innerClause : ((BooleanQuery) clause.getQuery()).clauses()) {
+            assertThat(innerClause.getOccur(), is(BooleanClause.Occur.MUST));
+            assertThat(innerClause.getQuery(), instanceOf(CrateRegexQuery.class));
         }
     }
 
@@ -344,7 +371,7 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
 
     @Test
     public void testLikeWithBothSidesReferences() throws Exception {
-        Query query = convert("name like name");
+        Query query = convert("name ilike name");
         assertThat(query, instanceOf(GenericFunctionQuery.class));
     }
 

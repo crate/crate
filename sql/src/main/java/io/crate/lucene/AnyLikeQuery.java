@@ -32,9 +32,13 @@ import java.io.IOException;
 
 class AnyLikeQuery extends AbstractAnyQuery {
 
+    AnyLikeQuery(boolean ignoreCase) {
+        super(ignoreCase);
+    }
+
     @Override
     protected Query literalMatchesAnyArrayRef(Literal candidate, Reference array, LuceneQueryBuilder.Context context) throws IOException {
-        return LikeQuery.toQuery(array, candidate.value(), context);
+        return LikeQuery.toQuery(array, candidate.value(), context, ignoreCase);
     }
 
     @Override
@@ -43,7 +47,7 @@ class AnyLikeQuery extends AbstractAnyQuery {
         BooleanQuery.Builder booleanQuery = new BooleanQuery.Builder();
         booleanQuery.setMinimumNumberShouldMatch(1);
         for (Object value : toIterable(array.value())) {
-            booleanQuery.add(LikeQuery.toQuery(candidate, value, context), BooleanClause.Occur.SHOULD);
+            booleanQuery.add(LikeQuery.toQuery(candidate, value, context, ignoreCase), BooleanClause.Occur.SHOULD);
         }
         return booleanQuery.build();
     }
