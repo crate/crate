@@ -57,7 +57,7 @@ public class AzureSeedHostsProviderTest {
 
     private static final String rgName = "my_resourcegroup";
     private static final String vnetName = "myVnet";
-    private static final String subnetname = "mySubnet2";
+    private static final String subnetName = "mySubnet2";
     private Logger logger;
 
     private NetworkResourceProviderClient providerClient = mock(NetworkResourceProviderClientImpl.class);
@@ -146,18 +146,18 @@ public class AzureSeedHostsProviderTest {
         when(publicIpAddressOperations.get(rgName, "ip_public1")).thenReturn(publicIpAddressGetResponse);
         when(publicIpAddressGetResponse.getPublicIpAddress()).thenReturn(publicIpAddress);
 
-        List<String> networkAddresses = AzureSeedHostsProvider.listIPAddresses(providerClient, rgName, vnetName, subnetname, "subnet",
+        List<String> networkAddresses = AzureSeedHostsProvider.listIPAddresses(providerClient, rgName, vnetName, subnetName, "subnet",
                                                                                AzureSeedHostsProvider.HostType.PRIVATE_IP, logger);
         assertEquals(networkAddresses.size(), 1);
         assertEquals(networkAddresses.get(0), "10.0.0.5");
 
-        List<String> networkAddresses2 = AzureSeedHostsProvider.listIPAddresses(providerClient, rgName, vnetName, subnetname, "vnet",
+        List<String> networkAddresses2 = AzureSeedHostsProvider.listIPAddresses(providerClient, rgName, vnetName, subnetName, "vnet",
                                                                                 AzureSeedHostsProvider.HostType.PRIVATE_IP, logger);
         assertEquals(networkAddresses2.size(), 2);
         assertEquals(networkAddresses2.contains("10.0.0.5"), true);
         assertEquals(networkAddresses2.contains("10.0.0.4"), true);
 
-        List<String> networkAddresses3 = AzureSeedHostsProvider.listIPAddresses(providerClient, rgName, vnetName, subnetname, "vnet",
+        List<String> networkAddresses3 = AzureSeedHostsProvider.listIPAddresses(providerClient, rgName, vnetName, subnetName, "vnet",
                                                                                 AzureSeedHostsProvider.HostType.PUBLIC_IP, logger);
         assertEquals(networkAddresses3.size(), 1);
         assertEquals(networkAddresses3.contains("33.33.33.33"), true);

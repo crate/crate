@@ -83,7 +83,7 @@ public class HyperLogLogDistinctAggregationTest extends AggregationTest {
     }
 
     @Test
-    public void testCallWithInvalidPrecisionResultsinAnError() throws Exception {
+    public void testCallWithInvalidPrecisionResultsInAnError() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("precision must be >= 4 and <= 18");
         executeAggregationWithPrecision(DataTypes.INTEGER, new Object[][]{{4, 1}});
@@ -102,7 +102,7 @@ public class HyperLogLogDistinctAggregationTest extends AggregationTest {
     }
 
     @Test
-    public void testMurmu3HashCalculationsForAllTypes() throws Exception {
+    public void testMurmur3HashCalculationsForAllTypes() throws Exception {
         // double types
         assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.DOUBLE).hash(1.3d),
             is(3706823019612663850L));
