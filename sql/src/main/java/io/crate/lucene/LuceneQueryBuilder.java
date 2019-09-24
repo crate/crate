@@ -34,13 +34,12 @@ import io.crate.expression.operator.AndOperator;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.GtOperator;
 import io.crate.expression.operator.GteOperator;
-import io.crate.expression.operator.LikeOperator;
+import io.crate.expression.operator.LikeOperators;
 import io.crate.expression.operator.LtOperator;
 import io.crate.expression.operator.LteOperator;
 import io.crate.expression.operator.OrOperator;
 import io.crate.expression.operator.RegexpMatchCaseInsensitiveOperator;
 import io.crate.expression.operator.RegexpMatchOperator;
-import io.crate.expression.operator.any.AnyLikeOperator;
 import io.crate.expression.operator.any.AnyOperators;
 import io.crate.expression.predicate.IsNullPredicate;
 import io.crate.expression.predicate.MatchPredicate;
@@ -264,8 +263,8 @@ public class LuceneQueryBuilder {
                         AnyOperators.Names.GT,
                         AnyOperators.Names.LTE,
                         AnyOperators.Names.LT,
-                        AnyLikeOperator.LIKE,
-                        AnyLikeOperator.NOT_LIKE,
+                        LikeOperators.ANY_LIKE,
+                        LikeOperators.ANY_NOT_LIKE,
                         CoalesceFunction.NAME);
 
                 private boolean isStrictThreeValuedLogicFunction(Function symbol) {
@@ -387,7 +386,8 @@ public class LuceneQueryBuilder {
                 .put(LteOperator.NAME, LTE_QUERY)
                 .put(GteOperator.NAME, GTE_QUERY)
                 .put(GtOperator.NAME, GT_QUERY)
-                .put(LikeOperator.NAME, new LikeQuery())
+                .put(LikeOperators.OP_LIKE, new LikeQuery(false))
+                .put(LikeOperators.OP_ILIKE, new LikeQuery(true))
                 .put(NotPredicate.NAME, new NotQuery())
                 .put(Ignore3vlFunction.NAME, new Ignore3vlQuery())
                 .put(IsNullPredicate.NAME, new IsNullQuery())
@@ -398,8 +398,10 @@ public class LuceneQueryBuilder {
                 .put(AnyOperators.Names.LTE, new AnyRangeQuery("gte", "lte"))
                 .put(AnyOperators.Names.GTE, new AnyRangeQuery("lte", "gte"))
                 .put(AnyOperators.Names.GT, new AnyRangeQuery("lt", "gt"))
-                .put(AnyLikeOperator.LIKE, new AnyLikeQuery())
-                .put(AnyLikeOperator.NOT_LIKE, new AnyNotLikeQuery())
+                .put(LikeOperators.ANY_LIKE, new AnyLikeQuery(false))
+                .put(LikeOperators.ANY_NOT_LIKE, new AnyNotLikeQuery(false))
+                .put(LikeOperators.ANY_ILIKE, new AnyLikeQuery(true))
+                .put(LikeOperators.ANY_NOT_ILIKE, new AnyNotLikeQuery(true))
                 .put(RegexpMatchOperator.NAME, new RegexpMatchQuery())
                 .put(RegexpMatchCaseInsensitiveOperator.NAME, new RegexMatchQueryCaseInsensitive())
                 .build();

@@ -46,12 +46,11 @@ import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.execution.engine.aggregation.impl.CollectSetAggregation;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.operator.EqOperator;
-import io.crate.expression.operator.LikeOperator;
+import io.crate.expression.operator.LikeOperators;
 import io.crate.expression.operator.Operator;
 import io.crate.expression.operator.OrOperator;
 import io.crate.expression.operator.RegexpMatchCaseInsensitiveOperator;
 import io.crate.expression.operator.RegexpMatchOperator;
-import io.crate.expression.operator.any.AnyLikeOperator;
 import io.crate.expression.operator.any.AnyOperator;
 import io.crate.expression.predicate.NotPredicate;
 import io.crate.expression.scalar.ExtractFunctions;
@@ -784,14 +783,9 @@ public class ExpressionAnalyzer {
             }
             Symbol arraySymbol = node.getValue().accept(this, context);
             Symbol leftSymbol = node.getPattern().accept(this, context);
-
-            String operatorName = node.inverse() ? AnyLikeOperator.NOT_LIKE : AnyLikeOperator.LIKE;
-
-            ImmutableList<Symbol> arguments = ImmutableList.of(leftSymbol, arraySymbol);
-
             return allocateFunction(
-                operatorName,
-                arguments,
+                LikeOperators.arrayOperatorName(node.inverse(), node.ignoreCase()),
+                ImmutableList.of(leftSymbol, arraySymbol),
                 context);
         }
 
@@ -803,7 +797,7 @@ public class ExpressionAnalyzer {
             Symbol expression = node.getValue().accept(this, context);
             Symbol pattern = node.getPattern().accept(this, context);
             return allocateFunction(
-                LikeOperator.NAME,
+                LikeOperators.arrayOperatorName(node.ignoreCase()),
                 ImmutableList.of(expression, pattern),
                 context);
         }

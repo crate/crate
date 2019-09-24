@@ -28,14 +28,16 @@ public class LikePredicate
     private final Expression value;
     private final Expression pattern;
     private final Expression escape;
+    private final boolean ignoreCase;
 
-    public LikePredicate(Expression value, Expression pattern, Expression escape) {
+    public LikePredicate(Expression value, Expression pattern, Expression escape, boolean ignoreCase) {
         Preconditions.checkNotNull(value, "value is null");
         Preconditions.checkNotNull(pattern, "pattern is null");
 
         this.value = value;
         this.pattern = pattern;
         this.escape = escape;
+        this.ignoreCase = ignoreCase;
     }
 
     public Expression getValue() {
@@ -48,6 +50,10 @@ public class LikePredicate
 
     public Expression getEscape() {
         return escape;
+    }
+
+    public boolean ignoreCase() {
+        return ignoreCase;
     }
 
     @Override
@@ -75,7 +81,9 @@ public class LikePredicate
         if (!value.equals(that.value)) {
             return false;
         }
-
+        if (ignoreCase != that.ignoreCase) {
+            return false;
+        }
         return true;
     }
 
@@ -84,6 +92,7 @@ public class LikePredicate
         int result = value.hashCode();
         result = 31 * result + pattern.hashCode();
         result = 31 * result + (escape != null ? escape.hashCode() : 0);
+        result = 31 * result + (ignoreCase ? 1 : 0);
         return result;
     }
 }

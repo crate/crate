@@ -62,6 +62,9 @@ Deprecations
 Changes
 =======
 
+- Added support for the operator :ref:`ILIKE <sql_dql_like>`, the case
+  insensitive complement to ``LIKE``.
+
 - Reduced recovery time by sending file-chunks concurrently. It applies
   only for when transport communication is secured or compressed. The number of
   chunks is controlled by the :ref:`indices.recovery.max_concurrent_file_chunks

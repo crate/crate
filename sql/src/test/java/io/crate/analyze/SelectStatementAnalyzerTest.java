@@ -35,7 +35,7 @@ import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.execution.engine.aggregation.impl.AverageAggregation;
 import io.crate.expression.operator.EqOperator;
-import io.crate.expression.operator.LikeOperator;
+import io.crate.expression.operator.LikeOperators;
 import io.crate.expression.operator.LteOperator;
 import io.crate.expression.operator.OrOperator;
 import io.crate.expression.operator.RegexpMatchOperator;
@@ -584,7 +584,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
         assertNotNull(relation.where());
         Function whereClause = (Function) relation.where().query();
-        assertThat(whereClause.info().ident().name(), is(LikeOperator.NAME));
+        assertThat(whereClause.info().ident().name(), is(LikeOperators.OP_LIKE));
         ImmutableList<DataType> argumentTypes = ImmutableList.of(DataTypes.STRING, DataTypes.STRING);
         assertEquals(argumentTypes, whereClause.info().ident().argumentTypes());
 
@@ -593,11 +593,33 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
+    public void testILikeInWhereQuery() {
+        AnalyzedRelation relation = analyze("select * from sys.nodes where name ilike 'foo%'");
+
+        assertNotNull(relation.where());
+        Function whereClause = (Function) relation.where().query();
+        assertThat(whereClause.info().ident().name(), is(LikeOperators.OP_ILIKE));
+        ImmutableList<DataType> argumentTypes = ImmutableList.of(DataTypes.STRING, DataTypes.STRING);
+        assertEquals(argumentTypes, whereClause.info().ident().argumentTypes());
+
+        assertThat(whereClause.arguments().get(0), isReference("name"));
+        assertThat(whereClause.arguments().get(1), isLiteral("foo%"));
+    }
+
+    @Test
     public void testLikeEscapeInWhereQuery() {
         // ESCAPE is not supported yet
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("ESCAPE is not supported.");
         analyze("select * from sys.nodes where name like 'foo' escape 'o'");
+    }
+
+    @Test
+    public void testILikeEscapeInWhereQuery() {
+        // ESCAPE is not supported yet
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("ESCAPE is not supported.");
+        analyze("select * from sys.nodes where name ilike 'foo%' escape 'o'");
     }
 
     @Test
@@ -616,6 +638,12 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testLikeLongDataTypeInWhereQuery() {
         AnalyzedRelation relation = analyze("select * from sys.nodes where 1 like 2");
+        assertThat(relation.where().noMatch(), is(true));
+    }
+
+    @Test
+    public void testILikeLongDataTypeInWhereQuery() {
+        AnalyzedRelation relation = analyze("select * from sys.nodes where 1 ilike 2");
         assertThat(relation.where().noMatch(), is(true));
     }
 

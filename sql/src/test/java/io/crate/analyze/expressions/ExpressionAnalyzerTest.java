@@ -35,8 +35,8 @@ import io.crate.auth.user.User;
 import io.crate.exceptions.ConversionException;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.GtOperator;
+import io.crate.expression.operator.LikeOperators;
 import io.crate.expression.operator.LtOperator;
-import io.crate.expression.operator.any.AnyLikeOperator;
 import io.crate.expression.operator.any.AnyOperators;
 import io.crate.expression.scalar.conditional.CoalesceFunction;
 import io.crate.expression.symbol.Field;
@@ -382,7 +382,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testParameterExpressionInLikeAny() throws Exception {
         Symbol s = expressions.asSymbol("5 LIKE ANY(?)");
-        assertThat(s, isFunction(AnyLikeOperator.LIKE, isLiteral(5L), instanceOf(ParameterSymbol.class)));
+        assertThat(s, isFunction(LikeOperators.ANY_LIKE, isLiteral(5L), instanceOf(ParameterSymbol.class)));
     }
 
     @Test

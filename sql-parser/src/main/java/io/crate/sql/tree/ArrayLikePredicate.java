@@ -35,6 +35,7 @@ public class ArrayLikePredicate extends LikePredicate implements ArrayComparison
 
     private final Quantifier quantifier;
     private final boolean inverse;
+    private final boolean ignoreCase;
 
     /**
      * @param quantifier      quantifier of comparison operation
@@ -42,15 +43,18 @@ public class ArrayLikePredicate extends LikePredicate implements ArrayComparison
      * @param pattern         the like pattern used
      * @param escape          the escape value
      * @param inverse         if true, inverse the operation for every single comparison
+     * @param ignoreCase      if true, the operation is case insensitive
      */
     public ArrayLikePredicate(Quantifier quantifier,
                               Expression arrayExpression,
                               Expression pattern,
                               Expression escape,
-                              boolean inverse) {
-        super(pattern, arrayExpression, escape);
+                              boolean inverse,
+                              boolean ignoreCase) {
+        super(pattern, arrayExpression, escape, false); // TODO
         this.quantifier = quantifier;
         this.inverse = inverse;
+        this.ignoreCase = ignoreCase;
     }
 
     public Quantifier quantifier() {
@@ -59,6 +63,10 @@ public class ArrayLikePredicate extends LikePredicate implements ArrayComparison
 
     public boolean inverse() {
         return inverse;
+    }
+
+    public boolean ignoreCase() {
+        return ignoreCase;
     }
 
     @Override
@@ -71,6 +79,7 @@ public class ArrayLikePredicate extends LikePredicate implements ArrayComparison
 
         if (inverse != that.inverse) return false;
         if (quantifier != that.quantifier) return false;
+        if (ignoreCase != that.ignoreCase) return false;
 
         return true;
     }
@@ -80,6 +89,7 @@ public class ArrayLikePredicate extends LikePredicate implements ArrayComparison
         int result = super.hashCode();
         result = 31 * result + quantifier.hashCode();
         result = 31 * result + (inverse ? 1 : 0);
+        result = 31 * result + (ignoreCase ? 1 : 0);
         return result;
     }
 

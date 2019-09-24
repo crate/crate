@@ -39,12 +39,22 @@ import java.io.IOException;
 
 abstract class AbstractAnyQuery implements FunctionToQuery {
 
+    protected boolean ignoreCase;
+
+    AbstractAnyQuery() {
+        this(false);
+    }
+
+    AbstractAnyQuery(boolean ignoreCase) {
+        this.ignoreCase = ignoreCase;
+    }
+
     @Override
     public Query apply(Function function, LuceneQueryBuilder.Context context) throws IOException {
         Symbol left = function.arguments().get(0);
         Symbol collectionSymbol = function.arguments().get(1);
         Preconditions.checkArgument(DataTypes.isArray(collectionSymbol.valueType()),
-            "invalid argument for ANY expression");
+                                    "invalid argument for ANY expression");
 
         if (DataTypes.isArray(left.valueType())) {
             throw new UnsupportedFeatureException(
@@ -89,10 +99,12 @@ abstract class AbstractAnyQuery implements FunctionToQuery {
      *  <candidate> <OP> ANY (array)
      * }
      * </pre>
-     *
+     * <p>
      * Where candidate is a literal and array a reference
      */
-    protected abstract Query literalMatchesAnyArrayRef(Literal candidate, Reference array, LuceneQueryBuilder.Context context) throws IOException;
+    protected abstract Query literalMatchesAnyArrayRef(Literal candidate,
+                                                       Reference array,
+                                                       LuceneQueryBuilder.Context context) throws IOException;
 
     /**
      * Generate a query for:
@@ -101,8 +113,10 @@ abstract class AbstractAnyQuery implements FunctionToQuery {
      *  <candidate> <OP> ANY (array)
      * }
      * </pre>
-     *
+     * <p>
      * Where candidate is a reference and array a literal
      */
-    protected abstract Query refMatchesAnyArrayLiteral(Reference candidate, Literal array, LuceneQueryBuilder.Context context) throws IOException;
+    protected abstract Query refMatchesAnyArrayLiteral(Reference candidate,
+                                                       Literal array,
+                                                       LuceneQueryBuilder.Context context) throws IOException;
 }

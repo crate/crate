@@ -206,8 +206,8 @@ predicate[ParserRuleContext value]
     | NOT? BETWEEN lower=valueExpression AND upper=valueExpression                   #between
     | NOT? IN '(' expr (',' expr)* ')'                                               #inList
     | NOT? IN subqueryExpression                                                     #inSubquery
-    | NOT? LIKE pattern=valueExpression (ESCAPE escape=valueExpression)?             #like
-    | NOT? LIKE quant=setCmpQuantifier '(' v=valueExpression')'
+    | NOT? (LIKE | ILIKE) pattern=valueExpression (ESCAPE escape=valueExpression)?   #like
+    | NOT? (LIKE | ILIKE) quant=setCmpQuantifier '(' v=valueExpression')'
         (ESCAPE escape=valueExpression)?                                             #arrayLike
     | IS NOT? NULL                                                                   #nullPredicate
     | IS NOT? DISTINCT FROM right=valueExpression                                    #distinctFrom
@@ -650,9 +650,9 @@ nonReserved
     : ALIAS | ANALYZE | ANALYZER | AT | BERNOULLI | BLOB | CATALOGS | CHAR_FILTERS | CLUSTERED
     | COLUMNS | COPY | CURRENT |  DAY | DEALLOCATE | DISTRIBUTED | DUPLICATE | DYNAMIC | EXPLAIN
     | EXTENDS | FOLLOWING | FORMAT | FULLTEXT | FUNCTIONS | GEO_POINT | GEO_SHAPE | GLOBAL
-    | GRAPHVIZ | HOUR | IGNORED | INTERVAL | KEY | KILL | LICENSE | LOGICAL | LOCAL | MATERIALIZED | MINUTE
-    | MONTH | OFF | ONLY | OVER | OPTIMIZE | PARTITION | PARTITIONED | PARTITIONS | PLAIN
-    | PRECEDING | RANGE | REFRESH | ROW | ROWS | SCHEMAS | SECOND | SESSION
+    | GRAPHVIZ | HOUR | IGNORED | ILIKE | INTERVAL | KEY | KILL | LICENSE | LOGICAL | LOCAL
+    | MATERIALIZED | MINUTE | MONTH | OFF | ONLY | OVER | OPTIMIZE | PARTITION | PARTITIONED
+    | PARTITIONS | PLAIN | PRECEDING | RANGE | REFRESH | ROW | ROWS | SCHEMAS | SECOND | SESSION
     | SHARDS | SHOW | STORAGE | STRICT | SYSTEM | TABLES | TABLESAMPLE | TEXT | TIME | ZONE | WITHOUT
     | TIMESTAMP | TO | TOKENIZER | TOKEN_FILTERS | TYPE | VALUES | VIEW | YEAR
     | REPOSITORY | SNAPSHOT | RESTORE | GENERATED | ALWAYS | BEGIN | COMMIT
@@ -691,6 +691,7 @@ NOT: 'NOT';
 EXISTS: 'EXISTS';
 BETWEEN: 'BETWEEN';
 LIKE: 'LIKE';
+ILIKE: 'ILIKE';
 IS: 'IS';
 NULL: 'NULL';
 TRUE: 'TRUE';

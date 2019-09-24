@@ -24,7 +24,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.scalar.AbstractScalarFunctionsTest;
 import org.junit.Test;
 
-import static io.crate.expression.operator.LikeOperator.DEFAULT_ESCAPE;
+import static io.crate.expression.operator.LikeOperators.DEFAULT_ESCAPE;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 
 public class LikeOperatorTest extends AbstractScalarFunctionsTest {
@@ -33,12 +33,20 @@ public class LikeOperatorTest extends AbstractScalarFunctionsTest {
     public void testNormalizeSymbolEqual() {
         assertNormalize("'foo' like 'foo'", isLiteral(true));
         assertNormalize("'notFoo' like 'foo'", isLiteral(false));
+
+        assertNormalize("'foo' ilike 'FOO'", isLiteral(true));
+        assertNormalize("'FOO' ilike 'foo'", isLiteral(true));
+        assertNormalize("'FOO' ilike 'FOO'", isLiteral(true));
     }
 
     @Test
     public void testPatternIsNoLiteral() throws Exception {
         assertEvaluate("name like timezone", false, Literal.of("foo"), Literal.of("bar"));
         assertEvaluate("name like name", true, Literal.of("foo"), Literal.of("foo"));
+
+        assertEvaluate("name ilike timezone", false, Literal.of("foO"), Literal.of("FFo"));
+        assertEvaluate("name ilike timezone", true, Literal.of("foO"), Literal.of("FOo"));
+        assertEvaluate("name ilike timezone", true, Literal.of("foO"), Literal.of("F__"));
     }
 
     @Test
@@ -52,6 +60,11 @@ public class LikeOperatorTest extends AbstractScalarFunctionsTest {
         assertNormalize("'foo' like 'foo%'", isLiteral(true));
         assertNormalize("'fo' like 'foo%'", isLiteral(false));
         assertNormalize("'foobar' like '%oob%'", isLiteral(true));
+
+        assertNormalize("'fOobAr' ilike '%BaR'", isLiteral(true));
+        assertNormalize("'Fo' ilike 'fOo%'", isLiteral(false));
+        assertNormalize("'foobar' ilike '%OoB%'", isLiteral(true));
+
     }
 
     @Test
@@ -62,7 +75,9 @@ public class LikeOperatorTest extends AbstractScalarFunctionsTest {
         assertNormalize("'foo' like 'fo_'", isLiteral(true));
         assertNormalize("'foo' like 'foo_'", isLiteral(false));
         assertNormalize("'foo' like '_o_'", isLiteral(true));
-        assertNormalize("'foobar' like '_foobar_'", isLiteral(false));
+        assertNormalize("'foo' like '_o_'", isLiteral(true));
+
+        assertNormalize("'foObAr' ilike '_OoBa_'", isLiteral(true));
     }
 
     // Following tests: mixed wildcards:
@@ -76,6 +91,9 @@ public class LikeOperatorTest extends AbstractScalarFunctionsTest {
         assertNormalize("'Lorem ipsum dolor...' like '%i%m%'", isLiteral(true));
         assertNormalize("'Lorem ipsum dolor...' like '%%%sum%%'", isLiteral(true));
         assertNormalize("'Lorem ipsum dolor...' like '%i%m'", isLiteral(false));
+
+        assertNormalize("'Lorem IPSUM dolor...' ilike '%i%m%'", isLiteral(true));
+
     }
 
     // Following tests: escaping wildcards
@@ -83,7 +101,7 @@ public class LikeOperatorTest extends AbstractScalarFunctionsTest {
     @Test
     public void testExpressionToRegexExactlyOne() {
         String expression = "fo_bar";
-        assertEquals("^fo.bar$", LikeOperator.patternToRegex(expression, DEFAULT_ESCAPE, true));
+        assertEquals("^fo.bar$", LikeOperators.patternToRegex(expression, DEFAULT_ESCAPE, true));
     }
 
     @Test
@@ -102,37 +120,37 @@ public class LikeOperatorTest extends AbstractScalarFunctionsTest {
     @Test
     public void testExpressionToRegexZeroOrMore() {
         String expression = "fo%bar";
-        assertEquals("^fo.*bar$", LikeOperator.patternToRegex(expression, DEFAULT_ESCAPE, true));
+        assertEquals("^fo.*bar$", LikeOperators.patternToRegex(expression, DEFAULT_ESCAPE, true));
     }
 
     @Test
     public void testExpressionToRegexEscapingPercent() {
         String expression = "fo\\%bar";
-        assertEquals("^fo%bar$", LikeOperator.patternToRegex(expression, DEFAULT_ESCAPE, true));
+        assertEquals("^fo%bar$", LikeOperators.patternToRegex(expression, DEFAULT_ESCAPE, true));
     }
 
     @Test
     public void testExpressionToRegexEscapingUnderline() {
         String expression = "fo\\_bar";
-        assertEquals("^fo_bar$", LikeOperator.patternToRegex(expression, DEFAULT_ESCAPE, true));
+        assertEquals("^fo_bar$", LikeOperators.patternToRegex(expression, DEFAULT_ESCAPE, true));
     }
 
     @Test
     public void testExpressionToRegexEscaping() {
         String expression = "fo\\\\_bar";
-        assertEquals("^fo\\\\.bar$", LikeOperator.patternToRegex(expression, DEFAULT_ESCAPE, true));
+        assertEquals("^fo\\\\.bar$", LikeOperators.patternToRegex(expression, DEFAULT_ESCAPE, true));
     }
 
     @Test
     public void testExpressionToRegexEscapingMutli() {
         String expression = "%%\\%sum%%";
-        assertEquals("^.*.*%sum.*.*$", LikeOperator.patternToRegex(expression, DEFAULT_ESCAPE, true));
+        assertEquals("^.*.*%sum.*.*$", LikeOperators.patternToRegex(expression, DEFAULT_ESCAPE, true));
     }
 
     @Test
     public void testExpressionToRegexMaliciousPatterns() {
         String expression = "fo(ooo)o[asdf]o\\bar^$.*";
-        assertEquals("^fo\\(ooo\\)o\\[asdf\\]obar\\^\\$\\.\\*$", LikeOperator.patternToRegex(expression, DEFAULT_ESCAPE, true));
+        assertEquals("^fo\\(ooo\\)o\\[asdf\\]obar\\^\\$\\.\\*$", LikeOperators.patternToRegex(expression, DEFAULT_ESCAPE, true));
     }
 
     @Test
@@ -143,5 +161,15 @@ public class LikeOperatorTest extends AbstractScalarFunctionsTest {
 
         assertEvaluate("'foobarbaz' like name", null, Literal.NULL);
         assertEvaluate("name like 'foobarbaz'", null, Literal.NULL);
+    }
+
+    @Test
+    public void testIlikeOperator() {
+        assertEvaluate("'FOOBARBAZ' ilike 'foo%baz'", true);
+        assertEvaluate("'FOOBARBAZ' ilike 'foo___baz'", true);
+        assertEvaluate("'characters' ilike 'CHaraC%'", true);
+
+        assertEvaluate("'foobarbaz' ilike name", null, Literal.NULL);
+        assertEvaluate("name ilike 'foobarbaz'", null, Literal.NULL);
     }
 }

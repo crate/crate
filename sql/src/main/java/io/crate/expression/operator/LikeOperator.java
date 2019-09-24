@@ -23,6 +23,7 @@ package io.crate.expression.operator;
 
 import io.crate.data.Input;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.Scalar;
@@ -33,18 +34,22 @@ import java.util.regex.Pattern;
 
 public class LikeOperator extends Operator<String> {
 
-    public static final String NAME = "op_like";
-
-    private FunctionInfo info;
-
-    public static final char DEFAULT_ESCAPE = '\\';
-
-    public static void register(OperatorModule module) {
-        module.registerOperatorFunction(new LikeOperator(generateInfo(NAME, DataTypes.STRING)));
+    public static FunctionImplementation of(String name,
+                                            TriPredicate<String, String, Integer> matcher,
+                                            int patternMatchingFlags) {
+        return new LikeOperator(generateInfo(name, DataTypes.STRING), matcher, patternMatchingFlags);
     }
 
-    public LikeOperator(FunctionInfo info) {
+    private final FunctionInfo info;
+    private final TriPredicate<String, String, Integer> matcher;
+    private final int patternMatchingFlags;
+
+    private LikeOperator(FunctionInfo info,
+                         TriPredicate<String, String, Integer> matcher,
+                         int patternMatchingFlags) {
         this.info = info;
+        this.matcher = matcher;
+        this.patternMatchingFlags = patternMatchingFlags;
     }
 
     @Override
@@ -60,7 +65,7 @@ public class LikeOperator extends Operator<String> {
             if (value == null) {
                 return this;
             }
-            return new CompiledLike(info, (String) value);
+            return new CompiledLike(info, (String) value, patternMatchingFlags);
         }
         return super.compile(arguments);
     }
@@ -75,77 +80,16 @@ public class LikeOperator extends Operator<String> {
         if (expression == null || pattern == null) {
             return null;
         }
-
-        return matches(expression, pattern);
-    }
-
-    private boolean matches(String expression, String pattern) {
-        return Pattern.compile(
-            patternToRegex(pattern, DEFAULT_ESCAPE, true), Pattern.DOTALL).matcher(expression).matches();
-    }
-
-    public static String patternToRegex(String patternString, char escapeChar, boolean shouldEscape) {
-        StringBuilder regex = new StringBuilder(patternString.length() * 2);
-
-        regex.append('^');
-        boolean escaped = false;
-        for (char currentChar : patternString.toCharArray()) {
-            if (shouldEscape && !escaped && currentChar == escapeChar) {
-                escaped = true;
-            } else {
-                switch (currentChar) {
-                    case '%':
-                        if (escaped) {
-                            regex.append("%");
-                        } else {
-                            regex.append(".*");
-                        }
-                        escaped = false;
-                        break;
-                    case '_':
-                        if (escaped) {
-                            regex.append("_");
-                        } else {
-                            regex.append('.');
-                        }
-                        escaped = false;
-                        break;
-                    default:
-                        // escape special regex characters
-                        switch (currentChar) {
-                            // fall through
-                            case '\\':
-                            case '^':
-                            case '$':
-                            case '.':
-                            case '*':
-                            case '[':
-                            case ']':
-                            case '(':
-                            case ')':
-                            case '|':
-                            case '+':
-                                regex.append('\\');
-                                break;
-                            default:
-                        }
-
-                        regex.append(currentChar);
-                        escaped = false;
-                }
-            }
-        }
-        regex.append('$');
-        return regex.toString();
+        return matcher.test(expression, pattern, patternMatchingFlags);
     }
 
     private static class CompiledLike extends Scalar<Boolean, String> {
         private final FunctionInfo info;
         private final Pattern pattern;
 
-        CompiledLike(FunctionInfo info, String pattern) {
+        CompiledLike(FunctionInfo info, String pattern, int patternMatchingFlags) {
             this.info = info;
-            this.pattern = Pattern.compile(patternToRegex(pattern, DEFAULT_ESCAPE, true), Pattern.DOTALL);
+            this.pattern = LikeOperators.makePattern(pattern, patternMatchingFlags);
         }
 
         @Override

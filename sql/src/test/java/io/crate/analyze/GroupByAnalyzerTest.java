@@ -25,6 +25,7 @@ package io.crate.analyze;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.relations.AliasedAnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.expression.operator.LikeOperators;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -344,7 +345,7 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testGroupByHaving() throws Exception {
         AnalyzedRelation relation = analyze("select sum(floats) from users group by name having name like 'Slartibart%'");
-        assertThat(relation.having().query(), isFunction("op_like"));
+        assertThat(relation.having().query(), isFunction(LikeOperators.OP_LIKE));
         Function havingFunction = (Function) relation.having().query();
         assertThat(havingFunction.arguments().size(), is(2));
         assertThat(havingFunction.arguments().get(0), isReference("name"));
@@ -399,7 +400,7 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testGroupByHavingByGroupKey() throws Exception {
         AnalyzedRelation relation = analyze(
             "select sum(floats), name from users group by name having name like 'Slartibart%'");
-        assertThat(relation.having().query(), isFunction("op_like"));
+        assertThat(relation.having().query(), isFunction(LikeOperators.OP_LIKE));
         Function havingFunction = (Function) relation.having().query();
         assertThat(havingFunction.arguments().size(), is(2));
         assertThat(havingFunction.arguments().get(0), isReference("name"));

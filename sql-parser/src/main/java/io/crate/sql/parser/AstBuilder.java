@@ -1288,10 +1288,13 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
             escape = (Expression) visit(context.escape);
         }
 
+        boolean ignoreCase = context.LIKE() == null && context.ILIKE() != null;
+
         Expression result = new LikePredicate(
             (Expression) visit(context.value),
             (Expression) visit(context.pattern),
-            escape);
+            escape,
+            ignoreCase);
 
         if (context.NOT() != null) {
             result = new NotExpression(result);
@@ -1302,12 +1305,14 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     @Override
     public Node visitArrayLike(SqlBaseParser.ArrayLikeContext context) {
         boolean inverse = context.NOT() != null;
+        boolean ignoreCase = context.LIKE() == null && context.ILIKE() != null;
         return new ArrayLikePredicate(
             getComparisonQuantifier(((TerminalNode) context.setCmpQuantifier().getChild(0)).getSymbol()),
             (Expression) visit(context.value),
             (Expression) visit(context.v),
             visitOptionalContext(context.escape, Expression.class),
-            inverse);
+            inverse,
+            ignoreCase);
     }
 
     @Override

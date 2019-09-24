@@ -22,13 +22,13 @@
 package io.crate.expression.operator.any;
 
 import io.crate.data.Input;
-import io.crate.expression.operator.LikeOperator;
 import io.crate.expression.operator.Operator;
-import io.crate.expression.operator.OperatorModule;
+import io.crate.expression.operator.TriPredicate;
 import io.crate.metadata.BaseFunctionResolver;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.FunctionResolver;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.params.FuncParams;
 import io.crate.metadata.functions.params.Param;
@@ -38,35 +38,28 @@ import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 
 import java.util.List;
-import java.util.function.BiPredicate;
-import java.util.regex.Pattern;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static io.crate.expression.operator.any.AnyOperators.collectionValueToIterable;
 
-public final class AnyLikeOperator extends Operator<Object> {
+public class AnyLikeOperator extends Operator<Object> {
 
-    public static final String LIKE = AnyOperator.OPERATOR_PREFIX + "like";
-    public static final String NOT_LIKE = AnyOperator.OPERATOR_PREFIX + "not_like";
+    public static FunctionResolver resolverFor(String name,
+                                               TriPredicate<String, String, Integer> matcher,
+                                               int patternMatchingFlags) {
+        return new AnyLikeResolver(name, matcher, patternMatchingFlags);
+    }
+
     private final FunctionInfo info;
-    private final BiPredicate<String, String> matches;
+    private final TriPredicate<String, String, Integer> matcher;
+    private final int patternMatchingFlags;
 
-    public static void register(OperatorModule operatorModule) {
-        operatorModule.registerDynamicOperatorFunction(
-            LIKE,
-            new AnyLikeResolver(LIKE, AnyLikeOperator::matches));
-        operatorModule.registerDynamicOperatorFunction(
-            NOT_LIKE,
-            new AnyLikeResolver(NOT_LIKE, ((BiPredicate<String, String>) AnyLikeOperator::matches).negate()));
-    }
-
-    private static boolean matches(String expr, String pattern) {
-        return Pattern.matches(LikeOperator.patternToRegex(pattern, LikeOperator.DEFAULT_ESCAPE, true), expr);
-    }
-
-    AnyLikeOperator(FunctionInfo info, BiPredicate<String, String> matches) {
+    private AnyLikeOperator(FunctionInfo info,
+                            TriPredicate<String, String, Integer> matcher,
+                            int patternMatchingFlags) {
         this.info = info;
-        this.matches = matches;
+        this.matcher = matcher;
+        this.patternMatchingFlags = patternMatchingFlags;
     }
 
     @Override
@@ -84,7 +77,7 @@ public final class AnyLikeOperator extends Operator<Object> {
             }
             assert elem instanceof String : "elem must be a String";
             String elemValue = (String) elem;
-            if (matches.test(elemValue, pattern)) {
+            if (matcher.test(elemValue, pattern, patternMatchingFlags)) {
                 return true;
             }
         }
@@ -103,32 +96,36 @@ public final class AnyLikeOperator extends Operator<Object> {
     }
 
     private static class AnyLikeResolver extends BaseFunctionResolver {
-
         private final String name;
-        private final BiPredicate<String, String> matches;
+        private final TriPredicate<String, String, Integer> matches;
+        private final int patternMatchingFlags;
 
-        AnyLikeResolver(String name, BiPredicate<String, String> matches) {
+        AnyLikeResolver(String name,
+                        TriPredicate<String, String, Integer> matches,
+                        int patternMatchingFlags) {
             super(FuncParams.builder(
                 Param.ANY,
                 Param.of(
                     new ArrayType<>(DataTypes.UNDEFINED))
                     .withInnerType(Param.ANY))
-                .build());
+                      .build());
             this.name = name;
             this.matches = matches;
+            this.patternMatchingFlags = patternMatchingFlags;
         }
 
         @Override
         public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
             DataType<?> innerType = ((ArrayType) dataTypes.get(1)).innerType();
             checkArgument(innerType.equals(dataTypes.get(0)),
-                "The inner type of the array/set passed to ANY must match its left expression");
+                          "The inner type of the array/set passed to ANY must match its left expression");
             checkArgument(innerType.id() != ObjectType.ID,
-                "ANY on object arrays is not supported");
+                          "ANY on object arrays is not supported");
 
             return new AnyLikeOperator(
                 new FunctionInfo(new FunctionIdent(name, dataTypes), DataTypes.BOOLEAN),
-                matches
+                matches,
+                patternMatchingFlags
             );
         }
     }

@@ -32,6 +32,7 @@ public class AnyLikeOperatorTest extends AbstractScalarFunctionsTest  {
     public void testNormalizeSingleSymbolEqual() {
         assertNormalize("'foo' like any (['foo'])", isLiteral(true));
         assertNormalize("'notFoo' like any (['foo'])", isLiteral(false));
+        assertNormalize("'foo' ilike any (['fOo', 'FOO'])", isLiteral(true));
     }
 
     @Test
@@ -44,6 +45,9 @@ public class AnyLikeOperatorTest extends AbstractScalarFunctionsTest  {
         assertNormalize("'foo%' like any (['foo', 'kuh'])", isLiteral(true));
         assertNormalize("'foo%' like any (['fo', 'kuh'])", isLiteral(false));
         assertNormalize("'%oob%' like any (['foobar'])", isLiteral(true));
+        assertNormalize("'%bar' ilike any (['FOObAr'])", isLiteral(true));
+        assertNormalize("'foo%' ilike any (['fO', 'kuh'])", isLiteral(false));
+        assertNormalize("'%oob%' ilike any (['fobar', 'bOOb'])", isLiteral(true));
     }
 
     @Test
@@ -56,6 +60,9 @@ public class AnyLikeOperatorTest extends AbstractScalarFunctionsTest  {
         assertNormalize("'foo_' like any (['foo'])", isLiteral(false));
         assertNormalize("'_o_' like any (['foo'])", isLiteral(true));
         assertNormalize("'_foobar_' like any (['foobar'])", isLiteral(false));
+        assertNormalize("'_ar' ilike any (['bAR'])", isLiteral(true));
+        assertNormalize("'_o_' ilike any (['fOo'])", isLiteral(true));
+        assertNormalize("'fOO_' ilike any (['foo'])", isLiteral(false));
     }
 
     // Following tests: mixed wildcards:
@@ -68,6 +75,8 @@ public class AnyLikeOperatorTest extends AbstractScalarFunctionsTest  {
         assertNormalize("'%i%m%' like any (['Lorem ipsum dolor...'])", isLiteral(true));
         assertNormalize("'%%%sum%%' like any (['Lorem ipsum dolor...'])", isLiteral(true));
         assertNormalize("'%i%m' like any (['Lorem ipsum dolor...'])", isLiteral(false));
+        assertNormalize("'%o_a%' ilike any (['fOObar'])", isLiteral(true));
+        assertNormalize("'%%%sum%%' ilike any (['Lorem IpSuM dolor...'])", isLiteral(true));
     }
 
     @Test
@@ -86,6 +95,8 @@ public class AnyLikeOperatorTest extends AbstractScalarFunctionsTest  {
         assertEvaluate("'%i%m%' like any (['Lorem ipsum dolor...'])", true);
         assertEvaluate("'%%%sum%%' like any (['Lorem ipsum dolor...'])", true);
         assertEvaluate("'%i%m' like any (['Lorem ipsum dolor...'])", false);
+        assertEvaluate("'%o_a%' ilike any (['fOObar'])", true);
+        assertEvaluate("'%%%sum%%' ilike any (['Lorem IpSuM dolor...'])", true);
     }
 
     @Test
@@ -100,10 +111,15 @@ public class AnyLikeOperatorTest extends AbstractScalarFunctionsTest  {
         assertNormalize("null like any([null])", isLiteral(null));
         assertNormalize("'foo'like any([null])", isLiteral(null));
         assertNormalize("null like any(['bar'])", isLiteral(null));
+
+        assertNormalize("null ilike any([null])", isLiteral(null));
+        assertNormalize("'foo'ilike any([null])", isLiteral(null));
+        assertNormalize("null ilike any(['bar'])", isLiteral(null));
     }
 
     @Test
     public void testNegateLike() throws Exception {
         assertEvaluate("not 'A' like any (['A', 'B'])", false);
+        assertEvaluate("not 'A' ilike any (['a', 'b'])", false);
     }
 }
