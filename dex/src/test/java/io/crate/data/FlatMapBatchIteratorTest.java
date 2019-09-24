@@ -56,7 +56,7 @@ public class FlatMapBatchIteratorTest {
     }
 
     @Test
-    public void testFlatMapBatchIteratorFullfillsContracts() throws Exception {
+    public void testFlatMapBatchIteratorFullFillsContracts() throws Exception {
         Function<Row, Iterator<Row>> duplicateRow =
             row -> Arrays.<Row>asList(new RowN(row.materialize()), new RowN(row.materialize())).iterator();
         BatchIteratorTester tester = new BatchIteratorTester(() -> {
