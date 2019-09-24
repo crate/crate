@@ -4,8 +4,6 @@ SETLOCAL EnableDelayedExpansion
 
 if NOT DEFINED JAVA_HOME goto err
 
-for /f tokens^=2-5^ delims^=.-_^" %%j in ('"%JAVA_HOME%\bin\java" -fullversion 2^>^&1') do set "JAVA_VERSION=%%j.%%k"
-
 set SCRIPT_DIR=%~dp0
 for %%I in ("%SCRIPT_DIR%..") do set CRATE_HOME=%%~dpfI
 
@@ -59,21 +57,8 @@ if NOT DEFINED "%CRATE_DISABLE_GC_LOGGING%" (
   IF DEFINED %CRATE_GC_LOG_FILES% (SET GC_LOG_FILES=!CRATE_GC_LOG_FILES!)
 
   SET LOGGC=!GC_LOG_DIR!\gc.log
-  ECHO %JAVA_VERSION%
 
-  IF "%JAVA_VERSION%" == "9.0" (
-    SET JAVA_OPTS=!JAVA_OPTS! -Xlog:gc*,gc+age=trace,safepoint:file=\"!LOGGC!\":utctime,pid,tags:filecount=!GC_LOG_FILES!,filesize=!GC_LOG_SIZE!
-  )
-  IF "%JAVA_VERSION%" == "1.8" (
-    SET JAVA_OPTS=!JAVA_OPTS! -Xloggc:!LOGGC!
-    SET JAVA_OPTS=!JAVA_OPTS! -XX:+PrintGCDetails
-    SET JAVA_OPTS=!JAVA_OPTS! -XX:+PrintGCDateStamps
-    SET JAVA_OPTS=!JAVA_OPTS! -XX:+PrintTenuringDistribution
-    SET JAVA_OPTS=!JAVA_OPTS! -XX:+PrintGCApplicationStoppedTime
-    SET JAVA_OPTS=!JAVA_OPTS! -XX:+UseGCLogFileRotation
-    SET JAVA_OPTS=!JAVA_OPTS! -XX:NumberOfGCLogFiles=!GC_LOG_FILES!
-    SET JAVA_OPTS=!JAVA_OPTS! -XX:GCLogFileSize=!GC_LOG_SIZE!
-  )
+  SET JAVA_OPTS=!JAVA_OPTS! -Xlog:gc*,gc+age=trace,safepoint:file=\"!LOGGC!\":utctime,pid,tags:filecount=!GC_LOG_FILES!,filesize=!GC_LOG_SIZE!
 )
 
 REM Disables explicit GC

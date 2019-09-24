@@ -80,26 +80,7 @@ EOF
   else
       JAVA=java
   fi
-  JAVA_VERSION=`$JAVA -version 2>&1 | awk '/version/ {gsub(/"/, "", $3); split($3, parts, ".")} END {print (parts[1] == 1 ? parts[2] : parts[1])}'`
-
-  if [ "x$JAVA_VERSION" = "x" ]; then
-    echo 'Java is missing or $JAVA_HOME is not set correctly. Install a JRE or setup $JAVA_HOME'
-    exit 1
-  fi
-
-  if [ $JAVA_VERSION -ge 9 ]; then
-    JAVA_OPTS="$JAVA_OPTS -Xlog:gc*,gc+age=trace,safepoint:file=${LOGGC}:utctime,pid,tags:filecount=${GC_LOG_FILES},filesize=${GC_LOG_SIZE}"
-  fi
-  if [ $JAVA_VERSION -le 8 ]; then
-    JAVA_OPTS="$JAVA_OPTS -Xloggc:$LOGGC"
-    JAVA_OPTS="$JAVA_OPTS -XX:+PrintGCDetails"
-    JAVA_OPTS="$JAVA_OPTS -XX:+PrintGCDateStamps"
-    JAVA_OPTS="$JAVA_OPTS -XX:+PrintTenuringDistribution"
-    JAVA_OPTS="$JAVA_OPTS -XX:+PrintGCApplicationStoppedTime"
-    JAVA_OPTS="$JAVA_OPTS -XX:+UseGCLogFileRotation"
-    JAVA_OPTS="$JAVA_OPTS -XX:NumberOfGCLogFiles=$GC_LOG_FILES"
-    JAVA_OPTS="$JAVA_OPTS -XX:GCLogFileSize=$GC_LOG_SIZE"
-  fi
+  JAVA_OPTS="$JAVA_OPTS -Xlog:gc*,gc+age=trace,safepoint:file=${LOGGC}:utctime,pid,tags:filecount=${GC_LOG_FILES},filesize=${GC_LOG_SIZE}"
 fi
 
 # Disables explicit GC
