@@ -32,6 +32,7 @@ import io.crate.expression.reference.sys.check.node.SysNodeChecks;
 import io.crate.expression.reference.sys.shard.SysAllocations;
 import io.crate.expression.reference.sys.snapshot.SysSnapshots;
 import io.crate.metadata.RelationName;
+import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.repositories.RepositoriesService;
@@ -39,6 +40,7 @@ import org.elasticsearch.repositories.RepositoriesService;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import static java.util.concurrent.CompletableFuture.completedFuture;
 
@@ -55,19 +57,20 @@ public class SysTableDefinitions {
                                SysSnapshots sysSnapshots,
                                SysAllocations sysAllocations,
                                TableHealthService tableHealthService) {
+        Supplier<DiscoveryNode> localNode = clusterService::localNode;
         tableDefinitions.put(SysJobsTableInfo.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(jobsLogs.activeJobs()),
-            SysJobsTableInfo.expressions(clusterService::localNode),
+            SysJobsTableInfo.expressions(localNode),
             (user, jobCtx) -> user.isSuperUser() || user.name().equals(jobCtx.username())
         ));
         tableDefinitions.put(SysJobsLogTableInfo.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(jobsLogs.jobsLog()),
-            SysJobsLogTableInfo.expressions(),
+            SysJobsLogTableInfo.expressions(localNode),
             (user, jobCtx) -> user.isSuperUser() || user.name().equals(jobCtx.username())
         ));
         tableDefinitions.put(SysOperationsTableInfo.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(jobsLogs.activeOperations()),
-            SysOperationsTableInfo.expressions(clusterService::localNode)
+            SysOperationsTableInfo.expressions(localNode)
         ));
         tableDefinitions.put(SysOperationsLogTableInfo.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(jobsLogs.operationsLog()),
@@ -98,7 +101,7 @@ public class SysTableDefinitions {
             (user, allocation) -> user.hasAnyPrivilege(Privilege.Clazz.TABLE, allocation.fqn()),
             SysAllocationsTableInfo.expressions()
         ));
-    
+
         SummitsIterable summits = new SummitsIterable();
         tableDefinitions.put(SysSummitsTableInfo.IDENT, new StaticTableDefinition<>(
             () -> completedFuture(summits),
@@ -112,7 +115,7 @@ public class SysTableDefinitions {
         ));
         tableDefinitions.put(SysMetricsTableInfo.NAME, new StaticTableDefinition<>(
             () -> completedFuture(jobsLogs.metrics()),
-            SysMetricsTableInfo.expressions(clusterService::localNode)
+            SysMetricsTableInfo.expressions(localNode)
         ));
     }
 

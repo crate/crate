@@ -52,6 +52,8 @@ import io.crate.settings.CrateSetting;
 import io.crate.sql.parser.SqlParser;
 import io.crate.types.DataTypes;
 import org.apache.logging.log4j.message.ParameterizedMessage;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
@@ -69,6 +71,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * The JobsLogService is available on each node and holds the meta data of the cluster, such as active jobs and operations.
@@ -139,14 +142,23 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
 
     @Inject
     public JobsLogService(Settings settings,
+                          ClusterService clusterService,
                           ClusterSettings clusterSettings,
                           Functions functions,
                           CrateCircuitBreakerService breakerService) {
-        this(settings, clusterSettings, functions, Executors.newSingleThreadScheduledExecutor(), breakerService);
+        this(
+            settings,
+            clusterService::localNode,
+            clusterSettings,
+            functions,
+            Executors.newSingleThreadScheduledExecutor(),
+            breakerService
+        );
     }
 
     @VisibleForTesting
     JobsLogService(Settings settings,
+                   Supplier<DiscoveryNode> localNode,
                    ClusterSettings clusterSettings,
                    Functions functions,
                    ScheduledExecutorService scheduler,
@@ -154,8 +166,8 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
         this.scheduler = scheduler;
         this.breakerService = breakerService;
         this.inputFactory = new InputFactory(functions);
-        this.refResolver = new StaticTableReferenceResolver<>(SysJobsLogTableInfo.expressions());
-        TableRelation sysJobsLogRelation = new TableRelation(SysJobsLogTableInfo.INSTANCE);
+        this.refResolver = new StaticTableReferenceResolver<>(SysJobsLogTableInfo.expressions(localNode));
+        TableRelation sysJobsLogRelation = new TableRelation(new SysJobsLogTableInfo(localNode));
         systemTransactionCtx = CoordinatorTxnCtx.systemTransactionContext();
         this.expressionAnalyzer = new ExpressionAnalyzer(
             functions,
