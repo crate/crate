@@ -33,28 +33,28 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
-import io.crate.metadata.table.TableInfo;
 import io.crate.types.ObjectType;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+
 import java.util.Map;
+import java.util.function.Supplier;
 
 import static io.crate.execution.engine.collect.NestableCollectExpression.forFunction;
 import static io.crate.execution.engine.collect.NestableCollectExpression.withNullableProperty;
 import static io.crate.types.DataTypes.STRING;
-import static io.crate.types.DataTypes.TIMESTAMPZ;
 import static io.crate.types.DataTypes.STRING_ARRAY;
+import static io.crate.types.DataTypes.TIMESTAMPZ;
 
 public class SysJobsLogTableInfo extends StaticTableInfo<JobContextLog> {
 
     public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "jobs_log");
-    public static final TableInfo INSTANCE = new SysJobsLogTableInfo();
 
-    public static Map<ColumnIdent, RowCollectExpressionFactory<JobContextLog>> expressions() {
-        return columnRegistrar().expressions();
+    public static Map<ColumnIdent, RowCollectExpressionFactory<JobContextLog>> expressions(Supplier<DiscoveryNode> localNode) {
+        return columnRegistrar(localNode).expressions();
     }
 
-    @SuppressWarnings({"unchecked"})
-    private static ColumnRegistrar<JobContextLog> columnRegistrar() {
+    private static ColumnRegistrar<JobContextLog> columnRegistrar(Supplier<DiscoveryNode> localNode) {
         return new ColumnRegistrar<JobContextLog>(IDENT, RowGranularity.DOC)
                   .register("id", STRING, () -> forFunction(log -> log.id().toString()))
                   .register("username", STRING, () -> forFunction(JobContextLog::username))
@@ -72,11 +72,20 @@ public class SysJobsLogTableInfo extends StaticTableInfo<JobContextLog> {
             .register("classification","type", STRING,
                 () -> withNullableProperty(JobContextLog::classification, c -> c.type().name()))
             .register("classification", "labels", STRING_ARRAY,
-                () -> withNullableProperty(JobContextLog::classification, c -> c.labels().toArray(new String[0])));
+                () -> withNullableProperty(JobContextLog::classification, c -> c.labels().toArray(new String[0])))
+            .register("node", ObjectType.builder()
+                .setInnerType("id", STRING)
+                .setInnerType("name", STRING)
+                .build(), () -> forFunction(ignored -> Map.of(
+                    "id", localNode.get().getId(),
+                    "name", localNode.get().getName()
+                )))
+            .register("node", "id", STRING, () -> forFunction(ignored -> localNode.get().getId()))
+            .register("node", "name", STRING, () -> forFunction(ignored -> localNode.get().getName()));
     }
 
-    private SysJobsLogTableInfo() {
-        super(IDENT, columnRegistrar(), "id");
+    public SysJobsLogTableInfo(Supplier<DiscoveryNode> localNode) {
+        super(IDENT, columnRegistrar(localNode), "id");
     }
 
     @Override

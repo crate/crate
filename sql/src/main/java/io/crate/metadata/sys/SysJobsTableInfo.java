@@ -52,7 +52,7 @@ public class SysJobsTableInfo extends StaticTableInfo<JobContext> {
         return columnRegistrar(localNode).expressions();
     }
 
-    static ColumnRegistrar<JobContext> columnRegistrar(Supplier<DiscoveryNode> localNode) {
+    private static ColumnRegistrar<JobContext> columnRegistrar(Supplier<DiscoveryNode> localNode) {
         return new ColumnRegistrar<JobContext>(IDENT, RowGranularity.DOC)
         .register("id", STRING, () -> NestableCollectExpression.forFunction(c -> c.id().toString()))
         .register("username", STRING, () -> NestableCollectExpression.forFunction(JobContext::username))

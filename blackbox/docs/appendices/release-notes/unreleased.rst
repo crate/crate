@@ -62,6 +62,8 @@ Deprecations
 Changes
 =======
 
+- Added a ``node`` column to :ref:`sys.jobs_log <sys-logs>`.
+
 - Added support for the operator :ref:`ILIKE <sql_dql_like>`, the case
   insensitive complement to ``LIKE``.
 
