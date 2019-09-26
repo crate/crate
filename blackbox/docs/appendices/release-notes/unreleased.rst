@@ -46,6 +46,14 @@ None
 Fixes
 =====
 
+- Fixed an issue that caused the users list in the privileges tab to not
+  displayed when the CrateDB Admin UI is not served from ``/``.
+
+- Fixed various issues in the CrateDB Admin UI console.
+
+- Fixed an issue that caused the Twitter tutorial to not start automatically
+  after the login redirect in the CrateDB Admin UI.
+
 - Fixed an issue that prevented subqueries from being used in select item
   expressions that also contain a reference accessed via a relation alias.
   For example: ``SELECT t.y IN (SELECT x FROM t2) FROM t1 t``
