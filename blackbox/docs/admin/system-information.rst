@@ -1026,6 +1026,81 @@ For example, you can query shards like this::
   +--------+-----------+----+-----+------+---------+------+---------+---------+-------+
   SELECT 1 row in set (... sec)
 
+.. _sys-segments:
+
+Segments
+========
+
+The ``sys.segments`` table contains information about the Lucene segments
+of the shards.
+
+The segment information is useful to understand the behaviour of the underlying
+Lucene file structures for troubleshooting and performance optimization
+of shards.
+
++-------------------+-------------------------------------------+-------------+
+| Column Name       | Description                               | Return Type |
++===================+===========================================+=============+
+| ``table_schema``  | Schema name of the table of the shard.    | ``TEXT``    |
++-------------------+-------------------------------------------+-------------+
+| ``table_name``    | Table name of the shard.                  | ``TEXT``    |
++-------------------+-------------------------------------------+-------------+
+| ``node``         | ID of the node on which the shard resides.| ``OBJECT``   |
++-------------------+-------------------------------------------+-------------+
+| ``shard_id``      | ID of the effected shard.                 | ``INTEGER`` |
++-------------------+-------------------------------------------+-------------+
+|``segment_name``   | Name of the segment, derived from the     | ``TEXT``    |
+|                   | segment generation and used internally    |             |
+|                   | to create file names in the directory of  |             |
+|                   | the shard.                                |             |
++-------------------+-------------------------------------------+-------------+
+| ``generation``    | Generation number of the segment,         | ``LONG``    |
+|                   | increments for each segment written.      |             |
++-------------------+-------------------------------------------+-------------+
+| ``num_docs``      | Number of non-deleted lucene documents    | ``INTEGER`` |
+|                   | in the segment.                           |             |
++-------------------+-------------------------------------------+-------------+
+| ``deleted_docs``  | Number of deleted lucene documents in the | ``INTEGER`` |
+|                   | segment.                                  |             |
++-------------------+-------------------------------------------+-------------+
+| ``size``          | Disk space used by the segment in bytes.  | ``LONG``    |
++-------------------+-------------------------------------------+-------------+
+| ``memory``        | Segment data stored in memory for         | ``LONG``    |
+|                   | efficient search, -1 if it is unavailable.|             |
++-------------------+-------------------------------------------+-------------+
+| ``committed``     | Indicates if the segments are synced to   | ``BOOLEAN`` |
+|                   | disk. Segments that are synced can survive|             |
+|                   | a hard reboot.                            |             |
++-------------------+-------------------------------------------+-------------+
+| ``primary``       | Describes if this segment is part of a    | ``BOOLEAN`` |
+|                   | primary shard.                            |             |
++-------------------+-------------------------------------------+-------------+
+| ``search``        | Indicates if the segment is searchable.   | ``BOOLEAN`` |
+|                   | If ``false``, the segment has most likely |             |
+|                   | been written to disk but needs a refresh  |             |
+|                   | to be searchable.                         |             |
++-------------------+-------------------------------------------+-------------+
+| ``version``       | Version of Lucene used to write the       | ``TEXT``    |
+|                   | segment.                                  |             |
++-------------------+-------------------------------------------+-------------+
+| ``compound``      | If ``true``, Lucene merges all files      | ``BOOLEAN`` |
+|                   | from the segment into a single file to    |             |
+|                   | save file descriptors.                    |             |
++-------------------+-------------------------------------------+-------------+
+| ``attributes``    | Contains information about whether high   | ``OBJECT``  |
+|                   | compression was enabled.                  |             |
++-------------------+-------------------------------------------+-------------+
+
+.. NOTE::
+
+    The information in the ``sys.segments`` table is expensive to calculate and
+    therefore this information should be retrieved with awareness that it can
+    have performance implications on the cluster.
+
+.. NOTE::
+
+    The ``sys.shards`` table is subject to :ref:`shard_table_permissions`.
+
 .. _jobs_operations_logs:
 
 Jobs, operations, and logs
@@ -1832,6 +1907,7 @@ node.
 .. NOTE::
 
    The ``sys.allocations`` table is subject to :ref:`shard_table_permissions`.
+
 
 .. _shard_table_permissions:
 

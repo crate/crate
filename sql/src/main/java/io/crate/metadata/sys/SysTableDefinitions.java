@@ -29,6 +29,7 @@ import io.crate.expression.reference.StaticTableDefinition;
 import io.crate.expression.reference.sys.check.SysCheck;
 import io.crate.expression.reference.sys.check.SysChecker;
 import io.crate.expression.reference.sys.check.node.SysNodeChecks;
+import io.crate.expression.reference.sys.shard.ShardSegments;
 import io.crate.expression.reference.sys.shard.SysAllocations;
 import io.crate.expression.reference.sys.snapshot.SysSnapshots;
 import io.crate.metadata.RelationName;
@@ -56,6 +57,7 @@ public class SysTableDefinitions {
                                RepositoriesService repositoriesService,
                                SysSnapshots sysSnapshots,
                                SysAllocations sysAllocations,
+                               ShardSegments shardSegmentInfos,
                                TableHealthService tableHealthService) {
         Supplier<DiscoveryNode> localNode = clusterService::localNode;
         tableDefinitions.put(SysJobsTableInfo.IDENT, new StaticTableDefinition<>(
@@ -116,6 +118,10 @@ public class SysTableDefinitions {
         tableDefinitions.put(SysMetricsTableInfo.NAME, new StaticTableDefinition<>(
             () -> completedFuture(jobsLogs.metrics()),
             SysMetricsTableInfo.expressions(localNode)
+        ));
+        tableDefinitions.put(SysSegmentsTableInfo.IDENT, new StaticTableDefinition<>(
+            () -> completedFuture(shardSegmentInfos),
+            SysSegmentsTableInfo.expressions(clusterService::localNode)
         ));
     }
 
