@@ -17,7 +17,7 @@ Synopsis
 
 ::
 
-    OPTIMIZE TABLE (table_ident [ PARTITION (partition_column=value [ , ... ])] [, ...] )
+    OPTIMIZE TABLE table_ident [ PARTITION (partition_column=value [ , ... ]) ] [, ...] 
     [ WITH ( optimization_parameter [= value] [, ... ] ) ]
 
 Description
