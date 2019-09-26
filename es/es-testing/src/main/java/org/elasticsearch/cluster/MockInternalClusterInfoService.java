@@ -96,6 +96,9 @@ public class MockInternalClusterInfoService extends InternalClusterInfoService {
 
     private List<NodeStats> adjustNodesStats(List<NodeStats> nodesStats) {
         BiFunction<DiscoveryNode, FsInfo.Path, FsInfo.Path> diskUsageFunction = this.diskUsageFunction;
+        if (diskUsageFunction == null) {
+            return nodesStats;
+        }
         return nodesStats.stream().map(nodeStats -> {
             final DiscoveryNode discoveryNode = nodeStats.getNode();
             final FsInfo oldFsInfo = nodeStats.getFs();
