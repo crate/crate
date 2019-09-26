@@ -90,12 +90,13 @@ public class DiskUsagesITest extends SQLTransportIntegrationTest {
                 "CLUSTERED INTO 10 SHARDS " +
                 "WITH (number_of_replicas = 0)");
         ensureGreen();
-        {
+        assertBusy(() -> {
             var shardCountByNodeId = getShardCountByNodeId();
             assertThat("node0 has at least 3 shards", shardCountByNodeId.get(nodeIds.get(0)), greaterThanOrEqualTo(3));
             assertThat("node1 has at least 3 shards", shardCountByNodeId.get(nodeIds.get(1)), greaterThanOrEqualTo(3));
             assertThat("node2 has at least 3 shards", shardCountByNodeId.get(nodeIds.get(2)), greaterThanOrEqualTo(3));
-        }
+        });
+
 
         // move node3 above high watermark
         clusterInfoService.diskUsageFunction = (discoveryNode, fsInfoPath) -> setDiskUsage(
